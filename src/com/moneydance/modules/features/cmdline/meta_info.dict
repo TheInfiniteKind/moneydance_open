@@ -1,0 +1,9 @@
+{
+  "vendor" = "Reilly Technologies, LLC"
+  "module_build" = "1"
+  "vendor.url" = "http://moneydance.com/"
+  "module_name" = "Command-line operations"
+  "module_desc" = "<html><body><title>Command-line Operations</title><p>This is an extension that provides a command-line interface to Moneydance.  For details on how to use this interface, send email to support@moneydance.com.</p></body></html>"
+  "desc" = "This is an extension that provides a command-line interface to Moneydance.  For details on how to use this interface, send email to support@moneydance.com."
+
+}

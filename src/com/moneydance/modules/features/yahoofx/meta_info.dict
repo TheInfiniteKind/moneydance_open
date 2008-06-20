@@ -1,0 +1,9 @@
+{
+  "vendor" = "Reilly Technologies, LLC"
+  "vendor.url" = "http://moneydance.com/"
+  "module_name" = "Yahoo! Exchange Rate Retriever"
+  "module_desc" = "<html><body><title>Yahoo! Exchange Rate Retriever</title><p>This is an extension that retrieves the latest currecy exchange rates from <a href=\"http://finance.yahoo.com\">finance.yahoo.com</a>!</p></body></html>"
+  "desc" = "This is an extension that retrieves the latest currency exchange rates from finance.yahoo.com"
+  "id" = yahoofx
+  "module_build" = 2
+}

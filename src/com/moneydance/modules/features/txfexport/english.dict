@@ -1,0 +1,16 @@
+{
+"main_desc" = "Please specify the time period for which you want Moneydance to gather tax information.  Also select the file where such information will be stored.  The resulting file can be used by tax preparation software that supports the TXF file format.  Press the Setup button to specify which accounts are tax-related."
+"start_date" = "Start Date "
+"end_date" = "End Date "
+"export_to" = "Export to file"
+"browse" = "Browse..."
+"export" = "Export"
+"cancel" = "Cancel"
+"setup" = "Setup"
+"setup_title" = "Setting Up Tax Categories"
+"setup_desc" = "Select the Moneydance income or expense category on the left and specify the associated line/form (if any) on the right."
+"done" = "Done"
+"clear" = "Clear"
+"category" = "Income/Expense Category"
+"tax_cat" = "Tax Category"
+}

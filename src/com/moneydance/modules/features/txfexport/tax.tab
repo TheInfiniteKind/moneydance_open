@@ -1,0 +1,3458 @@
+{
+"329" = {
+"irs" = "2000:E:6"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Auto and travel"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"328" = {
+"irs" = "2000:E:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Advertising"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"327" = {
+"irs" = "2000:E:4"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule E:Royalties received"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"326" = {
+"irs" = "2000:E:3"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule E:Rents received"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"324" = {
+"irs" = "1992:D:9d"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2P:LT gain/loss - other"
+"form_num" = "4"
+"copy" = "Y"
+}
+
+"323" = {
+"irs" = "2000:D:8"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule D:LT gain/loss - security"
+"form_num" = "4"
+"copy" = "Y"
+}
+
+"322" = {
+"irs" = "1992:D:1d"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2P:ST gain/loss - other"
+"form_num" = "4"
+"copy" = "Y"
+}
+
+"289" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:State and mun. bond int."
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"321" = {
+"irs" = "2000:D:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule D:ST gain/loss - security"
+"form_num" = "4"
+"copy" = "Y"
+}
+
+"288" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:US govt. interest"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"287" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Interest income"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"286" = {
+"irs" = "2000:B:5"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Dividend income"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"284" = {
+"irs" = "2000:A:12"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Points paid"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"283" = {
+"irs" = "2000:A:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Home mortgage int. (1098)"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"282" = {
+"irs" = "2000:A:22"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Investment man. fees"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"281" = {
+"irs" = "2000:A:21"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Tax preparation fees"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"280" = {
+"irs" = "2000:A:15"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Cash charity contributions"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"319" = {
+"irs" = "2000:C:A"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule C:Principal business/prof"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"318" = {
+"irs" = "2000:C:25"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Utilities"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"676" = {
+"irs" = "2000:1099-MISC:13Epp"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Excess golden parachute"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"317" = {
+"irs" = "2000:C:24a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Travel"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"675" = {
+"irs" = "2000:1099-MISC:13A"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Gross proceeds to atty "
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"316" = {
+"irs" = "2000:C:23"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Taxes and licenses"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"674" = {
+"irs" = "2000:1099-MISC:8"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Substitute payments  "
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"315" = {
+"irs" = "2000:C:21"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Repairs and maintenance"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"314" = {
+"irs" = "2000:C:19"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Pension and profit shrg"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"673" = {
+"irs" = "2000:D"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule D:Short/Long gain or loss"
+"form_num" = "4"
+"copy" = "Y"
+}
+
+"672" = {
+"irs" = "2000:1099-G:5"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-G:Qualified state tuition"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"313" = {
+"irs" = "2000:C:18"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Office expense"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"671" = {
+"irs" = "2000:1099R:2b"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Pension Total distribution"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"312" = {
+"irs" = "2000:C:16b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Interest expense, other"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"670" = {
+"irs" = "2000:1099R:2b"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Pension Tax. not determined"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"311" = {
+"irs" = "2000:C:16a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Interest expense, mortgage"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"310" = {
+"irs" = "2000:C:15"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Insurance (not health)"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"277" = {
+"irs" = "2000:A:8"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Other taxes"
+"form_num" = "3"
+"copy" = "N"
+}
+
+"276" = {
+"irs" = "2000:A:6"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Real estate tax"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"275" = {
+"irs" = "2000:A:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:State taxes"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"274" = {
+"irs" = "2000:A:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Med. transport/lodging"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"273" = {
+"irs" = "2000:A:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Medicine and drugs"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"272" = {
+"irs" = "2000:A:27"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Gambling losses"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"271" = {
+"irs" = "2000:A:20"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Subscriptions"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"669" = {
+"irs" = "2000:1099R:11"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Pension State ID"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"668" = {
+"irs" = "2000:1099R:7b"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Pension Distrib code 7b"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"309" = {
+"irs" = "2000:C:12"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Depletion"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"667" = {
+"irs" = "2000:1099R:7a"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Pension Distrib code 7A"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"308" = {
+"irs" = "2000:C:14"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Employee benefits progs."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"666" = {
+"irs" = "2000:1099R:2b"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Total distribution"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"307" = {
+"irs" = "2000:C:11"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Commissions and fees"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"665" = {
+"irs" = "2000:1099R:2b"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Taxable not determined"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"306" = {
+"irs" = "2000:C:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Car and truck expenses"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"664" = {
+"irs" = "2000:1099R:11"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:State ID"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"305" = {
+"irs" = "2000:C:9"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Bad debts"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"663" = {
+"irs" = "2000:1099OID:7"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "1099 OID:Investment Expense, OID"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"304" = {
+"irs" = "2000:C:8"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Advertising"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"662" = {
+"irs" = "2000:1099OID:6"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "1099 OID:OID, US treas obligl"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"303" = {
+"irs" = "2000:C:6"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule C:Other business income"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"661" = {
+"irs" = "2000:1099OID:5"
+"sign" = "S"
+"sort" = "A"
+"cat_name" = "1099 OID:Description"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"302" = {
+"irs" = "2000:C:27"
+"sign" = "E"
+"sort" = "C"
+"cat_name" = "Schedule C:Other business expense"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"660" = {
+"irs" = "2000:1099OID:4"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "1099 OID:Fed tax wheld, OID"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"269" = {
+"irs" = "2000:1040:7"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:Taxable fringe benefits"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"301" = {
+"irs" = "2000:C:22"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Supplies"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"268" = {
+"irs" = "2000:1040:59"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Fed. estimated tax"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"300" = {
+"irs" = "2000:C:20b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Rent on other bus prop"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"267" = {
+"irs" = "2000:W2:13"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2:Moving exp. reimb."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"266" = {
+"irs" = "2000:1040:20a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:Soc. Sec. income"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"265" = {
+"irs" = "2000:1040:30"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Early withd penalty"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"264" = {
+"irs" = "2000:1040:31a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Alimony paid"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"263" = {
+"irs" = "2000:1040:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Keogh deduction"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"262" = {
+"irs" = "2000:1040:23"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:IRA contribution self"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"261" = {
+"irs" = "2000:1040:11"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:Alimony received"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"260" = {
+"irs" = "2000:1099-G:2"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-G:State and local refunds"
+"form_num" = "1"
+"copy" = "y"
+}
+
+"659" = {
+"irs" = "2000:1099OID:3"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "1099 OID:Early wdrawal pen, OID"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"658" = {
+"irs" = "2000:1099OID:2"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "1099 OID:Other periodic int,OID"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"656" = {
+"irs" = "2000:1099R:7b"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Distribution code 7b"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"655" = {
+"irs" = "2000:1099R:7a"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Distribution code 7A"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"654" = {
+"irs" = "2000:1099-MISC"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099-MISC:State ID"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"653" = {
+"irs" = "2000:1099Int:5"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "1099 INT:Intestment expense, int"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"652" = {
+"irs" = "2000:1099Div:9"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "1099 Div:Non-cash liquidation"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"651" = {
+"irs" = "2000:1099Div:8"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "1099 Div:Cash liquidation"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"650" = {
+"irs" = "2000:1099Div:7"
+"sign" = "S"
+"sort" = "A"
+"cat_name" = "1099 Div:Foreign country, div"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"259" = {
+"irs" = "2000:1040:21"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:Prizes, awards"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"258" = {
+"irs" = "2000:1040:7"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:Sick pay or disab. pay"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"257" = {
+"irs" = "2000:1040:21"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:Other income-misc."
+"form_num" = "1"
+"copy" = "N"
+}
+
+"649" = {
+"irs" = "2000:1099Div:6"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "1099 Div:Foreign tax, div"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"648" = {
+"irs" = "2000:1099Div:5"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "1099 Div:Investment Expense, div"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"647" = {
+"irs" = "2000:1099Div:3"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "1099 Div:NonTaxable distributions"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"646" = {
+"irs" = "2000:D:8"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule D:Sec 1202 gain"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"645" = {
+"irs" = "2000:D:25"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule D:Unrec sec 1250"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"644" = {
+"irs" = "2000:D:13b"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule D:28% cap gain"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"642" = {
+"irs" = "2000:1099Int:7"
+"sign" = "S"
+"sort" = "A"
+"cat_name" = "1099 INT:Foreign country, int"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"641" = {
+"irs" = "2000:1099Int:6"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "1099 INT:Foreign tax, int"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"638" = {
+"irs" = "2000:8863:4c"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8863:Lifetime cr. qual. expenses"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"637" = {
+"irs" = "2000:8863:1c"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8863:Hope cr. qual. expenses"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"636" = {
+"irs" = "2000:1040:24	"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Student loan interest"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"635" = {
+"irs" = "2000:1099-G"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099-G:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"633" = {
+"irs" = "2000:1099-MSA"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099-MSA:Payer"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"632" = {
+"irs" = "2000:1099-MSA:2"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MSA:MSA earnings-excess contrib"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"631" = {
+"irs" = "2000:1099-MSA:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MSA:MSA gross distribution"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"599" = {
+"irs" = "2000:4835:27"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Taxes"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"630" = {
+"irs" = "2000:1099-MSA"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099-MSA:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"598" = {
+"irs" = "2000:4835:26"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Supplies purchased"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"597" = {
+"irs" = "2000:4835:25"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Storage and warehousing"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"596" = {
+"irs" = "2000:4835:24"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Seeds and plants purchased"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"595" = {
+"irs" = "2000:4835:23"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Repairs and maintenance"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"594" = {
+"irs" = "2000:4835:22b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Rent/lease land, animals"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"593" = {
+"irs" = "2000:4835:22a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Rent/lease vehicles, equip."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"592" = {
+"irs" = "2000:4835:21"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Pension/profit-sharing plans"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"591" = {
+"irs" = "2000:4835:20"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Labor hired"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"590" = {
+"irs" = "2000:4835:19b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Interest expense, other"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"628" = {
+"irs" = "2000:1099R"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:SIMPLE Payer"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"627" = {
+"irs" = "2000:1099R:13"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:SIMPLE local withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"626" = {
+"irs" = "2000:1099R:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:SIMPLE state withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"625" = {
+"irs" = "2000:1099R:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:SIMPLE federal withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"624" = {
+"irs" = "2000:1099R:2a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099R:SIMPLE total distrib-taxable"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"623" = {
+"irs" = "2000:1099R:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099R:SIMPLE total distrib-gross"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"622" = {
+"irs" = "2000:8839:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8839:Other expenses"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"589" = {
+"irs" = "2000:4835:19a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Interest expense, mortgage"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"621" = {
+"irs" = "2000:8839:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8839:Traveling expenses"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"588" = {
+"irs" = "2000:4835:18"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Insurance(other than health)"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"620" = {
+"irs" = "2000:8839:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8839:Attorney fees"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"587" = {
+"irs" = "2000:4835:17"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Gasoline, fuel, and oil"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"586" = {
+"irs" = "2000:4835:16"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Freight and trucking"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"585" = {
+"irs" = "2000:4835:15"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Fertilizers and lime"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"584" = {
+"irs" = "2000:4835:14"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Feed purchased"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"583" = {
+"irs" = "2000:4835:13"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Employee benefit programs"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"582" = {
+"irs" = "2000:4835:11"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Custom hire (machine work)"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"581" = {
+"irs" = "2000:4835:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Conservation expenses"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"580" = {
+"irs" = "2000:4835:9"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Chemicals"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"619" = {
+"irs" = "2000:8839:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8839:Court costs"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"618" = {
+"irs" = "2000:8839:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8839:Adoption fees"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"616" = {
+"irs" = "2000:1040:58"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "Schedule B:Fed tax w/h, interest income"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"615" = {
+"irs" = "2000:1040:58"
+"sign" = "E"
+"sort" = "A"
+"cat_name" = "Schedule B:Fed tax w/h, dividend income"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"614" = {
+"irs" = "2000:1040:58"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Fed tax w/h,RR retire,spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"613" = {
+"irs" = "2000:1040:58"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Fed tax w/h, RR retire inc."
+"form_num" = "1"
+"copy" = "N"
+}
+
+"612" = {
+"irs" = "2000:1040:58"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Fed tax w/h,Soc. Sec.,spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"579" = {
+"irs" = "2000:4835:8"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Car and truck expenses"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"611" = {
+"irs" = "2000:1040:58"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Fed tax w/h, Soc. Sec. inc."
+"form_num" = "1"
+"copy" = "N"
+}
+
+"578" = {
+"irs" = "2000:4835:6"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:Other income"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"610" = {
+"irs" = "2000:1040:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:SIMPLE contrib, spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"577" = {
+"irs" = "2000:4835:5d"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:Crop ins. proceeds deferred"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"576" = {
+"irs" = "2000:4835:5a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:Crop ins. proceeds rec'd"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"575" = {
+"irs" = "2000:4835:4b"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:CCC loans forfeited/repaid"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"574" = {
+"irs" = "2000:4835:4a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:CCC loans reported/election"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"573" = {
+"irs" = "2000:4835:3a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:Agricultural program paymnts"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"572" = {
+"irs" = "2000:4835:2a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:Total co-op distributions"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"571" = {
+"irs" = "2000:4835:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4835:Sale of livestock/produce"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"570" = {
+"irs" = "2000:4835"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Form 4835:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"609" = {
+"irs" = "2000:1040:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:SIMPLE contrib, self"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"608" = {
+"irs" = "2000:1040:25"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Med savings contrib, spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"607" = {
+"irs" = "2000:1040:25"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Med savings contrib, self"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"606" = {
+"irs" = "2000:1099-G:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099-G:Fed tax w/h,unemploymt comp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"605" = {
+"irs" = "2000:1099-G:1a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099-G:Unemployment comp repaid"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"604" = {
+"irs" = "2000:1099R"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:IRA Payer"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"603" = {
+"irs" = "2000:1099R"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Pension Payer"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"602" = {
+"irs" = "2000:4835:30"
+"sign" = "E"
+"sort" = "C"
+"cat_name" = "Form 4835:Other expenses"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"601" = {
+"irs" = "2000:4835:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Vet, breeding, medicine"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"568" = {
+"irs" = "2000:H:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule H:Federal tax withheld"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"600" = {
+"irs" = "2000:4835:28"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4835:Utilities"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"567" = {
+"irs" = "2000:H:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule H:Cash wages paid"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"566" = {
+"irs" = "1995:H"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "W-2P:Spouse"
+"form_num" = "0"
+"copy" = "N"
+}
+
+"564" = {
+"irs" = "2000:1099-MISC"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099-MISC:Payer"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"563" = {
+"irs" = "2000:1099-MISC:11"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099-MISC:State tax withheld"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"562" = {
+"irs" = "2000:1099-MISC:10"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Crop insurance proceeds"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"561" = {
+"irs" = "2000:1099-MISC:7"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Nonemployee compensation"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"560" = {
+"irs" = "2000:1099-MISC:6"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Medical/health payments"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"559" = {
+"irs" = "2000:1099-MISC:5"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Fishing boat proceeds"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"558" = {
+"irs" = "2000:1099-MISC:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099-MISC:Federal tax withheld"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"557" = {
+"irs" = "2000:1099-MISC:3"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Other income"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"556" = {
+"irs" = "2000:1099-MISC:2"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Royalties"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"555" = {
+"irs" = "2000:1099-MISC:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-MISC:Rents"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"554" = {
+"irs" = "2000:1099-MISC"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099-MISC:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"552" = {
+"irs" = "2000:W-2G"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "W-2G:Payer"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"551" = {
+"irs" = "2000:W-2G:14"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2G:State tax withheld"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"550" = {
+"irs" = "2000:W-2G:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2G:Federal tax withheld"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"549" = {
+"irs" = "2000:W-2G:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2G:Gross winnings"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"548" = {
+"irs" = "2000:W-2G"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "W-2G:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"546" = {
+"irs" = "2000:W2:13"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2:Moving exp. reimb., spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"545" = {
+"irs" = "2000:A:11"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Home mortgage int. (no 1098)"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"544" = {
+"irs" = "2000:A:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Local taxes"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"543" = {
+"irs" = "2000:F:12"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Car and truck expense"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"542" = {
+"irs" = "2000:8829:20b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8829:Other expenses"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"541" = {
+"irs" = "2000:8829:19b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8829:Utilities"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"540" = {
+"irs" = "2000:8829:18b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8829:Repairs and maintenance"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"539" = {
+"irs" = "2000:8829:17b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8829:Insurance"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"538" = {
+"irs" = "2000:8829:11b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8829:Real estate taxes"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"537" = {
+"irs" = "2000:8829:10b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8829:Deductible mortgage interest"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"535" = {
+"irs" = "2000:A:7"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Personal property taxes"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"534" = {
+"irs" = "2000:1099R:13"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:IRA local withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"533" = {
+"irs" = "2000:1099R:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:IRA state withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"532" = {
+"irs" = "2000:1099R:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:IRA federal withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"531" = {
+"irs" = "2000:1099R:13"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:Pension local withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"499" = {
+"irs" = "2000:CEZ:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule C-EZ:Gross receipts"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"530" = {
+"irs" = "2000:1099R:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:Pension state withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"498" = {
+"irs" = "2000:CEZ"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule C-EZ:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"496" = {
+"irs" = "2000:C:39"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Other costs, cost of goods"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"495" = {
+"irs" = "2000:C:38"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Materials, cost of goods"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"494" = {
+"irs" = "2000:C:37"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Labor, cost of goods sold"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"493" = {
+"irs" = "2000:C:36"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Purchases, cost of goods"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"492" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Int inc., orig issue disc"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"491" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Int inc., fed-non, state-tax"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"490" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Int inc., fed-tax, state-non"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"529" = {
+"irs" = "2000:1099R:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "1099R:Pension federal withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"528" = {
+"irs" = "2000:K1:19"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Tax-exempt interest"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"527" = {
+"irs" = "2000:K1:4c"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Royalties"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"526" = {
+"irs" = "2000:3903"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Form 3903:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"525" = {
+"irs" = "1999:HomeWks"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"524" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Seller financed mtge int."
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"523" = {
+"irs" = "2000:A:27"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Misc. (not subject to 2%)"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"522" = {
+"irs" = "2000:A:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:State est. tax, qrtrly"
+"form_num" = "6"
+"copy" = "N"
+}
+
+"489" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Interest inc., non-taxable"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"521" = {
+"irs" = "2000:1040:59"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Fed est. tax, qrtrly"
+"form_num" = "6"
+"copy" = "N"
+}
+
+"488" = {
+"irs" = "2000:D:13"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Div inc., capital gain dist"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"520" = {
+"irs" = "2000:1040:20a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:RR retirement inc, spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"487" = {
+"irs" = "2000:1040:8b"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:Div inc., non-taxable"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"486" = {
+"irs" = "2000:A:22"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Misc. (subject to 2%)"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"485" = {
+"irs" = "2000:A:16"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Non-cash charity contrib"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"484" = {
+"irs" = "2000:A:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule A:Doctors, dentists, hosp."
+"form_num" = "1"
+"copy" = "N"
+}
+
+"483" = {
+"irs" = "2000:1040:20a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:Soc. Sec. income, spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"482" = {
+"irs" = "2000:1040:23"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:IRA contrib,non-work spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"481" = {
+"irs" = "2000:1040:23"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:IRA contribution spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"480" = {
+"irs" = "2000:W2:6"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Medicare tax withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"519" = {
+"irs" = "2000:1040:20a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 1040:RR retirement income"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"518" = {
+"irs" = "2000:1040:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:SEP deduction, spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"517" = {
+"irs" = "2000:1040:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:SEP deduction"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"516" = {
+"irs" = "2000:1040:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 1040:Keogh deduction, spouse"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"515" = {
+"irs" = "2000:8606"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Form 8606:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"514" = {
+"irs" = "2000:F"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule F:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"513" = {
+"irs" = "2000:W2:c"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "W-2:Payer, spouse"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"512" = {
+"irs" = "2000:W2:10"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2:Dependent care ben., spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"479" = {
+"irs" = "2000:1099-G:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099-G:Unemployment comp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"511" = {
+"irs" = "2000:W2:18"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:State withholding, spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"478" = {
+"irs" = "2000:1099R:2a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099R:IRA total dist - taxable"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"510" = {
+"irs" = "2000:W2:6"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Medicare tax withhld, spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"477" = {
+"irs" = "2000:1099R:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099R:IRA total dist - gross"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"476" = {
+"irs" = "2000:1099R:2a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099R:Pension total dist - taxable"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"475" = {
+"irs" = "2000:1099R:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "1099R:Pension total dist - gross"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"474" = {
+"irs" = "2000:1099R"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "1099R:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"472" = {
+"irs" = "1990:W-2P:10"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2P:IRA distributions - taxable"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"471" = {
+"irs" = "1990:W-2P:9"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2P:IRA distributions - gross"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"470" = {
+"irs" = "1990:W-2P:10"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2P:Pensions and annuities-txble"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"509" = {
+"irs" = "2000:W2:21"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Local withholding, spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"508" = {
+"irs" = "2000:W2:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Soc Sec tax withhld, spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"507" = {
+"irs" = "2000:W2:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Federal withholding,spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"506" = {
+"irs" = "2000:W2:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2:Salary, spouse"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"505" = {
+"irs" = "1999:4137:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4137:Cash/charge tips received"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"504" = {
+"irs" = "1999:4137"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Form 4137:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"502" = {
+"irs" = "2000:E:11"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Management fees"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"469" = {
+"irs" = "1990:W-2P:9"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2P:Pensions and annuities-gross"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"501" = {
+"irs" = "2000:CEZ:A"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule C-EZ:Principal business/prof"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"468" = {
+"irs" = "1990:W-2P:"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2P:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"500" = {
+"irs" = "2000:CEZ:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C-EZ:Total expenses"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"466" = {
+"irs" = "2000:W2:c"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "W-2:Payer"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"465" = {
+"irs" = "2000:W2:10"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2:Dependent care benefits"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"464" = {
+"irs" = "2000:W2:18"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:State withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"463" = {
+"irs" = "2000:W2:21"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Local withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"462" = {
+"irs" = "2000:W2:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Soc Sec tax withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"461" = {
+"irs" = "2000:W2:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2:Federal withholding"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"460" = {
+"irs" = "2000:W2:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "W-2:Salary"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"459" = {
+"irs" = "1995:W2"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "W-2P:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"457" = {
+"irs" = "2000:K1:A"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Partnership or S corp name"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"456" = {
+"irs" = "2000:K1:6"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Net sec 1231 gain/loss"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"455" = {
+"irs" = "2000:K1:5"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Guaranteed payments"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"454" = {
+"irs" = "2000:K1:4e"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Net LT capital gain/loss"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"453" = {
+"irs" = "2000:K1:4d"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Net ST capital gain/loss"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"452" = {
+"irs" = "2000:K1:4b"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Dividends"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"451" = {
+"irs" = "2000:K1:4a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Interest income"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"450" = {
+"irs" = "2000:K1:3"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Other rental income/loss"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"449" = {
+"irs" = "2000:K1:2"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Rental real est. inc/loss"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"448" = {
+"irs" = "2000:K1:1"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Ordinary income/loss"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"447" = {
+"irs" = "2000:K1:"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule K-1 Worksheet:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"445" = {
+"irs" = "2000:8815:6"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 8815:Post-89 EE bond face value"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"444" = {
+"irs" = "2000:8815:5"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 8815:EE US svgs bonds proceeds"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"443" = {
+"irs" = "2000:8815:3"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 8815:Nontaxable ed. benefits"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"442" = {
+"irs" = "2000:8815:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8815:Qual. higher ed. expenses"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"440" = {
+"irs" = "2000:8606:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8606:IRA basis at beg of year"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"439" = {
+"irs" = "2000:8606:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8606:IRA contribs-nondeductible"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"438" = {
+"irs" = "2000:8606:6"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 8606:IRAs value at end of year"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"436" = {
+"irs" = "1999:6252:1"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Form 6252:Description of property"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"435" = {
+"irs" = "1999:6252:23"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 6252:Payments recd prior years"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"434" = {
+"irs" = "1999:6252:21"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 6252:Payments recd this year"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"433" = {
+"irs" = "1999:6252:19"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 6252:Gross profit percentage"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"432" = {
+"irs" = "1999:6252:11"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 6252:Expenses of sale"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"399" = {
+"irs" = "1999:WksPart3:11a"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Date moved into new home"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"431" = {
+"irs" = "1999:6252:9"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 6252:Depreciation allowed"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"398" = {
+"irs" = "1999:HomeWks"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Date old home sold"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"430" = {
+"irs" = "1999:6252:8"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 6252:Basis of property sold"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"397" = {
+"irs" = "1999:HomeWksPart3:11b"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Cost of new home"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"396" = {
+"irs" = "1999:HomeWksPart3:8"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Fixing-up expenses"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"395" = {
+"irs" = "1999:HomeWks:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Basis of home sold"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"394" = {
+"irs" = "1999:HomeWks:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Expense of sale"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"393" = {
+"irs" = "1999:HomeWks:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Home Sale Worksheets:Selling price of old home"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"391" = {
+"irs" = "1999:2106:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Emp home office exp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"390" = {
+"irs" = "1999:2106:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Special clothing exp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"429" = {
+"irs" = "1999:6252:6"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 6252:Debt assumed by buyer"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"428" = {
+"irs" = "1999:6252:5"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 6252:Selling price"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"426" = {
+"irs" = "1999:4952:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4952:Investment interest expense"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"424" = {
+"irs" = "1999:4797:10"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Form 4797:ST dep. prop. - res. rent."
+"form_num" = "5"
+"copy" = "N"
+}
+
+"423" = {
+"irs" = "1999:4797:2"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4797:LT dep. gain - res. rent."
+"form_num" = "5"
+"copy" = "N"
+}
+
+"422" = {
+"irs" = "1999:4797:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4797:LT dep. loss - res. rent."
+"form_num" = "5"
+"copy" = "N"
+}
+
+"389" = {
+"irs" = "1999:2106:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Job seeking exp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"421" = {
+"irs" = "1999:4797:10"
+"sign" = "B"
+"sort" = "N"
+"cat_name" = "Form 4797:ST dep. prop. - business"
+"form_num" = "5"
+"copy" = "N"
+}
+
+"388" = {
+"irs" = "1999:2106:7,B"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 2106:Emp. meal exp reimb"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"420" = {
+"irs" = "1999:4797:2"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4797:LT dep. gain - business"
+"form_num" = "5"
+"copy" = "N"
+}
+
+"387" = {
+"irs" = "1999:2106:7,A"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 2106:Emp. expense reimb."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"386" = {
+"irs" = "1999:2106:5"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Meal and entertain. exp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"385" = {
+"irs" = "1999:2106:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Other bus. exp."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"384" = {
+"irs" = "1999:2106:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Local transportation"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"383" = {
+"irs" = "1999:2106:3"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Travel"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"382" = {
+"irs" = "1999:2106:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Automobile exp."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"381" = {
+"irs" = "1999:2106:4"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2106:Education expense"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"419" = {
+"irs" = "1999:4797:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4797:LT dep. loss - business"
+"form_num" = "5"
+"copy" = "N"
+}
+
+"417" = {
+"irs" = "1999:4684:1"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Form 4684:Description of property"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"416" = {
+"irs" = "1999:4684:6"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4684:FMV after casualty"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"415" = {
+"irs" = "1999:4684:5"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4684:FMV before casualty"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"414" = {
+"irs" = "1999:4684:3"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Form 4684:Insurance/reimb"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"413" = {
+"irs" = "1999:4684:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 4684:Basis of casualty prop"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"411" = {
+"irs" = "1993:3903:15"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Moving purch. cost"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"379" = {
+"irs" = "2000:F:A"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule F:Principal product"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"410" = {
+"irs" = "1993:3903:14"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Moving sale cost"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"378" = {
+"irs" = "2000:F:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Cost livestock for resale"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"377" = {
+"irs" = "2000:F:10"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Other farm income"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"376" = {
+"irs" = "2000:F:8d"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Crop ins. proceeds-defd"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"375" = {
+"irs" = "2000:F:8a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Crop ins. proceeds-recd"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"374" = {
+"irs" = "2000:F:7b"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:CCC loans-forfeited"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"373" = {
+"irs" = "2000:F:7a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:CCC loans-election"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"372" = {
+"irs" = "2000:F:6a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Agric. pgm payments"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"371" = {
+"irs" = "2000:F:5a"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Coop. distributions"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"370" = {
+"irs" = "2000:F:9"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Custom hire (machine work)"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"409" = {
+"irs" = "1993:3903:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Temp. living exp."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"408" = {
+"irs" = "1993:3903:9"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Pre-moving expense"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"407" = {
+"irs" = "2000:3903:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 3903:Travel and lodging"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"406" = {
+"irs" = "2000:3903:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 3903:Trans./store hshld goods"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"405" = {
+"irs" = "1993:3903:11"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Meals househunting & temp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"404" = {
+"irs" = "1993:3903:6"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Meals during moving"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"402" = {
+"irs" = "2000:2441:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2441:Child care - household"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"369" = {
+"irs" = "2000:F:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Resales of livestock"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"401" = {
+"irs" = "2000:2441:1"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Form 2441:Child care - day care"
+"form_num" = "1"
+"copy" = "N"
+}
+
+"368" = {
+"irs" = "2000:F:4"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule F:Sales livestock/crops raised"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"367" = {
+"irs" = "2000:F:15"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Custom hire (mach. work)"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"366" = {
+"irs" = "2000:F:13"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Chemicals"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"365" = {
+"irs" = "2000:F:34"
+"sign" = "E"
+"sort" = "C"
+"cat_name" = "Schedule F:Other farm expenses"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"364" = {
+"irs" = "2000:F:17"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Employee benefit prog."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"363" = {
+"irs" = "2000:F:25"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Pension and profit shrg"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"362" = {
+"irs" = "2000:F:14"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Conservation expense"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"361" = {
+"irs" = "2000:F:20"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Freight and trucking"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"360" = {
+"irs" = "2000:F:32"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Utilities"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"359" = {
+"irs" = "2000:F:22"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Insurance (not health)"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"358" = {
+"irs" = "2000:F:31"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Taxes"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"357" = {
+"irs" = "2000:F:29"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Storage and warehousing"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"356" = {
+"irs" = "2000:F:21"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Gasoline, fuel, oil"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"355" = {
+"irs" = "2000:F:33"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Vet, breeding and medicine"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"354" = {
+"irs" = "1993:F:33"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Breeding fees"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"353" = {
+"irs" = "2000:F:30"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Supplies purchased"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"352" = {
+"irs" = "2000:F:19"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Fertilizers and lime"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"351" = {
+"irs" = "2000:F:28"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Seed and plants purchased"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"350" = {
+"irs" = "2000:F:18"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Feed purchased"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"349" = {
+"irs" = "2000:F:26a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Rent-veh., mach., equip."
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"348" = {
+"irs" = "2000:F:26b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Rent-land, animals"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"347" = {
+"irs" = "2000:F:23b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Interest expense-other"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"346" = {
+"irs" = "2000:F:23a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Interest expense-mort"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"345" = {
+"irs" = "2000:F:27"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Repairs and maintenance"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"344" = {
+"irs" = "2000:F:24"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule F:Labor hired"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"342" = {
+"irs" = "2000:E:1"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule E:Kind/location of property"
+"form_num" = "2"
+"copy" = "Y"
+}
+
+"341" = {
+"irs" = "2000:E:18"
+"sign" = "E"
+"sort" = "C"
+"cat_name" = "Schedule E:Other expenses"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+"340" = {
+"irs" = "1990:E:17"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Wages paid"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"339" = {
+"irs" = "2000:E:17"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Utilities"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"338" = {
+"irs" = "2000:E:16"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Taxes"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"337" = {
+"irs" = "2000:E:15"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Supplies"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"336" = {
+"irs" = "2000:E:14"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Repairs"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"335" = {
+"irs" = "2000:E:13"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Other interest expense"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"334" = {
+"irs" = "2000:E:12"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Mortgage interest exp"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"333" = {
+"irs" = "2000:E:10"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Legal and professional"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"332" = {
+"irs" = "2000:E:9"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Insurance"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"299" = {
+"irs" = "2000:C:20a"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Rent on vehicles, mach, eq"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"331" = {
+"irs" = "2000:E:8"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Commissions"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"298" = {
+"irs" = "2000:C:17"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Legal and professional"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"330" = {
+"irs" = "2000:E:7"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule E:Cleaning and maintenance"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"297" = {
+"irs" = "2000:C:26"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Wages paid"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"296" = {
+"irs" = "2000:C:2"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Returns and allowances"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"295" = {
+"irs" = "1992:C:37"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "W-2P:Cost of goods sold"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"294" = {
+"irs" = "2000:C:24b"
+"sign" = "E"
+"sort" = "N"
+"cat_name" = "Schedule C:Meals and entertainment"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"293" = {
+"irs" = "2000:C:1"
+"sign" = "I"
+"sort" = "N"
+"cat_name" = "Schedule C:Gross receipts"
+"form_num" = "1"
+"copy" = "Y"
+}
+
+"292" = {
+"irs" = "2000:C"
+"sign" = "S"
+"sort" = "N"
+"cat_name" = "Schedule C:Spouse"
+"form_num" = "0"
+"copy" = "Y"
+}
+
+"290" = {
+"irs" = "2000:B:1"
+"sign" = "I"
+"sort" = "A"
+"cat_name" = "Schedule B:TE priv. act. bond int"
+"form_num" = "3"
+"copy" = "Y"
+}
+
+}

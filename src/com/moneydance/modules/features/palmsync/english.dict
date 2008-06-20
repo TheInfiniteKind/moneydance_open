@@ -1,0 +1,106 @@
+{
+none = "<none>"
+create_bank_acct = "<new bank account>"
+create_cc_acct = "<new credit card account>"
+
+"config_settings" = "Configure Synchronization Settings"
+"from_payment" = "Payment Type"
+"from_acct" = "From Account"
+"to_acct" = "To Account"
+"select_pocketmoney_mapping" = "Select the Moneydance accounts (on right) that correspond to the following Pocketmoney accounts (on left) :"
+
+"select_expense_mapping" = "Select the Moneydance accounts (on right) that correspond to the following Expense payment types (on left) : "
+
+"select_splashmoney_mapping" = "Select the Moneydance accounts (on right) that correspond to the following Splashmoney accounts (on left) :"
+
+"help_title" = "Help"
+
+"done_button_label" = "Done"
+
+"trans_to_file" = " Transactions to File in "
+
+"accept_button_label" = "Accept"
+
+"merge/accept_all_button_label" = "Merge/Accept All"
+
+"reject_all_button_label" = "Reject All"
+
+"merge_button_label" = "Merge"
+select_pdbdir = "Please select the location of your Palm's backup files.  The backup files are usually located under the Applications/Palm/<username>/Backup folder, where <username> is the name that you specified when configuring the Palm synchronization software"
+
+select_splashdir = "Please select the location where the Splash-Money conduit places the QIF files when synchronizing your Palm.  Also, make sure that the Splash Money conduit is configured to only put the new transactions in this location."
+
+"finish_button_label" = "Finish"
+"next_account_button_label" = "Next Account"
+"reject_button_label" = "Reject"
+"browse_button_label" = "Browse"
+"configure_button_label" = "Configure..."
+"help_button_label" = "Help"
+
+"choose_program" = "Palm Application: "
+
+"location_of_files" = "Location of Palm Back-Up Files :"
+"backup_dir" = "Palm Backup Folder"
+"splashqif_dir" = "QIF Folder"
+
+"Expense Application" = "Expense Application"
+"Pocketmoney" = "Pocketmoney"
+"Splashmoney" = "Splashmoney"
+
+error = "Error"
+cant_read_accts = "Error: Unable to find account list"
+"no_directory" = "No Directory Selected"
+"sync_at_start" = "Synchronize at start-up?"
+"sync_now" = "Synchronize Now"
+"choose_directory" = "Choose Directory"
+
+"invalid_directory" = "DIRECTORY MISSING FILES"
+"directory_does_not_contain" = "The folder selected for Palm synchronization is not correct.  It should contain the following file(s): "
+
+"select_valid_directory" = "In order to synchronize, please select a valid directory that contains these files"
+"no_new_transactions" = "NO NEW TRANSACTIONS"
+"no_new_txns" = "There are no new transactions."
+
+"transaction_window_message" = "Press \"Merge\" to merge with an existing transaction.  Press \"Accept\" to accept all selected transactions, or \"Merge/Accept All\" to merge all transactions that can be merged, and accept all other transactions.  Press \"Next Account\" to move to the next account"
+
+"may_correspond_date" = "May correspond to the following transaction :  Date : "
+"may_correspond_amount" = "  Amount : "
+"may_correspond_description" = "   Description : "
+
+
+"." = "."
+"OK" = "OK"
+"cancel" = "Cancel"
+
+"date_table_header" = "Date"
+"desc_table_header" = "Description"
+"category_table_header" = "Category"
+"amount_table_header" = "Amount"
+
+
+
+
+
+"AmEx" = "AmEx"
+"Cash" = "Cash"
+"Unfiled" = "Unfiled"
+"Check" = "Check"
+"Credit Card" = "Credit Card"
+"Prepaid" = "Prepaid"
+"VISA" = "VISA"
+"MasterCard" = "MasterCard"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}

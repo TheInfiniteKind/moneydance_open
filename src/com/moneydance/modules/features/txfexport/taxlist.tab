@@ -1,0 +1,470 @@
+{
+"1099-MISC" = {
+"654" = "State ID"
+"676" = "Excess golden parachute"
+"675" = "Gross proceeds to atty "
+"674" = "Substitute payments  "
+"564" = "Payer"
+"563" = "State tax withheld"
+"562" = "Crop insurance proceeds"
+"559" = "Fishing boat proceeds"
+"561" = "Nonemployee compensation"
+"558" = "Federal tax withheld"
+"560" = "Medical/health payments"
+"557" = "Other income"
+"556" = "Royalties"
+"555" = "Rents"
+"554" = "Spouse"
+}
+
+"Form 6252" = {
+"436" = "Description of property"
+"435" = "Payments recd prior years"
+"434" = "Payments recd this year"
+"433" = "Gross profit percentage"
+"432" = "Expenses of sale"
+"429" = "Debt assumed by buyer"
+"431" = "Depreciation allowed"
+"430" = "Basis of property sold"
+"428" = "Selling price"
+}
+
+"Form 2106" = {
+"391" = "Emp home office exp"
+"389" = "Job seeking exp"
+"390" = "Special clothing exp"
+"388" = "Emp. meal exp reimb"
+"387" = "Emp. expense reimb."
+"386" = "Meal and entertain. exp"
+"385" = "Other bus. exp."
+"384" = "Local transportation"
+"383" = "Travel"
+"382" = "Automobile exp."
+"381" = "Education expense"
+}
+
+"1099 OID" = {
+"663" = "Investment Expense, OID"
+"662" = "OID, US treas obligl"
+"661" = "Description"
+"660" = "Fed tax wheld, OID"
+"659" = "Early wdrawal pen, OID"
+"658" = "Other periodic int,OID"
+}
+
+"Schedule C-EZ" = {
+"500" = "Total expenses"
+"499" = "Gross receipts"
+"498" = "Spouse"
+"501" = "Principal business/prof"
+}
+
+"1099 INT" = {
+"642" = "Foreign country, int"
+"653" = "Intestment expense, int"
+"641" = "Foreign tax, int"
+}
+
+"Form 8815" = {
+"445" = "Post-89 EE bond face value"
+"444" = "EE US svgs bonds proceeds"
+"443" = "Nontaxable ed. benefits"
+"442" = "Qual. higher ed. expenses"
+}
+
+"Form 2441" = {
+"402" = "Child care - household"
+"401" = "Child care - day care"
+}
+
+"Form 4835" = {
+"570" = "Spouse"
+"602" = "Other expenses"
+"601" = "Vet, breeding, medicine"
+"589" = "Interest expense, mortgage"
+"600" = "Utilities"
+"588" = "Insurance(other than health)"
+"587" = "Gasoline, fuel, and oil"
+"586" = "Freight and trucking"
+"585" = "Fertilizers and lime"
+"584" = "Feed purchased"
+"583" = "Employee benefit programs"
+"582" = "Custom hire (machine work)"
+"581" = "Conservation expenses"
+"580" = "Chemicals"
+"599" = "Taxes"
+"598" = "Supplies purchased"
+"597" = "Storage and warehousing"
+"596" = "Seeds and plants purchased"
+"595" = "Repairs and maintenance"
+"594" = "Rent/lease land, animals"
+"593" = "Rent/lease vehicles, equip."
+"592" = "Pension/profit-sharing plans"
+"591" = "Labor hired"
+"590" = "Interest expense, other"
+"579" = "Car and truck expenses"
+"578" = "Other income"
+"577" = "Crop ins. proceeds deferred"
+"576" = "Crop ins. proceeds rec'd"
+"575" = "CCC loans forfeited/repaid"
+"574" = "CCC loans reported/election"
+"573" = "Agricultural program paymnts"
+"572" = "Total co-op distributions"
+"571" = "Sale of livestock/produce"
+}
+
+"W-2G" = {
+"548" = "Spouse"
+"552" = "Payer"
+"551" = "State tax withheld"
+"550" = "Federal tax withheld"
+"549" = "Gross winnings"
+}
+
+"W-2" = {
+"465" = "Dependent care benefits"
+"464" = "State withholding"
+"463" = "Local withholding"
+"462" = "Soc Sec tax withholding"
+"461" = "Federal withholding"
+"460" = "Salary"
+"509" = "Local withholding, spouse"
+"508" = "Soc Sec tax withhld, spouse"
+"507" = "Federal withholding,spouse"
+"506" = "Salary, spouse"
+"480" = "Medicare tax withholding"
+"267" = "Moving exp. reimb."
+"546" = "Moving exp. reimb., spouse"
+"513" = "Payer, spouse"
+"512" = "Dependent care ben., spouse"
+"511" = "State withholding, spouse"
+"510" = "Medicare tax withhld, spouse"
+"466" = "Payer"
+}
+
+"Form 4137" = {
+"505" = "Cash/charge tips received"
+"504" = "Spouse"
+}
+
+"1099-MSA" = {
+"632" = "MSA earnings-excess contrib"
+"631" = "MSA gross distribution"
+"630" = "Spouse"
+"633" = "Payer"
+}
+
+"Form 8829" = {
+"542" = "Other expenses"
+"541" = "Utilities"
+"540" = "Repairs and maintenance"
+"539" = "Insurance"
+"538" = "Real estate taxes"
+"537" = "Deductible mortgage interest"
+}
+
+"Home Sale Worksheets" = {
+"394" = "Expense of sale"
+"393" = "Selling price of old home"
+"399" = "Date moved into new home"
+"398" = "Date old home sold"
+"397" = "Cost of new home"
+"396" = "Fixing-up expenses"
+"395" = "Basis of home sold"
+"525" = "Spouse"
+}
+
+"1099R" = {
+"669" = "Pension State ID"
+"668" = "Pension Distrib code 7b"
+"667" = "Pension Distrib code 7A"
+"604" = "IRA Payer"
+"666" = "Total distribution"
+"665" = "Taxable not determined"
+"603" = "Pension Payer"
+"529" = "Pension federal withholding"
+"664" = "State ID"
+"478" = "IRA total dist - taxable"
+"477" = "IRA total dist - gross"
+"476" = "Pension total dist - taxable"
+"475" = "Pension total dist - gross"
+"474" = "Spouse"
+"671" = "Pension Total distribution"
+"670" = "Pension Tax. not determined"
+"534" = "IRA local withholding"
+"533" = "IRA state withholding"
+"532" = "IRA federal withholding"
+"531" = "Pension local withholding"
+"530" = "Pension state withholding"
+"628" = "SIMPLE Payer"
+"627" = "SIMPLE local withholding"
+"626" = "SIMPLE state withholding"
+"625" = "SIMPLE federal withholding"
+"656" = "Distribution code 7b"
+"624" = "SIMPLE total distrib-taxable"
+"655" = "Distribution code 7A"
+"623" = "SIMPLE total distrib-gross"
+}
+
+"Form 4952" = {
+"426" = "Investment interest expense"
+}
+
+"1099-G" = {
+"606" = "Fed tax w/h,unemploymt comp"
+"260" = "State and local refunds"
+"605" = "Unemployment comp repaid"
+"672" = "Qualified state tuition"
+"635" = "Spouse"
+"479" = "Unemployment comp"
+}
+
+"Schedule H" = {
+"568" = "Federal tax withheld"
+"567" = "Cash wages paid"
+}
+
+"Form 3903" = {
+"407" = "Travel and lodging"
+"406" = "Trans./store hshld goods"
+"526" = "Spouse"
+}
+
+"Form 8606" = {
+"440" = "IRA basis at beg of year"
+"439" = "IRA contribs-nondeductible"
+"438" = "IRAs value at end of year"
+"515" = "Spouse"
+}
+
+"Form 4797" = {
+"424" = "ST dep. prop. - res. rent."
+"423" = "LT dep. gain - res. rent."
+"422" = "LT dep. loss - res. rent."
+"421" = "ST dep. prop. - business"
+"420" = "LT dep. gain - business"
+"419" = "LT dep. loss - business"
+}
+
+"Schedule F" = {
+"359" = "Insurance (not health)"
+"358" = "Taxes"
+"357" = "Storage and warehousing"
+"356" = "Gasoline, fuel, oil"
+"355" = "Vet, breeding and medicine"
+"353" = "Supplies purchased"
+"352" = "Fertilizers and lime"
+"351" = "Seed and plants purchased"
+"350" = "Feed purchased"
+"514" = "Spouse"
+"543" = "Car and truck expense"
+"349" = "Rent-veh., mach., equip."
+"348" = "Rent-land, animals"
+"379" = "Principal product"
+"347" = "Interest expense-other"
+"378" = "Cost livestock for resale"
+"346" = "Interest expense-mort"
+"345" = "Repairs and maintenance"
+"377" = "Other farm income"
+"344" = "Labor hired"
+"376" = "Crop ins. proceeds-defd"
+"375" = "Crop ins. proceeds-recd"
+"374" = "CCC loans-forfeited"
+"373" = "CCC loans-election"
+"372" = "Agric. pgm payments"
+"371" = "Coop. distributions"
+"370" = "Custom hire (machine work)"
+"369" = "Resales of livestock"
+"368" = "Sales livestock/crops raised"
+"367" = "Custom hire (mach. work)"
+"366" = "Chemicals"
+"365" = "Other farm expenses"
+"364" = "Employee benefit prog."
+"363" = "Pension and profit shrg"
+"362" = "Conservation expense"
+"361" = "Freight and trucking"
+"360" = "Utilities"
+}
+
+"Schedule E" = {
+"335" = "Other interest expense"
+"334" = "Mortgage interest exp"
+"333" = "Legal and professional"
+"332" = "Insurance"
+"329" = "Auto and travel"
+"331" = "Commissions"
+"328" = "Advertising"
+"330" = "Cleaning and maintenance"
+"327" = "Royalties received"
+"326" = "Rents received"
+"502" = "Management fees"
+"342" = "Kind/location of property"
+"341" = "Other expenses"
+"339" = "Utilities"
+"338" = "Taxes"
+"337" = "Supplies"
+"336" = "Repairs"
+}
+
+"Schedule D" = {
+"644" = "28% cap gain"
+"321" = "ST gain/loss - security"
+"673" = "Short/Long gain or loss"
+"646" = "Sec 1202 gain"
+"323" = "LT gain/loss - security"
+"645" = "Unrec sec 1250"
+}
+
+"Form 8839" = {
+"620" = "Attorney fees"
+"619" = "Court costs"
+"618" = "Adoption fees"
+"622" = "Other expenses"
+"621" = "Traveling expenses"
+}
+
+"Schedule C" = {
+"496" = "Other costs, cost of goods"
+"495" = "Materials, cost of goods"
+"494" = "Labor, cost of goods sold"
+"493" = "Purchases, cost of goods"
+"309" = "Depletion"
+"308" = "Employee benefits progs."
+"307" = "Commissions and fees"
+"306" = "Car and truck expenses"
+"305" = "Bad debts"
+"304" = "Advertising"
+"303" = "Other business income"
+"302" = "Other business expense"
+"301" = "Supplies"
+"300" = "Rent on other bus prop"
+"319" = "Principal business/prof"
+"318" = "Utilities"
+"317" = "Travel"
+"316" = "Taxes and licenses"
+"315" = "Repairs and maintenance"
+"314" = "Pension and profit shrg"
+"313" = "Office expense"
+"312" = "Interest expense, other"
+"311" = "Interest expense, mortgage"
+"299" = "Rent on vehicles, mach, eq"
+"310" = "Insurance (not health)"
+"298" = "Legal and professional"
+"297" = "Wages paid"
+"296" = "Returns and allowances"
+"294" = "Meals and entertainment"
+"293" = "Gross receipts"
+"292" = "Spouse"
+}
+
+"Schedule K-1 Worksheet" = {
+"457" = "Partnership or S corp name"
+"456" = "Net sec 1231 gain/loss"
+"455" = "Guaranteed payments"
+"454" = "Net LT capital gain/loss"
+"453" = "Net ST capital gain/loss"
+"528" = "Tax-exempt interest"
+"452" = "Dividends"
+"527" = "Royalties"
+"449" = "Rental real est. inc/loss"
+"451" = "Interest income"
+"448" = "Ordinary income/loss"
+"450" = "Other rental income/loss"
+"447" = "Spouse"
+}
+
+"Schedule B" = {
+"286" = "Dividend income"
+"492" = "Int inc., orig issue disc"
+"616" = "Fed tax w/h, interest income"
+"491" = "Int inc., fed-non, state-tax"
+"489" = "Interest inc., non-taxable"
+"490" = "Int inc., fed-tax, state-non"
+"615" = "Fed tax w/h, dividend income"
+"488" = "Div inc., capital gain dist"
+"487" = "Div inc., non-taxable"
+"524" = "Seller financed mtge int."
+"289" = "State and mun. bond int."
+"288" = "US govt. interest"
+"290" = "TE priv. act. bond int"
+"287" = "Interest income"
+}
+
+"Schedule A" = {
+"277" = "Other taxes"
+"276" = "Real estate tax"
+"523" = "Misc. (not subject to 2%)"
+"275" = "State taxes"
+"522" = "State est. tax, qrtrly"
+"274" = "Med. transport/lodging"
+"273" = "Medicine and drugs"
+"272" = "Gambling losses"
+"271" = "Subscriptions"
+"535" = "Personal property taxes"
+"284" = "Points paid"
+"283" = "Home mortgage int. (1098)"
+"282" = "Investment man. fees"
+"486" = "Misc. (subject to 2%)"
+"281" = "Tax preparation fees"
+"485" = "Non-cash charity contrib"
+"280" = "Cash charity contributions"
+"484" = "Doctors, dentists, hosp."
+"545" = "Home mortgage int. (no 1098)"
+"544" = "Local taxes"
+}
+
+"Form 1040" = {
+"608" = "Med savings contrib, spouse"
+"607" = "Med savings contrib, self"
+"636" = "Student loan interest"
+"521" = "Fed est. tax, qrtrly"
+"520" = "RR retirement inc, spouse"
+"614" = "Fed tax w/h,RR retire,spouse"
+"613" = "Fed tax w/h, RR retire inc."
+"612" = "Fed tax w/h,Soc. Sec.,spouse"
+"259" = "Prizes, awards"
+"611" = "Fed tax w/h, Soc. Sec. inc."
+"258" = "Sick pay or disab. pay"
+"610" = "SIMPLE contrib, spouse"
+"257" = "Other income-misc."
+"483" = "Soc. Sec. income, spouse"
+"482" = "IRA contrib,non-work spouse"
+"519" = "RR retirement income"
+"481" = "IRA contribution spouse"
+"518" = "SEP deduction, spouse"
+"269" = "Taxable fringe benefits"
+"517" = "SEP deduction"
+"268" = "Fed. estimated tax"
+"516" = "Keogh deduction, spouse"
+"266" = "Soc. Sec. income"
+"265" = "Early withd penalty"
+"264" = "Alimony paid"
+"263" = "Keogh deduction"
+"262" = "IRA contribution self"
+"261" = "Alimony received"
+"609" = "SIMPLE contrib, self"
+}
+
+"1099 Div" = {
+"652" = "Non-cash liquidation"
+"651" = "Cash liquidation"
+"650" = "Foreign country, div"
+"649" = "Foreign tax, div"
+"648" = "Investment Expense, div"
+"647" = "NonTaxable distributions"
+}
+
+"Form 4684" = {
+"416" = "FMV after casualty"
+"415" = "FMV before casualty"
+"414" = "Insurance/reimb"
+"413" = "Basis of casualty prop"
+"417" = "Description of property"
+}
+
+"Form 8863" = {
+"638" = "Lifetime cr. qual. expenses"
+"637" = "Hope cr. qual. expenses"
+}
+
+}

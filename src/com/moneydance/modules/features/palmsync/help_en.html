@@ -1,0 +1,60 @@
+<html>
+<head><title>Palm Pilot Synchronization</title></head>
+<body>
+<h1>Palm Pilot synchronization</h1>
+
+<p>
+This extension provides the ability to synchronize transaction information
+between Moneydance and a Palm handheld device.
+</p>
+<br>
+<b>Settings Window</b>
+<p>
+First, choose the program to synchronize with Moneydance.  Then select the location
+of your Palm backup files.  Palm backup files are usually kept in a folder called
+"Backup" under your Palm application folder.  Once you have selected the palm application
+to synchronize with, click the "Configure" button to specify the application-specific
+settings.
+</p>
+<p>
+Now specify the location of your Palm Pilot backup files by clicking on the "browse" button.  This directory must contain certain files, for Expense synchronization it must contain the file ExpenseDB.pdb, and for PocketMoney it must contain PM-Transactions.pdb and PM-Accounts.pdb.  These files will be automatically put in the Palm Pilot backup directory when a backup is performed.  If the files are not in the selected directory, a window will pop up to notify you of which files are missing.
+</p>
+
+<p>
+When a directory has been selected, the "Configure..." button will be enabled.  Press this to configure the account mapping now, otherwise it will pop up the next time it tries to synchronize. See Configuration Window.
+</p>
+<p>
+The "Synchronize at start-up" check box will also be enabled.  If this is clicked, Moneydance will synchronize with the Palm Pilot at start-up, if there are any new transactions.
+</p>
+<p>
+Click the "Synchronize Now" button to synchronize now, or the "Done" button to close the window.
+</p>
+<p><b>Configuration Window</b><br><br>
+This window will allow you to configure the account mappings.  It will list the Expense payment types or the PocketMoney Accounts on the left.  On the right, select the corresponding Moneydance account.
+</p>
+<p>
+When done, hit the "Done" button.
+</p>
+
+
+<p><b>Filing Window</b><br><br>
+This window will allow you to file your new transactions.  It will keep track of which transactions you have made a decision on, and only show you the new ones. A window will pop up for each Expense payment or PocketMoney account that has new transactions, one at a time, listing the transactions and some information about them.  You must file them in sequential order.</p>
+<p>
+The "Merge" button : This button helps avoid entering a transaction into Moneydance multiple times.  It will be enabled only if there is already a transaction in the Moneydance account that has the same amount and has a date within a few days of the selected transaction.  "Merge" will merge the selected transaction with the existing one, rather than creating a new transaction.
+</p>
+<p>
+The "Accept" button : This button will create a new transaction in the corresponding Moneydance account with the same information as the selected transaction.
+</p>
+<p>
+The "Reject" button : This button will remove the selected transaction from the list without making a transaction in the corresponding Moneydance account.
+</p>
+<p>
+The "Merge/Accept All" button : This button will merge all of the remaining transactions that can be merged, and accept all of the others.
+</p>
+<p>
+The "Reject All" button : This button will reject all of the remaining transactions.
+</p>
+<p>
+The "Next Account" or "Finish" button : This button will close this window and open a new window for the next Expense payment or Pocketmoney account without accepting or rejecting the remaining transactions.  The remaining transactions will be shown the next time a synchronization is performed.  When there are no subsequent payments or accounts, the button in this location will be labeled "Finish".
+</p>
+

@@ -1,0 +1,9 @@
+{
+  "vendor" = "Reilly Technologies, LLC"
+  "vendor.url" = "http://moneydance.com/"
+  "module_name" = "Debugging Helper Extension"
+  "module_desc" = "<html><body><title>Debugging Helper</title><p>This is an extension that performs various functions to help diagnose Moneydance problems.</p></body></html>"
+  "desc" = "This is an extension that performs various functions to help diagnose Moneydance problems"
+  "id" = miscdebug
+  "module_build" = 1
+}

@@ -1,0 +1,9 @@
+{
+  "vendor" = "Appgen Personal Software, L.L.C."
+  "vendor.url" = "http://moneydance.com/"
+  "module_build" = "004"
+  "id" = "paypalas"
+  "module_name" = "PayPal Account Synchronizer"
+  "module_desc" = "<html><body><title>PayPal Account Synchronizer</title><p>Extention to synchronize your PayPal account with Moneydance account</p></body></html>"
+  "desc" = "PayPal Account Synchronizer module"
+}

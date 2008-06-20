@@ -1,0 +1,217 @@
+<!--
+build file for ant
+http://jakarta.apache.org/ant/index.html
+-->
+
+<project name="moneydance" default="all" basedir=".">
+  <property name="version"  value="1.0"/>
+  <property name="src" value="."/>
+  <property file="${src}/user.properties"/>
+  <property name="build" value="./build"/>
+  <property name="lib" value="../lib"/>
+  <property name="privkeyfile" value="${src}/priv_key"/>
+  <property name="pubkeyfile" value="${src}/pub_key"/>
+  <property name="privkeyid" value="99"/>
+
+  <property name="build.compiler"  value="classic"/>
+  <property name="build.compiler.fulldepend"  value="true"/>
+  <property name="dist"  value="../dist"/>
+  <property name="tmp"  value="../tmp"/>
+  <property name="debug"  value="on"/>
+  <property name="optimize"  value="off"/>
+
+  <path id="classpath">
+    <pathelement path="../lib/mdadmin.jar"/>
+    <pathelement path="../lib/moneydance.jar"/>
+  </path>
+
+  <target name="init">
+    <mkdir dir="${dist}"/>
+    <mkdir dir="${build}"/>
+  </target>
+
+  <target name="autorates" depends="init">
+    <javac target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/autorates/**"/>
+
+    <jar destfile="${dist}/autorates.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/autorates/meta_info.dict
+             com/moneydance/modules/features/autorates/*.gif
+             com/moneydance/modules/features/autorates/*.png
+             com/moneydance/modules/features/autorates/*.jpg
+             com/moneydance/modules/features/autorates/*.jpeg"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/autorates/**"/>
+    </jar>
+
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="autorates"/>
+      <arg line="${dist}/autorates.mxt"/>
+    </java>
+    <delete file="${dist}/autorates.mxt"/>
+    <move file="${src}/s-autorates.mxt" tofile="${dist}/autorates.mxt"/>
+  </target>
+
+
+  <target name="yahooqt" depends="init">
+    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/yahooqt/**"/>
+    <jar destfile="${dist}/yahooqt.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/yahooqt/meta_info.dict
+             com/moneydance/modules/features/yahooqt/*.png
+             com/moneydance/modules/features/yahooqt/*.gif"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/yahooqt/**"/>
+    </jar>
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="yahooqt"/>
+      <arg line="${dist}/yahooqt.mxt"/>
+    </java>
+    <move file="${src}/s-yahooqt.mxt" tofile="${dist}/yahooqt.mxt"/>
+  </target>
+
+
+  <target name="yahoofx" depends="init">
+    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/yahoofx/**"/>
+    <jar destfile="${dist}/yahoofx.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/yahoofx/meta_info.dict
+             com/moneydance/modules/features/yahoofx/*.png
+             com/moneydance/modules/features/yahoofx/*.gif"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/yahoofx/**"/>
+    </jar>
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="yahoofx"/>
+      <arg line="${dist}/yahoofx.mxt"/>
+    </java>
+    <move file="${src}/s-yahoofx.mxt" tofile="${dist}/yahoofx.mxt"/>
+  </target>
+
+
+  <target name="balpred" depends="init">
+    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/balpred/**"/>
+    <jar destfile="${dist}/balpred.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/balpred/meta_info.dict
+             com/moneydance/modules/features/balpred/*.png
+             com/moneydance/modules/features/balpred/*.gif"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/balpred/**"/>
+    </jar>
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="balpred"/>
+      <arg line="${dist}/balpred.mxt"/>
+    </java>
+    <move file="${src}/s-balpred.mxt" tofile="${dist}/balpred.mxt"/>
+  </target>
+
+  <target name="cmdline" depends="init">
+    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/cmdline/**"/>
+    <jar destfile="${dist}/cmdline.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/cmdline/meta_info.dict
+             com/moneydance/modules/features/cmdline/*.png
+             com/moneydance/modules/features/cmdline/*.gif"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/cmdline/**"/>
+    </jar>
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="cmdline"/>
+      <arg line="${dist}/cmdline.mxt"/>
+    </java>
+    <move file="${src}/s-cmdline.mxt" tofile="${dist}/cmdline.mxt"/>
+  </target>
+
+  <target name="console" depends="init">
+    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/console/**"/>
+    <jar destfile="${dist}/console.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/console/meta_info.dict
+             com/moneydance/modules/features/console/*.png
+             com/moneydance/modules/features/console/*.gif"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/console/**"/>
+    </jar>
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="console"/>
+      <arg line="${dist}/console.mxt"/>
+    </java>
+    <move file="${src}/s-console.mxt" tofile="${dist}/console.mxt"/>
+  </target>
+
+
+  <target name="jpython" depends="init">
+    <delete file="${dist}/jpython.mxt"/>
+    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath" classpath="${lib}/jython-2_1.jar" destdir="${build}"
+      includes="com/moneydance/modules/features/jpython/**"/>
+    <jar destfile="${dist}/jpython.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/jpython/*.dict
+             com/moneydance/modules/features/jpython/*.gif" />
+      <fileset dir="${build}" 
+        includes="com/moneydance/modules/features/jpython/*.class"/>
+      <zipgroupfileset dir="${lib}/" includes="jython-2_1.jar"/>
+    </jar>
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="jpython"/>
+      <arg line="${dist}/jpython.mxt"/>
+    </java>
+    <move file="${src}/s-jpython.mxt" tofile="${dist}/jpython.mxt"/>
+  </target>
+
+  <target name="genkeys">
+    <java 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="genkey"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${pubkeyfile}"/>
+    </java>
+  </target>
+
+  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx"/>
+
+</project>
