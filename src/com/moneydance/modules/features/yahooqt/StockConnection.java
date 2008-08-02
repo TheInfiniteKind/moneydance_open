@@ -81,6 +81,10 @@ public class StockConnection {
     MKT_CURR_TABLE.put("NS", "INR"); // India - National Stock Exchange
     MKT_CURR_TABLE.put("BO", "INR"); // India - Bombay Stock Exchange
     MKT_CURR_TABLE.put("CL", "INR"); // India - Calcutta Stock Exchange
+    MKT_CURR_TABLE.put("HM", "EUR"); //
+    MKT_CURR_TABLE.put("VX", "CHF"); // Swiss - VTX
+    
+    
     /* Euro countries
          Belgium
          Greece

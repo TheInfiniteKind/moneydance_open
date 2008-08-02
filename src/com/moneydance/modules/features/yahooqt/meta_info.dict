@@ -5,5 +5,5 @@
   "module_desc" = "<html><body><title>Yahoo Stock Quote Downloader</title><p>This is an extension that downloads stock quotes from Yahoo!</p></body></html>"
   "desc" = "This is an extension that downloads stock quotes from Yahoo!"
   "id" = yahooqt
-  "module_build" = 25
+  "module_build" = 26
 }
