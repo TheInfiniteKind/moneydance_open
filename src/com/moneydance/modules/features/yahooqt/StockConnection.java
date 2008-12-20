@@ -53,9 +53,11 @@ public class StockConnection {
     MKT_CURR_TABLE.put("BE", "EUR"); // germany
     MKT_CURR_TABLE.put("BM", "EUR");
     MKT_CURR_TABLE.put("D", "EUR");
+    MKT_CURR_TABLE.put("DU", "EUR");
     MKT_CURR_TABLE.put("F", "EUR");
     MKT_CURR_TABLE.put("H", "EUR");
     MKT_CURR_TABLE.put("HA", "EUR");
+    MKT_CURR_TABLE.put("HM", "EUR");
     MKT_CURR_TABLE.put("HK", "HKD");
     MKT_CURR_TABLE.put("MU", "EUR");
     MKT_CURR_TABLE.put("SG", "EUR");
@@ -64,7 +66,7 @@ public class StockConnection {
     MKT_CURR_TABLE.put("AS", "EUR");  // Amsterdam
 
     MKT_CURR_TABLE.put("MI", "EUR"); // italy
-    MKT_CURR_TABLE.put("MX", "MXP"); // mexico
+    MKT_CURR_TABLE.put("MX", "MXN"); // mexico
     MKT_CURR_TABLE.put("NZ", "NZD"); // new zealand
     MKT_CURR_TABLE.put("OL", "NOK"); // norway
     MKT_CURR_TABLE.put("BC", "EUR"); // spain
@@ -81,8 +83,20 @@ public class StockConnection {
     MKT_CURR_TABLE.put("NS", "INR"); // India - National Stock Exchange
     MKT_CURR_TABLE.put("BO", "INR"); // India - Bombay Stock Exchange
     MKT_CURR_TABLE.put("CL", "INR"); // India - Calcutta Stock Exchange
-    MKT_CURR_TABLE.put("HM", "EUR"); //
     MKT_CURR_TABLE.put("VX", "CHF"); // Swiss - VTX
+    MKT_CURR_TABLE.put("JK", "IDR");
+    MKT_CURR_TABLE.put("TA", "ILS");
+    MKT_CURR_TABLE.put("KS", "KRW");
+    MKT_CURR_TABLE.put("KQ", "KRW");
+    MKT_CURR_TABLE.put("SI", "SGD");
+    MKT_CURR_TABLE.put("SW", "CHF");
+    MKT_CURR_TABLE.put("CBT", "USD");
+    MKT_CURR_TABLE.put("CME", "USD");
+    MKT_CURR_TABLE.put("NYB", "USD");
+    MKT_CURR_TABLE.put("CMX", "USD");
+    MKT_CURR_TABLE.put("NYM", "USD");
+    MKT_CURR_TABLE.put("PK", "USD");
+    MKT_CURR_TABLE.put("BA", "ARS");
     
     
     /* Euro countries
