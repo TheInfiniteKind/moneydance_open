@@ -101,6 +101,7 @@
     <entry key="table_column_tags">Rótulos</entry>
     <entry key="table_column_checknum">Cheque nº</entry>
     <entry key="select_acct_title">Selecionar uma Conta</entry>
+    <entry key="all_categories">Todas Categorias</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Bem</entry>
