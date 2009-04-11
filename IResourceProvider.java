@@ -1,0 +1,42 @@
+/*
+ * IResourceProvider.java
+ *
+ * File creation information:
+ *
+ * Author: Kevin Menningen
+ * Date: Feb 16, 2008
+ * Time: 1:27:19 PM
+ */
+
+package com.moneydance.modules.features.findandreplace;
+
+import java.awt.Image;
+
+/**
+ * <p>Provides localized resources.</p>
+ * 
+ * <p>This code is released as open source under the Apache 2.0 License:<br/>
+ * <a href="http://www.apache.org/licenses/LICENSE-2.0">
+ * http://www.apache.org/licenses/LICENSE-2.0</a><br />
+
+ * @author Kevin Menningen
+ * @version 1.0
+ * @since 1.0
+ */
+public interface IResourceProvider
+{
+    /**
+     * Obtain the given string from the resource bundle.
+     * @param resourceKey The key to look up the resources.
+     * @return The associated string, or <code>null</code> if the key is not found.
+     */
+    public String getString(final String resourceKey);
+
+    /**
+     * Obtain the given image from the resource bundle. The key specifies an image URL.
+     * @param resourceKey The key to look up the resources with.
+     * @return The associated image, or <code>null</code> if the key is not found or the image
+     * could not be loaded.
+     */
+    public Image getImage(final String resourceKey);
+}

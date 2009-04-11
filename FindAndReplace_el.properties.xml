@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <!--  Common stuff -->
+    <entry key="title.text">Εύρεση και Αντικατάσταση</entry>
+
+    <!--  Find panel -->
+    <entry key="findLabel.text">Βρίσκω</entry>
+    <entry key="findBooleanAnd.mnemonic">α</entry>
+    <entry key="findBooleanOr.mnemonic">ή</entry>
+
+    <entry key="findAccountsLabel.mnemonic">Λ</entry>
+    <entry key="findAccountsSelect.text">Επιλογή</entry>
+    <entry key="findAccountsSelect.mnemonic">Ε</entry>
+
+    <entry key="findCategoriesLabel.mnemonic">G</entry>
+    <entry key="findCategoriesSelect.text">Επιλογή</entry>
+    <entry key="findCategoriesSelect.mnemonic">T</entry>
+
+    <entry key="findAmountLabel.mnemonic">O</entry>
+    <entry key="findDateLabel.mnemonic">E</entry>
+    <entry key="findFreeTextLabel.text">Ελεύθερο Κείμενο:</entry>
+    <entry key="findFreeTextLabel.mnemonic">λ</entry>
+    <entry key="findDescription.toolTip">Αναζήτηση στον τομέα περιγραφής (συναλλαγή γονέων και Επιμερισμός)</entry>
+    <entry key="findMemo.toolTip">Αναζήτηση στον τομέα υπομνημάτων (συναλλαγές γονέων μόνο)</entry>
+    <entry key="findCheck.toolTip">Αναζήτηση στον τομέα επιταγή# (συναλλαγές γονέων μόνο)</entry>
+    <entry key="findSplits.text">Περιλάβετε Επιμερισμός</entry>
+    <entry key="findSplits.toolTip">Εάν το κείμενο βρίσκεται στη συναλλαγή γονέων, περιλάβετε όλες τις επιμερισμός για εκείνη την συναλλαγή ως αντιστοιχία.</entry>
+    <entry key="findTagsLabel.text">Ετικέτες:</entry>
+    <entry key="findTagsLabel.mnemonic">τ</entry>
+    <entry key="findNot.text">αλλά όχι</entry>
+
+    <entry key="findUse.toolTip">Χρησιμοποιήστε αυτό το κριτήριο στην αναζήτηση των συναλλαγών</entry>
+
+    <!--  Replace panel -->
+    <entry key="replaceLabel.text">Αντικαταστήστε</entry>
+    <entry key="replaceCategoryLabel.mnemonic">G</entry>
+    <entry key="replaceAmountLabel.mnemonic">U</entry>
+    <entry key="replaceDescriptionLabel.mnemonic">C</entry>
+    <entry key="replaceTags.text">Τροποποιήστε τις ετικέττες:</entry>
+    <entry key="replaceTags.mnemonic">F</entry>
+    <entry key="replaceTagsAdd.text">Προσθέστε ετικέτες:</entry>
+    <entry key="replaceTagsRemove.text">Αφαιρέστε τις ετικέττες:</entry>
+    <entry key="replaceTagsReplace.text">Αντικαταστήστε όλων με:</entry>
+    <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <!--  Results panel -->
+    <entry key="resultsLabel.text">Αποτελέσματα του Ευρήματος</entry>
+    <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
+    <entry key="resultsSummary.format">Αρίθμηση: %s  Προσθήκες: %s  Αφαιρέσεις: %s  Σύνολο: %s</entry>
+
+    <!--  Buttons at the bottom -->
+    <entry key="findBtn.text">Βρίσκω</entry>
+    <entry key="findBtn.mnemonic">Β</entry>
+    <entry key="replaceBtn.text">Αντικαταστήστε</entry>
+    <entry key="replaceBtn.mnemonic">Α</entry>
+    <entry key="replaceAllBtn.text">Αντικατάσταση όλων</entry>
+    <entry key="replaceAllBtn.mnemonic">ό</entry>
+    <entry key="closeBtn.text">Κλείνω</entry>
+    <entry key="closeBtn.mnemonic">Κ</entry>
+
+    <entry key="markAllBtn.text">Επιλέξτε Όλοι</entry>
+    <entry key="markNoneBtn.text">Επιλέξτε Κανένας</entry>
+
+    <!--  Account/category selection dialog -->
+    <entry key="accountselect.exclude.text">Αποκλεισμένος</entry>
+    <entry key="accountselect.include.text">Συμπεριλαμβανόμενος</entry>
+    <entry key="accountselect.add.text">Προσθέστε &gt;</entry>
+    <entry key="accountselect.addexcept.text">Προσθέστε Εκτός &gt;&gt;</entry>
+    <entry key="accountselect.addall.text">Προσθέστε Όλοι &gt;&gt;</entry>
+    <entry key="accountselect.remove.text">&lt; Αφαιρέστε</entry>
+    <entry key="accountselect.removeexcept.text">&lt;&lt; Αφαιρέστε Εκτός</entry>
+    <entry key="accountselect.removeall.text">&lt;&lt; Αφαιρέστε Όλοι</entry>
+    <entry key="accountfilter.all">Όλοι</entry>
+
+    <!--  General strings - copied from Moneydance -->
+    <entry key="ok">Εντάξει</entry>
+    <entry key="cancel">Ακύρωση</entry>
+    <entry key="none">Τίποτα</entry>
+    <entry key="split_label1">- </entry>
+    <entry key="split_label2"> επιμερισμός - </entry>
+    <entry key="cancel_txn">Ακύρωση</entry>
+    <entry key="record_txn">Καταγραφή</entry>
+    <entry key="combine_criteria">Συνδυασμός κριτηρίων</entry>
+    <entry key="srch_op_intersect">Καί (Τομή)</entry>
+    <entry key="srch_op_union">ή (Συνδικάτο)</entry>
+    <entry key="srch_range0">Μεταξύ</entry>
+    <entry key="srch_range1">Καί</entry>
+    <entry key="accounts">Λογαριασμοί</entry>
+    <entry key="amount">Ποσόν</entry>
+    <entry key="srch_by_date">Ημερομηνία</entry>
+    <entry key="memo">Σημείωμα</entry>
+    <entry key="desc">Περιγραφή</entry>
+    <entry key="category">Κατηγορία</entry>
+    <entry key="table_column_date">Ημερομηνία</entry>
+    <entry key="table_column_description">Περιγραφή</entry>
+    <entry key="table_column_clearedchar">C</entry>
+    <entry key="table_column_amount">Ποσόν</entry>
+    <entry key="table_column_account">Λογαριασμός</entry>
+    <entry key="table_column_tags">Ετικέτες</entry>
+    <entry key="table_column_checknum">Επιταγή#</entry>
+    <entry key="select_acct_title">Επιλέξτε ένα Λογαριασμό</entry>
+    <entry key="all_categories">Όλοι Κατηγορίες</entry>
+
+    <!--  Account types (copied) -->
+    <entry key="acct_type4300s">Ενεργητικό</entry>
+    <entry key="acct_type1000s">Τράπεζα</entry>
+    <entry key="acct_type2000s">Πιστωτική κάρτα</entry>
+    <entry key="acct_type7000s">Έσοδα</entry>
+    <entry key="acct_type3000s">Επένδυση</entry>
+    <entry key="acct_type4600s">Παθητικό</entry>
+    <entry key="acct_type5000s">Δάνειο</entry>
+    <entry key="acct_type6000s">Εξόδα</entry>
+    <entry key="acct_type4000s">Αξιόγραφο</entry>
+    <entry key="all_accounts">Όλοι οί λογαριασμοί</entry>
+
+</properties>

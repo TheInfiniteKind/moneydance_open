@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <!--  Common stuff -->
+
+    <entry key="title.text">Trovare e Sostituire</entry>
+
+    <!--  Find panel -->
+    <entry key="findLabel.text">Trovare</entry>
+    <entry key="findBooleanAnd.mnemonic">N</entry>
+    <entry key="findBooleanOr.mnemonic">R</entry>
+
+    <entry key="findAccountsLabel.mnemonic">A</entry>
+    <entry key="findAccountsSelect.text">Selezionare</entry>
+    <entry key="findAccountsSelect.mnemonic">S</entry>
+
+    <entry key="findCategoriesLabel.mnemonic">G</entry>
+    <entry key="findCategoriesSelect.text">Selezionare</entry>
+    <entry key="findCategoriesSelect.mnemonic">Z</entry>
+
+    <entry key="findAmountLabel.mnemonic">O</entry>
+    <entry key="findDateLabel.mnemonic">E</entry>
+    <entry key="findFreeTextLabel.text">Testo Libero:</entry>
+    <entry key="findFreeTextLabel.mnemonic">E</entry>
+    <entry key="findDescription.toolTip">Ricerca nel campo di Descrizione (entrambe le operazioni genitore e operazioni suddivise)</entry>
+    <entry key="findMemo.toolTip">Ricerca nel campo di Note (le operazioni genitore soltanto)</entry>
+    <entry key="findCheck.toolTip">Ricerca nel campo di Assegno n. (le operazioni genitore soltanto)</entry>
+    <entry key="findSplits.text">Includere suddivisioni</entry>
+    <entry key="findSplits.toolTip">Se il testo è trovato nella operazioni del genitore, comprenda tutte le operazioni suddivise come corrispondono.</entry>
+    <entry key="findTagsLabel.text">Etichette:</entry>
+    <entry key="findTagsLabel.mnemonic">T</entry>
+    <entry key="findNot.text">ma non</entry>
+
+    <entry key="findUse.toolTip">Utilizzare questo criterio di ricerca per le operazioni</entry>
+
+    <!--  Replace panel -->
+    <entry key="replaceLabel.text">Sostituire</entry>
+    <entry key="replaceCategoryLabel.mnemonic">G</entry>
+    <entry key="replaceAmountLabel.mnemonic">U</entry>
+    <entry key="replaceDescriptionLabel.mnemonic">C</entry>
+    <entry key="replaceTags.text">Modify etichette:</entry>
+    <entry key="replaceTags.mnemonic">F</entry>
+    <entry key="replaceTagsAdd.text">Aggiungere etichette:</entry>
+    <entry key="replaceTagsRemove.text">Rimuovere etichette:</entry>
+    <entry key="replaceTagsReplace.text">Sostituire tutti con:</entry>
+    <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <!--  Results panel -->
+    <entry key="resultsLabel.text">Risultati del Trovare</entry>
+    <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
+    <entry key="resultsSummary.format">Quantità: %s  Aggiunte: %s  Detratto: %s  Totale: %s</entry>
+
+    <!--  Buttons at the bottom -->
+    <entry key="findBtn.text">Trovare</entry>
+    <entry key="findBtn.mnemonic">F</entry>
+    <entry key="replaceBtn.text">Sostituire</entry>
+    <entry key="replaceBtn.mnemonic">P</entry>
+    <entry key="replaceAllBtn.text">Sostituire Tutti</entry>
+    <entry key="replaceAllBtn.mnemonic">U</entry>
+    <entry key="closeBtn.text">Chiudere</entry>
+    <entry key="closeBtn.mnemonic">C</entry>
+
+    <entry key="markAllBtn.text">Prescegliere Tutti</entry>
+    <entry key="markNoneBtn.text">Prescegliere Nessuno</entry>
+
+    <!--  Account/category selection dialog  -->
+    <entry key="accountselect.exclude.text">Esclusi</entry>
+    <entry key="accountselect.include.text">Inclusi</entry>
+    <entry key="accountselect.add.text">Aggiungere &gt;</entry>
+    <entry key="accountselect.addexcept.text">Aggiungere Tranne &gt;&gt;</entry>
+    <entry key="accountselect.addall.text">Aggiungere Tutti &gt;&gt;</entry>
+    <entry key="accountselect.remove.text">&lt; Rimuovere</entry>
+    <entry key="accountselect.removeexcept.text">&lt;&lt; Rimuovere Tranne</entry>
+    <entry key="accountselect.removeall.text">&lt;&lt; Rimuovere Tutti</entry>
+    <entry key="accountfilter.all">Tutti</entry>
+
+    <!--  General strings - copied from Moneydance -->
+    <entry key="ok">Ok</entry>
+    <entry key="cancel">Annulla</entry>
+    <entry key="none">Non</entry>
+    <entry key="split_label1">-</entry>
+    <entry key="split_label2">frazionamenti -</entry>
+    <entry key="cancel_txn">Annulla</entry>
+    <entry key="record_txn">Registra</entry>
+    <entry key="combine_criteria">Unisci i criteri</entry>
+    <entry key="srch_op_intersect">e (Intersezione)</entry>
+    <entry key="srch_op_union">O (unione)</entry>
+    <entry key="srch_range0">Tra</entry>
+    <entry key="srch_range1">e</entry>
+    <entry key="accounts">Conti</entry>
+    <entry key="amount">Importo</entry>
+    <entry key="srch_by_date">Data</entry>
+    <entry key="memo">Note</entry>
+    <entry key="desc">Descrizione</entry>
+    <entry key="category">Categoria</entry>
+    <entry key="table_column_date">Data</entry>
+    <entry key="table_column_description">Descrizione</entry>
+    <entry key="table_column_clearedchar">R</entry>
+    <entry key="table_column_amount">Importo</entry>
+    <entry key="table_column_account">Conto</entry>
+    <entry key="table_column_tags">Etichette</entry>
+    <entry key="table_column_checknum">Assegno n.</entry>
+    <entry key="select_acct_title">Selezionare un Conto</entry>
+    <entry key="all_categories">Tutti i Categorie</entry>
+
+    <!--  Account types (copied) -->
+    <entry key="acct_type4300s">Patrimonio</entry>
+    <entry key="acct_type1000s">Banca</entry>
+    <entry key="acct_type2000s">Carta di credito</entry>
+    <entry key="acct_type7000s">Reddito</entry>
+    <entry key="acct_type3000s">Investimento</entry>
+    <entry key="acct_type4600s">Obbligazione</entry>
+    <entry key="acct_type5000s">Prestito</entry>
+    <entry key="acct_type6000s">Spese</entry>
+    <entry key="acct_type4000s">Titoli</entry>
+    <entry key="all_accounts">Tutti i Conti</entry>
+
+</properties>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <!--  Common stuff -->
+
+    <entry key="title.text">Finne og Erstatte</entry>
+
+    <!--  Find panel -->
+    <entry key="findLabel.text">Finne</entry>
+    <entry key="findBooleanAnd.mnemonic">N</entry>
+    <entry key="findBooleanOr.mnemonic">R</entry>
+
+    <entry key="findAccountsLabel.mnemonic">A</entry>
+    <entry key="findAccountsSelect.text">Velge</entry>
+    <entry key="findAccountsSelect.mnemonic">V</entry>
+
+    <entry key="findCategoriesLabel.mnemonic">K</entry>
+    <entry key="findCategoriesSelect.text">Velge</entry>
+    <entry key="findCategoriesSelect.mnemonic">G</entry>
+
+    <entry key="findAmountLabel.mnemonic">O</entry>
+    <entry key="findDateLabel.mnemonic">E</entry>
+    <entry key="findFreeTextLabel.text">Fritekst:</entry>
+    <entry key="findFreeTextLabel.mnemonic">F</entry>
+    <entry key="findDescription.toolTip">Søke inne beskrivelsen åker (foreldre transaksjoner og transaksjoner deler)</entry>
+    <entry key="findMemo.toolTip">Søke inne notat åker (foreldre transaksjoner bare)</entry>
+    <entry key="findCheck.toolTip">Søke inne sjekk nr. åker (foreldre transaksjoner bare)</entry>
+    <entry key="findSplits.text">Inkludere Deler</entry>
+    <entry key="findSplits.toolTip">Hvis teksten er funnet inne det foreldre transaksjon, inkludere alle deler av det transaksjon som samsvarer.</entry>
+    <entry key="findTagsLabel.text">Etiketter:</entry>
+    <entry key="findTagsLabel.mnemonic">T</entry>
+    <entry key="findNot.text">men ikke</entry>
+
+    <entry key="findUse.toolTip">Bruk dette kriteriet for å søke etter transaksjoner</entry>
+
+    <!--  Replace panel -->
+    <entry key="replaceLabel.text">Erstatte</entry>
+    <entry key="replaceCategoryLabel.mnemonic">G</entry>
+    <entry key="replaceAmountLabel.mnemonic">U</entry>
+    <entry key="replaceDescriptionLabel.mnemonic">C</entry>
+    <entry key="replaceTags.text">Modifisere etiketter:</entry>
+    <entry key="replaceTags.mnemonic">F</entry>
+    <entry key="replaceTagsAdd.text">Legg til etiketter:</entry>
+    <entry key="replaceTagsRemove.text">Fjerne etiketter:</entry>
+    <entry key="replaceTagsReplace.text">Erstatte alle med:</entry>
+    <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <!--  Results panel -->
+    <entry key="resultsLabel.text">Finne Resultater</entry>
+    <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
+    <entry key="resultsSummary.format">Telle: %s  Kreditt: %s  Subtraksjonen: %s  Summen: %s</entry>
+
+    <!--  Buttons at the bottom -->
+    <entry key="findBtn.text">Finne</entry>
+    <entry key="findBtn.mnemonic">F</entry>
+    <entry key="replaceBtn.text">Erstatte</entry>
+    <entry key="replaceBtn.mnemonic">P</entry>
+    <entry key="replaceAllBtn.text">Erstatte Alle</entry>
+    <entry key="replaceAllBtn.mnemonic">A</entry>
+    <entry key="closeBtn.text">Lukke</entry>
+    <entry key="closeBtn.mnemonic">L</entry>
+
+    <entry key="markAllBtn.text">Plukke Alle</entry>
+    <entry key="markNoneBtn.text">Plukke Ingen</entry>
+
+    <!--  Account/category selection dialog -->
+    <entry key="accountselect.exclude.text">Utelukket</entry>
+    <entry key="accountselect.include.text">Inkludert</entry>
+    <entry key="accountselect.add.text">Legg til &gt;</entry>
+    <entry key="accountselect.addexcept.text">Legg til Unntatt &gt;&gt;</entry>
+    <entry key="accountselect.addall.text">Legg til Alle &gt;&gt;</entry>
+    <entry key="accountselect.remove.text">&lt; Fjerne</entry>
+    <entry key="accountselect.removeexcept.text">&lt;&lt; Fjerne Unntatt</entry>
+    <entry key="accountselect.removeall.text">&lt;&lt; Fjerne Alle</entry>
+    <entry key="accountfilter.all">Alle</entry>
+
+    <!--  General strings - copied from Moneydance -->
+    <entry key="ok">Ok</entry>
+    <entry key="cancel">Angre</entry>
+    <entry key="none">Ingen</entry>
+    <entry key="split_label1">-</entry>
+    <entry key="split_label2">deler -</entry>
+    <entry key="cancel_txn">Angre</entry>
+    <entry key="record_txn">Lagre</entry>
+    <entry key="combine_criteria">Kombiner kriterier</entry>
+    <entry key="srch_op_intersect">Og (snitt)</entry>
+    <entry key="srch_op_union">Eller (union)</entry>
+    <entry key="srch_range0">Mellom</entry>
+    <entry key="srch_range1">og</entry>
+    <entry key="accounts">Konti</entry>
+    <entry key="amount">Beløp</entry>
+    <entry key="srch_by_date">Dato</entry>
+    <entry key="memo">Notat</entry>
+    <entry key="desc">Beskrivelse</entry>
+    <entry key="category">Kategori</entry>
+    <entry key="table_column_date">Dato</entry>
+    <entry key="table_column_description">Beskrivelse</entry>
+    <entry key="table_column_clearedchar">K</entry>
+    <entry key="table_column_amount">Beløp</entry>
+    <entry key="table_column_account">Konto</entry>
+    <entry key="table_column_tags">Etiketter</entry>
+    <entry key="table_column_checknum">Sjekk nr.</entry>
+    <entry key="select_acct_title">Velge en Konto</entry>
+    <entry key="all_categories">Alle Kategorier</entry>
+
+    <!--  Account types (copied) -->
+    <entry key="acct_type4300s">Eiendel</entry>
+    <entry key="acct_type1000s">Bank</entry>
+    <entry key="acct_type2000s">Kredittkort</entry>
+    <entry key="acct_type7000s">Inntekt</entry>
+    <entry key="acct_type3000s">Investering</entry>
+    <entry key="acct_type4600s">Utestående</entry>
+    <entry key="acct_type5000s">Lån</entry>
+    <entry key="acct_type6000s">Utgift</entry>
+    <entry key="acct_type4000s">Papir</entry>
+    <entry key="all_accounts">Alle konti</entry>
+
+</properties>

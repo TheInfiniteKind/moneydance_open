@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <!--  Common stuff -->
+    <entry key="labelColon"> :</entry>
+    <entry key="title.text">Recherche et Replacer</entry>
+
+    <!--  Find panel -->
+    <entry key="findLabel.text">Recherche</entry>
+    <entry key="findBooleanAnd.mnemonic">N</entry>
+    <entry key="findBooleanOr.mnemonic">R</entry>
+
+    <entry key="findAccountsLabel.mnemonic">A</entry>
+    <entry key="findAccountsSelect.text">Sélectionner</entry>
+    <entry key="findAccountsSelect.mnemonic">S</entry>
+
+    <entry key="findCategoriesLabel.mnemonic">G</entry>
+    <entry key="findCategoriesSelect.text">Sélectionner</entry>
+    <entry key="findCategoriesSelect.mnemonic">T</entry>
+
+    <entry key="findAmountLabel.mnemonic">O</entry>
+    <entry key="findDateLabel.mnemonic">E</entry>
+    <entry key="findFreeTextLabel.text">Texte Libre :</entry>
+    <entry key="findFreeTextLabel.mnemonic">F</entry>
+    <entry key="findDescription.toolTip">Recherche dans le champ de description (les transactions principale et ventilations)</entry>
+    <entry key="findMemo.toolTip">Recherche dans le champ de mémo (les transactions principale seulement)</entry>
+    <entry key="findCheck.toolTip">Recherche dans le champ de chèque# (les transactions principale seulement)</entry>
+    <entry key="findSplits.text">D'inclure ventilations</entry>
+    <entry key="findSplits.toolTip">Si le texte est trouvé dans la transaction principale, incluez toutes les ventilées pour cette transaction en tant que correspondant.</entry>
+    <entry key="findTagsLabel.text">Repères :</entry>
+    <entry key="findTagsLabel.mnemonic">P</entry>
+    <entry key="findNot.text">mais pas</entry>
+
+    <entry key="findUse.toolTip">Employez ce critère pour rechercher des transactions</entry>
+
+    <!--  Replace panel -->
+    <entry key="replaceLabel.text">Replacer</entry>
+    <entry key="replaceCategoryLabel.mnemonic">G</entry>
+    <entry key="replaceAmountLabel.mnemonic">U</entry>
+    <entry key="replaceDescriptionLabel.mnemonic">C</entry>
+    <entry key="replaceTags.text">Modifier repères :</entry>
+    <entry key="replaceTags.mnemonic">F</entry>
+    <entry key="replaceTagsAdd.text">Ajouter repères :</entry>
+    <entry key="replaceTagsRemove.text">Supprimer repères :</entry>
+    <entry key="replaceTagsReplace.text">Replacer tous avec :</entry>
+    <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <!--  Results panel -->
+    <entry key="resultsLabel.text">Résultats de Recherche</entry>
+    <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
+    <entry key="resultsSummary.format">Compte : %s  Ajouts : %s  Soustractions : %s  Total : %s</entry>
+
+    <!--  Buttons at the bottom -->
+    <entry key="findBtn.text">Recherche</entry>
+    <entry key="findBtn.mnemonic">R</entry>
+    <entry key="replaceBtn.text">Replacer</entry>
+    <entry key="replaceBtn.mnemonic">P</entry>
+    <entry key="replaceAllBtn.text">Replacer Tous</entry>
+    <entry key="replaceAllBtn.mnemonic">T</entry>
+    <entry key="closeBtn.text">Fermer</entry>
+    <entry key="closeBtn.mnemonic">F</entry>
+
+    <entry key="markAllBtn.text">Marquer Tous</entry>
+    <entry key="markNoneBtn.text">Marquer Aucun</entry>
+
+    <!--  Account/category selection dialog -->
+    <entry key="accountselect.exclude.text">Exclus</entry>
+    <entry key="accountselect.include.text">Inclus</entry>
+    <entry key="accountselect.add.text">Ajouter &gt;</entry>
+    <entry key="accountselect.addexcept.text">Ajouter Excepté &gt;&gt;</entry>
+    <entry key="accountselect.addall.text">Ajouter Tous &gt;&gt;</entry>
+    <entry key="accountselect.remove.text">&lt; Supprimer</entry>
+    <entry key="accountselect.removeexcept.text">&lt;&lt; Supprimer Excepté</entry>
+    <entry key="accountselect.removeall.text">&lt;&lt; Supprimer Tous</entry>
+    <entry key="accountfilter.all">Tous</entry>
+
+
+    <!--  General strings - copied from Moneydance -->
+    <entry key="ok">OK</entry>
+    <entry key="cancel">Annuler</entry>
+    <entry key="none">Aucun</entry>
+    <entry key="split_label1">- </entry>
+    <entry key="split_label2">ventilations - </entry>
+    <entry key="cancel_txn">Annuler</entry>
+    <entry key="record_txn">Enregistrer</entry>
+    <entry key="combine_criteria">Combinaison de critères</entry>
+    <entry key="srch_op_intersect">et (intersection)</entry>
+    <entry key="srch_op_union">ou (union)</entry>
+    <entry key="srch_range0">Entre</entry>
+    <entry key="srch_range1">et</entry>
+    <entry key="accounts">Comptes</entry>
+    <entry key="amount">Montant</entry>
+    <entry key="srch_by_date">Date</entry>
+    <entry key="memo">Mémo</entry>
+    <entry key="desc">Description</entry>
+    <entry key="category">Catégorie</entry>
+    <entry key="table_column_date">Date</entry>
+    <entry key="table_column_description">Description</entry>
+    <entry key="table_column_clearedchar">C</entry>
+    <entry key="table_column_amount">Montant</entry>
+    <entry key="table_column_account">Compte</entry>
+    <entry key="table_column_tags">Repères</entry>
+    <entry key="table_column_checknum">No de chèque</entry>
+    <entry key="select_acct_title">Sélectionner un compte</entry>
+    <entry key="all_categories">Toutes les catégories</entry>
+
+    <!--  Account types (copied) -->
+    <entry key="acct_type4300s">Actifs</entry>
+    <entry key="acct_type1000s">Bancaires</entry>
+    <entry key="acct_type2000s">Carte de crédit</entry>
+    <entry key="acct_type7000s">Recettes</entry>
+    <entry key="acct_type3000s">Investissements</entry>
+    <entry key="acct_type4600s">Passifs</entry>
+    <entry key="acct_type5000s">Prêts</entry>
+    <entry key="acct_type6000s">Dépenses</entry>
+    <entry key="acct_type4000s">Titres</entry>
+    <entry key="all_accounts">Tous les comptes</entry>
+
+</properties>
