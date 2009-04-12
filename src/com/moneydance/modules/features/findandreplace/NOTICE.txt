@@ -13,6 +13,9 @@ This code is released as open source under the Apache 2.0 License:
 The source code for this plugin is hosted here:
      http://code.google.com/p/moneydance/
 
+Information about usage and installation is here:
+     http://www.mennesoft.com/findandreplace/index.html
+
 This plugin depends upon the TableLayout class for laying out panels in Java.
      http://www.clearthought.info/sun/products/jfc/tsc/articles/tablelayout/index.html
 
