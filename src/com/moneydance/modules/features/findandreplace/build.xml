@@ -1,0 +1,95 @@
+<!--
+Build file for Ant for the Find And Replace plugin to Moneydance.
+http://jakarta.apache.org/ant/index.html
+
+There are two major targets: findandreplace and findandreplace-compile.
+
+findandreplace-compile:
+    - Compiles using Java 1.6, so be sure you have necessary environment variables defined.
+    - Makes an unsigned jar named findandreplace.mxt
+
+findandreplace (or 'all')
+    - Runs findandreplace-compile
+    - Signs the jar findandreplace.mxt (requires you to input password)
+    - Overwrites the unsigned jar in ${dist} with the signed one
+    - Copies the signed jar to the Moneydance install folder at ${install}
+-->
+
+<project name="myextension" default="all" basedir=".">
+  <property name="version"  value="2.2"/>
+  <property name="src" value="."/>
+  <property name="build" value="./output/production/FindAndReplace"/>
+  <property name="privkeyfile" value="${src}/priv_key"/>
+  <property name="pubkeyfile" value="${src}/pub_key"/>
+  <property name="privkeyid" value="99"/>
+
+  <property name="build.compiler"  value="classic"/>
+  <property name="build.compiler.fulldepend"  value="true"/>
+  <property name="dist"  value="../dist"/>
+  <property name="install"  value="C:\Documents and Settings\Kevin\.moneydance\fmodules"/>
+  <property name="tmp"  value="../temp"/>
+  <property name="debug"  value="on"/>
+  <property name="optimize"  value="off"/>
+
+  <path id="classpath">
+    <pathelement path="../lib/extadmin.jar"/>
+    <pathelement path="../lib/moneydance.jar"/>
+  </path>
+
+  <target name="init">
+    <mkdir dir="${dist}"/>
+    <mkdir dir="${build}"/>
+  </target>   
+
+    <target name="findandreplace-compile" depends="init">
+      <javac  target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+        classpathref="classpath"  destdir="${build}"
+        includes="
+        com/moneydance/modules/features/findandreplace/**/*.java
+        info/clearthought/layout/**"/>
+
+      <jar destfile="${dist}/findandreplace.mxt">
+        <fileset dir="${src}" includes="
+               com/moneydance/modules/features/findandreplace/meta_info.dict
+               com/moneydance/modules/features/findandreplace/*.properties
+               com/moneydance/modules/features/findandreplace/*.xml
+               com/moneydance/modules/features/findandreplace/*.properties.xml
+               com/moneydance/modules/features/findandreplace/*.gif
+               com/moneydance/modules/features/findandreplace/*.png
+               com/moneydance/modules/features/findandreplace/*.jpg
+               com/moneydance/modules/features/findandreplace/*.jpeg"/>
+        <fileset dir="${build}" includes="
+        com/moneydance/modules/features/findandreplace/**/*.class
+        info/clearthought/layout/**"/>
+      </jar>
+
+    </target>
+
+  <target name="findandreplace" depends="findandreplace-compile">
+    <java newenvironment="true"
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="findandreplace"/>
+      <arg line="${dist}/findandreplace.mxt"/>
+    </java>
+      <delete file="${dist}/findandreplace.mxt" verbose="true" failonerror="false" />
+    <move file="${src}/s-findandreplace.mxt" tofile="${dist}/findandreplace.mxt" verbose="true" failonerror="false" />
+    <copy file="${dist}/findandreplace.mxt" tofile="${install}/findandreplace.mxt" verbose="true" failonerror="false" />
+  </target>
+
+  <target name="genkeys">
+    <java 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="genkey"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${pubkeyfile}"/>
+    </java>
+  </target>
+
+  <target name="all" depends="findandreplace"/>
+
+</project>
