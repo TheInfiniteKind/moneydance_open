@@ -6,17 +6,18 @@ There are two major targets: findandreplace and findandreplace-compile.
 
 findandreplace-compile:
     - Compiles using Java 1.6, so be sure you have necessary environment variables defined.
+    - Set the bootclasspath property to the proper location of the 1.6 lib folder
+    - Consider switching your JDK to 1.6 (on Mac 'sudo ln -fhsv 1.6 CurrentJDK')
     - Makes an unsigned jar named findandreplace.mxt
 
 findandreplace (or 'all')
     - Runs findandreplace-compile
     - Signs the jar findandreplace.mxt (requires you to input password)
-    - Overwrites the unsigned jar in ${dist} with the signed one
-    - Copies the signed jar to the Moneydance install folder at ${install}
+    - Overwrites the unsigned jar in ${dist} with the signed one (make sure relative path is good)
+    - Copies the signed jar to the Moneydance install folder at ${install} (make sure relative path is good)
 -->
 
-<project name="myextension" default="all" basedir=".">
-  <property name="version"  value="2.2"/>
+<project name="findandreplace" default="all" basedir=".">
   <property name="src" value="."/>
   <property name="build" value="./output/production/FindAndReplace"/>
   <property name="privkeyfile" value="${src}/priv_key"/>
@@ -26,10 +27,11 @@ findandreplace (or 'all')
   <property name="build.compiler"  value="classic"/>
   <property name="build.compiler.fulldepend"  value="true"/>
   <property name="dist"  value="../dist"/>
-  <property name="install"  value="C:\Documents and Settings\Kevin\.moneydance\fmodules"/>
+  <property name="install"  value="../../../../.moneydance/fmodules"/>
   <property name="tmp"  value="../temp"/>
   <property name="debug"  value="on"/>
   <property name="optimize"  value="off"/>
+  <property name="bootclasspath"  value="/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home/lib/rt.jar"/>
 
   <path id="classpath">
     <pathelement path="../lib/extadmin.jar"/>
@@ -42,8 +44,8 @@ findandreplace (or 'all')
   </target>   
 
     <target name="findandreplace-compile" depends="init">
-      <javac  target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-        classpathref="classpath"  destdir="${build}"
+      <javac target="1.6" bootclasspath="${bootclasspath}" source="1.6" srcdir="${src}" 
+        debug="${debug}" optimize="${optimize}" classpathref="classpath"  destdir="${build}"
         includes="
         com/moneydance/modules/features/findandreplace/**/*.java
         info/clearthought/layout/**"/>
