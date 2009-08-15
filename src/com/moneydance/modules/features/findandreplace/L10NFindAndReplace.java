@@ -10,13 +10,14 @@ package com.moneydance.modules.features.findandreplace;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
-public class L10NFindAndReplace
+class L10NFindAndReplace
 {
     public static final String LABEL_COLON = "labelColon";
     public static final String TITLE = "title.text"; // Find and Replace
+    public static final String VERSION_FMT = "version.format"; //Version V (Build B)
 
     public static final String FIND_LABEL = "findLabel.text"; // Find
     public static final String FIND_BOOL_LABEL = "combine_criteria"; // = Combine Criteria:
@@ -48,7 +49,15 @@ public class L10NFindAndReplace
     public static final String FIND_TAGS_LABEL = "findTagsLabel.text"; // = Tags:
     public static final String FIND_TAGS_MNC = "findTagsLabel.mnemonic"; // = T
     public static final String FIND_NOT = "findNot.text"; // = but not
+    
+    public static final String FIND_CLEARED_LABEL = "cleared"; // = Cleared
+    public static final String FIND_CLEARED_MNC = "findClearedLabel.mnemonic"; // = L
     public static final String FIND_USE_TIP = "findUse.toolTip";
+    public static final String FIND_RECONCILING_LABEL = "reconciling"; // = Reconciling
+    public static final String FIND_UNCLEARED_LABEL = "uncleared"; // = Uncleared
+    public static final String FIND_CLEARED_TIP = "findCleared.toolTip"; // = Include cleared transactions
+    public static final String FIND_RECONCILING_TIP = "findReconciling.toolTip"; // = Include reconciling transactions
+    public static final String FIND_UNCLEARED_TIP = "findUncleared.toolTip"; // = Include uncleared transactions
 
     public static final String REPLACE_LABEL = "replaceLabel.text"; // = Replace
     public static final String REPLACE_CAT_LABEL = "category"; //  = Category:
@@ -75,6 +84,10 @@ public class L10NFindAndReplace
     public static final String RESULTS_COLUMN_AMOUNT = "table_column_amount"; // Amount
     public static final String RESULTS_SUMMARY_FMT = "resultsSummary.format";
 
+    public static final String INCXFER_LABEL = "includeTransfers.text"; // Include Transfers
+    public static final String INCXFER_TIP = "includeTransfers.toolTip"; // Allow all accounts to be included as categories
+    public static final String INCXFER_MNC = "includeTransfers.mnemonic"; //D
+
     public static final String RESULTS_CHECKNO_LABEL = "table_column_checknum"; //  = Check#
 
     public static final String FIND_BUTTON_TEXT = "findBtn.text";
@@ -83,6 +96,9 @@ public class L10NFindAndReplace
     public static final String REPLACE_BUTTON_MNC = "replaceBtn.mnemonic";
     public static final String REPLACEALL_BUTTON_TEXT = "replaceAllBtn.text";
     public static final String REPLACEALL_BUTTON_MNC = "replaceAllBtn.mnemonic";
+    public static final String GOTO_BUTTON_TEXT = "show_txn";
+    public static final String GOTO_BUTTON_MNC = "gotoBtn.mnemonic";
+    public static final String RESET_BUTTON_TEXT = "resetBtn.text"; // = Reset
 
     public static final String ACCOUNTSELECT_TITLE = "select_acct_title";
     public static final String ACCOUNTSELECT_EXCLUDE = "accountselect.exclude.text"; // Excluded 
@@ -118,9 +134,9 @@ public class L10NFindAndReplace
     public static final String OK = "ok";
     public static final String CANCEL = "cancel";
     public static final String NONE = "none"; // None
+    public static final String DONE = "done"; // Done
     public static final String SPLIT_1 = "split_label1"; // -
     public static final String SPLIT_2 = "split_label2"; // splits -
-    public static final String CANCEL_BUTTON_TEXT = "cancel_txn";
     public static final String RECORD_BUTTON_TEXT = "record_txn";
     public static final String FIND_BOOL_AND = "srch_op_intersect"; // = And (Intersection)
     public static final String FIND_BOOL_OR = "srch_op_union"; // = Or (Union)

@@ -11,6 +11,10 @@ import javax.swing.event.DocumentListener;
 import info.clearthought.layout.TableLayout;
 import info.clearthought.layout.TableLayoutConstraints;
 
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+
 /**
  * <p>Two date pickers, one 'include tags' and one 'exclude tags', combined.</p>
  *
@@ -19,7 +23,7 @@ import info.clearthought.layout.TableLayoutConstraints;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class AmountPickerGroup extends JPanel
@@ -40,6 +44,19 @@ class AmountPickerGroup extends JPanel
         _from = new JCurrencyField(currencyType, currencyTable, decimalChar, commaChar);
         _to =  new JCurrencyField(currencyType, currencyTable, decimalChar, commaChar);
         layoutUI(controller);
+        _from.addFocusListener(new FocusAdapter()
+        {
+            @Override
+            public void focusLost(FocusEvent e)
+            {
+                long toValue = _to.getValue();
+                if ((_from.getValue() != toValue) && (toValue == 0))
+                {
+                    // blow in the from value to make it easy
+                    _to.setValue(_from.getValue());
+                }
+            }
+        });
     }
 
     JCurrencyField getFromAmountPicker()
@@ -56,6 +73,12 @@ class AmountPickerGroup extends JPanel
     {
         _from.getDocument().addDocumentListener(changeListener);
         _to.getDocument().addDocumentListener(changeListener);
+    }
+
+    public void addFocusListener(final FocusListener listener)
+    {
+        _from.addFocusListener(listener);
+        _to.addFocusListener(listener);
     }
 
 

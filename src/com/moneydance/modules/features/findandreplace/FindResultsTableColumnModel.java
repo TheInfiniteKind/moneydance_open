@@ -11,11 +11,19 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+
 import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.TableColumn;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.ListSelectionModel;
+import javax.swing.JTable;
+import javax.swing.JLabel;
+import javax.swing.Icon;
+import java.awt.Component;
+import java.awt.Color;
 
 /**
  * <p>Columns for the results table.</p>
@@ -25,7 +33,7 @@ import javax.swing.ListSelectionModel;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class FindResultsTableColumnModel extends DefaultTableColumnModel
@@ -124,13 +132,76 @@ class FindResultsTableColumnModel extends DefaultTableColumnModel
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_CATEGORY));
         addColumn(column);
 
+        // the cleared column shows icons
         column = new TableColumn(FindResultsTableModel.CLEARED_INDEX);
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_CLEARED));
+        column.setCellRenderer(new ClearedCellRenderer());
         addColumn(column);
 
         column = new TableColumn(FindResultsTableModel.AMOUNT_INDEX);
-        column.setCellRenderer(new FindResultsTableCellRenderer());
+        if (resources instanceof FarController)
+        {
+            final MoneydanceGUI mdGui = ((FarController)resources).getMDGUI();
+            column.setCellRenderer(new AmountCellRenderer(mdGui));
+        }
+        else
+        {
+            column.setCellRenderer(new FindResultsTableCellRenderer());
+        }
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
         addColumn(column);
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // Inner Classes
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private class ClearedCellRenderer extends DefaultTableCellRenderer
+    {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column)
+        {
+            // the default renderer is a JLabel
+            JLabel result = (JLabel)super.getTableCellRendererComponent(table, value, isSelected,
+                    hasFocus, row, column);
+
+            result.setHorizontalAlignment(JLabel.CENTER);
+
+            if (value instanceof Icon)
+            {
+                result.setText(N12EFindAndReplace.EMPTY);
+                result.setIcon((Icon)value);
+            }
+            else
+            {
+                result.setIcon(null);
+            }
+
+            return result;
+        }
+    }
+
+    private class AmountCellRenderer extends FindResultsTableCellRenderer
+    {
+        private final MoneydanceGUI _mdGui;
+
+        AmountCellRenderer(final MoneydanceGUI mdGui)
+        {
+            _mdGui = mdGui;
+        }
+
+        @Override
+        protected Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
+        {
+            long txnValue = tableModel.getAmount(modelIndex);
+            if (txnValue < 0)
+            {
+                return _mdGui.getColors().negativeBalFG;
+            }
+            return super.getNormalForeground(tableModel, modelIndex);
+        }
     }
 }

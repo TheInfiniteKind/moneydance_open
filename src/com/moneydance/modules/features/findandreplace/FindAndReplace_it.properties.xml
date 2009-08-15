@@ -4,6 +4,7 @@
     <!--  Common stuff -->
 
     <entry key="title.text">Trovare e Sostituire</entry>
+    <entry key="version.format">Versione 1.1 (Build 42)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Trovare</entry>
@@ -31,6 +32,11 @@
     <entry key="findTagsLabel.mnemonic">T</entry>
     <entry key="findNot.text">ma non</entry>
 
+    <entry key="findClearedLabel.mnemonic">L</entry>
+    <entry key="findCleared.toolTip">Includere le operazioni riconciliata</entry>
+    <entry key="findReconciling.toolTip">Includere le operazioni verificata</entry>
+    <entry key="findUncleared.toolTip">Includere le operazioni non verificata</entry>
+
     <entry key="findUse.toolTip">Utilizzare questo criterio di ricerca per le operazioni</entry>
 
     <!--  Replace panel -->
@@ -44,6 +50,10 @@
     <entry key="replaceTagsRemove.text">Rimuovere etichette:</entry>
     <entry key="replaceTagsReplace.text">Sostituire tutti con:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <entry key="includeTransfers.text">Includere Trasferisci</entry>
+    <entry key="includeTransfers.toolTip">Consentire a tutti i conti per essere incluso come categorie</entry>
+    <entry key="includeTransfers.mnemonic">D</entry>
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Risultati del Trovare</entry>
@@ -59,6 +69,8 @@
     <entry key="replaceAllBtn.mnemonic">U</entry>
     <entry key="closeBtn.text">Chiudere</entry>
     <entry key="closeBtn.mnemonic">C</entry>
+    <entry key="gotoBtn.mnemonic">V</entry>
+    <entry key="resetBtn.text">Risistemazione</entry>
 
     <entry key="markAllBtn.text">Prescegliere Tutti</entry>
     <entry key="markNoneBtn.text">Prescegliere Nessuno</entry>
@@ -78,6 +90,8 @@
     <entry key="ok">Ok</entry>
     <entry key="cancel">Annulla</entry>
     <entry key="none">Non</entry>
+    <entry key="done">Fine</entry>
+
     <entry key="split_label1">-</entry>
     <entry key="split_label2">frazionamenti -</entry>
     <entry key="cancel_txn">Annulla</entry>
@@ -102,6 +116,7 @@
     <entry key="table_column_checknum">Assegno n.</entry>
     <entry key="select_acct_title">Selezionare un Conto</entry>
     <entry key="all_categories">Tutti i Categorie</entry>
+    <entry key="show_txn">Vai a Transazione</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Patrimonio</entry>
@@ -114,5 +129,10 @@
     <entry key="acct_type6000s">Spese</entry>
     <entry key="acct_type4000s">Titoli</entry>
     <entry key="all_accounts">Tutti i Conti</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">Riconciliata</entry>
+    <entry key="uncleared">Non verificata</entry>
+    <entry key="reconciling">Verificata</entry>
 
 </properties>

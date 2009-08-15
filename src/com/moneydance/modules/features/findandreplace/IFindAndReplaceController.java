@@ -13,7 +13,7 @@ import com.moneydance.apps.md.model.Account;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public interface IFindAndReplaceController extends IResourceProvider
@@ -34,7 +34,9 @@ public interface IFindAndReplaceController extends IResourceProvider
     void replace();
     void replaceAll();
     void commit();
+    void reset();
     void updateRow(int modelIndex);
+    void cleanUp();
 
     void setInitialFreeText(final String freeText);
 

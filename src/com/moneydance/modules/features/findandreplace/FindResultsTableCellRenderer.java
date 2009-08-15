@@ -14,7 +14,7 @@ import java.awt.Color;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class FindResultsTableCellRenderer extends DefaultTableCellRenderer
@@ -42,12 +42,17 @@ class FindResultsTableCellRenderer extends DefaultTableCellRenderer
             }
             else
             {
-                result.setForeground(Color.BLACK);
+                result.setForeground(getNormalForeground(tableModel, modelIndex));
             }
 
             setToolTipText(tableModel.getToolTipText(modelIndex));
         }
 
         return result;
+    }
+
+    Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
+    {
+        return Color.BLACK;
     }
 }

@@ -3,6 +3,7 @@
 <properties>
     <!--  Common stuff -->
     <entry key="title.text">Εύρεση και Αντικατάσταση</entry>
+    <entry key="version.format">Έκδοση 1.1 (Build 42)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Βρίσκω</entry>
@@ -30,6 +31,11 @@
     <entry key="findTagsLabel.mnemonic">τ</entry>
     <entry key="findNot.text">αλλά όχι</entry>
 
+    <entry key="findClearedLabel.mnemonic">θ</entry>
+    <entry key="findCleared.toolTip">Περιλάβετε Εκκαθαρισμένο συναλλαγές</entry>
+    <entry key="findReconciling.toolTip">Περιλάβετε Αναδιαπραγματεύεται συναλλαγές</entry>
+    <entry key="findUncleared.toolTip">Περιλάβετε Ακαθάριστο συναλλαγές</entry>
+
     <entry key="findUse.toolTip">Χρησιμοποιήστε αυτό το κριτήριο στην αναζήτηση των συναλλαγών</entry>
 
     <!--  Replace panel -->
@@ -43,6 +49,10 @@
     <entry key="replaceTagsRemove.text">Αφαιρέστε τις ετικέττες:</entry>
     <entry key="replaceTagsReplace.text">Αντικαταστήστε όλων με:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <entry key="includeTransfers.text">Περιλάβετε Μεταφορά</entry>
+    <entry key="includeTransfers.toolTip">Επιτρέψτε όλους τους Λογαριασμοί που πρέπει να περιλαμβάνονται ως κατηγορίες</entry>
+    <entry key="includeTransfers.mnemonic">Μ</entry>
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Αποτελέσματα του Ευρήματος</entry>
@@ -58,6 +68,8 @@
     <entry key="replaceAllBtn.mnemonic">ό</entry>
     <entry key="closeBtn.text">Κλείνω</entry>
     <entry key="closeBtn.mnemonic">Κ</entry>
+    <entry key="gotoBtn.mnemonic">Π</entry>
+    <entry key="resetBtn.text">Επαναφορά</entry>
 
     <entry key="markAllBtn.text">Επιλέξτε Όλοι</entry>
     <entry key="markNoneBtn.text">Επιλέξτε Κανένας</entry>
@@ -77,6 +89,8 @@
     <entry key="ok">Εντάξει</entry>
     <entry key="cancel">Ακύρωση</entry>
     <entry key="none">Τίποτα</entry>
+    <entry key="done">Τέλος</entry>
+
     <entry key="split_label1">- </entry>
     <entry key="split_label2"> επιμερισμός - </entry>
     <entry key="cancel_txn">Ακύρωση</entry>
@@ -101,6 +115,7 @@
     <entry key="table_column_checknum">Επιταγή#</entry>
     <entry key="select_acct_title">Επιλέξτε ένα Λογαριασμό</entry>
     <entry key="all_categories">Όλοι Κατηγορίες</entry>
+    <entry key="show_txn">Πηγαίνετε στη συναλλαγή</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Ενεργητικό</entry>
@@ -113,5 +128,10 @@
     <entry key="acct_type6000s">Εξόδα</entry>
     <entry key="acct_type4000s">Αξιόγραφο</entry>
     <entry key="all_accounts">Όλοι οί λογαριασμοί</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">Εκκαθαρισμένο</entry>
+    <entry key="uncleared">Ακαθάριστο</entry>
+    <entry key="reconciling">Αναδιαπραγματεύεται</entry>
 
 </properties>

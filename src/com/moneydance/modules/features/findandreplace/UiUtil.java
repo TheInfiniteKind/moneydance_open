@@ -11,15 +11,15 @@ import info.clearthought.layout.TableLayoutConstants;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class UiUtil
 {
     /** Horizontal gap between components/controls. */
-    public static final int HGAP = 4;
+    public static final int HGAP = 6;
     /** Vertical gap between components/controls. */
-    public static final int VGAP = 3;
+    public static final int VGAP = 4;
 
     /**
      * Left justified control on the bottom.

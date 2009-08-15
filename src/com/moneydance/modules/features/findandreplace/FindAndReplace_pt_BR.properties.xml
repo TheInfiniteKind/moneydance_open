@@ -4,6 +4,7 @@
     <!--  Common stuff -->
 
     <entry key="title.text">Encontrar e Substituir</entry>
+    <entry key="version.format">Versão 1.1 (Build 42)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Encontrar</entry>
@@ -31,6 +32,11 @@
     <entry key="findTagsLabel.mnemonic">R</entry>
     <entry key="findNot.text">mas não</entry>
 
+    <entry key="findClearedLabel.mnemonic">L</entry>
+    <entry key="findCleared.toolTip">Incluir efetuada transações</entry>
+    <entry key="findReconciling.toolTip">Incluir reconciliando transações</entry>
+    <entry key="findUncleared.toolTip">Incluir não efetuada transações</entry>
+
     <entry key="findUse.toolTip">Uso critério para procurar por transações</entry>
 
     <!--  Replace panel -->
@@ -44,6 +50,10 @@
     <entry key="replaceTagsRemove.text">Remover rótulos:</entry>
     <entry key="replaceTagsReplace.text">Substituir todas com:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <entry key="includeTransfers.text">Incluir Transferencia</entry>
+    <entry key="includeTransfers.toolTip">Permita que todas as contas estejam incluídas como categorias</entry>
+    <entry key="includeTransfers.mnemonic">D</entry>
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Resultados da Encontrar</entry>
@@ -59,6 +69,8 @@
     <entry key="replaceAllBtn.mnemonic">A</entry>
     <entry key="closeBtn.text">Fechar</entry>
     <entry key="closeBtn.mnemonic">C</entry>
+    <entry key="gotoBtn.mnemonic">I</entry>
+    <entry key="resetBtn.text">Redefinir</entry>
 
     <entry key="markAllBtn.text">Marcar Todas</entry>
     <entry key="markNoneBtn.text">Marcar Nenhum</entry>
@@ -78,6 +90,8 @@
     <entry key="ok">Ok</entry>
     <entry key="cancel">Cancelar</entry>
     <entry key="none">Nenhum</entry>
+    <entry key="done">Pronto</entry>
+
     <entry key="split_label1">-</entry>
     <entry key="split_label2">pedaços -</entry>
     <entry key="cancel_txn">Cancelar</entry>
@@ -102,6 +116,7 @@
     <entry key="table_column_checknum">Cheque nº</entry>
     <entry key="select_acct_title">Selecionar uma Conta</entry>
     <entry key="all_categories">Todas Categorias</entry>
+    <entry key="show_txn">Ir Para Transacção</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Bem</entry>
@@ -114,6 +129,11 @@
     <entry key="acct_type6000s">Despesa</entry>
     <entry key="acct_type4000s">Previdência</entry>
     <entry key="all_accounts">Todas as Contas</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">Efetuada</entry>
+    <entry key="uncleared">Não Efetuada</entry>
+    <entry key="reconciling">Reconciliando</entry>
 
 
 </properties>

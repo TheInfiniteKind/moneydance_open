@@ -4,6 +4,7 @@
     <!--  Common stuff -->
 
     <entry key="title.text">Buscar y Reemplazar</entry>
+    <entry key="version.format">Versión 1.1 (Construir 42)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Buscar</entry>
@@ -31,6 +32,11 @@
     <entry key="findTagsLabel.mnemonic">T</entry>
     <entry key="findNot.text">pero no</entry>
 
+    <entry key="findClearedLabel.mnemonic">L</entry>
+    <entry key="findCleared.toolTip">Incluya Borrado transacciones</entry>
+    <entry key="findReconciling.toolTip">Incluya Reconciliación transacciones</entry>
+    <entry key="findUncleared.toolTip">Incluya Sin Borrar transacciones</entry>
+
     <entry key="findUse.toolTip">Utilice este criterio para buscar para las transacciones</entry>
 
     <!--  Replace panel -->
@@ -44,6 +50,10 @@
     <entry key="replaceTagsRemove.text">Quite etiquetas:</entry>
     <entry key="replaceTagsReplace.text">Sustituir todos con:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <entry key="includeTransfers.text">Incluya Transferir</entry>
+    <entry key="includeTransfers.toolTip">Permita que todas las cuentas sean incluidas como categorías</entry>
+    <entry key="includeTransfers.mnemonic">Y</entry>
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Resultados del Búsqueda</entry>
@@ -59,6 +69,8 @@
     <entry key="replaceAllBtn.mnemonic">T</entry>
     <entry key="closeBtn.text">Cerrar</entry>
     <entry key="closeBtn.mnemonic">C</entry>
+    <entry key="gotoBtn.mnemonic">I</entry>
+    <entry key="resetBtn.text">Reajuste</entry>
 
     <entry key="markAllBtn.text">Marca Todos</entry>
     <entry key="markNoneBtn.text">Marca Nada</entry>
@@ -79,6 +91,8 @@
     <entry key="ok">Ok</entry>
     <entry key="cancel">Cancelar</entry>
     <entry key="none">Ningúno</entry>
+    <entry key="done">Hecho</entry>
+
     <entry key="split_label1">- </entry>
     <entry key="split_label2">divididas -</entry>
     <entry key="cancel_txn">Cancelar</entry>
@@ -102,6 +116,7 @@
     <entry key="table_column_checknum">Cheque#</entry>
     <entry key="select_acct_title">Elija una cuenta</entry>
     <entry key="all_categories">Todas las Categorías</entry>
+    <entry key="show_txn">Ir a la transaccion</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Poseciones</entry>
@@ -114,5 +129,10 @@
     <entry key="acct_type6000s">Gastos</entry>
     <entry key="acct_type4000s">Seguridad</entry>
     <entry key="all_accounts">Todas las Cuentas</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">Borrado</entry>
+    <entry key="uncleared">Sin Borrar</entry>
+    <entry key="reconciling">Reconciliación</entry>
 
 </properties>

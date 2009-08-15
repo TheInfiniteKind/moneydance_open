@@ -1,5 +1,5 @@
 Find And Replace Plugin Notes
-April 2009
+August 2009
 
 Originally authored by Kevin Menningen
 

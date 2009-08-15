@@ -20,9 +20,9 @@ import javax.swing.JPanel;
 import javax.swing.BorderFactory;
 import javax.swing.WindowConstants;
 import javax.swing.JOptionPane;
-import java.awt.Frame;
 import java.awt.BorderLayout;
 import java.awt.Dialog;
+import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
@@ -36,7 +36,7 @@ import com.moneydance.apps.md.model.RootAccount;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class AccountSelectDialog extends JDialog
@@ -72,7 +72,7 @@ class AccountSelectDialog extends JDialog
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @see javax.swing.JComponent#getDefaultLocale
      */
-    public AccountSelectDialog(Frame owner, IResourceProvider resources, RootAccount data,
+    public AccountSelectDialog(Window owner, IResourceProvider resources, RootAccount data,
                                AccountFilter filter)
     {
         // this will be modal

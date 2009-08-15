@@ -14,7 +14,7 @@ import java.util.Comparator;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class FindResultsTable extends JTableBase
@@ -73,6 +73,10 @@ class FindResultsTable extends JTableBase
                 if (column == FindResultsTableModel.DATE_INDEX)
                 {
                     return Integer.valueOf(_model.getDateInt(row));
+                }
+                if (column == FindResultsTableModel.CLEARED_INDEX)
+                {
+                    return Integer.valueOf(_model.getClearedInt(row));
                 }
                 return _model.getValueAt(row, column);
             }

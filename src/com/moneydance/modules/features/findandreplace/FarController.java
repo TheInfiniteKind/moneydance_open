@@ -23,7 +23,7 @@ import java.awt.Image;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
@@ -65,6 +65,7 @@ public class FarController implements IFindAndReplaceController
 
     public void cleanUp()
     {
+        _view.setVisible( false );
         _model.setData(null);
     }
 
@@ -91,6 +92,9 @@ public class FarController implements IFindAndReplaceController
         _model.notifyAllListeners();
     }
 
+    /**
+     * This is called when the dialog is to be destroyed
+     */
     public void hide()
     {
         _view.setVisible( false );
@@ -205,47 +209,70 @@ public class FarController implements IFindAndReplaceController
         // save everything to the Moneydance file
         if (isDirty())
         {
+            final RootAccount root = _model.getData();
             if (getMDGUI() != null)
             {
                 getMDGUI().setSuspendRefresh(true);
+                root.setRecalcBalances(false);
             }
-            
-            final FindResultsTableModel results = _model.getFindResults();
-            final int count = results.getRowCount();
+
             boolean changed = false;
-            for (int rowIndex = 0; rowIndex < count; rowIndex++)
+            try
             {
-                final FindResultsTableEntry entry = results.getEntry(rowIndex);
-                if (entry.isApplied() && entry.isUseInReplace())
+                final FindResultsTableModel results = _model.getFindResults();
+                final int count = results.getRowCount();
+                for (int rowIndex = 0; rowIndex < count; rowIndex++)
                 {
-                    for (final ReplaceCommand command : _commands)
+                    final FindResultsTableEntry entry = results.getEntry(rowIndex);
+                    if (entry.isApplied() && entry.isUseInReplace())
                     {
-                        if (entry.isSplitPrimary())
+                        for (final ReplaceCommand command : _commands)
                         {
-                            command.setTransaction(entry.getSplitTxn());
-                        }
-                        else
-                        {
-                            command.setTransaction(entry.getParentTxn());
-                        }
+                            if (entry.isSplitPrimary())
+                            {
+                                command.setTransaction(entry.getSplitTxn());
+                            }
+                            else
+                            {
+                                command.setTransaction(entry.getParentTxn());
+                            }
 
-                        changed |= command.execute();
-                    }
-                } // if use this entry
-            } // for rowIndex
-
-            if (changed)
+                            if (command.execute())
+                            {
+                                changed = true;
+                                // this will notify the system of the modification
+                                root.getTransactionSet().txnModified( command.getTransaction() );
+                            }
+                        }
+                    } // if use this entry
+                } // for rowIndex
+            } // try
+            finally
             {
-                // flag to MoneyDance that the file has been modified
-                _model.getData().setDirtyFlag();
-                if (getMDGUI() != null)
+                if (changed)
                 {
-                    getMDGUI().setSuspendRefresh(false);
+                    // flag to MoneyDance that the file has been modified
+                    if (getMDGUI() != null)
+                    {
+                        getMDGUI().setSuspendRefresh(false);
+                    }
+                    root.setRecalcBalances(true);
+                    root.refreshAccountBalances();
                 }
-                _model.getData().refreshAccountBalances();
-            }
-
+            } // finally
         } // if dirty
+    } // commit()
+
+    public void reset()
+    {
+        _model.setDefaults();
+        _model.getFindResults().reset();
+
+        // update display
+        _model.getFindResults().fireTableDataChanged();
+        _view.getFindResultsTable().clearSelection();
+        // send a global refresh request
+        _model.notifyAllListeners();
     }
 
     public void updateRow(int modelIndex)
@@ -438,6 +465,21 @@ public class FarController implements IFindAndReplaceController
         }
     }
 
+    void gotoTransaction(int tableModelRow)
+    {
+        if (_model.hasFindResults() && (tableModelRow >= 0))
+        {
+            final FindResultsTableModel results = _model.getFindResults();
+            final int count = results.getRowCount();
+            if (tableModelRow < count)
+            {
+                final FindResultsTableEntry tableEntry = results.getEntry(tableModelRow);
+                AbstractTxn targetTxn = tableEntry.getParentTxn();
+                getMDGUI().showTxn(targetTxn);
+            }
+        }
+    }
+
 
     String getAccountListDisplay()
     {
@@ -503,6 +545,14 @@ public class FarController implements IFindAndReplaceController
     {
         _model.setAmountRange(minimum, maximum);
     }
+    long getAmountMinimum()
+    {
+        return _model.getAmountMinimum();
+    }
+    long getAmountMaximum()
+    {
+        return _model.getAmountMaximum();
+    }
 
     void setUseDateFilter(final boolean use)
     {
@@ -524,6 +574,14 @@ public class FarController implements IFindAndReplaceController
     {
         _model.setDateRange(minimum, maximum);
     }
+    int getDateMinimum()
+    {
+        return _model.getDateMinimum();
+    }
+    int getDateMaximum()
+    {
+        return _model.getDateMaximum();
+    }
 
     void setUseFreeTextFilter(final boolean use)
     {
@@ -541,9 +599,13 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getRequireFreeTextFilter();
     }
-    void setFreeTextMatch(final String descriptionMatch)
+    void setFreeTextMatch(final String textOrRegEx)
     {
-        _model.setFreeTextMatch(descriptionMatch);
+        _model.setFreeTextMatch(textOrRegEx);
+    }
+    String getFreeTextMatch()
+    {
+        return _model.getFreeTextMatch();
     }
     void setFreeTextUseDescription(final boolean use)
     {
@@ -605,6 +667,46 @@ public class FarController implements IFindAndReplaceController
         return _model.getExcludedTagsModel();
     }
 
+    void setUseClearedFilter(final boolean use)
+    {
+        _model.setUseClearedFilter(use);
+    }
+    boolean getUseClearedFilter()
+    {
+        return _model.getUseClearedFilter();
+    }
+    void setRequireClearedFilter(final boolean require)
+    {
+        _model.setRequireClearedFilter(require);
+    }
+    boolean getRequireClearedFilter()
+    {
+        return _model.getRequireClearedFilter();
+    }
+    boolean getAllowCleared()
+    {
+        return _model.getAllowCleared();
+    }
+    void setAllowCleared(final boolean allow)
+    {
+        _model.setAllowCleared(allow);
+    }
+    boolean getAllowReconciling()
+    {
+        return _model.getAllowReconciling();
+    }
+    void setAllowReconciling(final boolean allow)
+    {
+        _model.setAllowReconciling(allow);
+    }
+    boolean getAllowUncleared()
+    {
+        return _model.getAllowUncleared();
+    }
+    void setAllowUncleared(final boolean allow)
+    {
+        _model.setAllowUncleared(allow);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Replace Controls Support
@@ -635,6 +737,10 @@ public class FarController implements IFindAndReplaceController
     {
         _model.setReplacementAmount(amount);
     }
+    long getReplacementAmount()
+    {
+        return _model.getReplacementAmount();
+    }
 
     void setReplaceDescription(boolean replace)
     {
@@ -648,6 +754,10 @@ public class FarController implements IFindAndReplaceController
     {
         _model.setReplacementDescription(description);
     }
+    String getReplacementDescription()
+    {
+        return _model.getReplacementDescription();
+    }
 
     void setReplaceMemo(boolean replace)
     {
@@ -660,6 +770,10 @@ public class FarController implements IFindAndReplaceController
     void setReplacementMemo(final String memo)
     {
         _model.setReplacementMemo(memo);
+    }
+    String getReplacementMemo()
+    {
+        return _model.getReplacementMemo();
     }
 
     void setReplaceTags(boolean replace)
@@ -719,6 +833,15 @@ public class FarController implements IFindAndReplaceController
         return DecimalFormatSymbols.getInstance().getGroupingSeparator();
     }
 
+    void setIncludeTransfers(final boolean include)
+    {
+        _model.setIncludeTransfers(include);
+    }
+
+    boolean getIncludeTransfers()
+    {
+        return _model.getIncludeTransfers();
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Private Methods

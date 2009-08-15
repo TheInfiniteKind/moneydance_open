@@ -11,7 +11,7 @@ import java.awt.Image;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class FindAndReplace
@@ -31,6 +31,7 @@ class FindAndReplace
     private static FindAndReplace getTestInstance(Main extension)
     {
         FarModel model = new FarModel();
+        // the view is a Frame, there is no owner
         FarView view = new FarView(model);
         FarController controller = new FarController(model, view);
 

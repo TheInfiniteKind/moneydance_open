@@ -22,7 +22,7 @@ package com.moneydance.modules.features.findandreplace;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public class N12EFindAndReplace
@@ -60,11 +60,6 @@ public class N12EFindAndReplace
     public static final String REGEX_SUFFIX = "\\E";
 
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // Properties Defined By Moneydance
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    /** Apparently hard-coded key used in tag set key,value pairs for the user-defined tags. */
-    public static final String USER_TAG_KEY = "md.txntags";
     public static final String MD_OPEN_EVENT_ID = "md:file:opened";
 
     //////////////////////////////////////////////////////////////////////////////////////////////
@@ -94,6 +89,12 @@ public class N12EFindAndReplace
     public static final String TAGS_REQUIRED = "tagsRequired";
     public static final String FIND_RESULTS_UPDATE = "findResultsUpdated";
 
+    public static final String CLEARED_USE = "clearedUse";
+    public static final String CLEARED_REQUIRED = "clearedRequired";
+    public static final String CLEARED_CLEARED = "allowCleared";
+    public static final String CLEARED_RECONCILING = "allowReconciling";
+    public static final String CLEARED_UNCLEARED = "allowUncleared";
+
     public static final String SELECT_TAG = "selectTag";
 
     public static final String REPLACE_CATEGORY = "replaceCategory";
@@ -101,6 +102,8 @@ public class N12EFindAndReplace
     public static final String REPLACE_DESCRIPTION = "replaceDescription";
     public static final String REPLACE_MEMO = "replaceMemo";
     public static final String REPLACE_TAGS = "replaceTags";
+
+    public static final String INCLUDE_TRANSFERS = "includeTransfers";
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,7 +116,7 @@ public class N12EFindAndReplace
     public static final String LINE_END = "<br/>";
     public static final String BOLD_BEGIN = "<b>";
     public static final String BOLD_END = "</b>";
-    public static final String COLOR_BEGIN_FMT = "<font style=\"color: #{0};\">";
+    public static final String COLOR_BEGIN_FMT = "<font style=\"color: #%02x%02x%02x;\">";
     public static final String COLOR_END = "</font>";
     public static final String TABLE_BEGIN = "<table style=\"border-spacing: 0px\">";
     public static final String TABLE_END = "</table>";

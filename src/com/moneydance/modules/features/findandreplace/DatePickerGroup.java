@@ -10,6 +10,8 @@ import javax.swing.event.DocumentListener;
 import info.clearthought.layout.TableLayout;
 import info.clearthought.layout.TableLayoutConstraints;
 
+import java.awt.event.FocusListener;
+
 /**
  * <p>Two date pickers, one 'from date' and one 'to date', combined.</p>
  *
@@ -18,7 +20,7 @@ import info.clearthought.layout.TableLayoutConstraints;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class DatePickerGroup extends JPanel
@@ -52,6 +54,12 @@ class DatePickerGroup extends JPanel
     {
         _from.getDocument().addDocumentListener(changeListener);
         _to.getDocument().addDocumentListener(changeListener);
+    }
+
+    public void addFocusListener(final FocusListener listener)
+    {
+        _from.addFocusListener(listener);
+        _to.addFocusListener(listener);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////

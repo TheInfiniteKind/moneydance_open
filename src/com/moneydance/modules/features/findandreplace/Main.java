@@ -24,7 +24,7 @@ import java.text.MessageFormat;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public class Main extends FeatureModule
@@ -288,6 +288,7 @@ public class Main extends FeatureModule
     {
         if (_controller != null)
         {
+            _controller.cleanUp();
             _controller = null;
             System.gc();
         }

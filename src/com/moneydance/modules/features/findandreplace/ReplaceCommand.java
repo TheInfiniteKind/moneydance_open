@@ -19,7 +19,7 @@ import java.util.Arrays;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public class ReplaceCommand implements IFarCommand
@@ -235,14 +235,22 @@ public class ReplaceCommand implements IFarCommand
             }
         }
 
-        if (changed)
-        {
-            FarUtil.getTransactionAccount(_transaction).setDirtyFlag();
-        }
-
         return changed;
     } // execute()
 
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // Package Private Methods
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    AbstractTxn getTransaction()
+    {
+        return _transaction;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // Private Methods
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     private ParentTxn getParentTxn()
     {
         final ParentTxn parent;
@@ -260,11 +268,6 @@ public class ReplaceCommand implements IFarCommand
         }
         return parent;
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // Private Methods
-    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     private TxnTag[] getChangedTagSet(final TxnTag[] baseTags)
     {

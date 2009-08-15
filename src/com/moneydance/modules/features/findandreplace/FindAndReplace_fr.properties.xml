@@ -4,6 +4,7 @@
     <!--  Common stuff -->
     <entry key="labelColon"> :</entry>
     <entry key="title.text">Recherche et Replacer</entry>
+    <entry key="version.format">Version 1.1 (Build 42)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Recherche</entry>
@@ -31,6 +32,11 @@
     <entry key="findTagsLabel.mnemonic">P</entry>
     <entry key="findNot.text">mais pas</entry>
 
+    <entry key="findClearedLabel.mnemonic">L</entry>
+    <entry key="findCleared.toolTip">D'inclure les transactions compensé</entry>
+    <entry key="findReconciling.toolTip">D'inclure les transactions rapprochement</entry>
+    <entry key="findUncleared.toolTip">D'inclure les transactions non compensé</entry>
+
     <entry key="findUse.toolTip">Employez ce critère pour rechercher des transactions</entry>
 
     <!--  Replace panel -->
@@ -44,6 +50,10 @@
     <entry key="replaceTagsRemove.text">Supprimer repères :</entry>
     <entry key="replaceTagsReplace.text">Replacer tous avec :</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <entry key="includeTransfers.text">D'inclure Transfert</entry>
+    <entry key="includeTransfers.toolTip">Permettez à tous les comptes d'être inclus comme les catégories</entry>
+    <entry key="includeTransfers.mnemonic">D</entry>
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Résultats de Recherche</entry>
@@ -59,6 +69,8 @@
     <entry key="replaceAllBtn.mnemonic">T</entry>
     <entry key="closeBtn.text">Fermer</entry>
     <entry key="closeBtn.mnemonic">F</entry>
+    <entry key="gotoBtn.mnemonic">A</entry>
+    <entry key="resetBtn.text">À Zéro</entry>
 
     <entry key="markAllBtn.text">Marquer Tous</entry>
     <entry key="markNoneBtn.text">Marquer Aucun</entry>
@@ -79,6 +91,8 @@
     <entry key="ok">OK</entry>
     <entry key="cancel">Annuler</entry>
     <entry key="none">Aucun</entry>
+    <entry key="done">Terminé</entry>
+
     <entry key="split_label1">- </entry>
     <entry key="split_label2">ventilations - </entry>
     <entry key="cancel_txn">Annuler</entry>
@@ -103,6 +117,7 @@
     <entry key="table_column_checknum">No de chèque</entry>
     <entry key="select_acct_title">Sélectionner un compte</entry>
     <entry key="all_categories">Toutes les catégories</entry>
+    <entry key="show_txn">Aller à la transaction</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Actifs</entry>
@@ -115,5 +130,10 @@
     <entry key="acct_type6000s">Dépenses</entry>
     <entry key="acct_type4000s">Titres</entry>
     <entry key="all_accounts">Tous les comptes</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">Compensé</entry>
+    <entry key="uncleared">Non compensé</entry>
+    <entry key="reconciling">Rapprochement</entry>
 
 </properties>

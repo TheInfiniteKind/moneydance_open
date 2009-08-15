@@ -20,11 +20,18 @@ import java.awt.event.WindowEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.Font;
 import java.awt.Cursor;
+import java.awt.GridLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.text.MessageFormat;
@@ -42,7 +49,7 @@ import info.clearthought.layout.TableLayoutConstants;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class FarView extends JFrame implements PropertyChangeListener
@@ -84,10 +91,20 @@ class FarView extends JFrame implements PropertyChangeListener
     private JCheckBox _findTagsUseCheck;
     private JCheckBox _findTagsRequireCheck;
     private TxnTagsPickerGroup _findTagPickers;
+    
+    private JCheckBox _findClearedUseCheck;
+    private JCheckBox _findClearedRequireCheck;
+    private JCheckBox _findClearedClearedCheck;
+    private JCheckBox _findClearedReconcilingCheck;
+    private JCheckBox _findClearedUnclearedCheck;
 
     // replace panel
     private JCheckBox _replaceCategoryCheck;
     private JComboBox _replaceCategory;
+    // we replace the category chooser on-the-fly so we need to track its parent and constraints
+    private JPanel _replacePanel;
+    private TableLayoutConstraints _replaceCategoryConstraints;
+
     private JCheckBox _replaceAmountCheck;
     private JCurrencyField _replaceAmount;
     private JCheckBox _replaceDescriptionCheck;
@@ -103,6 +120,8 @@ class FarView extends JFrame implements PropertyChangeListener
     private JCheckBox _replaceMemoCheck;
     private JTextField _replaceMemo;
 
+    private JCheckBox _includeTransfersCheck;
+
     // transaction list
     private JTable _findResults;
     private JLabel _summary;
@@ -113,8 +132,15 @@ class FarView extends JFrame implements PropertyChangeListener
     private JButton _replaceAllButton;
     private JButton _recordButton;
     private JButton _closeButton;
+    private JButton _resetButton;
     private JButton _markAllButton;
     private JButton _markNoneButton;
+    private JButton _gotoButton;
+
+    private Color _focusColor;
+
+    // don't automatically check the 'use' boxes when updating programmatically
+    private boolean _suppressAutoCheckUse = false;
 
     FarView(final FarModel model)
     {
@@ -127,6 +153,9 @@ class FarView extends JFrame implements PropertyChangeListener
 
     void layoutUI()
     {
+        _focusColor = new Color(255, 255, 180); // light yellow
+        this.setIconImage(_controller.getImage(L10NFindAndReplace.FAR_IMAGE));
+        
         setupButtons();
 
         final double[][] sizes = new double[][]
@@ -156,12 +185,20 @@ class FarView extends JFrame implements PropertyChangeListener
 
         main.add(createResultsPanel(), new TableLayoutConstraints(0, 2, 2, 2));
 
-        JPanel buttonPanel = createLowerLeftButtonPanel();
-        main.add( buttonPanel, new TableLayoutConstraints( 0, 4, 0, 4,
-                TableLayoutConstants.LEFT, TableLayoutConstants.FULL ) );
-        buttonPanel = createLowerRightButtonPanel();
-        main.add( buttonPanel, new TableLayoutConstraints( 0, 4, 2, 4,
-                TableLayoutConstants.RIGHT, TableLayoutConstants.FULL ) );
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add( createLowerLeftButtonPanel(), BorderLayout.WEST );
+        bottomPanel.add( createLowerRightButtonPanel(), BorderLayout.EAST );
+
+        JLabel version = new JLabel(getVersionText());
+        version.setOpaque(false);
+        version.setHorizontalAlignment(JLabel.CENTER);
+        version.setVerticalAlignment(JLabel.BOTTOM);
+        Font smallFont = version.getFont().deriveFont(version.getFont().getSize() - 2f);
+        version.setFont(smallFont);
+        version.setEnabled(false);
+        bottomPanel.add(version, BorderLayout.CENTER);
+
+        main.add( bottomPanel, new TableLayoutConstraints( 0, 4, 2, 4 ) );
 
         getContentPane().add( main );
 
@@ -237,6 +274,15 @@ class FarView extends JFrame implements PropertyChangeListener
         final String eventID = event.getPropertyName();
         final boolean all = N12EFindAndReplace.ALL_PROPERTIES.equals(eventID);
 
+        // when we set values programmatically we don't automatically set the 'use' checkboxes
+        // and we have to check for recursion in case properties get set from within a suppressed
+        // update
+        final boolean enterSuppressed = !_suppressAutoCheckUse && all;
+        if (enterSuppressed)
+        {
+            _suppressAutoCheckUse = true;
+        }
+
         if (all || N12EFindAndReplace.FIND_COMBINATION.equals(eventID))
         {
             if (_model.getFilterCombineOr())
@@ -302,14 +348,6 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             _findFreeTextRequireCheck.setSelected(_controller.getRequireFreeTextFilter());
         }
-        if (all || N12EFindAndReplace.TAGS_USE.equals(eventID))
-        {
-            _findTagsUseCheck.setSelected(_controller.getUseTagsFilter());
-        }
-        if (all || N12EFindAndReplace.TAGS_REQUIRED.equals(eventID))
-        {
-            _findTagsRequireCheck.setSelected(_controller.getRequireTagsFilter());
-        }
         if (all || N12EFindAndReplace.FREETEXT_DESCRIPTION.equals(eventID))
         {
             _findFreeTextUseDescriptionCheck.setSelected(_controller.getFreeTextUseDescription());
@@ -327,6 +365,36 @@ class FarView extends JFrame implements PropertyChangeListener
             _findFreeTextIncludeSplitsCheck.setSelected(_controller.getFreeTextIncludeSplits());
         }
 
+        if (all || N12EFindAndReplace.TAGS_USE.equals(eventID))
+        {
+            _findTagsUseCheck.setSelected(_controller.getUseTagsFilter());
+        }
+        if (all || N12EFindAndReplace.TAGS_REQUIRED.equals(eventID))
+        {
+            _findTagsRequireCheck.setSelected(_controller.getRequireTagsFilter());
+        }
+        
+        if (all || N12EFindAndReplace.CLEARED_USE.equals(eventID))
+        {
+            _findClearedUseCheck.setSelected(_controller.getUseClearedFilter());
+        }
+        if (all || N12EFindAndReplace.CLEARED_REQUIRED.equals(eventID))
+        {
+            _findClearedRequireCheck.setSelected(_controller.getRequireClearedFilter());
+        }
+        if (all || N12EFindAndReplace.CLEARED_CLEARED.equals(eventID))
+        {
+            _findClearedClearedCheck.setSelected(_controller.getAllowCleared());
+        }
+        if (all || N12EFindAndReplace.CLEARED_RECONCILING.equals(eventID))
+        {
+            _findClearedReconcilingCheck.setSelected(_controller.getAllowReconciling());
+        }
+        if (all || N12EFindAndReplace.CLEARED_UNCLEARED.equals(eventID))
+        {
+            _findClearedUnclearedCheck.setSelected(_controller.getAllowUncleared());
+        }
+ 
         // replacement
         if (all || N12EFindAndReplace.REPLACE_CATEGORY.equals(eventID))
         {
@@ -354,6 +422,11 @@ class FarView extends JFrame implements PropertyChangeListener
             updateSummary();
             _findResults.repaint();
         }
+        if (all || N12EFindAndReplace.INCLUDE_TRANSFERS.equals(eventID))
+        {
+            _includeTransfersCheck.setSelected(_controller.getIncludeTransfers());
+            buildReplaceCategoryChooser();
+        }
 
         if (all)
         {
@@ -371,6 +444,23 @@ class FarView extends JFrame implements PropertyChangeListener
 
             tagModel = _controller.getReplaceReplaceTagsModel();
             _replaceReplaceTags.setModel(tagModel);
+
+            _findFreeText.setText(_controller.getFreeTextMatch());
+            _findAmountPickers.getFromAmountPicker().setValue(_controller.getAmountMinimum());
+            _findAmountPickers.getToAmountPicker().setValue(_controller.getAmountMaximum());
+            _findDatePickers.getFromDatePicker().setDateInt(_controller.getDateMinimum());
+            _findDatePickers.getToDatePicker().setDateInt(_controller.getDateMaximum());
+
+            _replaceDescription.setText(_controller.getReplacementDescription());
+            _replaceMemo.setText(_controller.getReplacementMemo());
+            _replaceAmount.setValue(_controller.getReplacementAmount());
+
+        }
+
+        // clear the update suppression
+        if (enterSuppressed)
+        {
+            _suppressAutoCheckUse = false;
         }
 
         // update state
@@ -388,10 +478,15 @@ class FarView extends JFrame implements PropertyChangeListener
 
     void setFreeText(String freeText)
     {
-        _findFreeText.setText(freeText);
         if ((freeText != null) && (freeText.length() > 0))
         {
-            _findFreeTextUseCheck.setSelected(true);
+            if (validateFreeText(freeText))
+            {
+                _controller.setFreeTextMatch(freeText);
+                // this will fire an update
+                _findFreeText.setText(freeText);
+                _findFreeTextUseCheck.setSelected(true);
+            }
         }
     }
 
@@ -446,8 +541,19 @@ class FarView extends JFrame implements PropertyChangeListener
         _findResults.setShowGrid(false);
         _findResults.setTableHeader(new JTableHeader(columnModel));
         _findResults.setDefaultRenderer(TableColumn.class, new FindResultsTableCellRenderer());
-        _findResults.getSelectedRows();
         columnModel.setTableSelectionModel(_findResults.getSelectionModel());
+        _findResults.addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() > 1))
+                {
+                    final int selectedRow = _findResults.getSelectedRow();
+                    _controller.gotoTransaction(selectedRow);
+                }
+            }
+        });
 
         // experimentally-derived values
         columnModel.getColumn(FindResultsTableModel.SEL_INDEX).setPreferredWidth(28);
@@ -511,7 +617,7 @@ class FarView extends JFrame implements PropertyChangeListener
             }
         });
 
-        _closeButton = createButton(L10NFindAndReplace.CANCEL_BUTTON_TEXT, null);
+        _closeButton = createButton(L10NFindAndReplace.DONE, null);
         _closeButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -526,7 +632,17 @@ class FarView extends JFrame implements PropertyChangeListener
             public void actionPerformed(final ActionEvent event)
             {
                 _controller.commit();
-                _controller.hide();
+                // clear the results and run find again to revert colors
+                _controller.find();
+            }
+        });
+
+        _resetButton = createButton(L10NFindAndReplace.RESET_BUTTON_TEXT, null);
+        _resetButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(final ActionEvent event)
+            {
+                _controller.reset();
             }
         });
 
@@ -548,6 +664,16 @@ class FarView extends JFrame implements PropertyChangeListener
             }
         });
 
+        _gotoButton = createButton(L10NFindAndReplace.GOTO_BUTTON_TEXT,
+                L10NFindAndReplace.GOTO_BUTTON_MNC);
+        _gotoButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(final ActionEvent event)
+            {
+                final int selectedRow = _findResults.getSelectedRow();
+                _controller.gotoTransaction(selectedRow);
+            }
+        });
 
     }
 
@@ -591,7 +717,7 @@ class FarView extends JFrame implements PropertyChangeListener
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED
+                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED
             }
         };
         final JPanel findPanel = new JPanel( new TableLayout(sizes) );
@@ -661,6 +787,8 @@ class FarView extends JFrame implements PropertyChangeListener
                 L10NFindAndReplace.FIND_AMOUNT_MNC, _findAmountUseCheck);
 
         _findAmountPickers = new AmountPickerGroup(_controller);
+        _findAmountPickers.addFocusListener(new ColoredFocusAdapter(
+                _findAmountPickers.getFromAmountPicker(), _focusColor) );
         row = addRowField1( findPanel, row, startCol, _findAmountPickers );
 
         // date row
@@ -680,6 +808,8 @@ class FarView extends JFrame implements PropertyChangeListener
             formatter = new CustomDateFormat(N12EFindAndReplace.DATE_FORMAT);
         }
         _findDatePickers = new DatePickerGroup(formatter, _controller);
+        _findDatePickers.addFocusListener(new ColoredFocusAdapter(
+                _findDatePickers.getFromDatePicker(), _focusColor) );
         row = addRowField1( findPanel, row, startCol, _findDatePickers);
 
         // free text
@@ -689,6 +819,7 @@ class FarView extends JFrame implements PropertyChangeListener
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_FREETEXT_LABEL,
                 L10NFindAndReplace.FIND_FREETEXT_MNC, _findFreeTextUseCheck);
         _findFreeText = new JTextField();
+        _findFreeText.addFocusListener(new ColoredFocusAdapter( _findFreeText, _focusColor) );
         row = addRowField1( findPanel, row, startCol, _findFreeText);
         
         _findFreeTextUseDescriptionCheck = new JCheckBox(
@@ -715,6 +846,9 @@ class FarView extends JFrame implements PropertyChangeListener
                 _controller.getString(L10NFindAndReplace.FIND_FREETEXT_SPLITS_TIP));
         _findFreeTextIncludeSplitsCheck.setEnabled(false);
 
+        // we use TableLayout here instead of GridLayout because TableLayout will size each column
+        // according to the checkbox, whereas GridLayout will make the cells an equal size,
+        // cutting off the text for the longer ones
         final double[][] checkSizes = new double[][]
         {
             // columns
@@ -738,7 +872,34 @@ class FarView extends JFrame implements PropertyChangeListener
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_TAGS_LABEL,
                 L10NFindAndReplace.FIND_TAGS_MNC, _findTagsUseCheck);
         _findTagPickers = new TxnTagsPickerGroup(_controller.getMDGUI(), _model.getData(), _controller);
-        addRowField1( findPanel, row, startCol, _findTagPickers);
+        row = addRowField1( findPanel, row, startCol, _findTagPickers);
+        
+        // cleared
+        _findClearedUseCheck = new JCheckBox();
+        _findClearedUseCheck.setToolTipText(findCheckTip);
+        _findClearedRequireCheck = new JCheckBox();
+        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_CLEARED_LABEL,
+                L10NFindAndReplace.FIND_CLEARED_MNC, _findClearedUseCheck);
+        
+        _findClearedClearedCheck = new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_CLEARED_LABEL ));
+        _findClearedClearedCheck.setToolTipText(
+                _controller.getString(L10NFindAndReplace.FIND_CLEARED_TIP));
+        _findClearedReconcilingCheck = new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_RECONCILING_LABEL ));
+        _findClearedReconcilingCheck.setToolTipText(
+                _controller.getString(L10NFindAndReplace.FIND_RECONCILING_TIP));
+        _findClearedUnclearedCheck = new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_UNCLEARED_LABEL ));
+        _findClearedUnclearedCheck.setToolTipText(
+                _controller.getString(L10NFindAndReplace.FIND_UNCLEARED_TIP));
+
+        // The text in these should be short enough to work with GridLayout
+        final JPanel clearedPanel = new JPanel(new GridLayout(1, 3, UiUtil.HGAP, 0));
+        clearedPanel.add(_findClearedClearedCheck);
+        clearedPanel.add(_findClearedReconcilingCheck);
+        clearedPanel.add(_findClearedUnclearedCheck);
+        addRowField1( findPanel, row, startCol, clearedPanel );
 
         buildFindPanelActions();
 
@@ -816,13 +977,19 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void insertUpdate(DocumentEvent e)
             {
-                _controller.setUseAmountFilter(true);
-                _controller.setRequireAmountFilter(!_controller.getFilterCombineOr());
+                if (!_suppressAutoCheckUse && isAmountsDifferent())
+                {
+                    _controller.setUseAmountFilter(true);
+                    _controller.setRequireAmountFilter(!_controller.getFilterCombineOr());
+                }
             }
             public void removeUpdate(DocumentEvent e)
             {
-                _controller.setUseAmountFilter(true);
-                _controller.setRequireAmountFilter(!_controller.getFilterCombineOr());
+                if (!_suppressAutoCheckUse && isAmountsDifferent())
+                {
+                    _controller.setUseAmountFilter(true);
+                    _controller.setRequireAmountFilter(!_controller.getFilterCombineOr());
+                }
             }
 
             public void changedUpdate(DocumentEvent e) { }
@@ -846,13 +1013,19 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void insertUpdate(DocumentEvent e)
             {
-                _controller.setUseDateFilter(true);
-                _controller.setRequireDateFilter(!_controller.getFilterCombineOr());
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setUseDateFilter(true);
+                    _controller.setRequireDateFilter(!_controller.getFilterCombineOr());
+                }
             }
             public void removeUpdate(DocumentEvent e)
             {
-                _controller.setUseDateFilter(true);
-                _controller.setRequireDateFilter(!_controller.getFilterCombineOr());
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setUseDateFilter(true);
+                    _controller.setRequireDateFilter(!_controller.getFilterCombineOr());
+                }
             }
 
             public void changedUpdate(DocumentEvent e) { }
@@ -876,13 +1049,19 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void insertUpdate(DocumentEvent e)
             {
-                _controller.setUseFreeTextFilter(true);
-                _controller.setRequireFreeTextFilter(!_controller.getFilterCombineOr());
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setUseFreeTextFilter(true);
+                    _controller.setRequireFreeTextFilter(!_controller.getFilterCombineOr());
+                }
             }
             public void removeUpdate(DocumentEvent e)
             {
-                _controller.setUseFreeTextFilter(true);
-                _controller.setRequireFreeTextFilter(!_controller.getFilterCombineOr());
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setUseFreeTextFilter(true);
+                    _controller.setRequireFreeTextFilter(!_controller.getFilterCombineOr());
+                }
             }
 
             public void changedUpdate(DocumentEvent e) { }
@@ -935,8 +1114,11 @@ class FarView extends JFrame implements PropertyChangeListener
             public void actionPerformed(final ActionEvent event)
             {
                 // notify that tags will be used
-                _controller.setUseTagsFilter(true);
-                _controller.setRequireTagsFilter(!_controller.getFilterCombineOr());
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setUseTagsFilter(true);
+                    _controller.setRequireTagsFilter(!_controller.getFilterCombineOr());
+                }
             }
         });
         _findTagsUseCheck.addItemListener(new ItemListener()
@@ -954,6 +1136,59 @@ class FarView extends JFrame implements PropertyChangeListener
             }
         });
 
+        _findClearedUseCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setUseClearedFilter(event.getStateChange() == ItemEvent.SELECTED);
+            }
+        });
+        _findClearedRequireCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setRequireClearedFilter(event.getStateChange() == ItemEvent.SELECTED);
+            }
+        });
+        _findClearedClearedCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                final boolean allow = event.getStateChange() == ItemEvent.SELECTED;
+                if (allow != _controller.getAllowCleared() && !_suppressAutoCheckUse)
+                {
+                    _controller.setUseClearedFilter(true);
+                    _controller.setRequireClearedFilter(!_controller.getFilterCombineOr());
+                    _controller.setAllowCleared(allow);
+                }
+            }
+        });
+        _findClearedReconcilingCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                final boolean allow = event.getStateChange() == ItemEvent.SELECTED;
+                if (allow != _controller.getAllowReconciling() && !_suppressAutoCheckUse)
+                {
+                    _controller.setUseClearedFilter(true);
+                    _controller.setRequireClearedFilter(!_controller.getFilterCombineOr());
+                    _controller.setAllowReconciling(allow);
+                }
+            }
+        });
+        _findClearedUnclearedCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                final boolean allow = event.getStateChange() == ItemEvent.SELECTED;
+                if (allow != _controller.getAllowUncleared() && !_suppressAutoCheckUse)
+                {
+                    _controller.setUseClearedFilter(true);
+                    _controller.setRequireClearedFilter(!_controller.getFilterCombineOr());
+                    _controller.setAllowUncleared(allow);
+                }
+            }
+        });
     }
 
     private boolean saveFindEdits()
@@ -967,27 +1202,36 @@ class FarView extends JFrame implements PropertyChangeListener
         if (_controller.getUseFreeTextFilter())
         {
             final String textMatch = _findFreeText.getText();
-            if (FarUtil.hasRegularExpression(textMatch))
+            if (!validateFreeText(textMatch))
             {
-                String regex = FarUtil.createRegularExpression(textMatch);
-                try
-                {
-                    Pattern.compile(regex);
-                }
-                catch (PatternSyntaxException error)
-                {
-                    final String title = _controller.getString(L10NFindAndReplace.NOTICE_TITLE);
-                    final String message = error.getMessage();
-                    final String format = _controller.getString(L10NFindAndReplace.ERROR_REGEX_FMT);
-                    final String text = MessageFormat.format(format, textMatch, message);
-                    JOptionPane.showMessageDialog(this, text, title, JOptionPane.ERROR_MESSAGE);
-                    return false;
-                }
+                return false;
             }
 
-            _controller.setFreeTextMatch(_findFreeText.getText());
+            _controller.setFreeTextMatch(textMatch);
         }
         _findTagPickers.updateFromView();
+        return true;
+    }
+
+    private boolean validateFreeText(String textMatch)
+    {
+        if (FarUtil.hasRegularExpression(textMatch))
+        {
+            String regex = FarUtil.createRegularExpression(textMatch);
+            try
+            {
+                Pattern.compile(regex);
+            }
+            catch (PatternSyntaxException error)
+            {
+                final String title = _controller.getString(L10NFindAndReplace.NOTICE_TITLE);
+                final String message = error.getMessage();
+                final String format = _controller.getString(L10NFindAndReplace.ERROR_REGEX_FMT);
+                final String text = MessageFormat.format(format, textMatch, message);
+                JOptionPane.showMessageDialog(this, text, title, JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
         return true;
     }
 
@@ -1014,12 +1258,12 @@ class FarView extends JFrame implements PropertyChangeListener
                 UiUtil.VGAP * 2, TableLayout.FILL  // buttons
             }
         };
-        final JPanel replacePanel = new JPanel( new TableLayout(sizes) );
+        _replacePanel = new JPanel( new TableLayout(sizes) );
         int row = 0;
         final JLabel panelLabel = new JLabel( _controller.getString( L10NFindAndReplace.REPLACE_LABEL ));
         final Font bold = panelLabel.getFont().deriveFont(Font.BOLD);
         panelLabel.setFont( bold );
-        replacePanel.add( panelLabel, new TableLayoutConstraints(0, row) );
+        _replacePanel.add( panelLabel, new TableLayoutConstraints(0, row) );
         row += 2; // skip the gap
 
         // only one checkbox
@@ -1027,63 +1271,58 @@ class FarView extends JFrame implements PropertyChangeListener
 
         // categories row
         _replaceCategoryCheck = new JCheckBox();
-        row = addRowLabel( replacePanel, row, L10NFindAndReplace.REPLACE_CAT_LABEL,
+        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_CAT_LABEL,
                 L10NFindAndReplace.REPLACE_CAT_MNC, _replaceCategoryCheck );
+
+        // here we copy the functionality of addRowField1 so we can store the constraints
+        _replaceCategoryConstraints = new TableLayoutConstraints(startCol, row, startCol+3, row);
         if (_controller.getMDGUI() != null)
         {
-            AccountChoice chooser = new AccountChoice(_model.getData(), _controller.getMDGUI());
-            chooser.setContainerAccount(_model.getData());
-            chooser.setShowAssetAccounts(false);
-            chooser.setShowBankAccounts(false);
-            chooser.setShowCreditCardAccounts(false);
-            chooser.setShowInvestAccounts(false);
-            chooser.setShowLiabilityAccounts(false);
-            chooser.setShowLoanAccounts(false);
-            chooser.setShowSecurityAccounts(false);
-            chooser.setShowOtherAccounts(false);
-
-            // show only categories
-            chooser.setShowIncomeAccounts(true);
-            chooser.setShowExpenseAccounts(true);
-
-            chooser.setSelectedAccountIndex(0);
-            _replaceCategory = chooser;
+            buildReplaceCategoryChooser();
         }
         else
         {
+            // should never happen, defensive programming (or for testbeds)
             _replaceCategory = new JComboBox();
+            _replacePanel.add( _replaceCategory, _replaceCategoryConstraints );
         }
-        row = addRowField1( replacePanel, row, startCol, _replaceCategory );
+        row =  row + 2;
 
         // amount row
         _replaceAmountCheck = new JCheckBox();
-        row = addRowLabel( replacePanel, row, L10NFindAndReplace.REPLACE_AMOUNT_LABEL,
+        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_AMOUNT_LABEL,
                 L10NFindAndReplace.REPLACE_AMOUNT_MNC, _replaceAmountCheck );
         _replaceAmount = new JCurrencyField(_controller.getCurrencyType(),
                 _controller.getCurrencyTable(), _controller.getDecimalChar(),
                 _controller.getCommaChar());
-        row = addRowField1( replacePanel, row, startCol, _replaceAmount );
+        _replaceAmount.addFocusListener(new ColoredFocusAdapter( _replaceAmount, _focusColor) );
+        row = addRowField1( _replacePanel, row, startCol, _replaceAmount );
 
         // description
         _replaceDescriptionCheck = new JCheckBox();
-        row = addRowLabel( replacePanel, row, L10NFindAndReplace.REPLACE_DESCRIPTION_LABEL,
+        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_DESCRIPTION_LABEL,
                 L10NFindAndReplace.REPLACE_DESCRIPTION_MNC, _replaceDescriptionCheck );
         _replaceDescription = new JTextField();
-        row = addRowField1( replacePanel, row, startCol, _replaceDescription );
+        _replaceDescription.addFocusListener(new ColoredFocusAdapter( _replaceDescription,
+                _focusColor) );
+        row = addRowField1( _replacePanel, row, startCol, _replaceDescription );
 
         // tags - 3 rows
         _replaceTagsCheck = new JCheckBox();
-        row = addRowLabel( replacePanel, row, L10NFindAndReplace.REPLACE_TAGS_LABEL,
+        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_TAGS_LABEL,
                 L10NFindAndReplace.REPLACE_TAGS_MNC, _replaceTagsCheck );
         _replaceAddTags = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
         _replaceAddRadio = new JRadioButton();
-        row = addRowField3( replacePanel, row, startCol, _replaceAddRadio, L10NFindAndReplace.REPLACE_TAGSADD_LABEL, _replaceAddTags.getView() );
+        row = addRowField3( _replacePanel, row, startCol, _replaceAddRadio,
+                L10NFindAndReplace.REPLACE_TAGSADD_LABEL, _replaceAddTags.getView() );
         _replaceRemoveTags = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
         _replaceRemoveRadio = new JRadioButton();
-        row = addRowField3( replacePanel, row, startCol, _replaceRemoveRadio, L10NFindAndReplace.REPLACE_TAGSREMOVE_LABEL, _replaceRemoveTags.getView() );
+        row = addRowField3( _replacePanel, row, startCol, _replaceRemoveRadio,
+                L10NFindAndReplace.REPLACE_TAGSREMOVE_LABEL, _replaceRemoveTags.getView() );
         _replaceReplaceTags = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
         _replaceReplaceRadio = new JRadioButton();
-        row = addRowField3( replacePanel, row, startCol, _replaceReplaceRadio, L10NFindAndReplace.REPLACE_TAGSREPLACE_LABEL, _replaceReplaceTags.getView() );
+        row = addRowField3( _replacePanel, row, startCol, _replaceReplaceRadio,
+                L10NFindAndReplace.REPLACE_TAGSREPLACE_LABEL, _replaceReplaceTags.getView() );
 
         _replaceTagsGroup = new ButtonGroup();
         _replaceTagsGroup.add(_replaceAddRadio);
@@ -1092,17 +1331,30 @@ class FarView extends JFrame implements PropertyChangeListener
 
        // memo
         _replaceMemoCheck = new JCheckBox();
-        row = addRowLabel( replacePanel, row, L10NFindAndReplace.REPLACE_MEMO_LABEL,
+        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_MEMO_LABEL,
                 L10NFindAndReplace.REPLACE_MEMO_MNC, _replaceMemoCheck );
         _replaceMemo = new JTextField();
-        row = addRowField1( replacePanel, row, startCol, _replaceMemo );
+        _replaceMemo.addFocusListener(new ColoredFocusAdapter( _replaceMemo, _focusColor) );
+        row = addRowField1( _replacePanel, row, startCol, _replaceMemo );
+
+        _includeTransfersCheck = new JCheckBox(
+                _controller.getString(L10NFindAndReplace.INCXFER_LABEL));
+        _includeTransfersCheck.setToolTipText(
+                _controller.getString(L10NFindAndReplace.INCXFER_TIP));
+        String mnemonic = _controller.getString( L10NFindAndReplace.INCXFER_MNC );
+        if ( (mnemonic != null) && (mnemonic.length() > 0) )
+        {
+            _includeTransfersCheck.setMnemonic( mnemonic.charAt(0));
+        }
+        _replacePanel.add( _includeTransfersCheck, new TableLayoutConstraints(0, row, 1, row,
+                TableLayoutConstants.LEFT, TableLayoutConstants.BOTTOM) );
 
         final JPanel buttonPanel = createUpperButtonPanel();
-        replacePanel.add( buttonPanel, new TableLayoutConstraints( 0, row, 5, row,
-                TableLayoutConstants.RIGHT, TableLayoutConstants.FULL ) );
+        _replacePanel.add( buttonPanel, new TableLayoutConstraints( 2, row, 5, row,
+                TableLayoutConstants.RIGHT, TableLayoutConstants.BOTTOM ) );
 
         buildReplacePanelActions();
-        return replacePanel;
+        return _replacePanel;
     } // createReplacePanel()
 
     private void buildReplacePanelActions()
@@ -1111,7 +1363,14 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void itemStateChanged(ItemEvent e)
             {
-                _controller.setReplaceCategory(true);
+                if (_replaceCategory instanceof AccountChoice)
+                {
+                    _controller.setReplaceCategory(true);
+                }
+                else
+                {
+                    _controller.setReplaceCategory(true);
+                }
             }
         });
         _replaceCategoryCheck.addItemListener(new ItemListener()
@@ -1126,11 +1385,19 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void insertUpdate(DocumentEvent e)
             {
-                _controller.setReplaceAmount(true);
+                boolean different = _replaceAmount.getValue() != _controller.getReplacementAmount();
+                if (!_suppressAutoCheckUse && different)
+                {
+                    _controller.setReplaceAmount(true);
+                }
             }
             public void removeUpdate(DocumentEvent e)
             {
-                _controller.setReplaceAmount(true);
+                boolean different = _replaceAmount.getValue() != _controller.getReplacementAmount();
+                if (!_suppressAutoCheckUse && different)
+                {
+                    _controller.setReplaceAmount(true);
+                }
             }
 
             public void changedUpdate(DocumentEvent e) { }
@@ -1147,11 +1414,17 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void insertUpdate(DocumentEvent e)
             {
-                _controller.setReplaceDescription(true);
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceDescription(true);
+                }
             }
             public void removeUpdate(DocumentEvent e)
             {
-                _controller.setReplaceDescription(true);
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceDescription(true);
+                }
             }
 
             public void changedUpdate(DocumentEvent e) { }
@@ -1168,11 +1441,17 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void insertUpdate(DocumentEvent e)
             {
-                _controller.setReplaceMemo(true);
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceMemo(true);
+                }
             }
             public void removeUpdate(DocumentEvent e)
             {
-                _controller.setReplaceMemo(true);
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceMemo(true);
+                }
             }
 
             public void changedUpdate(DocumentEvent e) { }
@@ -1198,7 +1477,10 @@ class FarView extends JFrame implements PropertyChangeListener
             public void actionPerformed(final ActionEvent event)
             {
                 // notify that tags will be used
-                _controller.setReplaceTags(true);
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceTags(true);
+                }
                 _replaceAddRadio.setSelected(true);
             }
         });
@@ -1207,7 +1489,10 @@ class FarView extends JFrame implements PropertyChangeListener
             public void actionPerformed(final ActionEvent event)
             {
                 // notify that tags will be used
-                _controller.setReplaceTags(true);
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceTags(true);
+                }
                 _replaceRemoveRadio.setSelected(true);
             }
         });
@@ -1216,8 +1501,19 @@ class FarView extends JFrame implements PropertyChangeListener
             public void actionPerformed(final ActionEvent event)
             {
                 // notify that tags will be used
-                _controller.setReplaceTags(true);
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceTags(true);
+                }
                 _replaceReplaceRadio.setSelected(true);
+            }
+        });
+
+        _includeTransfersCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setIncludeTransfers(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
 
@@ -1313,6 +1609,11 @@ class FarView extends JFrame implements PropertyChangeListener
             label.setDisplayedMnemonic( mnemonic.charAt( 0 ) );
             check.setMnemonic( mnemonic.charAt( 0 ) );
         }
+        
+        // the checkboxes should not be tabbed to because there isn't a good way to display that
+        // they have focus, so we will use mouse interaction on them only
+        check.setFocusable(false);
+
         panel.add( label, constraints );
         constraints = new TableLayoutConstraints(1, rowNum);
         panel.add( check, constraints );
@@ -1365,30 +1666,24 @@ class FarView extends JFrame implements PropertyChangeListener
 
     private JPanel createLowerRightButtonPanel()
     {
-        final double[][] sizes = new double[][]
-        {
-            // columns
-            {
-                TableLayout.PREFERRED, UiUtil.HGAP, TableLayout.PREFERRED
-            },
-            // rows
-            { TableLayout.PREFERRED }
-        };
-        final JPanel buttons = new JPanel( new TableLayout( sizes ) );
+        final JPanel buttons = new JPanel( new GridLayout( 1, 3, UiUtil.HGAP, 0 ) );
 
-        buttons.add( _recordButton, UiUtil.createTableConstraintBtnR(0, 0) );
-        buttons.add( _closeButton, UiUtil.createTableConstraintBtnR(2, 0) );
+        buttons.add( _resetButton );
+        buttons.add( _recordButton );
+        buttons.add( _closeButton );
 
         return buttons;
     }
 
     private JPanel createLowerLeftButtonPanel()
     {
+        // use table layout to get different sized buttons
         final double[][] sizes = new double[][]
         {
             // columns
             {
-                TableLayout.PREFERRED, UiUtil.HGAP, TableLayout.PREFERRED
+                TableLayout.PREFERRED, UiUtil.HGAP, TableLayout.PREFERRED, UiUtil.HGAP,
+                TableLayout.PREFERRED
             },
             // rows
             { TableLayout.PREFERRED }
@@ -1397,8 +1692,86 @@ class FarView extends JFrame implements PropertyChangeListener
 
         buttons.add(_markAllButton, UiUtil.createTableConstraintBtnL(0, 0) );
         buttons.add(_markNoneButton, UiUtil.createTableConstraintBtnL(2, 0) );
+        buttons.add(_gotoButton, UiUtil.createTableConstraintBtnL(4, 0) );
 
         return buttons;
     }
 
+    private String getVersionText()
+    {
+        StringBuffer result = new StringBuffer(_controller.getString(L10NFindAndReplace.TITLE));
+        result.append(N12EFindAndReplace.SPACE);
+        result.append(_controller.getString(L10NFindAndReplace.VERSION_FMT));
+        return result.toString();
+    }
+
+    private boolean isAmountsDifferent()
+    {
+        final long newFrom = _findAmountPickers.getFromAmountPicker().getValue();
+        final long newTo = _findAmountPickers.getToAmountPicker().getValue();
+        return (newFrom != _controller.getAmountMinimum()) ||
+                (newTo != _controller.getAmountMaximum());
+    }
+    
+    private void buildReplaceCategoryChooser()
+    {
+        if ((_replacePanel != null) && (_replaceCategory != null))
+        {
+            _replacePanel.remove(_replaceCategory);
+        }
+        if (_controller.getMDGUI() != null)
+        {
+            AccountChoice chooser = new AccountChoice(_model.getData(), _controller.getMDGUI());
+            chooser.setContainerAccount(_model.getData());
+            
+            final boolean normalAccounts = _controller.getIncludeTransfers();
+            chooser.setShowAssetAccounts(normalAccounts);
+            chooser.setShowBankAccounts(normalAccounts);
+            chooser.setShowCreditCardAccounts(normalAccounts);
+            chooser.setShowInvestAccounts(normalAccounts);
+            chooser.setShowLiabilityAccounts(normalAccounts);
+            chooser.setShowLoanAccounts(normalAccounts);
+            chooser.setShowSecurityAccounts(normalAccounts);
+
+            // never show other accounts
+            chooser.setShowOtherAccounts(false);
+
+            // always show categories
+            chooser.setShowIncomeAccounts(true);
+            chooser.setShowExpenseAccounts(true);
+
+            chooser.setSelectedAccountIndex(0);
+            _replaceCategory = chooser;
+        }
+        if ((_replacePanel != null) && (_replaceCategory != null))
+        {
+            _replacePanel.add(_replaceCategory, _replaceCategoryConstraints);
+            _replacePanel.validate();
+        }
+        
+    }
+
+    private class ColoredFocusAdapter extends FocusAdapter
+    {
+        private final Color _normalBackground;
+        private final Color _focusedBackground;
+
+        ColoredFocusAdapter(final Component source, final Color focused)
+        {
+            _normalBackground = source.getBackground();
+            _focusedBackground = focused;
+        }
+
+        @Override
+        public void focusGained(FocusEvent event)
+        {
+            event.getComponent().setBackground(_focusedBackground);
+        }
+
+        @Override
+        public void focusLost(FocusEvent event)
+        {
+            event.getComponent().setBackground(_normalBackground);
+        }
+    }
 }

@@ -3,6 +3,7 @@
 <properties>
     <!--  Common stuff -->
     <entry key="title.text">Fund und Ersetzen</entry>
+    <entry key="version.format">Version 1.1 (Bau 42)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Fund</entry>
@@ -30,6 +31,11 @@
     <entry key="findTagsLabel.mnemonic">R</entry>
     <entry key="findNot.text">aber nicht</entry>
 
+    <entry key="findClearedLabel.mnemonic">L</entry>
+    <entry key="findCleared.toolTip">Einschließen abgestimmt transaktionen</entry>
+    <entry key="findReconciling.toolTip">Einschließen abzustimmen transaktionen</entry>
+    <entry key="findUncleared.toolTip">Einschließen nicht abgestimmt transaktionen</entry>
+
     <entry key="findUse.toolTip">Verwenden Sie dieses Kriterium zu Suche nach Transaktionen</entry>
 
     <!--  Replace panel -->
@@ -43,6 +49,10 @@
     <entry key="replaceTagsRemove.text">Rubriken entfernen:</entry>
     <entry key="replaceTagsReplace.text">Ersetzen Sie alle mit:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+
+    <entry key="includeTransfers.text">Einschließen Transferen</entry>
+    <entry key="includeTransfers.toolTip">Erlauben Sie alle Konten, als Kategorien eingeschlossen zu werden</entry>
+    <entry key="includeTransfers.mnemonic">ß</entry>
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Resultate der Fund</entry>
@@ -58,6 +68,8 @@
     <entry key="replaceAllBtn.mnemonic">A</entry>
     <entry key="closeBtn.text">Ende</entry>
     <entry key="closeBtn.mnemonic">E</entry>
+    <entry key="gotoBtn.mnemonic">Z</entry>
+    <entry key="resetBtn.text">Zurückstellen</entry>
 
     <entry key="markAllBtn.text">Marke Alle</entry>
     <entry key="markNoneBtn.text">Marke Keine</entry>
@@ -77,6 +89,8 @@
     <entry key="ok">Ok</entry>
     <entry key="cancel">Abbrechen</entry>
     <entry key="none">Ohne</entry>
+    <entry key="done">Fertig</entry>
+
     <entry key="split_label1">- </entry>
     <entry key="split_label2"> Splits - </entry>
     <entry key="cancel_txn">Abbrechen</entry>
@@ -101,6 +115,7 @@
     <entry key="table_column_checknum">Art/Nr.</entry>
     <entry key="select_acct_title">Konto wählen</entry>
     <entry key="all_categories">Alle Kategorien</entry>
+    <entry key="show_txn">Zu Buchung Gehen</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Vermögenswerte</entry>
@@ -113,5 +128,10 @@
     <entry key="acct_type6000s">Ausgabe</entry>
     <entry key="acct_type4000s">Wertpapier</entry>
     <entry key="all_accounts">Alle Konten</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">abgestimmt</entry>
+    <entry key="uncleared">nicht abgestimmt</entry>
+    <entry key="reconciling">abzustimmen</entry>
 
 </properties>

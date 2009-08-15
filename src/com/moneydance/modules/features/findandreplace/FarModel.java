@@ -3,6 +3,9 @@ package com.moneydance.modules.features.findandreplace;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.TxnTag;
+import com.moneydance.apps.md.controller.Util;
+
+import java.util.Collection;
 
 /**
  * <p>Model for the Find and Replace plugin. Stores all the settings you see in the dialog, and
@@ -13,7 +16,7 @@ import com.moneydance.apps.md.model.TxnTag;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class FarModel extends BasePropertyChangeReporter
@@ -27,7 +30,7 @@ class FarModel extends BasePropertyChangeReporter
     private boolean _useAccountFilter;
     private boolean _requireAccountFilter;
 
-    private final AccountFilter _categoryFilter;
+    private AccountFilter _categoryFilter;
     private FullAccountList _fullCategoryList;
     private boolean _useCategoryFilter;
     private boolean _requireCategoryFilter;
@@ -54,6 +57,13 @@ class FarModel extends BasePropertyChangeReporter
     private TagPickerModel _excludeTagPickerModel;
     private boolean _useTagsFilter;
     private boolean _requireTagsFilter;
+    
+    private boolean _useClearedFilter;
+    private boolean _requireClearedFilter;
+    private boolean _allowCleared;
+    private boolean _allowReconciling;
+    private boolean _allowUncleared;
+    
     private boolean _replaceDirty = false;
 
     private boolean _doReplaceCategory;
@@ -74,19 +84,23 @@ class FarModel extends BasePropertyChangeReporter
     private TagPickerModel _replaceRemoveTagPickerModel;
     private TagPickerModel _replaceReplaceTagPickerModel;
 
+    private boolean _includeTransfers;
 
     FarModel()
     {
-        // set defaults
-        _combineOr = false;
         _accountFilter = new AccountFilter(L10NFindAndReplace.ACCOUNTFILTER_ALL_ACCOUNTS);
-        _useAccountFilter = false;
-        _requireAccountFilter = false;
-        _categoryFilter = new AccountFilter(L10NFindAndReplace.ACCOUNTFILTER_ALL_CATEGORIES);
-        _freeTextSearchDescription = true;
-        _freeTextSearchMemo = true;
-        _freeTextSearchCheck = true;
-        _freeTextIncludeSplits = true;
+        // all types except categories
+        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_ASSET);
+        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_BANK);
+        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_CREDIT_CARD);
+        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_INVESTMENT);
+        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LIABILITY);
+        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LOAN);
+        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_SECURITY);
+
+        setupCategoryFilter();
+
+        setDefaults();
     }
 
 
@@ -102,28 +116,20 @@ class FarModel extends BasePropertyChangeReporter
     void setData( final RootAccount data )
     {
         _data = data;
-
-        // all types except categories
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_ASSET);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_BANK);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_CREDIT_CARD);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_INVESTMENT);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LIABILITY);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LOAN);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_SECURITY);
+        if (_data == null)
+        {
+            // nothing more to do
+            cleanUp();
+            return;
+        }
 
         // create the full account list - we don't count sub-accounts for these, which generally
         // are securities within investment accounts
         _fullAccountList = new FullAccountList(_data, _accountFilter, true);
         _accountFilter.setFullList(_fullAccountList);
 
-        // all categories
-        _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_INCOME);
-        _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_EXPENSE);
-
         // create the full category list, including sub-categories
-        _fullCategoryList = new FullAccountList(_data, _categoryFilter, true);
-        _categoryFilter.setFullList(_fullCategoryList);
+        loadCategoryFilter();
 
         // to display user-defined tags, we have to have the list
         _findResultsModel.setUserTagSet(_data.getTxnTagSet());
@@ -176,6 +182,69 @@ class FarModel extends BasePropertyChangeReporter
         _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_RESULTS_UPDATE, null, null);
     }
 
+    void setDefaults()
+    {
+        // set defaults
+        _combineOr = false;
+        _useAccountFilter = false;
+        _requireAccountFilter = false;
+
+        _useCategoryFilter = false;
+        _requireCategoryFilter = false;
+
+        _useAmountFilter = false;
+        _requireAmountFilter = false;
+        _amountMinimum = 0;
+        _amountMaximum = 0;
+
+        _useDateFilter = false;
+        _requireDateFilter = false;
+        _dateMinimum = Util.getStrippedDateInt();
+        _dateMaximum = _dateMinimum;
+
+        _useFreeTextFilter = false;
+        _requireFreeTextFilter = false;
+        _freeTextSearchDescription = true;
+        _freeTextSearchMemo = true;
+        _freeTextSearchCheck = true;
+        _freeTextIncludeSplits = true;
+        _freeTextMatch = N12EFindAndReplace.EMPTY;
+
+        _useTagsFilter = false;
+        _requireTagsFilter = false;
+
+        _useClearedFilter = false;
+        _requireClearedFilter = false;
+        _allowCleared = true;
+        _allowReconciling = true;
+        _allowUncleared = true;
+
+        _replaceDirty = false;
+
+        _doReplaceCategory = false;
+        _replacementCategory = null;
+
+        _doReplaceAmount = false;
+        _replacementAmount = 0;
+
+        _doReplaceDescription = false;
+        _replacementDescription = N12EFindAndReplace.EMPTY;
+
+        _doReplaceMemo = false;
+        _replacementMemo = N12EFindAndReplace.EMPTY;
+
+        _doReplaceTags = false;
+        _replaceTagCommand = null;
+
+        setIncludeTransfers(false);
+
+        if (_data != null)
+        {
+            setData(_data);
+        }
+
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////////////
     //  Properties
     //////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,6 +278,10 @@ class FarModel extends BasePropertyChangeReporter
         if (_useTagsFilter)
         {
             setRequireTagsFilter(!_combineOr);
+        }
+        if (_useClearedFilter)
+        {
+            setRequireClearedFilter(!_combineOr);
         }
 
         _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_COMBINATION, oldValue, _combineOr);
@@ -300,6 +373,14 @@ class FarModel extends BasePropertyChangeReporter
         _amountMinimum = minimum;
         _amountMaximum = maximum;
     }
+    long getAmountMinimum()
+    {
+        return _amountMinimum;
+    }
+    long getAmountMaximum()
+    {
+        return _amountMaximum;
+    }
 
     void setUseDateFilter(final boolean use)
     {
@@ -326,6 +407,14 @@ class FarModel extends BasePropertyChangeReporter
         _dateMinimum = minimum;
         _dateMaximum = maximum;
     }
+    int getDateMinimum()
+    {
+        return _dateMinimum;
+    }
+    int getDateMaximum()
+    {
+        return _dateMaximum;
+    }
 
     void setUseFreeTextFilter(final boolean use)
     {
@@ -347,9 +436,13 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _requireFreeTextFilter;
     }
-    void setFreeTextMatch(final String description)
+    void setFreeTextMatch(final String textOrRegEx)
     {
-        _freeTextMatch = description;
+        _freeTextMatch = textOrRegEx;
+    }
+    String getFreeTextMatch()
+    {
+        return _freeTextMatch;
     }
 
     void setFreeTextUseDescription(final boolean use)
@@ -422,6 +515,57 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _excludeTagPickerModel;
     }
+    
+    void setUseClearedFilter(final boolean use)
+    {
+        boolean old = _useClearedFilter;
+        _useClearedFilter = use;
+        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_USE, old, use);
+    }
+    boolean getUseClearedFilter()
+    {
+        return _useClearedFilter;
+    }
+    void setRequireClearedFilter(final boolean require)
+    {
+        final boolean old = _requireClearedFilter;
+        _requireClearedFilter = require;
+        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_REQUIRED, old, require);
+    }
+    boolean getRequireClearedFilter()
+    {
+        return _requireClearedFilter;
+    }
+    boolean getAllowCleared()
+    {
+        return _allowCleared;
+    }
+    void setAllowCleared(final boolean allow)
+    {
+        final boolean old = _allowCleared;
+        _allowCleared = allow;
+        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_CLEARED, old, allow);
+    }
+    boolean getAllowReconciling()
+    {
+        return _allowReconciling;
+    }
+    void setAllowReconciling(final boolean allow)
+    {
+        final boolean old = _allowReconciling;
+        _allowReconciling = allow;
+        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_RECONCILING, old, allow);
+    }
+    boolean getAllowUncleared()
+    {
+        return _allowUncleared;
+    }
+    void setAllowUncleared(final boolean allow)
+    {
+        final boolean old = _allowUncleared;
+        _allowUncleared = allow;
+        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_UNCLEARED, old, allow);
+    }
 
     FilterGroup buildTransactionFilter()
     {
@@ -453,6 +597,11 @@ class FarModel extends BasePropertyChangeReporter
         {
             result.addFilter(new TagsTxnFilter(_includeTagPickerModel.getSelectedTags(),
                     _excludeTagPickerModel.getSelectedTags(), _requireTagsFilter));
+        }
+        if (_useClearedFilter)
+        {
+            result.addFilter(new ClearedTxnFilter(_allowCleared, _allowReconciling, _allowUncleared,
+                    _requireClearedFilter));
         }
 
         return result;
@@ -514,6 +663,10 @@ class FarModel extends BasePropertyChangeReporter
             _replaceDirty = true;
         }
     }
+    long getReplacementAmount()
+    {
+        return _replacementAmount;
+    }
 
     void setReplaceDescription(boolean replace)
     {
@@ -538,6 +691,10 @@ class FarModel extends BasePropertyChangeReporter
             _replaceDirty = true;
         }
     }
+    String getReplacementDescription()
+    {
+        return _replacementDescription;
+    }
 
     void setReplaceMemo(boolean replace)
     {
@@ -561,6 +718,10 @@ class FarModel extends BasePropertyChangeReporter
             _replacementMemo = memo;
             _replaceDirty = true;
         }
+    }
+    String getReplacementMemo()
+    {
+        return _replacementMemo;
     }
 
     void setReplaceTags(boolean replace)
@@ -699,7 +860,7 @@ class FarModel extends BasePropertyChangeReporter
         return hasResults;
     }
 
-    public void resetApply()
+    void resetApply()
     {
         final FindResultsTableModel tableModel = getFindResults();
         final int count = tableModel.getRowCount();
@@ -707,5 +868,87 @@ class FarModel extends BasePropertyChangeReporter
         {
             tableModel.getEntry(modelIndex).resetApply();
         }
+    }
+
+    void setIncludeTransfers(final boolean include)
+    {
+        if (include != _includeTransfers)
+        {
+            final boolean old = _includeTransfers;
+            _includeTransfers = include;
+
+            // rebuild the category list
+            final Collection<Integer> includedCats = _categoryFilter.getAllIncluded();
+            setupCategoryFilter();
+            loadCategoryFilter();
+            if (_data != null)
+            {
+                for (Integer accountId : includedCats)
+                {
+                    Account catAccount = _data.getAccountById(accountId.intValue());
+                    if (catAccount != null)
+                    {
+                        // this won't add if the account type isn't allowed - good
+                        _categoryFilter.include(catAccount);
+                    }
+                }
+            }
+
+            _eventNotify.firePropertyChange(N12EFindAndReplace.INCLUDE_TRANSFERS, old, include);
+        }
+    }
+
+    boolean getIncludeTransfers()
+    {
+        return _includeTransfers;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // Private Methods
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void setupCategoryFilter()
+    {
+        _categoryFilter = new AccountFilter(L10NFindAndReplace.ACCOUNTFILTER_ALL_CATEGORIES);
+        // all categories
+        _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_INCOME);
+        _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_EXPENSE);
+        if (_includeTransfers)
+        {
+            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_ASSET);
+            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_BANK);
+            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_CREDIT_CARD);
+            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_INVESTMENT);
+            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_LIABILITY);
+            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_LOAN);
+            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_SECURITY);
+        }
+    }
+
+    private void loadCategoryFilter()
+    {
+        if (_data != null)
+        {
+            _fullCategoryList = new FullAccountList(_data, _categoryFilter, true);
+            _categoryFilter.setFullList(_fullCategoryList);
+        }
+    }
+
+    /**
+     * Explicitly release memory for things other than the root data file
+     */
+    private void cleanUp()
+    {
+        _fullAccountList = null;
+        _accountFilter.setFullList(null);
+        _fullCategoryList = null;
+        _categoryFilter.setFullList(null);
+        _findResultsModel.reset();
+        _includeTagPickerModel = null;
+        _excludeTagPickerModel = null;
+        _replaceAddTagPickerModel = null;
+        _replaceRemoveTagPickerModel = null;
+        _replaceReplaceTagPickerModel = null;
     }
 }

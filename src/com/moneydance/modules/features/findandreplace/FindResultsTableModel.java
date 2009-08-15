@@ -18,13 +18,16 @@ import com.moneydance.apps.md.model.TxnTagSet;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.controller.UserPreferences;
+import com.moneydance.apps.md.view.gui.MDImages;
 import com.moneydance.util.CustomDateFormat;
 
 import javax.swing.table.AbstractTableModel;
+import javax.swing.Icon;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.awt.Color;
 
 /**
  * <p>Model for the results table.</p>
@@ -34,7 +37,7 @@ import java.util.HashSet;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public class FindResultsTableModel extends AbstractTableModel
@@ -79,6 +82,9 @@ public class FindResultsTableModel extends AbstractTableModel
     // commands to apply to each transaction
     private List<ReplaceCommand> _commands;
 
+    private final Icon _statusReconciling;
+    private final Icon _statusCleared;
+
     //////////////////////////////////////////////////////////////////////////////////////////////
     //  Construction
     //////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,6 +115,11 @@ public class FindResultsTableModel extends AbstractTableModel
         }
         buildColumns(_controller);
 
+        _statusReconciling = _controller.getMDGUI().getImages().getIcon(
+                MDImages.TXN_STAT_RECONCILING);
+        _statusCleared = _controller.getMDGUI().getImages().getIcon(
+                MDImages.TXN_STAT_CLEARED);
+
         _commands = null;
     }
 
@@ -135,6 +146,7 @@ public class FindResultsTableModel extends AbstractTableModel
     void reset()
     {
         _data.clear();
+        _foundIDs.clear();
     }
 
     void addBlankTransaction()
@@ -310,12 +322,26 @@ public class FindResultsTableModel extends AbstractTableModel
 
         buffer.append(N12EFindAndReplace.COL_BEGIN);
         final long value = getTxnAmountValue(txn, entry, AMOUNT_INDEX);
-        buffer.append(txn.getAccount().getCurrencyType().
-                formatSemiFancy(value, _decimalChar));
+        final String amountText = txn.getAccount().getCurrencyType().
+                formatSemiFancy(value, _decimalChar);
+        if (value < 0)
+        {
+            final Color negColor = _controller.getMDGUI().getColors().negativeBalFG;
+            buffer.append(String.format(N12EFindAndReplace.COLOR_BEGIN_FMT,
+                    Integer.valueOf(negColor.getRed()),
+                    Integer.valueOf(negColor.getGreen()),
+                    Integer.valueOf(negColor.getBlue())));
+            buffer.append(amountText);
+            buffer.append(N12EFindAndReplace.COLOR_END);
+        }
+        else
+        {
+            buffer.append(amountText);
+        }
         buffer.append(N12EFindAndReplace.COL_END);
         buffer.append(N12EFindAndReplace.ROW_END);
 
-        buffer.append(N12EFindAndReplace.PARA_END);
+        buffer.append(N12EFindAndReplace.TABLE_END);
         buffer.append(N12EFindAndReplace.HTML_END);
 
         return buffer.toString();
@@ -366,6 +392,17 @@ public class FindResultsTableModel extends AbstractTableModel
             return 0;
         }
         return FarUtil.getTransactionDate(parent); // YYYYMMDD
+    }
+
+    int getClearedInt(final int index)
+    {
+        final FindResultsTableEntry entry = _data.get(index);
+        final ParentTxn parent = entry.getParentTxn();
+        if (parent == null)
+        {
+            return 0;
+        }
+        return parent.getStatus();
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////
@@ -505,7 +542,15 @@ public class FindResultsTableModel extends AbstractTableModel
                 }
                 case CLEARED_INDEX:
                 {
-                    result += parent.getStatusChar();
+                    switch (parent.getStatus())
+                    {
+                        case AbstractTxn.STATUS_CLEARED:
+                            return _statusCleared;
+                        case AbstractTxn.STATUS_RECONCILING:
+                            return _statusReconciling;
+                        default:
+                            result = N12EFindAndReplace.SPACE;
+                    }
                     break;
                 }
                 case AMOUNT_INDEX:

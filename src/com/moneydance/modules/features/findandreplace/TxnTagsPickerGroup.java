@@ -19,7 +19,7 @@ import java.awt.event.ActionListener;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 class TxnTagsPickerGroup extends JPanel
@@ -87,9 +87,12 @@ class TxnTagsPickerGroup extends JPanel
 
         setLayout(new TableLayout(sizes));
 
-        add(_include.getView(),  new TableLayoutConstraints( 0, 0 ));
-        final JLabel label = new JLabel(resources.getString(L10NFindAndReplace.FIND_NOT));
-        add(label, new TableLayoutConstraints( 2, 0 ));
-        add(_exclude.getView(), new TableLayoutConstraints( 4, 0 ));
+        // adding the 'exclude' list unnecessarily complicates the interface so for now it is
+        // simply not shown
+        add(_include.getView(),  new TableLayoutConstraints( 0, 0, 4, 0 ));
+//        add(_include.getView(),  new TableLayoutConstraints( 0, 0 ));
+//        final JLabel label = new JLabel(resources.getString(L10NFindAndReplace.FIND_NOT));
+//        add(label, new TableLayoutConstraints( 2, 0 ));
+//        add(_exclude.getView(), new TableLayoutConstraints( 4, 0 ));
     }
 }
