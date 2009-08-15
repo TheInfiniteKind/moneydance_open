@@ -58,6 +58,12 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
                     }
                 }
             }
+            else
+            {
+                // if the included tags are blank, that effectively disables the inclusion
+                // criteria and all transactions should match
+                contained = true;
+            }
 
             if ((_excludedTags != null) && (_excludedTags.length > 0))
             {
