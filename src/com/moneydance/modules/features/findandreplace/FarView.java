@@ -549,8 +549,7 @@ class FarView extends JFrame implements PropertyChangeListener
             {
                 if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() > 1))
                 {
-                    final int selectedRow = _findResults.getSelectedRow();
-                    _controller.gotoTransaction(selectedRow);
+                    goToSelectedTransaction();
                 }
             }
         });
@@ -569,6 +568,13 @@ class FarView extends JFrame implements PropertyChangeListener
         panel.add(new JScrollPane(_findResults), BorderLayout.CENTER);
 
         return panel;
+    }
+
+    private void goToSelectedTransaction()
+    {
+        final int selectedRow = _findResults.getSelectedRow();
+        final int modelIndex = _findResults.convertRowIndexToModel(selectedRow);
+        _controller.gotoTransaction(modelIndex);
     }
 
     private void setupButtons()
@@ -670,8 +676,7 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent event)
             {
-                final int selectedRow = _findResults.getSelectedRow();
-                _controller.gotoTransaction(selectedRow);
+                goToSelectedTransaction();
             }
         });
 
