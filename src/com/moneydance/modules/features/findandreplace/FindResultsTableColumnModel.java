@@ -22,6 +22,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.JTable;
 import javax.swing.JLabel;
 import javax.swing.Icon;
+import javax.swing.SwingConstants;
 import java.awt.Component;
 import java.awt.Color;
 
@@ -33,7 +34,7 @@ import java.awt.Color;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 class FindResultsTableColumnModel extends DefaultTableColumnModel
@@ -202,6 +203,12 @@ class FindResultsTableColumnModel extends DefaultTableColumnModel
                 return _mdGui.getColors().negativeBalFG;
             }
             return super.getNormalForeground(tableModel, modelIndex);
+        }
+
+        @Override
+        protected int getTextAlignment()
+        {
+            return SwingConstants.RIGHT;
         }
     }
 }

@@ -71,6 +71,8 @@
     <entry key="closeBtn.mnemonic">L</entry>
     <entry key="gotoBtn.mnemonic">G</entry>
     <entry key="resetBtn.text">Tilbakestille</entry>
+    <entry key="copyBtn.text">Kopiere</entry>
+    <entry key="copyBtn.mnemonic">P</entry>
 
     <entry key="markAllBtn.text">Plukke Alle</entry>
     <entry key="markNoneBtn.text">Plukke Ingen</entry>

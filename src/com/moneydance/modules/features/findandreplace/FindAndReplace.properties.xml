@@ -6,7 +6,7 @@
     <!--  Common stuff -->
     <entry key="labelColon">:</entry>
     <entry key="title.text">Find and Replace</entry>
-    <entry key="version.format">Version 1.11 (Build 43)</entry>
+    <entry key="version.format">Version 1.2 (Build 48)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Find</entry>
@@ -29,8 +29,7 @@
     <entry key="findMemo.toolTip">Search in the memo field (parent transactions only)</entry>
     <entry key="findCheck.toolTip">Search in the Check# field (parent transactions only)</entry>
     <entry key="findSplits.text">Include Splits</entry>
-    <entry key="findSplits.toolTip">If the text is found in the parent transaction, include all the splits for 
-that transaction as a match.</entry>
+    <entry key="findSplits.toolTip">If the text is found in the parent transaction, include all the splits for that transaction as a match.</entry>
     <entry key="findTagsLabel.text">Tags:</entry>
     <entry key="findTagsLabel.mnemonic">T</entry>
     <entry key="findNot.text">but not</entry>
@@ -74,6 +73,8 @@ that transaction as a match.</entry>
     <entry key="closeBtn.mnemonic">C</entry>
     <entry key="gotoBtn.mnemonic">G</entry>
     <entry key="resetBtn.text">Reset</entry>
+    <entry key="copyBtn.text">Copy</entry>
+    <entry key="copyBtn.mnemonic">Y</entry>
 
     <entry key="markAllBtn.text">Mark All</entry>
     <entry key="markNoneBtn.text">Mark None</entry>

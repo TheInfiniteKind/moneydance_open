@@ -13,7 +13,7 @@ import com.moneydance.apps.md.model.Account;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 public interface IFindAndReplaceController extends IResourceProvider
@@ -51,6 +51,6 @@ public interface IFindAndReplaceController extends IResourceProvider
 
     public com.moneydance.apps.md.view.gui.MoneydanceGUI getMDGUI();
 
-    public Account getDefaultAccount();
+    public RootAccount getRootAccount();
 
 }

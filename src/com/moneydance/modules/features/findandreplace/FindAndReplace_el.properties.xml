@@ -70,6 +70,8 @@
     <entry key="closeBtn.mnemonic">Κ</entry>
     <entry key="gotoBtn.mnemonic">Π</entry>
     <entry key="resetBtn.text">Επαναφορά</entry>
+    <entry key="copyBtn.text">Αντιγραφή</entry>
+    <entry key="copyBtn.mnemonic">ρ</entry>
 
     <entry key="markAllBtn.text">Επιλέξτε Όλοι</entry>
     <entry key="markNoneBtn.text">Επιλέξτε Κανένας</entry>

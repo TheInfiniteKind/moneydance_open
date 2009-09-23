@@ -2,6 +2,7 @@ package com.moneydance.modules.features.findandreplace;
 
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.Color;
@@ -14,7 +15,7 @@ import java.awt.Color;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 class FindResultsTableCellRenderer extends DefaultTableCellRenderer
@@ -46,13 +47,19 @@ class FindResultsTableCellRenderer extends DefaultTableCellRenderer
             }
 
             setToolTipText(tableModel.getToolTipText(modelIndex));
+            setHorizontalAlignment(getTextAlignment());
         }
 
         return result;
     }
 
-    Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
+    protected Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
     {
         return Color.BLACK;
+    }
+
+    protected int getTextAlignment()
+    {
+        return SwingConstants.LEFT;
     }
 }

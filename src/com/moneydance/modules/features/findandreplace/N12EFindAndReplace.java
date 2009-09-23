@@ -22,7 +22,7 @@ package com.moneydance.modules.features.findandreplace;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 public class N12EFindAndReplace
@@ -48,6 +48,17 @@ public class N12EFindAndReplace
 
     /** Hard coded data format, would like to get these from user preferences. */
     public static final String DATE_FORMAT = "MM/dd/yyyy";
+
+    /** The end of a line for text, can change per OS. */
+    public static final String NEWLINE = System.getProperty( "line.separator", "\n" );
+
+    /** Delimiter in settings strings for x/y or width/height settings. */
+    public static final String SETTINGS_PT_DELIMITER = "x";
+    /** Settings key in the Moneydance config.dict file for the last dialog location. */
+    public static final String SETTINGS_DLG_LOCATION_SETTING = "gui.findandreplace_location";
+    /** Settings key in the Moneydance config.dict file for the last dialog size. */
+    public static final String SETTINGS_DLG_SIZE_SETTING = "gui.findandreplace_size";
+
     /**
      * Regular expression prefix to find free text entered by the user. (?ui) switches to case
      * insensitive using the Unicode standard, \Q quotes the user's entry.
@@ -59,7 +70,14 @@ public class N12EFindAndReplace
      */
     public static final String REGEX_SUFFIX = "\\E";
 
+    /**
+     * Suffix appended to the 'amount' label to specify this is the un-converted amount (shares).
+     */
+    public static final String SHARES_SUFFIX = " 2";
 
+    /**
+     * Event fired when a new file is opened.
+     */
     public static final String MD_OPEN_EVENT_ID = "md:file:opened";
 
     //////////////////////////////////////////////////////////////////////////////////////////////

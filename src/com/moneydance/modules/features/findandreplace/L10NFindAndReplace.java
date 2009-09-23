@@ -10,7 +10,7 @@ package com.moneydance.modules.features.findandreplace;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 class L10NFindAndReplace
@@ -98,6 +98,8 @@ class L10NFindAndReplace
     public static final String REPLACEALL_BUTTON_MNC = "replaceAllBtn.mnemonic";
     public static final String GOTO_BUTTON_TEXT = "show_txn";
     public static final String GOTO_BUTTON_MNC = "gotoBtn.mnemonic";
+    public static final String COPY_BUTTON_TEXT = "copyBtn.text";
+    public static final String COPY_BUTTON_MNC = "copyBtn.mnemonic";
     public static final String RESET_BUTTON_TEXT = "resetBtn.text"; // = Reset
 
     public static final String ACCOUNTSELECT_TITLE = "select_acct_title";

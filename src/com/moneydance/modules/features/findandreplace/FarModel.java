@@ -6,6 +6,8 @@ import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.controller.Util;
 
 import java.util.Collection;
+import java.awt.datatransfer.StringSelection;
+import java.awt.Toolkit;
 
 /**
  * <p>Model for the Find and Replace plugin. Stores all the settings you see in the dialog, and
@@ -16,7 +18,7 @@ import java.util.Collection;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 class FarModel extends BasePropertyChangeReporter
@@ -89,14 +91,13 @@ class FarModel extends BasePropertyChangeReporter
     FarModel()
     {
         _accountFilter = new AccountFilter(L10NFindAndReplace.ACCOUNTFILTER_ALL_ACCOUNTS);
-        // all types except categories
+        // all types except categories and securities (which act like categories for investments)
         _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_ASSET);
         _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_BANK);
         _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_CREDIT_CARD);
         _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_INVESTMENT);
         _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LIABILITY);
         _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LOAN);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_SECURITY);
 
         setupCategoryFilter();
 
@@ -903,10 +904,167 @@ class FarModel extends BasePropertyChangeReporter
         return _includeTransfers;
     }
 
+    String getSummaryText(final IResourceProvider resources)
+    {
+        String format = resources.getString(L10NFindAndReplace.RESULTS_SUMMARY_FMT);
+        final int count = _findResultsModel.getRowCount();
+        long minuses = 0;
+        long plusses = 0;
+        for (int modelIndex = 0; modelIndex < count; modelIndex++)
+        {
+            // if the user unchecks the box, remove that from the results value
+            if (_findResultsModel.getEntry(modelIndex).isUseInReplace())
+            {
+                long value = _findResultsModel.getAmount(modelIndex);
+                if (value >= 0)
+                {
+                    plusses += value;
+                }
+                else
+                {
+                    minuses += value;
+                }
+            }
+        }
+
+        long total = plusses + minuses;
+
+        int displayCount = count;
+        if ((count == 1) && (_findResultsModel.isBlankEntry(_findResultsModel.getEntry(0))))
+        {
+            displayCount = 0;
+        }
+        String countDisplay = Integer.toString(displayCount);
+        String adds = _findResultsModel.getAmountText(null, plusses);
+        String subtracts = _findResultsModel.getAmountText(null, minuses);
+        String totalDisplay = _findResultsModel.getAmountText(null, total);
+        return String.format(format, countDisplay, adds, subtracts, totalDisplay);
+    }
+
+    void copyToClipboard(final IResourceProvider resources, int[] rowOrder)
+    {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append(getSummaryText(resources));
+        buffer.append(N12EFindAndReplace.NEWLINE);
+        buffer.append(N12EFindAndReplace.NEWLINE);
+        buffer.append(getColumnHeaders(resources));
+        buffer.append(N12EFindAndReplace.NEWLINE);
+        for (int rowModelIndex : rowOrder)
+        {
+            buffer.append(exportRowToClipboard(rowModelIndex));
+            buffer.append(N12EFindAndReplace.NEWLINE);
+        }
+
+        StringSelection stringSel = new StringSelection( buffer.toString() );
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents( stringSel, stringSel );
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private String getColumnHeaders(final IResourceProvider resources)
+    {
+        StringBuffer result = new StringBuffer();
+
+        // account
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_ACCOUNT));
+        result.append('\t');
+
+        // date
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_DATE));
+        result.append('\t');
+
+        // check number
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_CHECKNO_LABEL));
+        result.append('\t');
+
+        // description
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_DESCRIPTION));
+        result.append('\t');
+
+        // memo
+        result.append(resources.getString(L10NFindAndReplace.REPLACE_MEMO_LABEL));
+        result.append('\t');
+
+        // tag
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_TAG));
+        result.append('\t');
+
+        // category
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_CATEGORY));
+        result.append('\t');
+
+        // cleared
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_CLEARED));
+        result.append('\t');
+
+        // amount
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
+        result.append('\t');
+
+        // shares
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
+        result.append(N12EFindAndReplace.SHARES_SUFFIX);
+
+        return result.toString();
+    }
+
+    private String exportRowToClipboard(final int rowModelIndex)
+    {
+        StringBuffer result = new StringBuffer();
+
+        // account
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.ACCOUNT_INDEX));
+        result.append('\t');
+
+        // date
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.DATE_INDEX));
+        result.append('\t');
+
+        // check number
+        result.append(FarUtil.getTransactionCheckNo(
+                _findResultsModel.getEntry(rowModelIndex).getParentTxn()));
+        result.append('\t');
+
+        // description
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.DESCRIPTION_INDEX));
+        result.append('\t');
+
+        // memo
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.MEMO_INDEX));
+        result.append('\t');
+
+        // tag
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.TAG_INDEX));
+        result.append('\t');
+
+        // category
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.CATEGORY_INDEX));
+        result.append('\t');
+
+        // cleared - here we need the text, not an image
+        result.append(_findResultsModel.getEntry(rowModelIndex).getParentTxn().getStatusChar());
+        result.append('\t');
+
+        // amount
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.AMOUNT_INDEX));
+        result.append('\t');
+
+        // shares
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.SHARES_INDEX));
+
+        return result.toString();
+    }
 
     private void setupCategoryFilter()
     {
@@ -951,4 +1109,5 @@ class FarModel extends BasePropertyChangeReporter
         _replaceRemoveTagPickerModel = null;
         _replaceReplaceTagPickerModel = null;
     }
+
 }

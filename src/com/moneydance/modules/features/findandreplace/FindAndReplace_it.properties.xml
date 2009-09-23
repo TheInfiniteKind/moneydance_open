@@ -71,6 +71,8 @@
     <entry key="closeBtn.mnemonic">C</entry>
     <entry key="gotoBtn.mnemonic">V</entry>
     <entry key="resetBtn.text">Risistemazione</entry>
+    <entry key="copyBtn.text">Copia</entry>
+    <entry key="copyBtn.mnemonic">P</entry>
 
     <entry key="markAllBtn.text">Prescegliere Tutti</entry>
     <entry key="markNoneBtn.text">Prescegliere Nessuno</entry>

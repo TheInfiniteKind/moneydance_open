@@ -1,8 +1,8 @@
 {
   "vendor" = "<html><body>Menn&#0275; Software Solutions</body></html>"
-  "module_build" = "43"
+  "module_build" = "48"
   "vendor.url" = "http://www.mennesoft.com/"
-  "module_name" = "Find and Replace version 1.11"
+  "module_name" = "Find and Replace version 1.2"
   "module_desc" = "<html><body><title>Find and Replace</title><p>Locate transactions based upon criteria and replace data.</p></body></html>"
   "desc" = "Locate transactions based upon criteria and replace data. The data isn't saved to disk until you save in MoneyDance. Please send feedback to info@mennesoft.com."
 }

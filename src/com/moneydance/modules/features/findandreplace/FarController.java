@@ -8,11 +8,13 @@ import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.CurrencyTable;
 
 import javax.swing.JOptionPane;
+import javax.swing.JTable;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.ArrayList;
 import java.text.DecimalFormatSymbols;
 import java.awt.Image;
+import java.awt.Point;
 
 /**
  * <p>Controller for the plugin component for Find and Replace. This class brokers method calls
@@ -23,7 +25,7 @@ import java.awt.Image;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
@@ -75,6 +77,7 @@ public class FarController implements IFindAndReplaceController
     public void show()
     {
         _view.layoutUI();
+        loadSizeAndPositionFromPreferences();
         _view.setVisible( true );
         _view.toFront();
         _view.requestFocus();
@@ -97,6 +100,19 @@ public class FarController implements IFindAndReplaceController
      */
     public void hide()
     {
+        // save our size and location
+        Point location = _view.getLocation();
+        Point size = new Point(_view.getSize().width, _view.getSize().height);
+        if (getMDGUI() != null)
+        {
+            final String locationSetting = FarUtil.settingsStringFromPoint(location);
+            getMDGUI().getPreferences().setSetting(N12EFindAndReplace.SETTINGS_DLG_LOCATION_SETTING,
+                    locationSetting);
+
+            final String sizeSetting = FarUtil.settingsStringFromPoint(size);
+            getMDGUI().getPreferences().setSetting(N12EFindAndReplace.SETTINGS_DLG_SIZE_SETTING,
+                    sizeSetting);
+        }
         _view.setVisible( false );
         _host.cleanUp();
     }
@@ -343,7 +359,7 @@ public class FarController implements IFindAndReplaceController
         return _host.getMDGUI();
     }
 
-    public Account getDefaultAccount()
+    public RootAccount getRootAccount()
     {
         return _model.getData();
     }
@@ -843,9 +859,52 @@ public class FarController implements IFindAndReplaceController
         return _model.getIncludeTransfers();
     }
 
+    void copyToClipboard()
+    {
+        JTable table = _view.getFindResultsTable();
+        final int rowCount = table.getRowCount();
+        int[] rowOrder = new int[rowCount];
+        for (int viewRow = 0; viewRow < rowCount; viewRow++)
+        {
+            rowOrder[viewRow] = table.convertRowIndexToModel(viewRow);
+        }
+        _model.copyToClipboard(this, rowOrder);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void loadSizeAndPositionFromPreferences()
+    {
+        if (getMDGUI() != null)
+        {
+            final String settingsLocation =  getMDGUI().getPreferences().getSetting(
+                    N12EFindAndReplace.SETTINGS_DLG_LOCATION_SETTING,
+                    N12EFindAndReplace.EMPTY);
+            if (settingsLocation.length() > 0)
+            {
+                Point location = FarUtil.pointFromSettingsString(settingsLocation);
+                if (location != null)
+                {
+                    _view.setLocation(location);
+                }
+            }
+
+            final String settingsSize =  getMDGUI().getPreferences().getSetting(
+                    N12EFindAndReplace.SETTINGS_DLG_SIZE_SETTING,
+                    N12EFindAndReplace.EMPTY);
+            if (settingsSize.length() > 0)
+            {
+                final Point size = FarUtil.pointFromSettingsString(settingsSize);
+                if (size != null)
+                {
+                    _view.setSize(size.x, size.y);
+                }
+            }
+
+        }
+    }
 
     private FindResultsTableEntry findNextReplaceEntry()
     {

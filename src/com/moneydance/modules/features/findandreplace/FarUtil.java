@@ -7,6 +7,8 @@ import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.TxnTagSet;
 
+import java.awt.Point;
+
 /**
  * <p>Utility methods for extracting information from transactions. Many of these could be useful
  * in other plugins.</p>
@@ -16,7 +18,7 @@ import com.moneydance.apps.md.model.TxnTagSet;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.2
  * @since 1.0
  */
 final class FarUtil
@@ -181,6 +183,28 @@ final class FarUtil
             label.append(resources.getString(L10NFindAndReplace.LABEL_COLON));
         }
         return label.toString();
+    }
+
+    public static Point pointFromSettingsString(final String settings)
+    {
+        if (settings == null)
+        {
+            return null;
+        }
+        String[] values = settings.split(N12EFindAndReplace.SETTINGS_PT_DELIMITER);
+        if (values.length == 2)
+        {
+            return new Point(Integer.parseInt(values[0]), Integer.parseInt(values[1]));
+        }
+        return null;
+    }
+
+    public static String settingsStringFromPoint(final Point point)
+    {
+        final StringBuffer result = new StringBuffer(Integer.toString(point.x));
+        result.append(N12EFindAndReplace.SETTINGS_PT_DELIMITER);
+        result.append(Integer.toString(point.y));
+        return result.toString();
     }
 
     /**

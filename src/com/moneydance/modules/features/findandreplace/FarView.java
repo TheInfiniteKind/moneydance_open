@@ -136,6 +136,7 @@ class FarView extends JFrame implements PropertyChangeListener
     private JButton _markAllButton;
     private JButton _markNoneButton;
     private JButton _gotoButton;
+    private JButton _copyButton;
 
     private Color _focusColor;
 
@@ -628,7 +629,7 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent event)
             {
-                _controller.hide();   
+                _controller.hide();
             }
         });
 
@@ -677,6 +678,16 @@ class FarView extends JFrame implements PropertyChangeListener
             public void actionPerformed(final ActionEvent event)
             {
                 goToSelectedTransaction();
+            }
+        });
+
+        _copyButton = createButton(L10NFindAndReplace.COPY_BUTTON_TEXT,
+                L10NFindAndReplace.COPY_BUTTON_MNC);
+        _copyButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(final ActionEvent event)
+            {
+                _controller.copyToClipboard();
             }
         });
 
@@ -1688,7 +1699,7 @@ class FarView extends JFrame implements PropertyChangeListener
             // columns
             {
                 TableLayout.PREFERRED, UiUtil.HGAP, TableLayout.PREFERRED, UiUtil.HGAP,
-                TableLayout.PREFERRED
+                TableLayout.PREFERRED, UiUtil.HGAP, TableLayout.PREFERRED
             },
             // rows
             { TableLayout.PREFERRED }
@@ -1698,6 +1709,7 @@ class FarView extends JFrame implements PropertyChangeListener
         buttons.add(_markAllButton, UiUtil.createTableConstraintBtnL(0, 0) );
         buttons.add(_markNoneButton, UiUtil.createTableConstraintBtnL(2, 0) );
         buttons.add(_gotoButton, UiUtil.createTableConstraintBtnL(4, 0) );
+        buttons.add(_copyButton, UiUtil.createTableConstraintBtnL(6, 0) );
 
         return buttons;
     }

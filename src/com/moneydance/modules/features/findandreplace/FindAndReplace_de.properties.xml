@@ -70,6 +70,8 @@
     <entry key="closeBtn.mnemonic">E</entry>
     <entry key="gotoBtn.mnemonic">Z</entry>
     <entry key="resetBtn.text">Zurückstellen</entry>
+    <entry key="copyBtn.text">Kopieren</entry>
+    <entry key="copyBtn.mnemonic">P</entry>
 
     <entry key="markAllBtn.text">Marke Alle</entry>
     <entry key="markNoneBtn.text">Marke Keine</entry>

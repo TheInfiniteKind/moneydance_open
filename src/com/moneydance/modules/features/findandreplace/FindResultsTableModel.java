@@ -17,6 +17,8 @@ import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.TxnTagSet;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.Account;
+import com.moneydance.apps.md.model.CurrencyUtil;
+import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.view.gui.MDImages;
 import com.moneydance.util.CustomDateFormat;
@@ -37,7 +39,7 @@ import java.awt.Color;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
 public class FindResultsTableModel extends AbstractTableModel
@@ -51,7 +53,8 @@ public class FindResultsTableModel extends AbstractTableModel
     static final int CATEGORY_INDEX = 6;
     static final int CLEARED_INDEX = 7;
     static final int AMOUNT_INDEX = 8;
-    private static final int MEMO_INDEX = 9; // not shown except in tooltip
+    static final int MEMO_INDEX = 9;    // not shown except in tooltip and export
+    static final int SHARES_INDEX = 10; // not shown except in export to clipboard
 
     private static final ParentTxn BLANK_TRANSACTION =
             new ParentTxn(
@@ -321,9 +324,11 @@ public class FindResultsTableModel extends AbstractTableModel
         buffer.append(N12EFindAndReplace.COL_END);
 
         buffer.append(N12EFindAndReplace.COL_BEGIN);
-        final long value = getTxnAmountValue(txn, entry, AMOUNT_INDEX);
-        final String amountText = txn.getAccount().getCurrencyType().
-                formatSemiFancy(value, _decimalChar);
+        final long value = getTxnAmountValue(txn, entry, AMOUNT_INDEX, false);
+        // For stocks and the like, this will display in shares versus the base currency. Because
+        // the table shows the base currency in the amount column, the tooltip can provide
+        // additional information in this way.
+        final String amountText = getAmountText(txn, value);
         if (value < 0)
         {
             final Color negColor = _controller.getMDGUI().getColors().negativeBalFG;
@@ -349,16 +354,16 @@ public class FindResultsTableModel extends AbstractTableModel
 
     String getAmountText(final AbstractTxn txn, final long value)
     {
-        final Account account;
+        final CurrencyType currencyType;
         if (txn != null)
         {
-            account = txn.getAccount();
+            currencyType = txn.getAccount().getCurrencyType();
         }
         else
         {
-            account = _controller.getDefaultAccount();
+            currencyType = _controller.getRootAccount().getCurrencyTable().getBaseType();
         }
-        return account.getCurrencyType().formatSemiFancy(value, _decimalChar);
+        return currencyType.formatSemiFancy(value, _decimalChar);
     }
 
     long getAmount(final int index)
@@ -374,11 +379,11 @@ public class FindResultsTableModel extends AbstractTableModel
         long value;
         if (entry.isSplitPrimary())
         {
-            value = getTxnAmountValue(split, entry, AMOUNT_INDEX);
+            value = getTxnAmountValue(split, entry, AMOUNT_INDEX, true);
         }
         else
         {
-            value = getTxnAmountValue(parent, entry, AMOUNT_INDEX);
+            value = getTxnAmountValue(parent, entry, AMOUNT_INDEX, true);
         }
         return value;
     }
@@ -555,10 +560,30 @@ public class FindResultsTableModel extends AbstractTableModel
                 }
                 case AMOUNT_INDEX:
                 {
-                    long value = getAmount(rowIndex);
-
                     // for expense categories, a positive value should be negative, so invert
-                    result += getTxnAmountDisplay(parent, value);
+                    long value = getAmount(rowIndex);
+                    // we always show the value in the table using the root account currency
+                    result += getAmountText(null, value);
+                    break;
+                }
+                case SHARES_INDEX:
+                {
+                    // this will only be useful for splits
+                    if (split == null)
+                    {
+                        result += N12EFindAndReplace.SPACE;
+                    }
+                    else
+                    {
+                        final long value = getTxnAmountValue(split, entry, AMOUNT_INDEX, false);
+                        // in this case we do not convert the result, so we specify the transaction
+                        result += getAmountText(split, value);
+                    }
+                    break;
+                }
+                case MEMO_INDEX:
+                {
+                    result += getTxnMemoDisplay(parent, entry);
                     break;
                 }
                 case USE_INDEX:
@@ -617,8 +642,10 @@ public class FindResultsTableModel extends AbstractTableModel
         return value;
     }
 
-    private long getTxnAmountValue(final AbstractTxn txn, final FindResultsTableEntry entry,
-                                   final int columnIndex)
+    private long getTxnAmountValue(final AbstractTxn txn,
+                                   final FindResultsTableEntry entry,
+                                   final int columnIndex,
+                                   final boolean convertCurrency)
     {
         long value = txn.getValue();
 
@@ -638,7 +665,16 @@ public class FindResultsTableModel extends AbstractTableModel
             {
                 value = -value;
             }
+
+            if (convertCurrency)
+            {
+                value = CurrencyUtil.convertValue(value,
+                        account.getCurrencyType(),
+                        _controller.getRootAccount().getCurrencyTable().getBaseType(),
+                        txn.getDateInt());
+            }
         }
+
         return value;
     }
 
@@ -790,11 +826,6 @@ public class FindResultsTableModel extends AbstractTableModel
             return N12EFindAndReplace.EMPTY;
         }
         return _dateFormat.format(encoded);
-    }
-
-    private String getTxnAmountDisplay(final AbstractTxn txn, final long value)
-    {
-        return getAmountText(txn, value);
     }
 
     /**

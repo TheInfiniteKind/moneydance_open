@@ -71,6 +71,8 @@
     <entry key="closeBtn.mnemonic">F</entry>
     <entry key="gotoBtn.mnemonic">A</entry>
     <entry key="resetBtn.text">À Zéro</entry>
+    <entry key="copyBtn.text">Copier</entry>
+    <entry key="copyBtn.mnemonic">P</entry>
 
     <entry key="markAllBtn.text">Marquer Tous</entry>
     <entry key="markNoneBtn.text">Marquer Aucun</entry>
