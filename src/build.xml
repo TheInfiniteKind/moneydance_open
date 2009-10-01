@@ -16,6 +16,7 @@ http://jakarta.apache.org/ant/index.html
   <property name="build.compiler"  value="classic"/>
   <property name="build.compiler.fulldepend"  value="true"/>
   <property name="dist"  value="../dist"/>
+  <property name="install"  value="${user.home}/.moneydance/fmodules"/>
   <property name="tmp"  value="../tmp"/>
   <property name="debug"  value="on"/>
   <property name="optimize"  value="off"/>
@@ -29,6 +30,46 @@ http://jakarta.apache.org/ant/index.html
     <mkdir dir="${dist}"/>
     <mkdir dir="${build}"/>
   </target>
+
+
+  <target name="findandreplace-compile" depends="init">
+    <javac target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"  
+              classpathref="classpath"  destdir="${build}"  classpath="${lib}/TableLayout-bin-jdk1.5-2009-08-26.jar" 
+      includes="
+        com/moneydance/modules/features/findandreplace/**/*.java
+        info/clearthought/layout/**"/>
+    <jar destfile="${dist}/findandreplace.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/findandreplace/meta_info.dict
+             com/moneydance/modules/features/findandreplace/*.properties
+             com/moneydance/modules/features/findandreplace/*.xml
+             com/moneydance/modules/features/findandreplace/*.properties.xml
+             com/moneydance/modules/features/findandreplace/*.gif
+             com/moneydance/modules/features/findandreplace/*.png
+             com/moneydance/modules/features/findandreplace/*.jpg
+             com/moneydance/modules/features/findandreplace/*.jpeg"/>
+      <fileset dir="${build}" includes="
+             com/moneydance/modules/features/findandreplace/**/*.class
+             info/clearthought/layout/**"/>
+      <zipgroupfileset dir="${lib}/" includes="TableLayout-bin-jdk1.5-2009-08-26.jar"/>
+    </jar>
+  </target>
+  
+  <target name="findandreplace" depends="findandreplace-compile">
+    <java newenvironment="true"
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="findandreplace"/>
+      <arg line="${dist}/findandreplace.mxt"/>
+    </java>
+      <delete file="${dist}/findandreplace.mxt" verbose="true" failonerror="false" />
+    <move file="${src}/s-findandreplace.mxt" tofile="${dist}/findandreplace.mxt" verbose="true" failonerror="false" />
+    <copy file="${dist}/findandreplace.mxt" tofile="${install}/findandreplace.mxt" verbose="true" failonerror="false" />
+  </target>
+
 
   <target name="autorates" depends="init">
     <javac target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"

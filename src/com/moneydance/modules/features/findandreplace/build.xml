@@ -47,8 +47,8 @@ findandreplace (or 'all')
       <javac target="1.6" bootclasspath="${bootclasspath}" source="1.6" srcdir="${src}" 
         debug="${debug}" optimize="${optimize}" classpathref="classpath"  destdir="${build}"
         includes="
-        com/moneydance/modules/features/findandreplace/**/*.java
-        info/clearthought/layout/**"/>
+          com/moneydance/modules/features/findandreplace/**/*.java
+          info/clearthought/layout/**"/>
 
       <jar destfile="${dist}/findandreplace.mxt">
         <fileset dir="${src}" includes="
