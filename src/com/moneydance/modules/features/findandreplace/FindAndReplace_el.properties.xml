@@ -3,7 +3,7 @@
 <properties>
     <!--  Common stuff -->
     <entry key="title.text">Εύρεση και Αντικατάσταση</entry>
-    <entry key="version.format">Έκδοση 1.1 (Build 42)</entry>
+    <entry key="version.format">Έκδοση 1.3 (Build 51)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Βρίσκω</entry>

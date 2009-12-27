@@ -12,6 +12,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.*;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
+import java.awt.FlowLayout;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
 import java.awt.event.ActionListener;
@@ -49,7 +50,7 @@ import info.clearthought.layout.TableLayoutConstants;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.3
  * @since 1.0
  */
 class FarView extends JFrame implements PropertyChangeListener
@@ -90,7 +91,7 @@ class FarView extends JFrame implements PropertyChangeListener
 
     private JCheckBox _findTagsUseCheck;
     private JCheckBox _findTagsRequireCheck;
-    private TxnTagsPickerGroup _findTagPickers;
+    private TxnTagsPicker _findTagPicker;
     
     private JCheckBox _findClearedUseCheck;
     private JCheckBox _findClearedRequireCheck;
@@ -142,6 +143,7 @@ class FarView extends JFrame implements PropertyChangeListener
 
     // don't automatically check the 'use' boxes when updating programmatically
     private boolean _suppressAutoCheckUse = false;
+    private JRadioButton _tagsAnd;
 
     FarView(final FarModel model)
     {
@@ -432,10 +434,7 @@ class FarView extends JFrame implements PropertyChangeListener
         if (all)
         {
             TagPickerModel tagModel = _controller.getIncludedTagsModel();
-            _findTagPickers.getIncludePicker().setModel(tagModel);
-
-            tagModel = _controller.getExcludedTagsModel();
-            _findTagPickers.getExcludePicker().setModel(tagModel);
+            _findTagPicker.setModel(tagModel);
 
             tagModel = _controller.getReplaceAddTagsModel();
             _replaceAddTags.setModel(tagModel);
@@ -729,11 +728,18 @@ class FarView extends JFrame implements PropertyChangeListener
 
             // rows -- all preferred with gaps in between
             {
+                // Panel label, combine criteria
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
+                // account select, category select
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
+                //  amount, date
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED
+                // free text, free text options
+                TableLayout.PREFERRED, 0, TableLayout.PREFERRED, UiUtil.VGAP,
+                // tags, tag options
+                TableLayout.PREFERRED, 0, TableLayout.PREFERRED, UiUtil.VGAP,
+                // cleared
+                TableLayout.PREFERRED
             }
         };
         final JPanel findPanel = new JPanel( new TableLayout(sizes) );
@@ -887,8 +893,9 @@ class FarView extends JFrame implements PropertyChangeListener
         _findTagsRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_TAGS_LABEL,
                 L10NFindAndReplace.FIND_TAGS_MNC, _findTagsUseCheck);
-        _findTagPickers = new TxnTagsPickerGroup(_controller.getMDGUI(), _model.getData(), _controller);
-        row = addRowField1( findPanel, row, startCol, _findTagPickers);
+        _findTagPicker = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
+        row = addRowField1( findPanel, row, startCol, _findTagPicker.getView());
+        row = addRowField1( findPanel, row, startCol, createTagSupportPanel());
         
         // cleared
         _findClearedUseCheck = new JCheckBox();
@@ -1125,7 +1132,7 @@ class FarView extends JFrame implements PropertyChangeListener
             }
         });
 
-        _findTagPickers.addSelectionListener(new ActionListener()
+        _findTagPicker.getView().addSelectionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
             {
@@ -1133,7 +1140,7 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse)
                 {
                     _controller.setUseTagsFilter(true);
-                    _controller.setRequireTagsFilter(!_controller.getFilterCombineOr());
+                    _controller.setRequireTagsFilter(_tagsAnd.isSelected());
                 }
             }
         });
@@ -1207,6 +1214,47 @@ class FarView extends JFrame implements PropertyChangeListener
         });
     }
 
+    private JPanel createTagSupportPanel()
+    {
+        final JPanel result = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP*2, 0));
+
+        final ClickLabelListPanel clickPanel = new ClickLabelListPanel();
+
+        Runnable action = new Runnable()
+        {
+            public void run()
+            {
+                // select all tags in the list
+                _findTagPicker.selectAll();
+            }
+        };
+        clickPanel.addLabel(_controller.getString(L10NFindAndReplace.ACCOUNTFILTER_ALL), action);
+
+        action = new Runnable()
+        {
+            public void run()
+            {
+                // select all tags in the list
+                _findTagPicker.selectNone();
+            }
+        };
+        clickPanel.addLabel(_controller.getString(L10NFindAndReplace.NONE), action);
+        clickPanel.layoutUI();
+        result.add(clickPanel);
+        
+        _tagsAnd = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_BOOL_AND));
+        JRadioButton tagsOr = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_BOOL_OR));
+        result.add(_tagsAnd);
+        result.add(tagsOr);
+        
+        ButtonGroup tagBoolean = new ButtonGroup();
+        tagBoolean.add(_tagsAnd);
+        tagBoolean.add(tagsOr);
+        tagBoolean.setSelected(tagsOr.getModel(), true);
+
+        return result;
+    }
+
     private boolean saveFindEdits()
     {
         // account and category have already been saved
@@ -1225,7 +1273,9 @@ class FarView extends JFrame implements PropertyChangeListener
 
             _controller.setFreeTextMatch(textMatch);
         }
-        _findTagPickers.updateFromView();
+        _findTagPicker.updateFromView();
+        _controller.setRequireTagsFilter(_tagsAnd.isSelected());
+        
         return true;
     }
 

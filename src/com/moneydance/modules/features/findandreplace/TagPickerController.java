@@ -1,7 +1,6 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
-import com.moneydance.apps.md.model.TxnTag;
 
 /**
  * <p>Mediates between view and model for the tag picker control.</p>
@@ -11,7 +10,7 @@ import com.moneydance.apps.md.model.TxnTag;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.3
  * @since 1.0
  */
 class TagPickerController
@@ -27,14 +26,24 @@ class TagPickerController
 
     void updateFromModel()
     {
-        for (TxnTag tag : _model.getSelectedTags())
-        {
-            _view.setTagSelected(tag);
-        }
+        _view.setSelectedTags(_model.getSelectedTags());
     }
 
     void updateFromView()
     {
         _model.setSelectedTags(_view.getSelectedTags());
     }
+
+    void selectAll()
+    {
+        _model.selectAll();
+        updateFromModel();
+    }
+
+    void selectNone()
+    {
+        _model.clear();
+        updateFromModel();
+    }
+
 }

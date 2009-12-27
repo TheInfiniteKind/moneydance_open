@@ -14,7 +14,7 @@ import java.awt.event.FocusEvent;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.3
  * @since 1.0
  */
 class TxnTagsPicker
@@ -62,6 +62,18 @@ class TxnTagsPicker
     void updateFromView()
     {
         _controller.updateFromView();
+    }
+
+    void selectAll()
+    {
+        _controller.selectAll();
+        _view.repaint();
+    }
+
+    void selectNone()
+    {
+        _controller.selectNone();
+        _view.repaint();
     }
 
 }

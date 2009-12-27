@@ -14,7 +14,7 @@ import javax.swing.JComponent;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.3
  * @since 1.0
  */
 class FarHomeView implements HomePageView
@@ -44,7 +44,10 @@ class FarHomeView implements HomePageView
 
     public void setActive(boolean active)
     {
-        _view.setVisible(active);
+        if (_view != null)
+        {
+            _view.setVisible(active);
+        }
     }
 
     public void refresh()

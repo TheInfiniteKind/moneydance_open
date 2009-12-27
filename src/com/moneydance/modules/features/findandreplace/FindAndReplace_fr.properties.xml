@@ -4,7 +4,7 @@
     <!--  Common stuff -->
     <entry key="labelColon"> :</entry>
     <entry key="title.text">Recherche et Replacer</entry>
-    <entry key="version.format">Version 1.1 (Build 42)</entry>
+    <entry key="version.format">Version 1.3 (Build 51)</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Recherche</entry>

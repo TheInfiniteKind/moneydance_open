@@ -19,7 +19,7 @@ import java.util.Arrays;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.3
  * @since 1.0
  */
 public class ReplaceCommand implements IFarCommand
@@ -34,7 +34,7 @@ public class ReplaceCommand implements IFarCommand
     private final TxnTagSet _userTagSet;
 
     // the transaction changes as the command is applied to all selected transactions in the list
-    private AbstractTxn _transaction;
+    private FindResultsTableEntry _transaction;
 
     ReplaceCommand(final Account category, final Long amount, final String description,
                    final String memo, final ReplaceTagCommandType tagCommand, final TxnTag[] tags,
@@ -51,9 +51,9 @@ public class ReplaceCommand implements IFarCommand
         _transaction = null;
     }
 
-    public void setTransaction(final AbstractTxn txn)
+    public void setTransactionEntry(final FindResultsTableEntry entry)
     {
-        _transaction = txn;
+        _transaction = entry;
     }
 
     public Account getPreviewCategory()
@@ -66,7 +66,7 @@ public class ReplaceCommand implements IFarCommand
 
         // the default is to make no changes. this check is to see if any category should be
         // returned at all for the transaction type -- if not, then return nothing
-        final Account category = FarUtil.getTransactionCategory(_transaction);
+        final Account category = FarUtil.getTransactionCategory(_transaction.getSplitTxn());
         if (category != null)
         {
             return _replaceCategory;
@@ -117,7 +117,10 @@ public class ReplaceCommand implements IFarCommand
             return null;
         }
 
-        final TxnTag[] baseTags = FarUtil.getTransactionTags(_transaction, _userTagSet);
+        // There can be tags on both sides: split and parent. However the parent side is hard to
+        // get to (Show Other Side, then edit tags) and has some UI issues for the user. Currently
+        // we only support tags on the split.
+        final TxnTag[] baseTags = FarUtil.getTransactionTags(_transaction.getSplitTxn(), _userTagSet);
 
         return getChangedTagSet(baseTags);
     }
@@ -134,58 +137,52 @@ public class ReplaceCommand implements IFarCommand
             return false;
         }
 
-        // TODO: Maybe encapsulate logic in parent-split stuff like FindResultsTableEntry
         boolean changed = false;
         if (_replaceCategory != null)
         {
             // only apply category replacement to splits
-            if (_transaction instanceof SplitTxn)
+            if (!_transaction.getSplitTxn().getAccount().equals(_replaceCategory))
             {
-                if (!_transaction.getAccount().equals(_replaceCategory))
-                {
-                    changed = true;
-                }
-                _transaction.setAccount(_replaceCategory);
+                changed = true;
             }
+            _transaction.getSplitTxn().setAccount(_replaceCategory);
         }
 
         if (_replaceAmount != null)
         {
-            // only apply amount changes to splits
-            if (_transaction instanceof SplitTxn)
-            {
-                final SplitTxn split = (SplitTxn)_transaction;
+            // only apply amount changes to splits because it is too complicated to change the
+            // amount for a parent transaction with multiple splits
+            final SplitTxn split = _transaction.getSplitTxn();
 
-                long value = _replaceAmount.longValue();
-                long diff = value - split.getAmount();
-                if (diff != 0)
-                {
-                    changed = true;
-                    final double rate = split.getRate();
-                    long parentAmount = split.getParentAmount();
-                    split.setAmount(value, rate, parentAmount + diff);
-                }
+            long value = _replaceAmount.longValue();
+            long diff = value - split.getAmount();
+            if (diff != 0)
+            {
+                changed = true;
+                final double rate = split.getRate();
+                long parentAmount = split.getParentAmount();
+                split.setAmount(value, rate, parentAmount + diff);
             }
         }
 
         if (_replaceDescription != null)
         {
-            // apply description to either type
-            if (_transaction.getDescription() == null)
+            // apply description to either type, starting with the split
+            if (_transaction.getSplitTxn().getDescription() == null)
             {
                 changed = true;
             }
-            else if (!_transaction.getDescription().equals(_replaceDescription))
+            else if (!_transaction.getSplitTxn().getDescription().equals(_replaceDescription))
             {
                 changed = true;
             }
-            _transaction.setDescription(_replaceDescription);
+            _transaction.getSplitTxn().setDescription(_replaceDescription);
 
             // Now FindResultsTableModel.add() screens out duplicates where we have a single split
             // and a parent transaction, to make things simpler. It keeps the split in the list and
             // throws out the parent. Here we undo that situation and replace in the parent as well
             // as the split
-            final ParentTxn parent = getParentTxn();
+            final ParentTxn parent = _transaction.getParentTxn();
             if (parent != null)
             {
                 if ((parent.getSplitCount() == 1) &&
@@ -201,7 +198,7 @@ public class ReplaceCommand implements IFarCommand
         if (_replaceMemo != null)
         {
             // memo only applies to parent transactions
-            final ParentTxn parent = getParentTxn();
+            final ParentTxn parent = _transaction.getParentTxn();
             if (parent != null)
             {
                 if (parent.getMemo() == null)
@@ -218,20 +215,19 @@ public class ReplaceCommand implements IFarCommand
 
         if (_replaceTagSet != null)
         {
-            // tags are associated with splits only
-            if (_transaction instanceof SplitTxn)
+            // There can be tags on both sides: split and parent. However the parent side is hard to
+            // get to (Show Other Side, then edit tags) and has some UI issues for the user. Currently
+            // we only support tags on the split.
+            final SplitTxn split = _transaction.getSplitTxn();
+            final TxnTag[] existingTags = FarUtil.getTransactionTags(split, _userTagSet);
+            final TxnTag[] newTags = getChangedTagSet(existingTags);
+            if (newTags != null)
             {
-                final SplitTxn split = (SplitTxn)_transaction;
-                final TxnTag[] existingTags = FarUtil.getTransactionTags(split, _userTagSet);
-                final TxnTag[] newTags = getChangedTagSet(existingTags);
-                if (newTags != null)
+                if (!Arrays.equals(existingTags, newTags))
                 {
-                    if (!Arrays.equals(existingTags, newTags))
-                    {
-                        changed = true;
-                    }
-                    TxnTagSet.setTagsForTxn(split, newTags);
+                    changed = true;
                 }
+                TxnTagSet.setTagsForTxn(split, newTags);
             }
         }
 
@@ -243,31 +239,14 @@ public class ReplaceCommand implements IFarCommand
     // Package Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    AbstractTxn getTransaction()
+    AbstractTxn getParentTransaction()
     {
-        return _transaction;
+        return _transaction.getParentTxn();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    private ParentTxn getParentTxn()
-    {
-        final ParentTxn parent;
-        if (_transaction instanceof ParentTxn)
-        {
-            parent = (ParentTxn)_transaction;
-        }
-        else if (_transaction instanceof SplitTxn)
-        {
-            parent = _transaction.getParentTxn();
-        }
-        else
-        {
-            parent = null;
-        }
-        return parent;
-    }
 
     private TxnTag[] getChangedTagSet(final TxnTag[] baseTags)
     {

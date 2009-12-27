@@ -25,7 +25,7 @@ import java.awt.Point;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.3
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
@@ -244,25 +244,22 @@ public class FarController implements IFindAndReplaceController
                     {
                         for (final ReplaceCommand command : _commands)
                         {
-                            if (entry.isSplitPrimary())
-                            {
-                                command.setTransaction(entry.getSplitTxn());
-                            }
-                            else
-                            {
-                                command.setTransaction(entry.getParentTxn());
-                            }
-
+                            command.setTransactionEntry(entry);
                             if (command.execute())
                             {
                                 changed = true;
                                 // this will notify the system of the modification
-                                root.getTransactionSet().txnModified( command.getTransaction() );
+                                root.getTransactionSet().txnModified( command.getParentTransaction() );
                             }
                         }
                     } // if use this entry
                 } // for rowIndex
             } // try
+            catch (Exception error)
+            {
+                System.err.print("Error replacing data with Find and Replace: ");
+                error.printStackTrace();
+            }
             finally
             {
                 if (changed)

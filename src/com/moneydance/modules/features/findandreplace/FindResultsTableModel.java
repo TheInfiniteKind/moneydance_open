@@ -39,7 +39,7 @@ import java.awt.Color;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.3
  * @since 1.0
  */
 public class FindResultsTableModel extends AbstractTableModel
@@ -632,7 +632,7 @@ public class FindResultsTableModel extends AbstractTableModel
         {
             for (final ReplaceCommand command : _commands)
             {
-                command.setTransaction(entry.getSplitTxn());
+                command.setTransactionEntry(entry);
                 if (command.getPreviewAmount() != null)
                 {
                     value = command.getPreviewAmount();
@@ -686,7 +686,7 @@ public class FindResultsTableModel extends AbstractTableModel
         {
             for (final ReplaceCommand command : _commands)
             {
-                command.setTransaction(txn);
+                command.setTransactionEntry(entry);
                 if (command.getPreviewDescription() != null)
                 {
                     description = command.getPreviewDescription();
@@ -719,7 +719,7 @@ public class FindResultsTableModel extends AbstractTableModel
         {
             for (final ReplaceCommand command : _commands)
             {
-                command.setTransaction(txn);
+                command.setTransactionEntry(entry);
                 if (command.getPreviewMemo() != null)
                 {
                     memo = command.getPreviewMemo();
@@ -741,7 +741,7 @@ public class FindResultsTableModel extends AbstractTableModel
         {
             for (final ReplaceCommand command : _commands)
             {
-                command.setTransaction(txn);
+                command.setTransactionEntry(entry);
                 if (command.getPreviewTags() != null)
                 {
                     tags = command.getPreviewTags();
@@ -807,7 +807,7 @@ public class FindResultsTableModel extends AbstractTableModel
         {
             for (final ReplaceCommand command : _commands)
             {
-                command.setTransaction(txn);
+                command.setTransactionEntry(entry);
                 if (command.getPreviewCategory() != null)
                 {
                     category = command.getPreviewCategory();
