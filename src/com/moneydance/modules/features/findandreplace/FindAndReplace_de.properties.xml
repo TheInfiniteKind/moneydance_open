@@ -33,7 +33,7 @@
     <entry key="findNot.text">aber nicht</entry>
     <entry key="findAnd.text">Und</entry>
     <entry key="findOr.text">Oder</entry>
-    <entry key="findExact.text">Exakte</entry>
+    <entry key="findExact.text">Genau</entry>
 
     <entry key="findClearedLabel.mnemonic">L</entry>
     <entry key="findCleared.toolTip">Abgestimmte Buchungen einschließen</entry>
