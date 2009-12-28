@@ -49,7 +49,10 @@ class L10NFindAndReplace
     public static final String FIND_TAGS_LABEL = "findTagsLabel.text"; // = Tags:
     public static final String FIND_TAGS_MNC = "findTagsLabel.mnemonic"; // = T
     public static final String FIND_NOT = "findNot.text"; // = but not
-    
+    public static final String FIND_TAG_AND = "findAnd.text"; // And
+    public static final String FIND_TAG_OR = "findOr.text"; // Or
+    public static final String FIND_TAG_EXACT = "findExact.text"; // Exact
+
     public static final String FIND_CLEARED_LABEL = "cleared"; // = Cleared
     public static final String FIND_CLEARED_MNC = "findClearedLabel.mnemonic"; // = L
     public static final String FIND_USE_TIP = "findUse.toolTip";

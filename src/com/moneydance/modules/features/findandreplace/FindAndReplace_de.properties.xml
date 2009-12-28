@@ -3,7 +3,8 @@
 <properties>
     <!--  Common stuff -->
     <entry key="title.text">Finden und Ersetzen</entry>
-    <entry key="version.format">Version 1.3 (Build 51)</entry>
+    <!-- 0 = version, 1 = build -->
+    <entry key="version.format">Version {0} (Build {1})</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Suchen</entry>
@@ -30,6 +31,9 @@
     <entry key="findTagsLabel.text">Rubriken:</entry>
     <entry key="findTagsLabel.mnemonic">R</entry>
     <entry key="findNot.text">aber nicht</entry>
+    <entry key="findAnd.text">Und</entry>
+    <entry key="findOr.text">Oder</entry>
+    <entry key="findExact.text">Exakte</entry>
 
     <entry key="findClearedLabel.mnemonic">L</entry>
     <entry key="findCleared.toolTip">Abgestimmte Buchungen einschließen</entry>

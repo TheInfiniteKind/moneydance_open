@@ -508,15 +508,6 @@ public class FarController implements IFindAndReplaceController
         return _model.getUseAccountFilter();
     }
 
-    void setRequireAccountFilter(final boolean require)
-    {
-        _model.setRequireAccountFilter(require);
-    }
-    boolean getRequireAccountFilter()
-    {
-        return _model.getRequireAccountFilter();
-    }
-
     void setUseCategoryFilter(final boolean use)
     {
         _model.setUseCategoryFilter(use);
@@ -524,14 +515,6 @@ public class FarController implements IFindAndReplaceController
     boolean getUseCategoryFilter()
     {
         return _model.getUseCategoryFilter();
-    }
-    void setRequireCategoryFilter(final boolean require)
-    {
-        _model.setRequireCategoryFilter(require);
-    }
-    boolean getRequireCategoryFilter()
-    {
-        return _model.getRequireCategoryFilter();
     }
     String getCategoryListDisplay()
     {
@@ -545,14 +528,6 @@ public class FarController implements IFindAndReplaceController
     boolean getUseAmountFilter()
     {
         return _model.getUseAmountFilter();
-    }
-    void setRequireAmountFilter(final boolean require)
-    {
-        _model.setRequireAmountFilter(require);
-    }
-    boolean getRequireAmountFilter()
-    {
-        return _model.getRequireAmountFilter();
     }
     void setAmountRange(final long minimum, final long maximum)
     {
@@ -575,14 +550,6 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getUseDateFilter();
     }
-    void setRequireDateFilter(final boolean require)
-    {
-        _model.setRequireDateFilter(require);
-    }
-    boolean getRequireDateFilter()
-    {
-        return _model.getRequireDateFilter();
-    }
     void setDateRange(final int minimum, final int maximum)
     {
         _model.setDateRange(minimum, maximum);
@@ -603,14 +570,6 @@ public class FarController implements IFindAndReplaceController
     boolean getUseFreeTextFilter()
     {
         return _model.getUseFreeTextFilter();
-    }
-    void setRequireFreeTextFilter(final boolean require)
-    {
-        _model.setRequireFreeTextFilter(require);
-    }
-    boolean getRequireFreeTextFilter()
-    {
-        return _model.getRequireFreeTextFilter();
     }
     void setFreeTextMatch(final String textOrRegEx)
     {
@@ -653,7 +612,6 @@ public class FarController implements IFindAndReplaceController
         return _model.getFreeTextIncludeSplits();
     }
 
-
     void setUseTagsFilter(final boolean use)
     {
         _model.setUseTagsFilter(use);
@@ -662,11 +620,11 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getUseTagsFilter();
     }
-    void setRequireTagsFilter(final boolean require)
+    void setTagsFilterLogic(final TagLogic combine)
     {
-        _model.setRequireTagsFilter(require);
+        _model.setRequireTagsFilter(combine);
     }
-    boolean getRequireTagsFilter()
+    TagLogic getRequireTagsFilter()
     {
         return _model.getRequireTagsFilter();
     }
@@ -687,14 +645,6 @@ public class FarController implements IFindAndReplaceController
     boolean getUseClearedFilter()
     {
         return _model.getUseClearedFilter();
-    }
-    void setRequireClearedFilter(final boolean require)
-    {
-        _model.setRequireClearedFilter(require);
-    }
-    boolean getRequireClearedFilter()
-    {
-        return _model.getRequireClearedFilter();
     }
     boolean getAllowCleared()
     {

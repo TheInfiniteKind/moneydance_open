@@ -29,6 +29,9 @@ import java.text.MessageFormat;
  */
 public class Main extends FeatureModule
 {
+    static final String VERSION = "1.31";
+    static final String BUILD = "53";
+    
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private IFindAndReplaceController _controller = null;
     private FarHomeView _homePageView = null;

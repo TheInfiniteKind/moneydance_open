@@ -64,25 +64,20 @@ class FarView extends JFrame implements PropertyChangeListener
     private ButtonGroup _findBooleanGroup;
 
     private JCheckBox _findAccountsUseCheck;
-    private JCheckBox _findAccountsRequireCheck;
     private JLabel _findAccountsList;
     private JButton _findAccountsSelect;
 
     private JCheckBox _findCategoryUseCheck;
-    private JCheckBox _findCategoryRequireCheck;
     private JLabel _findCategoryList;
     private JButton _findCategorySelect;
 
     private JCheckBox _findAmountUseCheck;
-    private JCheckBox _findAmountRequireCheck;
     private AmountPickerGroup _findAmountPickers;
 
     private JCheckBox _findDateUseCheck;
-    private JCheckBox _findDateRequireCheck;
     private DatePickerGroup _findDatePickers;
 
     private JCheckBox _findFreeTextUseCheck;
-    private JCheckBox _findFreeTextRequireCheck;
     private JCheckBox _findFreeTextUseDescriptionCheck;
     private JCheckBox _findFreeTextUseMemoCheck;
     private JCheckBox _findFreeTextUseCheckCheck;
@@ -90,11 +85,12 @@ class FarView extends JFrame implements PropertyChangeListener
     private JTextField _findFreeText;
 
     private JCheckBox _findTagsUseCheck;
-    private JCheckBox _findTagsRequireCheck;
     private TxnTagsPicker _findTagPicker;
-    
+    private JRadioButton _tagsAnd;
+    private JRadioButton _tagsOr;
+    private JRadioButton _tagsExact;
+
     private JCheckBox _findClearedUseCheck;
-    private JCheckBox _findClearedRequireCheck;
     private JCheckBox _findClearedClearedCheck;
     private JCheckBox _findClearedReconcilingCheck;
     private JCheckBox _findClearedUnclearedCheck;
@@ -143,7 +139,6 @@ class FarView extends JFrame implements PropertyChangeListener
 
     // don't automatically check the 'use' boxes when updating programmatically
     private boolean _suppressAutoCheckUse = false;
-    private JRadioButton _tagsAnd;
 
     FarView(final FarModel model)
     {
@@ -305,10 +300,6 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             _findAccountsUseCheck.setSelected(_controller.getUseAccountFilter());
         }
-        if (all || N12EFindAndReplace.ACCOUNT_REQUIRED.equals(eventID))
-        {
-            _findAccountsRequireCheck.setSelected(_controller.getRequireAccountFilter());
-        }
         if (all || N12EFindAndReplace.CATEGORY_SELECT.equals(eventID))
         {
             _findCategoryList.setText(_controller.getCategoryListDisplay());
@@ -317,25 +308,13 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             _findCategoryUseCheck.setSelected(_controller.getUseCategoryFilter());
         }
-        if (all || N12EFindAndReplace.CATEGORY_REQUIRED.equals(eventID))
-        {
-            _findCategoryRequireCheck.setSelected(_controller.getRequireCategoryFilter());
-        }
         if (all || N12EFindAndReplace.AMOUNT_USE.equals(eventID))
         {
             _findAmountUseCheck.setSelected(_controller.getUseAmountFilter());
         }
-        if (all || N12EFindAndReplace.AMOUNT_REQUIRED.equals(eventID))
-        {
-            _findAmountRequireCheck.setSelected(_controller.getRequireAmountFilter());
-        }
         if (all || N12EFindAndReplace.DATE_USE.equals(eventID))
         {
             _findDateUseCheck.setSelected(_controller.getUseDateFilter());
-        }
-        if (all || N12EFindAndReplace.DATE_REQUIRED.equals(eventID))
-        {
-            _findDateRequireCheck.setSelected(_controller.getRequireDateFilter());
         }
         if (all || N12EFindAndReplace.FREETEXT_USE.equals(eventID))
         {
@@ -346,10 +325,6 @@ class FarView extends JFrame implements PropertyChangeListener
             _findFreeTextUseMemoCheck.setEnabled(use);
             _findFreeTextUseCheckCheck.setEnabled(use);
             _findFreeTextIncludeSplitsCheck.setEnabled(use);
-        }
-        if (all || N12EFindAndReplace.FREETEXT_REQUIRED.equals(eventID))
-        {
-            _findFreeTextRequireCheck.setSelected(_controller.getRequireFreeTextFilter());
         }
         if (all || N12EFindAndReplace.FREETEXT_DESCRIPTION.equals(eventID))
         {
@@ -372,18 +347,26 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             _findTagsUseCheck.setSelected(_controller.getUseTagsFilter());
         }
-        if (all || N12EFindAndReplace.TAGS_REQUIRED.equals(eventID))
+        if (all || N12EFindAndReplace.TAGS_LOGIC.equals(eventID))
         {
-            _findTagsRequireCheck.setSelected(_controller.getRequireTagsFilter());
+            final TagLogic combineLogic = _controller.getRequireTagsFilter();
+            if (TagLogic.EXACT.equals(combineLogic))
+            {
+                _tagsExact.setSelected(true);
+            }
+            else if (TagLogic.AND.equals(combineLogic))
+            {
+                _tagsAnd.setSelected(true);
+            }
+            else
+            {
+                _tagsOr.setSelected(true);
+            }
         }
         
         if (all || N12EFindAndReplace.CLEARED_USE.equals(eventID))
         {
             _findClearedUseCheck.setSelected(_controller.getUseClearedFilter());
-        }
-        if (all || N12EFindAndReplace.CLEARED_REQUIRED.equals(eventID))
-        {
-            _findClearedRequireCheck.setSelected(_controller.getRequireClearedFilter());
         }
         if (all || N12EFindAndReplace.CLEARED_CLEARED.equals(eventID))
         {
@@ -775,7 +758,6 @@ class FarView extends JFrame implements PropertyChangeListener
         // accounts row
         _findAccountsUseCheck = new JCheckBox();
         _findAccountsUseCheck.setToolTipText(findCheckTip);
-        _findAccountsRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_ACCOUNTS_LABEL,
                 L10NFindAndReplace.FIND_ACCOUNTS_MNC, _findAccountsUseCheck);
         _findAccountsList = new JLabel();
@@ -788,7 +770,6 @@ class FarView extends JFrame implements PropertyChangeListener
         // category row
         _findCategoryUseCheck = new JCheckBox();
         _findCategoryUseCheck.setToolTipText(findCheckTip);
-        _findCategoryRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_CATEGORIES_LABEL,
                 L10NFindAndReplace.FIND_CATEGORIES_MNC, _findCategoryUseCheck);
         _findCategoryList = new JLabel();
@@ -804,7 +785,6 @@ class FarView extends JFrame implements PropertyChangeListener
         // amount row
         _findAmountUseCheck = new JCheckBox();
         _findAmountUseCheck.setToolTipText(findCheckTip);
-        _findAmountRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_AMOUNT_LABEL,
                 L10NFindAndReplace.FIND_AMOUNT_MNC, _findAmountUseCheck);
 
@@ -816,7 +796,6 @@ class FarView extends JFrame implements PropertyChangeListener
         // date row
         _findDateUseCheck = new JCheckBox();
         _findDateUseCheck.setToolTipText(findCheckTip);
-        _findDateRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_DATE_LABEL,
                 L10NFindAndReplace.FIND_DATE_MNC, _findDateUseCheck);
 
@@ -837,7 +816,6 @@ class FarView extends JFrame implements PropertyChangeListener
         // free text
         _findFreeTextUseCheck = new JCheckBox();
         _findFreeTextUseCheck.setToolTipText(findCheckTip);
-        _findFreeTextRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_FREETEXT_LABEL,
                 L10NFindAndReplace.FIND_FREETEXT_MNC, _findFreeTextUseCheck);
         _findFreeText = new JTextField();
@@ -890,7 +868,6 @@ class FarView extends JFrame implements PropertyChangeListener
         // tags
         _findTagsUseCheck = new JCheckBox();
         _findTagsUseCheck.setToolTipText(findCheckTip);
-        _findTagsRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_TAGS_LABEL,
                 L10NFindAndReplace.FIND_TAGS_MNC, _findTagsUseCheck);
         _findTagPicker = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
@@ -900,7 +877,6 @@ class FarView extends JFrame implements PropertyChangeListener
         // cleared
         _findClearedUseCheck = new JCheckBox();
         _findClearedUseCheck.setToolTipText(findCheckTip);
-        _findClearedRequireCheck = new JCheckBox();
         row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_CLEARED_LABEL,
                 L10NFindAndReplace.FIND_CLEARED_MNC, _findClearedUseCheck);
         
@@ -966,26 +942,12 @@ class FarView extends JFrame implements PropertyChangeListener
                 _controller.setUseAccountFilter(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
-        _findAccountsRequireCheck.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(final ItemEvent event)
-            {
-                _controller.setRequireAccountFilter(event.getStateChange() == ItemEvent.SELECTED);
-            }
-        });
 
         _findCategoryUseCheck.addItemListener(new ItemListener()
         {
             public void itemStateChanged(final ItemEvent event)
             {
                 _controller.setUseCategoryFilter(event.getStateChange() == ItemEvent.SELECTED);
-            }
-        });
-        _findCategoryRequireCheck.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(final ItemEvent event)
-            {
-                _controller.setRequireCategoryFilter(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
         _findCategorySelect.addActionListener(new ActionListener()
@@ -1003,7 +965,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse && isAmountsDifferent())
                 {
                     _controller.setUseAmountFilter(true);
-                    _controller.setRequireAmountFilter(!_controller.getFilterCombineOr());
                 }
             }
             public void removeUpdate(DocumentEvent e)
@@ -1011,7 +972,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse && isAmountsDifferent())
                 {
                     _controller.setUseAmountFilter(true);
-                    _controller.setRequireAmountFilter(!_controller.getFilterCombineOr());
                 }
             }
 
@@ -1024,13 +984,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 _controller.setUseAmountFilter(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
-        _findAmountRequireCheck.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(final ItemEvent event)
-            {
-                _controller.setRequireAmountFilter(event.getStateChange() == ItemEvent.SELECTED);
-            }
-        });
 
         _findDatePickers.addChangeListener(new DocumentListener()
         {
@@ -1039,7 +992,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse)
                 {
                     _controller.setUseDateFilter(true);
-                    _controller.setRequireDateFilter(!_controller.getFilterCombineOr());
                 }
             }
             public void removeUpdate(DocumentEvent e)
@@ -1047,7 +999,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse)
                 {
                     _controller.setUseDateFilter(true);
-                    _controller.setRequireDateFilter(!_controller.getFilterCombineOr());
                 }
             }
 
@@ -1060,13 +1011,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 _controller.setUseDateFilter(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
-        _findDateRequireCheck.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(final ItemEvent event)
-            {
-                _controller.setRequireDateFilter(event.getStateChange() == ItemEvent.SELECTED);
-            }
-        });
 
         _findFreeText.getDocument().addDocumentListener(new DocumentListener()
         {
@@ -1075,7 +1019,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse)
                 {
                     _controller.setUseFreeTextFilter(true);
-                    _controller.setRequireFreeTextFilter(!_controller.getFilterCombineOr());
                 }
             }
             public void removeUpdate(DocumentEvent e)
@@ -1083,7 +1026,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse)
                 {
                     _controller.setUseFreeTextFilter(true);
-                    _controller.setRequireFreeTextFilter(!_controller.getFilterCombineOr());
                 }
             }
 
@@ -1094,13 +1036,6 @@ class FarView extends JFrame implements PropertyChangeListener
             public void itemStateChanged(final ItemEvent event)
             {
                 _controller.setUseFreeTextFilter(event.getStateChange() == ItemEvent.SELECTED);
-            }
-        });
-        _findFreeTextRequireCheck.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(final ItemEvent event)
-            {
-                _controller.setRequireFreeTextFilter(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
         _findFreeTextUseDescriptionCheck.addItemListener(new ItemListener()
@@ -1140,7 +1075,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (!_suppressAutoCheckUse)
                 {
                     _controller.setUseTagsFilter(true);
-                    _controller.setRequireTagsFilter(_tagsAnd.isSelected());
                 }
             }
         });
@@ -1151,26 +1085,12 @@ class FarView extends JFrame implements PropertyChangeListener
                 _controller.setUseTagsFilter(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
-        _findTagsRequireCheck.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(final ItemEvent event)
-            {
-                _controller.setRequireTagsFilter(event.getStateChange() == ItemEvent.SELECTED);
-            }
-        });
 
         _findClearedUseCheck.addItemListener(new ItemListener()
         {
             public void itemStateChanged(final ItemEvent event)
             {
                 _controller.setUseClearedFilter(event.getStateChange() == ItemEvent.SELECTED);
-            }
-        });
-        _findClearedRequireCheck.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(final ItemEvent event)
-            {
-                _controller.setRequireClearedFilter(event.getStateChange() == ItemEvent.SELECTED);
             }
         });
         _findClearedClearedCheck.addItemListener(new ItemListener()
@@ -1181,7 +1101,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (allow != _controller.getAllowCleared() && !_suppressAutoCheckUse)
                 {
                     _controller.setUseClearedFilter(true);
-                    _controller.setRequireClearedFilter(!_controller.getFilterCombineOr());
                     _controller.setAllowCleared(allow);
                 }
             }
@@ -1194,7 +1113,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (allow != _controller.getAllowReconciling() && !_suppressAutoCheckUse)
                 {
                     _controller.setUseClearedFilter(true);
-                    _controller.setRequireClearedFilter(!_controller.getFilterCombineOr());
                     _controller.setAllowReconciling(allow);
                 }
             }
@@ -1207,7 +1125,6 @@ class FarView extends JFrame implements PropertyChangeListener
                 if (allow != _controller.getAllowUncleared() && !_suppressAutoCheckUse)
                 {
                     _controller.setUseClearedFilter(true);
-                    _controller.setRequireClearedFilter(!_controller.getFilterCombineOr());
                     _controller.setAllowUncleared(allow);
                 }
             }
@@ -1242,15 +1159,18 @@ class FarView extends JFrame implements PropertyChangeListener
         clickPanel.layoutUI();
         result.add(clickPanel);
         
-        _tagsAnd = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_BOOL_AND));
-        JRadioButton tagsOr = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_BOOL_OR));
+        _tagsAnd = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_AND));
+        _tagsOr = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_OR));
+        _tagsExact = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_EXACT));
         result.add(_tagsAnd);
-        result.add(tagsOr);
+        result.add(_tagsOr);
+        result.add(_tagsExact);
         
         ButtonGroup tagBoolean = new ButtonGroup();
         tagBoolean.add(_tagsAnd);
-        tagBoolean.add(tagsOr);
-        tagBoolean.setSelected(tagsOr.getModel(), true);
+        tagBoolean.add(_tagsOr);
+        tagBoolean.add(_tagsExact);
+        tagBoolean.setSelected(_tagsOr.getModel(), true);
 
         return result;
     }
@@ -1274,8 +1194,20 @@ class FarView extends JFrame implements PropertyChangeListener
             _controller.setFreeTextMatch(textMatch);
         }
         _findTagPicker.updateFromView();
-        _controller.setRequireTagsFilter(_tagsAnd.isSelected());
-        
+
+        if (_tagsExact.isSelected())
+        {
+            _controller.setTagsFilterLogic(TagLogic.EXACT);
+        }
+        else if (_tagsAnd.isSelected())
+        {
+            _controller.setTagsFilterLogic(TagLogic.AND);
+        }
+        else
+        {
+            _controller.setTagsFilterLogic(TagLogic.OR);
+        }
+
         return true;
     }
 
@@ -1768,7 +1700,8 @@ class FarView extends JFrame implements PropertyChangeListener
     {
         StringBuffer result = new StringBuffer(_controller.getString(L10NFindAndReplace.TITLE));
         result.append(N12EFindAndReplace.SPACE);
-        result.append(_controller.getString(L10NFindAndReplace.VERSION_FMT));
+        final String format = _controller.getString(L10NFindAndReplace.VERSION_FMT);
+        result.append(MessageFormat.format(format, Main.VERSION, Main.BUILD));
         return result.toString();
     }
 

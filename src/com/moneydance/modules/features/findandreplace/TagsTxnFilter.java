@@ -26,12 +26,15 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
 {
     private final TxnTag[] _includedTags;
     private final TxnTag[] _excludedTags;
+    private final TagLogic _combineLogic;
 
-    TagsTxnFilter(final TxnTag[] included, final TxnTag[] excluded, final boolean required)
+    TagsTxnFilter(final TxnTag[] included, final TxnTag[] excluded, final TagLogic combine,
+                  final boolean required)
     {
         super(required);
         _includedTags = included;
         _excludedTags = excluded;
+        _combineLogic = combine;
     }
 
     /**
@@ -51,9 +54,13 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
 
         boolean contained;
         final SplitTxn split = (SplitTxn)txn;
-        if (isRequired())
+        if (TagLogic.EXACT.equals(_combineLogic))
         {
             contained = isExactMatch(split);
+        }
+        else if (TagLogic.AND.equals(_combineLogic))
+        {
+            contained = hasAllMatch(split);
         }
         else
         {
@@ -146,6 +153,31 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
             }
         }
         return found;
+    }
+
+    private boolean hasAllMatch(final SplitTxn split)
+    {
+        boolean contained = true;
+
+        if ((_includedTags != null) && (_includedTags.length > 0))
+        {
+            for (final TxnTag includedTag : _includedTags)
+            {
+                if (!TxnTagSet.txnContainsTag(split, includedTag))
+                {
+                    contained = false;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // if the included tags are blank, that effectively disables the inclusion
+            // criteria and all transactions should match
+            contained = true;
+        }
+
+        return contained;
     }
 
     private boolean hasAnyMatch(final SplitTxn split)

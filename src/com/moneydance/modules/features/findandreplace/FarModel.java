@@ -30,25 +30,20 @@ class FarModel extends BasePropertyChangeReporter
     private final AccountFilter _accountFilter;
     private FullAccountList _fullAccountList;
     private boolean _useAccountFilter;
-    private boolean _requireAccountFilter;
 
     private AccountFilter _categoryFilter;
     private FullAccountList _fullCategoryList;
     private boolean _useCategoryFilter;
-    private boolean _requireCategoryFilter;
 
     private boolean _useAmountFilter;
-    private boolean _requireAmountFilter;
     private long _amountMinimum;
     private long _amountMaximum;
 
     private boolean _useDateFilter;
-    private boolean _requireDateFilter;
     private int _dateMinimum;
     private int _dateMaximum;
 
     private boolean _useFreeTextFilter;
-    private boolean _requireFreeTextFilter;
     private boolean _freeTextSearchDescription;
     private boolean _freeTextSearchMemo;
     private boolean _freeTextSearchCheck;
@@ -58,10 +53,9 @@ class FarModel extends BasePropertyChangeReporter
     private TagPickerModel _includeTagPickerModel;
     private TagPickerModel _excludeTagPickerModel;
     private boolean _useTagsFilter;
-    private boolean _requireTagsFilter;
+    private TagLogic _combineTagsLogic;
     
     private boolean _useClearedFilter;
-    private boolean _requireClearedFilter;
     private boolean _allowCleared;
     private boolean _allowReconciling;
     private boolean _allowUncleared;
@@ -168,14 +162,12 @@ class FarModel extends BasePropertyChangeReporter
     {
         _eventNotify.firePropertyChange(N12EFindAndReplace.ACCOUNT_SELECT, null, null);
         setUseAccountFilter(true);
-        setRequireAccountFilter(!_combineOr);
     }
 
     void categoryListUpdated()
     {
         _eventNotify.firePropertyChange(N12EFindAndReplace.CATEGORY_SELECT, null, null);
         setUseCategoryFilter(true);
-        setRequireCategoryFilter(!_combineOr);
     }
 
     void tableUpdated()
@@ -188,23 +180,18 @@ class FarModel extends BasePropertyChangeReporter
         // set defaults
         _combineOr = false;
         _useAccountFilter = false;
-        _requireAccountFilter = false;
 
         _useCategoryFilter = false;
-        _requireCategoryFilter = false;
 
         _useAmountFilter = false;
-        _requireAmountFilter = false;
         _amountMinimum = 0;
         _amountMaximum = 0;
 
         _useDateFilter = false;
-        _requireDateFilter = false;
         _dateMinimum = Util.getStrippedDateInt();
         _dateMaximum = _dateMinimum;
 
         _useFreeTextFilter = false;
-        _requireFreeTextFilter = false;
         _freeTextSearchDescription = true;
         _freeTextSearchMemo = true;
         _freeTextSearchCheck = true;
@@ -212,10 +199,9 @@ class FarModel extends BasePropertyChangeReporter
         _freeTextMatch = N12EFindAndReplace.EMPTY;
 
         _useTagsFilter = false;
-        _requireTagsFilter = false;
+        _combineTagsLogic = TagLogic.OR;
 
         _useClearedFilter = false;
-        _requireClearedFilter = false;
         _allowCleared = true;
         _allowReconciling = true;
         _allowUncleared = true;
@@ -254,37 +240,6 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean oldValue = _combineOr;
         _combineOr = combineOr;
-
-        // for all selected criteria, toggle the required value
-        if (_useAccountFilter)
-        {
-            setRequireAccountFilter(!_combineOr);
-        }
-        if (_useCategoryFilter)
-        {
-            setRequireCategoryFilter(!_combineOr);
-        }
-        if (_useDateFilter)
-        {
-            setRequireDateFilter(!_combineOr);
-        }
-        if (_useAmountFilter)
-        {
-            setRequireAmountFilter(!_combineOr);
-        }
-        if (_useFreeTextFilter)
-        {
-            setRequireFreeTextFilter(!_combineOr);
-        }
-        if (_useTagsFilter)
-        {
-            setRequireTagsFilter(!_combineOr);
-        }
-        if (_useClearedFilter)
-        {
-            setRequireClearedFilter(!_combineOr);
-        }
-
         _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_COMBINATION, oldValue, _combineOr);
     }
     
@@ -309,18 +264,6 @@ class FarModel extends BasePropertyChangeReporter
         return _useAccountFilter;
     }
 
-    void setRequireAccountFilter(final boolean require)
-    {
-        final boolean old = _requireAccountFilter;
-        _requireAccountFilter = require;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.ACCOUNT_REQUIRED, old, require);
-    }
-    boolean getRequireAccountFilter()
-    {
-        return _requireAccountFilter;
-    }
-
-
     AccountFilter getCategoryFilter()
     {
         return _categoryFilter;
@@ -337,17 +280,6 @@ class FarModel extends BasePropertyChangeReporter
         return _useCategoryFilter;
     }
 
-    void setRequireCategoryFilter(final boolean require)
-    {
-        final boolean old = _requireCategoryFilter;
-        _requireCategoryFilter = require;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CATEGORY_REQUIRED, old, require);
-    }
-    boolean getRequireCategoryFilter()
-    {
-        return _requireCategoryFilter;
-    }
-
     void setUseAmountFilter(final boolean use)
     {
         boolean old = _useAmountFilter;
@@ -359,16 +291,6 @@ class FarModel extends BasePropertyChangeReporter
         return _useAmountFilter;
     }
 
-    void setRequireAmountFilter(final boolean require)
-    {
-        final boolean old = _requireAmountFilter;
-        _requireAmountFilter = require;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.AMOUNT_REQUIRED, old, require);
-    }
-    boolean getRequireAmountFilter()
-    {
-        return _requireAmountFilter;
-    }
     void setAmountRange(final long minimum, final long maximum)
     {
         _amountMinimum = minimum;
@@ -393,16 +315,6 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _useDateFilter;
     }
-    void setRequireDateFilter(final boolean require)
-    {
-        final boolean old = _requireDateFilter;
-        _requireDateFilter = require;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.DATE_REQUIRED, old, require);
-    }
-    boolean getRequireDateFilter()
-    {
-        return _requireDateFilter;
-    }
     void setDateRange(final int minimum, final int maximum)
     {
         _dateMinimum = minimum;
@@ -426,16 +338,6 @@ class FarModel extends BasePropertyChangeReporter
     boolean getUseFreeTextFilter()
     {
         return _useFreeTextFilter;
-    }
-    void setRequireFreeTextFilter(final boolean require)
-    {
-        final boolean old = _requireFreeTextFilter;
-        _requireFreeTextFilter = require;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_REQUIRED, old, require);
-    }
-    boolean getRequireFreeTextFilter()
-    {
-        return _requireFreeTextFilter;
     }
     void setFreeTextMatch(final String textOrRegEx)
     {
@@ -497,15 +399,15 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _useTagsFilter;
     }
-    void setRequireTagsFilter(final boolean require)
+    void setRequireTagsFilter(final TagLogic combine)
     {
-        final boolean old = _requireTagsFilter;
-        _requireTagsFilter = require;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.TAGS_REQUIRED, old, require);
+        final TagLogic old = _combineTagsLogic;
+        _combineTagsLogic = combine;
+        _eventNotify.firePropertyChange(N12EFindAndReplace.TAGS_LOGIC, old, combine);
     }
-    boolean getRequireTagsFilter()
+    TagLogic getRequireTagsFilter()
     {
-        return _requireTagsFilter;
+        return _combineTagsLogic;
     }
 
     TagPickerModel getIncludedTagsModel()
@@ -526,16 +428,6 @@ class FarModel extends BasePropertyChangeReporter
     boolean getUseClearedFilter()
     {
         return _useClearedFilter;
-    }
-    void setRequireClearedFilter(final boolean require)
-    {
-        final boolean old = _requireClearedFilter;
-        _requireClearedFilter = require;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_REQUIRED, old, require);
-    }
-    boolean getRequireClearedFilter()
-    {
-        return _requireClearedFilter;
     }
     boolean getAllowCleared()
     {
@@ -574,35 +466,36 @@ class FarModel extends BasePropertyChangeReporter
 
         if (_useAccountFilter)
         {
-            result.addFilter(new AccountTxnFilter(_accountFilter, _requireAccountFilter));
+            result.addFilter(new AccountTxnFilter(_accountFilter, !_combineOr));
         }
         if (_useCategoryFilter)
         {
-            result.addFilter(new CategoryTxnFilter(_categoryFilter, _requireCategoryFilter));
+            result.addFilter(new CategoryTxnFilter(_categoryFilter, !_combineOr));
         }
         if (_useDateFilter)
         {
-            result.addFilter(new DateRangeTxnFilter(_dateMinimum, _dateMaximum, _requireDateFilter));
+            result.addFilter(new DateRangeTxnFilter(_dateMinimum, _dateMaximum, !_combineOr));
         }
         if (_useAmountFilter)
         {
-            result.addFilter(new AmountTxnFilter(_amountMinimum, _amountMaximum, _requireAmountFilter));
+            result.addFilter(new AmountTxnFilter(_amountMinimum, _amountMaximum, !_combineOr));
         }
         if (_useFreeTextFilter)
         {
             result.addFilter(new FreeTextTxnFilter(_freeTextMatch, _freeTextSearchDescription,
                     _freeTextSearchMemo, _freeTextSearchCheck,
-                    _freeTextIncludeSplits, _requireFreeTextFilter));
+                    _freeTextIncludeSplits, !_combineOr));
         }
         if (_useTagsFilter)
         {
+            // the tags filter has it's own logic combination, plus it is combined with other criteria
             result.addFilter(new TagsTxnFilter(_includeTagPickerModel.getSelectedTags(),
-                    _excludeTagPickerModel.getSelectedTags(), _requireTagsFilter));
+                    _excludeTagPickerModel.getSelectedTags(), _combineTagsLogic, !_combineOr));
         }
         if (_useClearedFilter)
         {
             result.addFilter(new ClearedTxnFilter(_allowCleared, _allowReconciling, _allowUncleared,
-                    _requireClearedFilter));
+                    !_combineOr));
         }
 
         return result;

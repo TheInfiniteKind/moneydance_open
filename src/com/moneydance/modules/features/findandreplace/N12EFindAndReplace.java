@@ -89,26 +89,20 @@ public class N12EFindAndReplace
     public static final String FIND_COMBINATION = "findCombination";
     public static final String ACCOUNT_SELECT = "accountSelect";
     public static final String ACCOUNT_USE = "accountUse";
-    public static final String ACCOUNT_REQUIRED = "accountRequired";
     public static final String CATEGORY_SELECT = "categorySelect";
     public static final String CATEGORY_USE = "categoryUse";
-    public static final String CATEGORY_REQUIRED = "categoryRequired";
     public static final String AMOUNT_USE = "amountUse";
-    public static final String AMOUNT_REQUIRED = "amountRequired";
     public static final String DATE_USE = "dateUse";
-    public static final String DATE_REQUIRED = "dateRequired";
     public static final String FREETEXT_USE = "freeTextUse";
-    public static final String FREETEXT_REQUIRED = "freeTextRequired";
     public static final String FREETEXT_DESCRIPTION = "freeTextDescription";
     public static final String FREETEXT_MEMO = "freeTextMemo";
     public static final String FREETEXT_CHECK = "freeTextCheck#";
     public static final String FREETEXT_SPLITS = "freeTextIncludeSplits";
     public static final String TAGS_USE = "tagsUse";
-    public static final String TAGS_REQUIRED = "tagsRequired";
+    public static final String TAGS_LOGIC = "tagsRequired";
     public static final String FIND_RESULTS_UPDATE = "findResultsUpdated";
 
     public static final String CLEARED_USE = "clearedUse";
-    public static final String CLEARED_REQUIRED = "clearedRequired";
     public static final String CLEARED_CLEARED = "allowCleared";
     public static final String CLEARED_RECONCILING = "allowReconciling";
     public static final String CLEARED_UNCLEARED = "allowUncleared";
