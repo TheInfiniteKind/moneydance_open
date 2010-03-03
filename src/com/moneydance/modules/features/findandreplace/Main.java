@@ -24,13 +24,13 @@ import java.text.MessageFormat;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.4
  * @since 1.0
  */
 public class Main extends FeatureModule
 {
-    static final String VERSION = "1.32";
-    static final String BUILD = "54";
+    static final String VERSION = "1.40";
+    static final String BUILD = "58";
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private IFindAndReplaceController _controller = null;

@@ -56,6 +56,7 @@
     <entry key="replaceTagsRemove.text">Remove tags:</entry>
     <entry key="replaceTagsReplace.text">Replace all with:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+    <entry key="replaceCheckLabel.mnemonic">K</entry>
 
     <entry key="includeTransfers.text">Include Transfers</entry>
     <entry key="includeTransfers.toolTip">Allow all accounts to be included as categories</entry>
@@ -140,6 +141,8 @@ X is the search text.
     <entry key="select_acct_title">Select an Account</entry>
     <entry key="all_categories">All Categories</entry>
     <entry key="show_txn">Go To Transaction</entry>
+    <entry key="txn_checknum">Check#</entry>
+    <entry key="srch_use_tax_date">Use Tax Date</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Asset</entry>

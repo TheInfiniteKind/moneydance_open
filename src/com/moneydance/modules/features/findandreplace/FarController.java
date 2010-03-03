@@ -25,14 +25,14 @@ import java.awt.Point;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.4
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
 {
     private FindAndReplace _host;
     private final FarModel _model;
-    private final FarView _view;
+    private FarView _view;
 
     private int _replaceIndex;
     private final List<ReplaceCommand> _commands = new ArrayList<ReplaceCommand>();
@@ -43,10 +43,10 @@ public class FarController implements IFindAndReplaceController
     //  Construction
     //////////////////////////////////////////////////////////////////////////////////////////////
 
-    FarController(final FarModel model, final FarView view)
+    FarController(final FarModel model)
     {
         _model = model;
-        _view = view;
+        _view = null;
         _replaceIndex = -1;
     }
 
@@ -76,11 +76,12 @@ public class FarController implements IFindAndReplaceController
      */
     public void show()
     {
+        createView();
         _view.layoutUI();
         loadSizeAndPositionFromPreferences();
         _view.setVisible( true );
         _view.toFront();
-        _view.requestFocus();
+        _view.requestFocusInWindow();
         _view.setFreeText(_initialFreeText);
         if (_initialFreeText != null)
         {
@@ -114,6 +115,7 @@ public class FarController implements IFindAndReplaceController
                     sizeSetting);
         }
         _view.setVisible( false );
+        cleanupView();
         _host.cleanUp();
     }
 
@@ -550,9 +552,9 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getUseDateFilter();
     }
-    void setDateRange(final int minimum, final int maximum)
+    void setDateRange(final int minimum, final int maximum, final boolean useTaxDate)
     {
-        _model.setDateRange(minimum, maximum);
+        _model.setDateRange(minimum, maximum, useTaxDate);
     }
     int getDateMinimum()
     {
@@ -561,6 +563,10 @@ public class FarController implements IFindAndReplaceController
     int getDateMaximum()
     {
         return _model.getDateMaximum();
+    }
+    boolean getUseTaxDate()
+    {
+        return _model.getUseTaxDate();
     }
 
     void setUseFreeTextFilter(final boolean use)
@@ -739,6 +745,23 @@ public class FarController implements IFindAndReplaceController
         return _model.getReplacementMemo();
     }
 
+    void setReplaceCheck(boolean replace)
+    {
+        _model.setReplaceCheck(replace);
+    }
+    boolean getReplaceCheck()
+    {
+        return _model.getReplaceCheck();
+    }
+    void setReplacementCheck(final String memo)
+    {
+        _model.setReplacementCheck(memo);
+    }
+    String getReplacementCheck()
+    {
+        return _model.getReplacementCheck();
+    }
+
     void setReplaceTags(boolean replace)
     {
         _model.setReplaceTags(replace);
@@ -821,6 +844,24 @@ public class FarController implements IFindAndReplaceController
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void createView()
+    {
+        if (_view == null)
+        {
+            _view = new FarView(_model, getMDGUI(), getString(L10NFindAndReplace.TITLE));
+            // hook up listeners
+            _view.setController(this);
+            _model.addPropertyChangeListener(_view);
+        }
+    }
+
+    private void cleanupView()
+    {
+        _view.setController(null);
+        _model.removePropertyChangeListener(_view);
+        _view = null;
+    }
 
     private void loadSizeAndPositionFromPreferences()
     {

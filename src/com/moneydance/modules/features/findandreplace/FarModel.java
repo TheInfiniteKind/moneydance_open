@@ -18,7 +18,7 @@ import java.awt.Toolkit;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.4
  * @since 1.0
  */
 class FarModel extends BasePropertyChangeReporter
@@ -42,6 +42,7 @@ class FarModel extends BasePropertyChangeReporter
     private boolean _useDateFilter;
     private int _dateMinimum;
     private int _dateMaximum;
+    private boolean _useTaxDate;
 
     private boolean _useFreeTextFilter;
     private boolean _freeTextSearchDescription;
@@ -73,6 +74,8 @@ class FarModel extends BasePropertyChangeReporter
 
     private boolean _doReplaceMemo;
     private String _replacementMemo;
+    private boolean _doReplaceCheck;
+    private String _replacementCheck;
 
     private boolean _doReplaceTags;
     private ReplaceTagCommandType _replaceTagCommand;
@@ -315,10 +318,11 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _useDateFilter;
     }
-    void setDateRange(final int minimum, final int maximum)
+    void setDateRange(final int minimum, final int maximum, boolean useTaxDate)
     {
         _dateMinimum = minimum;
         _dateMaximum = maximum;
+        _useTaxDate = useTaxDate;
     }
     int getDateMinimum()
     {
@@ -327,6 +331,10 @@ class FarModel extends BasePropertyChangeReporter
     int getDateMaximum()
     {
         return _dateMaximum;
+    }
+    boolean getUseTaxDate()
+    {
+        return _useTaxDate;
     }
 
     void setUseFreeTextFilter(final boolean use)
@@ -474,7 +482,8 @@ class FarModel extends BasePropertyChangeReporter
         }
         if (_useDateFilter)
         {
-            result.addFilter(new DateRangeTxnFilter(_dateMinimum, _dateMaximum, !_combineOr));
+            result.addFilter(new DateRangeTxnFilter(_dateMinimum, _dateMaximum, _useTaxDate,
+                    !_combineOr));
         }
         if (_useAmountFilter)
         {
@@ -618,6 +627,34 @@ class FarModel extends BasePropertyChangeReporter
         return _replacementMemo;
     }
 
+    void setReplaceCheck(boolean replace)
+    {
+        final boolean old = _doReplaceCheck;
+        if (old != replace)
+        {
+            _doReplaceCheck = replace;
+            _replaceDirty = true;
+        }
+        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_CHECK, old, replace);
+    }
+    boolean getReplaceCheck()
+    {
+        return _doReplaceCheck;
+    }
+    void setReplacementCheck(final String checkNumber)
+    {
+        if ( ((_replacementCheck == null) && (checkNumber != null)) ||
+             ((_replacementCheck != null) && !_replacementCheck.equals(checkNumber)) )
+        {
+            _replacementCheck = checkNumber;
+            _replaceDirty = true;
+        }
+    }
+    String getReplacementCheck()
+    {
+        return _replacementCheck;
+    }
+
     void setReplaceTags(boolean replace)
     {
         final boolean old = _doReplaceTags;
@@ -697,6 +734,16 @@ class FarModel extends BasePropertyChangeReporter
             memo = null;
         }
 
+        final String check;
+        if (_doReplaceCheck)
+        {
+            check = _replacementCheck;
+        }
+        else
+        {
+            check = null;
+        }
+
         final TxnTag[] tags;
         if (_doReplaceTags)
         {
@@ -724,8 +771,8 @@ class FarModel extends BasePropertyChangeReporter
 
         _replaceDirty = false;
 
-        return new ReplaceCommand(category, amount, description, memo, _replaceTagCommand, tags,
-                _data.getTxnTagSet());
+        return new ReplaceCommand(category, amount, description, memo, check, _replaceTagCommand, 
+                tags, _data.getTxnTagSet());
     }
 
     boolean hasFindResults()
@@ -803,6 +850,7 @@ class FarModel extends BasePropertyChangeReporter
         final int count = _findResultsModel.getRowCount();
         long minuses = 0;
         long plusses = 0;
+        int selectedCount = 0;
         for (int modelIndex = 0; modelIndex < count; modelIndex++)
         {
             // if the user unchecks the box, remove that from the results value
@@ -817,6 +865,7 @@ class FarModel extends BasePropertyChangeReporter
                 {
                     minuses += value;
                 }
+                ++selectedCount;
             }
         }
 
@@ -827,7 +876,8 @@ class FarModel extends BasePropertyChangeReporter
         {
             displayCount = 0;
         }
-        String countDisplay = Integer.toString(displayCount);
+        String countDisplay = String.format("%d / %d", Integer.valueOf(selectedCount),
+                Integer.valueOf(displayCount));
         String adds = _findResultsModel.getAmountText(null, plusses);
         String subtracts = _findResultsModel.getAmountText(null, minuses);
         String totalDisplay = _findResultsModel.getAmountText(null, total);
@@ -900,6 +950,10 @@ class FarModel extends BasePropertyChangeReporter
         // shares
         result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
         result.append(N12EFindAndReplace.SHARES_SUFFIX);
+        result.append('\t');
+
+        // selected yes/no
+        result.append(N12EFindAndReplace.SPACE);
 
         return result.toString();
     }
@@ -919,8 +973,8 @@ class FarModel extends BasePropertyChangeReporter
         result.append('\t');
 
         // check number
-        result.append(FarUtil.getTransactionCheckNo(
-                _findResultsModel.getEntry(rowModelIndex).getParentTxn()));
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.CHECK_INDEX));
         result.append('\t');
 
         // description
@@ -955,6 +1009,19 @@ class FarModel extends BasePropertyChangeReporter
         // shares
         result.append(_findResultsModel.getValueAt(rowModelIndex,
                 FindResultsTableModel.SHARES_INDEX));
+        result.append('\t');
+
+        // selected
+        Boolean selected = (Boolean)_findResultsModel.getValueAt(rowModelIndex,
+                FindResultsTableModel.USE_INDEX);
+        if (Boolean.TRUE.equals(selected))
+        {
+            result.append("\u2713"); // check mark
+        }
+        else
+        {
+            result.append("");
+        }
 
         return result.toString();
     }

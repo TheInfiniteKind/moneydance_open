@@ -1,5 +1,7 @@
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.SecondaryFrame;
 import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.JCurrencyField;
 import com.moneydance.util.CustomDateFormat;
@@ -50,10 +52,10 @@ import info.clearthought.layout.TableLayoutConstants;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.4
  * @since 1.0
  */
-class FarView extends JFrame implements PropertyChangeListener
+class FarView extends SecondaryFrame implements PropertyChangeListener
 {
     private final FarModel _model;
     private FarController _controller;
@@ -76,6 +78,7 @@ class FarView extends JFrame implements PropertyChangeListener
 
     private JCheckBox _findDateUseCheck;
     private DatePickerGroup _findDatePickers;
+    private JCheckBox _useTaxDate;
 
     private JCheckBox _findFreeTextUseCheck;
     private JCheckBox _findFreeTextUseDescriptionCheck;
@@ -116,6 +119,8 @@ class FarView extends JFrame implements PropertyChangeListener
     private ButtonGroup _replaceTagsGroup;
     private JCheckBox _replaceMemoCheck;
     private JTextField _replaceMemo;
+    private JCheckBox _replaceCheckCheck;
+    private JTextField _replaceCheck;
 
     private JCheckBox _includeTransfersCheck;
 
@@ -140,8 +145,9 @@ class FarView extends JFrame implements PropertyChangeListener
     // don't automatically check the 'use' boxes when updating programmatically
     private boolean _suppressAutoCheckUse = false;
 
-    FarView(final FarModel model)
+    FarView(final FarModel model, MoneydanceGUI mdGui, String title)
     {
+        super(mdGui, title);
         _model = model;
     }
 
@@ -398,6 +404,10 @@ class FarView extends JFrame implements PropertyChangeListener
         {
             _replaceMemoCheck.setSelected(_controller.getReplaceMemo());
         }
+        if (all || N12EFindAndReplace.REPLACE_CHECK.equals(eventID))
+        {
+            _replaceCheckCheck.setSelected(_controller.getReplaceCheck());
+        }
         if (all || N12EFindAndReplace.REPLACE_TAGS.equals(eventID))
         {
             _replaceTagsCheck.setSelected(_controller.getReplaceTags());
@@ -433,9 +443,11 @@ class FarView extends JFrame implements PropertyChangeListener
             _findAmountPickers.getToAmountPicker().setValue(_controller.getAmountMaximum());
             _findDatePickers.getFromDatePicker().setDateInt(_controller.getDateMinimum());
             _findDatePickers.getToDatePicker().setDateInt(_controller.getDateMaximum());
+            _useTaxDate.setSelected(_controller.getUseTaxDate());
 
             _replaceDescription.setText(_controller.getReplacementDescription());
             _replaceMemo.setText(_controller.getReplacementMemo());
+            _replaceCheck.setText(_controller.getReplacementCheck());
             _replaceAmount.setValue(_controller.getReplacementAmount());
 
         }
@@ -811,7 +823,8 @@ class FarView extends JFrame implements PropertyChangeListener
         _findDatePickers = new DatePickerGroup(formatter, _controller);
         _findDatePickers.addFocusListener(new ColoredFocusAdapter(
                 _findDatePickers.getFromDatePicker(), _focusColor) );
-        row = addRowField1( findPanel, row, startCol, _findDatePickers);
+        _useTaxDate = new JCheckBox(_controller.getString(L10NFindAndReplace.USE_TAX_DATE));
+        row = addRowField2( findPanel, row, startCol, _findDatePickers, _useTaxDate);
 
         // free text
         _findFreeTextUseCheck = new JCheckBox();
@@ -1181,7 +1194,8 @@ class FarView extends JFrame implements PropertyChangeListener
         _controller.setAmountRange(_findAmountPickers.getFromAmountPicker().getValue(),
                 _findAmountPickers.getToAmountPicker().getValue());
         _controller.setDateRange(_findDatePickers.getFromDatePicker().getDateInt(),
-                _findDatePickers.getToDatePicker().getDateInt());
+                _findDatePickers.getToDatePicker().getDateInt(),
+                _useTaxDate.isSelected());
 
         if (_controller.getUseFreeTextFilter())
         {
@@ -1252,8 +1266,8 @@ class FarView extends JFrame implements PropertyChangeListener
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
                 TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED,
-                UiUtil.VGAP * 2, TableLayout.FILL  // buttons
+                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
+                TableLayout.PREFERRED, UiUtil.VGAP * 2, TableLayout.FILL  // buttons
             }
         };
         _replacePanel = new JPanel( new TableLayout(sizes) );
@@ -1334,6 +1348,14 @@ class FarView extends JFrame implements PropertyChangeListener
         _replaceMemo = new JTextField();
         _replaceMemo.addFocusListener(new ColoredFocusAdapter( _replaceMemo, _focusColor) );
         row = addRowField1( _replacePanel, row, startCol, _replaceMemo );
+
+        // check number
+         _replaceCheckCheck = new JCheckBox();
+         row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_CHECK_LABEL,
+                 L10NFindAndReplace.REPLACE_CHECK_MNC, _replaceCheckCheck );
+         _replaceCheck = new JTextField();
+         _replaceCheck.addFocusListener(new ColoredFocusAdapter( _replaceCheck, _focusColor) );
+         row = addRowField1( _replacePanel, row, startCol, _replaceCheck );
 
         _includeTransfersCheck = new JCheckBox(
                 _controller.getString(L10NFindAndReplace.INCXFER_LABEL));
@@ -1462,6 +1484,33 @@ class FarView extends JFrame implements PropertyChangeListener
             }
         });
 
+        _replaceCheck.getDocument().addDocumentListener(new DocumentListener()
+        {
+            public void insertUpdate(DocumentEvent e)
+            {
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceCheck(true);
+                }
+            }
+            public void removeUpdate(DocumentEvent e)
+            {
+                if (!_suppressAutoCheckUse)
+                {
+                    _controller.setReplaceCheck(true);
+                }
+            }
+
+            public void changedUpdate(DocumentEvent e) { }
+        });
+        _replaceCheckCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setReplaceCheck(event.getStateChange() == ItemEvent.SELECTED);
+            }
+        });
+
         _replaceTagsCheck.addItemListener(new ItemListener()
         {
             public void itemStateChanged(final ItemEvent event)
@@ -1529,6 +1578,7 @@ class FarView extends JFrame implements PropertyChangeListener
         _controller.setReplacementAmount(_replaceAmount.getValue());
         _controller.setReplacementDescription(_replaceDescription.getText());
         _controller.setReplacementMemo(_replaceMemo.getText());
+        _controller.setReplacementCheck(_replaceCheck.getText());
 
         final ButtonModel selectedTagAction = _replaceTagsGroup.getSelection();
         if (selectedTagAction != null)
@@ -1557,41 +1607,7 @@ class FarView extends JFrame implements PropertyChangeListener
 
     private void updateSummary()
     {
-        String format = _controller.getString(L10NFindAndReplace.RESULTS_SUMMARY_FMT);
-        FindResultsTableModel results = _model.getFindResults();
-        final int count = results.getRowCount();
-        long minuses = 0;
-        long plusses = 0;
-        for (int modelIndex = 0; modelIndex < count; modelIndex++)
-        {
-            // if the user unchecks the box, remove that from the results value
-            if (results.getEntry(modelIndex).isUseInReplace())
-            {
-                long value = results.getAmount(modelIndex);
-                if (value >= 0)
-                {
-                    plusses += value;
-                }
-                else
-                {
-                    minuses += value;
-                }
-            }
-        }
-
-        long total = plusses + minuses;
-
-        int displayCount = count;
-        if ((count == 1) && (results.isBlankEntry(results.getEntry(0))))
-        {
-            displayCount = 0;
-        }
-        String countDisplay = Integer.toString(displayCount);
-        String adds = results.getAmountText(null, plusses);
-        String subtracts = results.getAmountText(null, minuses);
-        String totalDisplay = results.getAmountText(null, total);
-        String result = String.format(format, countDisplay, adds, subtracts, totalDisplay);
-        _summary.setText(result);
+        _summary.setText(_model.getSummaryText(_controller));
     }
 
 
@@ -1622,6 +1638,15 @@ class FarView extends JFrame implements PropertyChangeListener
     {
         TableLayoutConstraints constraints = new TableLayoutConstraints(startCol, rowNum, startCol+3, rowNum);
         panel.add( field, constraints );
+        return rowNum + 2;
+    }
+
+    private int addRowField2( JPanel panel, int rowNum, int startCol, JComponent field1, JComponent field2 )
+    {
+        TableLayoutConstraints constraints = new TableLayoutConstraints(startCol, rowNum, startCol+2, rowNum);
+        panel.add( field1, constraints );
+        constraints = new TableLayoutConstraints(startCol+3, rowNum, startCol+3, rowNum);
+        panel.add( field2, constraints );
         return rowNum + 2;
     }
 

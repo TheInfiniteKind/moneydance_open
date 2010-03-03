@@ -19,7 +19,7 @@ import java.util.Arrays;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.4
  * @since 1.0
  */
 public class ReplaceCommand implements IFarCommand
@@ -29,6 +29,7 @@ public class ReplaceCommand implements IFarCommand
     private final Long _replaceAmount; // stored as object so we can use null
     private final String _replaceDescription;
     private final String _replaceMemo;
+    private final String _replaceCheckNum;
     private final ReplaceTagCommandType _replaceTagType;
     private final TxnTag[] _replaceTagSet;
     private final TxnTagSet _userTagSet;
@@ -37,13 +38,15 @@ public class ReplaceCommand implements IFarCommand
     private FindResultsTableEntry _transaction;
 
     ReplaceCommand(final Account category, final Long amount, final String description,
-                   final String memo, final ReplaceTagCommandType tagCommand, final TxnTag[] tags,
+                   final String memo, final String check,
+                   final ReplaceTagCommandType tagCommand, final TxnTag[] tags,
                    final TxnTagSet userTagSet)
     {
         _replaceCategory = category;
         _replaceAmount = amount;
         _replaceDescription = description;
         _replaceMemo = memo;
+        _replaceCheckNum = check;
         _replaceTagType = tagCommand;
         _replaceTagSet = tags;
         _userTagSet = userTagSet;
@@ -107,6 +110,17 @@ public class ReplaceCommand implements IFarCommand
         }
 
         return _replaceMemo;
+    }
+
+    public String getPreviewCheckNumber()
+    {
+        if (_transaction == null)
+        {
+            // not applied to a transaction, no preview
+            return null;
+        }
+
+        return _replaceCheckNum;
     }
 
     public TxnTag[] getPreviewTags()
@@ -210,6 +224,24 @@ public class ReplaceCommand implements IFarCommand
                     changed = true;
                 }
                 parent.setMemo(_replaceMemo);
+            }
+        }
+
+        if (_replaceCheckNum != null)
+        {
+            // memo only applies to parent transactions
+            final ParentTxn parent = _transaction.getParentTxn();
+            if (parent != null)
+            {
+                if (parent.getCheckNumber() == null)
+                {
+                    changed = true;
+                }
+                else if (!parent.getCheckNumber().equals(_replaceCheckNum))
+                {
+                    changed = true;
+                }
+                parent.setCheckNumber(_replaceCheckNum);
             }
         }
 

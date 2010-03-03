@@ -22,7 +22,7 @@ package com.moneydance.modules.features.findandreplace;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.4
  * @since 1.0
  */
 public class N12EFindAndReplace
@@ -113,6 +113,7 @@ public class N12EFindAndReplace
     public static final String REPLACE_AMOUNT = "replaceAmount";
     public static final String REPLACE_DESCRIPTION = "replaceDescription";
     public static final String REPLACE_MEMO = "replaceMemo";
+    public static final String REPLACE_CHECK = "replaceCheckNum";
     public static final String REPLACE_TAGS = "replaceTags";
 
     public static final String INCLUDE_TRANSFERS = "includeTransfers";

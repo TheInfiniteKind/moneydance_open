@@ -11,14 +11,12 @@ import java.awt.Image;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.4
  * @since 1.0
  */
 class FindAndReplace
 {
     private final Main _extension;
-    private final FarModel _model;
-    private final FarView _view;
     private final FarController _controller;
 
     public static IFindAndReplaceController getInstance(Main extension)
@@ -31,22 +29,13 @@ class FindAndReplace
     private static FindAndReplace getTestInstance(Main extension)
     {
         FarModel model = new FarModel();
-        // the view is a Frame, there is no owner
-        FarView view = new FarView(model);
-        FarController controller = new FarController(model, view);
-
-        // hook up listeners
-        view.setController(controller);
-        model.addPropertyChangeListener( view );
-        
-        return new FindAndReplace(extension, model, view, controller);
+        FarController controller = new FarController(model);
+        return new FindAndReplace(extension, controller);
     }
 
-    private FindAndReplace(final Main extension, final FarModel model, final FarView view, final FarController controller)
+    private FindAndReplace(final Main extension, final FarController controller)
     {
         _extension = extension;
-        _model = model;
-        _view = view;
         _controller = controller;
         _controller.setHost( this );
     }
@@ -89,8 +78,6 @@ class FindAndReplace
 
     void cleanUp()
     {
-        _view.setController( null );
-        _model.removePropertyChangeListener( _view );
         _extension.cleanupFarComponent();
     }
 }

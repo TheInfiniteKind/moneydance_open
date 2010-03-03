@@ -54,6 +54,7 @@
     <entry key="replaceTagsRemove.text">Supprimer repères :</entry>
     <entry key="replaceTagsReplace.text">Replacer tous avec :</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+    <entry key="replaceCheckLabel.mnemonic">Q</entry>
 
     <entry key="includeTransfers.text">D'inclure Transfert</entry>
     <entry key="includeTransfers.toolTip">Permettez à tous les comptes d'être inclus comme les catégories</entry>
@@ -124,6 +125,8 @@
     <entry key="select_acct_title">Sélectionner un compte</entry>
     <entry key="all_categories">Toutes les catégories</entry>
     <entry key="show_txn">Aller à la transaction</entry>
+    <entry key="txn_checknum">No de chèque</entry>
+    <entry key="srch_use_tax_date">Utilisation date de taxation</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Actifs</entry>

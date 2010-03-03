@@ -10,7 +10,7 @@ package com.moneydance.modules.features.findandreplace;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.4
  * @since 1.0
  */
 class L10NFindAndReplace
@@ -76,6 +76,8 @@ class L10NFindAndReplace
     public static final String REPLACE_TAGSREPLACE_LABEL = "replaceTagsReplace.text"; //  = Replace with:
     public static final String REPLACE_MEMO_LABEL = "memo"; //  = Memo:
     public static final String REPLACE_MEMO_MNC = "replaceMemoLabel.mnemonic"; //  = M
+    public static final String REPLACE_CHECK_LABEL = "txn_checknum"; //  = Check#:
+    public static final String REPLACE_CHECK_MNC = "replaceCheckLabel.mnemonic"; //  = K
 
     public static final String RESULTS_LABEL = "resultsLabel.text"; //  Find Results
     public static final String RESULTS_COLUMN_DATE = "table_column_date"; // Date
@@ -147,6 +149,7 @@ class L10NFindAndReplace
     public static final String FIND_BOOL_OR = "srch_op_union"; // = Or (Union)
     public static final String FIND_BETWEEN = "srch_range0"; // = Between
     public static final String FIND_AND = "srch_range1"; // = and
+    public static final String USE_TAX_DATE = "srch_use_tax_date"; // Use Tax Date
 
     // Account types copied from the Moneydance resources, would rather just get them from MD
     public static final String ACCOUNTTYPE_ASSET = "acct_type4300s"; //  = Asset

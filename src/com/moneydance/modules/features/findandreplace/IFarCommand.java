@@ -12,7 +12,7 @@ import com.moneydance.apps.md.model.TxnTag;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.4
  * @since 1.0
  */
 public interface IFarCommand extends ICommand
@@ -23,5 +23,6 @@ public interface IFarCommand extends ICommand
     Long getPreviewAmount();
     String getPreviewDescription();
     String getPreviewMemo();
+    String getPreviewCheckNumber();
     TxnTag[] getPreviewTags();
 }

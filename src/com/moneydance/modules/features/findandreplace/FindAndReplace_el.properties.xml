@@ -53,6 +53,7 @@
     <entry key="replaceTagsRemove.text">Αφαιρέστε τις ετικέττες:</entry>
     <entry key="replaceTagsReplace.text">Αντικαταστήστε όλων με:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+    <entry key="replaceCheckLabel.mnemonic">Ε</entry>
 
     <entry key="includeTransfers.text">Περιλάβετε Μεταφορά</entry>
     <entry key="includeTransfers.toolTip">Επιτρέψτε όλους τους Λογαριασμοί που πρέπει να περιλαμβάνονται ως κατηγορίες</entry>
@@ -122,6 +123,8 @@
     <entry key="select_acct_title">Επιλέξτε ένα Λογαριασμό</entry>
     <entry key="all_categories">Όλοι Κατηγορίες</entry>
     <entry key="show_txn">Πηγαίνετε στη συναλλαγή</entry>
+    <entry key="txn_checknum">Επιταγή#</entry>
+    <entry key="srch_use_tax_date">Χρησιμοποιησε Ημερομηνία φορολόγησης</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Ενεργητικό</entry>

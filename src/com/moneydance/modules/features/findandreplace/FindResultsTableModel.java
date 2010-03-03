@@ -39,7 +39,7 @@ import java.awt.Color;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.4
  * @since 1.0
  */
 public class FindResultsTableModel extends AbstractTableModel
@@ -55,6 +55,7 @@ public class FindResultsTableModel extends AbstractTableModel
     static final int AMOUNT_INDEX = 8;
     static final int MEMO_INDEX = 9;    // not shown except in tooltip and export
     static final int SHARES_INDEX = 10; // not shown except in export to clipboard
+    static final int CHECK_INDEX = 11;  // not shown except in export to clipboard
 
     private static final ParentTxn BLANK_TRANSACTION =
             new ParentTxn(
@@ -273,7 +274,7 @@ public class FindResultsTableModel extends AbstractTableModel
         buffer.append(N12EFindAndReplace.COL_END);
 
         buffer.append(N12EFindAndReplace.COL_BEGIN);
-        buffer.append(FarUtil.getTransactionCheckNo(txn));
+        buffer.append(getTxnCheckDisplay(txn, entry));
         buffer.append(N12EFindAndReplace.COL_END);
         buffer.append(N12EFindAndReplace.ROW_END);
 
@@ -586,6 +587,11 @@ public class FindResultsTableModel extends AbstractTableModel
                     result += getTxnMemoDisplay(parent, entry);
                     break;
                 }
+                case CHECK_INDEX:
+                {
+                    result += getTxnCheckDisplay(parent, entry);
+                    break;
+                }
                 case USE_INDEX:
                 {
                     return Boolean.valueOf(entry.isUseInReplace());
@@ -729,6 +735,25 @@ public class FindResultsTableModel extends AbstractTableModel
         }
         return memo;
     } // getTxnMemoDisplay()
+
+    private String getTxnCheckDisplay(final AbstractTxn txn,
+                                      final FindResultsTableEntry entry)
+    {
+        String checkNumber = FarUtil.getTransactionCheckNo(txn);
+        if ((_commands != null) && (_commands.size() > 0) && entry.isApplied())
+        {
+            for (final ReplaceCommand command : _commands)
+            {
+                command.setTransactionEntry(entry);
+                if (command.getPreviewCheckNumber() != null)
+                {
+                    checkNumber = command.getPreviewCheckNumber();
+                    entry.addModifiedColumn(CHECK_INDEX);
+                }
+            }
+        }
+        return checkNumber;
+    } // getTxnCheckDisplay()
 
     private String getTxnTagDisplay(final AbstractTxn txn,
                                     final FindResultsTableEntry entry)

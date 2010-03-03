@@ -6,7 +6,6 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.DateTxnFilter;
 import com.moneydance.apps.md.controller.DateRange;
 
 /**
@@ -17,17 +16,22 @@ import com.moneydance.apps.md.controller.DateRange;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.4
  * @since 1.0
  */
 class DateRangeTxnFilter extends TransactionFilterBase implements ITransactionFilter
 {
-    private final DateTxnFilter _filter;
+    private final DateRange _dateRange;
+    private final boolean _useTaxDate;
 
-    DateRangeTxnFilter(final int minimum, final int maximum, final boolean required)
+    DateRangeTxnFilter(final int minimum, final int maximum, final boolean useTaxDate,
+                       final boolean required)
     {
         super(required);
-        _filter = new DateTxnFilter(new DateRange(minimum, maximum));
+        int min = Math.min(minimum, maximum);
+        int max = Math.max(minimum, maximum);
+        _dateRange = new DateRange(min, max);
+        _useTaxDate = useTaxDate;
     }
 
     /**
@@ -41,7 +45,11 @@ class DateRangeTxnFilter extends TransactionFilterBase implements ITransactionFi
         // just use what's built in
         if (txn != null)
         {
-            return _filter.containsTxn(txn);
+            if (_useTaxDate)
+            {
+                return _dateRange.containsInt(txn.getTaxDateInt());
+            }
+            return _dateRange.containsInt(txn.getDateInt());
         } // if txn
         return false;
     }

@@ -54,6 +54,7 @@
     <entry key="replaceTagsRemove.text">Quite etiquetas:</entry>
     <entry key="replaceTagsReplace.text">Sustituir todos con:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
+    <entry key="replaceCheckLabel.mnemonic">K</entry>
 
     <entry key="includeTransfers.text">Incluya Transferir</entry>
     <entry key="includeTransfers.toolTip">Permita que todas las cuentas sean incluidas como categorías</entry>
@@ -123,6 +124,8 @@
     <entry key="select_acct_title">Elija una cuenta</entry>
     <entry key="all_categories">Todas las Categorías</entry>
     <entry key="show_txn">Ir a la transaccion</entry>
+    <entry key="txn_checknum">Cheque#</entry>
+    <entry key="srch_use_tax_date">Usar Fecha de Impuestos</entry>
 
     <!--  Account types (copied) -->
     <entry key="acct_type4300s">Poseciones</entry>
