@@ -25,7 +25,7 @@ import java.awt.Point;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.4
+ * @version 1.41
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
@@ -67,7 +67,7 @@ public class FarController implements IFindAndReplaceController
 
     public void cleanUp()
     {
-        _view.setVisible( false );
+        cleanupView();
         _model.setData(null);
     }
 
@@ -102,19 +102,21 @@ public class FarController implements IFindAndReplaceController
     public void hide()
     {
         // save our size and location
-        Point location = _view.getLocation();
-        Point size = new Point(_view.getSize().width, _view.getSize().height);
-        if (getMDGUI() != null)
+        if (_view != null)
         {
-            final String locationSetting = FarUtil.settingsStringFromPoint(location);
-            getMDGUI().getPreferences().setSetting(N12EFindAndReplace.SETTINGS_DLG_LOCATION_SETTING,
-                    locationSetting);
+            Point location = _view.getLocation();
+            Point size = new Point(_view.getSize().width, _view.getSize().height);
+            if (getMDGUI() != null)
+            {
+                final String locationSetting = FarUtil.settingsStringFromPoint(location);
+                getMDGUI().getPreferences().setSetting(
+                        N12EFindAndReplace.SETTINGS_DLG_LOCATION_SETTING, locationSetting);
 
-            final String sizeSetting = FarUtil.settingsStringFromPoint(size);
-            getMDGUI().getPreferences().setSetting(N12EFindAndReplace.SETTINGS_DLG_SIZE_SETTING,
-                    sizeSetting);
+                final String sizeSetting = FarUtil.settingsStringFromPoint(size);
+                getMDGUI().getPreferences().setSetting(
+                        N12EFindAndReplace.SETTINGS_DLG_SIZE_SETTING, sizeSetting);
+            }
         }
-        _view.setVisible( false );
         cleanupView();
         _host.cleanUp();
     }
@@ -858,9 +860,13 @@ public class FarController implements IFindAndReplaceController
 
     private void cleanupView()
     {
-        _view.setController(null);
-        _model.removePropertyChangeListener(_view);
-        _view = null;
+        if (_view != null)
+        {
+            _view.setVisible(false);
+            _view.setController(null);
+            _model.removePropertyChangeListener(_view);
+            _view = null;
+        }
     }
 
     private void loadSizeAndPositionFromPreferences()
