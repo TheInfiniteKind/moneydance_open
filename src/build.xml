@@ -272,6 +272,35 @@ http://jakarta.apache.org/ant/index.html
     <move file="${src}/s-jpython.mxt" tofile="${dist}/jpython.mxt"/>
   </target>
 
+
+  <target name="txtimport" depends="init">
+    <javac target="1.4" source="1.4" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/txtimport/**"/>
+
+    <jar destfile="${dist}/txtimport.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/txtimport/meta_info.dict
+             com/moneydance/modules/features/txtimport/*.gif
+             com/moneydance/modules/features/txtimport/*.png
+             com/moneydance/modules/features/txtimport/*.jpg
+             com/moneydance/modules/features/txtimport/*.jpeg"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/txtimport/**"/>
+    </jar>
+
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="txtimport"/>
+      <arg line="${dist}/txtimport.mxt"/>
+    </java>
+    <delete file="${dist}/txtimport.mxt"/>
+    <move file="${src}/s-txtimport.mxt" tofile="${dist}/txtimport.mxt"/>
+  </target>
+
   <target name="genkeys">
     <java 
       classpathref="classpath"
@@ -282,6 +311,6 @@ http://jakarta.apache.org/ant/index.html
     </java>
   </target>
 
-  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx"/>
+  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport"/>
 
 </project>

@@ -230,6 +230,21 @@ public class ImportState {
 
         if(line.length()<=0) continue; // skip blank lines
 
+        if (!line.matches("^(.*" + this.delimiter + "){"
+            + (this.fieldsToImport.length - 1) + "}.*$")) {
+            // skip lines with too much or too few fields
+
+            continue;
+        }
+
+        // replace double quotes surrounding each field
+        line = line.replaceAll("^\"", "");
+        line = line.replaceAll("\"$", "");
+
+        char[] charDelimiter = { this.delimiter };
+        String strDelimiter = new String(charDelimiter);
+        line = line.replaceAll("\"" + this.delimiter + "\"", strDelimiter);        
+
         // read each line into a Moneydance transaction...
         fields = StringUtils.split(line, delimiter);
         date = getDate(fields, today);
