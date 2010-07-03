@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <comment>All localizable strings used by the Stock Quotes Synchronizer plugin.</comment>
+    
+    <!--  Common stuff -->
+    <entry key="labelColon">:</entry>
+    <entry key="title.text">Yahoo!® Finance Synchronizer</entry>
+    <!-- 0 = version, 1 = build -->
+    <entry key="version.format">Version {0} (Build {1})</entry>
+    <!-- Exchange Edit Dialog -->
+    <entry key="editExchangeTitle">Edit Stock Exchange</entry>
+    <entry key="exchangeName">Exchange Name</entry>
+    <entry key="yahooSuffix">Yahoo!® Suffix</entry>
+    <entry key="googlePrefix">Google™ Prefix</entry>
+    <entry key="currency">Currency</entry>
+    <entry key="multiplier">Price Multiplier</entry>
+    <entry key="errNameBlank">Please enter a Name that is not blank</entry>
+    <entry key="errMultiplier">Please enter a valid Price Multiplier (default is 1)</entry>
+    <entry key="errSave">A problem occurred while saving the stock exchange settings.</entry>
+    <entry key="errDefaultEdit">The Default stock exchange is not editable.</entry>
+    <!-- {0} = the name of the currency that is set for the stock price download -->
+    <entry key="warn.currencyMismatch">Price download currency ''{0}'' does not match the currency in these investment accounts:</entry>
+    <!-- Other Strings -->
+    <entry key="yahooUSA">Yahoo!® Finance - USA</entry>
+    <entry key="yahooUK">Yahoo!® Finance - UK</entry>
+    <entry key="google">Google™ Finance - History Only</entry>
+    <entry key="connection">Connection</entry>
+    <entry key="test">Test</entry>
+    <entry key="downloading">Downloading...</entry>
+    <entry key="skipped">Skipped</entry>
+    <entry key="error.setup">Error in setup</entry>
+
+
+    <!--  Buttons at the bottom -->
+    <entry key="findBtn.text">Find</entry>
+    <entry key="findBtn.mnemonic">F</entry>
+    <entry key="replaceBtn.text">Replace</entry>
+    <entry key="replaceBtn.mnemonic">P</entry>
+    <entry key="replaceAllBtn.text">Replace All</entry>
+    <entry key="replaceAllBtn.mnemonic">A</entry>
+    <entry key="closeBtn.text">Close</entry>
+    <entry key="closeBtn.mnemonic">C</entry>
+    <entry key="gotoBtn.mnemonic">G</entry>
+    <entry key="resetBtn.text">Reset</entry>
+    <entry key="copyBtn.text">Copy</entry>
+    <entry key="copyBtn.mnemonic">Y</entry>
+
+    <entry key="markAllBtn.text">Mark All</entry>
+    <entry key="markNoneBtn.text">Mark None</entry>
+
+    <!--  Account/category selection dialog -->
+    <entry key="accountselect.exclude.text">Excluded</entry>
+    <entry key="accountselect.include.text">Included</entry>
+    <entry key="accountselect.add.text">Add &gt;</entry>
+    <entry key="accountselect.addexcept.text">Add Except &gt;&gt;</entry>
+    <entry key="accountselect.addall.text">Add All &gt;&gt;</entry>
+    <entry key="accountselect.remove.text">&lt; Remove</entry>
+    <entry key="accountselect.removeexcept.text">&lt;&lt; Remove Except</entry>
+    <entry key="accountselect.removeall.text">&lt;&lt; Remove All</entry>
+    <entry key="accountfilter.all">All</entry>
+
+    <!--  Error messages -->
+    <entry key="error.title">Error in Find and Replace Plugin</entry>
+    <entry key="error.load">An error occurred while loading the Find and Replace module.&#10;&#10;Message: {0}</entry>
+    <entry key="error.nodata">You must have a file loaded to use Find and Replace.</entry>
+    <entry key="accountselect.accountnotfound">Attempt to process an unknown account. Data may be invalid.</entry>
+    <entry key="notice.title">Notice</entry>
+    <!--  0 = user-entered text  1 = error message -->
+    <entry key="error.regex">Invalid regular expression. 
+&#10;&#10;If the search text begins with ''='', the remainder is used as a regular expression with the
+Java Matcher.find() method. 
+&#10;&#10;If no regular expression is provided, the expression ''(?ui)\QX\E'' is used, where
+X is the search text.
+&#10;&#10;You entered: {0}
+&#10;Error message: {1}</entry>
+
+    <!--  General strings - copied from Moneydance -->
+    <entry key="ok">OK</entry>
+    <entry key="cancel">Cancel</entry>
+    <entry key="none">None</entry>
+    <entry key="done">Done</entry>
+
+    <entry key="split_label1">-</entry>
+    <entry key="split_label2">splits -</entry>
+    <entry key="cancel_txn">Cancel</entry>
+    <entry key="record_txn">Record</entry>
+    <entry key="combine_criteria">Combine Criteria:</entry>
+    <entry key="srch_op_intersect">And (Intersection)</entry>
+    <entry key="srch_op_union">Or (Union)</entry>
+    <entry key="srch_range0">Between</entry>
+    <entry key="srch_range1">and</entry>
+    <entry key="accounts">Accounts</entry>
+    <entry key="amount">Amount</entry>
+    <entry key="srch_by_date">Date</entry>
+    <entry key="memo">Memo</entry>
+    <entry key="desc">Description</entry>
+    <entry key="category">Category</entry>
+    <entry key="table_column_date">Date</entry>
+    <entry key="table_column_description">Description</entry>
+    <entry key="table_column_clearedchar">C</entry>
+    <entry key="table_column_amount">Amount</entry>
+    <entry key="table_column_account">Account</entry>
+    <entry key="table_column_tags">Tags</entry>
+    <entry key="table_column_checknum">Check#</entry>
+    <entry key="select_acct_title">Select an Account</entry>
+    <entry key="all_categories">All Categories</entry>
+    <entry key="show_txn">Go To Transaction</entry>
+    <entry key="txn_checknum">Check#</entry>
+    <entry key="srch_use_tax_date">Use Tax Date</entry>
+
+    <!--  Account types (copied) -->
+    <entry key="acct_type4300s">Asset</entry>
+    <entry key="acct_type1000s">Bank</entry>
+    <entry key="acct_type2000s">Credit Card</entry>
+    <entry key="acct_type7000s">Income</entry>
+    <entry key="acct_type3000s">Investment</entry>
+    <entry key="acct_type4600s">Liability</entry>
+    <entry key="acct_type5000s">Loan</entry>
+    <entry key="acct_type6000s">Expense</entry>
+    <entry key="acct_type4000s">Security</entry>
+    <entry key="all_accounts">All Accounts</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">Cleared</entry>
+    <entry key="uncleared">Uncleared</entry>
+    <entry key="reconciling">Reconciling</entry>
+
+    <!-- Images -->
+    <entry key="findAndReplace.image">/com/moneydance/modules/features/findandreplace/icon.png</entry>
+
+</properties>
