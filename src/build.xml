@@ -31,6 +31,54 @@ http://jakarta.apache.org/ant/index.html
   <target name="init">
     <mkdir dir="${dist}"/>
     <mkdir dir="${build}"/>
+    
+    <!--
+    Generic macro for building a specific feature.
+    -->
+    <macrodef name="build-mxt">
+      <attribute name="feature" description="name of the mxt file"/>
+      <attribute name="javac-target" />
+      <attribute name="javac-source" />
+      <sequential>
+        <delete file="${dist}/@{feature}.mxt" />
+        <!-- 
+          since there isn't separate build directories for each feature,
+          delete anything that wasn't from this feature already 
+        -->
+        <delete includeemptydirs="true">
+          <fileset dir="${build}">
+            <include name="**" />
+            <exclude name="com/moneydance/modules/features/@{feature}/**"/>
+          </fileset>
+        </delete>
+        <!-- copy all non java files for this feature -->
+        <copy todir="${build}">
+          <fileset dir="${src}">
+            <include name="com/moneydance/modules/features/@{feature}/**" />
+            <include name="license.txt" />
+            <exclude name="**/*.java" /><!-- exclude source files -->
+            <exclude name="**/contact.*" />
+          </fileset>
+        </copy>
+        <!-- move license and contact to root of mxt -->
+        <copy todir="${build}">
+          <fileset dir="${src}/com/moneydance/modules/features/@{feature}">
+            <include name="contact.*" />
+          </fileset>
+        </copy>
+        <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+          classpathref="classpath"  destdir="${build}"
+          includes="com/moneydance/modules/features/@{feature}/**"
+          includeAntRuntime="false" />
+        <jar destfile="${dist}/@{feature}.mxt">
+          <fileset dir="${build}" includes="**" />
+        </jar>
+      	<!-- delegating signing to another target to allow bypass when in eclipse -->
+      	<antcall target="sign" inheritall="true" inheritrefs="true">
+      	  <param name="feature" value="@{feature}" />	
+      	</antcall>
+      </sequential>
+    </macrodef>
   </target>
 
 
@@ -301,6 +349,30 @@ http://jakarta.apache.org/ant/index.html
     <move file="${src}/s-txtimport.mxt" tofile="${dist}/txtimport.mxt"/>
   </target>
 
+  <target name="featureloader" depends="init" description="build the featureloader.mxt">
+    <build-mxt feature="featureloader" javac-source="1.5" javac-target="1.5" />
+  </target>
+
+  <target name="clean" depends="init" description="remove built artifacts">
+    <delete dir="${dist.dir}" />
+    <delete dir="${build.dir}" />
+  </target>
+  
+  <target name="sign" description="sign the mxt" unless="dont_sign">
+  	<fail unless="feature" message="Please specify property feature" />
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin"
+      fork="true">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="${feature}"/>
+      <arg line="${dist}/${feature}.mxt"/>
+    </java>
+    <move file="./s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
+  </target>
+	
   <target name="genkeys">
     <java 
       classpathref="classpath"
@@ -311,6 +383,6 @@ http://jakarta.apache.org/ant/index.html
     </java>
   </target>
 
-  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport"/>
+  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport,featureloader"/>
 
 </project>

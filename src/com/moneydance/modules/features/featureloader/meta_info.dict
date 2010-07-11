@@ -1,0 +1,8 @@
+{
+  "id" = "FeatureLoader"
+  "module_build" = "0"
+  "desc" = "Development tool to dynamically load one or more features.  
+Warning: this module bypasses built in security of Moneydance.  It is meant only for development purposes.  It can load modules dynamically into Moneydance that are not signed, without user warnings."
+  "vendor" = "Sven Zethelius"
+  "vendor_url" = "http://code.google.com/p/moneydance/wiki/FeatureLoader"
+}

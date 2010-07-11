@@ -1,0 +1,4 @@
+This file and the license.txt should appear in any distribution of the source or binary.
+This file contains the list of contacts for this feature.  
+
+Sven Zethelius - email: szetheli+md _at_ gmail _dot_ com
