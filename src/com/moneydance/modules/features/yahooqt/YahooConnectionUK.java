@@ -1,12 +1,18 @@
-package com.moneydance.modules.features.yahooqt;
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
-import com.moneydance.util.CustomDateFormat;
+package com.moneydance.modules.features.yahooqt;
 
 import java.text.SimpleDateFormat;
 
 
 /**
- * Obtains quotes from a U.S.-based Yahoo server.
+ * Obtains quotes from a U.S.-based Yahoo! server.
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */

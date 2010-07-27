@@ -1,53 +1,55 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
+import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.model.CurrencyTable;
+import com.moneydance.apps.md.model.time.TimeInterval;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
 import com.moneydance.awt.GridC;
+import com.moneydance.awt.JDateField;
 import com.moneydance.util.StringUtils;
 import com.moneydance.util.UiUtil;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.DefaultCellEditor;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
-import javax.swing.text.JTextComponent;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Toolkit;
@@ -67,14 +69,16 @@ import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Main settings configuration dialog for the extension.
+ *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
+ */
 public class YahooDialog
   extends JDialog
   implements PropertyChangeListener
 {
-  private static final String SIZE_KEY = "yahooqt.size";
-  private static final String LOCATION_KEY = "yahooqt.location";
-
-  private JPanel contentPane = new JPanel(new BorderLayout(5, 5));
+  private final JPanel contentPane = new JPanel(new BorderLayout(5, 5));
   private JButton _buttonNow;
   private JButton _buttonTest;
   private final JTable _table = new JTable();
@@ -83,17 +87,15 @@ public class YahooDialog
   private final ResourceProvider _resources;
   private final IExchangeEditor _exchangeEditor = new ExchangeEditor();
 
-  private JCheckBox doQuotesField = new JCheckBox();
-  private JCheckBox doRatesField = new JCheckBox();
-  private JComboBox _connectionSelect;
-  private JSpinner numUnitsField = new JSpinner(new SpinnerNumberModel(1, 1, 50, 1));
-  private JComboBox unitField = new JComboBox(TimeUnit.STANDARD_UNITS);
+  private JComboBox _historyConnectionSelect;
+  private JComboBox _currentConnectionSelect;
+  private JComboBox _ratesConnectionSelect;
+  private IntervalChooser _intervalSelect;
+  private JDateField _nextDate;
   private ItemListCellRenderer _tableRenderer;
-  private ExchangeComboTableColumn _exchangeColumn;
-  private JCheckBox _showZeroBalance = new JCheckBox();
-  private JLabel _testStatus = new JLabel();
+  private final JCheckBox _showZeroBalance = new JCheckBox();
+  private final JLabel _testStatus = new JLabel();
   private boolean _okButtonPressed = false;
-  private UseColumnRenderer _useHeaderRenderer;
 
   public YahooDialog(final FeatureModuleContext context, final ResourceProvider resources,
                      final StockQuotesModel model) {
@@ -104,15 +106,15 @@ public class YahooDialog
     initUI(context);
     setContentPane(contentPane);
     setModal(true);
-    setTitle("Stock Quotes Synchronizer Settings"); // TODO: Translate
-    setIconImage(Main.getIcon());
-    Dimension size = _model.getPreferences().getSizeSetting(SIZE_KEY);
+    setTitle(resources.getString(L10NStockQuotes.SETTINGS_TITLE));
+//    setIconImage(Main.getIcon()); // available in Java 1.6 only
+    Dimension size = _model.getPreferences().getSizeSetting(N12EStockQuotes.SIZE_KEY);
     if (size.width == 0) {
       pack();
     } else {
       setSize(size);
     }
-    Point location = _model.getPreferences().getXYSetting(LOCATION_KEY, -1, -1);
+    Point location = _model.getPreferences().getXYSetting(N12EStockQuotes.LOCATION_KEY, -1, -1);
     if (location.x == -1) {
       Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
       location.x = (screenSize.width - getWidth()) / 2;
@@ -120,7 +122,6 @@ public class YahooDialog
     }
     setLocation(location);
   }
-
 
   @Override
   public void setVisible(boolean visible) {
@@ -136,69 +137,57 @@ public class YahooDialog
 
   private void initUI(final FeatureModuleContext context) {
     JPanel fieldPanel = new JPanel(new GridBagLayout());
-    fieldPanel.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
-    doQuotesField.setText("Update Stocks"); // TODO: Translate
-    doQuotesField.setSelected(_model.getPreferences().getBoolSetting(Main.DOWNLOAD_QUOTES_KEY, true));
-    fieldPanel.add(doQuotesField, GridC.getc(1, 0).colspan(2).field());
-    doRatesField.setText("Update Exchange Rates"); // TODO: Translate
-    fieldPanel.add(doRatesField, GridC.getc(1, 1).colspan(2).field());
-    doRatesField.setSelected(_model.getPreferences().getBoolSetting(Main.DOWNLOAD_RATES_KEY, true));
-    // pick which URL scheme to connect to 
-    setupConnectionSelector();
-    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.CONNECTION)),
+    fieldPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP,
+                                                         UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
+    // pick which URL schemes to connect to (or no connection to disable the download)
+    setupConnectionSelectors();
+    setupIntervalSelector();
+    // first column
+    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.RATES_CONNECTION)),
+            GridC.getc(0, 0).label());
+    fieldPanel.add(_ratesConnectionSelect,   GridC.getc(1, 0).field());
+    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.HISTORY_CONNECTION)),
+            GridC.getc(0, 1).label());
+    fieldPanel.add(_historyConnectionSelect, GridC.getc(1, 1).field());
+    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.CURRENT_CONNECTION)),
             GridC.getc(0, 2).label());
-    fieldPanel.add(_connectionSelect,  GridC.getc(1, 2).field());
-    fieldPanel.add(new JLabel("Update Frequency: "), GridC.getc(0, 3).label()); // TODO: Translate
-    fieldPanel.add(numUnitsField, GridC.getc(1, 3).field().wx(0));
-    fieldPanel.add(unitField, GridC.getc(2, 3).field().wx(0));
-    try {
-      SimpleFrequency freq = SimpleFrequency.fromString(_model.getPreferences().getSetting(Main.UPDATE_FREQUENCY_KEY, ""));
-      numUnitsField.setValue(new Integer(freq.getNumberOfUnits()));
-      unitField.setSelectedItem(freq.getUnit());
-    } catch (IllegalArgumentException ignored) {
-    }
-
-//    fieldPanel.add(new JPanel(), GridC.getc(3, 2).fillx().wx(1.0f)); // spring
-//    fieldPanel.add(new JPanel(), GridC.getc(0, 3).filly().wy(1.0f)); // spring
+    fieldPanel.add(_currentConnectionSelect, GridC.getc(1, 2).field());
+    // gap in middle
+    fieldPanel.add(Box.createHorizontalStrut(UiUtil.DLG_HGAP), GridC.getc(2, 0));
+    // second column
+    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.FREQUENCY_LABEL)),
+            GridC.getc(3, 0).label());
+    fieldPanel.add(_intervalSelect, GridC.getc(4, 0).field());
+    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.NEXT_DATE_LABEL)),
+            GridC.getc(3, 1).label());
+    fieldPanel.add(_nextDate, GridC.getc(4, 1).field());
+    // gap between the fields and the table
+    fieldPanel.add(Box.createVerticalStrut(UiUtil.VGAP), GridC.getc(0, 3));
+    // setup the table
     JScrollPane tableHost = setupSecurityTable();
-    fieldPanel.add(tableHost, GridC.getc(0, 4).colspan(3).wxy(1,1).fillboth());
+    fieldPanel.add(tableHost, GridC.getc(0, 4).colspan(5).wxy(1,1).fillboth());
     _showZeroBalance.setText(_model.getGUI().getStr("show_zero_bal_accts"));
-    fieldPanel.add(_showZeroBalance, GridC.getc(0, 5).colspan(3).field());
+    fieldPanel.add(_showZeroBalance, GridC.getc(0, 5).colspan(5).field());
     _testStatus.setHorizontalAlignment(JLabel.CENTER);
     _testStatus.setText(" ");
-    fieldPanel.add(_testStatus, GridC.getc(0, 6).colspan(3).field());
-    fieldPanel.setBorder(BorderFactory.createEmptyBorder(SQUtil.DLG_VGAP, SQUtil.DLG_HGAP,
-            0, SQUtil.DLG_HGAP));
+    fieldPanel.add(_testStatus, GridC.getc(0, 6).colspan(5).field());
+    fieldPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP,
+            0, UiUtil.DLG_HGAP));
     contentPane.add(fieldPanel, BorderLayout.CENTER);
-
+    // buttons at bottom
     _buttonNow = new JButton(_model.getGUI().getStr("update"));
     _buttonTest = new JButton(_resources.getString(L10NStockQuotes.TEST));
     OKButtonPanel okButtons = new OKButtonPanel(_model.getGUI(), new DialogOKButtonListener(),
             OKButtonPanel.QUESTION_OK_CANCEL);
     okButtons.setExtraButtons(new JButton[]{ _buttonTest, _buttonNow } );
-    okButtons.setBorder(BorderFactory.createEmptyBorder(SQUtil.VGAP, SQUtil.DLG_HGAP,
-            SQUtil.DLG_VGAP, SQUtil.DLG_HGAP));
+    okButtons.setBorder(BorderFactory.createEmptyBorder(UiUtil.VGAP, UiUtil.DLG_HGAP,
+            UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
     contentPane.add(okButtons, BorderLayout.SOUTH);
-
+    // setup actions for the controls
     addActions(context);
   }
 
   private void addActions(final FeatureModuleContext context) {
-    unitField.setRenderer(new GenericListCellRenderer() {
-      protected String getText(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-        if (value instanceof TimeUnit) {
-          TimeUnit unit = (TimeUnit) value;
-          return numUnitsField.getValue().toString().equals("1") ? unit.getSingularName() : unit.getPluralName();
-        } else {
-          return super.getText(list, value, index, selected, cellHasFocus);
-        }
-      }
-    });
-    numUnitsField.addChangeListener(new ChangeListener() {
-      public void stateChanged(ChangeEvent e) {
-        unitField.repaint();
-      }
-    });
     _showZeroBalance.addItemListener(new ItemListener() {
       public void itemStateChanged(ItemEvent e) {
         _model.getTableModel().setShowZeroBalance(e.getStateChange() == ItemEvent.SELECTED);
@@ -217,6 +206,8 @@ public class YahooDialog
     });
     _buttonTest.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
+        // save the selected connections into our model
+        saveSelectedConnections();
         // store what we have into the symbol map
         _model.getTableModel().save();
         // listen for update events
@@ -226,17 +217,41 @@ public class YahooDialog
     });
   }
 
-  private void setupConnectionSelector() {
-    _connectionSelect = new JComboBox(_model.getConnectionList());
-    _connectionSelect.setSelectedItem(_model.getSelectedConnection());
-    _connectionSelect.addActionListener(new ActionListener()
-    {
-      public void actionPerformed(ActionEvent e) {
-        JComboBox cb = (JComboBox)e.getSource();
-        _model.setSelectedConnection((BaseConnection)cb.getSelectedItem());
-      }
-    });
+  private void setupConnectionSelectors() {
+    // stock historical quotes
+    _historyConnectionSelect = new JComboBox(
+            _model.getConnectionList(BaseConnection.HISTORY_SUPPORT));
+    _historyConnectionSelect.setSelectedItem(_model.getSelectedHistoryConnection());
+    // current stock price
+    _currentConnectionSelect = new JComboBox(
+            _model.getConnectionList(BaseConnection.CURRENT_PRICE_SUPPORT));
+    _currentConnectionSelect.setSelectedItem(_model.getSelectedCurrentPriceConnection());
+    // currency exchange rates
+    _ratesConnectionSelect = new JComboBox(
+            _model.getConnectionList(BaseConnection.EXCHANGE_RATES_SUPPORT));
+    _ratesConnectionSelect.setSelectedItem(_model.getSelectedExchangeRatesConnection());
   }
+
+  private void setupIntervalSelector() {
+    _intervalSelect = new IntervalChooser(_model.getGUI());
+    final String paramStr = _model.getPreferences().getSetting(Main.UPDATE_INTERVAL_KEY, "");
+    _intervalSelect.selectFromParams(paramStr);
+    _nextDate = new JDateField(_model.getPreferences().getShortDateFormatter());
+    loadNextDate();
+  }
+
+  private void loadNextDate() {
+    int lastDate = _model.getRootAccount().getIntParameter(Main.QUOTE_LAST_UPDATE_KEY, 0);
+    final int nextDate;
+    if (lastDate == 0) {
+      nextDate = Util.getStrippedDateInt(); // today
+    } else {
+      TimeInterval frequency = Main.getUpdateFrequency(_model.getPreferences());
+      nextDate = SQUtil.getNextDate(lastDate, frequency);
+    }
+    _nextDate.setDateInt(nextDate);
+  }
+
 
   private JScrollPane setupSecurityTable() {
     _table.setModel(_model.getTableModel());
@@ -252,7 +267,8 @@ public class YahooDialog
     _table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     final TableColumnModel columnModel = createColumnModel();
     _table.setColumnModel(columnModel);
-    _table.setFillsViewportHeight(true);
+    _table.setDragEnabled(false);
+//    _table.setFillsViewportHeight(true); // available in Java 1.6 only
     _table.setShowGrid(false);
     final JTableHeader tableHeader = new JTableHeader(columnModel);
     // the only way to get mouse clicks is to attach a listener to the header
@@ -270,7 +286,7 @@ public class YahooDialog
         }
       }
     });
-
+    tableHeader.setReorderingAllowed(false);
     _table.setTableHeader(tableHeader);
     _table.setDefaultRenderer(TableColumn.class, _tableRenderer);
     _table.addMouseListener(new MouseAdapter() {
@@ -284,11 +300,11 @@ public class YahooDialog
         int row = _table.rowAtPoint(event.getPoint());
         if (column == SecuritySymbolTableModel.TEST_COL) {
           String message = _model.getTableModel().getToolTip(row, SecuritySymbolTableModel.TEST_COL);
-          if (!SQUtil.isBlank(message)) {
+          if (!StringUtils.isBlank(message)) {
             JPanel p = new JPanel(new GridBagLayout());
             String symbolTip = _model.getTableModel().getToolTip(row, SecuritySymbolTableModel.SYMBOL_COL);
             p.add(new JLabel(symbolTip), GridC.getc(0, 0));
-            p.add(Box.createVerticalStrut(SQUtil.VGAP),  GridC.getc(0, 1));
+            p.add(Box.createVerticalStrut(UiUtil.VGAP),  GridC.getc(0, 1));
             p.add(new JLabel(message), GridC.getc(0, 2));
             JOptionPane.showMessageDialog(YahooDialog.this, p);
           }
@@ -313,11 +329,12 @@ public class YahooDialog
       _model.getTableModel().batchChangeExchange(selected);
     }
   }
+
   private boolean showField(JComponent field) {
     JPanel p = new JPanel(new GridBagLayout());
     final MoneydanceGUI mdGUI = _model.getGUI();
     String msg = mdGUI.getStr("batch_msg");
-    String fieldName = "Stock Exchange"; // TODO: translate
+    String fieldName = _resources.getString(L10NStockQuotes.EXCHANGE_TITLE);
     msg = StringUtils.replaceAll(msg, "{field}", fieldName);
 
     p.add(new JLabel(UiUtil.addLabelSuffix(mdGUI, msg)), GridC.getc(0,0));
@@ -354,45 +371,39 @@ public class YahooDialog
     TableColumn col;
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.USE_COL, 20,
             new UseColumnRenderer(_model.getGUI()), new UseColumnEditor()));
-    _useHeaderRenderer = new UseColumnRenderer(_model.getGUI());
-    col.setHeaderRenderer(_useHeaderRenderer);
+    // special renderer allows the header to act like a checkbox to select all / deselect all
+    UseColumnRenderer useHeaderRenderer = new UseColumnRenderer(_model.getGUI());
+    col.setHeaderRenderer(useHeaderRenderer);
     col.setHeaderValue(" ");
-    _useHeaderRenderer.setIsHeaderCell(true);
+    useHeaderRenderer.setIsHeaderCell();
 
-//    col.getCellEditor().addCellEditorListener(editListener);
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.NAME_COL, 150,
-            _tableRenderer, null));
+            new SecurityNameCellRenderer(_model.getGUI()), null));
     col.setHeaderValue(_model.getGUI().getStr("curr_type_sec"));
-    columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.SHARES_COL, 40,
-            _tableRenderer, null));
-    col.setHeaderValue(_model.getGUI().getStr("table_column_shares"));
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.SYMBOL_COL, 40,
                                                 _tableRenderer,
                                                 new TickerColumnEditor()));
-//    col.getCellEditor().addCellEditorListener(editListener);
     col.setHeaderValue(_model.getGUI().getStr("currency_ticker"));
 
     // the stock exchange picker
-    _exchangeColumn = new ExchangeComboTableColumn(_model.getGUI(),
-            SecuritySymbolTableModel.EXCHANGE_COL, 60, getExchangeItems(), _exchangeEditor, true);
-    columnModel.addColumn(_exchangeColumn);
-//    col.getCellEditor().addCellEditorListener(editListener);
-    _exchangeColumn.setHeaderValue("Stock Exchange"); // TODO translate
+    ExchangeComboTableColumn exchangeColumn =
+            new ExchangeComboTableColumn(_model.getGUI(),
+                                         SecuritySymbolTableModel.EXCHANGE_COL, 60,
+                                         getExchangeItems(), _exchangeEditor, true);
+    columnModel.addColumn(exchangeColumn);
+    exchangeColumn.setHeaderValue(_resources.getString(L10NStockQuotes.EXCHANGE_TITLE));
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.TEST_COL, 40,
             _tableRenderer, null));
-    col.setHeaderValue("Test Result"); // TODO translate
+    col.setHeaderValue(_resources.getString(L10NStockQuotes.TEST_TITLE));
 
     return columnModel;
   }
 
   private StockExchange[] getExchangeItems() {
-    // find all of the stock exchange items that have a symbol for the currently selected
-    // stock quotes connection
-    BaseConnection connection = (BaseConnection)_connectionSelect.getSelectedItem();
-    if (connection == null) connection = _model.getSelectedConnection();
-    if (connection == null) return new StockExchange[0];
+    // set the name to a displayable localized string
+    StockExchange.DEFAULT.setName(_model.getGUI().getStr("default"));
+    // find all of the stock exchange items that have a currency that exists in the data file
     List<StockExchange> items = new ArrayList<StockExchange>();
-    // TODO translate name
     items.add(StockExchange.DEFAULT);
     final CurrencyTable ctable = _model.getRootAccount().getCurrencyTable();
     for (StockExchange exchange : _model.getExchangeList().getFullList()) {
@@ -419,9 +430,10 @@ public class YahooDialog
   private void setSecurityTableColumnSizes()
   {
     if ((_model.getTableModel() == null) || (_model.getTableModel().getRowCount() == 0)) return; // nothing to do
-    // find the maximum width of the columns
-    int[] widths = new int[_model.getTableModel().getColumnCount()];
-    for (int column = 0; column < _model.getTableModel().getColumnCount(); column++) {
+    // find the maximum width of the columns - there may be more columns in the model than in the view
+    final int viewColumnCount = _table.getColumnModel().getColumnCount();
+    int[] widths = new int[viewColumnCount];
+    for (int column = 0; column < viewColumnCount; column++) {
       for (int row = 0; row < _table.getRowCount(); row++) {
         TableCellRenderer renderer = _table.getCellRenderer(row, column);
         Component comp = renderer.getTableCellRendererComponent(_table,
@@ -440,9 +452,6 @@ public class YahooDialog
     int maxWidth = 0;
     for (int width1 : widths) maxWidth = Math.max(width1, maxWidth);
     widths[SecuritySymbolTableModel.TEST_COL] = maxWidth;
-
-//    _model.getTableModel().computeColumnWidths(fm, graphics, widths);
-//    widths[0] = 20;
     final TableColumnModel columnModel = _table.getColumnModel();
     for (int column = 0; column < widths.length; column++) {
       columnModel.getColumn(column).setPreferredWidth(widths[column]);
@@ -457,15 +466,12 @@ public class YahooDialog
   }
 
   private void saveControlsToSettings() {
+    saveSelectedConnections();
     // these are stored in preferences and are not file-specific
     UserPreferences prefs = _model.getPreferences();
-    prefs.setSetting(Main.AUTO_UPDATE_KEY, doQuotesField.isSelected() || doRatesField.isSelected());
-    prefs.setSetting(Main.DOWNLOAD_QUOTES_KEY, doQuotesField.isSelected());
-    prefs.setSetting(Main.DOWNLOAD_RATES_KEY, doRatesField.isSelected());
-    TimeUnit unit = (TimeUnit) unitField.getSelectedItem();
-    int num = ((Number) numUnitsField.getValue()).intValue();
-    SimpleFrequency freq = new SimpleFrequency(unit, num);
-    prefs.setSetting(Main.UPDATE_FREQUENCY_KEY, freq.toString());
+    prefs.setSetting(Main.AUTO_UPDATE_KEY, isAnyConnectionSelected());
+    prefs.setSetting(Main.UPDATE_INTERVAL_KEY, _intervalSelect.getSelectedInterval().getConfigKey());
+    saveNextUpdateDate();
     // check if any of the settings that are stored in the specific data file have been changed
     if (_model.isDirty()) {
       _model.saveSettings();
@@ -474,10 +480,35 @@ public class YahooDialog
     }
   }
 
+  private void saveNextUpdateDate() {
+    if (_model.getRootAccount() == null) return;
+    int nextDate = _nextDate.getDateInt();
+    // work backwards to get the calculated 'last update date'
+    TimeInterval frequency = _intervalSelect.getSelectedInterval();
+    _model.setHistoryDaysFromFrequency(frequency);
+    int lastDate = SQUtil.getPreviousDate(nextDate, frequency);
+    if (_model.isStockPriceSelected()) {
+      _model.getRootAccount().setParameter(Main.QUOTE_LAST_UPDATE_KEY, lastDate);
+    }
+    if (_model.isExchangeRateSelected()) {
+      _model.getRootAccount().setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate);
+    }
+  }
+
+  private void saveSelectedConnections() {
+    _model.setSelectedHistoryConnection((BaseConnection)_historyConnectionSelect.getSelectedItem());
+    _model.setSelectedCurrentPriceConnection((BaseConnection)_currentConnectionSelect.getSelectedItem());
+    _model.setSelectedExchangeRatesConnection((BaseConnection)_ratesConnectionSelect.getSelectedItem());
+  }
+
+  private boolean isAnyConnectionSelected() {
+    return _model.isStockPriceSelected() || _model.isExchangeRateSelected();
+  }
+
   public void dispose() {
     _model.removePropertyChangeListener(this);
-    _model.getPreferences().setXYSetting(LOCATION_KEY, getLocation());
-    _model.getPreferences().setSizeSetting(SIZE_KEY, getSize());
+    _model.getPreferences().setXYSetting(N12EStockQuotes.LOCATION_KEY, getLocation());
+    _model.getPreferences().setSizeSetting(N12EStockQuotes.SIZE_KEY, getSize());
     super.dispose();
   }
 
@@ -487,17 +518,19 @@ public class YahooDialog
       final String status = (String) event.getNewValue();
       _testStatus.setText(status == null ? " " : status);
     } else if (N12EStockQuotes.DOWNLOAD_BEGIN.equals(name)) {
-      final String text = _model.getGUI().getStr(L10NStockQuotes.CANCEL);
-      SQUtil.runOnUIThread(new Runnable() {
+      final String text = _model.getGUI().getStr("cancel");
+      UiUtil.runOnUIThread(new Runnable() {
         public void run() {
           _buttonTest.setText(text);
         }
       });
     } else if (N12EStockQuotes.DOWNLOAD_END.equals(name)) {
       final String text = _resources.getString(L10NStockQuotes.TEST);
-      SQUtil.runOnUIThread(new Runnable() {
+      UiUtil.runOnUIThread(new Runnable() {
         public void run() {
           _buttonTest.setText(text);
+          // the next update date may have changed now
+          loadNextDate();
         }
       });
       // we're done listening for results
@@ -506,48 +539,6 @@ public class YahooDialog
       _table.getTableHeader().repaint();
     }
 
-  }
-
-  public static class GenericListCellRenderer extends DefaultListCellRenderer {
-    public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-      setComponentOrientation(list.getComponentOrientation());
-      setBackground(getBackground(list, value, index, isSelected, cellHasFocus));
-      setForeground(getForeground(list, value, index, isSelected, cellHasFocus));
-      setIcon(getIcon(list, value, index, isSelected, cellHasFocus));
-      setText(getText(list, value, index, isSelected, cellHasFocus));
-      setEnabled(isEnabled(list, value, index, isSelected, cellHasFocus));
-      setFont(getFont(list, value, index, isSelected, cellHasFocus));
-      setBorder(getBorder(list, value, index, isSelected, cellHasFocus));
-      return this;
-    }
-
-    protected String getText(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-      return value instanceof Icon || value == null ? "" : value.toString();
-    }
-
-    protected Icon getIcon(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-      return value instanceof Icon ? (Icon) value : null;
-    }
-
-    protected Border getBorder(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-      return cellHasFocus ? UIManager.getBorder("List.focusCellHighlightBorder") : noFocusBorder;
-    }
-
-    protected Font getFont(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-      return list.getFont();
-    }
-
-    protected boolean isEnabled(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-      return list.isEnabled();
-    }
-
-    protected Color getBackground(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-      return selected ? list.getSelectionBackground() : list.getBackground();
-    }
-
-    protected Color getForeground(JList list, Object value, int index, boolean selected, boolean cellHasFocus) {
-      return selected ? list.getSelectionForeground() : list.getForeground();
-    }
   }
 
   private static class UseColumnRenderer extends JCheckBox implements TableCellRenderer {
@@ -563,7 +554,8 @@ public class YahooDialog
     }
 
     public Component getTableCellRendererComponent(JTable table, Object value,
-                                                   boolean isSelected, boolean hasFocus, int row, int column) {
+                                                   boolean isSelected, boolean hasFocus,
+                                                   int row, int column) {
       if (_isHeaderCell) {
         final JTableHeader header = table.getTableHeader();
         if (header != null) {
@@ -595,8 +587,8 @@ public class YahooDialog
       return this;
     }
 
-    void setIsHeaderCell(boolean isHeader) {
-      _isHeaderCell = isHeader;
+    void setIsHeaderCell() {
+      _isHeaderCell = true;
     }
   }
 
@@ -619,16 +611,7 @@ public class YahooDialog
     }
 
     /**
-     * Returns the default table cell renderer.
-     *
-     * @param table      the <code>JTable</code>
-     * @param value      the value to assign to the cell at
-     *                   <code>[row, column]</code>
-     * @param isSelected true if cell is selected
-     * @param hasFocus   true if cell has focus
-     * @param row        the row of the cell to render
-     * @param column     the column of the cell to render
-     * @return the default table cell renderer
+     * {@inheritDoc}
      */
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value,
@@ -658,6 +641,52 @@ public class YahooDialog
       return result;
     }
 
+  }
+
+  /**
+   * Cell renderer for the list, colors items that are in-use.
+   */
+  private class SecurityNameCellRenderer extends DefaultTableCellRenderer {
+    private final MoneydanceGUI _mdGui;
+    private final JPanel _renderer;
+    private final JLabel _shareDisplay;
+
+    SecurityNameCellRenderer(final MoneydanceGUI mdGui) {
+      _mdGui = mdGui;
+      _renderer = new JPanel(new BorderLayout());
+      _shareDisplay = new JLabel();
+      _shareDisplay.setOpaque(true);
+      _renderer.add(this, BorderLayout.CENTER);
+      _renderer.add(_shareDisplay, BorderLayout.EAST);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value,
+                                                   boolean isSelected, boolean hasFocus,
+                                                   int row, int column) {
+      super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+      final String shares = (String) table.getModel().getValueAt(row, SecuritySymbolTableModel.SHARES_COL);
+      _shareDisplay.setText(shares + N12EStockQuotes.SPACE);
+      // the unselected background alternates color for ease of distinction
+      if (!isSelected) {
+        if (row % 2 == 0) {
+          setBackground(_mdGui.getColors().homePageBG);
+          _shareDisplay.setBackground(_mdGui.getColors().homePageBG);
+        } else {
+          setBackground(_mdGui.getColors().homePageAltBG);
+          _shareDisplay.setBackground(_mdGui.getColors().homePageAltBG);
+        }
+      }
+      _shareDisplay.setForeground(Color.GRAY); // lighter text for the share balance
+      // in case the text is cut off, show complete text in a tool tip
+      if (value instanceof String) {
+        setToolTipText((String)value);
+      }
+      return _renderer;
+    }
   }
 
   /**
@@ -693,12 +722,7 @@ public class YahooDialog
     public Object getCellEditorValue() {
       return _value;
     }
-
-    String getEditedText() {
-      return _value;
-    }
   }
-
 
   private class DialogOKButtonListener implements OKButtonListener {
     public void buttonPressed(int buttonId) {
@@ -711,7 +735,6 @@ public class YahooDialog
   }
 
   private class ExchangeEditor implements IExchangeEditor {
-
     public boolean edit(final StockExchange exchange) {
       final MoneydanceGUI mdGui = _model.getGUI();
       if (StockExchange.DEFAULT.equals(exchange)) {

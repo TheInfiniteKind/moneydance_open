@@ -2,13 +2,92 @@
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
     <comment>All localizable strings used by the Stock Quotes Synchronizer plugin.</comment>
+
+    <entry key="title.text">Quotes and Exchange Rates</entry>
+
+    <!-- main configuration dialog -->
+    <entry key="settings.title">Stock Quotes Synchronizer Settings</entry>
+    <entry key="ratesConnection">Currency Exchange Rates</entry>
+    <entry key="historyConnection">Historical Security Prices</entry>
+    <entry key="currentConnection">Current Security Prices</entry>
+    <entry key="frequency">Update Frequency</entry>
+    <entry key="nextDate">Next Update</entry>
+    <entry key="test">Test</entry>
+    <entry key="exchangeColumn.title">Stock Exchange</entry>
+    <entry key="testColumn.title">Test Result</entry>
+    <entry key="errDefaultEdit">The Default stock exchange is not editable.</entry>
+
+    <!-- other strings -->
+    <entry key="labelColon">: </entry>
+    <entry key="yahooUSA">Yahoo!® Finance - USA</entry>
+    <entry key="yahooUK">Yahoo!® Finance - UK</entry>
+    <entry key="yahooUSAexchangeRates">Yahoo!® Currency Exchange Rates</entry>
+    <entry key="google">Google™ Finance - History Only</entry>
+    <entry key="downloading">Downloading...</entry>
+    <entry key="skipped">Skipped</entry>
+    <entry key="error.setup">Error in setup</entry>
+    <!-- {0} = the name of the currency that is set for the stock price download -->
+    <entry key="warn.currencyMismatch">Price download currency ''{0}'' does not match the currency in these investment accounts:</entry>
+    <entry key="notUsed">--- Do Not Update ---</entry>
+    <entry key="quotes">Security Price Quotes</entry>
+    <entry key="exchangeRates">Currency Exchange Rates</entry>
+    <entry key="error.no_connection">No connection established</entry>
+    <entry key="error.no_symbol">No symbol defined</entry>
+    <entry key="history">History</entry>
+    <entry key="quote">Current Quote</entry>
+
+    <!-- Import Errors -->
+    <!-- {0} = the currency ID that is supposed to be used for price updates, but doesn't exist. -->
+    <entry key="error.price_currency.fmt">Price currency ID not found: {0}</entry>
+    <entry key="error.history.not_supported">History is not supported by this connection</entry>
+    <entry key="error.current.not_supported">Current price is not supported by this connection</entry>
+    <entry key="error.import.no_input">Could not open input data.</entry>
+    <entry key="error.import.read_input">Could not read input data.</entry>
+    <entry key="error.import.no_data">No data found.</entry>
+    <entry key="error.import.while.read">Error while reading data.</entry>
+    <entry key="error.import.no_valid_data">No valid data found.</entry>
+    <entry key="error.import.not_text">Input data was not text.</entry>
+    <entry key="error.import.no_columns">Input data was not separated into columns.</entry>
+    <entry key="error.import.malformed">Input data was malformed.</entry>
+    <entry key="error.import.no_header">No header found.</entry>
+    <entry key="error.import.other">Unexpected error during import.</entry>
+    <entry key="error.import.communication">Communication</entry>
+    <entry key="error.import.invalid_number">Invalid Number</entry>
+    <!-- {0} = the error received, {1} = response message text. -->
+    <entry key="error.url.fmt">Error: {0}, received response message ''{1}''.</entry>
+    <!-- {0} = the code received, {1} = response message text. -->
+    <entry key="error.url_code.fmt">Received response code {0} and message ''{1}''.</entry>
     
-    <!--  Common stuff -->
-    <entry key="labelColon">:</entry>
-    <entry key="title.text">Yahoo!® Finance Synchronizer</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Version {0} (Build {1})</entry>
-    <!-- Exchange Edit Dialog -->
+    <!--  status messages -->
+    <!-- 0 = connection name -->
+    <entry key="status.exchangeRates.start.fmt">"Downloading exchange rates from {0}..."</entry>
+    <!-- {0} = name of item, {1} error text -->
+    <entry key="error.download.fmt">Error while downloading {0}: {1}</entry>
+    <!-- {0} = name of item -->
+    <entry key="finished.download.fmt">Finished downloading {0}</entry>
+    <!-- {0} = number skipped, {1} = number of errors, {2} = number of successful quotes -->
+    <entry key="quotes.done.fmt">Security price update complete with {0} skipped, {1} errors and {2} quotes obtained</entry>
+    <!-- {0} = name of security, {1} = date, {2} = price -->
+    <entry key="priceAsOfDate.fmt">Price for {0} as of {1}: {2}</entry>
+    <!-- {0} = from currency, {1} = to currency, {2} = date: {3} = rate -->
+    <entry key="exchangeRateAsOfDate.fmt">Exchange Rate from {0} to {1} as of {2}: {3}</entry>
+    <!-- {0} = from currency, {1} = to currency -->
+    <entry key="error.exchangeRate.fmt">Unable to get rate from {0} to {1}</entry>
+    <!-- {0} = name of security, {1} error text -->
+    <entry key="error.history.fmt">Error downloading price history for {0}: {1}</entry>
+    <!-- {0} = name of security, {1} error text -->
+    <entry key="error.current.fmt">Error downloading current price for {0}: {1}</entry>
+    <!-- {0} = number of successful records, {1} error count -->
+    <entry key="test.some_success.fmt">Historical prices successfully downloaded: {0}  Errors encountered: {1}</entry>
+    <!-- {0} = number of successful records -->
+    <entry key="test.success.fmt">Historical prices successfully downloaded: {0}</entry>
+    <!-- {0} = number of errors -->
+    <entry key="test.error.fmt">Errors received downloading historical prices: {0}</entry>
+    <entry key="test.no_records">No historical prices received</entry>
+    <!-- {0} = date, {1} = price -->
+    <entry key="test.current.fmt">Successfully downloaded current price as of {0}: {1}</entry>
+
+    <!--  exchange edit dialog -->
     <entry key="editExchangeTitle">Edit Stock Exchange</entry>
     <entry key="exchangeName">Exchange Name</entry>
     <entry key="yahooSuffix">Yahoo!® Suffix</entry>
@@ -18,115 +97,5 @@
     <entry key="errNameBlank">Please enter a Name that is not blank</entry>
     <entry key="errMultiplier">Please enter a valid Price Multiplier (default is 1)</entry>
     <entry key="errSave">A problem occurred while saving the stock exchange settings.</entry>
-    <entry key="errDefaultEdit">The Default stock exchange is not editable.</entry>
-    <!-- {0} = the name of the currency that is set for the stock price download -->
-    <entry key="warn.currencyMismatch">Price download currency ''{0}'' does not match the currency in these investment accounts:</entry>
-    <!-- Other Strings -->
-    <entry key="yahooUSA">Yahoo!® Finance - USA</entry>
-    <entry key="yahooUK">Yahoo!® Finance - UK</entry>
-    <entry key="google">Google™ Finance - History Only</entry>
-    <entry key="connection">Connection</entry>
-    <entry key="test">Test</entry>
-    <entry key="downloading">Downloading...</entry>
-    <entry key="skipped">Skipped</entry>
-    <entry key="error.setup">Error in setup</entry>
-
-
-    <!--  Buttons at the bottom -->
-    <entry key="findBtn.text">Find</entry>
-    <entry key="findBtn.mnemonic">F</entry>
-    <entry key="replaceBtn.text">Replace</entry>
-    <entry key="replaceBtn.mnemonic">P</entry>
-    <entry key="replaceAllBtn.text">Replace All</entry>
-    <entry key="replaceAllBtn.mnemonic">A</entry>
-    <entry key="closeBtn.text">Close</entry>
-    <entry key="closeBtn.mnemonic">C</entry>
-    <entry key="gotoBtn.mnemonic">G</entry>
-    <entry key="resetBtn.text">Reset</entry>
-    <entry key="copyBtn.text">Copy</entry>
-    <entry key="copyBtn.mnemonic">Y</entry>
-
-    <entry key="markAllBtn.text">Mark All</entry>
-    <entry key="markNoneBtn.text">Mark None</entry>
-
-    <!--  Account/category selection dialog -->
-    <entry key="accountselect.exclude.text">Excluded</entry>
-    <entry key="accountselect.include.text">Included</entry>
-    <entry key="accountselect.add.text">Add &gt;</entry>
-    <entry key="accountselect.addexcept.text">Add Except &gt;&gt;</entry>
-    <entry key="accountselect.addall.text">Add All &gt;&gt;</entry>
-    <entry key="accountselect.remove.text">&lt; Remove</entry>
-    <entry key="accountselect.removeexcept.text">&lt;&lt; Remove Except</entry>
-    <entry key="accountselect.removeall.text">&lt;&lt; Remove All</entry>
-    <entry key="accountfilter.all">All</entry>
-
-    <!--  Error messages -->
-    <entry key="error.title">Error in Find and Replace Plugin</entry>
-    <entry key="error.load">An error occurred while loading the Find and Replace module.&#10;&#10;Message: {0}</entry>
-    <entry key="error.nodata">You must have a file loaded to use Find and Replace.</entry>
-    <entry key="accountselect.accountnotfound">Attempt to process an unknown account. Data may be invalid.</entry>
-    <entry key="notice.title">Notice</entry>
-    <!--  0 = user-entered text  1 = error message -->
-    <entry key="error.regex">Invalid regular expression. 
-&#10;&#10;If the search text begins with ''='', the remainder is used as a regular expression with the
-Java Matcher.find() method. 
-&#10;&#10;If no regular expression is provided, the expression ''(?ui)\QX\E'' is used, where
-X is the search text.
-&#10;&#10;You entered: {0}
-&#10;Error message: {1}</entry>
-
-    <!--  General strings - copied from Moneydance -->
-    <entry key="ok">OK</entry>
-    <entry key="cancel">Cancel</entry>
-    <entry key="none">None</entry>
-    <entry key="done">Done</entry>
-
-    <entry key="split_label1">-</entry>
-    <entry key="split_label2">splits -</entry>
-    <entry key="cancel_txn">Cancel</entry>
-    <entry key="record_txn">Record</entry>
-    <entry key="combine_criteria">Combine Criteria:</entry>
-    <entry key="srch_op_intersect">And (Intersection)</entry>
-    <entry key="srch_op_union">Or (Union)</entry>
-    <entry key="srch_range0">Between</entry>
-    <entry key="srch_range1">and</entry>
-    <entry key="accounts">Accounts</entry>
-    <entry key="amount">Amount</entry>
-    <entry key="srch_by_date">Date</entry>
-    <entry key="memo">Memo</entry>
-    <entry key="desc">Description</entry>
-    <entry key="category">Category</entry>
-    <entry key="table_column_date">Date</entry>
-    <entry key="table_column_description">Description</entry>
-    <entry key="table_column_clearedchar">C</entry>
-    <entry key="table_column_amount">Amount</entry>
-    <entry key="table_column_account">Account</entry>
-    <entry key="table_column_tags">Tags</entry>
-    <entry key="table_column_checknum">Check#</entry>
-    <entry key="select_acct_title">Select an Account</entry>
-    <entry key="all_categories">All Categories</entry>
-    <entry key="show_txn">Go To Transaction</entry>
-    <entry key="txn_checknum">Check#</entry>
-    <entry key="srch_use_tax_date">Use Tax Date</entry>
-
-    <!--  Account types (copied) -->
-    <entry key="acct_type4300s">Asset</entry>
-    <entry key="acct_type1000s">Bank</entry>
-    <entry key="acct_type2000s">Credit Card</entry>
-    <entry key="acct_type7000s">Income</entry>
-    <entry key="acct_type3000s">Investment</entry>
-    <entry key="acct_type4600s">Liability</entry>
-    <entry key="acct_type5000s">Loan</entry>
-    <entry key="acct_type6000s">Expense</entry>
-    <entry key="acct_type4000s">Security</entry>
-    <entry key="all_accounts">All Accounts</entry>
-
-    <!-- Transaction status (copied) -->
-    <entry key="cleared">Cleared</entry>
-    <entry key="uncleared">Uncleared</entry>
-    <entry key="reconciling">Reconciling</entry>
-
-    <!-- Images -->
-    <entry key="findAndReplace.image">/com/moneydance/modules/features/findandreplace/icon.png</entry>
 
 </properties>

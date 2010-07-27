@@ -1,14 +1,20 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import java.util.Collections;
 import java.util.List;
 
 /**
-* Created by IntelliJ IDEA.
-* User: Kevin
-* Date: Jun 16, 2010
-* Time: 6:37:32 AM
-* To change this template use File | Settings | File Templates.
+ * Holds historical stock price data in memory.
+ *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
 */
 public class StockHistory {
   private String baseCurrency;

@@ -1,30 +1,50 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
+import com.moneydance.apps.md.controller.DateRange;
 import com.moneydance.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.Hashtable;
-import java.util.Vector;
 
 
 /**
- * Class used to download currency histories via HTTP using the same spreadsheet format as at finance.yahoo.com.
+ * Class used to download currency histories via HTTP using the same spreadsheet format as at
+ * finance.yahoo.com.
+ *
+ * @author Sean Reilly - The Infinite Kind, LLC
  */
-public class FXConnection {
+public class FXConnection extends BaseConnection {
   private static final String CURRENT_BASE_URL = "http://finance.yahoo.com/d/quotes.csv";
   // the rest of it: ?s=USDEUR=X&f=sl1d1t1c1ohgv&e=.csv"
+  private final String _displayName;
+  static final String PREFS_KEY = "yahooRates";
 
   /**
-   * Create a connection object that can retrieve exchange rates
+   * Create a connection object that can retrieve exchange rates.
+   * @param model       The main data model for the extension.
+   * @param displayName Name to display to the user for selection.
    */
-  public FXConnection() {
+  public FXConnection(StockQuotesModel model, String displayName) {
+    super(model, BaseConnection.EXCHANGE_RATES_SUPPORT);
+    _displayName = displayName;
   }
 
   /**
    * Retrieve the current information for the given stock ticker symbol.
+   * @param currencyID      The string identifier of the currency to start with ('from').
+   * @param baseCurrencyID  The string identifier of the currency to end with ('to').
+   * @return The downloaded exchange rate definition.
+   * @throws Exception If an error occurs during download.
    */
   public ExchangeRate getCurrentRate(String currencyID, String baseCurrencyID)
       throws Exception {
@@ -33,13 +53,15 @@ public class FXConnection {
     if (currencyID.length() != 3 || baseCurrencyID.length() != 3)
       return null;
 
-    String urlStr = CURRENT_BASE_URL + '?';
-    urlStr += "s=" + URLEncoder.encode(baseCurrencyID + currencyID, N12EStockQuotes.URL_ENC) + "=X"; // symbol
-    urlStr += "&f=sl1d1t1c1ohgv";  // format of each line
-    urlStr += "&e=.csv";  // response format
-
-    URL url = new URL(urlStr);
-    BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream(), "ASCII"));
+    StringBuilder urlStr = new StringBuilder(CURRENT_BASE_URL);
+    urlStr.append('?');
+    urlStr.append("s=");
+    urlStr.append(URLEncoder.encode(baseCurrencyID + currencyID, N12EStockQuotes.URL_ENC)); // symbol
+    urlStr.append("=X");
+    urlStr.append("&f=sl1d1t1c1ohgv"); // format of each line
+    urlStr.append("&e=.csv");          // response format
+    URL url = new URL(urlStr.toString());
+    BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream(), "UTF8"));
     // read the message...
     double rate = -1;
     while (true) {
@@ -53,20 +75,47 @@ public class FXConnection {
       if (rateStr.length() > 0)
         rate = StringUtils.parseRate(rateStr, '.');
     }
-    return new ExchangeRate(currencyID, rate);
+    return new ExchangeRate(rate);
+  }
+
+  @Override
+  public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange) {
+    return null;  // not used
+  }
+
+  @Override
+  public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange) {
+    return null;  // not used
+  }
+
+  @Override
+  public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
+    return null;  // not used
+  }
+
+  @Override
+  public String getCurrentPriceURL(String fullTickerSymbol) {
+    return null;  // not used
+  }
+
+  @Override
+  protected String getCurrentPriceHeader() {
+    return null;  // not used
+  }
+
+  @Override
+  public String getId() { return PREFS_KEY;  }
+
+  @Override
+  public String toString() {
+    return _displayName;
   }
 
   public class ExchangeRate {
-    private String currencyID;
-    private double rate;
+    private final double rate;
 
-    ExchangeRate(String currencyID, double rate) {
-      this.currencyID = currencyID;
+    ExchangeRate(double rate) {
       this.rate = rate;
-    }
-
-    public String getCurrency() {
-      return this.currencyID;
     }
 
     public double getRate() {
@@ -74,8 +123,13 @@ public class FXConnection {
     }
   }
 
+  /**
+   * Test method.
+   * @param args Program arguments.
+   * @throws Exception If an error occurs.
+   */
   public static void main(String[] args) throws Exception {
-    FXConnection fxConnection = new FXConnection();
+    FXConnection fxConnection = new FXConnection(null, "Test Rates");
     FXConnection.ExchangeRate currentRate = fxConnection.getCurrentRate("USD", "EUR");
     System.out.println("rate is " + currentRate.getRate());
   }

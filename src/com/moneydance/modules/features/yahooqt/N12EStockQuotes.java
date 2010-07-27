@@ -1,24 +1,23 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
-import java.beans.PropertyChangeEvent;
 
 /**
  * <p>Non-localizable (N12E) string statics. Keeping all strings out of the Java code makes it
  * much easier to know that everything is localized. Additionally, it forces the developer to
  * decide when they write a string constant: 'Will this be displayed to the user, or will it not?
  * Can this string be localized, or would localizing it break the software?'</p>
- * <p/>
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
  *
- * @author Kevin Menningen
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 class N12EStockQuotes {
-  /**
-   * The name of the resource bundle file.
-   */
-  static final String RESOURCES = "com.moneydance.modules.features.yahooqt.StockQuotes";
   /**
    * Empty string.
    */
@@ -31,16 +30,21 @@ class N12EStockQuotes {
    * Separate strings.
    */
   static final String SPACE = " ";
-  /**
-   * Indentation in a list.
-   */
-  static final String INDENT = "     ";
-  static final String COLON = ":";
+  static final String ERROR = "(!)";
 
   /**
    * The title of the extension, if unavailable from resources.
    */
   static final String TITLE = "Stock Quote Synchronizer";
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //  Settings Keys
+  //////////////////////////////////////////////////////////////////////////////////////////////
+
+  /** Stores the size of the main configuration dialog. */
+  static final String SIZE_KEY = "yahooqt.size";
+  /** Stores the window location of the main configuration dialog. */
+  static final String LOCATION_KEY = "yahooqt.location";
 
   /**
    * The character set to encode web URLs in. Per
@@ -53,23 +57,12 @@ class N12EStockQuotes {
    */
   static final String URL_ENC = "UTF-8";
 
-  /**
-   * Delimiter in settings strings for x/y or width/height settings.
-   */
-  static final String SETTINGS_PT_DELIMITER = "x";
-  /**
-   * Settings key in the Moneydance config.dict file for the last dialog location.
-   */
-  static final String SETTINGS_DLG_LOCATION_SETTING = "gui.findandreplace_location";
-  /**
-   * Settings key in the Moneydance config.dict file for the last dialog size.
-   */
-  static final String SETTINGS_DLG_SIZE_SETTING = "gui.findandreplace_size";
-
-  /**
-   * Event fired when a new file is opened.
-   */
+  /** Event fired when a new file is opened.   */
   static final String MD_OPEN_EVENT_ID = "md:file:opened";
+  /** Event fired when a file is being closed.   */
+  static final String MD_CLOSING_EVENT_ID = "md:file:closing";
+  /** Event fired when the application is exiting completely.   */
+  static final String MD_EXITING_EVENT_ID = "md:app:exiting";
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //  Properties for Property Change Notifications
@@ -82,13 +75,29 @@ class N12EStockQuotes {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // HTML
   ///////////////////////////////////////////////////////////////////////////////////////////////
-
+  static final String HTML_BEGIN = "<html>";
+  static final String HTML_END = "</html>";
+  static final String UL_BEGIN = "<ul>";
+  static final String UL_END = "</ul>";
+  static final String LI_BEGIN = "<li>";
+  static final String LI_END = "</li>";
+  static final String PARA_BEGIN = "<p>";
+  static final String RED_FONT_BEGIN = "<font color=\"red\">";
+  static final String GREEN_FONT_BEGIN = "<font color=\"green\">";
+  static final String FONT_END = "</font>";
 
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // XML Resource Files
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  static final String FORMAT_XML_SUFFIX = "properties.xml";
-  static final String FORMAT_XML = "java." + FORMAT_XML_SUFFIX;
+  /** The name of the English (default) resource bundle file.  */
+  static final String ENGLISH_PROPERTIES_FILE =
+          "/com/moneydance/modules/features/yahooqt/StockQuotes.properties.xml";
+  /**
+   * The template for a non-English resource bundle file.
+   * 0 = language and country code
+   */
+  static final String PROPERTIES_FILE_FMT =
+          "/com/moneydance/modules/features/yahooqt/StockQuotes_{0}.properties.xml";
 
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // Logging and Errors

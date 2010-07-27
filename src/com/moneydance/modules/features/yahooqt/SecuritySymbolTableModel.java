@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.UserPreferences;
@@ -7,6 +15,9 @@ import com.moneydance.apps.md.model.AccountUtil;
 import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.SecurityAccount;
+import com.moneydance.util.Misc;
+import com.moneydance.util.StringUtils;
+import com.moneydance.util.UiUtil;
 
 import javax.swing.table.AbstractTableModel;
 import java.text.MessageFormat;
@@ -27,10 +38,11 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 {
   static final int USE_COL = 0;
   static final int NAME_COL = 1;
-  static final int SHARES_COL = 2;
-  static final int SYMBOL_COL = 3;
-  static final int EXCHANGE_COL = 4;
-  static final int TEST_COL = 5;
+  static final int SYMBOL_COL = 2;
+  static final int EXCHANGE_COL = 3;
+  static final int TEST_COL = 4;
+  // hidden column
+  static final int SHARES_COL = 5;
 
   private char _dec = '.';
   private final List<SecurityEntry> _data = new ArrayList<SecurityEntry>();
@@ -83,7 +95,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
           // update the currency symbol if the user edited it
           String newSymbol = entry.editSymbol == null ? "" : entry.editSymbol.trim();
           String currentSymbol = currency.getTickerSymbol();
-          if (!SQUtil.isEqual(newSymbol, currentSymbol)) {
+          if (!Misc.isEqual(newSymbol, currentSymbol)) {
             currency.setTickerSymbol(newSymbol);
           }
         } // if a corresponding entry
@@ -108,12 +120,12 @@ public class SecuritySymbolTableModel extends AbstractTableModel
   @Override
   public String getColumnName(int column) {
     switch(column) {
-      case USE_COL: return " ";
-      case NAME_COL: return "Security";
-      case SHARES_COL: return "Shares";
-      case SYMBOL_COL: return "Symbol";
-      case EXCHANGE_COL: return "Stock Exchange";
-      case TEST_COL: return "Test Result";
+      case USE_COL: return N12EStockQuotes.SPACE;
+      case NAME_COL: return _model.getGUI().getStr("sec");
+      case SHARES_COL: return _model.getGUI().getStr("table_column_shares");
+      case SYMBOL_COL: return _model.getGUI().getStr("currency_ticker");
+      case EXCHANGE_COL: return _model.getResources().getString(L10NStockQuotes.EXCHANGE_TITLE);
+      case TEST_COL: return _model.getResources().getString(L10NStockQuotes.TEST_TITLE);
       default:
         return "?";
     }
@@ -150,7 +162,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       default:
         return "?";
     }
-    if (SQUtil.isBlank(result)) return "";
+    if (StringUtils.isBlank(result)) return "";
     return result;
   }
 
@@ -178,14 +190,14 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         final String original = tableEntry.editSymbol;
         final String newSymbol = ((String)aValue).trim();
         tableEntry.editSymbol = newSymbol;
-        if (!SQUtil.isEqual(original, newSymbol)) _model.setDirty();
+        if (!Misc.isEqual(original, newSymbol)) _model.setDirty();
         break;
       }
       case EXCHANGE_COL: {
         if (aValue instanceof StockExchange) {
           final String original = tableEntry.exchangeId;
           tableEntry.exchangeId = ((StockExchange)aValue).getExchangeId();
-          if (!SQUtil.isEqual(original, tableEntry.exchangeId)) _model.setDirty();
+          if (!Misc.isEqual(original, tableEntry.exchangeId)) _model.setDirty();
         }
         break;
       }
@@ -201,10 +213,10 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (columnIndex == SYMBOL_COL) {
       StockExchange exchange = _model.getExchangeList().getById(tableEntry.exchangeId);
       if (exchange == null) return null;
-      BaseConnection connection = _model.getSelectedConnection();
+      BaseConnection connection = _model.getSelectedHistoryConnection();
       if (connection == null) return null;
       String fullSymbol = connection.getFullTickerSymbol(tableEntry.editSymbol, exchange);
-      return "Symbol: "+fullSymbol; // TODO: translate
+      return UiUtil.getLabelText(_model.getGUI(), "currency_ticker") + fullSymbol;
     }
     return null;
   }
@@ -257,7 +269,8 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     // build succinct message
     Set<CurrencyType> unmatchedCurrencies = new HashSet<CurrencyType>();
     for (Account investAccount : unmatchedAccounts) unmatchedCurrencies.add(investAccount.getCurrencyType());
-    StringBuilder sbMessage = new StringBuilder("<html><font color=\"red\">");
+    StringBuilder sbMessage = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
+    sbMessage.append(N12EStockQuotes.RED_FONT_BEGIN);
     boolean isFirstInList = true;
     for (CurrencyType unmatchedCurrency : unmatchedCurrencies) {
       if (isFirstInList) {
@@ -269,33 +282,34 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       sbMessage.append(" &#x2260 "); // not equal sign
       sbMessage.append(getCurrencyAbbreviatedDisplay(unmatchedCurrency));
     }
-    sbMessage.append("</font></html>");
+    sbMessage.append(N12EStockQuotes.FONT_END);
+    sbMessage.append(N12EStockQuotes.HTML_END);
     entry.testResult = sbMessage.toString();
     // build a tooltip
-    StringBuilder sbToolTip = new StringBuilder("<html>");
+    StringBuilder sbToolTip = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
     String messageFormat = _model.getResources().getString(L10NStockQuotes.CURRENCY_MISMATCH_FMT);
     sbToolTip.append(MessageFormat.format(messageFormat, downloadCurrency.getName()));
-    sbToolTip.append("<ul>");
+    sbToolTip.append(N12EStockQuotes.UL_BEGIN);
     // comparator available in MD2010 and beyond
     Collections.sort(unmatchedAccounts, AccountUtil.ACCOUNT_NAME_COMPARATOR);
     for (Account account : unmatchedAccounts) {
-      sbToolTip.append("<li>");
+      sbToolTip.append(N12EStockQuotes.LI_BEGIN);
       sbToolTip.append(account.getFullAccountName());
       sbToolTip.append(" ('");
       sbToolTip.append(account.getCurrencyType().getName());
       sbToolTip.append("')");
-      sbToolTip.append("</li>");
+      sbToolTip.append(N12EStockQuotes.LI_END);
     }
-    sbToolTip.append("</ul>");
-    sbToolTip.append("</html>");
+    sbToolTip.append(N12EStockQuotes.UL_END);
+    sbToolTip.append(N12EStockQuotes.HTML_END);
     entry.toolTip = sbToolTip.toString();
   }
 
   private static String getCurrencyAbbreviatedDisplay(CurrencyType currencyType) {
     String result = currencyType.getPrefix();
-    if (!SQUtil.isBlank(result)) return result;
+    if (!StringUtils.isBlank(result)) return result;
     result = currencyType.getSuffix();
-    if (!SQUtil.isBlank(result)) return result;
+    if (!StringUtils.isBlank(result)) return result;
     return currencyType.getIDString();
   }
 
@@ -341,7 +355,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
    * @param rowIndex The row to update, or -1 to update all rows.
    */
   void refreshRow(final int rowIndex) {
-    SQUtil.runOnUIThread(new Runnable() {
+    UiUtil.runOnUIThread(new Runnable() {
       public void run() {
         if (rowIndex < 0) {
           fireTableDataChanged();
@@ -370,7 +384,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
   void batchChangeExchange(final StockExchange newExchange) {
     if (newExchange == null) return;
     final String exchangeId = newExchange.getExchangeId();
-    if (SQUtil.isBlank(exchangeId)) return;
+    if (StringUtils.isBlank(exchangeId)) return;
     for (final SecurityEntry entry : _data) {
       if (!exchangeId.equals(entry.exchangeId)) _model.setDirty();
       entry.exchangeId = exchangeId;

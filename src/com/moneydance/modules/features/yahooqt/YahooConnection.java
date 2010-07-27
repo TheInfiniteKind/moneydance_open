@@ -1,24 +1,25 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.DateRange;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.util.CustomDateFormat;
 import com.moneydance.util.StringUtils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Calendar;
-import java.util.Vector;
 
 /**
- * Created by IntelliJ IDEA.
- * User: Kevin
- * Date: Jun 3, 2010
- * Time: 5:45:34 PM
- * To change this template use File | Settings | File Templates.
+ * Base class for a download connection to the Yahoo! Finance service.
+ *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public abstract class YahooConnection extends BaseConnection {
   /**
@@ -119,12 +120,12 @@ public abstract class YahooConnection extends BaseConnection {
   protected static final String CURRENT_PRICE_FORMAT = "sl1d1t1c1ohgv";
 
   public YahooConnection(StockQuotesModel model) {
-    super(model);
+    super(model, BaseConnection.HISTORY_SUPPORT | BaseConnection.CURRENT_PRICE_SUPPORT);
   }
 
   public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange)
   {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
+    if (StringUtils.isBlank(rawTickerSymbol)) return null;
     String tickerSymbol = rawTickerSymbol.toUpperCase().trim();
     // check if the exchange was already added on, which will override the selected exchange
     int periodIdx = tickerSymbol.lastIndexOf('.');
@@ -140,13 +141,13 @@ public abstract class YahooConnection extends BaseConnection {
     }
     // Check if the selected exchange has a Yahoo suffix or not. If it does, add it.
     String suffix = exchange.getSymbolYahoo();
-    if (SQUtil.isBlank(suffix)) return tickerSymbol;
+    if (StringUtils.isBlank(suffix)) return tickerSymbol;
     return tickerSymbol + suffix;
   }
 
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)
   {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
+    if (StringUtils.isBlank(rawTickerSymbol)) return null;
     // check if this symbol overrides the exchange and the currency code
     int periodIdx = rawTickerSymbol.lastIndexOf('.');
     if(periodIdx>0) {
@@ -221,7 +222,6 @@ public abstract class YahooConnection extends BaseConnection {
     result.append(getCurrentPriceFormat());
     result.append("&e=.csv");            // response format
     return result.toString();
-
   }
 
   protected String getCurrentPriceFormat() {
@@ -233,189 +233,4 @@ public abstract class YahooConnection extends BaseConnection {
     // this is the format it is *supposed* to return, see CURRENT_PRICE_FORMAT
     return "Symbol,Close,Date,Time,Change,Open,High,Low,Volume";
   }
-
-//  @Override
-//  protected Vector<StockRecord> parseCSVHistory(DateRange dateRange, String fullTickerSymbol,
-//                                                double priceMultiplier, BufferedReader in) throws IOException {
-//    boolean gotLine = false;
-//    Vector<StockRecord> records = new Vector<StockRecord>();
-//    _errorCount = 0;
-//    while (true) {
-//      String line = in.readLine();
-//      if (line == null) {
-//        break;
-//      }
-//      if (!gotLine) { // this is the header/title line...
-//        gotLine = true;
-//        continue;
-//      }
-//      line = line.trim();
-//      if (line.startsWith("<!--")) {
-//        continue;
-//      }
-//      if (line.endsWith("-->")) {
-//        continue;
-//      }
-//      if (line.startsWith("Date,Open")) {
-//        continue;
-//      }
-//
-//      if (DEBUG) {
-//        System.err.println(">yahooqt>" + fullTickerSymbol + ">: " + line);
-//      }
-//
-//      String dtStr = StringUtils.fieldIndex(line, ',', 0).trim();
-//      String openStr = StringUtils.fieldIndex(line, ',', 1).trim();
-//      String highStr = StringUtils.fieldIndex(line, ',', 2).trim();
-//      String lowStr = StringUtils.fieldIndex(line, ',', 3).trim();
-//      String closeStr = StringUtils.fieldIndex(line, ',', 4).trim();
-//      String volumeStr = StringUtils.fieldIndex(line, ',', 5).trim();
-//
-//      char dtDelim = '-';
-//      if (dtStr.indexOf('-') > 0) {
-//        dtDelim = '-';
-//      } else {
-//        if (dtStr.indexOf('/') > 0) {
-//          dtDelim = '/';
-//        } else {
-//          if (dtStr.indexOf('.') > 0) {
-//            dtDelim = '.';
-//          }
-//        }
-//      }
-//      String yearStr = StringUtils.fieldIndex(dtStr, dtDelim, 0).trim();
-//      String monthStr = StringUtils.fieldIndex(dtStr, dtDelim, 1).trim();
-//      String dayStr = StringUtils.fieldIndex(dtStr, dtDelim, 2).trim();
-//
-//      if (closeStr.length() <= 0) {
-//        closeStr = StringUtils.fieldIndex(line, ',', 1).trim();
-//      }
-//
-//      try {
-//        Calendar cal = Calendar.getInstance();
-//        cal.setTime(Util.convertIntDateToLong(dateRange.getEndDateInt()));
-//        StockRecord record = new StockRecord();
-//        cal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(dayStr));
-//        cal.set(Calendar.MONTH, Integer.parseInt(monthStr) - 1);
-//        int year = Integer.parseInt(yearStr);
-//        if (year < 50) {
-//          year += 2000;
-//        } else {
-//          if (year < 200) {
-//            year += 1900;
-//          }
-//        }
-//        cal.set(Calendar.YEAR, year);
-//
-//        if (highStr.trim().endsWith("%") || openStr.trim().endsWith("%") ||
-//                lowStr.trim().endsWith("%") || closeStr.trim().endsWith("%")) {
-//          // ignore bond/MMkt percentages
-//          continue;
-//        }
-//
-//        record.date = Util.convertDateToInt(cal.getTime());
-//        if (volumeStr.length() > 0) {
-//          record.volume = Long.parseLong(volumeStr);
-//        }
-//        if (highStr.length() > 0) {
-//          record.highRate = priceMultiplier * StringUtils.parseRate(highStr, '.');
-//        }
-//        if (lowStr.length() > 0) {
-//          record.lowRate = priceMultiplier * StringUtils.parseRate(lowStr, '.');
-//        }
-//        if (openStr.length() > 0) {
-//          record.open = priceMultiplier * StringUtils.parseRate(openStr, '.');
-//        }
-//        if (closeStr.length() > 0) {
-//          record.closeRate = priceMultiplier * StringUtils.parseRate(closeStr, '.');
-//        }
-//        if (record.closeRate != 0) {
-//          records.addElement(record);
-//        }
-//      } catch (Exception e) {
-//        //System.err.println("Error parsing line: "+e);
-//        ++_errorCount;
-//      }
-//    }
-//    return records;
-//  }
-
-//  @Override
-//  protected StockPrice parseCSVQuote(CurrencyType securityCurrency, String fullTickerSymbol, double priceMultiplier, String currency,
-//                                     BufferedReader in) throws IOException, DownloadException {
-//    Calendar cal = Calendar.getInstance();
-//    double price = -1;
-//    StockPrice record = null;
-//    while (true) {
-//      String line = in.readLine();
-//      if (line == null) {
-//        break;
-//      }
-//      line = line.trim();
-//
-//      String closeStr = StringUtils.fieldIndex(line, ',', 1).trim();
-//
-//      if (closeStr.endsWith("%")) //no value provided, but there is a percentage (mutual funds)
-//      {
-//        continue;
-//      }
-//      if (closeStr.length() > 0) {
-//        price = StringUtils.parseRate(closeStr, '.');
-//      }
-//      if (price != 1.0) {
-//        price *= priceMultiplier;
-//      }
-//      if (price == 0.0) {
-//        throw new DownloadException(securityCurrency, "No price quote returned for symbol: "+fullTickerSymbol);
-//      }
-//
-//      if (DEBUG) {
-//        System.err.println(">>yahooqt>" + fullTickerSymbol + ">" + closeStr + ">" + price);
-//      }
-//
-//      record = new StockPrice(currency, price);
-//
-//      String dtStr = StringUtils.fieldIndex(line, ',', 2).trim();
-//      while (dtStr.endsWith("\"")) {
-//        dtStr = dtStr.substring(0, dtStr.length() - 1);
-//      }
-//      while (dtStr.startsWith("\"")) {
-//        dtStr = dtStr.substring(1);
-//      }
-//      char dtDelim = '-';
-//      if (dtStr.indexOf('-') > 0) {
-//        dtDelim = '-';
-//      } else {
-//        if (dtStr.indexOf('/') > 0) {
-//          dtDelim = '/';
-//        } else {
-//          if (dtStr.indexOf('.') > 0) {
-//            dtDelim = '.';
-//          }
-//        }
-//      }
-//
-//      try {
-//        String monthStr = StringUtils.fieldIndex(dtStr, dtDelim, 0).trim();
-//        String dayStr = StringUtils.fieldIndex(dtStr, dtDelim, 1).trim();
-//        String yearStr = StringUtils.fieldIndex(dtStr, dtDelim, 2).trim();
-//        cal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(dayStr));
-//        cal.set(Calendar.MONTH, Integer.parseInt(monthStr) - 1);
-//        int year = Integer.parseInt(yearStr);
-//        if (year < 50) {
-//          year += 2000;
-//        } else {
-//          if (year < 200) {
-//            year += 1900;
-//          }
-//        }
-//        cal.set(Calendar.YEAR, year);
-//        record.date = Util.convertDateToInt(cal.getTime());
-//      } catch (Exception e) {
-//        System.err.println("Error parsing price date: " + e);
-//      }
-//    }
-//    return record;
-//  }
-
 }

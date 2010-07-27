@@ -1,6 +1,11 @@
-/************************************************************\
- *        Copyright (C) 2010 The Infinite Kind, LLC         *
- \************************************************************/
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 
 package com.moneydance.modules.features.yahooqt;
 
@@ -95,6 +100,7 @@ public class StockExchangeList {
   /**
    * Attempt to save the list of exchanges to the configuration file. This only needs to be done
    * once.
+   * @return True if the save succeeded, false otherwise.
    */
   private boolean saveToFile() {
     boolean success = false;

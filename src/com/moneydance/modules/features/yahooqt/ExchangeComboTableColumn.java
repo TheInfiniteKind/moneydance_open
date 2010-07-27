@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
@@ -9,7 +17,6 @@ import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.SwingConstants;
@@ -30,19 +37,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Collection;
-
-/**
- * Created by IntelliJ IDEA.
- * User: Kevin
- * Date: Jun 6, 2010
- * Time: 7:04:50 AM
- * To change this template use File | Settings | File Templates.
- */
 
 /**
  * This class is responsible for building, displaying and handling validation for a combobox based
  * table column.
+ *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public class ExchangeComboTableColumn extends TableColumn
 {
@@ -50,7 +50,7 @@ public class ExchangeComboTableColumn extends TableColumn
    * Background color for disabled combo boxes. This makes the combo box look like the reset of
    * the cells in the table.
    */
-  private static final Color BACKGROUD_DISABLED = UIManager.getColor("window");
+  private static final Color BACKGROUND_DISABLED = UIManager.getColor("window");
 
   /**
    * Foreground color for disabled combo boxes. This makes the combo box look like the rest of the
@@ -99,11 +99,6 @@ public class ExchangeComboTableColumn extends TableColumn
   private final IExchangeEditor _exchangeEditor;
 
   /**
-   * The list of combobox items.
-   */
-  private StockExchange[] _items;
-
-  /**
    * Initialize the combo column with the type and items for the combo box. You can specify
    * whether to show a dropdown arrow or not.
    *
@@ -111,13 +106,13 @@ public class ExchangeComboTableColumn extends TableColumn
    * @param modelIndex Column index in the column model.
    * @param width      Preferred width in pixels.
    * @param items      The items to add to the combo box.
+   * @param exchangeEditor Callback interface for editing an individual exchange.
    * @param showArrow  True to show a dropdown arrow, false to hide it.
    */
   public ExchangeComboTableColumn(MoneydanceGUI mdGui, int modelIndex, int width, StockExchange[] items,
                                   IExchangeEditor exchangeEditor, boolean showArrow) {
     super(modelIndex, width);
     _exchangeEditor = exchangeEditor;
-    _items = items;
 
     setCellRenderer(new ComboCellRenderer(mdGui, showArrow));
     setCellEditor(new ComboCellEditor(items));
@@ -125,37 +120,6 @@ public class ExchangeComboTableColumn extends TableColumn
     renderer.setIsHeaderCell(true);
     setHeaderRenderer(renderer);
   }
-
-  /**
-   * Set the combo box items.
-   *
-   * @param items The combo box items.
-   */
-  public void setItems(final Collection<StockExchange> items) {
-    setItems(items.toArray(new StockExchange[items.size()]));
-  }
-
-  /**
-   * Set the combo box items.
-   *
-   * @param items The combo box items.
-   */
-  private void setItems(final StockExchange[] items) {
-    _items = items;
-    ((ComboCellEditor) getCellEditor()).setItems(items);
-  }
-
-  /**
-   * Return the list of items contained in ths combo box.
-   *
-   * @return The list of available items.
-   */
-  public StockExchange[] getItems() {
-    final StockExchange[] copy = new StockExchange[_items.length];
-    System.arraycopy(_items, 0, copy, 0, _items.length);
-    return copy;
-  }
-
 
   /**
    * The combo box cell renderer used to render the cell when the table is not in edit mode.
@@ -221,7 +185,7 @@ public class ExchangeComboTableColumn extends TableColumn
      * @param hasFocus         If keyboard focus is on the cell.
      * @return The border object for drawing the border
      */
-    protected Border getComponentBorder(final boolean drawingForEditor, final boolean hasFocus) {
+    Border getComponentBorder(final boolean drawingForEditor, final boolean hasFocus) {
       if (_isHeaderCell) return UIManager.getBorder("TableHeader.cellBorder");
       if (drawingForEditor || hasFocus) {
         if (_showArrow) {
@@ -247,15 +211,8 @@ public class ExchangeComboTableColumn extends TableColumn
    */
   private final class ComboCellEditor
           extends DefaultCellEditor implements ActionListener {
-    /**
-     * The component to display in the cells.
-     */
+    /** The component to display in the cells.  */
     private final JComboBox _comboBox;
-
-    /**
-     * The combo box list model.
-     */
-    private final ComboListModel _listModel;
 
     /**
      * Initialize the combo box editor and sets up the cell to have the same look and feel as
@@ -267,9 +224,7 @@ public class ExchangeComboTableColumn extends TableColumn
     ComboCellEditor(final Object[] items) {
       super(new JComboBox(new ComboListModel(items)));
       _comboBox = (JComboBox)editorComponent;
-      _listModel = (ComboListModel) _comboBox.getModel();
       _comboBox.setOpaque(false);
-//      _comboBox.setBorder(UIManager.getBorder(N12EUIManager.TABLE_CELL_BORDER));
       if (_comboBox.getUI() instanceof MetalComboBoxUI) {
         _comboBox.setUI(new MetalTableComboBoxUI());
       }
@@ -281,7 +236,7 @@ public class ExchangeComboTableColumn extends TableColumn
       // each time a selection is highlighted in the dropdown, the action event occurs.
       _comboBox.putClientProperty("JComboBox.isTableCellEditor", Boolean.TRUE);
 
-      // must listen for the action event so we can hide the popup menu and fireeditingStopped
+      // must listen for the action event so we can hide the popup menu and fireEditingStopped
       _comboBox.addActionListener(this);
 
       _comboBox.addMouseListener(new MouseAdapter() {
@@ -301,15 +256,6 @@ public class ExchangeComboTableColumn extends TableColumn
     }
 
     /**
-     * Fill in any necessary data for the current cell editor component.
-     *
-     * @param value The value of the cell.
-     */
-    public void setCellEditorValue(final Object value) {
-      _comboBox.setSelectedItem(value);
-    }
-
-    /**
      * Returns the value contained in the editor.
      *
      * @return the value contained in the editor
@@ -326,15 +272,6 @@ public class ExchangeComboTableColumn extends TableColumn
     public void actionPerformed(final ActionEvent event) {
       _comboBox.hidePopup();
       stopCellEditing();
-    }
-
-    /**
-     * Set the combo box items.
-     *
-     * @param items The combo box items.
-     */
-    public void setItems(final Object[] items) {
-      _listModel.set(items);
     }
   }
 
@@ -360,7 +297,7 @@ public class ExchangeComboTableColumn extends TableColumn
 
           // Set the background and foreground to the combobox colors.
           if (!enabled) {
-            setBackground(BACKGROUD_DISABLED);
+            setBackground(BACKGROUND_DISABLED);
             setForeground(FOREGROUND_DISABLED);
           }
         }
@@ -416,22 +353,12 @@ public class ExchangeComboTableColumn extends TableColumn
     private Object _selectedObject;
 
     /**
-     * Initalize the combo box model.
+     * Initialize the combo box model.
      *
      * @param items The initial set of items.
      */
     ComboListModel(final Object[] items) {
       _items = items;
-    }
-
-    /**
-     * Set the combo box items and fire a structure change.
-     *
-     * @param items the items to set.
-     */
-    public void set(final Object[] items) {
-      _items = items;
-      fireContentsChanged(this, -1, -1);
     }
 
     /**

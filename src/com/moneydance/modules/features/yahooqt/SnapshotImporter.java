@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.Util;
@@ -30,6 +38,8 @@ public abstract class SnapshotImporter
 {
   protected final CurrencyType _currency;
   protected final Vector<StockRecord> _importRecords = new Vector<StockRecord>();
+  protected final ResourceProvider _resources;
+
   /**
    * This is the decimal character selected by the user, which can be used only if the data is not
    * comma-delimited.
@@ -74,15 +84,17 @@ public abstract class SnapshotImporter
 
   /**
    * Constructor to allow input fields to be final.
+   * @param resources          Object to look up localized resources.
    * @param currency           The currency whose history will be updated from the input stream.
    * @param expectedDateFormat The user-specified date format.
    * @param userDecimal        The user-specified character to use as a decimal point.
    */
-  public SnapshotImporter(CurrencyType currency, SimpleDateFormat expectedDateFormat,
-                          char userDecimal) {
+  public SnapshotImporter(ResourceProvider resources, CurrencyType currency,
+                          SimpleDateFormat expectedDateFormat, char userDecimal) {
     _currency = currency;
     _expectedDateFormat = expectedDateFormat;
     _userDecimal = userDecimal;
+    _resources = resources;
   }
 
   /**
@@ -316,7 +328,24 @@ public abstract class SnapshotImporter
 
   public boolean apply(CurrencyType baseCurrency) {
     if (_importRecords.isEmpty()) return false;
-    for (StockRecord record :_importRecords) addOrUpdateSnapshot(_currency, baseCurrency, record);
+    int latestDate = 0;
+    double latestRate = 0.0;
+    for (StockRecord record :_importRecords) {
+      CurrencyType.Snapshot snap = addOrUpdateSnapshot(_currency, baseCurrency, record);
+      if ((snap.getDateInt() > latestDate) && (snap.getUserRate() > 0.0)) {
+        latestDate = snap.getDateInt();
+        latestRate = snap.getUserRate();
+      }
+    }
+    // if more recent, update the current price too
+    if (latestDate > 0) {
+      final long longLatestDate = Util.convertIntDateToLong(latestDate).getTime();
+      if ((_currency.getTag("price_date")==null) ||
+          (Long.parseLong(_currency.getTag("price_date")) < longLatestDate)) {
+        _currency.setUserRate(latestRate);
+        _currency.setTag("price_date", String.valueOf(longLatestDate));
+      }
+    }
     return true;
   }
 
@@ -326,16 +355,14 @@ public abstract class SnapshotImporter
 
   protected abstract void onBeginImport();
   protected abstract void onEndImport(int errorCount);
+  protected abstract boolean isInputStreamValid();
+  protected abstract BufferedReader getInputStream() 
+          throws IOException, DownloadException, NumberFormatException;
 
-  private static CurrencyType.Snapshot addOrUpdateSnapshot(CurrencyType currency, CurrencyType baseCurrency, StockRecord record)
+  private static CurrencyType.Snapshot addOrUpdateSnapshot(CurrencyType currency,
+                                                           CurrencyType baseCurrency,
+                                                           StockRecord record)
   {
-//    final double newRate = CurrencyTable.convertToBasePrice(1.0 / record.closeRate, baseCurrency,
-//            record.date);
-//    CurrencyType.Snapshot result = currency.setSnapshotInt(record.date, newRate);
-//    // downloaded values are prices in a certain currency, change to rates for the stock history
-//    result.setUserDailyHigh(CurrencyTable.convertToBasePrice(1.0 / record.highRate, baseCurrency, record.date));
-//    result.setUserDailyLow(CurrencyTable.convertToBasePrice(1.0 / record.lowRate, baseCurrency, record.date));
-//    result.setDailyVolume(record.volume);
     final double newRate = CurrencyTable.convertToBasePrice(record.closeRate, baseCurrency,
             record.date);
     CurrencyType.Snapshot result = currency.setSnapshotInt(record.date, newRate);
@@ -362,7 +389,7 @@ public abstract class SnapshotImporter
    * all of the string, there is no BOM.
    */
   private static int findUnicodeBOM(String text) {
-    if (SQUtil.isBlank(text)) return 0;
+    if (StringUtils.isBlank(text)) return 0;
     int offset = 0;
     for (int index = 0; index < text.length(); index++) {
       if (!isSpecial(text.charAt(index))) break;
@@ -528,56 +555,6 @@ public abstract class SnapshotImporter
     return matches;
   }
 
-//  private boolean matchesPattern(String candidate, String pattern) {
-//    int index = 0;
-//    int patternIndex = 0;
-//    while ((patternIndex < pattern.length()) && (index < candidate.length())) {
-//      char patternChar = pattern.charAt(patternIndex);
-//      if ((patternChar == 'd') || (patternChar == 'D') || (patternChar == 'm') || (patternChar == 'M')
-//              || (patternChar == 'y') || (patternChar == 'Y')) {
-//        if (!Character.isDigit(candidate.charAt(index))) {
-//          return false;
-//        }
-//        // advance to the delimiter in each, counting the length of the numbers
-//        int candidateCount = 0;
-//        while ((index < candidate.length()) && Character.isDigit(candidate.charAt(index))) {
-//          ++index;
-//          ++candidateCount;
-//        }
-//        int patternCount = 0;
-//        while ((patternIndex < pattern.length()) && Character.isLetter(pattern.charAt(patternIndex))) {
-//          ++patternIndex;
-//          ++patternCount;
-//        }
-//        if ((index >= candidate.length()) && (patternIndex >= pattern.length())) {
-//          return true;
-//        }
-//        // do the delimiters match?
-//        if (candidate.charAt(index) != pattern.charAt(patternIndex)) {
-//          return false;
-//        }
-//        // the length has to be within one
-//        if (Math.abs(patternCount - candidateCount) > 1) return false;
-//
-//        // move to the next digit
-//        ++index;
-//      } else {
-//        // check if the delimiter matches. First advance the candidate position one more digit in
-//        // case the pattern contains one 'd' or 'm' that expands to two digits
-//        if (Character.isDigit(candidate.charAt(index))) {
-//          ++index;
-//        }
-//        if (candidate.charAt(index) != patternChar) {
-//          // not a match, the delimiters are different
-//          return false;
-//        }
-//        ++index;
-//      }
-//      ++patternIndex;
-//    }
-//    return true;
-//  }
-
   private double parseUserRate(String doubleStr, double defaultValue, double multiplier) {
     String value = stripQuotes(doubleStr);
     if (StringUtils.isBlank(value)) return defaultValue;
@@ -616,10 +593,6 @@ public abstract class SnapshotImporter
     if (tabCount >= commaCount) return '\t';
     return ',';
   }
-
-  protected abstract boolean isInputStreamValid();
-
-  protected abstract BufferedReader getInputStream() throws IOException, DownloadException, NumberFormatException;
 
   private static boolean containsNoText(String candidate) {
     boolean containsText = true;

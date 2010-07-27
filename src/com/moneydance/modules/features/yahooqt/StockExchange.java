@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.model.CurrencyType;
@@ -19,7 +27,8 @@ public class StockExchange implements Comparable<StockExchange> {
    * so the assumption is that the stock can be looked up for a quote without any additional
    * information. For U.S. stocks this is typically true.
    */
-  static final StockExchange DEFAULT = StockExchange.createFromCSV("Default,USD,,,,1.0,U.S. Dollar,United States,Eastern Standard Time (EST),-5,,,", "DEFAULT");
+  static final StockExchange DEFAULT = StockExchange.createFromCSV("Default,USD,,,,1.0"+
+          ",U.S. Dollar,United States,Eastern Standard Time (EST),-5,,,", "DEFAULT");
 
   private static final String ID_KEY = "id";
   private static final String NAME_KEY = "name";
@@ -88,7 +97,7 @@ public class StockExchange implements Comparable<StockExchange> {
    * <code>null</code> if an entry could not be created.
    */
   public static StockExchange createFromCSV(String csvEntry, String id) {
-    if (SQUtil.isBlank(csvEntry)) return null;
+    if (StringUtils.isBlank(csvEntry)) return null;
     String[] segments  = csvEntry.split(",");
     StockExchange result = new StockExchange();
     result._name = getCSVEntry(segments[0]);
@@ -139,13 +148,13 @@ public class StockExchange implements Comparable<StockExchange> {
   }
 
   private static String getIdCode(String symbol) {
-    if (SQUtil.isBlank(symbol)) return "0";
+    if (StringUtils.isBlank(symbol)) return "0";
     String result = symbol.toLowerCase();
     return (result.indexOf('.') == 0) ? result.substring(1) : result;
   }
 
   private static String getCSVEntry(final String rawText) {
-    if (SQUtil.isBlank(rawText)) return "";
+    if (StringUtils.isBlank(rawText)) return "";
     return rawText.trim();
   }
 
@@ -243,7 +252,7 @@ public class StockExchange implements Comparable<StockExchange> {
     _timePreMarket = settings.getStr(PRE_MTR_KEY, "");
     _timeMarket = settings.getStr(MTR_KEY, "");
     _timePostMarket = settings.getStr(POST_MTR_KEY, "");
-    if (SQUtil.isBlank(_id) || ("-".equals(_id))) _id = createIdFromEntry(this);
+    if (StringUtils.isBlank(_id) || ("-".equals(_id))) _id = createIdFromEntry(this);
   }
   
   StreamTable saveToSettings() {

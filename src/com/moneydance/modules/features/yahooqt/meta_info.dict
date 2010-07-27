@@ -1,9 +1,9 @@
 {
   "vendor" = "<html><body>The Infinite Kind, LLC and Menn&#0275; Software Solutions, LLC</body></html>"
   "vendor.url" = "http://moneydance.com/"
-  "module_name" = "Yahoo!\u00ae Finance Downloader"
-  "module_desc" = "<html><body><title>Yahoo!&reg; Finance Downloader</title><p>This is an extension that downloads financial data from Yahoo! and Google</p></body></html>"
+  "module_name" = "Security Price and Exchange Rate Downloader"
+  "module_desc" = "<html><body><title>Yahoo!&reg; and Google&trade; Finance Downloader</title><p>This is an extension that downloads financial data from Yahoo! and Google</p></body></html>"
   "desc" = "This is an extension that downloads stock quotes and exchange rates from Yahoo! and Google"
-  "id" = yahooqt
-  "module_build" = 43
+  "id" = "yahooqt"
+  "module_build" = 51
 }

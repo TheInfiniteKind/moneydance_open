@@ -1,6 +1,10 @@
-/************************************************************\
- *      Copyright (C) 2003 Reilly Technologies, L.L.C.      *
- \************************************************************/
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.yahooqt;
 
@@ -8,37 +12,22 @@ import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.PreferencesListener;
 import com.moneydance.apps.md.controller.UserPreferences;
+import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.model.RootAccount;
+import com.moneydance.apps.md.model.time.TimeInterval;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.util.StringUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.ByteArrayOutputStream;
-import java.util.Date;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.ResourceBundle;
-
-// TODO: Figure out what to do about currency - currency of stock download might not match currency of
-// TODO:    the account. Currently there's just a tooltip/message that warns of the mismatch.
-// TODO: There may still be issues with background updates in the settings dialog.
-// TODO: When loading a file during a download (user switches files during download), download is not canceled
-// TODO: Exchange rates are always updated - whether or not I set the indicator. (possibly fixed)
-// TODO: NASDAQ appends a suffix for Yahoo, shouldn't (exchanges can now be edited, so this might be okay)
-// TODO: Exchanges are now screened by currency - if the main file doesn't have the currency for the
-// TODO:    exchange, the exchange is hidden. Find out if this is okay for the users.
-// TODO: Possible blank quotes - check mark for Quote but get: "Quote: £" for symbol GB0003874798GBP
-// TODO: Combine two checkboxes for downloaded quotes/exchange rates to a simpler combo box
-// TODO: Change the date setting to a simple combo "Daily, Weekly, Monthly" and add a "Next date:" label
-// TODO:    User clicks on date and up comes calendar to pick the next update date.
-// TODO: Find all the other TODOs and address them (most of them are for language translations)
-// TODO: Change messages from "Downloading {name}..." to "Downloaded {name}, current price: {price}"
-// TODO: Implement better logging messages that are generated along with the display messages
-// TODO: Consider recompiling with MD2008 jar and fixing issues so it runs with MD2008
-// TODO: Rebuild with Java 1.5 JDK and verify it works with Java 1.5
-// TODO: Remove unused code, like StockConnection and stuff that's commented out
-// TODO: Update name of the extension since it is more than Yahoo now
 
 /**
  * Pluggable module used to allow users to download stock quote information from quote.yahoo.com
@@ -52,15 +41,12 @@ public class Main
 
   static final String RATE_LAST_UPDATE_KEY = "yahooqt.rateLastUpdate";
   static final String AUTO_UPDATE_KEY = "yahooqt.autoUpdate";
-  static final String UPDATE_FREQUENCY_KEY = "yahooqt.updateFrequency";
-  static final String DOWNLOAD_QUOTES_KEY = "yahooqt.downloadQuotes";
+  static final String UPDATE_INTERVAL_KEY = "yahooqt.updateInterval";
   static final String QUOTE_LAST_UPDATE_KEY = "yahooqt.quoteLastUpdate";
-  static final String DOWNLOAD_RATES_KEY = "yahooqt.downloadRates";
-  /** Parameter saved to the data file for which connection to use. */
-  static final String CONNECTION_KEY = "yahooqt.connection";
-  static final String MD_OPEN_EVENT_ID = "md:file:opened";
-  static final String MD_CLOSING_EVENT_ID = "md:file:closing";
-  static final String MD_EXITING_EVENT_ID = "md:app:exiting";
+  /** Parameters saved to the data file for which connections to use. */
+  static final String HISTORY_CONNECTION_KEY = "yahooqt.historyConnection";
+  static final String CURRENT_PRICE_CONNECTION_KEY = "yahooqt.currentPriceConnection";
+  static final String EXCHANGE_RATES_CONNECTION_KEY = "yahooqt.exchangeRatesConnection";
 
   private final PreferencesListener _prefListener = new QuotesPreferencesListener();
   private final PropertyChangeListener _progressListener = new QuotesProgressListener();
@@ -68,7 +54,7 @@ public class Main
   private ResourceBundle _resources;
 
   public Main() {
-    _model = new StockQuotesModel(this);
+    _model = new StockQuotesModel();
   }
   
   public void init() {
@@ -76,6 +62,7 @@ public class Main
     // via the application toolbar
     FeatureModuleContext context = getContext();
     loadResources();
+    _model.setResources(this);
     context.registerFeature(this, SHOW_DIALOG_COMMAND, getIcon(), getName());
     addPreferencesListener();
     MoneydanceGUI mdGUI = (MoneydanceGUI)((com.moneydance.apps.md.controller.Main) context).getUI();
@@ -95,8 +82,34 @@ public class Main
   void loadResources() {
     Locale locale = ((com.moneydance.apps.md.controller.Main) getContext())
             .getPreferences().getLocale();
-    _resources = ResourceBundle.getBundle(N12EStockQuotes.RESOURCES, locale,
-            new XmlResourceControl());
+    String englishFile = N12EStockQuotes.ENGLISH_PROPERTIES_FILE;
+    InputStream englishInputStream = getClass().getResourceAsStream(englishFile);
+    try {
+      XmlResourceBundle englishBundle = new XmlResourceBundle(englishInputStream);
+      if (!locale.equals(Locale.US)) {
+        // load the localized file and set US English as its parent
+        String localizedFile = MessageFormat.format(N12EStockQuotes.PROPERTIES_FILE_FMT,
+                locale.toString());
+        InputStream targetInputStream = getClass().getResourceAsStream(localizedFile);
+        if (targetInputStream == null) {
+          // try just the language
+          localizedFile = MessageFormat.format(N12EStockQuotes.PROPERTIES_FILE_FMT,
+                  locale.getLanguage());
+          targetInputStream = getClass().getResourceAsStream(localizedFile);
+        }
+        if (targetInputStream != null) {
+          _resources = new XmlResourceBundle(targetInputStream, englishBundle);
+        } else {
+          // could not find a match, default to English
+          _resources = englishBundle;
+        }
+      } else {
+        _resources = englishBundle;
+      }
+    }
+    catch (IOException error) {
+      System.err.println(N12EStockQuotes.XML_RESOURCE_LOAD_FAIL);
+    }
   }
 
   public String getString(final String key) {
@@ -104,69 +117,39 @@ public class Main
     return _resources.getString(key);
   }
 
-  private void updateIfNeeded() {
-    RootAccount account = _model.getRootAccount();
-    String name = account.getAccountName();
-    UserPreferences preferences = _model.getPreferences();
-    if (preferences.getBoolSetting(AUTO_UPDATE_KEY, false)) {
-      Frequency frequency = getUpdateFrequency();
-      MDDate today = new MDDate();
-
-      MDDate lastUpdateDate = getQuotesLastUpdateDate(name, account);
-      MDDate nextUpdateDate = frequency.next(lastUpdateDate);
-      if (nextUpdateDate.equals(today) || nextUpdateDate.isBefore(today)) {
-        getQuotes();
-        account.setParameter(QUOTE_LAST_UPDATE_KEY, today.toString());
-      }
-      lastUpdateDate = getRatesLastUpdateDate(name, account);
-      nextUpdateDate = frequency.next(lastUpdateDate);
-      if (nextUpdateDate.equals(today) || nextUpdateDate.isBefore(today)) {
-        getRates();
-        account.setParameter(RATE_LAST_UPDATE_KEY, today.toString());
-      }
-    }
+  /**
+   * Update prices and exchange rates if today's date is on or after the next update date.
+   * @param delayStart True if the download should be delayed for a bit, because a new file is
+   * being loaded and all the startup stuff needs to be done first.
+   */
+  private void updateIfNeeded(boolean delayStart) {
+    _model.runUpdateIfNeeded(delayStart, _progressListener);
   }
 
-  private MDDate getQuotesLastUpdateDate(String prefix, RootAccount account) {
-    MDDate lastUpdateDate;
-    try {
-      lastUpdateDate = MDDate.fromString(account.getParameter(QUOTE_LAST_UPDATE_KEY));
-    } catch (IllegalArgumentException e) {
-      lastUpdateDate = new MDDate(new Date(0L));
-    }
-    return lastUpdateDate;
+  static int getQuotesLastUpdateDate(RootAccount rootAccount) {
+    return rootAccount.getIntParameter(QUOTE_LAST_UPDATE_KEY, 0);
   }
 
-  private MDDate getRatesLastUpdateDate(String prefix, RootAccount account) {
-    MDDate lastUpdateDate;
-    try {
-      lastUpdateDate = MDDate.fromString(account.getParameter(RATE_LAST_UPDATE_KEY));
-    } catch (IllegalArgumentException e) {
-      lastUpdateDate = new MDDate(new Date(0L));
-    }
-    return lastUpdateDate;
+  static int getRatesLastUpdateDate(RootAccount rootAccount) {
+    return rootAccount.getIntParameter(RATE_LAST_UPDATE_KEY, 0);
   }
 
-  private Frequency getUpdateFrequency() {
-    Frequency frequency;
-    try {
-      frequency = SimpleFrequency.fromString(_model.getPreferences().getSetting(UPDATE_FREQUENCY_KEY));
-    } catch (IllegalArgumentException e) {
-      frequency = TimeUnit.MONTH;
-    }
-    return frequency;
+  static TimeInterval getUpdateFrequency(UserPreferences preferences) {
+    String paramStr = preferences.getSetting(UPDATE_INTERVAL_KEY, "");
+    if (StringUtils.isBlank(paramStr)) return TimeInterval.MONTH;
+    return TimeInterval.fromChar(paramStr.charAt(0));
   }
 
-  private void update() {
-    UserPreferences preferences = _model.getPreferences();
-    if (preferences.getBoolSetting(DOWNLOAD_QUOTES_KEY, false)) {
+  private void updateNow() {
+    RootAccount rootAccount = _model.getRootAccount();
+    if (rootAccount == null) return; // nothing to do
+    if (_model.isStockPriceSelected()) {
       getQuotes();
     }
-    if (preferences.getBoolSetting(DOWNLOAD_RATES_KEY, false)) {
+    if (_model.isExchangeRateSelected()) {
       getRates();
     }
   }
-
 
   static Image getIcon() {
     try {
@@ -189,12 +172,13 @@ public class Main
   @Override
   public void handleEvent(String s) {
     super.handleEvent(s);
-    if (MD_OPEN_EVENT_ID.equals(s)) {
+    if (N12EStockQuotes.MD_OPEN_EVENT_ID.equals(s)) {
       // cancel any running update
       _model.cancelCurrentTask();
       _model.setData(getContext().getRootAccount());
-      updateIfNeeded();
-    } else if (MD_CLOSING_EVENT_ID.equals(s) || MD_EXITING_EVENT_ID.equals(s)) {
+      updateIfNeeded(true); // delay the start of downloading a bit to allow MD to finish up loading
+    } else if (N12EStockQuotes.MD_CLOSING_EVENT_ID.equals(s) ||
+            N12EStockQuotes.MD_EXITING_EVENT_ID.equals(s)) {
       // cancel any running update
       _model.cancelCurrentTask();
       _model.setData(null);
@@ -212,7 +196,7 @@ public class Main
     }
 
     if (UPDATE_COMMAND.equals(command)) {
-      update();
+      updateNow();
     } else {
       if (SHOW_DIALOG_COMMAND.equals(command)) {
         // should invoke later so this can be returned to its thread
@@ -220,7 +204,7 @@ public class Main
           public void run() {
             YahooDialog dialog = new YahooDialog(getContext(), Main.this, _model);
             dialog.setVisible(true);
-            if (dialog.userAcceptedChanges()) updateIfNeeded();
+            if (dialog.userAcceptedChanges()) updateIfNeeded(false);
           }
         });
       }
@@ -229,26 +213,28 @@ public class Main
 
   public String getName() {
     String name = getString(L10NStockQuotes.TITLE);
-    if (SQUtil.isBlank(name)) {
+    if (StringUtils.isBlank(name)) {
       name = N12EStockQuotes.TITLE;
     }
     return name;
   }
 
   private void getQuotes() {
-    _model.addPropertyChangeListener(_progressListener);
-    _model.runStockPriceDownload();
+    _model.runStockPriceDownload(_progressListener);
   }
 
   private void getRates() {
-    _model.addPropertyChangeListener(_progressListener);
-    _model.runRatesDownload();
+    _model.runRatesDownload(_progressListener);
   }
 
   private void showProgress(float progress, String label) {
-    getContext().showURL("moneydance:setprogress:meter=" +
-        SQUtil.urlEncode(String.valueOf(progress)) +
-        (label == null ? "" : "&label=" + SQUtil.urlEncode(label)));
+    StringBuilder sb = new StringBuilder("moneydance:setprogress:meter=");
+    sb.append(SQUtil.urlEncode(String.valueOf(progress)));
+    if (label != null) {
+      sb.append("&label=");
+      sb.append(SQUtil.urlEncode(label));
+    }
+    getContext().showURL(sb.toString());
   }
 
   private void addPreferencesListener() {
@@ -286,11 +272,20 @@ public class Main
         final float progress = Float.valueOf((String)event.getOldValue()).floatValue();
         final String status = (String) event.getNewValue();
         showProgress(progress, status);
-      } else if (N12EStockQuotes.DOWNLOAD_BEGIN.equals(name)) {
       } else if (N12EStockQuotes.DOWNLOAD_END.equals(name)) {
-        _model.removePropertyChangeListener(_progressListener);
-      }
-    }
-  }
+        Boolean result = (Boolean)event.getNewValue();
+        String taskName = (String)event.getOldValue();
+        if (result.booleanValue()) {
+          // the download was successful, update last success date
+          int today = Util.getStrippedDateInt();
+          if (DownloadRatesTask.NAME.equals(taskName)) {
+            _model.getRootAccount().setParameter(RATE_LAST_UPDATE_KEY, today);
+          } else if (DownloadQuotesTask.NAME.equals(taskName)) {
+            _model.getRootAccount().setParameter(QUOTE_LAST_UPDATE_KEY, today);
+          }
+        }
+      } // download ended
+    } // propertyChange
+  } // QuotesProgressListener
 }
 

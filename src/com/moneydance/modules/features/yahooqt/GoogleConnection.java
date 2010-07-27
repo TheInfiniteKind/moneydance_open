@@ -1,8 +1,15 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.DateRange;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.util.CustomDateFormat;
 import com.moneydance.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -24,22 +31,23 @@ import java.util.Locale;
  * output = output the data in a format (I think it currently supports CSV only)
  * http://www.google.com/finance/historical?q=LON:VOD&startdate=Jun+1%2C+2010&enddate=Jun+19%2C+2010&output=csv
  *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public class GoogleConnection extends BaseConnection {
   // http://finance.google.co.uk/finance/historical?q=LON:VOD&startdate=Oct+1,2008&enddate=Oct+9,2008&output=csv
-  private static final String HISTORY_URL_BASE =       "http://www.google.com/finance/historical";
+  private static final String HISTORY_URL_BASE = "http://www.google.com/finance/historical";
   private final String _displayName;
-  static final String PREFS_KEY = "google";
+  private static final String PREFS_KEY = "google";
   private final DateFormat _dateFormat;
 
   public GoogleConnection(StockQuotesModel model, String displayName) {
-    super(model);
+    super(model, BaseConnection.HISTORY_SUPPORT);
     _displayName = displayName;
     // example for 6/19/2010 = Jun+19%2C+2010
     _dateFormat = new SimpleDateFormat("MMM+d,+yyyy", Locale.US);
   }
 
-  protected final String getHistoryBaseUrl() { return HISTORY_URL_BASE; }
+  final String getHistoryBaseUrl() { return HISTORY_URL_BASE; }
 
   @Override
   protected SimpleDateFormat getExpectedDateFormat(boolean getFullHistory) {
@@ -56,7 +64,7 @@ public class GoogleConnection extends BaseConnection {
 
   public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange)
   {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
+    if (StringUtils.isBlank(rawTickerSymbol)) return null;
     String tickerSymbol = rawTickerSymbol.toUpperCase().trim();
     // check if the exchange was already added on, which will override the selected exchange
     int colonIndex = tickerSymbol.lastIndexOf(':');
@@ -72,13 +80,13 @@ public class GoogleConnection extends BaseConnection {
     }
     // Check if the selected exchange has a Google suffix or not. If it does, add it.
     String prefix = exchange.getSymbolGoogle();
-    if (SQUtil.isBlank(prefix)) return tickerSymbol;
+    if (StringUtils.isBlank(prefix)) return tickerSymbol;
     return prefix + ":" + tickerSymbol;
   }
 
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)
   {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
+    if (StringUtils.isBlank(rawTickerSymbol)) return null;
     // check if this symbol overrides the exchange and the currency code
     int periodIdx = rawTickerSymbol.lastIndexOf(':');
     if(periodIdx>0) {

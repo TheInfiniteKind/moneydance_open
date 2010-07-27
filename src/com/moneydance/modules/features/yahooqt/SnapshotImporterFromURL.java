@@ -1,26 +1,28 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.URLUtil;
 import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.util.CustomDateFormat;
+import com.moneydance.util.StringUtils;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.DateFormat;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 
 /**
- * Created by IntelliJ IDEA.
- * User: Kevin
- * Date: Jun 13, 2010
- * Time: 6:46:16 AM
- * To change this template use File | Settings | File Templates.
+ * Imports snapshot price data from a URL, assumes CSV format is returned.
+ *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public class SnapshotImporterFromURL extends SnapshotImporter {
   private final String _urlString;
@@ -28,13 +30,14 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
   /**
    * Constructor to allow input fields to be final.
    * @param url          The URL to read the data from.
+   * @param resources    Object to look up localized resources.
    * @param currency     The currency whose history will be updated from the file.
    * @param dateFormat   The user-specified date format.
    * @param userDecimal  The user-specified character to use as a decimal point.
    */
-  public SnapshotImporterFromURL(String url, CurrencyType currency, SimpleDateFormat dateFormat,
-                          char userDecimal) {
-    super(currency, dateFormat, userDecimal);
+  public SnapshotImporterFromURL(String url, ResourceProvider resources, CurrencyType currency,
+                          SimpleDateFormat dateFormat, char userDecimal) {
+    super(resources, currency, dateFormat, userDecimal);
     _urlString = url;
   }
 
@@ -50,11 +53,12 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
 
   @Override
   protected boolean isInputStreamValid() {
-    return (!SQUtil.isBlank(_urlString));
+    return (!StringUtils.isBlank(_urlString));
   }
 
   @Override
-  protected BufferedReader getInputStream() throws IOException, DownloadException, NumberFormatException
+  protected BufferedReader getInputStream()
+          throws IOException, DownloadException, NumberFormatException
   {
     URL url = new URL(_urlString);
     HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
@@ -65,21 +69,23 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
       respCode = urlConn.getResponseCode();
       error = false;
     } catch (IOException e) {
-      errorText = "Communication";
+      errorText = _resources.getString(L10NStockQuotes.IMPORT_ERROR_COMM);
     } catch (NumberFormatException e) {
-      errorText = "Invalid Data";
+      errorText = _resources.getString(L10NStockQuotes.IMPORT_ERROR_NUMBER);
     } catch (Exception ex) {
-      errorText = "Unknown: "+ex.getMessage();
+      errorText = ex.getMessage();
     }
     if (error) {
       final String responseMessage = urlConn.getResponseMessage();
-      final String message = "Error: "+errorText+", received response message '" + responseMessage;
+      final String message = MessageFormat.format(
+              _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_FMT), errorText, responseMessage);
       throw new DownloadException(_currency, message);
     }
     if(respCode<200 || respCode >= 300) {
       final String responseMessage = urlConn.getResponseMessage();
-      final String message = "Received response code " + respCode + " and message '" +
-              responseMessage + "'";
+      final String message = MessageFormat.format(
+              _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_CODE_FMT),
+              Integer.valueOf(respCode), responseMessage);
       throw new DownloadException(_currency, message);
     }
 

@@ -1,7 +1,14 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.util.CustomDateFormat;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,11 +19,9 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 
 /**
- * Created by IntelliJ IDEA.
- * User: Kevin
- * Date: Jun 13, 2010
- * Time: 6:46:16 AM
- * To change this template use File | Settings | File Templates.
+ * Imports snapshot price data from a CSV file on disk.
+ *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public class SnapshotImporterFromFile extends SnapshotImporter {
   private final File _file;
@@ -24,13 +29,15 @@ public class SnapshotImporterFromFile extends SnapshotImporter {
   /**
    * Constructor to allow input fields to be final.
    * @param fileToImport The file to read price history from.
+   * @param resources    Object to look up localized resources.
    * @param currency     The currency whose history will be updated from the file.
    * @param dateFormat   The user-specified date format.
    * @param userDecimal  The user-specified character to use as a decimal point.
    */
-  public SnapshotImporterFromFile(File fileToImport, CurrencyType currency, SimpleDateFormat dateFormat,
-                          char userDecimal) {
-    super(currency, dateFormat, userDecimal);
+  public SnapshotImporterFromFile(File fileToImport, ResourceProvider resources,
+                                  CurrencyType currency, SimpleDateFormat dateFormat,
+                                  char userDecimal) {
+    super(resources, currency, dateFormat, userDecimal);
     _file = fileToImport;
   }
 
@@ -50,7 +57,8 @@ public class SnapshotImporterFromFile extends SnapshotImporter {
   }
 
   @Override
-  protected BufferedReader getInputStream() throws IOException, DownloadException, NumberFormatException
+  protected BufferedReader getInputStream()
+          throws IOException, DownloadException, NumberFormatException
   {
     InputStream oldIn = new FileInputStream(_file);
     return new BufferedReader(new InputStreamReader(oldIn));

@@ -1,12 +1,18 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 /**
-* Created by IntelliJ IDEA.
-* User: Kevin
-* Date: Jun 13, 2010
-* Time: 10:58:05 AM
-* To change this template use File | Settings | File Templates.
-*/
+ * Stores a single entry for a historical price entry (snapshot) for a security.
+ *
+ * @author Kevin Menningen - Mennē Software Solutions, LLC
+ */
 class StockRecord implements Comparable<StockRecord> {
   int date = 0;
   long volume = 0;

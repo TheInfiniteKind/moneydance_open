@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2010 The Infinite Kind, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.model.CurrencyTable;
@@ -6,6 +14,7 @@ import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.util.StreamTable;
 import com.moneydance.util.StreamVector;
 import com.moneydance.util.StringEncodingException;
+import com.moneydance.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,7 +62,7 @@ public class SymbolMap {
     StreamVector exchangeList = new StreamVector();
     for (Integer currencyId : _symbolMap.keySet()) {
       String exchangeId = _symbolMap.get(currencyId).exchangeId;
-      if (SQUtil.isBlank(exchangeId) || !_exchangeList.contains(exchangeId)) {
+      if (StringUtils.isBlank(exchangeId) || !_exchangeList.contains(exchangeId)) {
         exchangeId = StockExchange.DEFAULT.getExchangeId();
       }
       StreamTable settings = new StreamTable();
@@ -76,7 +85,7 @@ public class SymbolMap {
     if (rootAccount == null) return;
     clear();
     String settings = rootAccount.getParameter(EXCHANGE_MAP_KEY);
-    if (SQUtil.isBlank(settings)) return;
+    if (StringUtils.isBlank(settings)) return;
     try {
       StreamTable table = new StreamTable();
       table.readFrom(settings);
@@ -104,7 +113,7 @@ public class SymbolMap {
     final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
     if (data == null) return StockExchange.DEFAULT.getExchangeId();
     String exchangeId = data.exchangeId;
-    if (SQUtil.isBlank(exchangeId)) return StockExchange.DEFAULT.getExchangeId();
+    if (StringUtils.isBlank(exchangeId)) return StockExchange.DEFAULT.getExchangeId();
     return exchangeId;
   }
 
@@ -112,7 +121,7 @@ public class SymbolMap {
     final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
     if (data == null) return StockExchange.DEFAULT;
     String exchangeId = data.exchangeId;
-    if (SQUtil.isBlank(exchangeId)) return StockExchange.DEFAULT;
+    if (StringUtils.isBlank(exchangeId)) return StockExchange.DEFAULT;
     return _exchangeList.getById(exchangeId);
   }
 
