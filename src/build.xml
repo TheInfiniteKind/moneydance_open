@@ -178,7 +178,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="yahooqt" depends="init">
-    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="1.5" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/yahooqt/**"/>
     <jar destfile="${dist}/yahooqt.mxt">
