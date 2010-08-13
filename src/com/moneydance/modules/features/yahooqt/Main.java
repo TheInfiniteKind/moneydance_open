@@ -136,7 +136,7 @@ public class Main
 
   static TimeInterval getUpdateFrequency(UserPreferences preferences) {
     String paramStr = preferences.getSetting(UPDATE_INTERVAL_KEY, "");
-    if (StringUtils.isBlank(paramStr)) return TimeInterval.MONTH;
+    if (StockUtil.isBlank(paramStr)) return TimeInterval.MONTH;
     return TimeInterval.fromChar(paramStr.charAt(0));
   }
 
@@ -213,7 +213,7 @@ public class Main
 
   public String getName() {
     String name = getString(L10NStockQuotes.TITLE);
-    if (StringUtils.isBlank(name)) {
+    if (StockUtil.isBlank(name)) {
       name = N12EStockQuotes.TITLE;
     }
     return name;

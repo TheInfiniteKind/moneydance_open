@@ -23,6 +23,7 @@ import javax.swing.table.AbstractTableModel;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -63,7 +64,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (_model.getRootAccount() == null) return;
     AccountIterator iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
-      Account account = iter.next();
+      Account account = (Account)iter.next();
       if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
         addAccount((SecurityAccount)account);
       }
@@ -80,7 +81,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (_model.getRootAccount() == null) return;
     AccountIterator iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
-      Account account = iter.next();
+      Account account = (Account)iter.next();
       if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
         final CurrencyType currency = account.getCurrencyType();
         if (currency == null) continue; // nothing to do, unlikely
@@ -95,7 +96,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
           // update the currency symbol if the user edited it
           String newSymbol = entry.editSymbol == null ? "" : entry.editSymbol.trim();
           String currentSymbol = currency.getTickerSymbol();
-          if (!Misc.isEqual(newSymbol, currentSymbol)) {
+          if (!StockUtil.areEqual(newSymbol, currentSymbol)) {
             currency.setTickerSymbol(newSymbol);
           }
         } // if a corresponding entry
@@ -162,7 +163,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       default:
         return "?";
     }
-    if (StringUtils.isBlank(result)) return "";
+    if (StockUtil.isBlank(result)) return "";
     return result;
   }
 
@@ -190,14 +191,14 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         final String original = tableEntry.editSymbol;
         final String newSymbol = ((String)aValue).trim();
         tableEntry.editSymbol = newSymbol;
-        if (!Misc.isEqual(original, newSymbol)) _model.setDirty();
+        if (!StockUtil.areEqual(original, newSymbol)) _model.setDirty();
         break;
       }
       case EXCHANGE_COL: {
         if (aValue instanceof StockExchange) {
           final String original = tableEntry.exchangeId;
           tableEntry.exchangeId = ((StockExchange)aValue).getExchangeId();
-          if (!Misc.isEqual(original, tableEntry.exchangeId)) _model.setDirty();
+          if (!StockUtil.areEqual(original, tableEntry.exchangeId)) _model.setDirty();
         }
         break;
       }
@@ -291,7 +292,14 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     sbToolTip.append(MessageFormat.format(messageFormat, downloadCurrency.getName()));
     sbToolTip.append(N12EStockQuotes.UL_BEGIN);
     // comparator available in MD2010 and beyond
-    Collections.sort(unmatchedAccounts, AccountUtil.ACCOUNT_NAME_COMPARATOR);
+    
+    Collections.sort(unmatchedAccounts, new Comparator<Account>() {
+      public int compare(Account lhs, Account rhs) {
+        if (lhs == null) { return (rhs == null) ? 0 : -1; }
+        if (rhs == null) return 1;
+        return lhs.getFullAccountName().compareTo(rhs.getFullAccountName());
+      }
+    });
     for (Account account : unmatchedAccounts) {
       sbToolTip.append(N12EStockQuotes.LI_BEGIN);
       sbToolTip.append(account.getFullAccountName());
@@ -307,9 +315,9 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 
   private static String getCurrencyAbbreviatedDisplay(CurrencyType currencyType) {
     String result = currencyType.getPrefix();
-    if (!StringUtils.isBlank(result)) return result;
+    if (!StockUtil.isBlank(result)) return result;
     result = currencyType.getSuffix();
-    if (!StringUtils.isBlank(result)) return result;
+    if (!StockUtil.isBlank(result)) return result;
     return currencyType.getIDString();
   }
 
@@ -384,7 +392,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
   void batchChangeExchange(final StockExchange newExchange) {
     if (newExchange == null) return;
     final String exchangeId = newExchange.getExchangeId();
-    if (StringUtils.isBlank(exchangeId)) return;
+    if (StockUtil.isBlank(exchangeId)) return;
     for (final SecurityEntry entry : _data) {
       if (!exchangeId.equals(entry.exchangeId)) _model.setDirty();
       entry.exchangeId = exchangeId;

@@ -55,7 +55,7 @@ public class IntervalChooser extends JComboBox {
   }
 
   public void selectFromParams(final String paramStr) {
-    if (!StringUtils.isBlank(paramStr)) {
+    if (!StockUtil.isBlank(paramStr)) {
       final TimeInterval interval = TimeInterval.fromChar(paramStr.charAt(0));
 
       for (int index = 0; index < getItemCount(); index++) {

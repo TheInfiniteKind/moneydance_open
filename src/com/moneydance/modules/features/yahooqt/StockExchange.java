@@ -97,7 +97,7 @@ public class StockExchange implements Comparable<StockExchange> {
    * <code>null</code> if an entry could not be created.
    */
   public static StockExchange createFromCSV(String csvEntry, String id) {
-    if (StringUtils.isBlank(csvEntry)) return null;
+    if (StockUtil.isBlank(csvEntry)) return null;
     String[] segments  = csvEntry.split(",");
     StockExchange result = new StockExchange();
     result._name = getCSVEntry(segments[0]);
@@ -148,13 +148,13 @@ public class StockExchange implements Comparable<StockExchange> {
   }
 
   private static String getIdCode(String symbol) {
-    if (StringUtils.isBlank(symbol)) return "0";
+    if (StockUtil.isBlank(symbol)) return "0";
     String result = symbol.toLowerCase();
     return (result.indexOf('.') == 0) ? result.substring(1) : result;
   }
 
   private static String getCSVEntry(final String rawText) {
-    if (StringUtils.isBlank(rawText)) return "";
+    if (StockUtil.isBlank(rawText)) return "";
     return rawText.trim();
   }
 
@@ -252,7 +252,7 @@ public class StockExchange implements Comparable<StockExchange> {
     _timePreMarket = settings.getStr(PRE_MTR_KEY, "");
     _timeMarket = settings.getStr(MTR_KEY, "");
     _timePostMarket = settings.getStr(POST_MTR_KEY, "");
-    if (StringUtils.isBlank(_id) || ("-".equals(_id))) _id = createIdFromEntry(this);
+    if (StockUtil.isBlank(_id) || ("-".equals(_id))) _id = createIdFromEntry(this);
   }
   
   StreamTable saveToSettings() {

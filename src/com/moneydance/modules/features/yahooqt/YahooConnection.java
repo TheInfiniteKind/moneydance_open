@@ -125,7 +125,7 @@ public abstract class YahooConnection extends BaseConnection {
 
   public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange)
   {
-    if (StringUtils.isBlank(rawTickerSymbol)) return null;
+    if (StockUtil.isBlank(rawTickerSymbol)) return null;
     String tickerSymbol = rawTickerSymbol.toUpperCase().trim();
     // check if the exchange was already added on, which will override the selected exchange
     int periodIdx = tickerSymbol.lastIndexOf('.');
@@ -141,13 +141,13 @@ public abstract class YahooConnection extends BaseConnection {
     }
     // Check if the selected exchange has a Yahoo suffix or not. If it does, add it.
     String suffix = exchange.getSymbolYahoo();
-    if (StringUtils.isBlank(suffix)) return tickerSymbol;
+    if (StockUtil.isBlank(suffix)) return tickerSymbol;
     return tickerSymbol + suffix;
   }
 
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)
   {
-    if (StringUtils.isBlank(rawTickerSymbol)) return null;
+    if (StockUtil.isBlank(rawTickerSymbol)) return null;
     // check if this symbol overrides the exchange and the currency code
     int periodIdx = rawTickerSymbol.lastIndexOf('.');
     if(periodIdx>0) {
@@ -159,7 +159,7 @@ public abstract class YahooConnection extends BaseConnection {
     }
     return exchange.getCurrencyCode();
   }
-
+  
   protected abstract String getHistoryBaseUrl();
 
   @Override

@@ -141,7 +141,7 @@ public class ExchangeDialog extends JDialog {
   private void onOK() {
     // save what we have in the edit windows
     String candidate = _name.getText().trim();
-    if (StringUtils.isBlank(candidate)) {
+    if (StockUtil.isBlank(candidate)) {
       showError(L10NStockQuotes.ERROR_NAME_BLANK);
       return;
     }

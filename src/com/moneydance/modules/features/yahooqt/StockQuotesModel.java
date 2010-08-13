@@ -327,23 +327,23 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     }
     return _selectedExchangeRatesConnection;
   }
-
+  
   void setSelectedHistoryConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedHistoryConnection;
     _selectedHistoryConnection = baseConnection;
-    _dirty |= !Misc.isEqual(original, _selectedHistoryConnection);
+    _dirty |= StockUtil.areEqual(original, _selectedHistoryConnection);
   }
 
   void setSelectedCurrentPriceConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedCurrentPriceConnection;
     _selectedCurrentPriceConnection = baseConnection;
-    _dirty |= !Misc.isEqual(original, _selectedCurrentPriceConnection);
+    _dirty |= StockUtil.areEqual(original, _selectedCurrentPriceConnection);
   }
 
   void setSelectedExchangeRatesConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedExchangeRatesConnection;
     _selectedExchangeRatesConnection = baseConnection;
-    _dirty |= !Misc.isEqual(original, _selectedExchangeRatesConnection);
+    _dirty |= StockUtil.areEqual(original, _selectedExchangeRatesConnection);
   }
 
   Vector<BaseConnection> getConnectionList(final int type) {
@@ -406,36 +406,33 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     if (_rootAccount == null) return;
     // stock price history
     String key = _rootAccount.getParameter(Main.HISTORY_CONNECTION_KEY, null);
-    if (StringUtils.isBlank(key))  {
+    if (StockUtil.isBlank(key))  {
       key = YahooConnectionUSA.PREFS_KEY; // default
     }
     for (BaseConnection connection : _connectionList) {
-      if (key.equals(connection.getId()))
-      {
+      if (key.equals(connection.getId())) {
         _selectedHistoryConnection = connection;
         break;
       }
     }
     // current stock price
     key = _rootAccount.getParameter(Main.CURRENT_PRICE_CONNECTION_KEY, null);
-    if (StringUtils.isBlank(key))  {
+    if (StockUtil.isBlank(key))  {
       key = YahooConnectionUSA.PREFS_KEY; // default
     }
     for (BaseConnection connection : _connectionList) {
-      if (key.equals(connection.getId()))
-      {
+      if (key.equals(connection.getId())) {
         _selectedCurrentPriceConnection = connection;
         break;
       }
     }
     // currency exchange rates
     key = _rootAccount.getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
-    if (StringUtils.isBlank(key))  {
+    if (StockUtil.isBlank(key))  {
       key = FXConnection.PREFS_KEY; // default
     }
     for (BaseConnection connection : _connectionList) {
-      if (key.equals(connection.getId()))
-      {
+      if (key.equals(connection.getId())) {
         _selectedExchangeRatesConnection = connection;
         break;
       }

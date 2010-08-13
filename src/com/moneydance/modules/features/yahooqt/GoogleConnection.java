@@ -64,7 +64,7 @@ public class GoogleConnection extends BaseConnection {
 
   public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange)
   {
-    if (StringUtils.isBlank(rawTickerSymbol)) return null;
+    if (StockUtil.isBlank(rawTickerSymbol)) return null;
     String tickerSymbol = rawTickerSymbol.toUpperCase().trim();
     // check if the exchange was already added on, which will override the selected exchange
     int colonIndex = tickerSymbol.lastIndexOf(':');
@@ -80,13 +80,13 @@ public class GoogleConnection extends BaseConnection {
     }
     // Check if the selected exchange has a Google suffix or not. If it does, add it.
     String prefix = exchange.getSymbolGoogle();
-    if (StringUtils.isBlank(prefix)) return tickerSymbol;
+    if (StockUtil.isBlank(prefix)) return tickerSymbol;
     return prefix + ":" + tickerSymbol;
   }
 
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)
   {
-    if (StringUtils.isBlank(rawTickerSymbol)) return null;
+    if (StockUtil.isBlank(rawTickerSymbol)) return null;
     // check if this symbol overrides the exchange and the currency code
     int periodIdx = rawTickerSymbol.lastIndexOf(':');
     if(periodIdx>0) {

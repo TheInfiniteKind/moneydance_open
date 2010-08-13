@@ -178,10 +178,10 @@ public class YahooDialog
     _buttonNow = new JButton(_model.getGUI().getStr("update"));
     _buttonTest = new JButton(_resources.getString(L10NStockQuotes.TEST));
     OKButtonPanel okButtons = new OKButtonPanel(_model.getGUI(), new DialogOKButtonListener(),
-            OKButtonPanel.QUESTION_OK_CANCEL);
-    okButtons.setExtraButtons(new JButton[]{ _buttonTest, _buttonNow } );
+                                                OKButtonPanel.QUESTION_OK_CANCEL);
+    //okButtons.setExtraButtons(new JButton[]{ _buttonTest, _buttonNow } );
     okButtons.setBorder(BorderFactory.createEmptyBorder(UiUtil.VGAP, UiUtil.DLG_HGAP,
-            UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
+                                                        UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
     contentPane.add(okButtons, BorderLayout.SOUTH);
     // setup actions for the controls
     addActions(context);
@@ -300,7 +300,7 @@ public class YahooDialog
         int row = _table.rowAtPoint(event.getPoint());
         if (column == SecuritySymbolTableModel.TEST_COL) {
           String message = _model.getTableModel().getToolTip(row, SecuritySymbolTableModel.TEST_COL);
-          if (!StringUtils.isBlank(message)) {
+          if (!StockUtil.isBlank(message)) {
             JPanel p = new JPanel(new GridBagLayout());
             String symbolTip = _model.getTableModel().getToolTip(row, SecuritySymbolTableModel.SYMBOL_COL);
             p.add(new JLabel(symbolTip), GridC.getc(0, 0));

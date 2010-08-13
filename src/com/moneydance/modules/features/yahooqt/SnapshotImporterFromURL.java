@@ -53,7 +53,7 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
 
   @Override
   protected boolean isInputStreamValid() {
-    return (!StringUtils.isBlank(_urlString));
+    return (!StockUtil.isBlank(_urlString));
   }
 
   @Override
