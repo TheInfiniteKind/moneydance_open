@@ -204,8 +204,8 @@ public class BalancePredicter
 
     // adjust the starting balance to take into account the un-applied reminders
     long firstReminderDate = todayLong;
-    for(Enumeration enum=balpredConf.rs.getAllReminders(); enum.hasMoreElements();) {
-      Reminder r = (Reminder)enum.nextElement();
+    for(Enumeration en=balpredConf.rs.getAllReminders(); en.hasMoreElements();) {
+      Reminder r = (Reminder)en.nextElement();
       if(!(r instanceof TransactionReminder)) continue;
       if(!((Boolean)remindersStatus.get(r)).booleanValue()) continue;
       TransactionReminder tr = (TransactionReminder)r;
@@ -248,8 +248,8 @@ public class BalancePredicter
     DataPoint lastPoint = null;
     
     while(curr.before(stop) || curr.equals(stop)) {
-      for(Enumeration enum = balpredConf.rs.getRemindersOnDay(curr).elements(); enum.hasMoreElements();) {
-        Reminder r = (Reminder)enum.nextElement();
+      for(Enumeration en = balpredConf.rs.getRemindersOnDay(curr).elements(); en.hasMoreElements();) {
+        Reminder r = (Reminder)en.nextElement();
         if ((r.getReminderType() == Reminder.TXN_REMINDER_TYPE) && 
             ((Boolean)remindersStatus.get(r)).booleanValue()) {
           ptxn = ((TransactionReminder)r).getTransaction();

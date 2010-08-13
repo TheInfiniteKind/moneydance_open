@@ -96,8 +96,8 @@ public class Wizard
   }
 
   public void goneAway() {
-    for(Enumeration enum=allPanes.elements(); enum.hasMoreElements(); ) {
-      ((WizardPane)enum.nextElement()).goneAway();
+    for(Enumeration en=allPanes.elements(); en.hasMoreElements(); ) {
+      ((WizardPane)en.nextElement()).goneAway();
     }
   }
 

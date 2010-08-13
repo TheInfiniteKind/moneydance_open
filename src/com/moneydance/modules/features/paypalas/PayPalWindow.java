@@ -859,10 +859,11 @@ public class PayPalWindow
     }
   }
 
+  private static final String columns[] = { "Date", "Name", "Amount" };
+
   private class PayPalTableModel
     extends AbstractTableModel
   {
-    private static final String columns[] = { "Date", "Name", "Amount" };
     
     public int getColumnCount() {
       return columns.length;
