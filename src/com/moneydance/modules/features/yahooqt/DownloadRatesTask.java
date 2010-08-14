@@ -79,8 +79,8 @@ public class DownloadRatesTask implements Callable<Boolean> {
           logMessage = MessageFormat.format("Unable to get rate from {0} to {1}",
                   currencyType.getIDString(),  baseCurrency.getIDString());
         } else {
-          message = buildRateDisplayText(connection, currencyType, baseCurrency,rate, today);
-          logMessage = buildRateLogText(connection, currencyType, baseCurrency, rate, today);
+          message = buildRateDisplayText(currencyType, baseCurrency, rate, today);
+          logMessage = buildRateLogText(currencyType, baseCurrency, rate, today);
         }
         _model.showProgress(progressPercent, message);
         System.err.println(logMessage);
@@ -94,6 +94,7 @@ public class DownloadRatesTask implements Callable<Boolean> {
       _model.showProgress(0f, message);
       System.err.println(MessageFormat.format("Error while downloading Currency Exchange Rates: {0}",
               error.getMessage()));
+      error.printStackTrace();
       success = false;
     } finally {
       ctable.fireCurrencyTableModified();
@@ -141,26 +142,24 @@ public class DownloadRatesTask implements Callable<Boolean> {
     return rate;
   }
 
-  private String buildRateDisplayText(BaseConnection connection, CurrencyType fromCurrency,
-                                       CurrencyType toCurrency, double rate, int date) {
+  private String buildRateDisplayText(CurrencyType fromCurrency, CurrencyType toCurrency,
+                                      double rate, int date) {
     String format = _resources.getString(L10NStockQuotes.EXCHANGE_RATE_DISPLAY_FMT);
     // get the currency that the prices are specified in
-    CurrencyType priceCurrency = connection.getPriceCurrency(fromCurrency);
-    long amount = (rate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / rate);
+    long amount = (rate == 0.0) ? 0 : fromCurrency.getLongValue(1.0 / rate);
     final char decimal = _model.getPreferences().getDecimalChar();
-    String priceDisplay = priceCurrency.formatFancy(amount, decimal);
+    String priceDisplay = fromCurrency.formatFancy(amount, decimal);
     String asofDate =_dateFormat.format(date);
     return MessageFormat.format(format, fromCurrency.getIDString(), toCurrency.getIDString(),
             asofDate, priceDisplay);
   }
 
-  private String buildRateLogText(BaseConnection connection, CurrencyType fromCurrency,
-                                   CurrencyType toCurrency, double rate, int date) {
+  private String buildRateLogText(CurrencyType fromCurrency, CurrencyType toCurrency,
+                                  double rate, int date) {
     String format = "Exchange Rate from {0} to {1} as of {2}: {3}";
     // get the currency that the prices are specified in
-    CurrencyType priceCurrency = connection.getPriceCurrency(fromCurrency);
-    long amount = (rate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / rate);
-    String priceDisplay = priceCurrency.formatFancy(amount, '.');
+    long amount = (rate == 0.0) ? 0 : fromCurrency.getLongValue(1.0 / rate);
+    String priceDisplay = fromCurrency.formatFancy(amount, '.');
     String asofDate = _dateFormat.format(date);
     return MessageFormat.format(format, fromCurrency.getIDString(), toCurrency.getIDString(),
             asofDate, priceDisplay);
