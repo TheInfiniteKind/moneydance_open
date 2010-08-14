@@ -15,8 +15,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 /**
- * Stock Quote Utility methods. Most are copied from MD2010 StringUtils or UiUtil, but this plugin is being
- * is being kept compatible with MD2008 for the time being.
+ * Stock Quote Utility methods. Most are copied from MD2010r2+ StringUtils or UiUtil, but this
+ * plugin is being is being kept compatible with MD2010r1 for the time being.
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
@@ -103,6 +103,68 @@ final class SQUtil {
         // do nothing
       }
     }
+  }
+
+  /**
+   * Replace one or more tokens inside another string with a value.
+   * @param str          The string containing the token(s).
+   * @param toReplace    The token, case sensitive, to be replaced.
+   * @param replaceWith  The string to replace the token with. Can be <code>null</code>.
+   * @return The <code>str</code> string with the token replaced with a new value.
+   */
+  static String replaceAll(String str, String toReplace, String replaceWith) {
+    int ii;
+    int lastI = 0;
+    StringBuilder sb = new StringBuilder(str.length());
+    while((ii=str.indexOf(toReplace, lastI))>=0) {
+      sb.append(str.substring(lastI, ii)); // add the text before the matched substring
+      if (!isEmpty(replaceWith)) sb.append(replaceWith);
+      lastI = ii + toReplace.length();
+    }
+    sb.append(str.substring(lastI)); // add the rest
+    return sb.toString();
+  }
+
+  /**
+   * Determine if two objects of the same type are equal or not.
+   * @param object1 Left hand side object.
+   * @param object2 Right hand side object.
+   * @param <T> The type of object being compared.
+   * @return True if the objects are equal, false otherwise.
+   */
+  static <T> boolean areEqual(final T object1, final T object2) {
+    if (object1 == object2) return true;                      // either same instance or both null
+    if ((object1 == null) || (object2 == null)) return false; // one is null, the other isn't
+    return object1.equals(object2);
+  }
+
+  /**
+   * Null safe check for "" (empty string).
+   *
+   * @param candidate the String to evaluate.
+   * @return true if candidate is null or "" (empty string)
+   */
+  static boolean isEmpty(String candidate) {
+    return candidate == null || candidate.length() == 0;
+  }
+
+  /**
+   * Null safe check for a String with nothing but whitespace characters.
+   *
+   * @param candidate the String to evaluate.
+   * @return true if the candidate is null or all whitespace.
+   */
+  static boolean isBlank(String candidate) {
+    boolean isBlank = isEmpty(candidate);
+    if (!isBlank) {
+      for (int index = candidate.length()-1; index >= 0; index--) {
+        isBlank = Character.isWhitespace(candidate.charAt(index));
+        if (!isBlank) {
+          break; // non-whitespace character found, don't bother checking the remainder
+        }
+      }
+    }
+    return isBlank;
   }
 
   /**

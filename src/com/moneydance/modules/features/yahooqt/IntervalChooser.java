@@ -10,7 +10,6 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.model.time.TimeInterval;
 import com.moneydance.apps.md.view.resources.MDResourceProvider;
-import com.moneydance.util.StringUtils;
 
 import javax.swing.JComboBox;
 
@@ -55,7 +54,7 @@ public class IntervalChooser extends JComboBox {
   }
 
   public void selectFromParams(final String paramStr) {
-    if (!StockUtil.isBlank(paramStr)) {
+    if (!SQUtil.isBlank(paramStr)) {
       final TimeInterval interval = TimeInterval.fromChar(paramStr.charAt(0));
 
       for (int index = 0; index < getItemCount(); index++) {

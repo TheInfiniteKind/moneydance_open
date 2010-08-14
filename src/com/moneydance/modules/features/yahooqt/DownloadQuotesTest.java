@@ -10,7 +10,6 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.DateRange;
 import com.moneydance.util.CustomDateFormat;
-import com.moneydance.util.StringUtils;
 
 import java.text.MessageFormat;
 import java.util.concurrent.Callable;
@@ -39,7 +38,7 @@ public class DownloadQuotesTest implements Callable<Boolean> {
     final String taskDisplayName = _resources.getString(L10NStockQuotes.QUOTES);
     // this is a Moneydance string that says 'Downloading {acctname}'
     String format = _model.getGUI().getStr("downloading_acct_x");
-    _model.showProgress(0.0f, StockUtil.replaceAll(format, "{acctname}", taskDisplayName));
+    _model.showProgress(0.0f, SQUtil.replaceAll(format, "{acctname}", taskDisplayName));
 
     final SecuritySymbolTableModel tableModel = _model.getTableModel();
     final int rowCount = tableModel.getRowCount();

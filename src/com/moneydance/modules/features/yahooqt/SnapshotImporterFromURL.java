@@ -9,7 +9,6 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -53,7 +52,7 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
 
   @Override
   protected boolean isInputStreamValid() {
-    return (!StockUtil.isBlank(_urlString));
+    return (!SQUtil.isBlank(_urlString));
   }
 
   @Override

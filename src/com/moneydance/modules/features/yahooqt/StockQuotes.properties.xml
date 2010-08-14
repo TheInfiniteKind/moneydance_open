@@ -6,7 +6,7 @@
     <entry key="title.text">Quotes and Exchange Rates</entry>
 
     <!-- main configuration dialog -->
-    <entry key="settings.title">Stock Quotes Synchronizer Settings</entry>
+    <entry key="settings.title">Quotes and Exchange Rates Settings</entry>
     <entry key="ratesConnection">Currency Exchange Rates</entry>
     <entry key="historyConnection">Historical Security Prices</entry>
     <entry key="currentConnection">Current Security Prices</entry>
@@ -60,7 +60,7 @@
     
     <!--  status messages -->
     <!-- 0 = connection name -->
-    <entry key="status.exchangeRates.start.fmt">"Downloading exchange rates from {0}..."</entry>
+    <entry key="status.exchangeRates.start.fmt">Downloading exchange rates from {0}...</entry>
     <!-- {0} = name of item, {1} error text -->
     <entry key="error.download.fmt">Error while downloading {0}: {1}</entry>
     <!-- {0} = name of item -->

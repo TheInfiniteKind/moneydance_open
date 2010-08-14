@@ -11,12 +11,9 @@ package com.moneydance.modules.features.yahooqt;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.AccountIterator;
-import com.moneydance.apps.md.model.AccountUtil;
 import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.SecurityAccount;
-import com.moneydance.util.Misc;
-import com.moneydance.util.StringUtils;
 import com.moneydance.util.UiUtil;
 
 import javax.swing.table.AbstractTableModel;
@@ -96,7 +93,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
           // update the currency symbol if the user edited it
           String newSymbol = entry.editSymbol == null ? "" : entry.editSymbol.trim();
           String currentSymbol = currency.getTickerSymbol();
-          if (!StockUtil.areEqual(newSymbol, currentSymbol)) {
+          if (!SQUtil.areEqual(newSymbol, currentSymbol)) {
             currency.setTickerSymbol(newSymbol);
           }
         } // if a corresponding entry
@@ -163,7 +160,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       default:
         return "?";
     }
-    if (StockUtil.isBlank(result)) return "";
+    if (SQUtil.isBlank(result)) return "";
     return result;
   }
 
@@ -191,14 +188,14 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         final String original = tableEntry.editSymbol;
         final String newSymbol = ((String)aValue).trim();
         tableEntry.editSymbol = newSymbol;
-        if (!StockUtil.areEqual(original, newSymbol)) _model.setDirty();
+        if (!SQUtil.areEqual(original, newSymbol)) _model.setDirty();
         break;
       }
       case EXCHANGE_COL: {
         if (aValue instanceof StockExchange) {
           final String original = tableEntry.exchangeId;
           tableEntry.exchangeId = ((StockExchange)aValue).getExchangeId();
-          if (!StockUtil.areEqual(original, tableEntry.exchangeId)) _model.setDirty();
+          if (!SQUtil.areEqual(original, tableEntry.exchangeId)) _model.setDirty();
         }
         break;
       }
@@ -315,9 +312,9 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 
   private static String getCurrencyAbbreviatedDisplay(CurrencyType currencyType) {
     String result = currencyType.getPrefix();
-    if (!StockUtil.isBlank(result)) return result;
+    if (!SQUtil.isBlank(result)) return result;
     result = currencyType.getSuffix();
-    if (!StockUtil.isBlank(result)) return result;
+    if (!SQUtil.isBlank(result)) return result;
     return currencyType.getIDString();
   }
 
@@ -392,7 +389,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
   void batchChangeExchange(final StockExchange newExchange) {
     if (newExchange == null) return;
     final String exchangeId = newExchange.getExchangeId();
-    if (StockUtil.isBlank(exchangeId)) return;
+    if (SQUtil.isBlank(exchangeId)) return;
     for (final SecurityEntry entry : _data) {
       if (!exchangeId.equals(entry.exchangeId)) _model.setDirty();
       entry.exchangeId = exchangeId;

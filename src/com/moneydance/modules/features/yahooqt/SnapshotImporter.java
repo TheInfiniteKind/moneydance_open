@@ -156,7 +156,7 @@ public abstract class SnapshotImporter
       // find the first nonblank line and see if we have textual data
       String header = in.readLine();
       if (header == null) return ERROR_NO_VALID_DATA;        // stream is blank, no data
-      while (in.ready() && StockUtil.isBlank(header)) header = in.readLine();
+      while (in.ready() && SQUtil.isBlank(header)) header = in.readLine();
       if (containsNoText(header)) return ERROR_NOT_TEXT_DATA; // not the right kind of data
       _columnDelim = detectDelimiter(header);
       if (_columnDelim != ',') {
@@ -283,7 +283,7 @@ public abstract class SnapshotImporter
       // find the first non-blank line and see if we have textual data
       String header = in.readLine();
       if (header == null) return ERROR_NO_DATA;    // stream is blank, no data
-      while (in.ready() && StockUtil.isBlank(header)) header = in.readLine();
+      while (in.ready() && SQUtil.isBlank(header)) header = in.readLine();
       if (containsNoText(header)) return ERROR_READING_DATA; // not the right kind of input stream
       String lineItem;
       if (_autoDetectFormat) {
@@ -389,7 +389,7 @@ public abstract class SnapshotImporter
    * all of the string, there is no BOM.
    */
   private static int findUnicodeBOM(String text) {
-    if (StockUtil.isBlank(text)) return 0;
+    if (SQUtil.isBlank(text)) return 0;
     int offset = 0;
     for (int index = 0; index < text.length(); index++) {
       if (!isSpecial(text.charAt(index))) break;
@@ -404,7 +404,7 @@ public abstract class SnapshotImporter
    * @return True if valid, false if one or more fields are not defined.
    */
   private boolean isValidItem(String line) {
-    if (StockUtil.isBlank(line)) return false;
+    if (SQUtil.isBlank(line)) return false;
     int columnCount = StringUtils.countFields(line, _columnDelim);
     // check the required columns
     final String dateStr = stripQuotes(StringUtils.fieldIndex(line, _columnDelim, _dateIndex));
@@ -461,7 +461,7 @@ public abstract class SnapshotImporter
    * @return True if there is a numeric digit in the string, false otherwise.
    */
   private static boolean hasNoDigits(String text) {
-    if (StockUtil.isBlank(text)) return true;
+    if (SQUtil.isBlank(text)) return true;
     final String number = text.trim();
     if (isNA(number)) return false; // allowed value
     for (int index = 0; index < number.length(); index++) {
@@ -515,7 +515,7 @@ public abstract class SnapshotImporter
    */
   private int parseDate(String dateStr) {
     String value = stripQuotes(dateStr);
-    if (StockUtil.isBlank(value)) return 0;
+    if (SQUtil.isBlank(value)) return 0;
     if (value.indexOf(_dateDelim) < 0) return 0;
     if (_useExpectedDateFormat) return parseDateInt(_expectedDateFormat, value);
     if (_useDefaultDateFormat) return parseDateInt(_defaultDateFormat, value);
@@ -557,7 +557,7 @@ public abstract class SnapshotImporter
 
   private double parseUserRate(String doubleStr, double defaultValue, double multiplier) {
     String value = stripQuotes(doubleStr);
-    if (StockUtil.isBlank(value)) return defaultValue;
+    if (SQUtil.isBlank(value)) return defaultValue;
     if (isNA(value)) return defaultValue;
     double userPrice = StringUtils.parseDouble(value, defaultValue, _decimal);
     if (userPrice == 0.0) return 0.0;
@@ -568,7 +568,7 @@ public abstract class SnapshotImporter
 
   private long parseLong(String longStr, long defaultValue) {
     String value = stripQuotes(longStr);
-    if (StockUtil.isBlank(value)) return defaultValue;
+    if (SQUtil.isBlank(value)) return defaultValue;
     if (isNA(value)) return 0;
     try {
       return Long.valueOf(value).longValue();
@@ -626,7 +626,7 @@ public abstract class SnapshotImporter
   }
 
   private static String stripQuotes(String input) {
-    if (StockUtil.isBlank(input)) return "";
+    if (SQUtil.isBlank(input)) return "";
     if (!input.contains("\"") && !input.contains("'")) return input.trim();
     StringBuilder sb = new StringBuilder();
     for (int index = 0; index < input.length(); index++) {

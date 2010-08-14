@@ -10,7 +10,6 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.util.StreamTable;
-import com.moneydance.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -97,7 +96,7 @@ public class StockExchange implements Comparable<StockExchange> {
    * <code>null</code> if an entry could not be created.
    */
   public static StockExchange createFromCSV(String csvEntry, String id) {
-    if (StockUtil.isBlank(csvEntry)) return null;
+    if (SQUtil.isBlank(csvEntry)) return null;
     String[] segments  = csvEntry.split(",");
     StockExchange result = new StockExchange();
     result._name = getCSVEntry(segments[0]);
@@ -148,13 +147,13 @@ public class StockExchange implements Comparable<StockExchange> {
   }
 
   private static String getIdCode(String symbol) {
-    if (StockUtil.isBlank(symbol)) return "0";
+    if (SQUtil.isBlank(symbol)) return "0";
     String result = symbol.toLowerCase();
     return (result.indexOf('.') == 0) ? result.substring(1) : result;
   }
 
   private static String getCSVEntry(final String rawText) {
-    if (StockUtil.isBlank(rawText)) return "";
+    if (SQUtil.isBlank(rawText)) return "";
     return rawText.trim();
   }
 
@@ -252,7 +251,7 @@ public class StockExchange implements Comparable<StockExchange> {
     _timePreMarket = settings.getStr(PRE_MTR_KEY, "");
     _timeMarket = settings.getStr(MTR_KEY, "");
     _timePostMarket = settings.getStr(POST_MTR_KEY, "");
-    if (StockUtil.isBlank(_id) || ("-".equals(_id))) _id = createIdFromEntry(this);
+    if (SQUtil.isBlank(_id) || ("-".equals(_id))) _id = createIdFromEntry(this);
   }
   
   StreamTable saveToSettings() {

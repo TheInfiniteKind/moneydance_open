@@ -14,7 +14,6 @@ import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.util.StreamTable;
 import com.moneydance.util.StreamVector;
 import com.moneydance.util.StringEncodingException;
-import com.moneydance.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -62,7 +61,7 @@ public class SymbolMap {
     StreamVector exchangeList = new StreamVector();
     for (Integer currencyId : _symbolMap.keySet()) {
       String exchangeId = _symbolMap.get(currencyId).exchangeId;
-      if (StockUtil.isBlank(exchangeId) || !_exchangeList.contains(exchangeId)) {
+      if (SQUtil.isBlank(exchangeId) || !_exchangeList.contains(exchangeId)) {
         exchangeId = StockExchange.DEFAULT.getExchangeId();
       }
       StreamTable settings = new StreamTable();
@@ -85,7 +84,7 @@ public class SymbolMap {
     if (rootAccount == null) return;
     clear();
     String settings = rootAccount.getParameter(EXCHANGE_MAP_KEY);
-    if (StockUtil.isBlank(settings)) return;
+    if (SQUtil.isBlank(settings)) return;
     try {
       StreamTable table = new StreamTable();
       table.readFrom(settings);
@@ -113,7 +112,7 @@ public class SymbolMap {
     final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
     if (data == null) return StockExchange.DEFAULT.getExchangeId();
     String exchangeId = data.exchangeId;
-    if (StockUtil.isBlank(exchangeId)) return StockExchange.DEFAULT.getExchangeId();
+    if (SQUtil.isBlank(exchangeId)) return StockExchange.DEFAULT.getExchangeId();
     return exchangeId;
   }
 
@@ -121,7 +120,7 @@ public class SymbolMap {
     final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
     if (data == null) return StockExchange.DEFAULT;
     String exchangeId = data.exchangeId;
-    if (StockUtil.isBlank(exchangeId)) return StockExchange.DEFAULT;
+    if (SQUtil.isBlank(exchangeId)) return StockExchange.DEFAULT;
     return _exchangeList.getById(exchangeId);
   }
 

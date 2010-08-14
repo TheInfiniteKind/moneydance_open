@@ -15,7 +15,6 @@ import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
 import com.moneydance.awt.GridC;
-import com.moneydance.util.StringUtils;
 import com.moneydance.util.UiUtil;
 
 import javax.swing.BorderFactory;
@@ -141,7 +140,7 @@ public class ExchangeDialog extends JDialog {
   private void onOK() {
     // save what we have in the edit windows
     String candidate = _name.getText().trim();
-    if (StockUtil.isBlank(candidate)) {
+    if (SQUtil.isBlank(candidate)) {
       showError(L10NStockQuotes.ERROR_NAME_BLANK);
       return;
     }

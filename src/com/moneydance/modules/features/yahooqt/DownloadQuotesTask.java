@@ -14,7 +14,6 @@ import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.util.CustomDateFormat;
-import com.moneydance.util.StringUtils;
 
 import java.text.MessageFormat;
 import java.util.Enumeration;
@@ -46,7 +45,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     final String taskDisplayName = _resources.getString(L10NStockQuotes.QUOTES);
     // this is a Moneydance string that says 'Downloading {acctname}'
     String format = _model.getGUI().getStr("downloading_acct_x");
-    _model.showProgress(0.0f, StockUtil.replaceAll(format, "{acctname}", taskDisplayName));
+    _model.showProgress(0.0f, SQUtil.replaceAll(format, "{acctname}", taskDisplayName));
 
     RootAccount root = _model.getRootAccount();
     if (root == null) {
@@ -80,7 +79,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
               ++successCount;
             }
             // log any messages for those that weren't skipped
-            if (!StockUtil.isBlank(result.logMessage)) System.err.println(result.logMessage);
+            if (!SQUtil.isBlank(result.logMessage)) System.err.println(result.logMessage);
           }
         }
         currIdx++;
@@ -185,7 +184,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         _model.showProgress(_progressPercent, message);
         result.historyErrorCount = 1;
         result.historyResult = e.getMessage();
-        if (StockUtil.isBlank(result.logMessage)) {
+        if (SQUtil.isBlank(result.logMessage)) {
           result.logMessage = MessageFormat.format("Error downloading historical prices for {0}: {1}",
                   currency.getName(), e.getMessage());
         }
@@ -214,7 +213,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         _model.showProgress(_progressPercent, message);
         result.currentError = true;
         result.currentResult = e.getMessage();
-        if (StockUtil.isBlank(result.logMessage)) {
+        if (SQUtil.isBlank(result.logMessage)) {
           result.logMessage = MessageFormat.format("Error downloading current price for {0}: {1}",
                   currency.getName(), e.getMessage());
         }
@@ -231,7 +230,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       _model.showProgress(_progressPercent,
                           buildPriceDisplayText(connection, currType, result.displayName,
                                                 latestRate, latestPriceDate));
-      if (StockUtil.isBlank(result.logMessage)) {
+      if (SQUtil.isBlank(result.logMessage)) {
         result.logMessage = buildPriceLogText(connection, currType, result.displayName, latestRate,
                 latestPriceDate);
       }
