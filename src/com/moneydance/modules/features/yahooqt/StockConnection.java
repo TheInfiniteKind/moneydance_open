@@ -6,7 +6,10 @@ import java.io.*;
 import java.util.*;
 
 /** Class used to download currency histories via HTTP using the
-    same spreadsheet format as at chart.yahoo.com. */
+    same spreadsheet format as at chart.yahoo.com.
+ @deprecated This class has been replaced by BaseConnection and its derived classes.
+ */
+@Deprecated
 public class StockConnection {
   //private static final String HISTORY_BASE_URL = "http://table.finance.yahoo.com/table.csv";
   private static final String HISTORY_BASE_URL = "http://ichart.finance.yahoo.com/table.csv";
