@@ -16,7 +16,6 @@ import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.time.TimeInterval;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.util.StringUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -107,8 +106,9 @@ public class Main
         _resources = englishBundle;
       }
     }
-    catch (IOException error) {
+    catch (Exception error) {
       System.err.println(N12EStockQuotes.XML_RESOURCE_LOAD_FAIL);
+      error.printStackTrace();
     }
   }
 
@@ -136,7 +136,7 @@ public class Main
 
   static TimeInterval getUpdateFrequency(UserPreferences preferences) {
     String paramStr = preferences.getSetting(UPDATE_INTERVAL_KEY, "");
-    if (StockUtil.isBlank(paramStr)) return TimeInterval.MONTH;
+    if (SQUtil.isBlank(paramStr)) return TimeInterval.MONTH;
     return TimeInterval.fromChar(paramStr.charAt(0));
   }
 
@@ -213,7 +213,7 @@ public class Main
 
   public String getName() {
     String name = getString(L10NStockQuotes.TITLE);
-    if (StockUtil.isBlank(name)) {
+    if (SQUtil.isBlank(name)) {
       name = N12EStockQuotes.TITLE;
     }
     return name;
