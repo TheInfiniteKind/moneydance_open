@@ -16,8 +16,6 @@ import com.moneydance.apps.md.model.SecurityAccount;
 import com.moneydance.apps.md.model.time.TimeInterval;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.util.BasePropertyChangeReporter;
-import com.moneydance.util.Misc;
-import com.moneydance.util.StringUtils;
 
 import javax.swing.SwingUtilities;
 import java.beans.PropertyChangeListener;
@@ -331,19 +329,19 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void setSelectedHistoryConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedHistoryConnection;
     _selectedHistoryConnection = baseConnection;
-    _dirty |= StockUtil.areEqual(original, _selectedHistoryConnection);
+    _dirty |= SQUtil.areEqual(original, _selectedHistoryConnection);
   }
 
   void setSelectedCurrentPriceConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedCurrentPriceConnection;
     _selectedCurrentPriceConnection = baseConnection;
-    _dirty |= StockUtil.areEqual(original, _selectedCurrentPriceConnection);
+    _dirty |= SQUtil.areEqual(original, _selectedCurrentPriceConnection);
   }
 
   void setSelectedExchangeRatesConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedExchangeRatesConnection;
     _selectedExchangeRatesConnection = baseConnection;
-    _dirty |= StockUtil.areEqual(original, _selectedExchangeRatesConnection);
+    _dirty |= SQUtil.areEqual(original, _selectedExchangeRatesConnection);
   }
 
   Vector<BaseConnection> getConnectionList(final int type) {
@@ -406,35 +404,48 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     if (_rootAccount == null) return;
     // stock price history
     String key = _rootAccount.getParameter(Main.HISTORY_CONNECTION_KEY, null);
-    if (StockUtil.isBlank(key))  {
+    if (SQUtil.isBlank(key))  {
       key = YahooConnectionUSA.PREFS_KEY; // default
     }
-    for (BaseConnection connection : _connectionList) {
-      if (key.equals(connection.getId())) {
-        _selectedHistoryConnection = connection;
-        break;
+    if (NO_CONNECTION.getId().equals(key)) {
+      _selectedHistoryConnection = NO_CONNECTION;
+    } else {
+      for (BaseConnection connection : _connectionList) {
+        if (key.equals(connection.getId())) {
+          _selectedHistoryConnection = connection;
+          break;
+        }
       }
     }
+
     // current stock price
     key = _rootAccount.getParameter(Main.CURRENT_PRICE_CONNECTION_KEY, null);
-    if (StockUtil.isBlank(key))  {
+    if (SQUtil.isBlank(key))  {
       key = YahooConnectionUSA.PREFS_KEY; // default
     }
-    for (BaseConnection connection : _connectionList) {
-      if (key.equals(connection.getId())) {
-        _selectedCurrentPriceConnection = connection;
-        break;
+    if (NO_CONNECTION.getId().equals(key)) {
+      _selectedCurrentPriceConnection = NO_CONNECTION;
+    } else {
+      for (BaseConnection connection : _connectionList) {
+        if (key.equals(connection.getId())) {
+          _selectedCurrentPriceConnection = connection;
+          break;
+        }
       }
     }
     // currency exchange rates
     key = _rootAccount.getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
-    if (StockUtil.isBlank(key))  {
+    if (SQUtil.isBlank(key))  {
       key = FXConnection.PREFS_KEY; // default
     }
-    for (BaseConnection connection : _connectionList) {
-      if (key.equals(connection.getId())) {
-        _selectedExchangeRatesConnection = connection;
-        break;
+    if (NO_CONNECTION.getId().equals(key)) {
+      _selectedExchangeRatesConnection = NO_CONNECTION;
+    } else {
+      for (BaseConnection connection : _connectionList) {
+        if (key.equals(connection.getId())) {
+          _selectedExchangeRatesConnection = connection;
+          break;
+        }
       }
     }
   }
