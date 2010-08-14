@@ -50,6 +50,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Toolkit;
@@ -177,12 +178,18 @@ public class YahooDialog
     // buttons at bottom
     _buttonNow = new JButton(_model.getGUI().getStr("update"));
     _buttonTest = new JButton(_resources.getString(L10NStockQuotes.TEST));
+    JPanel extraButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP, UiUtil.VGAP));
+    extraButtonPanel.add(_buttonTest);
+    extraButtonPanel.add(_buttonNow);
+    // the built-in OK/Cancel buttons
     OKButtonPanel okButtons = new OKButtonPanel(_model.getGUI(), new DialogOKButtonListener(),
                                                 OKButtonPanel.QUESTION_OK_CANCEL);
-    //okButtons.setExtraButtons(new JButton[]{ _buttonTest, _buttonNow } );
-    okButtons.setBorder(BorderFactory.createEmptyBorder(UiUtil.VGAP, UiUtil.DLG_HGAP,
-                                                        UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
-    contentPane.add(okButtons, BorderLayout.SOUTH);
+    JPanel bottomPanel = new JPanel(new BorderLayout());
+    bottomPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.VGAP, UiUtil.DLG_HGAP,
+                                                          UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
+    bottomPanel.add(extraButtonPanel, BorderLayout.WEST);
+    bottomPanel.add(okButtons, BorderLayout.CENTER);
+    contentPane.add(bottomPanel, BorderLayout.SOUTH);
     // setup actions for the controls
     addActions(context);
   }
@@ -300,7 +307,7 @@ public class YahooDialog
         int row = _table.rowAtPoint(event.getPoint());
         if (column == SecuritySymbolTableModel.TEST_COL) {
           String message = _model.getTableModel().getToolTip(row, SecuritySymbolTableModel.TEST_COL);
-          if (!StockUtil.isBlank(message)) {
+          if (!SQUtil.isBlank(message)) {
             JPanel p = new JPanel(new GridBagLayout());
             String symbolTip = _model.getTableModel().getToolTip(row, SecuritySymbolTableModel.SYMBOL_COL);
             p.add(new JLabel(symbolTip), GridC.getc(0, 0));
