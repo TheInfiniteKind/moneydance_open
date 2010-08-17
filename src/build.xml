@@ -176,30 +176,10 @@ http://jakarta.apache.org/ant/index.html
     <move file="${src}/s-autorates.mxt" tofile="${dist}/autorates.mxt"/>
   </target>
 
-
-  <target name="yahooqt" depends="init">
-    <javac encoding="utf8" target="1.5" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-      classpathref="classpath"  destdir="${build}"
-      includes="com/moneydance/modules/features/yahooqt/**"/>
-    <jar destfile="${dist}/yahooqt.mxt">
-      <fileset dir="${src}" includes="
-             com/moneydance/modules/features/yahooqt/meta_info.dict
-             com/moneydance/modules/features/yahooqt/*.png
-             com/moneydance/modules/features/yahooqt/*.gif"/>
-      <fileset dir="${build}" includes="com/moneydance/modules/features/yahooqt/**"/>
-    </jar>
-    <java newenvironment="true" 
-      classpathref="classpath"
-      classname="com.moneydance.admin.KeyAdmin">
-      <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
-      <arg value="${privkeyid}"/>
-      <arg value="yahooqt"/>
-      <arg line="${dist}/yahooqt.mxt"/>
-    </java>
-    <move file="${src}/s-yahooqt.mxt" tofile="${dist}/yahooqt.mxt"/>
+  <target name="yahooqt" depends="init" description="build the yahooqt.mxt">
+    <build-mxt feature="yahooqt" javac-source="1.5" javac-target="1.5" />
+    <copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />
   </target>
-
 
   <target name="yahoofx" depends="init">
     <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
@@ -354,8 +334,8 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="clean" depends="init" description="remove built artifacts">
-    <delete dir="${dist.dir}" />
-    <delete dir="${build.dir}" />
+    <delete dir="${dist}" />
+    <delete dir="${build}" />
   </target>
   
   <target name="sign" description="sign the mxt" unless="dont_sign">
