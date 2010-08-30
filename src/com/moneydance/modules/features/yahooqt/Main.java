@@ -46,6 +46,7 @@ public class Main
   static final String HISTORY_CONNECTION_KEY = "yahooqt.historyConnection";
   static final String CURRENT_PRICE_CONNECTION_KEY = "yahooqt.currentPriceConnection";
   static final String EXCHANGE_RATES_CONNECTION_KEY = "yahooqt.exchangeRatesConnection";
+  static final String SAVE_CURRENT_IN_HISTORY_KEY = "yahooqt.saveCurrInHistory";
 
   private final PreferencesListener _prefListener = new QuotesPreferencesListener();
   private final PropertyChangeListener _progressListener = new QuotesProgressListener();

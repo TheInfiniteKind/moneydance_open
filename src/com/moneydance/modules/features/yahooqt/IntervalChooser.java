@@ -29,7 +29,9 @@ public class IntervalChooser extends JComboBox {
     TimeInterval.DAY,
     TimeInterval.WEEK,
     TimeInterval.MONTH,
-    TimeInterval.QUARTER };
+    TimeInterval.QUARTER,
+    TimeInterval.YEAR
+  };
 
   /**
    * Constructor for ease of use in objects that had duplicate code.

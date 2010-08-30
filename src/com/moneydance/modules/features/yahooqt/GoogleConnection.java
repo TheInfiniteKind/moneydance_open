@@ -65,7 +65,7 @@ public class GoogleConnection extends BaseConnection {
   public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange)
   {
     if (SQUtil.isBlank(rawTickerSymbol)) return null;
-    String tickerSymbol = rawTickerSymbol.toUpperCase().trim();
+    String tickerSymbol = rawTickerSymbol.trim();
     // check if the exchange was already added on, which will override the selected exchange
     int colonIndex = tickerSymbol.lastIndexOf(':');
     if(colonIndex >= 0) {
@@ -109,19 +109,27 @@ public class GoogleConnection extends BaseConnection {
     final Date startDate = cal.getTime();
 
     // encoding the dates appears to break Google, so just leave the commas and plus signs in there
+    // (Note: their encoder leaves the + signs, but encodes the commas as %2C, but the built-in
+    // encoder will do both which is perhaps the problem)
     final String encEndDate = _dateFormat.format(endDate);
     final String encStartDate = _dateFormat.format(startDate);
-    String encTicker;
-    try {
-      encTicker = URLEncoder.encode(fullTickerSymbol, N12EStockQuotes.URL_ENC);
-    } catch (UnsupportedEncodingException ignore) {
-      // should never happen, as the US-ASCII character set is one that is required to be
-      // supported by every Java implementation
-      encTicker = fullTickerSymbol;
-    }
+//    String encTicker;
+//    try {
+//      encTicker = URLEncoder.encode(fullTickerSymbol, N12EStockQuotes.URL_ENC);
+//    } catch (UnsupportedEncodingException ignore) {
+//      // should never happen, as the US-ASCII character set is one that is required to be
+//      // supported by every Java implementation
+//      encTicker = fullTickerSymbol;
+//    }
     // add the parameters
-    result.append("?q=");           // symbol
-    result.append(encTicker);
+    result.append("?");
+    if (fullTickerSymbol.startsWith("cid=") || fullTickerSymbol.startsWith("CID=")) {
+      result.append(fullTickerSymbol);
+    } else {
+      result.append("q=");           // symbol
+//    result.append(encTicker);
+      result.append(fullTickerSymbol);
+    }
     result.append("&startdate=");   // start date
     result.append(encStartDate);
     result.append("&enddate=");     // end date

@@ -93,6 +93,7 @@ public class YahooDialog
   private JComboBox _ratesConnectionSelect;
   private IntervalChooser _intervalSelect;
   private JDateField _nextDate;
+  private JCheckBox _saveCurrentInHistory = new JCheckBox();
   private ItemListCellRenderer _tableRenderer;
   private final JCheckBox _showZeroBalance = new JCheckBox();
   private final JLabel _testStatus = new JLabel();
@@ -143,6 +144,7 @@ public class YahooDialog
     // pick which URL schemes to connect to (or no connection to disable the download)
     setupConnectionSelectors();
     setupIntervalSelector();
+    _saveCurrentInHistory.setSelected(_model.getSaveCurrentAsHistory());
     // first column
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.RATES_CONNECTION)),
             GridC.getc(0, 0).label());
@@ -162,6 +164,8 @@ public class YahooDialog
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.NEXT_DATE_LABEL)),
             GridC.getc(3, 1).label());
     fieldPanel.add(_nextDate, GridC.getc(4, 1).field());
+    _saveCurrentInHistory.setText(_resources.getString(L10NStockQuotes.SAVE_CURRENT_OPTION));
+    fieldPanel.add(_saveCurrentInHistory, GridC.getc(3, 2).colspan(2).field());
     // gap between the fields and the table
     fieldPanel.add(Box.createVerticalStrut(UiUtil.VGAP), GridC.getc(0, 3));
     // setup the table
@@ -474,6 +478,7 @@ public class YahooDialog
 
   private void saveControlsToSettings() {
     saveSelectedConnections();
+    _model.setSaveCurrentAsHistory(_saveCurrentInHistory.isSelected());
     // these are stored in preferences and are not file-specific
     UserPreferences prefs = _model.getPreferences();
     prefs.setSetting(Main.AUTO_UPDATE_KEY, isAnyConnectionSelected());

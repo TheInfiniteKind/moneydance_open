@@ -12,6 +12,7 @@
     <entry key="currentConnection">Current Security Prices</entry>
     <entry key="frequency">Update Frequency</entry>
     <entry key="nextDate">Next Update</entry>
+    <entry key="saveCurrHistory">Save current price as historical</entry>
     <entry key="test">Test</entry>
     <entry key="exchangeColumn.title">Stock Exchange</entry>
     <entry key="testColumn.title">Test Result</entry>
@@ -32,6 +33,7 @@
     <entry key="quotes">Security Price Quotes</entry>
     <entry key="exchangeRates">Currency Exchange Rates</entry>
     <entry key="error.no_connection">No connection established</entry>
+    <entry key="no_update">User chose not to update</entry>
     <entry key="error.no_symbol">No symbol defined</entry>
     <entry key="history">History</entry>
     <entry key="quote">Current Quote</entry>

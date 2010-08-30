@@ -18,7 +18,7 @@ import com.moneydance.apps.md.model.CurrencyType;
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public class HistoryDateRange {
-  private static final int DOWNLOAD_DAYS = 60;
+  private static final int NEW_DOWNLOAD_DAYS = 365;
   private static final int MINIMUM_DAYS = 5;
 
   public static DateRange getRangeForSecurity(CurrencyType secCurrency, int numDays) {
@@ -31,7 +31,7 @@ public class HistoryDateRange {
     int days;
     final int today = Util.getStrippedDateInt();
     if (lastDate == 0) {
-      days = Math.max(numDays, DOWNLOAD_DAYS); // no history exists for that security/currency
+      days = Math.max(numDays, NEW_DOWNLOAD_DAYS); // no history exists for that security/currency
     } else {
       days = Util.calculateDaysBetween(lastDate, today);
       days = Math.max(days, numDays);

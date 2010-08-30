@@ -26,6 +26,7 @@ class L10NStockQuotes
   static final String CURRENT_CONNECTION = "currentConnection";
   static final String FREQUENCY_LABEL = "frequency";
   static final String NEXT_DATE_LABEL = "nextDate";
+  static final String SAVE_CURRENT_OPTION = "saveCurrHistory";
   static final String TEST = "test";
   static final String EXCHANGE_TITLE = "exchangeColumn.title";
   static final String TEST_TITLE = "testColumn.title";
@@ -46,6 +47,7 @@ class L10NStockQuotes
   static final String QUOTES = "quotes";
   static final String RATES = "exchangeRates";
   static final String ERROR_NO_CONNECTION = "error.no_connection";
+  static final String NO_UPDATE = "no_update";
   static final String ERROR_NO_SYMBOL = "error.no_symbol";
   static final String HISTORY = "history";
   static final String QUOTE = "quote";

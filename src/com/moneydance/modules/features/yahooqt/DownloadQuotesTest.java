@@ -55,14 +55,16 @@ public class DownloadQuotesTest implements Callable<Boolean> {
     tableModel.refreshRow(-1);
 
     // download each one
-    final BaseConnection connection = _model.getSelectedHistoryConnection();
+    final BaseConnection historyConnection = _model.getSelectedHistoryConnection();
+    final BaseConnection priceConnection = _model.getSelectedCurrentPriceConnection();
     final String setupError = _resources.getString(L10NStockQuotes.TEST_ERR_SETUP);
     final String skipped = _resources.getString(L10NStockQuotes.TEST_EXCLUDED);
     for (int index = 0; index < rowCount; index++) {
       final SecuritySymbolTableModel.SecurityEntry entry = tableModel.getEntry(index);
       if (entry.use) {
-        final TestResult testResult = testEntry(entry, connection);
-        entry.testResult = (connection == null) ? setupError : testResult._testResult;
+        final TestResult testResult = testEntry(entry, historyConnection, priceConnection);
+        entry.testResult = ((historyConnection == null) && (priceConnection == null)) ? setupError :
+                testResult._testResult;
         entry.toolTip = testResult._toolTip;
       } else {
         entry.testResult = skipped;
@@ -74,19 +76,23 @@ public class DownloadQuotesTest implements Callable<Boolean> {
     return Boolean.TRUE;
   }
 
-  private TestResult testEntry(SecuritySymbolTableModel.SecurityEntry entry, BaseConnection connection) {
+  private TestResult testEntry(SecuritySymbolTableModel.SecurityEntry entry,
+                               BaseConnection historyConnection, BaseConnection priceConnection) {
     DateRange dateRange = HistoryDateRange.getRangeForSecurity(entry.currency, _model.getHistoryDays());
-    final DownloadResult historyResult = getHistoryTest(entry, connection, dateRange);
-    final DownloadResult quoteResult = getQuoteTest(entry, connection);
+    final DownloadResult historyResult = getHistoryTest(entry, historyConnection, dateRange);
+    final DownloadResult quoteResult = getQuoteTest(entry, priceConnection);
     TestResult testResult = new TestResult(historyResult, quoteResult);
     // create a verbose tooltip
     StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
-    if (connection.canGetHistory()) {
+    // here we add information about history download even if the user chose not to update history
+    if (historyConnection.canGetHistory()) {
       sb.append(N12EStockQuotes.PARA_BEGIN);
       sb.append(SQUtil.getLabelText(_resources, L10NStockQuotes.HISTORY));
       sb.append(testResult._historyResult);
     }
-    if (connection.canGetCurrentPrice()) {
+    // similarly, we show current price info in the tooltip even if the user doesn't want current
+    // prices, just so we communicate to the user that the system is aware they are skipping them
+    if (historyConnection.canGetCurrentPrice()) {
       sb.append(N12EStockQuotes.PARA_BEGIN);
       sb.append(SQUtil.getLabelText(_resources, L10NStockQuotes.QUOTE));
       sb.append(testResult._quoteResult);
@@ -96,13 +102,16 @@ public class DownloadQuotesTest implements Callable<Boolean> {
     // create a succinct summary test result
     sb.setLength(0);
     sb.append(N12EStockQuotes.HTML_BEGIN);
-    if (connection.canGetHistory()) {
+    // we don't show any results in the succinct message if they aren't updating
+    final boolean downloadedHistory = historyConnection.canGetHistory() &&
+            _model.isHistoricalPriceSelected();
+    if (downloadedHistory) {
       sb.append(getSuccessIcon(testResult._historySuccess));
       sb.append(N12EStockQuotes.SPACE);
       sb.append(_resources.getString(L10NStockQuotes.HISTORY));
     }
-    if (connection.canGetCurrentPrice()) {
-      if (connection.canGetHistory()) sb.append(N12EStockQuotes.COMMA_SEPARATOR);
+    if (historyConnection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
+      if (downloadedHistory) sb.append(N12EStockQuotes.COMMA_SEPARATOR);
       sb.append(getSuccessIcon(testResult._quoteSuccess));
       sb.append(N12EStockQuotes.SPACE);
       sb.append(SQUtil.getLabelText(_resources, L10NStockQuotes.QUOTE));
@@ -127,6 +136,10 @@ public class DownloadQuotesTest implements Callable<Boolean> {
   private DownloadResult getHistoryTest(SecuritySymbolTableModel.SecurityEntry entry,
                                         BaseConnection connection, DateRange dateRange) {
     try {
+      if (!_model.isHistoricalPriceSelected()) {
+        return new DownloadResult(_resources.getString(L10NStockQuotes.NO_UPDATE), 1);
+      }
+      // we do not store these results, we just download them
       final StockHistory history = connection.getHistory(entry.currency, dateRange, false);
       if (history == null) {
         return new DownloadResult(_resources.getString(L10NStockQuotes.ERROR_NO_SYMBOL), 1);
@@ -165,7 +178,11 @@ public class DownloadQuotesTest implements Callable<Boolean> {
   private DownloadResult getQuoteTest(SecuritySymbolTableModel.SecurityEntry entry,
                                       BaseConnection connection) {
     try {
-      final StockRecord quote = connection.getCurrentPrice(entry.currency);
+      if (!_model.isCurrentPriceSelected()) {
+        return new DownloadResult(_resources.getString(L10NStockQuotes.NO_UPDATE), true, null);
+      }
+      // we do not store the current price, we just download it
+      final StockRecord quote = connection.getCurrentPrice(entry.currency, false);
       if (quote == null) {
         return new DownloadResult(_resources.getString(L10NStockQuotes.ERROR_NO_SYMBOL), true, null);
       }

@@ -95,17 +95,18 @@ public abstract class BaseConnection {
   /**
    * Retrieve the current information for the given stock ticker symbol.
    * @param securityCurrency The currency for the security we're downloading the current price for.
+   * @param recordInHistory True to store the current price in a history record, false otherwise.
    * @return The current price record for the given currency.
    * @throws DownloadException if an error occurs.
    */
-  public StockRecord getCurrentPrice(CurrencyType securityCurrency)
+  public StockRecord getCurrentPrice(CurrencyType securityCurrency, boolean recordInHistory)
     throws DownloadException
   {
     int today = Util.getStrippedDateInt();
     DateRange dateRange = new DateRange(today, today);
-    // the current price does not add a history entry, so we do not 'apply' the download
-    final boolean apply = false;
-    StockHistory history = importData(securityCurrency, false, dateRange, apply);
+    // the current price does not add a history entry, so we do not 'apply' the download unless the
+    // user indicated they want it to.
+    StockHistory history = importData(securityCurrency, false, dateRange, recordInHistory);
     if (history == null) return null;
     return history.getRecord(0);
   }

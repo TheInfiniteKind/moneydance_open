@@ -50,6 +50,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private BaseConnection _selectedHistoryConnection = null;
   private BaseConnection _selectedCurrentPriceConnection = null;
   private BaseConnection _selectedExchangeRatesConnection = null;
+  private boolean _saveCurrentInHistorical = false;
   private Vector<BaseConnection> _connectionList = null;
   private int _historyDays = 5;
   private boolean _dirty = false;
@@ -98,6 +99,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     _rootAccount = rootAccount;
     if (rootAccount != null) {
       _symbolMap.loadFromFile(rootAccount);
+      _saveCurrentInHistorical = _rootAccount.getBooleanParameter(Main.SAVE_CURRENT_IN_HISTORY_KEY, false);
       // define the currency for the default exchange to be the same as the root file's
       CurrencyType baseCurrency = _rootAccount.getCurrencyTable().getBaseType();
       StockExchange.DEFAULT.setCurrency(baseCurrency);
@@ -243,14 +245,25 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   boolean isStockPriceSelected() {
-    if (!NO_CONNECTION.equals(getSelectedCurrentPriceConnection())) {
+    if (isCurrentPriceSelected()) {
       return true;
     }
-    return !NO_CONNECTION.equals(getSelectedHistoryConnection());
+    return isHistoricalPriceSelected();
+  }
+
+  boolean isCurrentPriceSelected() {
+    final BaseConnection connection = getSelectedCurrentPriceConnection();
+    return ((connection != null) && !NO_CONNECTION.equals(connection));
+  }
+
+  boolean isHistoricalPriceSelected() {
+    final BaseConnection connection = getSelectedHistoryConnection();
+    return ((connection != null) && !NO_CONNECTION.equals(connection));
   }
 
   boolean isExchangeRateSelected() {
-    return !NO_CONNECTION.equals(getSelectedExchangeRatesConnection());
+    final BaseConnection connection = getSelectedExchangeRatesConnection();
+    return ((connection != null) && !NO_CONNECTION.equals(connection));
   }
 
   void setHistoryDaysFromFrequency(TimeInterval frequency) {
@@ -292,6 +305,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     if (_selectedExchangeRatesConnection != null) {
       _rootAccount.setParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, _selectedExchangeRatesConnection.getId());
     }
+    _rootAccount.setParameter(Main.SAVE_CURRENT_IN_HISTORY_KEY, _saveCurrentInHistorical);
     // store the results of the table - this updates the symbol map - must be done before symbol map
     _tableModel.save();
     // save the map of security/currency to stock exchanges
@@ -343,6 +357,14 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     _selectedExchangeRatesConnection = baseConnection;
     _dirty |= SQUtil.areEqual(original, _selectedExchangeRatesConnection);
   }
+
+  void setSaveCurrentAsHistory(final boolean saveInHistory) {
+    boolean previous = _saveCurrentInHistorical;
+    _saveCurrentInHistorical = saveInHistory;
+    _dirty |= (previous == saveInHistory);
+  }
+
+  boolean getSaveCurrentAsHistory() { return _saveCurrentInHistorical; }
 
   Vector<BaseConnection> getConnectionList(final int type) {
     final Vector<BaseConnection> results = new Vector<BaseConnection>();

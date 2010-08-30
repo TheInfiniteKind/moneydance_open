@@ -93,6 +93,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       _model.showProgress(0f, message);
       System.err.println(MessageFormat.format("Error while downloading Security Price Quotes: {0}",
               error.getMessage()));
+      error.printStackTrace();
       success = false;
     } finally {
       _progressPercent = 0f;
@@ -138,6 +139,8 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       return result;
     }
 
+    // not skipping, log what we're downloading
+    System.err.println("Downloading price of "+currType.getName()+" for dates "+dateRange.format(_dateFormat));
     BaseConnection connection = _model.getSelectedHistoryConnection();
     if (connection == null) {
       final String message = _resources.getString(L10NStockQuotes.ERROR_NO_CONNECTION);
@@ -153,7 +156,8 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     boolean foundPrice = false;
     double latestRate = 0.0;
     int latestPriceDate = Util.getStrippedDateInt();
-    if (connection.canGetHistory()) {
+    // both check for a supporting connection, and also check for 'do not update'
+    if (connection.canGetHistory() && _model.isHistoricalPriceSelected()) {
       try {
         final StockHistory history = connection.getHistory(currType, dateRange, true);
         if (history == null) {
@@ -189,10 +193,14 @@ public class DownloadQuotesTask implements Callable<Boolean> {
                   currency.getName(), e.getMessage());
         }
       }
-    } // if getting price history
-    if (connection.canGetCurrentPrice()) {
+    } // if getting price history and connection is not 'do not update'
+
+    // now get the current price
+    connection = _model.getSelectedCurrentPriceConnection();
+    if ((connection != null) && connection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
       try {
-        final StockRecord record = connection.getCurrentPrice(currType);
+        final StockRecord record = connection.getCurrentPrice(currType,
+                _model.getSaveCurrentAsHistory());
         if (record == null) {
           result.skipped = true;
           result.logMessage = "No current price obtained for security " + currType.getName();
