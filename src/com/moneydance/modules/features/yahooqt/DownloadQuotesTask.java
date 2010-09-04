@@ -156,6 +156,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     boolean foundPrice = false;
     double latestRate = 0.0;
     int latestPriceDate = Util.getStrippedDateInt();
+    BaseConnection priceConnection = null;
     // both check for a supporting connection, and also check for 'do not update'
     if (connection.canGetHistory() && _model.isHistoricalPriceSelected()) {
       try {
@@ -173,6 +174,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
           StockRecord latest = history.findMostRecentValidRecord();
           if (latest != null) {
             foundPrice = true;
+            priceConnection = connection;
             latestRate = latest.closeRate;
             latestPriceDate = latest.date;
           }
@@ -210,6 +212,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         result.currentResult = record.priceDisplay;
         if (!result.currentError) {
           foundPrice = true;
+          priceConnection = connection;
           latestRate = record.closeRate;
           latestPriceDate = record.date;
         }
@@ -227,6 +230,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         }
       }
     } // if getting the current price
+    
     // update the current price if possible, the last price date is stored as a long
     final long longLatestDate = Util.convertIntDateToLong(latestPriceDate).getTime();
     if (foundPrice && ((currType.getTag("price_date")==null) ||
@@ -235,12 +239,13 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       currType.setTag("price_date", String.valueOf(longLatestDate));
     }
     if (foundPrice) {
+      // use whichever connection was last successful at getting the price to show the value
       _model.showProgress(_progressPercent,
-                          buildPriceDisplayText(connection, currType, result.displayName,
+                          buildPriceDisplayText(priceConnection, currType, result.displayName,
                                                 latestRate, latestPriceDate));
       if (SQUtil.isBlank(result.logMessage)) {
-        result.logMessage = buildPriceLogText(connection, currType, result.displayName, latestRate,
-                latestPriceDate);
+        result.logMessage = buildPriceLogText(priceConnection, currType, result.displayName,
+                latestRate, latestPriceDate);
       }
     }
     return result;
