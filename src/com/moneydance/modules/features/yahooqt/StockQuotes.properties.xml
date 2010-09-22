@@ -17,6 +17,12 @@
     <entry key="exchangeColumn.title">Stock Exchange</entry>
     <entry key="testColumn.title">Test Result</entry>
     <entry key="errDefaultEdit">The Default stock exchange is not editable.</entry>
+    <entry key="showOwnedOnly">Only show securities that I own</entry>
+    <entry key="updateNow">Update Now</entry>
+    <entry key="lastUpdate.fmt">Last exchange rate update was {0}, last security price update was {1}</entry>
+    <entry key="never">never</entry>
+    <entry key="hideTest.tip">Hide testing controls</entry>
+    <entry key="showTest.tip">Show testing controls</entry>
 
     <!-- other strings -->
     <entry key="labelColon">: </entry>

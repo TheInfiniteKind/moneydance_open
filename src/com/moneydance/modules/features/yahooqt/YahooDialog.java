@@ -51,6 +51,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Toolkit;
@@ -67,6 +68,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,7 +85,7 @@ public class YahooDialog
   private JButton _buttonNow;
   private JButton _buttonTest;
   private final JTable _table = new JTable();
-  /** This contains data that is edited in the table. */
+  /** This contains the table model as well as other data that is edited in this dialog. */
   private final StockQuotesModel _model;
   private final ResourceProvider _resources;
   private final IExchangeEditor _exchangeEditor = new ExchangeEditor();
@@ -94,10 +96,14 @@ public class YahooDialog
   private IntervalChooser _intervalSelect;
   private JDateField _nextDate;
   private JCheckBox _saveCurrentInHistory = new JCheckBox();
+  private JLabel _showTestLabel = new JLabel();
+  private TableColumn _testColumn = null;
+  private boolean _showingTestInfo = false;
   private ItemListCellRenderer _tableRenderer;
-  private final JCheckBox _showZeroBalance = new JCheckBox();
+  private final JCheckBox _showOwnedOnly = new JCheckBox();
   private final JLabel _testStatus = new JLabel();
   private boolean _okButtonPressed = false;
+  private JPanel _extraButtonPanel;
 
   public YahooDialog(final FeatureModuleContext context, final ResourceProvider resources,
                      final StockQuotesModel model) {
@@ -130,6 +136,8 @@ public class YahooDialog
     if (visible) {
       _model.buildSecurityMap();
       setSecurityTableColumnSizes();
+      // display the last update date in the test status area
+      showLastUpdateDate();
       validate();
     }
     super.setVisible(visible);
@@ -165,14 +173,18 @@ public class YahooDialog
             GridC.getc(3, 1).label());
     fieldPanel.add(_nextDate, GridC.getc(4, 1).field());
     _saveCurrentInHistory.setText(_resources.getString(L10NStockQuotes.SAVE_CURRENT_OPTION));
-    fieldPanel.add(_saveCurrentInHistory, GridC.getc(3, 2).colspan(2).field());
+//    fieldPanel.add(_saveCurrentInHistory, GridC.getc(3, 2).colspan(2).field());
+    _showTestLabel.setFont(_showTestLabel.getFont().deriveFont(Font.BOLD));
+    _showTestLabel.setHorizontalAlignment(JLabel.RIGHT);
+    fieldPanel.add(_showTestLabel, GridC.getc(3, 2).colspan(2).field().east());
     // gap between the fields and the table
     fieldPanel.add(Box.createVerticalStrut(UiUtil.VGAP), GridC.getc(0, 3));
     // setup the table
     JScrollPane tableHost = setupSecurityTable();
     fieldPanel.add(tableHost, GridC.getc(0, 4).colspan(5).wxy(1,1).fillboth());
-    _showZeroBalance.setText(_model.getGUI().getStr("show_zero_bal_accts"));
-    fieldPanel.add(_showZeroBalance, GridC.getc(0, 5).colspan(5).field());
+    _showOwnedOnly.setText(_resources.getString(L10NStockQuotes.SHOW_OWNED));
+    _showOwnedOnly.setSelected(!_model.getTableModel().getShowZeroBalance());
+    fieldPanel.add(_showOwnedOnly, GridC.getc(0, 5).colspan(5).field());
     _testStatus.setHorizontalAlignment(JLabel.CENTER);
     _testStatus.setText(" ");
     fieldPanel.add(_testStatus, GridC.getc(0, 6).colspan(5).field());
@@ -180,28 +192,63 @@ public class YahooDialog
             0, UiUtil.DLG_HGAP));
     contentPane.add(fieldPanel, BorderLayout.CENTER);
     // buttons at bottom
-    _buttonNow = new JButton(_model.getGUI().getStr("update"));
+    _buttonNow = new JButton(_resources.getString(L10NStockQuotes.UPDATE_NOW));
     _buttonTest = new JButton(_resources.getString(L10NStockQuotes.TEST));
-    JPanel extraButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP, UiUtil.VGAP));
-    extraButtonPanel.add(_buttonTest);
-    extraButtonPanel.add(_buttonNow);
+    _buttonTest.setVisible(_showingTestInfo);
+    _extraButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP, UiUtil.VGAP));
+    _extraButtonPanel.add(_buttonTest);
+    _extraButtonPanel.add(_buttonNow);
     // the built-in OK/Cancel buttons
     OKButtonPanel okButtons = new OKButtonPanel(_model.getGUI(), new DialogOKButtonListener(),
                                                 OKButtonPanel.QUESTION_OK_CANCEL);
     JPanel bottomPanel = new JPanel(new BorderLayout());
     bottomPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.VGAP, UiUtil.DLG_HGAP,
                                                           UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
-    bottomPanel.add(extraButtonPanel, BorderLayout.WEST);
+    bottomPanel.add(_extraButtonPanel, BorderLayout.WEST);
     bottomPanel.add(okButtons, BorderLayout.CENTER);
     contentPane.add(bottomPanel, BorderLayout.SOUTH);
+    setupTestControls();
     // setup actions for the controls
     addActions(context);
   }
 
+  private void setupTestControls() {
+    if (_showingTestInfo) {
+      _showTestLabel.setText(" « ");
+      _showTestLabel.setToolTipText(_resources.getString(L10NStockQuotes.HIDE_TEST));
+      _buttonTest.setVisible(true);
+      _table.getColumnModel().addColumn(_testColumn);
+    } else {
+      _showTestLabel.setText(" » ");
+      _showTestLabel.setToolTipText(_resources.getString(L10NStockQuotes.SHOW_TEST));
+      _buttonTest.setVisible(false);
+      _table.getColumnModel().removeColumn(_testColumn);
+    }
+  }
+
+  private void showLastUpdateDate() {
+    if (_model.getRootAccount() != null) {
+      String messageFormat = _resources.getString(L10NStockQuotes.LAST_UPDATE_FMT);
+      int lastRateDate = Main.getRatesLastUpdateDate(_model.getRootAccount());
+      String rateText = getDateText(lastRateDate);
+      int lastQuoteDate = Main.getQuotesLastUpdateDate(_model.getRootAccount());
+      String quoteText = getDateText(lastQuoteDate);
+      _testStatus.setText(MessageFormat.format(messageFormat, rateText, quoteText));
+    }
+  }
+
+  private String getDateText(final int date) {
+    if (date <= 0) {
+      return _resources.getString(L10NStockQuotes.NEVER);
+    }
+    return _model.getPreferences().getShortDateFormatter().format(date);
+  }
+  
   private void addActions(final FeatureModuleContext context) {
-    _showZeroBalance.addItemListener(new ItemListener() {
+    _showOwnedOnly.addItemListener(new ItemListener() {
       public void itemStateChanged(ItemEvent e) {
-        _model.getTableModel().setShowZeroBalance(e.getStateChange() == ItemEvent.SELECTED);
+        // show zero balance only if 'show only that I own' is deselected
+        _model.getTableModel().setShowZeroBalance(e.getStateChange() == ItemEvent.DESELECTED);
       }
     });
     _buttonNow.addActionListener(new ActionListener() {
@@ -224,6 +271,17 @@ public class YahooDialog
         // listen for update events
         _model.addPropertyChangeListener(YahooDialog.this);
         _model.runDownloadTest();
+      }
+    });
+    _showTestLabel.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseClicked(MouseEvent e) {
+        if (SwingUtilities.isLeftMouseButton(e)) {
+          _showingTestInfo = !_showingTestInfo;
+          setupTestControls();
+          setSecurityTableColumnSizes();
+          validate();
+        }
       }
     });
   }
@@ -403,9 +461,11 @@ public class YahooDialog
                                          getExchangeItems(), _exchangeEditor, true);
     columnModel.addColumn(exchangeColumn);
     exchangeColumn.setHeaderValue(_resources.getString(L10NStockQuotes.EXCHANGE_TITLE));
-    columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.TEST_COL, 40,
-            _tableRenderer, null));
-    col.setHeaderValue(_resources.getString(L10NStockQuotes.TEST_TITLE));
+    _testColumn = new TableColumn(SecuritySymbolTableModel.TEST_COL, 40, _tableRenderer, null);
+    if (_showingTestInfo) {
+      columnModel.addColumn(_testColumn);
+    }
+    _testColumn.setHeaderValue(_resources.getString(L10NStockQuotes.TEST_TITLE));
 
     return columnModel;
   }
@@ -462,7 +522,7 @@ public class YahooDialog
     // the last column
     int maxWidth = 0;
     for (int width1 : widths) maxWidth = Math.max(width1, maxWidth);
-    widths[SecuritySymbolTableModel.TEST_COL] = maxWidth;
+    widths[viewColumnCount - 1] = maxWidth;
     final TableColumnModel columnModel = _table.getColumnModel();
     for (int column = 0; column < widths.length; column++) {
       columnModel.getColumn(column).setPreferredWidth(widths[column]);
@@ -691,8 +751,17 @@ public class YahooDialog
           setBackground(_mdGui.getColors().homePageAltBG);
           _shareDisplay.setBackground(_mdGui.getColors().homePageAltBG);
         }
+      } else {
+        setForeground(table.getSelectionForeground());
+        setBackground(table.getSelectionBackground());
+        _shareDisplay.setForeground(table.getSelectionForeground());
+        _shareDisplay.setBackground(table.getSelectionBackground());
       }
       _shareDisplay.setForeground(Color.GRAY); // lighter text for the share balance
+      // put the border around both components
+      Border border = isSelected ? getBorder() : null;
+      setBorder(null);
+      _renderer.setBorder(border);
       // in case the text is cut off, show complete text in a tool tip
       if (value instanceof String) {
         setToolTipText((String)value);

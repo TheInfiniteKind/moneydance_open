@@ -31,6 +31,12 @@ class L10NStockQuotes
   static final String EXCHANGE_TITLE = "exchangeColumn.title";
   static final String TEST_TITLE = "testColumn.title";
   static final String ERROR_DEFAULT_NOT_EDITABLE = "errDefaultEdit";
+  static final String SHOW_OWNED = "showOwnedOnly";
+  static final String UPDATE_NOW = "updateNow";
+  static final String LAST_UPDATE_FMT = "lastUpdate.fmt";
+  static final String NEVER = "never";
+  static final String HIDE_TEST = "hideTest.tip";
+  static final String SHOW_TEST = "showTest.tip";
 
   // other strings
   /** Text that follows a label. Some locales prefer ' : ', others prefer ': '.  */

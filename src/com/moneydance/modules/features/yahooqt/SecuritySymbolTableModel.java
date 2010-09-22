@@ -355,6 +355,10 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     load();
   }
 
+  boolean getShowZeroBalance() {
+    return _showZeroBalance;
+  }
+
   /**
    * Refresh a single row in the table, or refresh all rows, on the Event Data/UI Thread.
    * @param rowIndex The row to update, or -1 to update all rows.

@@ -201,8 +201,10 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     connection = _model.getSelectedCurrentPriceConnection();
     if ((connection != null) && connection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
       try {
-        final StockRecord record = connection.getCurrentPrice(currType,
-                _model.getSaveCurrentAsHistory());
+        // If we have found a historical price, then we don't save the current price as history.
+        // If historical prices were skipped or unable to update, then save the current price as
+        // a history entry.
+        final StockRecord record = connection.getCurrentPrice(currType, !foundPrice);
         if (record == null) {
           result.skipped = true;
           result.logMessage = "No current price obtained for security " + currType.getName();
