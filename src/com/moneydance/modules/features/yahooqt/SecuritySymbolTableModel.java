@@ -382,6 +382,13 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     return true;
   }
 
+  boolean anySymbolEnabled() {
+    for (final SecurityEntry entry : _data) {
+      if (entry.use) return true;
+    }
+    return false;
+  }
+
   void enableAllSymbols(final boolean use) {
     for (final SecurityEntry entry : _data) {
       if (entry.use != use) _model.setDirty();

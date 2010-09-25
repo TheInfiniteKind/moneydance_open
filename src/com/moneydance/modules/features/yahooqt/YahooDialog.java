@@ -30,8 +30,10 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -40,6 +42,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.MouseInputAdapter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.JTableHeader;
@@ -49,6 +52,7 @@ import javax.swing.table.TableColumnModel;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -64,6 +68,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
@@ -173,10 +178,14 @@ public class YahooDialog
             GridC.getc(3, 1).label());
     fieldPanel.add(_nextDate, GridC.getc(4, 1).field());
     _saveCurrentInHistory.setText(_resources.getString(L10NStockQuotes.SAVE_CURRENT_OPTION));
+    // this option is now automatically on, it was deemed too confusing
 //    fieldPanel.add(_saveCurrentInHistory, GridC.getc(3, 2).colspan(2).field());
-    _showTestLabel.setFont(_showTestLabel.getFont().deriveFont(Font.BOLD));
     _showTestLabel.setHorizontalAlignment(JLabel.RIGHT);
-    fieldPanel.add(_showTestLabel, GridC.getc(3, 2).colspan(2).field().east());
+    // add the toggle for the testing mode on/off
+    final JPanel testPanel = new JPanel(new BorderLayout());
+    testPanel.add(Box.createHorizontalStrut(UiUtil.DLG_HGAP), BorderLayout.CENTER);
+    testPanel.add(_showTestLabel, BorderLayout.EAST);
+    fieldPanel.add(testPanel, GridC.getc(4, 2).field().east());
     // gap between the fields and the table
     fieldPanel.add(Box.createVerticalStrut(UiUtil.VGAP), GridC.getc(0, 3));
     // setup the table
@@ -214,12 +223,12 @@ public class YahooDialog
 
   private void setupTestControls() {
     if (_showingTestInfo) {
-      _showTestLabel.setText(" « ");
+      _showTestLabel.setText(_resources.getString(L10NStockQuotes.BASIC));
       _showTestLabel.setToolTipText(_resources.getString(L10NStockQuotes.HIDE_TEST));
       _buttonTest.setVisible(true);
       _table.getColumnModel().addColumn(_testColumn);
     } else {
-      _showTestLabel.setText(" » ");
+      _showTestLabel.setText(_resources.getString(L10NStockQuotes.ADVANCED));
       _showTestLabel.setToolTipText(_resources.getString(L10NStockQuotes.SHOW_TEST));
       _buttonTest.setVisible(false);
       _table.getColumnModel().removeColumn(_testColumn);
@@ -273,7 +282,7 @@ public class YahooDialog
         _model.runDownloadTest();
       }
     });
-    _showTestLabel.addMouseListener(new MouseAdapter() {
+    final MouseInputAdapter mouseInputListener = new MouseInputAdapter() {
       @Override
       public void mouseClicked(MouseEvent e) {
         if (SwingUtilities.isLeftMouseButton(e)) {
@@ -283,7 +292,17 @@ public class YahooDialog
           validate();
         }
       }
-    });
+      @Override
+      public void mouseEntered(MouseEvent event) {
+        setCursor(new Cursor(Cursor.HAND_CURSOR));
+      }
+      @Override
+      public void mouseExited(MouseEvent event) {
+        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+      }
+    };
+    _showTestLabel.addMouseListener(mouseInputListener);
+    _showTestLabel.addMouseMotionListener(mouseInputListener);
   }
 
   private void setupConnectionSelectors() {
@@ -349,7 +368,8 @@ public class YahooDialog
         int viewColumn = header.columnAtPoint(event.getPoint());
         int column = columnModel.getColumn(viewColumn).getModelIndex();
         if (column == SecuritySymbolTableModel.USE_COL) {
-          toggleIncludeAll();
+          // we know the renderer for this column is a JComponent
+          showIncludeMenu(header);
         } else if (column == SecuritySymbolTableModel.EXCHANGE_COL) {
           batchChangeExchange();
         }
@@ -383,10 +403,28 @@ public class YahooDialog
     return host;
   }
 
-  private void toggleIncludeAll() {
-    // determine if any of the 'use' values is false, and if so the action will be to turn all on
-    final boolean turnAllOff = _model.getTableModel().allSymbolsEnabled();
-    _model.getTableModel().enableAllSymbols(!turnAllOff);
+  private void includeAll(final boolean include) {
+    _model.getTableModel().enableAllSymbols(include);
+    _table.getTableHeader().repaint();
+  }
+
+  private void showIncludeMenu(final JComponent parent) {
+    JPopupMenu menu = new JPopupMenu();
+    JMenuItem menuItem = new JMenuItem(_model.getGUI().getStr("accountfilter.all"));
+    menuItem.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent e) {
+        includeAll(true);
+      }
+    });
+    menu.add(menuItem);
+    menuItem = new JMenuItem(_model.getGUI().getStr("none"));
+    menuItem.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent e) {
+        includeAll(false);
+      }
+    });
+    menu.add(menuItem);
+    menu.show(parent, 0, parent.getHeight());
   }
 
   private void batchChangeExchange() {
@@ -437,15 +475,16 @@ public class YahooDialog
     final DefaultTableColumnModel columnModel = new DefaultTableColumnModel();
     _tableRenderer = new ItemListCellRenderer(_model.getGUI());
 
+    // select security for download column
     TableColumn col;
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.USE_COL, 20,
             new UseColumnRenderer(_model.getGUI()), new UseColumnEditor()));
     // special renderer allows the header to act like a checkbox to select all / deselect all
-    UseColumnRenderer useHeaderRenderer = new UseColumnRenderer(_model.getGUI());
+    UseColumnHeaderRenderer useHeaderRenderer = new UseColumnHeaderRenderer();
     col.setHeaderRenderer(useHeaderRenderer);
     col.setHeaderValue(" ");
-    useHeaderRenderer.setIsHeaderCell();
 
+    // name and number of shares
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.NAME_COL, 150,
             new SecurityNameCellRenderer(_model.getGUI()), null));
     col.setHeaderValue(_model.getGUI().getStr("curr_type_sec"));
@@ -461,6 +500,7 @@ public class YahooDialog
                                          getExchangeItems(), _exchangeEditor, true);
     columnModel.addColumn(exchangeColumn);
     exchangeColumn.setHeaderValue(_resources.getString(L10NStockQuotes.EXCHANGE_TITLE));
+    // testing column
     _testColumn = new TableColumn(SecuritySymbolTableModel.TEST_COL, 40, _tableRenderer, null);
     if (_showingTestInfo) {
       columnModel.addColumn(_testColumn);
@@ -560,10 +600,10 @@ public class YahooDialog
     _model.setHistoryDaysFromFrequency(frequency);
     int lastDate = SQUtil.getPreviousDate(nextDate, frequency);
     if (_model.isStockPriceSelected()) {
-      _model.getRootAccount().setParameter(Main.QUOTE_LAST_UPDATE_KEY, lastDate);
+      _model.saveLastQuoteUpdateDate(lastDate);
     }
     if (_model.isExchangeRateSelected()) {
-      _model.getRootAccount().setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate);
+      _model.saveLastExchangeRatesUpdateDate(lastDate);
     }
   }
 
@@ -616,7 +656,6 @@ public class YahooDialog
   private static class UseColumnRenderer extends JCheckBox implements TableCellRenderer {
     private static final Border noFocusBorder = new EmptyBorder(1, 1, 1, 1);
     private final MoneydanceGUI _mdGui;
-    private boolean _isHeaderCell = false;
 
     public UseColumnRenderer(final MoneydanceGUI mdGui) {
       super();
@@ -628,39 +667,57 @@ public class YahooDialog
     public Component getTableCellRendererComponent(JTable table, Object value,
                                                    boolean isSelected, boolean hasFocus,
                                                    int row, int column) {
-      if (_isHeaderCell) {
-        final JTableHeader header = table.getTableHeader();
-        if (header != null) {
-          setForeground(header.getForeground());
-          setBackground(header.getBackground());
-          setFont(header.getFont());
-        }
-        setBorder(UIManager.getBorder("TableHeader.cellBorder"));
-        setSelected(((SecuritySymbolTableModel)table.getModel()).allSymbolsEnabled());
+      if (isSelected) {
+        setForeground(table.getSelectionForeground());
+        setBackground(table.getSelectionBackground());
       } else {
-        if (isSelected) {
-          setForeground(table.getSelectionForeground());
-          setBackground(table.getSelectionBackground());
+        setForeground(table.getForeground());
+        if (row % 2 == 0) {
+          setBackground(_mdGui.getColors().homePageBG);
         } else {
-          setForeground(table.getForeground());
-          if (row % 2 == 0) {
-            setBackground(_mdGui.getColors().homePageBG);
-          } else {
-            setBackground(_mdGui.getColors().homePageAltBG);
-          }
+          setBackground(_mdGui.getColors().homePageAltBG);
         }
-        setSelected((value instanceof Boolean) && ((Boolean) value).booleanValue());
-        if (hasFocus) {
-          setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
-        } else {
-          setBorder(noFocusBorder);
-        }
+      }
+      setSelected((value instanceof Boolean) && ((Boolean) value).booleanValue());
+      if (hasFocus) {
+        setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+      } else {
+        setBorder(noFocusBorder);
       }
       return this;
     }
+  }
 
-    void setIsHeaderCell() {
-      _isHeaderCell = true;
+  private static class UseColumnHeaderRenderer extends JCheckBox implements TableCellRenderer {
+    private final JPanel _renderer = new JPanel(new FlowLayout(FlowLayout.CENTER, 2, 0));
+
+    public UseColumnHeaderRenderer() {
+      super();
+      setHorizontalAlignment(JLabel.CENTER);
+      setBorderPainted(false);
+      _renderer.add(this);
+      JLabel arrow = new JLabel();
+      arrow.setIcon(ExchangeComboTableColumn.ARROW_ICON);
+      _renderer.add(arrow);
+    }
+
+    public Component getTableCellRendererComponent(JTable table, Object value,
+                                                   boolean isSelected, boolean hasFocus,
+                                                   int row, int column) {
+      final JTableHeader header = table.getTableHeader();
+      if (header != null) {
+        setForeground(header.getForeground());
+        setBackground(header.getBackground());
+        setFont(header.getFont());
+      }
+      _renderer.setBorder(UIManager.getBorder("TableHeader.cellBorder"));
+      // show a checkbox that is enabled and off if all are off, enabled and on if all are on,
+      // or disabled and on if some are enabled and some are not
+      final SecuritySymbolTableModel tableModel = (SecuritySymbolTableModel) table.getModel();
+      final boolean anySecuritySelected = tableModel.anySymbolEnabled();
+      setSelected(anySecuritySelected);
+      setEnabled(!anySecuritySelected || tableModel.allSymbolsEnabled());
+      return _renderer;
     }
   }
 
@@ -745,9 +802,11 @@ public class YahooDialog
       // the unselected background alternates color for ease of distinction
       if (!isSelected) {
         if (row % 2 == 0) {
+          setForeground(Color.BLACK);
           setBackground(_mdGui.getColors().homePageBG);
           _shareDisplay.setBackground(_mdGui.getColors().homePageBG);
         } else {
+          setForeground(Color.BLACK);
           setBackground(_mdGui.getColors().homePageAltBG);
           _shareDisplay.setBackground(_mdGui.getColors().homePageAltBG);
         }

@@ -16,6 +16,7 @@ import com.moneydance.apps.md.model.SecurityAccount;
 import com.moneydance.apps.md.model.time.TimeInterval;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.util.BasePropertyChangeReporter;
+import com.moneydance.util.CustomDateFormat;
 
 import javax.swing.SwingUtilities;
 import java.beans.PropertyChangeListener;
@@ -387,6 +388,20 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   void fireUpdateHeaderEvent() {
    firePropertyChange(_eventNotify, N12EStockQuotes.HEADER_UPDATE, null, null);
+  }
+
+  void saveLastQuoteUpdateDate(final int lastDate) {
+    if (_rootAccount == null) return;
+    CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
+    System.err.println("Saving last successful price quotes date of: "+dateFormat.format(lastDate));
+    _rootAccount.setParameter(Main.QUOTE_LAST_UPDATE_KEY, lastDate);
+  }
+
+  void saveLastExchangeRatesUpdateDate(final int lastDate) {
+    if (_rootAccount == null) return;
+    CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
+    System.err.println("Saving last successful price quotes date of: "+dateFormat.format(lastDate));
+    _rootAccount.setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate);
   }
 
   private void waitForCurrentTaskToFinish() {

@@ -204,7 +204,10 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         // If we have found a historical price, then we don't save the current price as history.
         // If historical prices were skipped or unable to update, then save the current price as
         // a history entry.
-        final StockRecord record = connection.getCurrentPrice(currType, !foundPrice);
+        final boolean autoSaveInHistory = !foundPrice;
+        if (autoSaveInHistory) System.err.println("Automatically saving current price of " +
+          currType.getName());
+        final StockRecord record = connection.getCurrentPrice(currType, autoSaveInHistory);
         if (record == null) {
           result.skipped = true;
           result.logMessage = "No current price obtained for security " + currType.getName();

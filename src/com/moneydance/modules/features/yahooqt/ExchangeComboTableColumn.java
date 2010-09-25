@@ -80,7 +80,7 @@ public class ExchangeComboTableColumn extends TableColumn
   /**
    * The arrow icon for the header cell.
    */
-  private static final ArrowIcon ARROW_ICON = new ArrowIcon(SwingConstants.SOUTH, true,
+  static final ArrowIcon ARROW_ICON = new ArrowIcon(SwingConstants.SOUTH, true,
           ArrowBorder.ICON_LENGTH, ArrowBorder.ICON_WIDTH);
 
   /**

@@ -61,11 +61,13 @@ public class UpdateIfNeededTask implements Callable<Boolean> {
     if (preferences.getBoolSetting(Main.AUTO_UPDATE_KEY, false)) {
       TimeInterval frequency = Main.getUpdateFrequency(_model.getPreferences());
       final int today = Util.getStrippedDateInt();
-      if (_model.isStockPriceSelected()) {
-        success = updateSecurityPrices(rootAccount, frequency, today);
-      }
+      // exchange rates first so that the proper exchange rates are used for security price
+      // conversions
       if (_model.isExchangeRateSelected()) {
-        success |= updateExchangeRates(rootAccount, frequency, today);
+        success = updateExchangeRates(rootAccount, frequency, today);
+      }
+      if (_model.isStockPriceSelected()) {
+        success |= updateSecurityPrices(rootAccount, frequency, today);
       }
     }
     return Boolean.valueOf(success);
@@ -81,7 +83,7 @@ public class UpdateIfNeededTask implements Callable<Boolean> {
       _model.addPropertyChangeListener(_progressListener);
       try {
         success = task.call();
-        if (success.booleanValue()) rootAccount.setParameter(Main.QUOTE_LAST_UPDATE_KEY, today);
+        if (success.booleanValue()) _model.saveLastQuoteUpdateDate(today);
       } catch (Exception e) {
         System.err.println("Error updating security prices: ");
         e.printStackTrace();
@@ -103,7 +105,7 @@ public class UpdateIfNeededTask implements Callable<Boolean> {
       _model.addPropertyChangeListener(_progressListener);
       try {
         success = task.call();
-        if (success.booleanValue()) rootAccount.setParameter(Main.RATE_LAST_UPDATE_KEY, today);
+        if (success.booleanValue()) _model.saveLastExchangeRatesUpdateDate(today);
       } catch (Exception e) {
         System.err.println("Error updating currency exchange rates: ");
         e.printStackTrace();

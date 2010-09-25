@@ -57,6 +57,8 @@ class L10NStockQuotes
   static final String ERROR_NO_SYMBOL = "error.no_symbol";
   static final String HISTORY = "history";
   static final String QUOTE = "quote";
+  static final String BASIC = "basic";
+  static final String ADVANCED = "advanced";
 
   // Import errors
   /** {0} = the currency ID that is supposed to be used for price updates, but doesn't exist. */

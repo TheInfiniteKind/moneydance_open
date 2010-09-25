@@ -22,7 +22,6 @@ import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.Locale;
@@ -144,11 +143,12 @@ public class Main
   private void updateNow() {
     RootAccount rootAccount = _model.getRootAccount();
     if (rootAccount == null) return; // nothing to do
-    if (_model.isStockPriceSelected()) {
-      getQuotes();
-    }
+    // exchange rates first so that the proper exchange rates are used for security price conversions
     if (_model.isExchangeRateSelected()) {
       getRates();
+    }
+    if (_model.isStockPriceSelected()) {
+      getQuotes();
     }
   }
 
@@ -280,9 +280,9 @@ public class Main
           // the download was successful, update last success date
           int today = Util.getStrippedDateInt();
           if (DownloadRatesTask.NAME.equals(taskName)) {
-            _model.getRootAccount().setParameter(RATE_LAST_UPDATE_KEY, today);
+            _model.saveLastExchangeRatesUpdateDate(today);
           } else if (DownloadQuotesTask.NAME.equals(taskName)) {
-            _model.getRootAccount().setParameter(QUOTE_LAST_UPDATE_KEY, today);
+            _model.saveLastQuoteUpdateDate(today);
           }
         }
       } // download ended
