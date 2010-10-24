@@ -225,7 +225,9 @@ public class ExchangeComboTableColumn extends TableColumn
       super(new JComboBox(new ComboListModel(items)));
       _comboBox = (JComboBox)editorComponent;
       _comboBox.setOpaque(false);
-      if (_comboBox.getUI() instanceof MetalComboBoxUI) {
+      // Java 1.5 does not handle the replacement UI correctly, it stretches the arrow button
+      // opaque background across the entire cell, obscuring the text
+      if ((_comboBox.getUI() instanceof MetalComboBoxUI) && (MoneydanceGUI.javaVersion >= 100600000)) {
         _comboBox.setUI(new MetalTableComboBoxUI());
       }
       _comboBox.setRenderer(new ComboBoxCellRenderer());
@@ -302,7 +304,7 @@ public class ExchangeComboTableColumn extends TableColumn
           }
         }
       };
-      button.setMargin(new Insets(0, 0, 0, 0));
+      button.setMargin(new Insets(0, 1, 1, 3));
       button.setBorder(BorderFactory.createEmptyBorder());
       return button;
     }
@@ -331,7 +333,7 @@ public class ExchangeComboTableColumn extends TableColumn
       JLabel result = (JLabel)super.getListCellRendererComponent(list, value, index,
               isSelected, cellHasFocus);
       result.setText((value == null) ? N12EStockQuotes.EMPTY : value.toString());
-      result.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+      result.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 0));
       return result;
     }
 

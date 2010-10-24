@@ -15,6 +15,7 @@ package com.moneydance.modules.features.yahooqt;
  */
 class StockRecord implements Comparable<StockRecord> {
   int date = 0;
+  long dateTime = 0;
   long volume = 0;
   double highRate = -1.0;
   double lowRate = -1.0;

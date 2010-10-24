@@ -599,10 +599,16 @@ public class YahooDialog
     TimeInterval frequency = _intervalSelect.getSelectedInterval();
     _model.setHistoryDaysFromFrequency(frequency);
     int lastDate = SQUtil.getPreviousDate(nextDate, frequency);
-    if (_model.isStockPriceSelected()) {
+    int currentQuoteDate = Main.getQuotesLastUpdateDate(_model.getRootAccount());
+    if (_model.isStockPriceSelected() && (currentQuoteDate != lastDate)) {
+      System.err.println("Changing last quote update date from " +
+              currentQuoteDate + " to " + lastDate + " per user selection");
       _model.saveLastQuoteUpdateDate(lastDate);
     }
-    if (_model.isExchangeRateSelected()) {
+    int currentRatesDate = Main.getRatesLastUpdateDate(_model.getRootAccount());
+    if (_model.isExchangeRateSelected() && (currentRatesDate != lastDate)) {
+      System.err.println("Changing last exchange rates update date from " +
+              currentRatesDate + " to " + lastDate + " per user selection");
       _model.saveLastExchangeRatesUpdateDate(lastDate);
     }
   }

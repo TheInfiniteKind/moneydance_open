@@ -344,25 +344,25 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void setSelectedHistoryConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedHistoryConnection;
     _selectedHistoryConnection = baseConnection;
-    _dirty |= SQUtil.areEqual(original, _selectedHistoryConnection);
+    if (!SQUtil.areEqual(original, _selectedHistoryConnection)) setDirty();
   }
 
   void setSelectedCurrentPriceConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedCurrentPriceConnection;
     _selectedCurrentPriceConnection = baseConnection;
-    _dirty |= SQUtil.areEqual(original, _selectedCurrentPriceConnection);
+    if (!SQUtil.areEqual(original, _selectedCurrentPriceConnection)) setDirty();
   }
 
   void setSelectedExchangeRatesConnection(BaseConnection baseConnection) {
     final BaseConnection original = _selectedExchangeRatesConnection;
     _selectedExchangeRatesConnection = baseConnection;
-    _dirty |= SQUtil.areEqual(original, _selectedExchangeRatesConnection);
+    if (!SQUtil.areEqual(original, _selectedExchangeRatesConnection)) setDirty();
   }
 
   void setSaveCurrentAsHistory(final boolean saveInHistory) {
     boolean previous = _saveCurrentInHistorical;
     _saveCurrentInHistorical = saveInHistory;
-    _dirty |= (previous == saveInHistory);
+    if (previous != saveInHistory) setDirty();
   }
 
   boolean getSaveCurrentAsHistory() { return _saveCurrentInHistorical; }
@@ -400,7 +400,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void saveLastExchangeRatesUpdateDate(final int lastDate) {
     if (_rootAccount == null) return;
     CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
-    System.err.println("Saving last successful price quotes date of: "+dateFormat.format(lastDate));
+    System.err.println("Saving last successful exchange rates date of: "+dateFormat.format(lastDate));
     _rootAccount.setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate);
   }
 

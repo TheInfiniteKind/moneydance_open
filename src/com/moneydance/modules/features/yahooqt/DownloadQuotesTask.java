@@ -9,13 +9,15 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.util.CustomDateFormat;
 
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.concurrent.Callable;
 
@@ -29,6 +31,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
   private final StockQuotesModel _model;
   private final ResourceProvider _resources;
   private final CustomDateFormat _dateFormat;
+  private final SimpleDateFormat _dateTimeFormat;
 
   private float _progressPercent = 0.0f;
 
@@ -36,6 +39,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     _model = model;
     _resources = resources;
     _dateFormat = _model.getPreferences().getShortDateFormatter();
+    _dateTimeFormat = new SimpleDateFormat(_dateFormat.getPattern() + " h:mm a");
   }
 
   @Override
@@ -155,7 +159,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
 
     boolean foundPrice = false;
     double latestRate = 0.0;
-    int latestPriceDate = Util.getStrippedDateInt();
+    long latestPriceDate = 0;
     BaseConnection priceConnection = null;
     // both check for a supporting connection, and also check for 'do not update'
     if (connection.canGetHistory() && _model.isHistoricalPriceSelected()) {
@@ -176,7 +180,8 @@ public class DownloadQuotesTask implements Callable<Boolean> {
             foundPrice = true;
             priceConnection = connection;
             latestRate = latest.closeRate;
-            latestPriceDate = latest.date;
+            // no time conversion needed since historical prices just define date
+            latestPriceDate = latest.dateTime;
           }
         } else {
           result.historyResult = "Error";   // currently not shown to the user
@@ -217,9 +222,10 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         result.currentResult = record.priceDisplay;
         if (!result.currentError) {
           foundPrice = true;
+          // current price download overrides the history download current price
           priceConnection = connection;
           latestRate = record.closeRate;
-          latestPriceDate = record.date;
+          latestPriceDate = convertTimeFromExchangeTimeZone(currType, record.dateTime);
         }
       } catch (DownloadException e) {
         final CurrencyType currency = (e.getCurrency() != null) ? e.getCurrency() : currType;
@@ -237,11 +243,19 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     } // if getting the current price
     
     // update the current price if possible, the last price date is stored as a long
-    final long longLatestDate = Util.convertIntDateToLong(latestPriceDate).getTime();
-    if (foundPrice && ((currType.getTag("price_date")==null) ||
-        (Long.parseLong(currType.getTag("price_date")) < longLatestDate))) {
+    final String lastUpdateDate = currType.getTag("price_date");
+    final long storedCurrentPriceDate = (lastUpdateDate == null) ? 0 : Long.parseLong(lastUpdateDate);
+    final boolean currentPriceUpdated = foundPrice && (storedCurrentPriceDate < latestPriceDate);
+    if (currentPriceUpdated) {
       currType.setUserRate(latestRate);
-      currType.setTag("price_date", String.valueOf(longLatestDate));
+      currType.setTag("price_date", String.valueOf(latestPriceDate));
+    } else if (foundPrice) {
+      // log that we skipped the update and why
+      String format = "Current price update time {0} not less than downloaded time {1} for {2}";
+      System.err.println(MessageFormat.format(format,
+              _dateTimeFormat.format(new Date(storedCurrentPriceDate)),
+              _dateTimeFormat.format(new Date(latestPriceDate)),
+              result.displayName));
     }
     if (foundPrice) {
       // use whichever connection was last successful at getting the price to show the value
@@ -250,32 +264,57 @@ public class DownloadQuotesTask implements Callable<Boolean> {
                                                 latestRate, latestPriceDate));
       if (SQUtil.isBlank(result.logMessage)) {
         result.logMessage = buildPriceLogText(priceConnection, currType, result.displayName,
-                latestRate, latestPriceDate);
+                latestRate, latestPriceDate, currentPriceUpdated);
       }
     }
     return result;
   }
 
+  /**
+   * Convert the downloaded price time, which is local to the stock exchange, to the current system
+   * time, local to this PC.
+   * @param securityCurrency The security that is being updated.
+   * @param dateTimeExchange The downloaded time, local to the stock exchange.
+   * @return The corrected local time of the stock price update time.
+   */
+  private long convertTimeFromExchangeTimeZone(CurrencyType securityCurrency, long dateTimeExchange) {
+    StockExchange exchange = _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
+    if (exchange == null) return dateTimeExchange;
+    long exchangeZoneOffsetMs = (long)(exchange.getGMTDiff() * 60 * 60 * 1000);
+    Calendar cal = Calendar.getInstance();
+    long currentZoneOffsetMs = cal.get(Calendar.ZONE_OFFSET);
+    // we wish to correct the exchange date time to local time, so add the difference.
+    // Example: current time zone -6 hours = -21600000ms, exchange time zone = -5 = -18000000,
+    // correction = -21600000 - -18000000 =  -3600000 (-1 hour)
+    return dateTimeExchange + (currentZoneOffsetMs - exchangeZoneOffsetMs);
+  }
+
   private String buildPriceDisplayText(BaseConnection connection, CurrencyType securityCurrency,
-                                       String name, double rate, int date) {
+                                       String name, double rate, long dateTime) {
     String format = _resources.getString(L10NStockQuotes.SECURITY_PRICE_DISPLAY_FMT);
     // get the currency that the prices are specified in
     CurrencyType priceCurrency = connection.getPriceCurrency(securityCurrency);
     long amount = (rate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / rate);
     final char decimal = _model.getPreferences().getDecimalChar();
     String priceDisplay = priceCurrency.formatFancy(amount, decimal);
-    String asofDate =_dateFormat.format(date);
+    String asofDate =_dateFormat.format(new Date(dateTime));
     return MessageFormat.format(format, name, asofDate, priceDisplay);
   }
 
   private String buildPriceLogText(BaseConnection connection, CurrencyType securityCurrency,
-                                   String name, double rate, int date) {
-    String format = "Price for {0} as of {1}: {2}";
+                                   String name, double rate, long dateTime, boolean updated) {
+    String format = updated ? "Current price for {0} as of {1}: {2}" : "Latest historical price for {0} as of {1}: {2}";
     // get the currency that the prices are specified in
     CurrencyType priceCurrency = connection.getPriceCurrency(securityCurrency);
     long amount = (rate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / rate);
     String priceDisplay = priceCurrency.formatFancy(amount, '.');
-    String asofDate = _dateFormat.format(date);
+    final String asofDate;
+    if (updated) {
+      // the current price can be intra-day, so log the date and time of the price update.
+      asofDate = _dateTimeFormat.format(new Date(dateTime));
+    } else {
+      asofDate = _dateFormat.format(new Date(dateTime));
+    }
     return MessageFormat.format(format, name, asofDate, priceDisplay);
   }
 

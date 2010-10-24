@@ -47,7 +47,9 @@ public abstract class SnapshotImporter
   private final char _userDecimal;
   private final SimpleDateFormat _expectedDateFormat;
   private SimpleDateFormat _defaultDateFormat;
+  private SimpleDateFormat _defaultTimeFormat;
   static final String DATE_KEY = "DATE";
+  static final String TIME_KEY = "TIME";
   static final String HIGH_KEY = "HIGH";
   static final String LOW_KEY = "LOW";
   static final String CLOSE_KEY = "CLOSE";
@@ -64,6 +66,7 @@ public abstract class SnapshotImporter
   static final int ERROR_OTHER = -11;
 
   private int _dateIndex = 0;
+  private int _timeIndex = 1;
   private int _highIndex = 2;
   private int _lowIndex = 3;
   private int _closeIndex = 4;
@@ -95,6 +98,7 @@ public abstract class SnapshotImporter
     _expectedDateFormat = expectedDateFormat;
     _userDecimal = userDecimal;
     _resources = resources;
+    _defaultTimeFormat = new SimpleDateFormat("h:mma");
   }
 
   /**
@@ -199,6 +203,7 @@ public abstract class SnapshotImporter
     int columnCount = StringUtils.countFields(header, _columnDelim);
     boolean hasAnyHeader = false;
     boolean hasDate = false;
+    boolean hasTime = false;
     boolean hasClose = false;
     boolean hasHigh = false;
     boolean hasLow = false;
@@ -212,6 +217,10 @@ public abstract class SnapshotImporter
         hasAnyHeader = true;
         hasDate = true;
         _dateIndex = column;
+      } else if (TIME_KEY.equalsIgnoreCase(columnName)) {
+        hasAnyHeader = true;
+        hasTime = true;
+        _timeIndex = column;
       } else if (CLOSE_KEY.equalsIgnoreCase(columnName)) {
         hasAnyHeader = true;
         hasClose = true;
@@ -244,6 +253,7 @@ public abstract class SnapshotImporter
     if (!hasHigh) _highIndex = -1;     // won't use
     if (!hasLow) _lowIndex = -1;       // won't use
     if (!hasVolume) _volumeIndex = -1; // won't use
+    if (!hasTime) _timeIndex = -1;     // won't use
     return true;
   }
 
@@ -326,27 +336,22 @@ public abstract class SnapshotImporter
     return errorCount;
   }
 
+  /**
+   * Store the downloaded prices into the security currency's history. We don't save the current
+   * price here because it must be decided at a higher level whether to update current price. Even
+   * if the full history download successfully gets a more recent price than is stored with the
+   * security, it may be overridden by the current price download (which can have intra-day pricing).
+   * @param baseCurrency The currency to convert the price into (dollar, euro, etc.)
+   * @return True if successful, false if there was nothing applied.
+   */
   public boolean apply(CurrencyType baseCurrency) {
     if (_importRecords.isEmpty()) return false;
-    int latestDate = 0;
-    double latestRate = 0.0;
-    for (StockRecord record :_importRecords) {
+    boolean success = false;
+    for (StockRecord record : _importRecords) {
       CurrencyType.Snapshot snap = addOrUpdateSnapshot(_currency, baseCurrency, record);
-      if ((snap.getDateInt() > latestDate) && (snap.getUserRate() > 0.0)) {
-        latestDate = snap.getDateInt();
-        latestRate = snap.getUserRate();
-      }
+      success |= (snap.getUserRate() > 0.0);
     }
-    // if more recent, update the current price too
-    if (latestDate > 0) {
-      final long longLatestDate = Util.convertIntDateToLong(latestDate).getTime();
-      if ((_currency.getTag("price_date")==null) ||
-          (Long.parseLong(_currency.getTag("price_date")) < longLatestDate)) {
-        _currency.setUserRate(latestRate);
-        _currency.setTag("price_date", String.valueOf(longLatestDate));
-      }
-    }
-    return true;
+    return success;
   }
 
   public Vector<StockRecord> getImportedRecords() { return _importRecords; }
@@ -505,6 +510,14 @@ public abstract class SnapshotImporter
       result.highRate = parseUserRate(
               StringUtils.fieldIndex(record, _columnDelim, _highIndex), 0.0, _priceMultiplier);
     }
+    if (_timeIndex >= 0) {
+      // this time will be as of the stock exchange local time
+      result.dateTime = parseTime(date, StringUtils.fieldIndex(record, _columnDelim, _timeIndex));
+    } else {
+      // this will set the time to midnight so that it will generally be less than the current price
+      // update time
+      result.dateTime = getMidnightDateTime(date);
+    }
     return result;
   }
 
@@ -542,6 +555,39 @@ public abstract class SnapshotImporter
       // not parsed
       return 0;
     }
+  }
+
+  /**
+   * Given a downloaded time string, return a date and time local to the stock exchange at which
+   * the price is valid.
+   * @param date    The integer date.
+   * @param timeStr The downloaded time string, in the time zone of the stock exchange.
+   * @return A date and time in the time zone of the stock exchange.
+   */
+  long parseTime(final int date, final String timeStr) {
+    // The default time is 12 noon, so we convert to midnight before adding the parsed
+    // time. The parsed time will be as of the stock exchange local time.
+    long startDate = getMidnightDateTime(date);
+    try {
+      String value = stripQuotes(timeStr);
+      if (SQUtil.isBlank(value)) return startDate;
+      final long time = _defaultTimeFormat.parse(value).getTime();
+      return startDate + time;
+    } catch (ParseException e) {
+      System.err.println("Encountered bad time value: " + timeStr);
+      // not parsed
+      return startDate;
+    }
+  }
+
+  /**
+   * Given an integer date, return a date/time at midnight for that date.
+   * @param date The integer date to convert to a date and time.
+   * @return The date and time, in milliseconds after 1/1/1970, for midnight of the given date.
+   */
+  private static long getMidnightDateTime(int date) {
+    final long msecPerMinute = 60 * 1000;
+    return Util.firstMinuteInDay(Util.convertIntDateToLong(date)).getTime() - msecPerMinute;
   }
 
   private static boolean matchesPattern(SimpleDateFormat format, String candidate) {
