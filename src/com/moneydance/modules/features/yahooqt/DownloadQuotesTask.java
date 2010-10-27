@@ -158,7 +158,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     }
 
     boolean foundPrice = false;
-    double latestRate = 0.0;
+    double latestRate = 0.0;   // the raw downloaded price in terms of the price currency
     long latestPriceDate = 0;
     BaseConnection priceConnection = null;
     // both check for a supporting connection, and also check for 'do not update'
@@ -246,8 +246,10 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     final String lastUpdateDate = currType.getTag("price_date");
     final long storedCurrentPriceDate = (lastUpdateDate == null) ? 0 : Long.parseLong(lastUpdateDate);
     final boolean currentPriceUpdated = foundPrice && (storedCurrentPriceDate < latestPriceDate);
+    final CurrencyType priceCurrency = getPriceCurrency(currType, priceConnection);
     if (currentPriceUpdated) {
-      currType.setUserRate(latestRate);
+      // the user rate should be stored in terms of the base currency, just like the snapshots
+      currType.setUserRate(CurrencyTable.convertToBasePrice(latestRate, priceCurrency, latestPriceDate));
       currType.setTag("price_date", String.valueOf(latestPriceDate));
     } else if (foundPrice) {
       // log that we skipped the update and why
@@ -260,14 +262,28 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     if (foundPrice) {
       // use whichever connection was last successful at getting the price to show the value
       _model.showProgress(_progressPercent,
-                          buildPriceDisplayText(priceConnection, currType, result.displayName,
+                          buildPriceDisplayText(priceCurrency, result.displayName,
                                                 latestRate, latestPriceDate));
       if (SQUtil.isBlank(result.logMessage)) {
-        result.logMessage = buildPriceLogText(priceConnection, currType, result.displayName,
+        result.logMessage = buildPriceLogText(priceCurrency, result.displayName,
                 latestRate, latestPriceDate, currentPriceUpdated);
       }
     }
     return result;
+  }
+
+  private CurrencyType getPriceCurrency(CurrencyType securityCurrency, BaseConnection priceConnection) {
+    if (priceConnection == null) {
+      // Essentially an unexpected error condition, but the user may have picked a currency type in
+      // the history window that we can use
+      String relativeCurrID = securityCurrency.getTag(CurrencyType.TAG_RELATIVE_TO_CURR);
+      if(relativeCurrID!=null) {
+        return _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(relativeCurrID);
+      }
+      return _model.getRootAccount().getCurrencyTable().getBaseType(); // punt
+    }
+    // normal condition - the stock exchange will specify the price currency
+    return priceConnection.getPriceCurrency(securityCurrency);
   }
 
   /**
@@ -289,11 +305,9 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     return dateTimeExchange + (currentZoneOffsetMs - exchangeZoneOffsetMs);
   }
 
-  private String buildPriceDisplayText(BaseConnection connection, CurrencyType securityCurrency,
+  private String buildPriceDisplayText(CurrencyType priceCurrency,
                                        String name, double rate, long dateTime) {
     String format = _resources.getString(L10NStockQuotes.SECURITY_PRICE_DISPLAY_FMT);
-    // get the currency that the prices are specified in
-    CurrencyType priceCurrency = connection.getPriceCurrency(securityCurrency);
     long amount = (rate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / rate);
     final char decimal = _model.getPreferences().getDecimalChar();
     String priceDisplay = priceCurrency.formatFancy(amount, decimal);
@@ -301,11 +315,9 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     return MessageFormat.format(format, name, asofDate, priceDisplay);
   }
 
-  private String buildPriceLogText(BaseConnection connection, CurrencyType securityCurrency,
+  private String buildPriceLogText(CurrencyType priceCurrency,
                                    String name, double rate, long dateTime, boolean updated) {
     String format = updated ? "Current price for {0} as of {1}: {2}" : "Latest historical price for {0} as of {1}: {2}";
-    // get the currency that the prices are specified in
-    CurrencyType priceCurrency = connection.getPriceCurrency(securityCurrency);
     long amount = (rate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / rate);
     String priceDisplay = priceCurrency.formatFancy(amount, '.');
     final String asofDate;

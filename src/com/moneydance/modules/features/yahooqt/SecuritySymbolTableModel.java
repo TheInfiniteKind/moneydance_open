@@ -61,7 +61,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (_model.getRootAccount() == null) return;
     AccountIterator iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
-      Account account = (Account)iter.next();
+      Account account = iter.next();
       if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
         addAccount((SecurityAccount)account);
       }
@@ -78,7 +78,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (_model.getRootAccount() == null) return;
     AccountIterator iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
-      Account account = (Account)iter.next();
+      Account account = iter.next();
       if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
         final CurrencyType currency = account.getCurrencyType();
         if (currency == null) continue; // nothing to do, unlikely
@@ -90,6 +90,8 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         } else {
           _model.getSymbolMap().setIsCurrencyUsed(currency, entry.use);
           _model.getSymbolMap().setExchangeIdForCurrency(currency, entry.exchangeId);
+          // if not the default exchange, store the stock exchange currency as the display currency
+          updatePriceDisplayCurrency(currency, entry);
           // update the currency symbol if the user edited it
           String newSymbol = entry.editSymbol == null ? "" : entry.editSymbol.trim();
           String currentSymbol = currency.getTickerSymbol();
@@ -99,6 +101,23 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         } // if a corresponding entry
       } // if a security account
     } // while iter.hasNext()
+  }
+
+  /**
+   * Historical prices are stored in the base currency, but the user may choose to display them in
+   * any currency. When the user picks a stock exchange and assigns it to a security, this method
+   * will automatically set the display currency to the stock exchange currency to help avoid
+   * confusion.
+   * @param securityCurrency The security currency.
+   * @param entry            The user-defined settings for the security.
+   */
+  private void updatePriceDisplayCurrency(CurrencyType securityCurrency, SecurityEntry entry) {
+    // do nothing if it's the default exchange
+    if (StockExchange.DEFAULT.getExchangeId().equals(entry.exchangeId)) return;
+    final StockExchange exchange = _model.getExchangeList().getById(entry.exchangeId);
+    if (exchange != null) {
+      securityCurrency.setTag(CurrencyType.TAG_RELATIVE_TO_CURR, exchange.getCurrencyCode());
+    }
   }
 
   public int getRowCount() {

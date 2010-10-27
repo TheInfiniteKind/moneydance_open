@@ -9,7 +9,6 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.util.StringUtils;
 
@@ -341,14 +340,15 @@ public abstract class SnapshotImporter
    * price here because it must be decided at a higher level whether to update current price. Even
    * if the full history download successfully gets a more recent price than is stored with the
    * security, it may be overridden by the current price download (which can have intra-day pricing).
-   * @param baseCurrency The currency to convert the price into (dollar, euro, etc.)
+   * @param priceCurrency The currency that the downloaded quote is in. This will get converted to
+   *                      the base currency.
    * @return True if successful, false if there was nothing applied.
    */
-  public boolean apply(CurrencyType baseCurrency) {
+  public boolean apply(CurrencyType priceCurrency) {
     if (_importRecords.isEmpty()) return false;
     boolean success = false;
     for (StockRecord record : _importRecords) {
-      CurrencyType.Snapshot snap = addOrUpdateSnapshot(_currency, baseCurrency, record);
+      CurrencyType.Snapshot snap = addOrUpdateSnapshot(_currency, priceCurrency, record);
       success |= (snap.getUserRate() > 0.0);
     }
     return success;
@@ -368,12 +368,12 @@ public abstract class SnapshotImporter
                                                            CurrencyType baseCurrency,
                                                            StockRecord record)
   {
-    final double newRate = CurrencyTable.convertToBasePrice(record.closeRate, baseCurrency,
-            record.date);
+    // all snapshots are recorded in terms of the base currency.
+    final double newRate = convertToBasePrice(record.closeRate, baseCurrency, record.date);
     CurrencyType.Snapshot result = currency.setSnapshotInt(record.date, newRate);
     // downloaded values are prices in a certain currency, change to rates for the stock history
-    result.setUserDailyHigh(CurrencyTable.convertToBasePrice(record.highRate, baseCurrency, record.date));
-    result.setUserDailyLow(CurrencyTable.convertToBasePrice(record.lowRate, baseCurrency, record.date));
+    result.setUserDailyHigh(convertToBasePrice(record.highRate, baseCurrency, record.date));
+    result.setUserDailyLow(convertToBasePrice(record.lowRate, baseCurrency, record.date));
     result.setDailyVolume(record.volume);
     return result;
   }
@@ -382,6 +382,21 @@ public abstract class SnapshotImporter
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // Private Methods
   ///////////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Convert the given price (in terms of the given currency) to a price in terms of the base
+   * currency.
+   * <p/>
+   * This is copied from CurrencyTable.convertToBasePrice() to avoid an unnecessary conversion to
+   * an integer date, which is already available.
+   * @param priceFromCurr The downloaded price, in terms of <code>priceCurrency</code>
+   * @param priceCurrency The currency that the price is defined in.
+   * @param date          Integer date of the conversion.
+   * @return The price, converted to the base currency of the file.
+   */
+  private static double convertToBasePrice(double priceFromCurr, CurrencyType priceCurrency, int date) {
+    return priceCurrency.getUserRateByDateInt(date)*priceFromCurr;
+  }
 
   /**
    * Finds all the Unicode characters in the Special block, which are used to identify the Unicode
