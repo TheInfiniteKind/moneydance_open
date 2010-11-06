@@ -21,6 +21,7 @@ import com.moneydance.awt.JDateField;
 import com.moneydance.util.StringUtils;
 import com.moneydance.util.UiUtil;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.DefaultCellEditor;
@@ -37,6 +38,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -65,6 +67,7 @@ import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -398,10 +401,31 @@ public class YahooDialog
             p.add(new JLabel(message), GridC.getc(0, 2));
             JOptionPane.showMessageDialog(YahooDialog.this, p);
           }
+        } else if ((column == SecuritySymbolTableModel.EXCHANGE_COL) &&
+                SwingUtilities.isRightMouseButton(event)) {
+          // edit the exchange
+          showExchangeEditDialog(row);
+        }
+      }
+    });
+    // add hot key
+    _table.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_E,
+            MoneydanceGUI.ACCELERATOR_MASK), "editExchange");
+    _table.getActionMap().put("editExchange", new AbstractAction() {
+      public void actionPerformed(final ActionEvent event) {
+        final int selectedRow = _table.getSelectedRow();
+        if (selectedRow >= 0) {
+          showExchangeEditDialog(selectedRow);
         }
       }
     });
     return host;
+  }
+
+  private void showExchangeEditDialog(final int row) {
+    final StockExchange exchange = (StockExchange)_model.getTableModel().getValueAt(
+            row, SecuritySymbolTableModel.EXCHANGE_COL);
+    _exchangeEditor.edit(exchange);
   }
 
   private void includeAll(final boolean include) {
@@ -498,7 +522,7 @@ public class YahooDialog
     ExchangeComboTableColumn exchangeColumn =
             new ExchangeComboTableColumn(_model.getGUI(),
                                          SecuritySymbolTableModel.EXCHANGE_COL, 60,
-                                         getExchangeItems(), _exchangeEditor, true);
+                                         getExchangeItems(), _exchangeEditor);
     columnModel.addColumn(exchangeColumn);
     exchangeColumn.setHeaderValue(_resources.getString(L10NStockQuotes.EXCHANGE_TITLE));
     // testing column

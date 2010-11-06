@@ -13,9 +13,13 @@ import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.AccountIterator;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.SecurityAccount;
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.util.UiUtil;
 
+import javax.swing.KeyStroke;
+import javax.swing.UIManager;
 import javax.swing.table.AbstractTableModel;
+import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -227,6 +231,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 
   String getToolTip(int rowIndex, int columnIndex) {
     if ((rowIndex < 0) || (rowIndex >= _data.size())) return null;
+    if (_model.getRootAccount() == null) return null;
     final SecurityEntry tableEntry = _data.get(rowIndex);
     if (tableEntry == null) return null;
     if (columnIndex == TEST_COL) return tableEntry.toolTip;
@@ -239,9 +244,52 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       String fullSymbol = connection.getFullTickerSymbol(parsedSymbol, exchange);
       return UiUtil.getLabelText(_model.getGUI(), "currency_ticker") + fullSymbol;
     }
+    if (columnIndex == EXCHANGE_COL) {
+      StockExchange exchange = _model.getExchangeList().getById(tableEntry.exchangeId);
+      StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
+      CurrencyType priceCurrency =  _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(
+              exchange.getCurrencyCode());
+      if (priceCurrency != null) {
+        sb.append(UiUtil.getLabelText(_model.getGUI(), L10NStockQuotes.CURRENCY_LABEL));
+        sb.append(getCurrencyAbbreviatedDisplay(priceCurrency));
+        sb.append(N12EStockQuotes.COMMA_SEPARATOR);
+      }
+      sb.append(SQUtil.getLabelText(_model.getResources(), L10NStockQuotes.MULTIPLIER_LABEL));
+      sb.append(Double.toString(exchange.getPriceMultiplier()));
+      sb.append(N12EStockQuotes.BREAK);
+      final String keyText = getAcceleratorText(KeyStroke.getKeyStroke(KeyEvent.VK_E,
+            MoneydanceGUI.ACCELERATOR_MASK));
+      sb.append(MessageFormat.format(_model.getResources().getString(L10NStockQuotes.EXCHANGE_EDIT_TIP_FMT),
+              keyText));
+      sb.append(N12EStockQuotes.HTML_END);
+      return sb.toString();
+    }
     return null;
   }
 
+  /**
+   * Show the accelerator key text. Adapted from BasicMenuItemUI.java.
+   * @param accelerator The keypress to generate text for.
+   * @return The resulting text representing the key press.
+   */
+  private static String getAcceleratorText(KeyStroke accelerator) {
+    String acceleratorDelimiter = UIManager.getString("MenuItem.acceleratorDelimiter");
+    String acceleratorText = "";
+    if (accelerator != null) {
+      int modifiers = accelerator.getModifiers();
+      if (modifiers > 0) {
+        acceleratorText = KeyEvent.getKeyModifiersText(modifiers);
+        if (acceleratorDelimiter != null) acceleratorText += acceleratorDelimiter;
+      }
+      int keyCode = accelerator.getKeyCode();
+      if (keyCode != 0) {
+        acceleratorText += KeyEvent.getKeyText(keyCode);
+      } else {
+        acceleratorText += accelerator.getKeyChar();
+      }
+    }
+    return acceleratorText;
+  }
 
   @Override
   public boolean isCellEditable(int rowIndex, int columnIndex) {

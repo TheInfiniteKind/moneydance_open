@@ -37,6 +37,7 @@ class L10NStockQuotes
   static final String NEVER = "never";
   static final String HIDE_TEST = "hideTest.tip";
   static final String SHOW_TEST = "showTest.tip";
+  static final String EXCHANGE_EDIT_TIP_FMT = "editExchange.tip"; // Right click or press {0} to edit
 
   // other strings
   /** Text that follows a label. Some locales prefer ' : ', others prefer ': '.  */

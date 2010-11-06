@@ -24,8 +24,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.JTable;
 import javax.swing.border.Border;
-import javax.swing.border.LineBorder;
-import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.metal.MetalComboBoxUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
@@ -64,14 +62,6 @@ public class ExchangeComboTableColumn extends TableColumn
    */
   private static final int FOCUS_BORDER_SIZE = 1;
   /**
-   * The color of the focus border in the table.
-   */
-  private static final Color BORDER_COLOR = UIManager.getColor("Label.foreground");
-  /**
-   * A line border for when there is focus. There is no inset on the left edge.
-   */
-  private static final Border FOCUS_BORDER = new LineBorder(BORDER_COLOR, FOCUS_BORDER_SIZE);
-  /**
    * A line border with an arrow when there is focus.
    */
   private static final Border FOCUS_ARROW_BORDER =
@@ -86,13 +76,8 @@ public class ExchangeComboTableColumn extends TableColumn
   /**
    * An arrow border when keyboard focus is not on the cell.
    */
-  private static final Border ARROW_BORDER = new ArrowBorder();
-  /**
-   * An empty border for when there is no focus. There is no inset on the left edge.
-   */
-  private static final Border NO_FOCUS_BORDER =
-          new EmptyBorder(FOCUS_BORDER_SIZE, FOCUS_BORDER_SIZE, FOCUS_BORDER_SIZE,
-                  FOCUS_BORDER_SIZE);
+  private static final Border ARROW_BORDER = new ArrowBorder(ArrowBorder.ICON_LENGTH,
+          ArrowBorder.ICON_WIDTH, ArrowBorder.ICON_PADDING, true, 0);
   /**
    * Editing interface to edit a stock exchange.
    */
@@ -107,16 +92,15 @@ public class ExchangeComboTableColumn extends TableColumn
    * @param width      Preferred width in pixels.
    * @param items      The items to add to the combo box.
    * @param exchangeEditor Callback interface for editing an individual exchange.
-   * @param showArrow  True to show a dropdown arrow, false to hide it.
    */
   public ExchangeComboTableColumn(MoneydanceGUI mdGui, int modelIndex, int width, StockExchange[] items,
-                                  IExchangeEditor exchangeEditor, boolean showArrow) {
+                                  IExchangeEditor exchangeEditor) {
     super(modelIndex, width);
     _exchangeEditor = exchangeEditor;
 
-    setCellRenderer(new ComboCellRenderer(mdGui, showArrow));
+    setCellRenderer(new ComboCellRenderer(mdGui));
     setCellEditor(new ComboCellEditor(items));
-    final ComboCellRenderer renderer = new ComboCellRenderer(mdGui, true);
+    final ComboCellRenderer renderer = new ComboCellRenderer(mdGui);
     renderer.setIsHeaderCell(true);
     setHeaderRenderer(renderer);
   }
@@ -131,18 +115,11 @@ public class ExchangeComboTableColumn extends TableColumn
     private boolean _isHeaderCell = false;
 
     /**
-     * True if the arrow is to be displayed, false if it should be hidden.
-     */
-    private final boolean _showArrow;
-
-    /**
      * Initialize the combo box renderer and set up the cell to have the same look and feel as
      * the rest of the table.
      * @param mdGui The main application UI object.
-     * @param showArrow True to show the arrow for a combo dropdown, false otherwise.
      */
-    ComboCellRenderer(MoneydanceGUI mdGui, final boolean showArrow) {
-      _showArrow = showArrow;
+    ComboCellRenderer(MoneydanceGUI mdGui) {
       _mdGui = mdGui;
     }
 
@@ -174,6 +151,8 @@ public class ExchangeComboTableColumn extends TableColumn
             result.setBackground(_mdGui.getColors().homePageAltBG);
           }
         }
+        SecuritySymbolTableModel model = (SecuritySymbolTableModel)table.getModel();
+        result.setToolTipText(model.getToolTip(row, column));
       } // if not the header
       return result;
     }
@@ -188,16 +167,9 @@ public class ExchangeComboTableColumn extends TableColumn
     Border getComponentBorder(final boolean drawingForEditor, final boolean hasFocus) {
       if (_isHeaderCell) return UIManager.getBorder("TableHeader.cellBorder");
       if (drawingForEditor || hasFocus) {
-        if (_showArrow) {
-          return FOCUS_ARROW_BORDER;
-        }
-        return FOCUS_BORDER;
+        return FOCUS_ARROW_BORDER;
       }
-
-      if (_showArrow) {
-        return ARROW_BORDER;
-      }
-      return NO_FOCUS_BORDER;
+      return ARROW_BORDER;
     }
 
     void setIsHeaderCell(boolean isHeader) {
@@ -243,9 +215,10 @@ public class ExchangeComboTableColumn extends TableColumn
 
       _comboBox.addMouseListener(new MouseAdapter() {
         @Override
-        public void mouseClicked(MouseEvent e) {
-          if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() > 1)) {
-            e.consume();
+        public void mouseClicked(MouseEvent event) {
+          if (SwingUtilities.isRightMouseButton(event) ||
+                  (SwingUtilities.isLeftMouseButton(event) && (event.getClickCount() > 1))) {
+            event.consume();
             showExchangeEditDialog();
           }
         }

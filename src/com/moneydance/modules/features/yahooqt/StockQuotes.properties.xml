@@ -50,7 +50,8 @@
     <entry key="price_currency.fmt">Prices in {0}</entry>
     <entry key="error.curr_mismatch.fmt">Currency {0} does not match exchange currency {1}</entry>
     <entry key="error.curr_code_mismatch.fmt">Currency code {0} does not match {1}</entry>
-
+    <entry key="editExchange.tip">Right click or press {0} to edit</entry>
+  
     <!-- Import Errors -->
     <!-- {0} = the currency ID that is supposed to be used for price updates, but doesn't exist. -->
     <entry key="error.price_currency.fmt">Price currency ID not found: {0}</entry>
