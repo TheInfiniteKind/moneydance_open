@@ -135,6 +135,7 @@ public class DownloadQuotesTest implements Callable<Boolean> {
 
   private DownloadResult getHistoryTest(SecuritySymbolTableModel.SecurityEntry entry,
                                         BaseConnection connection, DateRange dateRange) {
+    connection.setDefaultCurrency();
     try {
       if (!_model.isHistoricalPriceSelected()) {
         return new DownloadResult(_resources.getString(L10NStockQuotes.NO_UPDATE), 1);
@@ -177,6 +178,7 @@ public class DownloadQuotesTest implements Callable<Boolean> {
 
   private DownloadResult getQuoteTest(SecuritySymbolTableModel.SecurityEntry entry,
                                       BaseConnection connection) {
+    connection.setDefaultCurrency();
     try {
       if (!_model.isCurrentPriceSelected()) {
         return new DownloadResult(_resources.getString(L10NStockQuotes.NO_UPDATE), true, null);

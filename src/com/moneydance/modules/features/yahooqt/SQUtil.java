@@ -9,6 +9,7 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.Util;
+import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.time.TimeInterval;
 
 import java.io.UnsupportedEncodingException;
@@ -168,7 +169,161 @@ final class SQUtil {
   }
 
   /**
+   * Parse out user-defined symbol information. The user may provide overrides in the symbol using
+   * the following syntax:
+   * <pre>
+   *     {GooglePrefix} : Symbol . {YahooSuffix} - {CurrencyCode}
+   * </pre>
+   * Where only <code>Symbol</code> is required, and no spaces are expected.
+   * @param securityCurrency The security definition to obtain information for.
+   * @return The parsed symbol data along with overrides. Note that the {YahooSuffix} will contain
+   * the leading period, whereas the GooglePrefix will not contain a trailing colon. This is to
+   * maintain compatibility with how the stock exchanges are defined.
+   */
+  static SymbolData parseTickerSymbol(CurrencyType securityCurrency) {
+    if (securityCurrency == null) return null;
+    final String rawTickerSymbol = securityCurrency.getTickerSymbol();
+    if (isBlank(rawTickerSymbol)) return null;
+    return parseTickerSymbol(rawTickerSymbol);
+  }
+
+  /**
+   * Parse out user-defined symbol information. The user may provide overrides in the symbol using
+   * the following syntax:
+   * <pre>
+   *     {GooglePrefix} : Symbol . {YahooSuffix} - {CurrencyCode}
+   * </pre>
+   * Where only <code>Symbol</code> is required, and no spaces are expected.
+   * @param rawTickerSymbol The raw ticker symbol with all user edits of prefix, suffix or currency
+   * @return The parsed symbol data along with overrides. Note that the {YahooSuffix} will contain
+   * the leading period, whereas the GooglePrefix will not contain a trailing colon. This is to
+   * maintain compatibility with how the stock exchanges are defined.
+   */
+  static SymbolData parseTickerSymbol(String rawTickerSymbol) {
+    String tickerSymbol = rawTickerSymbol.trim();
+    String prefix = null;
+    String suffix = null;
+    String currencyCode = null;
+
+    // check if a Google exchange prefix exists
+    int colonIndex = tickerSymbol.indexOf(':');
+    if (colonIndex >= 0) {
+      prefix = tickerSymbol.substring(0, colonIndex).trim();
+      tickerSymbol = tickerSymbol.substring(colonIndex + 1).trim();
+    }
+    int dashIndex = tickerSymbol.lastIndexOf('-');
+    if (dashIndex >= 0) {
+      currencyCode = tickerSymbol.substring(dashIndex + 1).trim();
+      tickerSymbol = tickerSymbol.substring(0, dashIndex).trim();
+    }
+    int dotIndex = tickerSymbol.indexOf('.');
+    if (dotIndex >= 0) {
+      // include the period as the first character
+      suffix = tickerSymbol.substring(dotIndex).trim();
+      if (".".equals(suffix)) suffix = null;   // ignore empty
+      tickerSymbol = tickerSymbol.substring(0, dotIndex).trim();
+    }
+    if (isBlank(tickerSymbol)) {
+      // this part is required, so if it doesn't exist, bail
+      return null;
+    }
+    return new SymbolData(prefix, tickerSymbol, suffix, currencyCode);
+  }
+
+  /**
    * Static utilities only - do not instantiate.
    */
   private SQUtil() { }
+
+  /**
+   * Unit test the methods.
+   * @param argv Test arguments (not used).
+   */
+  public static void main(String argv[]) {
+    // test the parsing of symbols. Using symbol GIL.F or GILG.DE for Gildemeister
+    CurrencyType security = new CurrencyType(5000, "GIL", "Gildemeister", 1.0, 2, "", "GIL", "",
+            19990101, CurrencyType.CURRTYPE_SECURITY, null);
+    security.setTickerSymbol("  \t   \n ");
+    SymbolData data = parseTickerSymbol(security);
+    System.err.println("Blank test: " + ((data != null) ? "FAIL" : "pass"));
+    // straightforward tests
+    String symbol = "GIL";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA:GIL";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "GIL.F";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "GIL.F-EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA:GIL.F-EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    // mangled cases
+    symbol = ":  GIL . ";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA\t:  GIL .F    -EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "\t: \n GIL .-EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA:   .F-EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Blank test: " + ((data != null) ? "FAIL" : "pass"));
+  }
+
 }

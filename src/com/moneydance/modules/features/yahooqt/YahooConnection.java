@@ -123,26 +123,17 @@ public abstract class YahooConnection extends BaseConnection {
     super(model, BaseConnection.HISTORY_SUPPORT | BaseConnection.CURRENT_PRICE_SUPPORT);
   }
 
-  public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange)
+  public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange)
   {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
-    String tickerSymbol = rawTickerSymbol.toUpperCase().trim();
+    if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) return null;
     // check if the exchange was already added on, which will override the selected exchange
-    int periodIdx = tickerSymbol.lastIndexOf('.');
-    if(periodIdx >= 0) {
-      // also check if a currency override suffix was added
-      int dashIdx = tickerSymbol.indexOf('-', periodIdx);
-      if(dashIdx >= 0) {
-        // clip off the currency code but keep the exchange override
-        return tickerSymbol.substring(0, dashIdx);
-      }
-      // keep the exchange override
-      return tickerSymbol;
+    if (!SQUtil.isBlank(parsedSymbol.suffix)) {
+      return parsedSymbol.symbol + parsedSymbol.suffix;
     }
     // Check if the selected exchange has a Yahoo suffix or not. If it does, add it.
     String suffix = exchange.getSymbolYahoo();
-    if (SQUtil.isBlank(suffix)) return tickerSymbol;
-    return tickerSymbol + suffix;
+    if (SQUtil.isBlank(suffix)) return parsedSymbol.symbol;
+    return parsedSymbol.symbol + suffix;
   }
 
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)

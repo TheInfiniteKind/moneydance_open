@@ -55,7 +55,6 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Toolkit;
@@ -68,7 +67,6 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
@@ -108,7 +106,6 @@ public class YahooDialog
   private final JCheckBox _showOwnedOnly = new JCheckBox();
   private final JLabel _testStatus = new JLabel();
   private boolean _okButtonPressed = false;
-  private JPanel _extraButtonPanel;
 
   public YahooDialog(final FeatureModuleContext context, final ResourceProvider resources,
                      final StockQuotesModel model) {
@@ -204,16 +201,16 @@ public class YahooDialog
     _buttonNow = new JButton(_resources.getString(L10NStockQuotes.UPDATE_NOW));
     _buttonTest = new JButton(_resources.getString(L10NStockQuotes.TEST));
     _buttonTest.setVisible(_showingTestInfo);
-    _extraButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP, UiUtil.VGAP));
-    _extraButtonPanel.add(_buttonTest);
-    _extraButtonPanel.add(_buttonNow);
+    JPanel extraButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP, UiUtil.VGAP));
+    extraButtonPanel.add(_buttonTest);
+    extraButtonPanel.add(_buttonNow);
     // the built-in OK/Cancel buttons
     OKButtonPanel okButtons = new OKButtonPanel(_model.getGUI(), new DialogOKButtonListener(),
                                                 OKButtonPanel.QUESTION_OK_CANCEL);
     JPanel bottomPanel = new JPanel(new BorderLayout());
     bottomPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.VGAP, UiUtil.DLG_HGAP,
                                                           UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
-    bottomPanel.add(_extraButtonPanel, BorderLayout.WEST);
+    bottomPanel.add(extraButtonPanel, BorderLayout.WEST);
     bottomPanel.add(okButtons, BorderLayout.CENTER);
     contentPane.add(bottomPanel, BorderLayout.SOUTH);
     setupTestControls();
@@ -287,6 +284,10 @@ public class YahooDialog
       public void mouseClicked(MouseEvent e) {
         if (SwingUtilities.isLeftMouseButton(e)) {
           _showingTestInfo = !_showingTestInfo;
+          if (_showingTestInfo) {
+            // update the currency and other status messages with the latest edits
+            _model.getTableModel().scanForSymbolOverrides();
+          }
           setupTestControls();
           setSecurityTableColumnSizes();
           validate();

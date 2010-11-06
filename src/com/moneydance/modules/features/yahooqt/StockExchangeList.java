@@ -82,7 +82,39 @@ public class StockExchangeList {
     Collections.sort(sortedList);
     return Collections.unmodifiableList(sortedList);
   }
-  
+
+  StockExchange findByGooglePrefix(String prefix) {
+    if (SQUtil.isBlank(prefix)) return null;
+    List<StockExchange> matches = new ArrayList<StockExchange>();
+    for (StockExchange exchange : _exchangeList.values()) {
+      if (prefix.compareTo(exchange.getSymbolGoogle()) == 0) matches.add(exchange);
+    }
+    if (matches.isEmpty()) return null; // not found
+    // if there is more than one match, favor the one that has a price multiplier that is not 1.
+    for (StockExchange candidate : matches) {
+      if (candidate.getPriceMultiplier() != 1.0) return candidate;
+    }
+    return matches.get(0);
+  }
+
+  StockExchange findByYahooSuffix(String suffix) {
+    if (SQUtil.isBlank(suffix)) return null;
+    List<StockExchange> matches = new ArrayList<StockExchange>();
+    for (StockExchange exchange : _exchangeList.values()) {
+      if (suffix.compareTo(exchange.getSymbolYahoo()) == 0) matches.add(exchange);
+    }
+    if (matches.isEmpty()) return null; // not found
+    // if there is more than one match, favor the one that has a price multiplier that is not 1.
+    // This makes the .L suffix default to the London Pence exchange, which is more prevalent than
+    // the London GBP exchange. If the user really wants London GBP (for example for the symbol
+    // SLXX.L), then they will need to specify an exchange instead of relying on a default one
+    // using the .L override
+    for (StockExchange candidate : matches) {
+      if (candidate.getPriceMultiplier() != 1.0) return candidate;
+    }
+    return matches.get(0);
+  }
+
   /** Remove all stock exchange definitions from memory. */
   private void clear() { _exchangeList.clear(); }
 

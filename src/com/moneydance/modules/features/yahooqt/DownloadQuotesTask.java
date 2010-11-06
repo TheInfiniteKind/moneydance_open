@@ -163,6 +163,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     BaseConnection priceConnection = null;
     // both check for a supporting connection, and also check for 'do not update'
     if (connection.canGetHistory() && _model.isHistoricalPriceSelected()) {
+      connection.setDefaultCurrency();
       try {
         final StockHistory history = connection.getHistory(currType, dateRange, true);
         if (history == null) {
@@ -205,6 +206,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     // now get the current price
     connection = _model.getSelectedCurrentPriceConnection();
     if ((connection != null) && connection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
+      connection.setDefaultCurrency();
       try {
         // If we have found a historical price, then we don't save the current price as history.
         // If historical prices were skipped or unable to update, then save the current price as
@@ -245,8 +247,18 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     // update the current price if possible, the last price date is stored as a long
     final String lastUpdateDate = currType.getTag("price_date");
     final long storedCurrentPriceDate = (lastUpdateDate == null) ? 0 : Long.parseLong(lastUpdateDate);
-    final boolean currentPriceUpdated = foundPrice && (storedCurrentPriceDate < latestPriceDate);
+    boolean currentPriceUpdated = foundPrice && (storedCurrentPriceDate < latestPriceDate);
     final CurrencyType priceCurrency = getPriceCurrency(currType, priceConnection);
+    if (priceCurrency == null) {
+      // error condition
+      final String message = "Error: could not determine the price currency, skipping current price update";
+      System.err.println(message);
+      if (SQUtil.isBlank(result.logMessage)) {
+        result.logMessage = message;
+      }
+      currentPriceUpdated = false;
+      foundPrice = false;
+    }
     if (currentPriceUpdated) {
       // the user rate should be stored in terms of the base currency, just like the snapshots
       currType.setUserRate(CurrencyTable.convertToBasePrice(latestRate, priceCurrency, latestPriceDate));
@@ -274,13 +286,8 @@ public class DownloadQuotesTask implements Callable<Boolean> {
 
   private CurrencyType getPriceCurrency(CurrencyType securityCurrency, BaseConnection priceConnection) {
     if (priceConnection == null) {
-      // Essentially an unexpected error condition, but the user may have picked a currency type in
-      // the history window that we can use
-      String relativeCurrID = securityCurrency.getTag(CurrencyType.TAG_RELATIVE_TO_CURR);
-      if(relativeCurrID!=null) {
-        return _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(relativeCurrID);
-      }
-      return _model.getRootAccount().getCurrencyTable().getBaseType(); // punt
+      // Essentially an unexpected error condition
+      return null;
     }
     // normal condition - the stock exchange will specify the price currency
     return priceConnection.getPriceCurrency(securityCurrency);
@@ -294,7 +301,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
    * @return The corrected local time of the stock price update time.
    */
   private long convertTimeFromExchangeTimeZone(CurrencyType securityCurrency, long dateTimeExchange) {
-    StockExchange exchange = _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
+    StockExchange exchange = getExchangeForSecurity(securityCurrency);
     if (exchange == null) return dateTimeExchange;
     long exchangeZoneOffsetMs = (long)(exchange.getGMTDiff() * 60 * 60 * 1000);
     Calendar cal = Calendar.getInstance();
@@ -303,6 +310,32 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     // Example: current time zone -6 hours = -21600000ms, exchange time zone = -5 = -18000000,
     // correction = -21600000 - -18000000 =  -3600000 (-1 hour)
     return dateTimeExchange + (currentZoneOffsetMs - exchangeZoneOffsetMs);
+  }
+
+  /**
+   * Obtain the associated stock exchange for a particular security. This method first checks if
+   * the user has put any overrides in the security symbol. An override can be a Google prefix
+   * (such as 'LON:') or a Yahoo suffix (such as '.L'). If an override exists and maps to an
+   * exchange, then that exchange is returned. Otherwise the exchange listed in the symbol map
+   * for the security is used.
+   * @param securityCurrency The security currency.
+   * @return The appropriate stock exchange definition to use for the given security.
+   */
+  private StockExchange getExchangeForSecurity(CurrencyType securityCurrency) {
+    SymbolData symbol = SQUtil.parseTickerSymbol(securityCurrency);
+    if (symbol == null) return null;
+    if (!SQUtil.isBlank(symbol.prefix)) {
+      // check for a Google prefix override
+      StockExchange result = _model.getExchangeList().findByGooglePrefix(symbol.prefix);
+      if (result != null) return result;
+    }
+    if (!SQUtil.isBlank(symbol.suffix)) {
+      // check for a Yahoo exchange suffix override
+      StockExchange result = _model.getExchangeList().findByYahooSuffix(symbol.suffix);
+      if (result != null) return result;
+    }
+    // go with the exchange the user assigned to the security
+    return _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
   }
 
   private String buildPriceDisplayText(CurrencyType priceCurrency,

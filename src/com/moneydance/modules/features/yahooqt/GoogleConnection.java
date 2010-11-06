@@ -12,8 +12,6 @@ import com.moneydance.apps.md.controller.DateRange;
 import com.moneydance.apps.md.controller.Util;
 import com.moneydance.util.StringUtils;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -62,26 +60,17 @@ public class GoogleConnection extends BaseConnection {
     return _displayName;
   }
 
-  public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange)
+  public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange)
   {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
-    String tickerSymbol = rawTickerSymbol.trim();
+    if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) return null;
     // check if the exchange was already added on, which will override the selected exchange
-    int colonIndex = tickerSymbol.lastIndexOf(':');
-    if(colonIndex >= 0) {
-      // also check if a currency override suffix was added
-      int dashIdx = tickerSymbol.indexOf('-', colonIndex);
-      if(dashIdx >= 0) {
-        // clip off the currency code but keep the exchange override
-        return tickerSymbol.substring(0, dashIdx);
-      }
-      // keep the exchange override
-      return tickerSymbol;
+    if (!SQUtil.isBlank(parsedSymbol.prefix)) {
+      return parsedSymbol.prefix + ":" + parsedSymbol.symbol;
     }
     // Check if the selected exchange has a Google suffix or not. If it does, add it.
     String prefix = exchange.getSymbolGoogle();
-    if (SQUtil.isBlank(prefix)) return tickerSymbol;
-    return prefix + ":" + tickerSymbol;
+    if (SQUtil.isBlank(prefix)) return parsedSymbol.symbol;
+    return prefix + ":" + parsedSymbol.symbol;
   }
 
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)

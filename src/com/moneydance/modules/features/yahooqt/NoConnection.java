@@ -26,7 +26,7 @@ public class NoConnection extends BaseConnection {
   }
 
   @Override
-  public String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange) {
+  public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange) {
     return null;  // not used
   }
 

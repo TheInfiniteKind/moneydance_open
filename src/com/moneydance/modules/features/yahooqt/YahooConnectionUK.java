@@ -8,11 +8,14 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.moneydance.apps.md.model.CurrencyType;
+import com.moneydance.apps.md.model.RootAccount;
+
 import java.text.SimpleDateFormat;
 
 
 /**
- * Obtains quotes from a U.S.-based Yahoo! server.
+ * Obtains quotes from a U.K.-based Yahoo! server, which works better for many European securities.
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
@@ -26,6 +29,23 @@ public class YahooConnectionUK extends YahooConnection {
   public YahooConnectionUK(StockQuotesModel model, String displayName) {
     super(model);
     _displayName = displayName;
+  }
+
+  /**
+   * Define the default currency, which is the price currency that is to be used for the downloaded
+   * quotes when the Default stock exchange is assigned to a security. The implementation for the
+   * UK connection is to specify the Great Britain Pound, and if that doesn't exist, the Euro. If
+   * the Euro doesn't exist, then do nothing.
+   */
+  public void setDefaultCurrency() {
+    final RootAccount root = getModel().getRootAccount();
+    if (root == null) return;
+    // assume the London exchange
+    CurrencyType currency = root.getCurrencyTable().getCurrencyByIDString("GBP");
+    // assume some other European exchange is in use
+    if (currency == null) currency = root.getCurrencyTable().getCurrencyByIDString("EUR");
+    if (currency == null) return;
+    StockExchange.DEFAULT.setCurrency(currency);
   }
 
   protected final String getHistoryBaseUrl() { return HISTORY_URL_BASE; }

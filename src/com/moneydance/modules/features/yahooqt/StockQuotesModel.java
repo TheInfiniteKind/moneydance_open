@@ -101,9 +101,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     if (rootAccount != null) {
       _symbolMap.loadFromFile(rootAccount);
       _saveCurrentInHistorical = _rootAccount.getBooleanParameter(Main.SAVE_CURRENT_IN_HISTORY_KEY, false);
-      // define the currency for the default exchange to be the same as the root file's
-      CurrencyType baseCurrency = _rootAccount.getCurrencyTable().getBaseType();
-      StockExchange.DEFAULT.setCurrency(baseCurrency);
       _cancelTasks.set(false);
     }
     _dirty = false;
@@ -122,10 +119,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     // the parent of a security is always an investment account
     accountSet.add(account.getParentAccount());
     _securityMap.put(securityCurrency, accountSet);
-  }
-
-  Set<Account> getSecurityAccountSet(CurrencyType securityCurrency) {
-    return _securityMap.get(securityCurrency);
   }
 
   MoneydanceGUI getGUI() {

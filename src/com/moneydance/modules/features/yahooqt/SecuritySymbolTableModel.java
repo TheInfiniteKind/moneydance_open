@@ -11,7 +11,6 @@ package com.moneydance.modules.features.yahooqt;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.AccountIterator;
-import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.SecurityAccount;
 import com.moneydance.util.UiUtil;
@@ -20,10 +19,7 @@ import javax.swing.table.AbstractTableModel;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Table model that stores a security and its information about the currency. In this table the
@@ -68,8 +64,11 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     }
     // sort the list alphabetically
     Collections.sort(_data);
-    // remove any pre-existing test results and replace with any currency mismatch warnings
-    validateCurrencies();
+    // reset the test results
+    resetTestResults();
+    // check if the user put any overrides into the symbols that could be simply replaced with an
+    // existing stock exchange
+    scanForSymbolOverrides();
     // notify that we've rebuilt the data
     fireTableDataChanged();
   }
@@ -215,6 +214,10 @@ public class SecuritySymbolTableModel extends AbstractTableModel
           final String original = tableEntry.exchangeId;
           tableEntry.exchangeId = ((StockExchange)aValue).getExchangeId();
           if (!SQUtil.areEqual(original, tableEntry.exchangeId)) _model.setDirty();
+          // check if the symbol had some overrides on it, and strip them out
+          if (stripExchangeOverrides(tableEntry)) {
+            refreshRow(rowIndex);
+          }
         }
         break;
       }
@@ -232,7 +235,8 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       if (exchange == null) return null;
       BaseConnection connection = _model.getSelectedHistoryConnection();
       if (connection == null) return null;
-      String fullSymbol = connection.getFullTickerSymbol(tableEntry.editSymbol, exchange);
+      SymbolData parsedSymbol = SQUtil.parseTickerSymbol(tableEntry.editSymbol);
+      String fullSymbol = connection.getFullTickerSymbol(parsedSymbol, exchange);
       return UiUtil.getLabelText(_model.getGUI(), "currency_ticker") + fullSymbol;
     }
     return null;
@@ -260,73 +264,131 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     for (SecurityEntry entry : _data) entry.testResult = "";
   }
 
-  void validateCurrencies() {
-    // reset the test results
-    resetTestResults();
-    final CurrencyTable currencyTable = _model.getRootAccount().getCurrencyTable();
+  void scanForSymbolOverrides() {
     for (SecurityEntry entry : _data) {
-      StockExchange exchange = _model.getExchangeList().getById(entry.exchangeId);
-      if (exchange == null) continue;
-      CurrencyType downloadCurrency = currencyTable.getCurrencyByIDString(exchange.getCurrencyCode());
-      if (downloadCurrency == null) continue;
-      List<Account> unmatchedAccounts = new ArrayList<Account>();
-      Set<Account> accountSet = _model.getSecurityAccountSet(entry.currency);
-      for (Account investAccount : accountSet) {
-        if (!downloadCurrency.equals(investAccount.getCurrencyType())) {
-          unmatchedAccounts.add(investAccount);
+      SymbolData parsedSymbol = SQUtil.parseTickerSymbol(entry.currency);
+      if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) {
+        entry.testResult = _model.getResources().getString(L10NStockQuotes.INVALID_SYMBOL);
+        continue;
+      }
+      StockExchange override = null;
+      if (!SQUtil.isBlank(parsedSymbol.prefix)) {
+        override = _model.getExchangeList().findByGooglePrefix(parsedSymbol.prefix);
+      }
+      if (!SQUtil.isBlank(parsedSymbol.suffix)) {
+        override = _model.getExchangeList().findByYahooSuffix(parsedSymbol.suffix);
+      }
+      if ((override != null) && !SQUtil.isBlank(parsedSymbol.currencyCode)) {
+        // the user has provided a currency override, check if it matches the override exchange
+        if (parsedSymbol.currencyCode.compareTo(override.getCurrencyCode()) != 0) {
+          // not a match, ignore the exchange override and just leave the symbol as-is
+          buildCurrencyMismatchMessage(entry, parsedSymbol.currencyCode, override);
+          override = null;
         }
       }
-      // output any warnings
-      if (!unmatchedAccounts.isEmpty()) addCurrencyWarning(entry, downloadCurrency, unmatchedAccounts);
+      if (override != null) {
+        System.err.println("Replacing security symbol '" + entry.currency.getTickerSymbol()
+                + "' with stripped one '" + parsedSymbol.symbol + "' and setting to exchange "
+                + override.getName());
+        // set the override exchange
+        entry.exchangeId = override.getExchangeId();
+        // strip out all the extraneous stuff that isn't needed anymore
+        stripExchangeOverrides(entry);
+        if (SQUtil.isBlank(entry.testResult)) {
+          // validate the currency for the override exchange
+          CurrencyType priceCurrency = _model.getRootAccount().getCurrencyTable()
+                  .getCurrencyByIDString(override.getCurrencyCode());
+          setPriceCurrencyMessage(entry, override.getCurrencyCode(), priceCurrency);
+        }
+      } else {
+        // validate the price currency for the assigned exchange
+        String currencyCode = parsedSymbol.currencyCode;
+        StockExchange exchange = _model.getExchangeList().getById(entry.exchangeId);
+        if (SQUtil.isBlank(currencyCode) && (exchange != null)) {
+          currencyCode = exchange.getCurrencyCode();
+        }
+        CurrencyType priceCurrency = SQUtil.isBlank(currencyCode) ? null :
+                _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(currencyCode);
+        // if the price currency is null we will display a message later
+        // if the exchange is null we can't check for a currency mismatch (shouldn't happen)
+        // if there isn't an overridden currency, there can't be a mismatch
+        // otherwise, check if the overridden currency matches the assigned exchange or not
+        if ((priceCurrency != null) && (exchange != null) &&
+                !SQUtil.isBlank(parsedSymbol.currencyCode) &&
+                !parsedSymbol.currencyCode.equals(exchange.getCurrencyCode())) {
+          // the currency override does not match the assigned exchange's currency
+          buildCurrencyMismatchMessage(entry, parsedSymbol.currencyCode, exchange);
+        } // price currency defined
+        // now if no other messages already exist, show the currency message
+        if (SQUtil.isBlank(entry.testResult)) {
+          setPriceCurrencyMessage(entry, currencyCode, priceCurrency);
+        }
+      } // no exchange override
     }
   }
 
-  private void addCurrencyWarning(SecurityEntry entry, CurrencyType downloadCurrency,
-                                  List<Account> unmatchedAccounts) {
-    // build succinct message
-    Set<CurrencyType> unmatchedCurrencies = new HashSet<CurrencyType>();
-    for (Account investAccount : unmatchedAccounts) unmatchedCurrencies.add(investAccount.getCurrencyType());
-    StringBuilder sbMessage = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
-    sbMessage.append(N12EStockQuotes.RED_FONT_BEGIN);
-    boolean isFirstInList = true;
-    for (CurrencyType unmatchedCurrency : unmatchedCurrencies) {
-      if (isFirstInList) {
-        isFirstInList = false;
-      } else {
-        sbMessage.append(", ");
-      }
-      sbMessage.append(getCurrencyAbbreviatedDisplay(downloadCurrency));
-      sbMessage.append(" &#x2260 "); // not equal sign
-      sbMessage.append(getCurrencyAbbreviatedDisplay(unmatchedCurrency));
+  private void setPriceCurrencyMessage(SecurityEntry entry, String currencyCode, CurrencyType priceCurrency) {
+    if (priceCurrency != null) {
+      // show the success message and display what price currency is being used
+      entry.testResult = MessageFormat.format(
+              _model.getResources().getString(L10NStockQuotes.PRICE_CURRENCY_FMT),
+              getCurrencyAbbreviatedDisplay(priceCurrency));
+    } else {
+      // the currency code is either invalid or blank
+      buildInvalidPriceCurrencyMessage(entry, currencyCode);
     }
-    sbMessage.append(N12EStockQuotes.FONT_END);
-    sbMessage.append(N12EStockQuotes.HTML_END);
-    entry.testResult = sbMessage.toString();
-    // build a tooltip
-    StringBuilder sbToolTip = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
-    String messageFormat = _model.getResources().getString(L10NStockQuotes.CURRENCY_MISMATCH_FMT);
-    sbToolTip.append(MessageFormat.format(messageFormat, downloadCurrency.getName()));
-    sbToolTip.append(N12EStockQuotes.UL_BEGIN);
-    // comparator available in MD2010 and beyond
-    
-    Collections.sort(unmatchedAccounts, new Comparator<Account>() {
-      public int compare(Account lhs, Account rhs) {
-        if (lhs == null) { return (rhs == null) ? 0 : -1; }
-        if (rhs == null) return 1;
-        return lhs.getFullAccountName().compareTo(rhs.getFullAccountName());
-      }
-    });
-    for (Account account : unmatchedAccounts) {
-      sbToolTip.append(N12EStockQuotes.LI_BEGIN);
-      sbToolTip.append(account.getFullAccountName());
-      sbToolTip.append(" ('");
-      sbToolTip.append(account.getCurrencyType().getName());
-      sbToolTip.append("')");
-      sbToolTip.append(N12EStockQuotes.LI_END);
+  }
+
+  private void buildCurrencyMismatchMessage(SecurityEntry entry, String currencyCode, StockExchange exchange) {
+    CurrencyType overrideCurrency = SQUtil.isBlank(currencyCode) ? null :
+            _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(currencyCode);
+    CurrencyType exchangeCurrency = (exchange == null) ? null :
+            _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(exchange.getCurrencyCode());
+    if ((overrideCurrency == null) || (exchangeCurrency == null)) {
+      // missing one or both currencies, so just show the codes
+      StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
+      sb.append(N12EStockQuotes.RED_FONT_BEGIN);
+      sb.append(MessageFormat.format(
+              _model.getResources().getString(L10NStockQuotes.CURRENCY_CODE_MISMATCH_FMT),
+              SQUtil.isBlank(currencyCode) ? "''" : currencyCode,
+              (exchange == null) ? "''" : exchange.getCurrencyCode()));
+      sb.append(N12EStockQuotes.FONT_END);
+      sb.append(N12EStockQuotes.HTML_END);
+      entry.testResult = sb.toString();
+    } else {
+      // we can display both currencies
+      StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
+      sb.append(N12EStockQuotes.RED_FONT_BEGIN);
+      sb.append(MessageFormat.format(
+              _model.getResources().getString(L10NStockQuotes.CURRENCY_MISMATCH_FMT),
+              getCurrencyAbbreviatedDisplay(overrideCurrency),
+              getCurrencyAbbreviatedDisplay(exchangeCurrency)));
+      sb.append(N12EStockQuotes.FONT_END);
+      sb.append(N12EStockQuotes.HTML_END);
+      entry.testResult = sb.toString();
     }
-    sbToolTip.append(N12EStockQuotes.UL_END);
-    sbToolTip.append(N12EStockQuotes.HTML_END);
-    entry.toolTip = sbToolTip.toString();
+  }
+
+  private void buildInvalidPriceCurrencyMessage(SecurityEntry entry, String currencyCode) {
+    if (SQUtil.isBlank(currencyCode)) {
+      // the currency code isn't specified
+      StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
+      sb.append(N12EStockQuotes.RED_FONT_BEGIN);
+      sb.append(_model.getResources().getString(L10NStockQuotes.CURRENCY_UNDEFINED));
+      sb.append(N12EStockQuotes.FONT_END);
+      sb.append(N12EStockQuotes.HTML_END);
+      entry.testResult = sb.toString();
+    } else {
+      // we have a currency code but it isn't defined in the data file
+      StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
+      sb.append(N12EStockQuotes.RED_FONT_BEGIN);
+      sb.append(MessageFormat.format(
+              _model.getResources().getString(L10NStockQuotes.CURRENCY_NOT_FOUND_FMT),
+              currencyCode));
+      sb.append(N12EStockQuotes.FONT_END);
+      sb.append(N12EStockQuotes.HTML_END);
+      entry.testResult = sb.toString();
+    }
   }
 
   private static String getCurrencyAbbreviatedDisplay(CurrencyType currencyType) {
@@ -423,8 +485,29 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     for (final SecurityEntry entry : _data) {
       if (!exchangeId.equals(entry.exchangeId)) _model.setDirty();
       entry.exchangeId = exchangeId;
+      stripExchangeOverrides(entry);
     }
     fireTableDataChanged();
+  }
+
+  /**
+   * See if the symbol has any overrides for the exchange and/or currency and remove them, leaving
+   * only the symbol itself. 
+   * @param entry Table entry to check for overrides.
+   * @return True if the ticker symbol has changed, false if it was left the same.
+   */
+  private boolean stripExchangeOverrides(SecurityEntry entry) {
+    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(entry.currency);
+    if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) {
+      entry.testResult = _model.getResources().getString(L10NStockQuotes.INVALID_SYMBOL);
+      return false;
+    }
+    boolean changed = (parsedSymbol.symbol.compareTo(entry.editSymbol) != 0);
+    if (changed) {
+      entry.editSymbol = parsedSymbol.symbol;
+      entry.testResult = _model.getResources().getString(L10NStockQuotes.MODIFIED);
+    }
+    return changed;
   }
 
   class SecurityEntry implements Comparable<SecurityEntry> {

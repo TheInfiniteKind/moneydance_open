@@ -10,7 +10,9 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.DateRange;
 import com.moneydance.apps.md.controller.Util;
+import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.CurrencyType;
+import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.util.CustomDateFormat;
 
 import java.text.MessageFormat;
@@ -43,11 +45,11 @@ public abstract class BaseConnection {
    * Given a raw ticker symbol, convert it to a full symbol by adding prefix or suffix appropriate
    * for the stock exchange.
    *
-   * @param rawTickerSymbol The raw ticker symbol.
+   * @param parsedSymbol    The raw ticker symbol, parsed into its various parts.
    * @param exchange        The selected stock exchange to use.
    * @return The full ticker symbol appropriate for the selected stock exchange.
    */
-  public abstract String getFullTickerSymbol(String rawTickerSymbol, StockExchange exchange);
+  public abstract String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange);
 
   /**
    * Given a ticker symbol, which could have an embedded currency (typically after the '-' symbol),
@@ -74,8 +76,19 @@ public abstract class BaseConnection {
    */
   public abstract String getCurrentPriceURL(String fullTickerSymbol);
 
-  /** Retrieve the history for the given stock ticker.  The history
-    * ends on the given date and includes the previous numDays days. */
+  /**
+   * Define the default currency, which is the price currency that is to be used for the downloaded
+   * quotes when the Default stock exchange is assigned to a security. The default implementation
+   * specifies the U.S. Dollar as the default currency. If the default currency is not defined in
+   * the current data file, the method does nothing.
+   */
+  public void setDefaultCurrency() {
+    final RootAccount root = _model.getRootAccount();
+    if (root == null) return;
+    CurrencyType currency = root.getCurrencyTable().getCurrencyByIDString("USD");
+    if (currency == null) return;
+    StockExchange.DEFAULT.setCurrency(currency);
+  }
 
   /**
    * Download price history for a security.
@@ -133,12 +146,48 @@ public abstract class BaseConnection {
    * determined.
    */
   public CurrencyType getPriceCurrency(CurrencyType securityCurrency) {
-    StockExchange exchange = _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
-    String fullTickerSymbol = getFullTickerSymbol(securityCurrency.getTickerSymbol(), exchange);
+    // first check for a currency override in the symbol
+    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
+    if (parsedSymbol == null) return null;
+    CurrencyTable cTable = _model.getRootAccount() == null ? null :
+            _model.getRootAccount().getCurrencyTable();
+    if (cTable == null) return null;
+    if (!SQUtil.isBlank(parsedSymbol.currencyCode)) {
+      // see if the override currency exists in the file
+      CurrencyType override = cTable.getCurrencyByIDString(parsedSymbol.currencyCode);
+      if (override != null) return override;
+    }
+    StockExchange exchange = getExchangeForSecurity(parsedSymbol, securityCurrency);
+    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
     if (fullTickerSymbol == null) return null;
     String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
     // get the currency that the prices are specified in
-    return _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(priceCurrencyId);
+    return cTable.getCurrencyByIDString(priceCurrencyId);
+  }
+
+  /**
+   * Obtain the associated stock exchange for a particular security. This method first checks if
+   * the user has put any overrides in the security symbol. An override can be a Google prefix
+   * (such as 'LON:') or a Yahoo suffix (such as '.L'). If an override exists and maps to an
+   * exchange, then that exchange is returned. Otherwise the exchange listed in the symbol map
+   * for the security is used.
+   * @param symbol           The parsed symbol along with any overrides entered by the user.
+   * @param securityCurrency The security currency.
+   * @return The appropriate stock exchange definition to use for the given security.
+   */
+  private StockExchange getExchangeForSecurity(SymbolData symbol, CurrencyType securityCurrency) {
+    if (!SQUtil.isBlank(symbol.prefix)) {
+      // check for a Google prefix override
+      StockExchange result = _model.getExchangeList().findByGooglePrefix(symbol.prefix);
+      if (result != null) return result;
+    }
+    if (!SQUtil.isBlank(symbol.suffix)) {
+      // check for a Yahoo exchange suffix override
+      StockExchange result = _model.getExchangeList().findByYahooSuffix(symbol.suffix);
+      if (result != null) return result;
+    }
+    // go with the exchange the user assigned to the security
+    return _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
   }
 
   protected abstract String getCurrentPriceHeader();
@@ -149,7 +198,9 @@ public abstract class BaseConnection {
     return new SimpleDateFormat(userDateFormat.getPattern());
   }
 
+  protected StockQuotesModel getModel() { return _model; }
 
+  
   //////////////////////////////////////////////////////////////////////////////////////////////
   //  Private Methods
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -158,8 +209,10 @@ public abstract class BaseConnection {
                                          DateRange dateRange, boolean apply)
     throws DownloadException
   {
-    StockExchange exchange = _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
-    String fullTickerSymbol = getFullTickerSymbol(securityCurrency.getTickerSymbol(), exchange);
+    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
+    if (parsedSymbol == null) return null;
+    StockExchange exchange = getExchangeForSecurity(parsedSymbol, securityCurrency);
+    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
     if (fullTickerSymbol == null) return null;
     String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
     // get the currency that the prices are specified in

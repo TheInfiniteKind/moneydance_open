@@ -77,10 +77,6 @@ class N12EStockQuotes {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   static final String HTML_BEGIN = "<html>";
   static final String HTML_END = "</html>";
-  static final String UL_BEGIN = "<ul>";
-  static final String UL_END = "</ul>";
-  static final String LI_BEGIN = "<li>";
-  static final String LI_END = "</li>";
   static final String PARA_BEGIN = "<p>";
   static final String RED_FONT_BEGIN = "<font color=\"red\">";
   static final String GREEN_FONT_BEGIN = "<font color=\"green\">";

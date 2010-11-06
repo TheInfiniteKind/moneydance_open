@@ -35,8 +35,6 @@
     <entry key="downloading">Downloading...</entry>
     <entry key="skipped">Skipped</entry>
     <entry key="error.setup">Error in setup</entry>
-    <!-- {0} = the name of the currency that is set for the stock price download -->
-    <entry key="warn.currencyMismatch">Price download currency ''{0}'' does not match the currency in these investment accounts:</entry>
     <entry key="notUsed">--- Do Not Update ---</entry>
     <entry key="quotes">Security Price Quotes</entry>
     <entry key="exchangeRates">Currency Exchange Rates</entry>
@@ -45,6 +43,13 @@
     <entry key="error.no_symbol">No symbol defined</entry>
     <entry key="history">History</entry>
     <entry key="quote">Current Quote</entry>
+    <entry key="error.invalid_symbol">Invalid symbol</entry>
+    <entry key="modified">Modified</entry>
+    <entry key="error.curr_undefined">Price currency not defined</entry>
+    <entry key="curr_not_found.fmt">Price currency {0} not found</entry>
+    <entry key="price_currency.fmt">Prices in {0}</entry>
+    <entry key="error.curr_mismatch.fmt">Currency {0} does not match exchange currency {1}</entry>
+    <entry key="error.curr_code_mismatch.fmt">Currency code {0} does not match {1}</entry>
 
     <!-- Import Errors -->
     <!-- {0} = the currency ID that is supposed to be used for price updates, but doesn't exist. -->
@@ -63,6 +68,7 @@
     <entry key="error.import.other">Unexpected error during import.</entry>
     <entry key="error.import.communication">Communication</entry>
     <entry key="error.import.invalid_number">Invalid Number</entry>
+
     <!-- {0} = the error received, {1} = response message text. -->
     <entry key="error.url.fmt">Error: {0}, received response message ''{1}''.</entry>
     <!-- {0} = the code received, {1} = response message text. -->

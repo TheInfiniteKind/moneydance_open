@@ -48,7 +48,6 @@ class L10NStockQuotes
   static final String TEST_NOTSTARTED = "downloading";
   static final String TEST_EXCLUDED = "skipped";
   static final String TEST_ERR_SETUP = "error.setup";
-  static final String CURRENCY_MISMATCH_FMT = "warn.currencyMismatch";
   static final String NO_CONNECTION = "notUsed";
   static final String QUOTES = "quotes";
   static final String RATES = "exchangeRates";
@@ -59,6 +58,11 @@ class L10NStockQuotes
   static final String QUOTE = "quote";
   static final String BASIC = "basic";
   static final String ADVANCED = "advanced";
+  static final String CURRENCY_UNDEFINED = "error.curr_undefined"; // Price currency not defined
+  static final String CURRENCY_NOT_FOUND_FMT = "curr_not_found.fmt"; // Price currency {0} not found
+  static final String PRICE_CURRENCY_FMT = "price_currency.fmt"; // Prices in {0}
+  static final String CURRENCY_MISMATCH_FMT = "error.curr_mismatch.fmt"; // Currency {0} does not match exchange currency {1}</entry>
+  static final String CURRENCY_CODE_MISMATCH_FMT = "error.curr_code_mismatch.fmt"; // Currency code {0} does not match {1}</entry>
 
   // Import errors
   /** {0} = the currency ID that is supposed to be used for price updates, but doesn't exist. */
@@ -81,6 +85,8 @@ class L10NStockQuotes
   static final String IMPORT_ERROR_URL_FMT = "error.url.fmt";
   /** {0} = the code received, {1} = response message text. */
   static final String IMPORT_ERROR_URL_CODE_FMT = "error.url_code.fmt";
+  static final String INVALID_SYMBOL = "error.invalid_symbol"; // Invalid Symbol
+  static final String MODIFIED = "modified"; // Modified
 
   // status messages
   static final String EXCHANGE_RATES_BEGIN = "status.exchangeRates.start.fmt";
