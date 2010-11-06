@@ -9,6 +9,7 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.DateRange;
+import com.moneydance.apps.md.model.CurrencyType;
 
 /**
  * A stock connection that means the user doesn't want to use any connection at all, which disables
@@ -46,6 +47,23 @@ public class NoConnection extends BaseConnection {
   }
 
   @Override
+  public void setDefaultCurrency() {
+    // do nothing, no model is defined
+  }
+
+  @Override
+  public StockHistory getHistory(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
+          throws DownloadException {
+    return null;
+  }
+
+  @Override
+  public StockRecord getCurrentPrice(CurrencyType securityCurrency, boolean recordInHistory)
+          throws DownloadException {
+    return null;
+  }
+
+  @Override
   protected String getCurrentPriceHeader() {
     return null;  // not used
   }
@@ -53,6 +71,11 @@ public class NoConnection extends BaseConnection {
   @Override
   public String getId() {
     return PREFS_KEY;
+  }
+
+  @Override
+  public CurrencyType getPriceCurrency(CurrencyType securityCurrency) {
+    return null; // do nothing
   }
 
   void setDisplayName(final String displayName) { _displayName = displayName; }
