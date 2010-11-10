@@ -17,6 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
 /**
  * Imports snapshot price data from a URL, assumes CSV format is returned.
@@ -32,11 +33,12 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
    * @param resources    Object to look up localized resources.
    * @param currency     The currency whose history will be updated from the file.
    * @param dateFormat   The user-specified date format.
+   * @param timeZone     Time zone to use when parsing downloaded time values.
    * @param userDecimal  The user-specified character to use as a decimal point.
    */
   public SnapshotImporterFromURL(String url, ResourceProvider resources, CurrencyType currency,
-                          SimpleDateFormat dateFormat, char userDecimal) {
-    super(resources, currency, dateFormat, userDecimal);
+                          SimpleDateFormat dateFormat, TimeZone timeZone, char userDecimal) {
+    super(resources, currency, dateFormat, timeZone, userDecimal);
     _urlString = url;
   }
 

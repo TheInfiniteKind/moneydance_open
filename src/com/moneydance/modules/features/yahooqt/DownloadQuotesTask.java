@@ -181,8 +181,9 @@ public class DownloadQuotesTask implements Callable<Boolean> {
             foundPrice = true;
             priceConnection = connection;
             latestRate = latest.closeRate;
-            // no time conversion needed since historical prices just define date
-            latestPriceDate = latest.dateTime;
+            // no time conversion needed since historical prices just define date, this will be
+            // as of midnight, and thus we're converting to midnight local here
+            latestPriceDate = latest.dateTimeGMT;
           }
         } else {
           result.historyResult = "Error";   // currently not shown to the user
@@ -227,7 +228,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
           // current price download overrides the history download current price
           priceConnection = connection;
           latestRate = record.closeRate;
-          latestPriceDate = convertTimeFromExchangeTimeZone(currType, record.dateTime);
+          latestPriceDate = convertTimeFromGMT(record.dateTimeGMT);
         }
       } catch (DownloadException e) {
         final CurrencyType currency = (e.getCurrency() != null) ? e.getCurrency() : currType;
@@ -296,6 +297,11 @@ public class DownloadQuotesTask implements Callable<Boolean> {
   /**
    * Convert the downloaded price time, which is local to the stock exchange, to the current system
    * time, local to this PC.
+   * <p/>
+   * Note: as of November 2010 it appears the time downloaded from Yahoo quotes is local to the
+   * particular Yahoo server, i.e. for the Yahoo U.S. servers the time is in EDT, for the Yahoo
+   * U.K. servers the time is in GMT. Germany and France were seen as GMT +1. Because this behavior
+   * may change in the future, this code is left in for reference.
    * @param securityCurrency The security that is being updated.
    * @param dateTimeExchange The downloaded time, local to the stock exchange.
    * @return The corrected local time of the stock price update time.
@@ -310,6 +316,19 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     // Example: current time zone -6 hours = -21600000ms, exchange time zone = -5 = -18000000,
     // correction = -21600000 - -18000000 =  -3600000 (-1 hour)
     return dateTimeExchange + (currentZoneOffsetMs - exchangeZoneOffsetMs);
+  }
+
+  /**
+   * Convert the downloaded price time, which is local to the stock exchange, to the current system
+   * time, local to this PC.
+   * @param dateTimeGMT The downloaded time in GMT
+   * @return The corrected local time of the stock price update time.
+   */
+  private long convertTimeFromGMT(long dateTimeGMT) {
+    Calendar cal = Calendar.getInstance();
+    long currentZoneOffsetMs = cal.get(Calendar.ZONE_OFFSET);
+    // we wish to correct the GMT time to local time, so add the difference.
+    return dateTimeGMT + currentZoneOffsetMs;
   }
 
   /**

@@ -17,7 +17,7 @@ class StockRecord implements Comparable<StockRecord> {
   /** The integer date of the quote. */
   int date = 0;
   /** The exact date of the quote, which can have the time of day set as well. */
-  long dateTime = 0;
+  long dateTimeGMT = 0;
   /** Number of shares traded. */
   long volume = 0;
   /** The high price in terms of the price currency (gets converted to base currency). */

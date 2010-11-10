@@ -17,6 +17,7 @@ import com.moneydance.util.CustomDateFormat;
 
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 import java.util.Vector;
 
 /**
@@ -33,12 +34,13 @@ public abstract class BaseConnection {
   
   private final int _capabilities;
   private final StockQuotesModel _model;
-
+  private final TimeZone _timeZone;
   private final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
   public BaseConnection(StockQuotesModel model, final int capabilities) {
     _model = model;
     _capabilities = capabilities;
+    _timeZone = TimeZone.getTimeZone(getTimeZoneID());
   }
 
   /**
@@ -192,6 +194,11 @@ public abstract class BaseConnection {
 
   protected abstract String getCurrentPriceHeader();
 
+  protected String getTimeZoneID() {
+    // the default time zone is EDT in the U.S.
+    return "America/New_York";  // could possibly also use 'US/Eastern'
+  }
+
   protected SimpleDateFormat getExpectedDateFormat(boolean getFullHistory) {
     CustomDateFormat userDateFormat = _model.getPreferences().getShortDateFormatter();
     if (userDateFormat == null) return DEFAULT_DATE_FORMAT;
@@ -242,7 +249,7 @@ public abstract class BaseConnection {
     SimpleDateFormat defaultDateFormat = getExpectedDateFormat(getFullHistory);
     char decimal = _model.getPreferences().getDecimalChar();
     SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, _model.getResources(),
-            securityCurrency, defaultDateFormat, decimal);
+            securityCurrency, defaultDateFormat, _timeZone, decimal);
     if (getFullHistory) {
       importer.setAutodetectFormat(true);
     } else {

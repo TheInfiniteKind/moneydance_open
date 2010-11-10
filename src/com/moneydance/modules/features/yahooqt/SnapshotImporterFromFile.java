@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
 /**
  * Imports snapshot price data from a CSV file on disk.
@@ -32,12 +33,13 @@ public class SnapshotImporterFromFile extends SnapshotImporter {
    * @param resources    Object to look up localized resources.
    * @param currency     The currency whose history will be updated from the file.
    * @param dateFormat   The user-specified date format.
+   * @param timeZone     Time zone to use when parsing downloaded time values.
    * @param userDecimal  The user-specified character to use as a decimal point.
    */
   public SnapshotImporterFromFile(File fileToImport, ResourceProvider resources,
                                   CurrencyType currency, SimpleDateFormat dateFormat,
-                                  char userDecimal) {
-    super(resources, currency, dateFormat, userDecimal);
+                                  TimeZone timeZone, char userDecimal) {
+    super(resources, currency, dateFormat, timeZone, userDecimal);
     _file = fileToImport;
   }
 

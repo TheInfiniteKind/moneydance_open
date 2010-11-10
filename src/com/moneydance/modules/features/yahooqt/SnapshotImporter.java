@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.Vector;
 
 /**
@@ -89,15 +90,17 @@ public abstract class SnapshotImporter
    * @param resources          Object to look up localized resources.
    * @param currency           The currency whose history will be updated from the input stream.
    * @param expectedDateFormat The user-specified date format.
+   * @param timeZone           Time zone to use when parsing downloaded time values.
    * @param userDecimal        The user-specified character to use as a decimal point.
    */
   public SnapshotImporter(ResourceProvider resources, CurrencyType currency,
-                          SimpleDateFormat expectedDateFormat, char userDecimal) {
+                          SimpleDateFormat expectedDateFormat, TimeZone timeZone, char userDecimal) {
     _currency = currency;
     _expectedDateFormat = expectedDateFormat;
     _userDecimal = userDecimal;
     _resources = resources;
     _defaultTimeFormat = new SimpleDateFormat("h:mma");
+    if (timeZone != null) _defaultTimeFormat.setTimeZone(timeZone);
   }
 
   /**
@@ -526,12 +529,12 @@ public abstract class SnapshotImporter
               StringUtils.fieldIndex(record, _columnDelim, _highIndex), 0.0, _priceMultiplier);
     }
     if (_timeIndex >= 0) {
-      // this time will be as of the stock exchange local time
-      result.dateTime = parseTime(date, StringUtils.fieldIndex(record, _columnDelim, _timeIndex));
+      // this time will be as of the connection time (Yahoo U.S. = EDT, Yahoo U.K. = GMT)
+      result.dateTimeGMT = parseTimeInGMT(date, StringUtils.fieldIndex(record, _columnDelim, _timeIndex));
     } else {
       // this will set the time to midnight so that it will generally be less than the current price
       // update time
-      result.dateTime = getMidnightDateTime(date);
+      result.dateTimeGMT = getMidnightDateTime(date);
     }
     return result;
   }
@@ -573,20 +576,21 @@ public abstract class SnapshotImporter
   }
 
   /**
-   * Given a downloaded time string, return a date and time local to the stock exchange at which
-   * the price is valid.
+   * Given a downloaded time string, return a date and time in GMT converted from the time that is
+   * local to the connection, i.e. Yahoo U.S. is in EDT, Yahoo U.K. is in GMT.
    * @param date    The integer date.
    * @param timeStr The downloaded time string, in the time zone of the stock exchange.
-   * @return A date and time in the time zone of the stock exchange.
+   * @return A date and time in GMT.
    */
-  long parseTime(final int date, final String timeStr) {
+  long parseTimeInGMT(final int date, final String timeStr) {
     // The default time is 12 noon, so we convert to midnight before adding the parsed
     // time. The parsed time will be as of the stock exchange local time.
     long startDate = getMidnightDateTime(date);
     try {
       String value = stripQuotes(timeStr);
       if (SQUtil.isBlank(value)) return startDate;
-      final long time = _defaultTimeFormat.parse(value).getTime();
+      // this converts the time into GMT as if the time were in the current locale or specified time zone
+      final long time = _defaultTimeFormat.parse(value.toUpperCase()).getTime();
       return startDate + time;
     } catch (ParseException e) {
       System.err.println("Encountered bad time value: " + timeStr);

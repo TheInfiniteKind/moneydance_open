@@ -64,6 +64,12 @@ public class YahooConnectionUK extends YahooConnection {
   }
 
   @Override
+  protected String getTimeZoneID() {
+    // the time zone for U.K. servers
+    return "Europe/London";  // could possibly also use 'GMT' or 'UTC'
+  }
+
+  @Override
   protected SimpleDateFormat getExpectedDateFormat(boolean getFullHistory) {
     // for some reason history is in 'yyyy-MM-dd' but current price is in 'MM/dd/yyyy'
     if (getFullHistory) return new SimpleDateFormat("yyyy-MM-dd");
