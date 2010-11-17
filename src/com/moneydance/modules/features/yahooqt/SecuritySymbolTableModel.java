@@ -23,6 +23,7 @@ import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -59,7 +60,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
   void load() {
     _data.clear();
     if (_model.getRootAccount() == null) return;
-    AccountIterator iter = new AccountIterator(_model.getRootAccount());
+    Iterator<Account> iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
       Account account = iter.next();
       if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
@@ -79,7 +80,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 
   void save() {
     if (_model.getRootAccount() == null) return;
-    AccountIterator iter = new AccountIterator(_model.getRootAccount());
+    Iterator<Account> iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
       Account account = iter.next();
       if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
