@@ -205,16 +205,27 @@ final class SQUtil {
     String suffix = null;
     String currencyCode = null;
 
+    // break off a currency code if and only if the last 4 characters is -XXX where X is a letter
+    final int len = tickerSymbol.length();
+    if ((len > 4) && (tickerSymbol.charAt(len - 4) == '-')) {
+      boolean currencyFound = true;
+      for (int ii = len - 3; ii < len; ii++) {
+        if (!Character.isLetter(tickerSymbol.charAt(ii))) {
+          currencyFound = false;
+          break;
+        }
+      }
+      if (currencyFound) {
+        currencyCode = tickerSymbol.substring(len - 3).trim();
+        tickerSymbol = tickerSymbol.substring(0, len - 4).trim();
+      }
+    }
+
     // check if a Google exchange prefix exists
     int colonIndex = tickerSymbol.indexOf(':');
     if (colonIndex >= 0) {
       prefix = tickerSymbol.substring(0, colonIndex).trim();
       tickerSymbol = tickerSymbol.substring(colonIndex + 1).trim();
-    }
-    int dashIndex = tickerSymbol.lastIndexOf('-');
-    if (dashIndex >= 0) {
-      currencyCode = tickerSymbol.substring(dashIndex + 1).trim();
-      tickerSymbol = tickerSymbol.substring(0, dashIndex).trim();
     }
     int dotIndex = tickerSymbol.indexOf('.');
     if (dotIndex >= 0) {
@@ -292,6 +303,15 @@ final class SQUtil {
             + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
             + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
     );
+    symbol = "FRA:GIL-EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
     // mangled cases
     symbol = ":  GIL . ";
     security.setTickerSymbol(symbol);
@@ -324,6 +344,26 @@ final class SQUtil {
     security.setTickerSymbol(symbol);
     data = parseTickerSymbol(security);
     System.err.println("Blank test: " + ((data != null) ? "FAIL" : "pass"));
+    // now ensure we support the dash before the dot for oddball symbols like COS-UN.TO
+    symbol = "COS-UN.TO";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "COS-UN -CAD  ";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+
   }
 
 }

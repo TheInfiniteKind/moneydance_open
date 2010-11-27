@@ -5,5 +5,5 @@
   "module_desc" = "<html><body><title>Yahoo!&reg; and Google&trade; Finance Downloader</title><p>This is an extension that downloads financial data from Yahoo! and Google</p></body></html>"
   "desc" = "This is an extension that downloads security price quotes and exchange rates from Yahoo! and Google"
   "id" = "yahooqt"
-  "module_build" = 71
+  "module_build" = 72
 }

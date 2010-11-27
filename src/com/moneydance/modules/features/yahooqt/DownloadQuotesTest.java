@@ -92,7 +92,7 @@ public class DownloadQuotesTest implements Callable<Boolean> {
     }
     // similarly, we show current price info in the tooltip even if the user doesn't want current
     // prices, just so we communicate to the user that the system is aware they are skipping them
-    if (historyConnection.canGetCurrentPrice()) {
+    if (priceConnection.canGetCurrentPrice()) {
       sb.append(N12EStockQuotes.PARA_BEGIN);
       sb.append(SQUtil.getLabelText(_resources, L10NStockQuotes.QUOTE));
       sb.append(testResult._quoteResult);
@@ -110,7 +110,7 @@ public class DownloadQuotesTest implements Callable<Boolean> {
       sb.append(N12EStockQuotes.SPACE);
       sb.append(_resources.getString(L10NStockQuotes.HISTORY));
     }
-    if (historyConnection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
+    if (priceConnection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
       if (downloadedHistory) sb.append(N12EStockQuotes.COMMA_SEPARATOR);
       sb.append(getSuccessIcon(testResult._quoteSuccess));
       sb.append(N12EStockQuotes.SPACE);
