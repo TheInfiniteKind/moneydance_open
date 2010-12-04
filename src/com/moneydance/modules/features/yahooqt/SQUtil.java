@@ -205,19 +205,31 @@ final class SQUtil {
     String suffix = null;
     String currencyCode = null;
 
-    // break off a currency code if and only if the last 4 characters is -XXX where X is a letter
+    // break off a currency code if and only if the last 4 characters is -XXX where X is a letter,
+    // OR if the user put in a carat delimiter
     final int len = tickerSymbol.length();
-    if ((len > 4) && (tickerSymbol.charAt(len - 4) == '-')) {
+    int caratIndex = tickerSymbol.lastIndexOf('^');
+    final boolean hasDashOverride = ((len > 4) && (tickerSymbol.charAt(len - 4) == '-'));
+    if ((len > 4) && (hasDashOverride || (caratIndex >= 0)))
+    {
       boolean currencyFound = true;
-      for (int ii = len - 3; ii < len; ii++) {
-        if (!Character.isLetter(tickerSymbol.charAt(ii))) {
-          currencyFound = false;
-          break;
+      if (caratIndex >= 0) {
+        // include the period as the first character
+        currencyCode = tickerSymbol.substring(caratIndex + 1).trim();
+        if (isBlank(currencyCode)) suffix = null;   // ignore empty
+        tickerSymbol = tickerSymbol.substring(0, caratIndex).trim();
+      } else {
+        // old-style dash currency override, being deprecated because dashes are allowed in symbols
+        for (int ii = len - 3; ii < len; ii++) {
+          if (!Character.isLetter(tickerSymbol.charAt(ii))) {
+            currencyFound = false;
+            break;
+          }
         }
-      }
-      if (currencyFound) {
-        currencyCode = tickerSymbol.substring(len - 3).trim();
-        tickerSymbol = tickerSymbol.substring(0, len - 4).trim();
+        if (currencyFound) {
+          currencyCode = tickerSymbol.substring(len - 3).trim();
+          tickerSymbol = tickerSymbol.substring(0, len - 4).trim();
+        }
       }
     }
 
@@ -355,6 +367,75 @@ final class SQUtil {
             + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
     );
     symbol = "COS-UN -CAD  ";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    // verify support for the new replacement delimiter for currency override '^'
+    symbol = "GIL.F^EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA:GIL.F^EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA:GIL^EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    // mangled cases
+    symbol = "GIL.F^";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA\t:  GIL .F    ^EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "\t: \n GIL .^EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Symbol '" + symbol + "' ="
+            + "  prefix: " + ((data.prefix == null) ? "(null)" : "'"+data.prefix+"'")
+            + "  suffix: " + ((data.suffix == null) ? "(null)" : "'"+data.suffix+"'")
+            + "  symbol: " + ((data.symbol == null) ? "(null)" : "'"+data.symbol+"'")
+            + "  currency: " + ((data.currencyCode == null) ? "(null)" : "'"+data.currencyCode+"'")
+    );
+    symbol = "FRA:   .F^EUR";
+    security.setTickerSymbol(symbol);
+    data = parseTickerSymbol(security);
+    System.err.println("Blank test: " + ((data != null) ? "FAIL" : "pass"));
+    symbol = "COS-UN ^CAD  ";
     security.setTickerSymbol(symbol);
     data = parseTickerSymbol(security);
     System.err.println("Symbol '" + symbol + "' ="
