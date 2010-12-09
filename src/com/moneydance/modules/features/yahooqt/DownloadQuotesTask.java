@@ -248,7 +248,10 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     // update the current price if possible, the last price date is stored as a long
     final String lastUpdateDate = currType.getTag("price_date");
     final long storedCurrentPriceDate = (lastUpdateDate == null) ? 0 : Long.parseLong(lastUpdateDate);
-    boolean currentPriceUpdated = foundPrice && (storedCurrentPriceDate < latestPriceDate);
+    // for now we're going to skip the time check because it introduces too many glitches and
+    // unexpected behavior, mainly because the Currency/Security History Window will update the
+    // time to the local time, often newer than the downloaded time
+    boolean currentPriceUpdated = foundPrice; // && (storedCurrentPriceDate < latestPriceDate);
     final CurrencyType priceCurrency = getPriceCurrency(currType, priceConnection);
     if (priceCurrency == null) {
       // error condition
@@ -264,13 +267,22 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       // the user rate should be stored in terms of the base currency, just like the snapshots
       currType.setUserRate(CurrencyTable.convertToBasePrice(latestRate, priceCurrency, latestPriceDate));
       currType.setTag("price_date", String.valueOf(latestPriceDate));
-    } else if (foundPrice) {
-      // log that we skipped the update and why
-      String format = "Current price update time {0} not less than downloaded time {1} for {2}";
-      System.err.println(MessageFormat.format(format,
-              _dateTimeFormat.format(new Date(storedCurrentPriceDate)),
-              _dateTimeFormat.format(new Date(latestPriceDate)),
-              result.displayName));
+      // see comments above - no longer skipping due to an older time stamp downloaded
+//    } else if (foundPrice) {
+//      // log that we skipped the update and why
+//      String format = "Current price update time {0} not less than downloaded time {1} for {2}";
+//      System.err.println(MessageFormat.format(format,
+//              _dateTimeFormat.format(new Date(storedCurrentPriceDate)),
+//              _dateTimeFormat.format(new Date(latestPriceDate)),
+//              result.displayName));
+      if (!SQUtil.isBlank(result.logMessage)) {
+        // the historical price has a log message already, so just dump the current price update
+        // log message now
+        System.err.println(buildPriceLogText(priceCurrency, result.displayName,
+                latestRate, latestPriceDate, currentPriceUpdated));
+      }
+    } else {
+      System.err.println("No current price found for "+result.displayName);
     }
     if (foundPrice) {
       // use whichever connection was last successful at getting the price to show the value
