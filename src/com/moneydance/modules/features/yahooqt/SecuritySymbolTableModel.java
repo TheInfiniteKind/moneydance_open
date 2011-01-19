@@ -336,9 +336,11 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         }
       }
       if (override != null) {
-        System.err.println("Replacing security symbol '" + entry.currency.getTickerSymbol()
-                + "' with stripped one '" + parsedSymbol.symbol + "' and setting to exchange "
-                + override.getName());
+        if(Main.DEBUG_YAHOOQT) {
+          System.err.println("Replacing security symbol '" + entry.currency.getTickerSymbol()
+                             + "' with stripped one '" + parsedSymbol.symbol + "' and setting to exchange "
+                             + override.getName());
+        }
         // set the override exchange
         entry.exchangeId = override.getExchangeId();
         // strip out all the extraneous stuff that isn't needed anymore

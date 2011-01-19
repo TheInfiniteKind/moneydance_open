@@ -626,14 +626,18 @@ public class YahooDialog
     int lastDate = SQUtil.getPreviousDate(nextDate, frequency);
     int currentQuoteDate = Main.getQuotesLastUpdateDate(_model.getRootAccount());
     if (_model.isStockPriceSelected() && (currentQuoteDate != lastDate)) {
-      System.err.println("Changing last quote update date from " +
-              currentQuoteDate + " to " + lastDate + " per user selection");
+      if(Main.DEBUG_YAHOOQT) {
+        System.err.println("Changing last quote update date from " +
+                           currentQuoteDate + " to " + lastDate + " per user selection");
+      }
       _model.saveLastQuoteUpdateDate(lastDate);
     }
     int currentRatesDate = Main.getRatesLastUpdateDate(_model.getRootAccount());
     if (_model.isExchangeRateSelected() && (currentRatesDate != lastDate)) {
-      System.err.println("Changing last exchange rates update date from " +
-              currentRatesDate + " to " + lastDate + " per user selection");
+      if(Main.DEBUG_YAHOOQT) {
+        System.err.println("Changing last exchange rates update date from " +
+                           currentRatesDate + " to " + lastDate + " per user selection");
+      }
       _model.saveLastExchangeRatesUpdateDate(lastDate);
     }
   }

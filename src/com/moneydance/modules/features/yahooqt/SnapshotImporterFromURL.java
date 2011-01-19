@@ -44,12 +44,12 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
 
   @Override
   protected void onBeginImport() {
-    System.err.println("Importing history from URL: "+ _urlString);
+    if(Main.DEBUG_YAHOOQT) System.err.println("Importing history from URL: "+ _urlString);
   }
 
   @Override
   protected void onEndImport(int errorCount) {
-    if (errorCount != 0) System.err.println("Import complete errors found: "+errorCount);
+    if (errorCount != 0 && Main.DEBUG_YAHOOQT) System.err.println("Import complete errors found: "+errorCount);
   }
 
   @Override

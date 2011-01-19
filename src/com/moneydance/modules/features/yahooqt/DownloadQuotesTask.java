@@ -53,7 +53,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
 
     RootAccount root = _model.getRootAccount();
     if (root == null) {
-      System.err.println("Skipping security prices download, no root account");
+      if(Main.DEBUG_YAHOOQT) System.err.println("Skipping security prices download, no root account");
       return Boolean.FALSE;
     }
     CurrencyTable ctable = root.getCurrencyTable();
@@ -83,7 +83,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
               ++successCount;
             }
             // log any messages for those that weren't skipped
-            if (!SQUtil.isBlank(result.logMessage)) System.err.println(result.logMessage);
+            if(Main.DEBUG_YAHOOQT && !SQUtil.isBlank(result.logMessage)) System.err.println(result.logMessage);
           }
         }
         currIdx++;
@@ -95,8 +95,8 @@ public class DownloadQuotesTask implements Callable<Boolean> {
               _resources.getString(L10NStockQuotes.QUOTES),
               error.getLocalizedMessage());
       _model.showProgress(0f, message);
-      System.err.println(MessageFormat.format("Error while downloading Security Price Quotes: {0}",
-              error.getMessage()));
+      if(Main.DEBUG_YAHOOQT) System.err.println(MessageFormat.format("Error while downloading Security Price Quotes: {0}",
+                                                                     error.getMessage()));
       error.printStackTrace();
       success = false;
     } finally {
@@ -111,17 +111,18 @@ public class DownloadQuotesTask implements Callable<Boolean> {
                 _resources.getString(L10NStockQuotes.FINISHED_DOWNLOADING_FMT),
                 _resources.getString(L10NStockQuotes.QUOTES));
         _model.showProgress(0f, message);
-        System.err.println("Finished downloading Security Price Quotes");
+        if(Main.DEBUG_YAHOOQT) System.err.println("Finished downloading Security Price Quotes");
       } else {
         String message = MessageFormat.format(
                 _resources.getString(L10NStockQuotes.QUOTES_DONE_FMT),
                 Integer.toString(skippedCount), Integer.toString(errorCount),
                 Integer.toString(successCount));
         _model.showProgress(0f, message);
-        System.err.println(MessageFormat.format(
-                "Security price update complete with {0} skipped, {1} errors and {2} quotes obtained",
-                Integer.toString(skippedCount), Integer.toString(errorCount),
-                Integer.toString(successCount)));
+        if(Main.DEBUG_YAHOOQT) {
+          System.err.println(MessageFormat.format("Security price update complete with {0} skipped, {1} errors and {2} quotes obtained",
+                                                  Integer.toString(skippedCount), Integer.toString(errorCount),
+                                                  Integer.toString(successCount)));
+        }
       }
     }
     return Boolean.TRUE;
@@ -144,7 +145,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     }
 
     // not skipping, log what we're downloading
-    System.err.println("Downloading price of "+currType.getName()+" for dates "+dateRange.format(_dateFormat));
+    if(Main.DEBUG_YAHOOQT) System.err.println("Downloading price of "+currType.getName()+" for dates "+dateRange.format(_dateFormat));
     BaseConnection connection = _model.getSelectedHistoryConnection();
     if (connection == null) {
       final String message = _resources.getString(L10NStockQuotes.ERROR_NO_CONNECTION);
@@ -213,8 +214,9 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         // If historical prices were skipped or unable to update, then save the current price as
         // a history entry.
         final boolean autoSaveInHistory = !foundPrice;
-        if (autoSaveInHistory) System.err.println("Automatically saving current price of " +
-          currType.getName());
+        if (Main.DEBUG_YAHOOQT && autoSaveInHistory) {
+          System.err.println("Automatically saving current price of " + currType.getName());
+        }
         final StockRecord record = connection.getCurrentPrice(currType, autoSaveInHistory);
         if (record == null) {
           result.skipped = true;
@@ -256,7 +258,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     if (priceCurrency == null) {
       // error condition
       final String message = "Error: could not determine the price currency, skipping current price update";
-      System.err.println(message);
+      if(Main.DEBUG_YAHOOQT) System.err.println(message);
       if (SQUtil.isBlank(result.logMessage)) {
         result.logMessage = message;
       }
@@ -278,11 +280,13 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       if (!SQUtil.isBlank(result.logMessage)) {
         // the historical price has a log message already, so just dump the current price update
         // log message now
-        System.err.println(buildPriceLogText(priceCurrency, result.displayName,
-                latestRate, latestPriceDate, currentPriceUpdated));
+        if(Main.DEBUG_YAHOOQT) {
+          System.err.println(buildPriceLogText(priceCurrency, result.displayName,
+                                               latestRate, latestPriceDate, currentPriceUpdated));
+        }
       }
     } else {
-      System.err.println("No current price found for "+result.displayName);
+      if(Main.DEBUG_YAHOOQT) System.err.println("No current price found for "+result.displayName);
     }
     if (foundPrice) {
       // use whichever connection was last successful at getting the price to show the value

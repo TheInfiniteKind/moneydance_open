@@ -90,7 +90,7 @@ public class SymbolMap {
       table.readFrom(settings);
       StreamVector settingsList = (StreamVector)table.get(EXCHANGE_LIST_KEY);
       if (settingsList == null) {
-        System.err.println("Stock quote synchronizer plugin no symbol map found.");
+        if(Main.DEBUG_YAHOOQT) System.err.println("Stock quote synchronizer plugin no symbol map found.");
         return;
       }
       for (Object mapPair : settingsList) {

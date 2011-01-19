@@ -37,6 +37,8 @@ public class Main
   private static final String SHOW_DIALOG_COMMAND = "showDialog";
   private static final String UPDATE_COMMAND = "update";
 
+  public static boolean DEBUG_YAHOOQT = false;
+
   static final String RATE_LAST_UPDATE_KEY = "yahooqt.rateLastUpdate";
   static final String AUTO_UPDATE_KEY = "yahooqt.autoUpdate";
   static final String UPDATE_INTERVAL_KEY = "yahooqt.updateInterval";

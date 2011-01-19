@@ -39,7 +39,7 @@ public class ConnectionTask extends FutureTask<Boolean> {
   protected void done() {
     if (isCancelled()) {
       // remove the current task and signal complete
-      System.err.println("ConnectionTask for "+_taskName+" done, was canceled.");
+      if(Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for "+_taskName+" done, was canceled.");
       _model.downloadDone(true, _taskName, Boolean.FALSE);
       return;
     }
@@ -50,18 +50,18 @@ public class ConnectionTask extends FutureTask<Boolean> {
     catch (InterruptedException ignore) {
       // if multiple transaction changes come in, the task may be canceled with normal
       // program flow, therefore ignore
-      System.err.println("ConnectionTask for "+_taskName+" done, InterruptedException");
+      if(Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for "+_taskName+" done, InterruptedException");
       result = Boolean.FALSE;
     }
     catch (CancellationException ignore) {
       // if multiple transaction changes come in, the task may be canceled with normal
       // program flow, therefore ignore
-      System.err.println("ConnectionTask for "+_taskName+" done, CancellationException");
+      if(Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for "+_taskName+" done, CancellationException");
       result = Boolean.FALSE;
     }
     catch (ExecutionException error) {
       error.printStackTrace(System.err);
-      System.err.println("ConnectionTask for "+_taskName+" done, error received");
+      if(Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for "+_taskName+" done, error received");
       String message = MessageFormat.format(
               _resources.getString(L10NStockQuotes.ERROR_DOWNLOADING_FMT),
               "",
@@ -71,7 +71,7 @@ public class ConnectionTask extends FutureTask<Boolean> {
     }
 
     // remove the current task and signal complete
-    System.err.println("ConnectionTask for "+_taskName+" done, result "+result);
+    if(Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for "+_taskName+" done, result "+result);
     _model.downloadDone(true, _taskName, result);
   }
 }

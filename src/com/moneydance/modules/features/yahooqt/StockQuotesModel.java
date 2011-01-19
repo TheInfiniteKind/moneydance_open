@@ -386,14 +386,14 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void saveLastQuoteUpdateDate(final int lastDate) {
     if (_rootAccount == null) return;
     CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
-    System.err.println("Saving last successful price quotes date of: "+dateFormat.format(lastDate));
+    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful price quotes date of: "+dateFormat.format(lastDate));
     _rootAccount.setParameter(Main.QUOTE_LAST_UPDATE_KEY, lastDate);
   }
 
   void saveLastExchangeRatesUpdateDate(final int lastDate) {
     if (_rootAccount == null) return;
     CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
-    System.err.println("Saving last successful exchange rates date of: "+dateFormat.format(lastDate));
+    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful exchange rates date of: "+dateFormat.format(lastDate));
     _rootAccount.setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate);
   }
 

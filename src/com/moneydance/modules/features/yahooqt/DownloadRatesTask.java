@@ -83,7 +83,7 @@ public class DownloadRatesTask implements Callable<Boolean> {
           logMessage = buildRateLogText(currencyType, baseCurrency, rate, today);
         }
         _model.showProgress(progressPercent, message);
-        System.err.println(logMessage);
+        if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
       }
       success = true;
     } catch (Exception error) {
@@ -92,8 +92,8 @@ public class DownloadRatesTask implements Callable<Boolean> {
               _resources.getString(L10NStockQuotes.RATES),
               error.getLocalizedMessage());
       _model.showProgress(0f, message);
-      System.err.println(MessageFormat.format("Error while downloading Currency Exchange Rates: {0}",
-              error.getMessage()));
+      if(Main.DEBUG_YAHOOQT) System.err.println(MessageFormat.format("Error while downloading Currency Exchange Rates: {0}",
+                                                                     error.getMessage()));
       error.printStackTrace();
       success = false;
     } finally {
@@ -105,7 +105,7 @@ public class DownloadRatesTask implements Callable<Boolean> {
               _resources.getString(L10NStockQuotes.FINISHED_DOWNLOADING_FMT),
               _resources.getString(L10NStockQuotes.RATES));
       _model.showProgress(0f, message);
-      System.err.println("Finished downloading Currency Exchange Rates");
+      if(Main.DEBUG_YAHOOQT) System.err.println("Finished downloading Currency Exchange Rates");
     }
     return Boolean.TRUE;
   }

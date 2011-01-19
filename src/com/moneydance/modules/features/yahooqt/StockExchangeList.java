@@ -147,11 +147,11 @@ public class StockExchangeList {
       success = true;
     } catch (StringEncodingException e) {
       System.err.println("Stock quote plugin unexpected error writing exchange list file: " +
-        _configFile.getAbsolutePath());
+                         _configFile.getAbsolutePath());
       e.printStackTrace();
     } catch (IOException e) {
       System.err.println("Stock quote synchronizer plugin error writing to file: " +
-        _configFile.getAbsolutePath());
+                         _configFile.getAbsolutePath());
       e.printStackTrace();
     }
     return success;
@@ -171,7 +171,7 @@ public class StockExchangeList {
         exchange.loadFromSettings((StreamTable)exchangeSetting);
         if (_exchangeList.containsKey(exchange.getExchangeId())) {
           System.err.println("Stock quote synchronizer plugin found duplicate stock exchange " +
-          "entry name: "+exchange.getName()+" in file: "+_configFile.getAbsolutePath());
+                             "entry name: "+exchange.getName()+" in file: "+_configFile.getAbsolutePath());
         } else {
           _exchangeList.put(exchange.getExchangeId(), exchange);
         }
