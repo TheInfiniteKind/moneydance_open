@@ -20,7 +20,7 @@ import java.net.*;
 import java.text.*;
 
 public class TXFExport
-  extends JDialog 
+  extends JDialog
   implements ActionListener,
              ListSelectionListener
 {
@@ -49,20 +49,20 @@ public class TXFExport
   private StreamTable txfList = new StreamTable();
   private Font nf,bf,bf2;
   private InputStream in;
-  
+
   public TXFExport(Main mainObject, FeatureModuleContext context) {
     super((Frame)null, "TXFExport", true);
     this.mainObject = mainObject;
     this.context = context;
     rr = mainObject.getResources();
     root = mainObject.getRoot();
-    
+
     mp = new JPanel(gbl);
     mp.setBorder(new EmptyBorder(10,10,10,10));
     bf2 = new Font(mp.getFont().getFontName(), Font.BOLD, mp.getFont().getSize()+2);
     bf = new Font(mp.getFont().getFontName(), Font.BOLD, mp.getFont().getSize());
     nf = new Font(mp.getFont().getFontName(), Font.PLAIN, mp.getFont().getSize());
-    
+
     desc = new JTextPanel(rr.getString("main_desc"));
     com.moneydance.apps.md.controller.Main ctxt =
         (com.moneydance.apps.md.controller.Main)context;
@@ -79,11 +79,11 @@ public class TXFExport
     btBrowse.addActionListener(this);
     btSetup = new JButton(rr.getString("setup"));
     btSetup.addActionListener(this);
-    
+
     tp = new JPanel(gbl);
     fp = new JPanel(gbl);
     bp = new JPanel(gbl);
-    
+
     int y = 0;
     int x = 0;
     tp.add(desc, AwtUtil.getConstraints(x,y++,1,1,5,1,true,false));
@@ -95,19 +95,19 @@ public class TXFExport
       AwtUtil.getConstraints(x++,y,0,0,1,1,true,false));
     tp.add(dateEnd, AwtUtil.getConstraints(x++,y++,0,0,1,1,true,false));
     tp.setBorder(new EmptyBorder(0,0,5,0));
-    
+
     y = 0;
     fp.add(new JLabel(rr.getString("export_to"), JLabel.LEFT),
       AwtUtil.getConstraints(0,y++,1,0,2,1,true,false));
     fp.add(tfFile, AwtUtil.getConstraints(0,y,1,0,1,1,true,false));
     fp.add(btBrowse, AwtUtil.getConstraints(1,y++,0,0,1,1,true,false));
     fp.setBorder(new EmptyBorder(0,0,5,0));
-    
+
     x = 0;
     bp.add(btSetup, AwtUtil.getConstraints(x++,0,0,0,1,1,true,false));
     bp.add(btExport, AwtUtil.getConstraints(x++,0,0,0,1,1,true,false));
     bp.add(btCancel, AwtUtil.getConstraints(x++,0,0,0,1,1,true,false));
-    
+
     y = 0;
     mp.add(tp, AwtUtil.getConstraints(0,y++,1,0,1,1,true,false));
     mp.add(fp, AwtUtil.getConstraints(0,y++,1,1,1,1,true,false));
@@ -126,9 +126,9 @@ public class TXFExport
     for(int i=0; i<acct.getSubAccountCount(); i++) {
       Account subAcct = acct.getSubAccount(i);
       int acctType = subAcct.getAccountType();
-      if((acctType==Account.ACCOUNT_TYPE_EXPENSE) || 
+      if((acctType==Account.ACCOUNT_TYPE_EXPENSE) ||
         (acctType==Account.ACCOUNT_TYPE_INCOME)) {
-        if (subAcct.toString().length()>0) 
+        if (subAcct.toString().length()>0)
           lmAcct.addElement(subAcct);
       }
       loadAccount(subAcct);
@@ -192,7 +192,7 @@ public class TXFExport
             break;
           }
         }
-        
+
       }
     } else if (lsm==lsmCat && !lsmAcct.isSelectionEmpty()) {
       Account a = (Account)listAcct.getSelectedValue();
@@ -206,19 +206,19 @@ public class TXFExport
     private String taxCat;
     private String taxName;
     public boolean isForm;
-    
+
     TaxItem(String form, String cat, String name, boolean b) {
       taxForm = form;
       taxCat = cat;
       taxName = name;
       isForm = b;
     }
-    
+
     public String toString() {
       if (isForm) return taxForm;
       else return "        "+taxName;
     }
-    
+
     public String getForm() {return taxForm;}
     public String getCat() {return taxCat;}
     public String getName() {return taxName;}
@@ -338,7 +338,7 @@ public class TXFExport
     srp.setBorder(new EmptyBorder(0,5,0,0));
     sbp = new JPanel(gbl); // setup button panel
     sbp.setBorder(new EmptyBorder(5,0,0,0));
-    
+
     setup_desc = new JTextPanel(rr.getString("setup_desc"));
     lsmAcct = listAcct.getSelectionModel();
     lsmAcct.addListSelectionListener(this);
@@ -380,28 +380,28 @@ public class TXFExport
       AwtUtil.getConstraints(0,0,0,0,1,1,true,false));
     srp.add(spCat,
       AwtUtil.getConstraints(0,1,1,1,1,1,true,true));
-    
+
     btDone = new JButton(rr.getString("done"));
     btDone.addActionListener(this);
     btClear = new JButton(rr.getString("clear"));
     btClear.addActionListener(this);
     sbp.add(btDone, AwtUtil.getConstraints(0,0,0,0,1,1,false,false));
     sbp.add(btClear, AwtUtil.getConstraints(1,0,0,0,1,1,false,false));
-    
+
     slrp.add(slp);
     slrp.add(srp);
 
     smp.add(setup_desc, AwtUtil.getConstraints(0,0,1,0,1,1,true,false));
     smp.add(slrp, AwtUtil.getConstraints(0,1,1,1,1,1,true,true));
     smp.add(sbp, AwtUtil.getConstraints(0,2,1,0,1,1,true,false));
-    
+
     setupDlg.getContentPane().add(smp);
     setupDlg.pack();
     setupDlg.setSize(570,400);
     AwtUtil.centerWindow(setupDlg);
     setupDlg.setVisible(true);
   }
-  
+
   private void doExport() {
     if (tfFile.getText().trim().length()==0) {
       FileDialog fch = new FileDialog(AwtUtil.getFrame(this));
@@ -439,7 +439,7 @@ public class TXFExport
         return;
       }
     }
-    
+
     long sd = dateStart.getDate().getTime();
     long ed = dateEnd.getDate().getTime();
     String taxc;
@@ -556,7 +556,7 @@ public class TXFExport
                                     txn.getDescription()+"\n");
                       tout.write("^\n");
                     }
-                  }                
+                  }
                 }
                 break;
               case 6:
@@ -590,6 +590,30 @@ public class TXFExport
     }
   }
 
+
+  /**
+   * Compute the net sale amount, in the currency of the parent investment account,
+   * of a sale transaction. Returns zero if not a sale transaction. Returns the
+   * cash proceeds of the sale less any transaction fees or commission.
+   * @param atxn The transaction to compute with.
+   * @return If atxn is a sale transaction, the net proceeds of the sale. Otherwise
+   * returns zero.
+   */
+  public static long getPerShareSalesNet(AbstractTxn atxn){
+    String type = atxn.getParentTxn().getTransferType();
+    if (AbstractTxn.TRANSFER_TYPE_BUYSELL.equals(type) ||
+        AbstractTxn.TRANSFER_TYPE_BUYSELLXFR.equals(type)) {
+      SplitTxn split = TxnUtil.getSecurityPart(atxn.getParentTxn());
+      // for sale transactions, the security amount will be negative
+      // and thus the parent amount (cash) will be positive
+      if ((split != null) && (split.getParentAmount() > 0)) {
+        return atxn.getParentTxn().getValue();
+      }
+    }
+    return 0;
+  }
+
+
   private boolean calculateTXFInfo(AbstractTxn atxn){
     CurrencyType curr = atxn.getAccount().getCurrencyType();
     txfVector = new Vector();
@@ -597,7 +621,7 @@ public class TXFExport
     Long[] shortTerm = new Long[4];
     long stBuyDate = 0;
     long ltBuyDate = 0;
-    
+
     long numShares = -1 * TxnUtil.getSecurityPart(atxn.getParentTxn()).getValue();
     long sellDate = atxn.getDate();
     Calendar c = Calendar.getInstance();
@@ -605,7 +629,7 @@ public class TXFExport
     c.add(Calendar.YEAR, -1);
     c.add(Calendar.DATE, -1);
     long cutOffDate = c.getTime().getTime();
-    
+
     String type = atxn.getParentTxn().getTransferType();
     if(type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELL)||
        type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELLXFR)){
@@ -614,7 +638,7 @@ public class TXFExport
         SecurityAccount account = (SecurityAccount)split.getAccount();
         TransactionSet tSet = account.getRootAccount().getTransactionSet();
         TxnSet txnSet = tSet.getTransactionsForAccount(account);
-        AccountUtil.sortTransactions(txnSet, AccountUtil.DATE);        
+        AccountUtil.sortTransactions(txnSet, AccountUtil.DATE);
         if(account.getUsesAverageCost()){
           TxnSet validTxns = new TxnSet();
           TxnSet buySet = new TxnSet();
@@ -635,7 +659,7 @@ public class TXFExport
           long shares = 0;
           double perShareCost = 0.0;
           long splitDate = 0;
-          
+
           for(int j = 0; j < validTxns.getSize(); j++){
             AbstractTxn absTxn = validTxns.getTxn(j);
             if(splitDate==0){
@@ -660,10 +684,10 @@ public class TXFExport
             splitDate = splitTxn.getDate();
           }
           shares = curr.adjustValueForSplits(splitDate, shares, sellDate);
-          
+
           perShareCost = (double)totalCostBasis / shares;
           long thisCostBasis = Math.round(numShares * perShareCost);
-          
+
           long sharesSold = 0;
           for(int l = 0; l < sellSet.getSize(); l++){
             SplitTxn sellTxn = TxnUtil.getSecurityPart(sellSet.getTxn(l).getParentTxn());
@@ -692,7 +716,7 @@ public class TXFExport
               sharesSold = 0;
             }
           }
-          
+
           if(partial){
             SplitTxn buyTxn = TxnUtil.getSecurityPart(buySet.getTxn(index).getParentTxn());
             if(sharesBought > numShares){
@@ -720,7 +744,7 @@ public class TXFExport
               index++;
             }
           }
-          
+
           for (int m = index; m < buySet.getSize() && numShares > 0; m++){
             SplitTxn buyTxn = TxnUtil.getSecurityPart(buySet.getTxn(m).getParentTxn());
             long bShares = curr.adjustValueForSplits(buyTxn.getDate(),
@@ -749,29 +773,29 @@ public class TXFExport
               numShares -= sharesBought;
             }
           }
-          
+
           double ltRate = (double)ltShares / (ltShares + stShares);
           double stRate = (double)stShares / (ltShares + stShares);
-          
+
           longTerm[0] = new Long(ltBuyDate);
           longTerm[1] = new Long(sellDate);
           longTerm[2] = new Long(Math.round(ltRate * thisCostBasis));
-          longTerm[3] = new Long(Math.round(ltRate * InvestUtil.getPerShareSalesNet(atxn)));
+          longTerm[3] = new Long(Math.round(ltRate * getPerShareSalesNet(atxn)));
           txfVector.addElement(longTerm);
-          
+
           shortTerm[0] = new Long(stBuyDate);
           shortTerm[1] = new Long(sellDate);
           shortTerm[2] = new Long(Math.round(stRate * thisCostBasis));
-          shortTerm[3] = new Long(Math.round(stRate * InvestUtil.getPerShareSalesNet(atxn)));
+          shortTerm[3] = new Long(Math.round(stRate * getPerShareSalesNet(atxn)));
           txfVector.addElement(shortTerm);
 
-          return true;  
+          return true;
         } else {
           long ltTotal = 0;
           long stTotal = 0;
           long ltShares = 0;
           long stShares = 0;
-          
+
           Hashtable tag = TxnUtil.parseCostBasisTag(split);
           if(tag==null) return false;
           for(Enumeration e = tag.keys(); e.hasMoreElements();){
@@ -785,7 +809,7 @@ public class TXFExport
                                                                                   stxn.getValue(),
                                                                                   sellDate));
               commFees = Math.round(commRate * Math.abs(commission.getAmount()));
-            }              
+            }
             if(stxn.getDate() < cutOffDate){
               ltTotal = ltTotal + Math.round(shares / curr.adjustRateForSplits(stxn.getDate(),
                                                                                stxn.getRate(),
@@ -807,16 +831,16 @@ public class TXFExport
           longTerm[0] = new Long(ltBuyDate);
           longTerm[1] = new Long(sellDate);
           longTerm[2] = new Long(ltTotal);
-          longTerm[3] = new Long(ltRate * InvestUtil.getPerShareSalesNet(atxn));
+          longTerm[3] = new Long(ltRate * getPerShareSalesNet(atxn));
           txfVector.addElement(longTerm);
-         
+
           long stRate = Math.round((1.0 * stShares) / numShares);
           shortTerm[0] = new Long(stBuyDate);
           shortTerm[1] = new Long(sellDate);
           shortTerm[2] = new Long(stTotal);
-          shortTerm[3] = new Long(stRate * InvestUtil.getPerShareSalesNet(atxn));
+          shortTerm[3] = new Long(stRate * getPerShareSalesNet(atxn));
           txfVector.addElement(shortTerm);
-          
+
           return true;
         }
       }

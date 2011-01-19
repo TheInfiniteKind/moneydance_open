@@ -1,5 +1,5 @@
 {
-"main_desc" = "Please specify the time period for which you want Moneydance to gather tax information.  Also select the file where such information will be stored.  The resulting file can be used by tax preparation software that supports the TXF file format.  Press the Setup button to specify which accounts are tax-related."
+"main_desc" = "Please specify the time period for which Moneydance should gather tax information.  Also select the file where such information will be stored.  The resulting file can be used by tax preparation software that supports the TXF file format.  Press the Setup button to specify which accounts are tax-related."
 "start_date" = "Start Date "
 "end_date" = "End Date "
 "export_to" = "Export to file"
