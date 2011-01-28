@@ -55,6 +55,7 @@
     <entry key="replaceTagsReplace.text">Erstatte alle med:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">J</entry>
+    <entry key="replaceProgress.text">Bytte ...</entry>
 
     <entry key="includeTransfers.text">Inkludere Overfør</entry>
     <entry key="includeTransfers.toolTip">Tillat alle kontoer som skal inkluderes som kategorier</entry>
@@ -62,6 +63,9 @@
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Finne Resultater</entry>
+    <entry key="showParents.text">Konsolidere Deler</entry>
+    <entry key="showParents.toolTip">Vis foreldre transaksjoner</entry>
+
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Telle: %s  Kreditt: %s  Subtraksjonen: %s  Summen: %s</entry>
 

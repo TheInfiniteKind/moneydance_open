@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
@@ -9,12 +17,8 @@ import java.awt.event.FocusEvent;
 /**
  * <p>Component that allows picking one or more transaction tags.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.50
  * @since 1.0
  */
 class TxnTagsPicker
@@ -30,9 +34,10 @@ class TxnTagsPicker
     TxnTagsPicker(final MoneydanceGUI mdGui, final RootAccount data)
     {
         _view = new TagPickerField(mdGui, data);
+        _view.setOpaque(false);
         _view.addFocusListener(new FocusAdapter()
         {
-             /**
+            /**
              * Invoked when a component loses the keyboard focus.
              */
             @Override

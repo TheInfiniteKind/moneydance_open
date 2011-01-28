@@ -1,13 +1,10 @@
-/*
- * FindResultsTableModel.java
- *
- * File creation information:
- *
- * Author: Kevin Menningen
- * Date: Feb 16, 2008
- * Time: 1:07:57 PM
- */
-
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -34,12 +31,8 @@ import java.awt.Color;
 /**
  * <p>Model for the results table.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.4
+ * @version 1.50
  * @since 1.0
  */
 public class FindResultsTableModel extends AbstractTableModel
@@ -75,9 +68,11 @@ public class FindResultsTableModel extends AbstractTableModel
     private static final char DEFAULT_DECIMAL_CHAR = '.';
 
     private TxnTagSet _userTagSet;
+    /** The full set of data, including all splits. */
+    private final List<FindResultsTableEntry> _splitData;
+    /** Display data. Can be the full splits data or could be just one entry per parent. */
     private final List<FindResultsTableEntry> _data;
     private final List<String> _columns;
-    private final Set<Long> _foundIDs;
 
     private final IFindAndReplaceController _controller;
     private final CustomDateFormat _dateFormat;
@@ -96,10 +91,9 @@ public class FindResultsTableModel extends AbstractTableModel
     FindResultsTableModel(final IFindAndReplaceController controller)
     {
         super();
-        
+        _splitData = new ArrayList<FindResultsTableEntry>();
         _data = new ArrayList<FindResultsTableEntry>();
         _columns = new ArrayList<String>();
-        _foundIDs = new HashSet<Long>();
         _controller = controller;
 
         UserPreferences preferences = null;
@@ -132,6 +126,32 @@ public class FindResultsTableModel extends AbstractTableModel
     //  Package Private Methods
     //////////////////////////////////////////////////////////////////////////////////////////////
 
+     void refresh()
+    {
+        _data.clear();
+        final Set<Long> foundIDs = new HashSet<Long>(_splitData.size());
+        if (_controller.getShowParents())
+        {
+            // build a smaller list of entries containing only one entry per parent transaction
+            for (FindResultsTableEntry entry : _splitData)
+            {
+                final Long parentId = Long.valueOf(entry.getParentTxn().getTxnId());
+                if (!foundIDs.contains(parentId))
+                {
+                    // add the first one found in the splits list, all others will be ignored
+                    _data.add(entry);
+                    foundIDs.add(parentId);
+                }
+            }
+        }
+        else
+        {
+            // the list of splits is exactly what we show
+            _data.addAll(_splitData);
+        }
+        fireTableDataChanged();
+    }
+
     FindResultsTableEntry getEntry(final int index)
     {
         return _data.get(index);
@@ -150,12 +170,13 @@ public class FindResultsTableModel extends AbstractTableModel
     void reset()
     {
         _data.clear();
-        _foundIDs.clear();
+        _splitData.clear();
     }
 
     void addBlankTransaction()
     {
         reset();
+        _splitData.add(BLANK_ENTRY);
         _data.add(BLANK_ENTRY);
         fireTableDataChanged();
     }
@@ -170,43 +191,13 @@ public class FindResultsTableModel extends AbstractTableModel
     }
 
 
-    void add(final AbstractTxn txn, final boolean notify)
+    void add(final SplitTxn txn, final boolean notify)
     {
-        // do not add the same transaction twice -- the parent transaction and its first split
-        boolean addOk = true;
-
-        if (txn instanceof ParentTxn)
+        final int index = _splitData.size();
+        _splitData.add(new FindResultsTableEntry(txn));
+        if (notify)
         {
-            final ParentTxn parent = (ParentTxn)txn;
-            if ((parent.getSplitCount() == 1) &&
-                   (_foundIDs.contains(Long.valueOf(parent.getSplit(0).getTxnId()))))
-            {
-                // existing is the only split, new one is same as the parent
-                addOk = false;
-            }
-        }
-        if (txn instanceof SplitTxn)
-        {
-            //  cover the case where the split comes after the parent
-            Long key = Long.valueOf(txn.getParentTxn().getTxnId());
-            if (_foundIDs.contains(key) && txn.getParentTxn().getSplitCount() == 1)
-            {
-                // new one is the only child of the parent, which is already in there. However,
-                // each entry already has both parent and split so there is no need to do anything,
-                // the complete transaction is already entered.
-                addOk = false;
-            }
-        }
-
-        if (addOk)
-        {
-            final int index = _data.size();
-            _data.add(new FindResultsTableEntry(txn));
-            _foundIDs.add(Long.valueOf(txn.getTxnId()));
-            if (notify)
-            {
-                fireTableRowsInserted(index, index);
-            }
+            fireTableRowsInserted(index, index);
         }
     }
 
@@ -219,13 +210,13 @@ public class FindResultsTableModel extends AbstractTableModel
         }
 
         final AbstractTxn txn;
-        if (entry.isSplitPrimary())
+        if (_controller.getShowParents())
         {
-            txn = entry.getSplitTxn();
+            txn = entry.getParentTxn();
         }
         else
         {
-            txn = entry.getParentTxn();
+            txn = entry.getSplitTxn();
         }
         if ((txn == null) || (txn.equals(BLANK_TRANSACTION)))
         {
@@ -371,20 +362,20 @@ public class FindResultsTableModel extends AbstractTableModel
     {
         final FindResultsTableEntry entry = _data.get(index);
         final ParentTxn parent = entry.getParentTxn();
-        if (parent == null)
+        if ((parent == null) || BLANK_TRANSACTION.equals(parent))
         {
             return 0;
         }
 
         final SplitTxn split = entry.getSplitTxn();
         long value;
-        if (entry.isSplitPrimary())
+        if (_controller.getShowParents())
         {
-            value = getTxnAmountValue(split, entry, AMOUNT_INDEX, true);
+            value = getTxnAmountValue(parent, entry, AMOUNT_INDEX, true);
         }
         else
         {
-            value = getTxnAmountValue(parent, entry, AMOUNT_INDEX, true);
+            value = getTxnAmountValue(split, entry, AMOUNT_INDEX, true);
         }
         return value;
     }
@@ -484,6 +475,15 @@ public class FindResultsTableModel extends AbstractTableModel
         }
 
         final SplitTxn split = entry.getSplitTxn();
+        final AbstractTxn primaryTxn;
+        if (_controller.getShowParents())
+        {
+            primaryTxn = parent;
+        }
+        else
+        {
+            primaryTxn = split;
+        }
 
         String result;
         try
@@ -511,43 +511,37 @@ public class FindResultsTableModel extends AbstractTableModel
             {
                 case ACCOUNT_INDEX:
                 {
-                    // parent is preferred for the account
+                    // parent gives the 'flip side' account for splits - the 'from' account
                     result = FarUtil.getTransactionAccountName(parent);
                     break;
                 }
                 case DATE_INDEX:
                 {
-                    // parent is preferred for the date
+                    // parent is preferred for the date, either would work
                     result = getTxnDateDisplay(parent);
                     break;
                 }
                 case DESCRIPTION_INDEX:
                 {
                     // description depends upon whether it was a split or a parent
-                    if (entry.isSplitPrimary())
-                    {
-                        result = getTxnDescriptionDisplay(split, entry);
-                    }
-                    else
-                    {
-                        result = getTxnDescriptionDisplay(parent, entry);
-                    }
+                    result = getTxnDescriptionDisplay(primaryTxn, entry);
                     break;
                 }
                 case TAG_INDEX:
                 {
-                    // tags are always split-related
-                    result = getTxnTagDisplay(split, entry);
+                    // tags are normally split-related but can be put on parents
+                    result = getTxnTagDisplay(primaryTxn, entry);
                     break;
                 }
                 case CATEGORY_INDEX:
                 {
-                    // category is always split-related
-                    result = getTxnCategoryDisplay(split, entry);
+                    // category displays the 'to' account or the # of splits for parents > 1 split
+                    result = getTxnCategoryDisplay(primaryTxn, entry);
                     break;
                 }
                 case CLEARED_INDEX:
                 {
+                    // only parents are really marked 'cleared' at this point
                     switch (parent.getStatus())
                     {
                         case AbstractTxn.STATUS_CLEARED:
@@ -584,11 +578,13 @@ public class FindResultsTableModel extends AbstractTableModel
                 }
                 case MEMO_INDEX:
                 {
+                    // only the parent has a memo field
                     result += getTxnMemoDisplay(parent, entry);
                     break;
                 }
                 case CHECK_INDEX:
                 {
+                    // the parent currently has the only check # field exposed in the UI
                     result += getTxnCheckDisplay(parent, entry);
                     break;
                 }
@@ -762,7 +758,7 @@ public class FindResultsTableModel extends AbstractTableModel
         TxnTag[] tags = FarUtil.getTransactionTags(txn, _userTagSet);
 
         // TODO: this won't work with more than one command -- fix so that tags are applied in succession
-        if ((_commands != null) && (_commands.size() > 0) && entry.isApplied())
+        if ((_commands != null) && !_commands.isEmpty() && entry.isApplied())
         {
             for (final ReplaceCommand command : _commands)
             {
@@ -910,10 +906,5 @@ public class FindResultsTableModel extends AbstractTableModel
         // memo (not shown)
         _columns.add(N12EFindAndReplace.EMPTY);
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // Inner Classes
-    ///////////////////////////////////////////////////////////////////////////////////////////////
 
 }

@@ -54,6 +54,7 @@
     <entry key="replaceTagsReplace.text">Αντικαταστήστε όλων με:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">Ε</entry>
+    <entry key="replaceProgress.text">Αντικατάσταση ...</entry>
 
     <entry key="includeTransfers.text">Περιλάβετε Μεταφορά</entry>
     <entry key="includeTransfers.toolTip">Επιτρέψτε όλους τους Λογαριασμοί που πρέπει να περιλαμβάνονται ως κατηγορίες</entry>
@@ -61,6 +62,9 @@
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Αποτελέσματα του Ευρήματος</entry>
+    <entry key="showParents.text">Για την Ομάδα Επιμερισμός</entry>
+    <entry key="showParents.toolTip">Εμφάνισε συναλλαγές γονέων</entry>
+
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Αρίθμηση: %s  Προσθήκες: %s  Αφαιρέσεις: %s  Σύνολο: %s</entry>
 

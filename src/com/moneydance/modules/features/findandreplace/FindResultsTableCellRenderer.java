@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import javax.swing.table.DefaultTableCellRenderer;
@@ -10,12 +18,8 @@ import java.awt.Color;
 /**
  * <p>Displays cells in the find results table with special decoration.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.50
  * @since 1.0
  */
 class FindResultsTableCellRenderer extends DefaultTableCellRenderer
@@ -53,12 +57,12 @@ class FindResultsTableCellRenderer extends DefaultTableCellRenderer
         return result;
     }
 
-    protected Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
+    Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
     {
         return Color.BLACK;
     }
 
-    protected int getTextAlignment()
+    int getTextAlignment()
     {
         return SwingConstants.LEFT;
     }

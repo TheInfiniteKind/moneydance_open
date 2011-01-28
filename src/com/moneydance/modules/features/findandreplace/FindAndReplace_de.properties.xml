@@ -54,6 +54,7 @@
     <entry key="replaceTagsReplace.text">Ersetzen Sie alle mit:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">A</entry>
+    <entry key="replaceProgress.text">Ersetzen ...</entry>
 
     <entry key="includeTransfers.text">Transfers einschließen</entry>
     <entry key="includeTransfers.toolTip">Zulassen, dass alle Konten als Kategorien einbezogen werden</entry>
@@ -61,6 +62,9 @@
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Suchergebnis</entry>
+    <entry key="showParents.text">geteilte Buchungen konsolidieren</entry>
+    <entry key="showParents.toolTip">Zeige Hauptbuchungen</entry>
+
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Zählimpuls: %s  Gutschriften: %s  Abzüge: %s  Gesamtsumme: %s</entry>
 

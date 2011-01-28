@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import javax.swing.JLabel;
@@ -16,15 +24,11 @@ import java.awt.event.MouseEvent;
  * By default an HTML label will not render as disabled correctly. Since HTML uses the
  * foreground color, we just put in the correct foreground color when disabled.
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.50
  * @since 1.3
  */
-public class ClickLabelWithDisabledHtml extends JLabel
+class ClickLabelWithDisabledHtml extends JLabel
 {
     /** True if it has an action, false if just a normal label. */
     private final boolean _hasAction;

@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.RootAccount;
@@ -13,12 +21,8 @@ import java.awt.Toolkit;
  * <p>Model for the Find and Replace plugin. Stores all the settings you see in the dialog, and
  * fires property changes when selected values change.</p>
  * 
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.4
+ * @version 1.50
  * @since 1.0
  */
 class FarModel extends BasePropertyChangeReporter
@@ -84,6 +88,7 @@ class FarModel extends BasePropertyChangeReporter
     private TagPickerModel _replaceReplaceTagPickerModel;
 
     private boolean _includeTransfers;
+    private boolean _showParents;
 
     FarModel()
     {
@@ -149,16 +154,6 @@ class FarModel extends BasePropertyChangeReporter
     FindResultsTableModel getFindResults()
     {
         return _findResultsModel;
-    }
-
-    FullAccountList getFullAccountList()
-    {
-        return _fullAccountList;
-    }
-
-    FullAccountList getFullCategoryList()
-    {
-        return _fullCategoryList;
     }
 
     void accountListUpdated()
@@ -471,14 +466,19 @@ class FarModel extends BasePropertyChangeReporter
     FilterGroup buildTransactionFilter()
     {
         final FilterGroup result = new FilterGroup();
-
-        if (_useAccountFilter)
+        AccountFilter accountFilter = null;
+        if (_useAccountFilter && !_accountFilter.isAllAccounts())
         {
-            result.addFilter(new AccountTxnFilter(_accountFilter, !_combineOr));
+            accountFilter = _accountFilter;
         }
-        if (_useCategoryFilter)
+        AccountFilter categoryFilter = null;
+        if (_useCategoryFilter && !_categoryFilter.isAllAccounts())
         {
-            result.addFilter(new CategoryTxnFilter(_categoryFilter, !_combineOr));
+            categoryFilter = _categoryFilter;
+        }
+        if (_useAccountFilter || _useCategoryFilter)
+        {
+            result.addFilter(new AccountTxnFilter(accountFilter, categoryFilter, !_combineOr));
         }
         if (_useDateFilter)
         {
@@ -842,6 +842,22 @@ class FarModel extends BasePropertyChangeReporter
     boolean getIncludeTransfers()
     {
         return _includeTransfers;
+    }
+
+    void setShowParents(final boolean showParents)
+    {
+        if (showParents != _showParents)
+        {
+            final boolean old = _showParents;
+            _showParents = showParents;
+            _findResultsModel.refresh();
+            _eventNotify.firePropertyChange(N12EFindAndReplace.SHOW_PARENTS, old, showParents);
+        }
+    }
+
+    boolean getShowParents()
+    {
+        return _showParents;
     }
 
     String getSummaryText(final IResourceProvider resources)

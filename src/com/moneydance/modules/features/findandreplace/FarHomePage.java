@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.RootAccount;
@@ -17,25 +25,19 @@ import info.clearthought.layout.TableLayoutConstraints;
  * <p>The view for the home page. The home page just has a title, free text field and a
  * Find button.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.50
  * @since 1.0
  */
 class FarHomePage extends JPanel
 {
-    private RootAccount _data;
     private JLabel _title;
     private JTextField _freeText;
     private JButton _find;
     private final Main _feature;
 
-    public FarHomePage(final RootAccount rootAccount, final Main feature)
+    public FarHomePage(final Main feature)
     {
-        _data = rootAccount;
         _feature = feature;
         createControls();
     }
@@ -72,12 +74,12 @@ class FarHomePage extends JPanel
 
     private void createControls()
     {
-        _title = new JLabel(_feature.getFarController().getString(L10NFindAndReplace.TITLE));
+        _title = new JLabel(_feature.getString(L10NFindAndReplace.TITLE));
         _title.setOpaque(false);
 
         _freeText = new JTextField();
-        _find = new JButton(_feature.getFarController().getString(L10NFindAndReplace.FIND_BUTTON_TEXT));
-        String mnemonic = _feature.getFarController().getString(L10NFindAndReplace.FIND_BUTTON_MNC);
+        _find = new JButton(_feature.getString(L10NFindAndReplace.FIND_BUTTON_TEXT));
+        String mnemonic = _feature.getString(L10NFindAndReplace.FIND_BUTTON_MNC);
         _find.setMnemonic( mnemonic.charAt( 0 ) );
         
         // add listeners
@@ -92,13 +94,7 @@ class FarHomePage extends JPanel
         {
             public void actionPerformed(final ActionEvent event)
             {
-                if (_feature != null)
-                {
-                    _data = _feature.getFarController().getMDMain().getRootAccount();
-                    _feature.getFarController().loadData(_data);
-                    _feature.getFarController().setInitialFreeText(_freeText.getText());
-                    _feature.getFarController().show();
-                }
+                _feature.addNewDialog(_freeText.getText());
             }
         });
     }
@@ -106,9 +102,9 @@ class FarHomePage extends JPanel
     public void refresh()
     {
         // reload text from resources
-        _title.setText(_feature.getFarController().getString(L10NFindAndReplace.TITLE));
-        _find.setText(_feature.getFarController().getString(L10NFindAndReplace.FIND_BUTTON_TEXT));
-        String mnemonic = _feature.getFarController().getString(L10NFindAndReplace.FIND_BUTTON_MNC);
+        _title.setText(_feature.getString(L10NFindAndReplace.TITLE));
+        _find.setText(_feature.getString(L10NFindAndReplace.FIND_BUTTON_TEXT));
+        String mnemonic = _feature.getString(L10NFindAndReplace.FIND_BUTTON_MNC);
         _find.setMnemonic( mnemonic.charAt( 0 ) );
     }
 }

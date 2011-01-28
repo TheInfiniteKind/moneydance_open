@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.RootAccount;
@@ -8,12 +16,8 @@ import com.moneydance.apps.md.model.Account;
  * as a whole go through here, and clients can also access resources (strings and images)
  * through this interface.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.50
  * @since 1.0
  */
 public interface IFindAndReplaceController extends IResourceProvider
@@ -39,6 +43,7 @@ public interface IFindAndReplaceController extends IResourceProvider
     void cleanUp();
 
     void setInitialFreeText(final String freeText);
+    boolean getShowParents();
 
     /**
      * Obtain the user-defined name of a specific account.
@@ -52,5 +57,4 @@ public interface IFindAndReplaceController extends IResourceProvider
     public com.moneydance.apps.md.view.gui.MoneydanceGUI getMDGUI();
 
     public RootAccount getRootAccount();
-
 }

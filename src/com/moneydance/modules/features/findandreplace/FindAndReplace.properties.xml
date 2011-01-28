@@ -12,20 +12,20 @@
     <!--  Find panel -->
     <entry key="findLabel.text">Find</entry>
     <entry key="findBooleanAnd.mnemonic">N</entry>
-    <entry key="findBooleanOr.mnemonic">R</entry>
+    <entry key="findBooleanOr.mnemonic">O</entry>
 
     <entry key="findAccountsLabel.mnemonic">A</entry>
     <entry key="findAccountsSelect.text">Select</entry>
     <entry key="findAccountsSelect.mnemonic">S</entry>
 
-    <entry key="findCategoriesLabel.mnemonic">G</entry>
+    <entry key="findCategoriesLabel.mnemonic">Y</entry>
     <entry key="findCategoriesSelect.text">Select</entry>
     <entry key="findCategoriesSelect.mnemonic">T</entry>
 
-    <entry key="findAmountLabel.mnemonic">O</entry>
+    <entry key="findAmountLabel.mnemonic">U</entry>
     <entry key="findDateLabel.mnemonic">E</entry>
     <entry key="findFreeTextLabel.text">Free Text:</entry>
-    <entry key="findFreeTextLabel.mnemonic">F</entry>
+    <entry key="findFreeTextLabel.mnemonic">R</entry>
     <entry key="findDescription.toolTip">Search in the description field (parent transactions and splits)</entry>
     <entry key="findMemo.toolTip">Search in the memo field (parent transactions only)</entry>
     <entry key="findCheck.toolTip">Search in the Check# field (parent transactions only)</entry>
@@ -42,28 +42,36 @@
     <entry key="findCleared.toolTip">Include cleared transactions</entry>
     <entry key="findReconciling.toolTip">Include reconciling transactions</entry>
     <entry key="findUncleared.toolTip">Include uncleared transactions</entry>
-
+    <entry key="findUseTaxDate.mnemonic">X</entry>
     <entry key="findUse.toolTip">Use this criterion to search for transactions</entry>
 
     <!--  Replace panel -->
     <entry key="replaceLabel.text">Replace</entry>
-    <entry key="replaceCategoryLabel.mnemonic">G</entry>
-    <entry key="replaceAmountLabel.mnemonic">U</entry>
-    <entry key="replaceDescriptionLabel.mnemonic">C</entry>
+    <entry key="replaceCategoryLabel.mnemonic">Y</entry>
+    <entry key="replaceAmountLabel.mnemonic">O</entry>
+    <entry key="replaceDescriptionLabel.mnemonic">D</entry>
     <entry key="replaceTags.text">Modify tags:</entry>
     <entry key="replaceTags.mnemonic">F</entry>
     <entry key="replaceTagsAdd.text">Add tags:</entry>
     <entry key="replaceTagsRemove.text">Remove tags:</entry>
     <entry key="replaceTagsReplace.text">Replace all with:</entry>
+    <entry key="replaceTagsAdd.mnemonic">A</entry>
+    <entry key="replaceTagsRemove.mnemonic">V</entry>
+    <entry key="replaceTagsReplace.mnemonic">W</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">K</entry>
+    <entry key="replaceProgress.text">Replacing ...</entry>
 
     <entry key="includeTransfers.text">Include Transfers</entry>
     <entry key="includeTransfers.toolTip">Allow all accounts to be included as categories</entry>
-    <entry key="includeTransfers.mnemonic">D</entry>
-    
+    <entry key="includeTransfers.mnemonic">I</entry>
+
     <!--  Results panel -->
     <entry key="resultsLabel.text">Find Results</entry>
+    <entry key="showParents.text">Consolidate splits</entry>
+    <entry key="showParents.mnemonic">I</entry>
+    <entry key="showParents.toolTip">Show parent transactions</entry>
+
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Count: %s  Additions: %s  Subtractions: %s  Total: %s</entry>
 
@@ -71,18 +79,20 @@
     <entry key="findBtn.text">Find</entry>
     <entry key="findBtn.mnemonic">F</entry>
     <entry key="replaceBtn.text">Replace</entry>
-    <entry key="replaceBtn.mnemonic">P</entry>
+    <entry key="replaceBtn.mnemonic">R</entry>
     <entry key="replaceAllBtn.text">Replace All</entry>
-    <entry key="replaceAllBtn.mnemonic">A</entry>
+    <entry key="replaceAllBtn.mnemonic">P</entry>
     <entry key="closeBtn.text">Close</entry>
     <entry key="closeBtn.mnemonic">C</entry>
-    <entry key="gotoBtn.mnemonic">G</entry>
+    <entry key="gotoBtn.mnemonic">O</entry>
     <entry key="resetBtn.text">Reset</entry>
     <entry key="copyBtn.text">Copy</entry>
-    <entry key="copyBtn.mnemonic">Y</entry>
+    <entry key="copyBtn.mnemonic">C</entry>
 
     <entry key="markAllBtn.text">Mark All</entry>
+    <entry key="markAllBtn.mnemonic">M</entry>
     <entry key="markNoneBtn.text">Mark None</entry>
+    <entry key="markNoneBtn.mnemonic">N</entry>
 
     <!--  Account/category selection dialog -->
     <entry key="accountselect.exclude.text">Excluded</entry>

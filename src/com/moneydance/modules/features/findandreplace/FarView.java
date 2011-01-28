@@ -1,13 +1,23 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 import com.moneydance.apps.md.view.gui.SecondaryFrame;
 import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.JCurrencyField;
-import com.moneydance.util.CustomDateFormat;
 import com.moneydance.apps.md.view.gui.AccountChoice;
 import com.moneydance.apps.md.model.Account;
 
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import javax.swing.border.EmptyBorder;
@@ -15,6 +25,8 @@ import javax.swing.*;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
 import java.awt.FlowLayout;
+import java.awt.FontMetrics;
+import java.awt.event.FocusListener;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
 import java.awt.event.ActionListener;
@@ -47,12 +59,8 @@ import info.clearthought.layout.TableLayoutConstants;
  * <p>The main view for the Find and Replace plugin. Has all the find and replace controls and
  * hosts the results table as well.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.4
+ * @version 1.50
  * @since 1.0
  */
 class FarView extends SecondaryFrame implements PropertyChangeListener
@@ -60,7 +68,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private final FarModel _model;
     private FarController _controller;
 
-    // find panel
     private JRadioButton _findAndRadio;
     private JRadioButton _findOrRadio;
     private ButtonGroup _findBooleanGroup;
@@ -99,10 +106,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private JCheckBox _findClearedUnclearedCheck;
 
     // replace panel
-    private JCheckBox _replaceCategoryCheck;
-    private JComboBox _replaceCategory;
     // we replace the category chooser on-the-fly so we need to track its parent and constraints
     private JPanel _replacePanel;
+    private JCheckBox _replaceCategoryCheck;
+    private JComboBox _replaceCategory;
     private TableLayoutConstraints _replaceCategoryConstraints;
 
     private JCheckBox _replaceAmountCheck;
@@ -123,8 +130,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private JTextField _replaceCheck;
 
     private JCheckBox _includeTransfersCheck;
-
-    // transaction list
+    private JCheckBox _showParentsCheck;
     private JTable _findResults;
     private JLabel _summary;
 
@@ -144,6 +150,8 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     // don't automatically check the 'use' boxes when updating programmatically
     private boolean _suppressAutoCheckUse = false;
+    private JLabel _statusLabel;
+    private Font _smallFont;
 
     FarView(final FarModel model, MoneydanceGUI mdGui, String title)
     {
@@ -190,20 +198,19 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         main.add(createResultsPanel(), new TableLayoutConstraints(0, 2, 2, 2));
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.add( createLowerLeftButtonPanel(), BorderLayout.WEST );
-        bottomPanel.add( createLowerRightButtonPanel(), BorderLayout.EAST );
+        bottomPanel.add(createLowerLeftButtonPanel(), BorderLayout.WEST);
+        bottomPanel.add(createLowerRightButtonPanel(), BorderLayout.EAST);
 
-        JLabel version = new JLabel(getVersionText());
-        version.setOpaque(false);
-        version.setHorizontalAlignment(JLabel.CENTER);
-        version.setVerticalAlignment(JLabel.BOTTOM);
-        Font smallFont = version.getFont().deriveFont(version.getFont().getSize() - 2f);
-        version.setFont(smallFont);
-        version.setEnabled(false);
-        bottomPanel.add(version, BorderLayout.CENTER);
+        _statusLabel = new JLabel(getVersionText());
+        _statusLabel.setOpaque(false);
+        _statusLabel.setHorizontalAlignment(JLabel.CENTER);
+        _statusLabel.setVerticalAlignment(JLabel.BOTTOM);
+        _smallFont = _statusLabel.getFont().deriveFont(_statusLabel.getFont().getSize() - 2f);
+        _statusLabel.setFont(_smallFont);
+        _statusLabel.setEnabled(false);
+        bottomPanel.add(_statusLabel, BorderLayout.CENTER);
 
-        main.add( bottomPanel, new TableLayoutConstraints( 0, 4, 2, 4 ) );
-
+        main.add(bottomPanel, new TableLayoutConstraints(0, 4, 2, 4));
         getContentPane().add( main );
 
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -257,6 +264,16 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             _controller.hide();
             return;
+        }
+        if (event.getID() == WindowEvent.WINDOW_OPENED)
+        {
+            // make sure the row size has enough room for the font
+            final float currentSize = _summary.getFont().getSize2D();
+            final Font bold = _summary.getFont().deriveFont(Font.BOLD, currentSize + 2f);
+            final FontMetrics fm = getGraphics().getFontMetrics(bold);
+            _findResults.setRowHeight(fm.getHeight());
+            // disable menu options that don't apply
+            disableMenus();
         }
         super.processWindowEvent(event);
     }
@@ -423,6 +440,12 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             _includeTransfersCheck.setSelected(_controller.getIncludeTransfers());
             buildReplaceCategoryChooser();
         }
+        if (all || N12EFindAndReplace.SHOW_PARENTS.equals(eventID))
+        {
+            _showParentsCheck.setSelected(_controller.getShowParents());
+            updateSummary();
+            _findResults.repaint();
+        }
 
         if (all)
         {
@@ -449,7 +472,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             _replaceMemo.setText(_controller.getReplacementMemo());
             _replaceCheck.setText(_controller.getReplacementCheck());
             _replaceAmount.setValue(_controller.getReplacementAmount());
-
         }
 
         // clear the update suppression
@@ -518,15 +540,29 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private JPanel createResultsPanel()
     {
-        final JPanel panel = new JPanel(new BorderLayout());
-        final JLabel panelLabel = new JLabel(_controller.getString(L10NFindAndReplace.RESULTS_LABEL));
-        final JPanel headerPanel = new JPanel(new BorderLayout());
-        final Font bold = panelLabel.getFont().deriveFont(Font.BOLD);
+        final JPanel resultsPanel = new JPanel(new BorderLayout());
+        final JLabel panelLabel = setupControl( new JLabel(_controller.getString(L10NFindAndReplace.RESULTS_LABEL)) );
+        final JPanel headerPanel = setupControl( new JPanel(new BorderLayout()) );
+        final float currentSize = panelLabel.getFont().getSize2D();
+        final Font bold = panelLabel.getFont().deriveFont(Font.BOLD, currentSize + 1.5f);
         panelLabel.setFont( bold );
         headerPanel.add(panelLabel, BorderLayout.WEST);
-        _summary = new JLabel();
+        _showParentsCheck = setupControl( new JCheckBox(_controller.getString(L10NFindAndReplace.CONSOLIDATE_SPLITS)) );
+        _showParentsCheck.setToolTipText(_controller.getString(L10NFindAndReplace.CONSOLIDATE_SPLITS_TIP));
+        _showParentsCheck.setHorizontalAlignment(JCheckBox.CENTER);
+        addKeystrokeToButton(_showParentsCheck, L10NFindAndReplace.CONSOLIDATE_SPLITS_MNC, false);
+        headerPanel.add(_showParentsCheck, BorderLayout.CENTER);
+        _showParentsCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setShowParents(event.getStateChange() == ItemEvent.SELECTED);
+            }
+        });
+
+        _summary = setupControl( new JLabel() );
         headerPanel.add(_summary, BorderLayout.EAST);
-        panel.add(headerPanel, BorderLayout.NORTH);
+        resultsPanel.add(headerPanel, BorderLayout.NORTH);
 
         final FindResultsTableColumnModel columnModel = new FindResultsTableColumnModel(_controller);
 
@@ -548,6 +584,21 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 }
             }
         });
+        _findResults.getSelectionModel().addListSelectionListener(new ListSelectionListener()
+        {
+            public void valueChanged(ListSelectionEvent event)
+            {
+                // If the user single selects a row, consider that the starting point for replace
+                // operations. Replace All will ignore this, but Replace will use it.
+                final int min = _findResults.getSelectionModel().getMinSelectionIndex();
+                final int max = _findResults.getSelectionModel().getMaxSelectionIndex();
+                if (!event.getValueIsAdjusting() && (min == max) && (min != -1))
+                {
+                    // this is where the user wants to start replacing
+                    _controller.setReplaceViewIndex(min);
+                }
+            }
+        });
 
         // experimentally-derived values
         columnModel.getColumn(FindResultsTableModel.SEL_INDEX).setPreferredWidth(28);
@@ -560,22 +611,24 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         columnModel.getColumn(FindResultsTableModel.CLEARED_INDEX).setPreferredWidth(24);
         columnModel.getColumn(FindResultsTableModel.AMOUNT_INDEX).setPreferredWidth(72);
 
-        panel.add(new JScrollPane(_findResults), BorderLayout.CENTER);
-
-        return panel;
+        resultsPanel.add(new JScrollPane(_findResults), BorderLayout.CENTER);
+        return resultsPanel;
     }
 
     private void goToSelectedTransaction()
     {
         final int selectedRow = _findResults.getSelectedRow();
-        final int modelIndex = _findResults.convertRowIndexToModel(selectedRow);
-        _controller.gotoTransaction(modelIndex);
+        if ((selectedRow >= 0) && (selectedRow < _findResults.getRowCount()))
+        {
+            final int modelIndex = _findResults.convertRowIndexToModel(selectedRow);
+            _controller.gotoTransaction(modelIndex);
+        }
     }
 
     private void setupButtons()
     {
         _findButton = createButton(L10NFindAndReplace.FIND_BUTTON_TEXT,
-                L10NFindAndReplace.FIND_BUTTON_MNC);
+                L10NFindAndReplace.FIND_BUTTON_MNC, false);
         _findButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -591,7 +644,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         });
 
         _replaceButton = createButton(L10NFindAndReplace.REPLACE_BUTTON_TEXT,
-                L10NFindAndReplace.REPLACE_BUTTON_MNC);
+                L10NFindAndReplace.REPLACE_BUTTON_MNC, true);
         _replaceButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -605,20 +658,19 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         });
 
         _replaceAllButton = createButton(L10NFindAndReplace.REPLACEALL_BUTTON_TEXT,
-                L10NFindAndReplace.REPLACEALL_BUTTON_MNC);
+                L10NFindAndReplace.REPLACEALL_BUTTON_MNC, true);
         _replaceAllButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
             {
-                final Cursor current = getCursor();
-                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                setProgressText();
                 saveReplaceEdits();
                 _controller.replaceAll();
-                setCursor(current);
+                clearProgressText();
             }
         });
 
-        _closeButton = createButton(L10NFindAndReplace.DONE, null);
+        _closeButton = createButton(L10NFindAndReplace.DONE, null, false);
         _closeButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -627,18 +679,20 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             }
         });
 
-        _recordButton = createButton(L10NFindAndReplace.RECORD_BUTTON_TEXT, null);
+        _recordButton = createButton(L10NFindAndReplace.RECORD_BUTTON_TEXT, null, false);
         _recordButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
             {
+                setProgressText();
                 _controller.commit();
                 // clear the results and run find again to revert colors
                 _controller.find();
+                clearProgressText();
             }
         });
 
-        _resetButton = createButton(L10NFindAndReplace.RESET_BUTTON_TEXT, null);
+        _resetButton = createButton(L10NFindAndReplace.RESET_BUTTON_TEXT, null, false);
         _resetButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -647,7 +701,8 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             }
         });
 
-        _markAllButton = createButton(L10NFindAndReplace.MARK_ALL_BUTTON_TEXT, null);
+        _markAllButton = createButton(L10NFindAndReplace.MARK_ALL_BUTTON_TEXT,
+                                      L10NFindAndReplace.MARK_ALL_BUTTON_MNC, false);
         _markAllButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -656,7 +711,8 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             }
         });
 
-        _markNoneButton = createButton(L10NFindAndReplace.MARK_NONE_BUTTON_TEXT, null);
+        _markNoneButton = createButton(L10NFindAndReplace.MARK_NONE_BUTTON_TEXT,
+                                       L10NFindAndReplace.MARK_NONE_BUTTON_MNC, false);
         _markNoneButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -666,7 +722,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         });
 
         _gotoButton = createButton(L10NFindAndReplace.GOTO_BUTTON_TEXT,
-                L10NFindAndReplace.GOTO_BUTTON_MNC);
+                L10NFindAndReplace.GOTO_BUTTON_MNC, false);
         _gotoButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -676,7 +732,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         });
 
         _copyButton = createButton(L10NFindAndReplace.COPY_BUTTON_TEXT,
-                L10NFindAndReplace.COPY_BUTTON_MNC);
+                L10NFindAndReplace.COPY_BUTTON_MNC, false);
         _copyButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(final ActionEvent event)
@@ -687,23 +743,15 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     }
 
-    private JButton createButton(final String buttonTextKey, final String buttonMnemonicKey)
+    private JButton createButton(final String buttonTextKey, final String buttonMnemonicKey,
+                                 final boolean addShift)
     {
         final JButton button = new JButton( _controller.getString(buttonTextKey) );
         if (buttonMnemonicKey != null)
         {
-            setButtonMnemonic( button, buttonMnemonicKey );
+            addKeystrokeToButton(button, buttonMnemonicKey, addShift);
         }
         return button;
-    }
-
-    private void setButtonMnemonic( AbstractButton button, final String buttonMnemonicKey )
-    {
-        String mnemonic = _controller.getString( buttonMnemonicKey );
-        if ( (mnemonic != null) && (mnemonic.length() > 0) )
-        {
-            button.setMnemonic( mnemonic.charAt( 0 ) );
-        }
     }
 
     private JPanel createFindPanel()
@@ -737,27 +785,29 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 TableLayout.PREFERRED
             }
         };
-        final JPanel findPanel = new JPanel( new TableLayout(sizes) );
+        final JPanel findPanel = new JPanel(new TableLayout(sizes));
         int row = 0;
-        final JLabel panelLabel = new JLabel( _controller.getString( L10NFindAndReplace.FIND_LABEL ));
-        final Font bold = panelLabel.getFont().deriveFont(Font.BOLD);
+        final JLabel panelLabel = setupControl( new JLabel( _controller.getString( L10NFindAndReplace.FIND_LABEL )) );
+        final float currentSize = panelLabel.getFont().getSize2D();
+        final Font bold = panelLabel.getFont().deriveFont(Font.BOLD, currentSize + 1.5f);
         panelLabel.setFont( bold );
-        findPanel.add( panelLabel, new TableLayoutConstraints(0, row) );
+        findPanel.add(panelLabel, new TableLayoutConstraints(0, row));
         row += 2; // skip the gap
 
         // the combine criteria row is a little special -- the only 2 component field set and no
         // check box
-        JLabel label = new JLabel(
-                FarUtil.getLabelText(_controller, L10NFindAndReplace.FIND_BOOL_LABEL) );
-        findPanel.add( label, new TableLayoutConstraints(0, row) );
-        _findAndRadio = new JRadioButton( _controller.getString( L10NFindAndReplace.FIND_BOOL_AND ) );
-        setButtonMnemonic( _findAndRadio, L10NFindAndReplace.FIND_BOOL_AND_MNC );
-        findPanel.add( _findAndRadio, new TableLayoutConstraints( 3, row, 4, row,
-                TableLayoutConstants.CENTER, TableLayoutConstants.FULL));
-        _findOrRadio = new JRadioButton( _controller.getString( L10NFindAndReplace.FIND_BOOL_OR ) );
-        setButtonMnemonic( _findOrRadio, L10NFindAndReplace.FIND_BOOL_OR_MNC );
-        findPanel.add( _findOrRadio, new TableLayoutConstraints( 5, row, 6, row,
-                TableLayoutConstants.CENTER, TableLayoutConstants.FULL));
+        JLabel label = setupControl( new JLabel(
+                FarUtil.getLabelText(_controller, L10NFindAndReplace.FIND_BOOL_LABEL) ) );
+        findPanel.add(label, new TableLayoutConstraints(0, row));
+        _findAndRadio = setupControl(
+                new JRadioButton( _controller.getString( L10NFindAndReplace.FIND_BOOL_AND ) ) );
+        addKeystrokeToButton( _findAndRadio, L10NFindAndReplace.FIND_BOOL_AND_MNC, true);
+        findPanel.add(_findAndRadio, new TableLayoutConstraints(3, row, 4, row,
+                                                                TableLayoutConstants.CENTER, TableLayoutConstants.FULL));
+        _findOrRadio = setupControl( new JRadioButton( _controller.getString( L10NFindAndReplace.FIND_BOOL_OR ) ) );
+        addKeystrokeToButton( _findOrRadio, L10NFindAndReplace.FIND_BOOL_OR_MNC, true );
+        findPanel.add(_findOrRadio, new TableLayoutConstraints(5, row, 6, row,
+                                                               TableLayoutConstants.CENTER, TableLayoutConstants.FULL));
 
         _findBooleanGroup = new ButtonGroup();
         _findBooleanGroup.add( _findAndRadio );
@@ -768,93 +818,85 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         final String findCheckTip = _controller.getString(L10NFindAndReplace.FIND_USE_TIP);
 
         // accounts row
-        _findAccountsUseCheck = new JCheckBox();
+        _findAccountsUseCheck = setupControl( new JCheckBox() );
         _findAccountsUseCheck.setToolTipText(findCheckTip);
-        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_ACCOUNTS_LABEL,
-                L10NFindAndReplace.FIND_ACCOUNTS_MNC, _findAccountsUseCheck);
-        _findAccountsList = new JLabel();
-        findPanel.add( _findAccountsList, new TableLayoutConstraints( 3, row, 5, row) );
+        row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_ACCOUNTS_LABEL,
+                L10NFindAndReplace.FIND_ACCOUNTS_MNC, _findAccountsUseCheck, false);
+        _findAccountsList = setupControl( new JLabel() );
+        findPanel.add(_findAccountsList, new TableLayoutConstraints(3, row, 5, row));
         _findAccountsSelect = createButton( L10NFindAndReplace.FIND_ACCOUNTS_SELECT_TEXT,
-                L10NFindAndReplace.FIND_ACCOUNTS_SELECT_MNC );
-        findPanel.add( _findAccountsSelect, new TableLayoutConstraints( 6, row ) );
+                L10NFindAndReplace.FIND_ACCOUNTS_SELECT_MNC, true );
+        findPanel.add(_findAccountsSelect, new TableLayoutConstraints(6, row));
         row += 2;
 
         // category row
-        _findCategoryUseCheck = new JCheckBox();
+        _findCategoryUseCheck = setupControl( new JCheckBox() );
         _findCategoryUseCheck.setToolTipText(findCheckTip);
-        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_CATEGORIES_LABEL,
-                L10NFindAndReplace.FIND_CATEGORIES_MNC, _findCategoryUseCheck);
-        _findCategoryList = new JLabel();
-        findPanel.add( _findCategoryList, new TableLayoutConstraints( 3, row, 5, row) );
+        row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_CATEGORIES_LABEL,
+                L10NFindAndReplace.FIND_CATEGORIES_MNC, _findCategoryUseCheck, false);
+        _findCategoryList = setupControl( new JLabel() );
+        findPanel.add(_findCategoryList, new TableLayoutConstraints(3, row, 5, row));
         _findCategorySelect = createButton( L10NFindAndReplace.FIND_CATEGORIES_SELECT_TEXT,
-                L10NFindAndReplace.FIND_CATEGORIES_SELECT_MNC );
-        findPanel.add( _findCategorySelect, new TableLayoutConstraints( 6, row ) );
+                L10NFindAndReplace.FIND_CATEGORIES_SELECT_MNC, true );
+        findPanel.add(_findCategorySelect, new TableLayoutConstraints(6, row));
         row += 2;
 
         // label plus 2 checkboxes
         final int startCol = 3;
 
         // amount row
-        _findAmountUseCheck = new JCheckBox();
+        _findAmountUseCheck = setupControl( new JCheckBox() );
         _findAmountUseCheck.setToolTipText(findCheckTip);
-        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_AMOUNT_LABEL,
-                L10NFindAndReplace.FIND_AMOUNT_MNC, _findAmountUseCheck);
+        row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_AMOUNT_LABEL,
+                L10NFindAndReplace.FIND_AMOUNT_MNC, _findAmountUseCheck, false);
 
         _findAmountPickers = new AmountPickerGroup(_controller);
         _findAmountPickers.addFocusListener(new ColoredFocusAdapter(
                 _findAmountPickers.getFromAmountPicker(), _focusColor) );
-        row = addRowField1( findPanel, row, startCol, _findAmountPickers );
+        row = addRowField1(findPanel, row, startCol, _findAmountPickers );
 
         // date row
-        _findDateUseCheck = new JCheckBox();
+        _findDateUseCheck = setupControl( new JCheckBox() );
         _findDateUseCheck.setToolTipText(findCheckTip);
-        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_DATE_LABEL,
-                L10NFindAndReplace.FIND_DATE_MNC, _findDateUseCheck);
+        row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_DATE_LABEL,
+                L10NFindAndReplace.FIND_DATE_MNC, _findDateUseCheck, false);
 
-        CustomDateFormat formatter;
-        if (_controller.getMDMain() != null)
-        {
-            formatter = _controller.getMDMain().getPreferences().getShortDateFormatter();
-        }
-        else
-        {
-            formatter = new CustomDateFormat(N12EFindAndReplace.DATE_FORMAT);
-        }
-        _findDatePickers = new DatePickerGroup(formatter, _controller);
+        _findDatePickers = new DatePickerGroup(_controller, _controller.getMDGUI());
         _findDatePickers.addFocusListener(new ColoredFocusAdapter(
                 _findDatePickers.getFromDatePicker(), _focusColor) );
-        _useTaxDate = new JCheckBox(_controller.getString(L10NFindAndReplace.USE_TAX_DATE));
-        row = addRowField2( findPanel, row, startCol, _findDatePickers, _useTaxDate);
+        _useTaxDate = setupControl( new JCheckBox(_controller.getString(L10NFindAndReplace.USE_TAX_DATE)) );
+        addKeystrokeToButton(_useTaxDate, L10NFindAndReplace.USE_TAX_DATE_MNC, false);
+        row = addRowField2(findPanel, row, startCol, _findDatePickers, _useTaxDate);
 
         // free text
-        _findFreeTextUseCheck = new JCheckBox();
+        _findFreeTextUseCheck = setupControl( new JCheckBox() );
         _findFreeTextUseCheck.setToolTipText(findCheckTip);
-        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_FREETEXT_LABEL,
-                L10NFindAndReplace.FIND_FREETEXT_MNC, _findFreeTextUseCheck);
+        row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_FREETEXT_LABEL,
+                L10NFindAndReplace.FIND_FREETEXT_MNC, _findFreeTextUseCheck, false);
         _findFreeText = new JTextField();
         _findFreeText.addFocusListener(new ColoredFocusAdapter( _findFreeText, _focusColor) );
-        row = addRowField1( findPanel, row, startCol, _findFreeText);
+        row = addRowField1(findPanel, row, startCol, _findFreeText);
         
-        _findFreeTextUseDescriptionCheck = new JCheckBox(
-                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_DESCRIPTION ));
+        _findFreeTextUseDescriptionCheck = setupControl( new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_DESCRIPTION )) );
         _findFreeTextUseDescriptionCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.FIND_FREETEXT_DESC_TIP));
         _findFreeTextUseDescriptionCheck.setEnabled(false);
 
-        _findFreeTextUseMemoCheck = new JCheckBox(
-                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_MEMO ));
+        _findFreeTextUseMemoCheck = setupControl( new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_MEMO )) );
         _findFreeTextUseMemoCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.FIND_FREETEXT_MEMO_TIP));
         _findFreeTextUseMemoCheck.setEnabled(false);
 
-        _findFreeTextUseCheckCheck = new JCheckBox(
-                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_CHECK ));
+        _findFreeTextUseCheckCheck = setupControl( new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_CHECK )) );
         _findFreeTextUseCheckCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.FIND_FREETEXT_CHECK_TIP));
         _findFreeTextUseCheckCheck.setEnabled(false);
 
-        _findFreeTextIncludeSplitsCheck = new JCheckBox(
-                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_SPLITS ));
+        _findFreeTextIncludeSplitsCheck = setupControl( new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_FREETEXT_SPLITS )) );
         _findFreeTextIncludeSplitsCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.FIND_FREETEXT_SPLITS_TIP));
         _findFreeTextIncludeSplitsCheck.setEnabled(false);
@@ -871,52 +913,69 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             },
             { TableLayout.PREFERRED }
         };
-        final JPanel optionsPanel = new JPanel(new TableLayout(checkSizes));
+        final JPanel optionsPanel = setupControl( new JPanel(new TableLayout(checkSizes)) );
         optionsPanel.add(_findFreeTextUseDescriptionCheck, new TableLayoutConstraints(0, 0));
         optionsPanel.add(_findFreeTextUseMemoCheck, new TableLayoutConstraints(2, 0));
         optionsPanel.add(_findFreeTextUseCheckCheck, new TableLayoutConstraints(4, 0));
         optionsPanel.add(_findFreeTextIncludeSplitsCheck, new TableLayoutConstraints(6, 0));
-        row = addRowField1( findPanel, row, startCol, optionsPanel );
+        row = addRowField1(findPanel, row, startCol, optionsPanel );
 
         // tags
-        _findTagsUseCheck = new JCheckBox();
+        _findTagsUseCheck = setupControl( new JCheckBox() );
         _findTagsUseCheck.setToolTipText(findCheckTip);
-        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_TAGS_LABEL,
-                L10NFindAndReplace.FIND_TAGS_MNC, _findTagsUseCheck);
+        row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_TAGS_LABEL,
+                L10NFindAndReplace.FIND_TAGS_MNC, _findTagsUseCheck, false);
         _findTagPicker = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
-        row = addRowField1( findPanel, row, startCol, _findTagPicker.getView());
-        row = addRowField1( findPanel, row, startCol, createTagSupportPanel());
+        row = addRowField1(findPanel, row, startCol, _findTagPicker.getView());
+        row = addRowField1(findPanel, row, startCol, createTagSupportPanel());
         
         // cleared
-        _findClearedUseCheck = new JCheckBox();
+        _findClearedUseCheck = setupControl( new JCheckBox() );
         _findClearedUseCheck.setToolTipText(findCheckTip);
-        row = addRowLabel( findPanel, row, L10NFindAndReplace.FIND_CLEARED_LABEL,
-                L10NFindAndReplace.FIND_CLEARED_MNC, _findClearedUseCheck);
+        row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_CLEARED_LABEL,
+                L10NFindAndReplace.FIND_CLEARED_MNC, _findClearedUseCheck, false);
         
-        _findClearedClearedCheck = new JCheckBox(
-                _controller.getString( L10NFindAndReplace.FIND_CLEARED_LABEL ));
+        _findClearedClearedCheck = setupControl( new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_CLEARED_LABEL )) );
         _findClearedClearedCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.FIND_CLEARED_TIP));
-        _findClearedReconcilingCheck = new JCheckBox(
-                _controller.getString( L10NFindAndReplace.FIND_RECONCILING_LABEL ));
+        _findClearedReconcilingCheck = setupControl( new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_RECONCILING_LABEL )) );
         _findClearedReconcilingCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.FIND_RECONCILING_TIP));
-        _findClearedUnclearedCheck = new JCheckBox(
-                _controller.getString( L10NFindAndReplace.FIND_UNCLEARED_LABEL ));
+        _findClearedUnclearedCheck = setupControl( new JCheckBox(
+                _controller.getString( L10NFindAndReplace.FIND_UNCLEARED_LABEL )) );
         _findClearedUnclearedCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.FIND_UNCLEARED_TIP));
 
         // The text in these should be short enough to work with GridLayout
-        final JPanel clearedPanel = new JPanel(new GridLayout(1, 3, UiUtil.HGAP, 0));
+        final JPanel clearedPanel = setupControl( new JPanel(new GridLayout(1, 3, UiUtil.HGAP, 0)) );
         clearedPanel.add(_findClearedClearedCheck);
         clearedPanel.add(_findClearedReconcilingCheck);
         clearedPanel.add(_findClearedUnclearedCheck);
-        addRowField1( findPanel, row, startCol, clearedPanel );
+        // keep the Find button on the Find side of the dialog
+        final JPanel findBtnPanel = setupControl( new JPanel(new BorderLayout(UiUtil.HGAP * 2, 0)) );
+        findBtnPanel.add(clearedPanel, BorderLayout.CENTER);
+        findBtnPanel.add(_findButton, BorderLayout.EAST);
+        addRowField1(findPanel, row, startCol, findBtnPanel);
 
+        findPanel.setBorder(MoneydanceLAF.homePageBorder);
         buildFindPanelActions();
-
+        addPanelFocusListeners(findPanel);
         return findPanel;
     } // createFindPanel()
+
+    private <C extends JComponent> C setupControl(final C component)
+    {
+        component.setOpaque(false);
+        return component;
+    }
+
+    private void addPanelFocusListeners(final JPanel parent)
+    {
+        final FocusListener listener = new ColoredParentFocusAdapter(parent);
+        FarUtil.recurseAddFocusListener(parent, listener);
+    }
 
     private void buildFindPanelActions()
     {
@@ -1146,9 +1205,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private JPanel createTagSupportPanel()
     {
-        final JPanel result = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP*2, 0));
+        final JPanel result = setupControl( new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP*2, 0)) );
 
-        final ClickLabelListPanel clickPanel = new ClickLabelListPanel();
+        final ClickLabelListPanel clickPanel = setupControl( new ClickLabelListPanel() );
 
         Runnable action = new Runnable()
         {
@@ -1172,9 +1231,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         clickPanel.layoutUI();
         result.add(clickPanel);
         
-        _tagsAnd = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_AND));
-        _tagsOr = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_OR));
-        _tagsExact = new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_EXACT));
+        _tagsAnd = setupControl( new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_AND)) );
+        _tagsOr = setupControl( new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_OR)) );
+        _tagsExact = setupControl( new JRadioButton(_controller.getString(L10NFindAndReplace.FIND_TAG_EXACT)) );
         result.add(_tagsAnd);
         result.add(_tagsOr);
         result.add(_tagsExact);
@@ -1250,44 +1309,45 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private JPanel createReplacePanel()
     {
         final double[][] sizes = new double[][]
-        {
-            // columns
-            {
-                TableLayout.PREFERRED, // label
-                24, // checkbox with gaps
-                TableLayout.PREFERRED, // label
-                TableLayout.PREFERRED, // field
-                TableLayout.PREFERRED,  // label
-                TableLayout.FILL // second field
-            },
+                {
+                        // columns
+                        {
+                                TableLayout.PREFERRED, // label
+                                24, // checkbox with gaps
+                                TableLayout.PREFERRED, // label
+                                TableLayout.PREFERRED, // field
+                                TableLayout.PREFERRED,  // label
+                                TableLayout.FILL // second field
+                        },
 
-            // rows -- all preferred with gaps in between
-            {
-                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
-                TableLayout.PREFERRED, UiUtil.VGAP * 2, TableLayout.FILL  // buttons
-            }
-        };
-        _replacePanel = new JPanel( new TableLayout(sizes) );
+                        // rows -- all preferred with gaps in between
+                        {
+                                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
+                                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
+                                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
+                                TableLayout.PREFERRED, UiUtil.VGAP, TableLayout.PREFERRED, UiUtil.VGAP,
+                                TableLayout.PREFERRED, UiUtil.VGAP * 2, TableLayout.FILL  // buttons
+                        }
+                };
+        _replacePanel = new JPanel(new TableLayout(sizes));
         int row = 0;
-        final JLabel panelLabel = new JLabel( _controller.getString( L10NFindAndReplace.REPLACE_LABEL ));
-        final Font bold = panelLabel.getFont().deriveFont(Font.BOLD);
-        panelLabel.setFont( bold );
-        _replacePanel.add( panelLabel, new TableLayoutConstraints(0, row) );
+        final JLabel panelLabel = setupControl(new JLabel(_controller.getString(L10NFindAndReplace.REPLACE_LABEL)));
+        final float currentSize = panelLabel.getFont().getSize2D();
+        final Font bold = panelLabel.getFont().deriveFont(Font.BOLD, currentSize + 1.5f);
+        panelLabel.setFont(bold);
+        _replacePanel.add(panelLabel, new TableLayoutConstraints(0, row));
         row += 2; // skip the gap
 
         // only one checkbox
         final int startCol = 2;
 
         // categories row
-        _replaceCategoryCheck = new JCheckBox();
-        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_CAT_LABEL,
-                L10NFindAndReplace.REPLACE_CAT_MNC, _replaceCategoryCheck );
+        _replaceCategoryCheck = setupControl(new JCheckBox());
+        row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_CAT_LABEL,
+                          L10NFindAndReplace.REPLACE_CAT_MNC, _replaceCategoryCheck, true);
 
         // here we copy the functionality of addRowField1 so we can store the constraints
-        _replaceCategoryConstraints = new TableLayoutConstraints(startCol, row, startCol+3, row);
+        _replaceCategoryConstraints = new TableLayoutConstraints(startCol, row, startCol + 3, row);
         if (_controller.getMDGUI() != null)
         {
             buildReplaceCategoryChooser();
@@ -1295,87 +1355,126 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         else
         {
             // should never happen, defensive programming (or for testbeds)
-            _replaceCategory = new JComboBox();
-            _replacePanel.add( _replaceCategory, _replaceCategoryConstraints );
+            _replaceCategory = setupControl(new JComboBox());
+            _replacePanel.add(_replaceCategory, _replaceCategoryConstraints);
         }
-        row =  row + 2;
+        row = row + 2;
 
         // amount row
-        _replaceAmountCheck = new JCheckBox();
-        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_AMOUNT_LABEL,
-                L10NFindAndReplace.REPLACE_AMOUNT_MNC, _replaceAmountCheck );
+        _replaceAmountCheck = setupControl(new JCheckBox());
+        row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_AMOUNT_LABEL,
+                          L10NFindAndReplace.REPLACE_AMOUNT_MNC, _replaceAmountCheck, true);
         _replaceAmount = new JCurrencyField(_controller.getCurrencyType(),
-                _controller.getCurrencyTable(), _controller.getDecimalChar(),
-                _controller.getCommaChar());
-        _replaceAmount.addFocusListener(new ColoredFocusAdapter( _replaceAmount, _focusColor) );
-        row = addRowField1( _replacePanel, row, startCol, _replaceAmount );
+                                            _controller.getCurrencyTable(), _controller.getDecimalChar(),
+                                            _controller.getCommaChar());
+        _replaceAmount.addFocusListener(new ColoredFocusAdapter(_replaceAmount, _focusColor));
+        row = addRowField1(_replacePanel, row, startCol, _replaceAmount);
 
         // description
-        _replaceDescriptionCheck = new JCheckBox();
-        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_DESCRIPTION_LABEL,
-                L10NFindAndReplace.REPLACE_DESCRIPTION_MNC, _replaceDescriptionCheck );
+        _replaceDescriptionCheck = setupControl(new JCheckBox());
+        row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_DESCRIPTION_LABEL,
+                          L10NFindAndReplace.REPLACE_DESCRIPTION_MNC, _replaceDescriptionCheck, true);
         _replaceDescription = new JTextField();
-        _replaceDescription.addFocusListener(new ColoredFocusAdapter( _replaceDescription,
-                _focusColor) );
-        row = addRowField1( _replacePanel, row, startCol, _replaceDescription );
+        _replaceDescription.addFocusListener(new ColoredFocusAdapter(_replaceDescription,
+                                                                     _focusColor));
+        row = addRowField1(_replacePanel, row, startCol, _replaceDescription);
 
         // tags - 3 rows
-        _replaceTagsCheck = new JCheckBox();
-        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_TAGS_LABEL,
-                L10NFindAndReplace.REPLACE_TAGS_MNC, _replaceTagsCheck );
+        _replaceTagsCheck = setupControl(new JCheckBox());
+        row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_TAGS_LABEL,
+                          L10NFindAndReplace.REPLACE_TAGS_MNC, _replaceTagsCheck, true);
         _replaceAddTags = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
-        _replaceAddRadio = new JRadioButton();
-        row = addRowField3( _replacePanel, row, startCol, _replaceAddRadio,
-                L10NFindAndReplace.REPLACE_TAGSADD_LABEL, _replaceAddTags.getView() );
+        _replaceAddRadio = setupControl(new JRadioButton());
+        row = addRowField3(_replacePanel, row, startCol, _replaceAddRadio,
+                           L10NFindAndReplace.REPLACE_TAGSADD_LABEL, _replaceAddTags.getView(),
+                           L10NFindAndReplace.REPLACE_TAGSADD_MNC, true);
         _replaceRemoveTags = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
-        _replaceRemoveRadio = new JRadioButton();
-        row = addRowField3( _replacePanel, row, startCol, _replaceRemoveRadio,
-                L10NFindAndReplace.REPLACE_TAGSREMOVE_LABEL, _replaceRemoveTags.getView() );
+        _replaceRemoveRadio = setupControl(new JRadioButton());
+        row = addRowField3(_replacePanel, row, startCol, _replaceRemoveRadio,
+                           L10NFindAndReplace.REPLACE_TAGSREMOVE_LABEL, _replaceRemoveTags.getView(),
+                           L10NFindAndReplace.REPLACE_TAGSREMOVE_MNC, true);
         _replaceReplaceTags = new TxnTagsPicker(_controller.getMDGUI(), _model.getData());
-        _replaceReplaceRadio = new JRadioButton();
-        row = addRowField3( _replacePanel, row, startCol, _replaceReplaceRadio,
-                L10NFindAndReplace.REPLACE_TAGSREPLACE_LABEL, _replaceReplaceTags.getView() );
+        _replaceReplaceRadio = setupControl(new JRadioButton());
+        row = addRowField3(_replacePanel, row, startCol, _replaceReplaceRadio,
+                           L10NFindAndReplace.REPLACE_TAGSREPLACE_LABEL, _replaceReplaceTags.getView(),
+                           L10NFindAndReplace.REPLACE_TAGSREPLACE_MNC, true);
 
         _replaceTagsGroup = new ButtonGroup();
         _replaceTagsGroup.add(_replaceAddRadio);
         _replaceTagsGroup.add(_replaceRemoveRadio);
         _replaceTagsGroup.add(_replaceReplaceRadio);
 
-       // memo
-        _replaceMemoCheck = new JCheckBox();
-        row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_MEMO_LABEL,
-                L10NFindAndReplace.REPLACE_MEMO_MNC, _replaceMemoCheck );
+        // memo
+        _replaceMemoCheck = setupControl(new JCheckBox());
+        row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_MEMO_LABEL,
+                          L10NFindAndReplace.REPLACE_MEMO_MNC, _replaceMemoCheck, true);
         _replaceMemo = new JTextField();
-        _replaceMemo.addFocusListener(new ColoredFocusAdapter( _replaceMemo, _focusColor) );
-        row = addRowField1( _replacePanel, row, startCol, _replaceMemo );
+        _replaceMemo.addFocusListener(new ColoredFocusAdapter(_replaceMemo, _focusColor));
+        row = addRowField1(_replacePanel, row, startCol, _replaceMemo);
 
         // check number
-         _replaceCheckCheck = new JCheckBox();
-         row = addRowLabel( _replacePanel, row, L10NFindAndReplace.REPLACE_CHECK_LABEL,
-                 L10NFindAndReplace.REPLACE_CHECK_MNC, _replaceCheckCheck );
-         _replaceCheck = new JTextField();
-         _replaceCheck.addFocusListener(new ColoredFocusAdapter( _replaceCheck, _focusColor) );
-         row = addRowField1( _replacePanel, row, startCol, _replaceCheck );
+        _replaceCheckCheck = setupControl(new JCheckBox());
+        row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_CHECK_LABEL,
+                          L10NFindAndReplace.REPLACE_CHECK_MNC, _replaceCheckCheck, true);
+        _replaceCheck = new JTextField();
+        _replaceCheck.addFocusListener(new ColoredFocusAdapter(_replaceCheck, _focusColor));
+        row = addRowField1(_replacePanel, row, startCol, _replaceCheck);
 
-        _includeTransfersCheck = new JCheckBox(
-                _controller.getString(L10NFindAndReplace.INCXFER_LABEL));
+        _includeTransfersCheck = setupControl(new JCheckBox(
+                _controller.getString(L10NFindAndReplace.INCXFER_LABEL)));
         _includeTransfersCheck.setToolTipText(
                 _controller.getString(L10NFindAndReplace.INCXFER_TIP));
-        String mnemonic = _controller.getString( L10NFindAndReplace.INCXFER_MNC );
-        if ( (mnemonic != null) && (mnemonic.length() > 0) )
-        {
-            _includeTransfersCheck.setMnemonic( mnemonic.charAt(0));
-        }
-        _replacePanel.add( _includeTransfersCheck, new TableLayoutConstraints(0, row, 1, row,
-                TableLayoutConstants.LEFT, TableLayoutConstants.BOTTOM) );
+        addKeystrokeToButton(_includeTransfersCheck, L10NFindAndReplace.INCXFER_MNC, true);
+        _replacePanel.add(_includeTransfersCheck,
+                          new TableLayoutConstraints(0, row, 1, row, TableLayoutConstants.LEFT,
+                                                     TableLayoutConstants.BOTTOM));
 
         final JPanel buttonPanel = createUpperButtonPanel();
-        _replacePanel.add( buttonPanel, new TableLayoutConstraints( 2, row, 5, row,
-                TableLayoutConstants.RIGHT, TableLayoutConstants.BOTTOM ) );
+        _replacePanel.add(buttonPanel,
+                          new TableLayoutConstraints(2, row, 5, row, TableLayoutConstants.FULL,
+                                                     TableLayoutConstants.BOTTOM));
 
+        _replacePanel.setBorder(MoneydanceLAF.homePageBorder);
         buildReplacePanelActions();
+        addPanelFocusListeners(_replacePanel);
         return _replacePanel;
     } // createReplacePanel()
+
+    private void addKeystrokeToButton(final AbstractButton button, final String mnemonicKey,
+                                      boolean addShift)
+    {
+        final String mnemonic = _controller.getString(mnemonicKey);
+        String keyCode = FarUtil.getKeystrokeTextFromMnemonic(mnemonic, addShift);
+        KeyStroke key = null;
+        if (keyCode.length() > 0)
+        {
+            key = KeyStroke.getKeyStroke(keyCode);
+            getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(key, keyCode);
+            final AbstractAction action = new AbstractAction()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    button.doClick();
+                    button.requestFocusInWindow();
+                }
+            };
+            getRootPane().getActionMap().put(keyCode, action);
+            // for those look-and-feels that support mnemonics, add it
+            button.setMnemonic(mnemonic.charAt(0));
+        }
+        FarUtil.addKeyToToolTip(button, key);
+    }
+
+    private void addKeystrokeToLabel(final JLabel label, final String mnemonicKey,
+                                     boolean addShift)
+    {
+        String keyCode = FarUtil.getKeystrokeTextFromMnemonic(_controller.getString(mnemonicKey), addShift);
+        if (keyCode.length() > 0)
+        {
+            // labels we just add a tooltip for, no action is needed
+            FarUtil.addKeyToToolTip(label, KeyStroke.getKeyStroke(keyCode));
+        }
+    }
 
     private void buildReplacePanelActions()
     {
@@ -1612,7 +1711,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
 
     private int addRowLabel(JPanel panel, int rowNum, String labelKey, String labelMnemonicKey,
-                            JCheckBox check)
+                            JCheckBox check, boolean addShift)
     {
         TableLayoutConstraints constraints = new TableLayoutConstraints(0, rowNum);
         JLabel label = new JLabel( FarUtil.getLabelText(_controller, labelKey ) );
@@ -1621,13 +1720,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         if ( (mnemonic != null) && (mnemonic.length() > 0) )
         {
             label.setDisplayedMnemonic( mnemonic.charAt( 0 ) );
-            check.setMnemonic( mnemonic.charAt( 0 ) );
+            addKeystrokeToLabel(label, labelMnemonicKey, addShift);
+            // the checkbox has no text, so pointless to set the mnemonic
+            addKeystrokeToButton(check, labelMnemonicKey, addShift);
         }
-        
-        // the checkboxes should not be tabbed to because there isn't a good way to display that
-        // they have focus, so we will use mouse interaction on them only
-        check.setFocusable(false);
-
         panel.add( label, constraints );
         constraints = new TableLayoutConstraints(1, rowNum);
         panel.add( check, constraints );
@@ -1650,15 +1746,22 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         return rowNum + 2;
     }
 
-    private int addRowField3(JPanel panel, int rowNum, int startCol, JComponent field1,
-                            String labelKey, JComponent field2)
+    private int addRowField3(JPanel panel, int rowNum, int startCol, JRadioButton button, String labelKey,
+                             JComponent field2, String labelMnemonicKey, boolean addShift)
     {
         TableLayoutConstraints constraints = new TableLayoutConstraints(startCol, rowNum, startCol+1, rowNum);
-        panel.add( field1, constraints );
+        panel.add( button, constraints );
         constraints = new TableLayoutConstraints(startCol+2, rowNum);
         JLabel label = new JLabel( _controller.getString( labelKey ) );
         label.setHorizontalAlignment( SwingConstants.RIGHT );
         label.setBorder( new EmptyBorder( 0, UiUtil.HGAP, 0, UiUtil.HGAP) );
+        String mnemonic = _controller.getString( labelMnemonicKey );
+        if ( (mnemonic != null) && (mnemonic.length() > 0) )
+        {
+            label.setDisplayedMnemonic( mnemonic.charAt( 0 ) );
+            addKeystrokeToLabel(label, labelMnemonicKey, addShift);
+            addKeystrokeToButton(button, labelMnemonicKey, addShift);
+        }
         panel.add( label, constraints );
         constraints = new TableLayoutConstraints(startCol+3, rowNum);
         panel.add( field2, constraints );
@@ -1671,18 +1774,17 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             // columns
             {
-                TableLayout.FILL, TableLayout.PREFERRED,
+                TableLayout.FILL,
                 UiUtil.HGAP, TableLayout.PREFERRED,
                 UiUtil.HGAP, TableLayout.PREFERRED
             },
             // rows
             { TableLayout.PREFERRED }
         };
-        final JPanel buttons = new JPanel( new TableLayout( sizes ) );
+        final JPanel buttons = setupControl( new JPanel( new TableLayout( sizes ) ) );
 
-        buttons.add( _findButton, UiUtil.createTableConstraintBtnR(1, 0) );
-        buttons.add( _replaceButton, UiUtil.createTableConstraintBtnR(3, 0) );
-        buttons.add( _replaceAllButton, UiUtil.createTableConstraintBtnR(5, 0) );
+        buttons.add( _replaceButton, UiUtil.createTableConstraintBtnR(2, 0) );
+        buttons.add( _replaceAllButton, UiUtil.createTableConstraintBtnR(4, 0) );
 
         return buttons;
     }
@@ -1721,6 +1823,26 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         return buttons;
     }
 
+    private void setProgressText()
+    {
+        _statusLabel.setText(_controller.getString(L10NFindAndReplace.REPLACING_PROGRESS));
+        _statusLabel.setFont(_resetButton.getFont());
+        _statusLabel.setEnabled(true);
+        // since we're on the EDT we want to force an immediate repaint
+        _statusLabel.getParent().validate();
+        _statusLabel.paintImmediately(_statusLabel.getBounds());
+    }
+
+    private void clearProgressText()
+    {
+        _statusLabel.setText(getVersionText());
+        _statusLabel.setFont(_smallFont);
+        _statusLabel.setEnabled(false);
+        // since we're on the EDT we want to force an immediate repaint
+        _statusLabel.getParent().validate();
+        _statusLabel.paintImmediately(_statusLabel.getBounds());
+    }
+
     private String getVersionText()
     {
         StringBuffer result = new StringBuffer(_controller.getString(L10NFindAndReplace.TITLE));
@@ -1746,7 +1868,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         }
         if (_controller.getMDGUI() != null)
         {
-            AccountChoice chooser = new AccountChoice(_model.getData(), _controller.getMDGUI());
+            AccountChoice chooser = setupControl( new AccountChoice(_model.getData(), _controller.getMDGUI()) );
             chooser.setContainerAccount(_model.getData());
             
             final boolean normalAccounts = _controller.getIncludeTransfers();
@@ -1773,7 +1895,59 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             _replacePanel.add(_replaceCategory, _replaceCategoryConstraints);
             _replacePanel.validate();
         }
-        
+    }
+
+
+    private void disableMenus()
+    {
+        // File
+        mainMenu.fileNewAction.setEnabled(true);
+        mainMenu.fileOpenAction.setEnabled(true);
+        mainMenu.fileExportAction.setEnabled(true);
+        mainMenu.fileEncryptionAction.setEnabled(false);
+        mainMenu.fileArchiveAction.setEnabled(false);
+        mainMenu.fileSaveAsAction.setEnabled(true);
+        mainMenu.fileSaveAction.setEnabled(true);
+        mainMenu.printChecksAction.setEnabled(false);
+        mainMenu.printTxnsAction.setEnabled(false);
+        mainMenu.newTxnAction.setEnabled(false);
+        // Edit
+        mainMenu.editFindAction.setEnabled(false);
+        mainMenu.editAdvancedFindAction.setEnabled(false);
+        // View
+        mainMenu.viewDBBudget.setEnabled(false);
+        mainMenu.viewDBNothing.setEnabled(false);
+        mainMenu.viewDBNetWorth.setEnabled(false);
+        mainMenu.viewHomeAction.setEnabled(false);
+        mainMenu.viewShowSourceListAction.setEnabled(false);
+        // Account
+        mainMenu.acctNewAction.setEnabled(false);
+        mainMenu.acctEditAction.setEnabled(false);
+        mainMenu.acctDeleteAction.setEnabled(false);
+        mainMenu.reconcileAction.setEnabled(false);
+        // Online
+        mainMenu.downloadAllAction.setEnabled(false);
+        mainMenu.setupOnlineAction.setEnabled(false);
+        mainMenu.setupOnlineBPAction.setEnabled(false);
+        mainMenu.showOnlineBPAction.setEnabled(false);
+        mainMenu.sendOnlineBPAction.setEnabled(false);
+        mainMenu.confirmSelectedTxnsAction.setEnabled(false);
+        mainMenu.forgetPasswdsAction.setEnabled(false);
+        mainMenu.downloadTxnsAction.setEnabled(false);
+        // Tools
+        mainMenu.toolsLoanCalcAction.setEnabled(true);
+        mainMenu.toolsNormalCalcAction.setEnabled(true);
+        mainMenu.toolsRemindersAction.setEnabled(true);
+        mainMenu.toolsBudgetAction.setEnabled(true);
+        mainMenu.toolsTranslateCurrencyAction.setEnabled(true);
+        mainMenu.toolsCurrencyAction.setEnabled(true);
+        mainMenu.toolsSecuritiesAction.setEnabled(true);
+        mainMenu.toolsCOAAction.setEnabled(true);
+        mainMenu.toolsCategoriesAction.setEnabled(true);
+        mainMenu.toolsAddressBookAction.setEnabled(true);
+        mainMenu.toolsReportsAction.setEnabled(true);
+        mainMenu.toolsTxnTagsAction.setEnabled(true);
+        // Extensions, Windows and Help all stay enabled
     }
 
     private class ColoredFocusAdapter extends FocusAdapter
@@ -1799,4 +1973,5 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             event.getComponent().setBackground(_normalBackground);
         }
     }
+
 }

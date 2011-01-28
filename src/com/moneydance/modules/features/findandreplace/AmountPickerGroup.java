@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.awt.JCurrencyField;
@@ -18,12 +26,8 @@ import java.awt.event.FocusListener;
 /**
  * <p>Two date pickers, one 'include tags' and one 'exclude tags', combined.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.50
  * @since 1.0
  */
 class AmountPickerGroup extends JPanel
@@ -106,7 +110,7 @@ class AmountPickerGroup extends JPanel
         };
 
         setLayout(new TableLayout(sizes));
-
+        setOpaque(false);
         final JLabel labelFrom = new JLabel(resources.getString(L10NFindAndReplace.FIND_BETWEEN));
         add(labelFrom, new TableLayoutConstraints( 0, 0 ));
         add(_from,  new TableLayoutConstraints( 2, 0 ));

@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.AbstractTxn;
@@ -10,12 +18,8 @@ import java.util.HashSet;
 /**
  * <p>Single row in the find results table.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.50
  * @since 1.0
  */
 class FindResultsTableEntry
@@ -24,7 +28,6 @@ class FindResultsTableEntry
     private final ParentTxn _parent;
     private boolean _useInReplace;
     private boolean _applied;
-    private final boolean _isSplitPrimary;
     private final Set<Integer> _modifiedColumns = new HashSet<Integer>();
 
     FindResultsTableEntry(final AbstractTxn txn)
@@ -36,13 +39,11 @@ class FindResultsTableEntry
     {
         if (txn instanceof SplitTxn)
         {
-            _isSplitPrimary = true;
             _split = (SplitTxn)txn;
             _parent = _split.getParentTxn();
         }
         else if (txn instanceof ParentTxn)
         {
-            _isSplitPrimary = false;
             _parent = (ParentTxn)txn;
             if (_parent.getSplitCount() > 0)
             {
@@ -82,12 +83,6 @@ class FindResultsTableEntry
     {
         // there's a difference between selected for replacement and actually replaced
         return _useInReplace;
-    }
-
-    /** @return True if this entry came from a split transaction, false if it came from a parent. */
-    boolean isSplitPrimary()
-    {
-        return _isSplitPrimary;
     }
 
     void setUseInReplace(boolean useInReplace)

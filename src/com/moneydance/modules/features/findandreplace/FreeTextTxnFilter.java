@@ -1,25 +1,25 @@
-/**
- * @author Kevin Menningen
- * Created: Mar 24, 2008 7:34:42 PM
- */
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.ParentTxn;
+import com.moneydance.apps.md.view.gui.budgetbars.controller.ITransactionFilter;
 
 import java.util.regex.Pattern;
 
 /**
  * <p>Filter to find text in the description, memo or check # fields.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.50
  * @since 1.0
  */
 class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFilter
@@ -111,5 +111,4 @@ class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFil
 
         return result;
     }
-
 }

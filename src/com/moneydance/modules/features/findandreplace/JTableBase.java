@@ -1,13 +1,10 @@
-/*
- * JTableBase.java
- *
- * File creation information:
- *
- * Author: Kevin Menningen
- * Date: Feb 16, 2008
- * Time: 7:50:00 PM
- */
-
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -27,12 +24,8 @@ import java.util.EventObject;
 /**
  * <p>Base class of JTables with extra decoration support.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.50
  * @since 1.0
  */
 public class JTableBase extends JTable

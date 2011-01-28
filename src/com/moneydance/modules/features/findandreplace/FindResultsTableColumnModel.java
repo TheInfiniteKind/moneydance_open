@@ -1,13 +1,10 @@
-/*
- * FindResultsTableColumnModel.java
- *
- * File creation information:
- *
- * Author: Kevin Menningen
- * Date: Feb 16, 2008
- * Time: 3:01:26 PM
- */
-
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -29,12 +26,8 @@ import java.awt.Color;
 /**
  * <p>Columns for the results table.</p>
  * 
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.50
  * @since 1.0
  */
 class FindResultsTableColumnModel extends DefaultTableColumnModel

@@ -1,7 +1,10 @@
-/**
- * @author Kevin Menningen
- * Created: Mar 24, 2008 7:34:42 PM
- */
+/*************************************************************************\
+* Copyright (C) 2008-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -13,13 +16,9 @@ import java.util.regex.Pattern;
 
 /**
  * <p>Filter to determine if a transaction's cleared status meets search criteria.</p>
- *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.50
  * @since 1.1
  */
 class ClearedTxnFilter extends TransactionFilterBase implements ITransactionFilter

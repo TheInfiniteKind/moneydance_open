@@ -1,6 +1,10 @@
-/************************************************************\
- *       Copyright (C) 2001 Appgen Personal Software        *
- \************************************************************/
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -14,26 +18,24 @@ import java.io.*;
 import java.util.*;
 import java.awt.*;
 import java.text.MessageFormat;
+import java.util.List;
 
 /**
  * <p>Pluggable module used to give users access to a Find and Replace
  * interface to Moneydance.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.41
+ * @version 1.50
  * @since 1.0
  */
 public class Main extends FeatureModule
 {
-    static final String VERSION = "1.41";
-    static final String BUILD = "59";
+    static final String VERSION = "1.50";
+    static final String BUILD = "71";
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
-    private IFindAndReplaceController _controller = null;
+    private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();
+    private final Object _listSync = new Object();
     private FarHomeView _homePageView = null;
     private ResourceBundle _resources;
 
@@ -132,15 +134,6 @@ public class Main extends FeatureModule
         return null;
     }
 
-    IFindAndReplaceController getFarController()
-    {
-        if (_controller == null)
-        {
-            _controller = FindAndReplace.getInstance( this );
-        }
-        return _controller;
-    }
-
     /**
      * Load an icon from resources.
      * @return The icon, or null if an error occurred.
@@ -150,9 +143,8 @@ public class Main extends FeatureModule
         return getImage(L10NFindAndReplace.FAR_IMAGE);
     }
 
-
     /**
-     * Process an invokation of this module with the given URI
+     * Process an invocation of this module with the given URI
      * The format is {command}?{parameters} or {command}:
      */
     public void invoke(String uri)
@@ -174,7 +166,7 @@ public class Main extends FeatureModule
 
         if (N12EFindAndReplace.INVOKE_COMMAND.equals(command))
         {
-            showFarDialog();
+            addNewDialog(null);
         }
     }
 
@@ -209,7 +201,7 @@ public class Main extends FeatureModule
         }
     }
 
-    private synchronized void showFarDialog()
+    void addNewDialog(final String initialText)
     {
         try
         {
@@ -227,9 +219,14 @@ public class Main extends FeatureModule
 
             if (root != null)
             {
-                getFarController().loadData(root);
-                getFarController().setInitialFreeText(null);
-                getFarController().show();
+                final IFindAndReplaceController controller = FindAndReplace.createInstance(this);
+                controller.loadData(root);
+                controller.setInitialFreeText(initialText);
+                controller.show();
+                synchronized (_listSync)
+                {
+                    _controllerList.add(controller);
+                }
             }
             else
             {
@@ -287,12 +284,15 @@ public class Main extends FeatureModule
         return getContext();
     }
 
-    synchronized void cleanupFarComponent()
+    void cleanupFarComponent()
     {
-        if (_controller != null)
+        synchronized (_listSync)
         {
-            _controller.cleanUp();
-            _controller = null;
+            for (IFindAndReplaceController controller : _controllerList)
+            {
+                controller.cleanUp();
+            }
+            _controllerList.clear();
             System.gc();
         }
     }

@@ -1,40 +1,50 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.model.ParentTxn;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.TransactionSet;
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.CurrencyTable;
+import com.moneydance.apps.md.model.SplitTxn;
+import com.moneydance.apps.md.model.TransactionSet;
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
+import java.awt.Cursor;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.text.DecimalFormatSymbols;
 import java.awt.Image;
 import java.awt.Point;
+import java.util.Set;
 
 /**
  * <p>Controller for the plugin component for Find and Replace. This class brokers method calls
  * and performs some of the main functions of the plugin.</p>
  * 
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.41
+ * @version 1.50
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
 {
     private FindAndReplace _host;
     private final FarModel _model;
-    private FarView _view;
+    private FarView _view = null;
 
-    private int _replaceIndex;
+    private int _replaceViewIndex = -1;
     private final List<ReplaceCommand> _commands = new ArrayList<ReplaceCommand>();
 
     private String _initialFreeText = null;
@@ -46,8 +56,6 @@ public class FarController implements IFindAndReplaceController
     FarController(final FarModel model)
     {
         _model = model;
-        _view = null;
-        _replaceIndex = -1;
     }
 
 
@@ -135,24 +143,10 @@ public class FarController implements IFindAndReplaceController
         _model.getFindResults().reset();
 
         // run the filter
-        final TransactionSet txnSet = root.getTransactionSet();
-        final Enumeration txnEnum = txnSet.getAllTransactions();
-        int matched = 0;
-        while (txnEnum.hasMoreElements())
-        {
-            // both parents and splits will be run through here, we do not need to dig through
-            // the splits ourselves
-            final AbstractTxn txnBase = (AbstractTxn)txnEnum.nextElement();
-            if (filter.containsTxn(txnBase))
-            {
-                _model.getFindResults().add(txnBase, false);
-                ++matched;
-            }
-        }
-
+        final int matched = filterTransactions(root, filter);
         if (matched > 0)
         {
-            _model.getFindResults().fireTableDataChanged();
+            _model.getFindResults().refresh();
         }
         else
         {
@@ -161,12 +155,59 @@ public class FarController implements IFindAndReplaceController
         _model.tableUpdated();
 
         // reset for the replace operation
-        _replaceIndex = -1;
+        setReplaceViewIndex(0);
         _commands.clear(); // currently only support one command at a time
         _view.getFindResultsTable().clearSelection();
         _model.resetApply();
         
     } // find()
+
+    /**
+     * Add all of the matching splits to the report set. When displayed, either the list of splits
+     * will be shown or the parents will be shown. Both lists are derived from the splits list, so
+     * we simply create the split list here.
+     *
+     * @param rootAccount The main data account
+     * @param filter      The search filter.
+     * @return The number of splits that matched
+     */
+    private int filterTransactions(RootAccount rootAccount, FilterGroup filter)
+    {
+        // build the list of transactions that match the criteria
+        Set<Long> uniqueTxnIDs = new HashSet<Long>();
+        final TransactionSet txnSet = rootAccount.getTransactionSet();
+        final Enumeration txnEnum = txnSet.getAllTransactions();
+        while (txnEnum.hasMoreElements())
+        {
+            // both parents and splits will be run through here
+            final AbstractTxn txn = (AbstractTxn) txnEnum.nextElement();
+            if (filter.containsTxn(txn))
+            {
+                // the report set should contain splits only, find any parents and add all of their splits
+                if (txn instanceof ParentTxn)
+                {
+                    for (int ii = txn.getOtherTxnCount() - 1; ii >= 0; ii--)
+                    {
+                        final SplitTxn split = (SplitTxn) txn.getOtherTxn(ii);
+                        final Long key = Long.valueOf(split.getTxnId());
+                        if (uniqueTxnIDs.contains(key)) continue;
+                        _model.getFindResults().add(split, false);
+                        uniqueTxnIDs.add(key);
+                    } // for ii
+                }
+                else
+                {
+                    // must be a split transaction, just add it
+                    final SplitTxn split = (SplitTxn) txn;
+                    final Long key = Long.valueOf(split.getTxnId());
+                    if (uniqueTxnIDs.contains(key)) continue;
+                    _model.getFindResults().add(split, false);
+                    uniqueTxnIDs.add(key);
+                }
+            }
+        }
+        return uniqueTxnIDs.size();
+    }
 
     public void replace()
     {
@@ -189,9 +230,20 @@ public class FarController implements IFindAndReplaceController
             entry.applyCommand();
 
             // update display
-            int modelIndex = _view.getFindResultsTable().convertRowIndexToModel(_replaceIndex);
+            final JTable resultsTable = _view.getFindResultsTable();
+            int modelIndex = resultsTable.convertRowIndexToModel(_replaceViewIndex);
             _model.getFindResults().fireTableRowsUpdated(modelIndex, modelIndex);
-            _view.getFindResultsTable().setRowSelectionInterval(_replaceIndex, _replaceIndex);
+            // move to the next eligible row
+            findNextReplaceEntry();
+            if ((_replaceViewIndex >= 0) && (_replaceViewIndex < resultsTable.getRowCount()))
+            {
+                resultsTable.setRowSelectionInterval(_replaceViewIndex, _replaceViewIndex);
+            }
+            else
+            {
+                // clear selection because it isn't valid anymore
+                resultsTable.clearSelection();
+            }
             _model.tableUpdated();
         }
     }
@@ -209,6 +261,10 @@ public class FarController implements IFindAndReplaceController
             // first time for the command, add it
             _commands.add(_model.buildReplaceCommand());
         }
+
+        _view.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        // Replace All always starts at the beginning
+        setReplaceViewIndex(0);
         FindResultsTableEntry entry = findNextReplaceEntry();
         while (entry != null)
         {
@@ -217,6 +273,7 @@ public class FarController implements IFindAndReplaceController
             // next iteration
             entry = findNextReplaceEntry();
         }
+        _view.setCursor(Cursor.getDefaultCursor());
 
         // update display
         _model.getFindResults().fireTableDataChanged();
@@ -230,9 +287,10 @@ public class FarController implements IFindAndReplaceController
         if (isDirty())
         {
             final RootAccount root = _model.getData();
-            if (getMDGUI() != null)
+            final MoneydanceGUI mdGui = getMDGUI();
+            if (mdGui != null)
             {
-                getMDGUI().setSuspendRefresh(true);
+                mdGui.setSuspendRefresh(true);
                 root.setRecalcBalances(false);
             }
 
@@ -241,6 +299,7 @@ public class FarController implements IFindAndReplaceController
             {
                 final FindResultsTableModel results = _model.getFindResults();
                 final int count = results.getRowCount();
+                _view.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                 for (int rowIndex = 0; rowIndex < count; rowIndex++)
                 {
                     final FindResultsTableEntry entry = results.getEntry(rowIndex);
@@ -258,6 +317,8 @@ public class FarController implements IFindAndReplaceController
                         }
                     } // if use this entry
                 } // for rowIndex
+
+                _view.setCursor(Cursor.getDefaultCursor());
             } // try
             catch (Exception error)
             {
@@ -269,9 +330,9 @@ public class FarController implements IFindAndReplaceController
                 if (changed)
                 {
                     // flag to MoneyDance that the file has been modified
-                    if (getMDGUI() != null)
+                    if (mdGui != null)
                     {
-                        getMDGUI().setSuspendRefresh(false);
+                        mdGui.setSuspendRefresh(false);
                     }
                     root.setRecalcBalances(true);
                     root.refreshAccountBalances();
@@ -309,6 +370,10 @@ public class FarController implements IFindAndReplaceController
         }
     }
 
+    public boolean getShowParents()
+    {
+        return _model.getShowParents();
+    }
 
     public boolean isDirty()
     {
@@ -404,6 +469,11 @@ public class FarController implements IFindAndReplaceController
         tableModel.setCommandList(_commands);
         _model.setResultsModel(tableModel);
 
+    }
+
+    void setReplaceViewIndex(final int viewIndex)
+    {
+        _replaceViewIndex = viewIndex;
     }
 
     @SuppressWarnings({"BooleanMethodIsAlwaysInverted"})
@@ -831,6 +901,11 @@ public class FarController implements IFindAndReplaceController
         return _model.getIncludeTransfers();
     }
 
+    void setShowParents(final boolean showParents)
+    {
+        _model.setShowParents(showParents);
+    }
+
     void copyToClipboard()
     {
         JTable table = _view.getFindResultsTable();
@@ -904,21 +979,27 @@ public class FarController implements IFindAndReplaceController
     {
         // the replace index is the view row, which may be different from the model index if
         // the user has sorted the table
-        ++_replaceIndex;
         final FindResultsTableModel tableModel = _model.getFindResults();
         final int count = _view.getFindResultsTable().getRowCount();
-
-        FindResultsTableEntry result = null;
-        while (_replaceIndex < count)
+        if (_replaceViewIndex < 0)
         {
-            int modelIndex = _view.getFindResultsTable().convertRowIndexToModel(_replaceIndex);
+            _replaceViewIndex = 0;
+        }
+        FindResultsTableEntry result = null;
+        while (_replaceViewIndex < count)
+        {
+            int modelIndex = _view.getFindResultsTable().convertRowIndexToModel(_replaceViewIndex);
             final FindResultsTableEntry entry = tableModel.getEntry(modelIndex);
-            if (entry.isUseInReplace())
+            if (entry.isUseInReplace() && !entry.isApplied())
             {
                 result = entry;
                 break;
             }
-            ++_replaceIndex;
+            ++_replaceViewIndex;
+        }
+        if (_replaceViewIndex >= count)
+        {
+            _replaceViewIndex = -1;
         }
         return result;
     }

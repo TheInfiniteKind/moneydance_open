@@ -1,29 +1,47 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.ParentTxn;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.Account;
+import com.moneydance.apps.md.model.Txn;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.TxnTagSet;
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+import javax.swing.UIManager;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.event.FocusListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.text.MessageFormat;
 
 /**
  * <p>Utility methods for extracting information from transactions. Many of these could be useful
  * in other plugins.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.2
+ * @version 1.50
  * @since 1.0
  */
 final class FarUtil
 {
-    static Account getTransactionAccount(final AbstractTxn txn)
+    private static Account getTransactionAccount(final AbstractTxn txn)
     {
         final Account result;
         if (txn instanceof SplitTxn)
@@ -83,7 +101,7 @@ final class FarUtil
         return null;
     }
 
-    static String getTransactionMemo(final AbstractTxn txn)
+    static String getTransactionMemo(final Txn txn)
     {
         final String memo;
         if (txn instanceof ParentTxn)
@@ -101,7 +119,7 @@ final class FarUtil
         return memo;
     }
 
-    static String getTransactionCheckNo(final AbstractTxn txn)
+    static String getTransactionCheckNo(final Txn txn)
     {
         final String memo;
         if (txn instanceof ParentTxn)
@@ -213,5 +231,197 @@ final class FarUtil
     private FarUtil()
     {
 
+    }
+
+    static void recurseAddFocusListener(final Container root, final FocusListener listener)
+    {
+        for (Component child : root.getComponents())
+        {
+            if (child instanceof JPanel)
+            {
+                recurseAddFocusListener((Container)child, listener);
+            }
+            if (child.isFocusable())
+            {
+                // setup a focus traversal policy
+                child.addFocusListener(listener);
+            }
+        }
+    }
+
+    static String stripHtmlPrefixSuffix(final String source)
+    {
+        String stripped = source;
+        int startIndex = source.indexOf(N12EFindAndReplace.HTML_BEGIN);
+        if (startIndex >= 0)
+        {
+            startIndex += N12EFindAndReplace.HTML_BEGIN.length();
+        }
+        else
+        {
+            startIndex = 0;
+        }
+        int endIndex = source.lastIndexOf(N12EFindAndReplace.HTML_END);
+        if (endIndex < 0)
+        {
+            endIndex = source.length();
+        }
+        if (startIndex < endIndex)
+        {
+            stripped = source.substring(startIndex, endIndex);
+        }
+        return stripped;
+    }
+
+    static String getKeyHtmlDisplayText(final KeyStroke key, boolean makeSmaller)
+    {
+        if (key == null)
+        {
+            return "";
+        }
+        final String format;
+        if (makeSmaller)
+        {
+            format = N12EFindAndReplace.KEY_DISPLAY_SMALLER_FMT;
+        }
+        else
+        {
+            format = N12EFindAndReplace.KEY_DISPLAY_FMT;
+        }
+        String color = getAcceleratorColorText();
+        String display = getAcceleratorText(key);
+        return MessageFormat.format(format, color, display);
+    }
+
+    static String getAcceleratorColorText()
+    {
+        Color color = UIManager.getColor("MenuItem.acceleratorForeground");
+        if (color == null)
+        {
+            color = Color.GRAY;
+        }
+        return Integer.toHexString( color.getRGB() & 0x00ffffff );
+    }
+
+    public static String getAcceleratorText(KeyStroke accelerator)
+    {
+        String acceleratorDelimiter = UIManager.getString("MenuItem.acceleratorDelimiter");
+        if (acceleratorDelimiter == null)
+        {
+            if (MoneydanceGUI.isMac)
+            {
+                acceleratorDelimiter = "";
+            }
+            else
+            {
+                acceleratorDelimiter = "+";
+            }
+        }
+
+        StringBuilder result = new StringBuilder();
+        if (accelerator != null)
+        {
+            int modifiers = accelerator.getModifiers();
+            if (modifiers > 0)
+            {
+                if (MoneydanceGUI.isMac)
+                {
+                    result.append(getMacKeyModifiersText(modifiers));
+                }
+                else
+                {
+                    result.append(KeyEvent.getKeyModifiersText(modifiers));
+                }
+                result.append( acceleratorDelimiter );
+            }
+
+            int keyCode = accelerator.getKeyCode();
+            if (keyCode != 0)
+            {
+                result.append(KeyEvent.getKeyText(keyCode));
+            }
+            else
+            {
+                result.append(String.valueOf(accelerator.getKeyChar()));
+            }
+        }
+        return result.toString();
+    }
+
+    /**
+     * Based on {@link java.awt.event.KeyEvent#getKeyModifiersText(int)}, this returns the key
+     * modifier text in a format more consistent with the Mac look-and-feel.
+     *
+     * @param modifiers Any key modifiers that need to be converted to a string.
+     * @return string a text description of the combination of modifier
+     *                keys that were held down during the event
+     * @see InputEvent#getModifiersExText(int)
+     */
+    static String getMacKeyModifiersText(int modifiers) {
+        StringBuilder buf = new StringBuilder();
+        if ((modifiers & InputEvent.ALT_GRAPH_MASK) != 0) {
+            buf.append(Toolkit.getProperty("AWT.altGraph", "Alt Graph"));
+        }
+        // Control key
+        if ((modifiers & InputEvent.CTRL_MASK) != 0) {
+            buf.append(Toolkit.getProperty("AWT.control", "Ctrl"));
+        }
+        // Option key
+        if ((modifiers & InputEvent.ALT_MASK) != 0) {
+            buf.append(Toolkit.getProperty("AWT.alt", "Alt"));
+        }
+        // Shift key
+        if ((modifiers & InputEvent.SHIFT_MASK) != 0) {
+            buf.append(Toolkit.getProperty("AWT.shift", "Shift"));
+        }
+        // Command key
+        if ((modifiers & InputEvent.META_MASK) != 0) {
+            buf.append(Toolkit.getProperty("AWT.meta", "Meta"));
+        }
+        if ((modifiers & InputEvent.BUTTON1_MASK) != 0) {
+            buf.append(Toolkit.getProperty("AWT.button1", "Button1"));
+        }
+        return buf.toString();
+    }
+
+
+    static String getKeystrokeTextFromMnemonic(String mnemonic, boolean addShift)
+    {
+        StringBuilder keyCode = new StringBuilder();
+        if ((mnemonic != null) && (mnemonic.length() > 0))
+        {
+            if (addShift) keyCode.append("shift ");
+            if (MoneydanceGUI.ACCELERATOR_MASK == InputEvent.CTRL_MASK)
+            {
+                keyCode.append("control ");
+            }
+            else
+            {
+                // Mac
+                keyCode.append("meta ");
+            }
+            keyCode.append(mnemonic.charAt(0));
+        }
+        return keyCode.toString();
+    }
+
+    static void addKeyToToolTip(JComponent button, KeyStroke key)
+    {
+        String toolTip = button.getToolTipText();
+        if ((toolTip != null) && (toolTip.length() > 0))
+        {
+            StringBuilder sb = new StringBuilder(N12EFindAndReplace.HTML_BEGIN);
+            sb.append( stripHtmlPrefixSuffix(toolTip) );
+            sb.append( getKeyHtmlDisplayText(key, true) );
+            sb.append(N12EFindAndReplace.HTML_END);
+            button.setToolTipText(sb.toString());
+        }
+        else if (key != null)
+        {
+            StringBuilder sb = new StringBuilder(N12EFindAndReplace.HTML_BEGIN);
+            sb.append( getKeyHtmlDisplayText(key, false) );
+            sb.append(N12EFindAndReplace.HTML_END);
+            button.setToolTipText(sb.toString());
+        }
     }
 }

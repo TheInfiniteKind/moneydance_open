@@ -8,7 +8,7 @@ package com.moneydance.modules.features.findandreplace;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.31
+ * @version 1.50
  * @since 1.31
  */
 public enum TagLogic

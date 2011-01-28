@@ -55,6 +55,7 @@
     <entry key="replaceTagsReplace.text">Sustituir todos con:</entry>
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">K</entry>
+    <entry key="replaceProgress.text">Sustitución ...</entry>
 
     <entry key="includeTransfers.text">Incluya Transferir</entry>
     <entry key="includeTransfers.toolTip">Permita que todas las cuentas sean incluidas como categorías</entry>
@@ -62,6 +63,9 @@
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Resultados del Búsqueda</entry>
+    <entry key="showParents.text">Consolidar las Divididas</entry>
+    <entry key="showParents.toolTip">Muestre transacciones principal</entry>
+
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Cuenta: %s  Adiciones: %s  Substracciones: %s  Total: %s</entry>
 

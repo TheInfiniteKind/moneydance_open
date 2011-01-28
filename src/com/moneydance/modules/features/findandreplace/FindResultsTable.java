@@ -1,5 +1,12 @@
-package com.moneydance.modules.features.findandreplace;
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
+package com.moneydance.modules.features.findandreplace;
 
 import javax.swing.DefaultRowSorter;
 import java.util.Comparator;
@@ -9,12 +16,8 @@ import java.util.Comparator;
  * <p><b>Note:</b> DefaultRowSorter and some of the other stuff used is new in Java 1.6, so this
  * class is one of the reasons why 1.6 is required for Find and Replace.</p>
  * 
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.50
  * @since 1.0
  */
 class FindResultsTable extends JTableBase

@@ -1,8 +1,21 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.view.gui.DateRangeChooser;
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.awt.GridC;
 import com.moneydance.awt.JDateField;
 import com.moneydance.util.CustomDateFormat;
 
+import javax.swing.Box;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.event.DocumentListener;
@@ -10,56 +23,53 @@ import javax.swing.event.DocumentListener;
 import info.clearthought.layout.TableLayout;
 import info.clearthought.layout.TableLayoutConstraints;
 
+import java.awt.GridBagLayout;
 import java.awt.event.FocusListener;
 
 /**
  * <p>Two date pickers, one 'from date' and one 'to date', combined.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.1
+ * @version 1.50
  * @since 1.0
  */
 class DatePickerGroup extends JPanel
 {
-    private final JDateField _from;
-    private final JDateField _to;
+    private final DateRangeChooser _dateRanger;
 
     /**
      * Constructor with needed information to create the view
-     * @param formatter Date formatter
      * @param resources Localization resources
+     * @param mdGui     User interface object
      */
-    DatePickerGroup(CustomDateFormat formatter, final IResourceProvider resources)
+    DatePickerGroup(final IResourceProvider resources,
+                    final MoneydanceGUI mdGui)
     {
-        _from = new JDateField(formatter);
-        _to =  new JDateField(formatter);
+        _dateRanger = new DateRangeChooser(mdGui);
         layoutUI(resources);
     }
 
     JDateField getFromDatePicker()
     {
-        return _from;
+        return (JDateField)_dateRanger.getStartField();
     }
 
     JDateField getToDatePicker()
     {
-        return _to;
+        return (JDateField)_dateRanger.getEndField();
     }
 
     void addChangeListener(final DocumentListener changeListener)
     {
-        _from.getDocument().addDocumentListener(changeListener);
-        _to.getDocument().addDocumentListener(changeListener);
+        getFromDatePicker().getDocument().addDocumentListener(changeListener);
+        getToDatePicker().getDocument().addDocumentListener(changeListener);
     }
 
     public void addFocusListener(final FocusListener listener)
     {
-        _from.addFocusListener(listener);
-        _to.addFocusListener(listener);
+        _dateRanger.getChoice().addFocusListener(listener);
+        getFromDatePicker().addFocusListener(listener);
+        getToDatePicker().addFocusListener(listener);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,30 +78,12 @@ class DatePickerGroup extends JPanel
 
     private void layoutUI(final IResourceProvider resources)
     {
-        final double[][] sizes = new double[][]
-        {
-            // columns
-            {
-                TableLayout.PREFERRED, // from label
-                UiUtil.HGAP,
-                TableLayout.FILL,      // include
-                UiUtil.HGAP,
-                TableLayout.PREFERRED, // to label
-                UiUtil.HGAP,
-                TableLayout.FILL,      // exclude
-            },
-
-            // rows
-            { TableLayout.PREFERRED }
-        };
-
-        setLayout(new TableLayout(sizes));
-
-        final JLabel labelFrom = new JLabel(resources.getString(L10NFindAndReplace.FIND_BETWEEN));
-        add(labelFrom, new TableLayoutConstraints( 0, 0 ));
-        add(_from,  new TableLayoutConstraints( 2, 0 ));
-        final JLabel labelTo = new JLabel(resources.getString(L10NFindAndReplace.FIND_AND));
-        add(labelTo, new TableLayoutConstraints( 4, 0 ));
-        add(_to, new TableLayoutConstraints( 6, 0 ));
+        setLayout( new GridBagLayout() );
+        // give the chooser more weight than the date fields
+        add(_dateRanger.getChoice(), GridC.getc(0, 0).wx(6).fillx());
+        add(Box.createHorizontalStrut(UiUtil.HGAP), GridC.getc(1,0));
+        add(getFromDatePicker(), GridC.getc(2, 0).wx(2).fillx());
+        add(Box.createHorizontalStrut(UiUtil.HGAP), GridC.getc(3,0));
+        add(getToDatePicker(), GridC.getc(4, 0).wx(2).fillx());
     }
 }

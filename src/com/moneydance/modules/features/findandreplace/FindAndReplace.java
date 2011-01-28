@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import java.awt.Image;
@@ -6,12 +14,8 @@ import java.awt.Image;
  * <p>This is the main find-and-replace component class. It has a model, view and controller class.
  * This glues the Find and Replace dialog to the feature.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.4
+ * @version 1.50
  * @since 1.0
  */
 class FindAndReplace
@@ -19,18 +23,11 @@ class FindAndReplace
     private final Main _extension;
     private final FarController _controller;
 
-    public static IFindAndReplaceController getInstance(Main extension)
-    {
-        // I tried unsuccessfully to get a JUnit test working. We need a FeatureContext that can
-        // be instantiated outside of Moneydance to make JUnits a possibility.
-        return getTestInstance(extension).getController();
-    }
-    
-    private static FindAndReplace getTestInstance(Main extension)
+    public static IFindAndReplaceController createInstance(Main extension)
     {
         FarModel model = new FarModel();
         FarController controller = new FarController(model);
-        return new FindAndReplace(extension, controller);
+        return new FindAndReplace(extension, controller).getController();
     }
 
     private FindAndReplace(final Main extension, final FarController controller)

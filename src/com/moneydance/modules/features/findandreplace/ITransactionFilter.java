@@ -16,7 +16,7 @@ import com.moneydance.apps.md.model.TxnFilter;
  * http://www.apache.org/licenses/LICENSE-2.0</a><br />
 
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.50
  * @since 1.0
  */
 public interface ITransactionFilter extends TxnFilter

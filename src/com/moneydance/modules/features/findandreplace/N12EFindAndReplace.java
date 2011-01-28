@@ -1,13 +1,10 @@
-/*
- * N12EFindAndReplace.java
- *
- * File creation information:
- *
- * Author: Kevin Menningen
- * Date: Jan 26, 2008
- * Time: 1:45:32 PM
- */
-
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -17,12 +14,8 @@ package com.moneydance.modules.features.findandreplace;
  * decide when they write a string constant: 'Will this be displayed to the user, or will it not?
  * Can this string be localized, or would localizing it break the software?'</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.4
+ * @version 1.50
  * @since 1.0
  */
 public class N12EFindAndReplace
@@ -117,6 +110,7 @@ public class N12EFindAndReplace
     public static final String REPLACE_TAGS = "replaceTags";
 
     public static final String INCLUDE_TRANSFERS = "includeTransfers";
+    public static final String SHOW_PARENTS = "consolidateSplits";
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,6 +150,8 @@ public class N12EFindAndReplace
     static final String ESCAPE_KEY = "ESCAPE";
     static final String COLON = ":";
     static final String XML_RESOURCE_LOAD_FAIL = "Unable to load an XML resource bundle: ";
+    static final String KEY_DISPLAY_SMALLER_FMT = "&nbsp;&nbsp;<font size:90% color=\"#{0}\"><sub>{1}</sub></font>";
+    static final String KEY_DISPLAY_FMT = "&nbsp;&nbsp;<font color=\"#{0}\">{1}</font>";
 
 
     /**

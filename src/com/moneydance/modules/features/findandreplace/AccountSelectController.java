@@ -1,13 +1,10 @@
-/*
- * AccountSelectController.java
- *
- * File creation information:
- *
- * Author: Kevin Menningen
- * Date: Feb 17, 2008
- * Time: 6:29:02 AM
- */
-
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -16,12 +13,8 @@ import java.awt.Image;
 /**
  * <p>Controller for the dialog that shows account or category selection.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.50
  * @since 1.0
  */
 public class AccountSelectController implements IResourceProvider

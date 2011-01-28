@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.HomePageView;
@@ -9,12 +17,8 @@ import javax.swing.JComponent;
  * <p>Home page support for Find and Replace. The home page is a simple free text entry that assumes
  * all accounts and categories.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.3
+ * @version 1.50
  * @since 1.0
  */
 class FarHomeView implements HomePageView
@@ -36,7 +40,7 @@ class FarHomeView implements HomePageView
     {
         if (_view == null)
         {
-            _view = new FarHomePage(rootAccount, _feature);
+            _view = new FarHomePage(_feature);
             _view.layoutUI();
         }
         return _view;
@@ -66,6 +70,6 @@ class FarHomeView implements HomePageView
 
     public String toString()
     {
-        return _feature.getFarController().getString(L10NFindAndReplace.TITLE);
+        return _feature.getString(L10NFindAndReplace.TITLE);
     }
 }

@@ -1,3 +1,11 @@
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
+
 package com.moneydance.modules.features.findandreplace;
 
 /**
@@ -5,12 +13,8 @@ package com.moneydance.modules.features.findandreplace;
  * helps simplify tracking localized resources. It also helps when it comes time to audit for
  * unused strings.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.4
+ * @version 1.50
  * @since 1.0
  */
 class L10NFindAndReplace
@@ -61,6 +65,7 @@ class L10NFindAndReplace
     public static final String FIND_CLEARED_TIP = "findCleared.toolTip"; // = Include cleared transactions
     public static final String FIND_RECONCILING_TIP = "findReconciling.toolTip"; // = Include reconciling transactions
     public static final String FIND_UNCLEARED_TIP = "findUncleared.toolTip"; // = Include uncleared transactions
+    public static final String USE_TAX_DATE_MNC = "findUseTaxDate.mnemonic"; // X
 
     public static final String REPLACE_LABEL = "replaceLabel.text"; // = Replace
     public static final String REPLACE_CAT_LABEL = "category"; //  = Category:
@@ -74,11 +79,17 @@ class L10NFindAndReplace
     public static final String REPLACE_TAGSADD_LABEL = "replaceTagsAdd.text"; //  = Add tags:
     public static final String REPLACE_TAGSREMOVE_LABEL = "replaceTagsRemove.text"; //  = Remove tags:
     public static final String REPLACE_TAGSREPLACE_LABEL = "replaceTagsReplace.text"; //  = Replace with:
+    public static final String REPLACE_TAGSADD_MNC = "replaceTagsAdd.mnemonic"; //  = A
+    public static final String REPLACE_TAGSREMOVE_MNC = "replaceTagsRemove.mnemonic"; // = V
+    public static final String REPLACE_TAGSREPLACE_MNC = "replaceTagsReplace.mnemonic"; //  = W
     public static final String REPLACE_MEMO_LABEL = "memo"; //  = Memo:
     public static final String REPLACE_MEMO_MNC = "replaceMemoLabel.mnemonic"; //  = M
     public static final String REPLACE_CHECK_LABEL = "txn_checknum"; //  = Check#:
     public static final String REPLACE_CHECK_MNC = "replaceCheckLabel.mnemonic"; //  = K
-
+    public static final String REPLACING_PROGRESS = "replaceProgress.text"; // Replacing ...
+    public static final String CONSOLIDATE_SPLITS = "showParents.text"; // Consolidate splits
+    public static final String CONSOLIDATE_SPLITS_TIP = "showParents.toolTip";
+    public static final String CONSOLIDATE_SPLITS_MNC = "showParents.mnemonic";
     public static final String RESULTS_LABEL = "resultsLabel.text"; //  Find Results
     public static final String RESULTS_COLUMN_DATE = "table_column_date"; // Date
     public static final String RESULTS_COLUMN_ACCOUNT = "table_column_account"; // Account
@@ -120,8 +131,10 @@ class L10NFindAndReplace
     public static final String ACCOUNTFILTER_ALL = "accountfilter.all"; // All
     public static final String ACCOUNTFILTER_ALL_CATEGORIES = "all_categories"; // All Categories
 
-    public static final String MARK_ALL_BUTTON_TEXT = "markAllBtn.text";
-    public static final String MARK_NONE_BUTTON_TEXT = "markNoneBtn.text";
+    public static final String MARK_ALL_BUTTON_TEXT = "markAllBtn.text"; // Mark All
+    public static final String MARK_ALL_BUTTON_MNC = "markAllBtn.mnemonic"; // M
+    public static final String MARK_NONE_BUTTON_TEXT = "markNoneBtn.text"; // Mark None
+    public static final String MARK_NONE_BUTTON_MNC = "markNoneBtn.mnemonic"; // N
 
     public static final String ERROR_TITLE = "error.title";
     public static final String ERROR_ACCOUNTNOTFOUND = "accountselect.accountnotfound";

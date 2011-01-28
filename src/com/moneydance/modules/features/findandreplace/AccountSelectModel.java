@@ -1,13 +1,10 @@
-/*
- * AccountSelectModel.java
- *
- * File creation information:
- *
- * Author: Kevin Menningen
- * Date: Feb 17, 2008
- * Time: 6:29:12 AM
- */
-
+/*************************************************************************\
+* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -21,12 +18,8 @@ import java.util.ArrayList;
 /**
  * <p>The model for the account/category selection dialog.</p>
  *
- * <p>This code is released as open source under the Apache 2.0 License:<br/>
- * <a href="http://www.apache.org/licenses/LICENSE-2.0">
- * http://www.apache.org/licenses/LICENSE-2.0</a><br />
-
  * @author Kevin Menningen
- * @version 1.0
+ * @version 1.50
  * @since 1.0
  */
 class AccountSelectModel extends BasePropertyChangeReporter
