@@ -73,8 +73,8 @@ class FindAndReplace
     }
 
 
-    void cleanUp()
+    void cleanUp(IFindAndReplaceController controller)
     {
-        _extension.cleanupFarComponent();
+        _extension.cleanupFarComponent(controller);
     }
 }

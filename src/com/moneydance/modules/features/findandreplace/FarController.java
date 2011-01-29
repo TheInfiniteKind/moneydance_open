@@ -126,7 +126,7 @@ public class FarController implements IFindAndReplaceController
             }
         }
         cleanupView();
-        _host.cleanUp();
+        _host.cleanUp(this);
     }
 
     public void find()

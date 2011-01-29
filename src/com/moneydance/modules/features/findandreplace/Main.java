@@ -31,7 +31,7 @@ import java.util.List;
 public class Main extends FeatureModule
 {
     static final String VERSION = "1.50";
-    static final String BUILD = "71";
+    static final String BUILD = "72";
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();
@@ -73,7 +73,7 @@ public class Main extends FeatureModule
 
     public void cleanup()
     {
-        cleanupFarComponent();
+        cleanupFarComponent(null);
         removePreferencesListener();
     }
 
@@ -284,17 +284,30 @@ public class Main extends FeatureModule
         return getContext();
     }
 
-    void cleanupFarComponent()
+    /**
+     * Remove a particular instance of Find and Replace. If <code>null</code> passed in, all
+     * instances of Find and Replace are removed.
+     * @param controller The controller instance to remove. If <code>null</code>, remove all.
+     */
+    void cleanupFarComponent(final IFindAndReplaceController controller)
     {
         synchronized (_listSync)
         {
-            for (IFindAndReplaceController controller : _controllerList)
+            if (controller == null)
+            {
+                for (IFindAndReplaceController c : _controllerList)
+                {
+                    c.cleanUp();
+                }
+                _controllerList.clear();
+            }
+            else
             {
                 controller.cleanUp();
+                _controllerList.remove(controller);
             }
-            _controllerList.clear();
-            System.gc();
         }
+        System.gc();
     }
 
 
@@ -310,7 +323,7 @@ public class Main extends FeatureModule
         public void preferencesUpdated()
         {
             // reload
-            cleanupFarComponent();
+            cleanupFarComponent(null);
             loadResources();
             if (_homePageView != null)
             {

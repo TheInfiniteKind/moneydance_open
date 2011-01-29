@@ -24,6 +24,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.*;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
+import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.FontMetrics;
 import java.awt.event.FocusListener;
@@ -165,6 +166,11 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     void layoutUI()
     {
+        // initial focus is on the free text field, as it is the most commonly used
+        setFocusTraversalPolicy(new FarFocusTraversalPolicy());
+        // the frame itself should not receive focus
+        setFocusable(false);
+
         _focusColor = new Color(255, 255, 180); // light yellow
         this.setIconImage(_controller.getImage(L10NFindAndReplace.FAR_IMAGE));
         
@@ -1974,4 +1980,17 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         }
     }
 
+    private class FarFocusTraversalPolicy extends LayoutFocusTraversalPolicy
+    {
+        @Override
+        public Component getDefaultComponent(Container aContainer)
+        {
+            Component defaultComponent = super.getDefaultComponent(aContainer);
+            if ((defaultComponent == null) || (aContainer == FarView.this))
+            {
+                defaultComponent = _findFreeText;
+            }
+            return defaultComponent;
+        }
+    }
 }
