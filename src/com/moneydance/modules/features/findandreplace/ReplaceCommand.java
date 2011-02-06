@@ -76,6 +76,14 @@ public class ReplaceCommand implements IFarCommand
         final Account category = FarUtil.getTransactionCategory(_transaction.getSplitTxn());
         if (category != null)
         {
+            if (_transaction.getSplitTxn().getAccount().equals(_replaceCategory) ||
+                _transaction.getParentTxn().getAccount().equals(_replaceCategory))
+            {
+                // The transaction cannot be replaced because either the category is already set
+                // to that account, or it's the same as the other side and you shouldn't have the
+                // account on both sides
+                return null;
+            }
             return _replaceCategory;
         }
 
@@ -158,12 +166,15 @@ public class ReplaceCommand implements IFarCommand
         boolean changed = false;
         if (_replaceCategory != null)
         {
-            // only apply category replacement to splits
-            if (!_transaction.getSplitTxn().getAccount().equals(_replaceCategory))
+            // Only apply category replacement to splits. Do not replace if the category is already
+            // the same, or if the transaction's other side is the same category (you can't have
+            // the same account on both sides of a split)
+            if (!_transaction.getSplitTxn().getAccount().equals(_replaceCategory) &&
+                !_transaction.getParentTxn().getAccount().equals(_replaceCategory))
             {
                 changed = true;
+                _transaction.getSplitTxn().setAccount(_replaceCategory);
             }
-            _transaction.getSplitTxn().setAccount(_replaceCategory);
         }
 
         if (_replaceAmount != null)
