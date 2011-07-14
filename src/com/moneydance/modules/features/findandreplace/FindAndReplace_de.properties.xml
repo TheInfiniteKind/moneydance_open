@@ -55,6 +55,7 @@
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">A</entry>
     <entry key="replaceProgress.text">Ersetzen ...</entry>
+    <entry key="replaceOnlyFound">Nur Text gefunden</entry>
 
     <entry key="includeTransfers.text">Transfers einschließen</entry>
     <entry key="includeTransfers.toolTip">Zulassen, dass alle Konten als Kategorien einbezogen werden</entry>
@@ -124,6 +125,7 @@
     <entry key="table_column_account">Konto</entry>
     <entry key="table_column_tags">Rubriken</entry>
     <entry key="table_column_checknum">Art/Nr.</entry>
+    <entry key="shares">Anteile</entry>
     <entry key="select_acct_title">Konto wählen</entry>
     <entry key="all_categories">Alle Kategorien</entry>
     <entry key="show_txn">Zur Buchung wechseln</entry>

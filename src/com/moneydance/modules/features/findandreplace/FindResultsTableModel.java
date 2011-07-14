@@ -32,7 +32,7 @@ import java.awt.Color;
  * <p>Model for the results table.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 public class FindResultsTableModel extends AbstractTableModel
@@ -46,9 +46,10 @@ public class FindResultsTableModel extends AbstractTableModel
     static final int CATEGORY_INDEX = 6;
     static final int CLEARED_INDEX = 7;
     static final int AMOUNT_INDEX = 8;
-    static final int MEMO_INDEX = 9;    // not shown except in tooltip and export
-    static final int SHARES_INDEX = 10; // not shown except in export to clipboard
-    static final int CHECK_INDEX = 11;  // not shown except in export to clipboard
+    static final int MEMO_INDEX = 9;           // not shown except in tooltip and export
+    static final int SHARES_INDEX = 10;        // not shown except in export to clipboard
+    static final int CHECK_INDEX = 11;         // not shown except in export to clipboard
+    static final int FULL_CATEGORY_INDEX = 12; // not shown except in export to clipboard
 
     private static final ParentTxn BLANK_TRANSACTION =
             new ParentTxn(
@@ -223,7 +224,7 @@ public class FindResultsTableModel extends AbstractTableModel
             return null;
         }
 
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
 
         buffer.append(N12EFindAndReplace.HTML_BEGIN);
 
@@ -303,7 +304,7 @@ public class FindResultsTableModel extends AbstractTableModel
         buffer.append(N12EFindAndReplace.COL_END);
 
         buffer.append(N12EFindAndReplace.COL_BEGIN);
-        buffer.append(getTxnCategoryDisplay(txn, entry));
+        buffer.append(getTxnCategoryDisplay(txn, entry, true));
         buffer.append(N12EFindAndReplace.COL_END);
         buffer.append(N12EFindAndReplace.ROW_END);
 
@@ -353,9 +354,9 @@ public class FindResultsTableModel extends AbstractTableModel
         }
         else
         {
-            currencyType = _controller.getRootAccount().getCurrencyTable().getBaseType();
+            currencyType = _controller.getCurrencyType();
         }
-        return currencyType.formatSemiFancy(value, _decimalChar);
+        return currencyType.formatFancy(value, _decimalChar);
     }
 
     long getAmount(final int index)
@@ -534,9 +535,11 @@ public class FindResultsTableModel extends AbstractTableModel
                     break;
                 }
                 case CATEGORY_INDEX:
+                case FULL_CATEGORY_INDEX:
                 {
                     // category displays the 'to' account or the # of splits for parents > 1 split
-                    result = getTxnCategoryDisplay(primaryTxn, entry);
+                    result = getTxnCategoryDisplay(primaryTxn, entry,
+                                                   (columnIndex == FULL_CATEGORY_INDEX));
                     break;
                 }
                 case CLEARED_INDEX:
@@ -689,9 +692,9 @@ public class FindResultsTableModel extends AbstractTableModel
             for (final ReplaceCommand command : _commands)
             {
                 command.setTransactionEntry(entry);
-                if (command.getPreviewDescription() != null)
+                if (command.getPreviewDescription(_controller.getShowParents()) != null)
                 {
-                    description = command.getPreviewDescription();
+                    description = command.getPreviewDescription(_controller.getShowParents());
                     entry.addModifiedColumn(DESCRIPTION_INDEX);
                 }
             }
@@ -778,7 +781,7 @@ public class FindResultsTableModel extends AbstractTableModel
             return N12EFindAndReplace.EMPTY;
         }
 
-        StringBuffer buffer = new StringBuffer(N12EFindAndReplace.EMPTY);
+        StringBuilder buffer = new StringBuilder(N12EFindAndReplace.EMPTY);
         for (final TxnTag tag : tags)
         {
             if (buffer.length() > 0)
@@ -793,20 +796,28 @@ public class FindResultsTableModel extends AbstractTableModel
 
 
     private String getTxnCategoryDisplay(final AbstractTxn txn,
-                                  final FindResultsTableEntry entry)
+                                  final FindResultsTableEntry entry,
+                                  final boolean useFullName)
     {
         Account category = getTxnCategory(txn, entry);
 
         final String result;
         if (category != null)
         {
-            result = category.getAccountName();
+            if (useFullName)
+            {
+                result = category.getFullAccountName();
+            }
+            else
+            {
+                result = category.getAccountName();
+            }
         }
         else if (txn instanceof ParentTxn)
         {
             // for the parent, check if we have only 1 split. If we do, use that. If we have more,
             // show the words '- N splits -'
-            StringBuffer buffer = new StringBuffer(_controller.getString(L10NFindAndReplace.SPLIT_1));
+            StringBuilder buffer = new StringBuilder(_controller.getString(L10NFindAndReplace.SPLIT_1));
             buffer.append(N12EFindAndReplace.SPACE);
             buffer.append(((ParentTxn)txn).getSplitCount());
             buffer.append(N12EFindAndReplace.SPACE);

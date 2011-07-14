@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * <p>Filter to find text in the description, memo or check # fields.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFilter
@@ -40,20 +40,7 @@ class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFil
         _searchMemo = searchMemo;
         _searchCheck = searchCheck;
         _includeSplits = includeSplits;
-
-        // build the regular expression pattern to search with
-        if (FarUtil.hasRegularExpression(textMatch))
-        {
-            String regex = FarUtil.createRegularExpression(textMatch);
-            _pattern = Pattern.compile(regex);
-        }
-        else
-        {
-            final StringBuffer buffer = new StringBuffer(N12EFindAndReplace.REGEX_PREFIX);
-            buffer.append(textMatch);
-            buffer.append(N12EFindAndReplace.REGEX_SUFFIX);
-            _pattern = Pattern.compile(buffer.toString());
-        }
+        _pattern = FarUtil.buildFindPattern(textMatch);
     }
 
     /**

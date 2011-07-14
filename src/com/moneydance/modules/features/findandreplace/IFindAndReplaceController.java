@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.Account;
 
@@ -17,7 +18,7 @@ import com.moneydance.apps.md.model.Account;
  * through this interface.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 public interface IFindAndReplaceController extends IResourceProvider
@@ -57,4 +58,5 @@ public interface IFindAndReplaceController extends IResourceProvider
     public com.moneydance.apps.md.view.gui.MoneydanceGUI getMDGUI();
 
     public RootAccount getRootAccount();
+    public CurrencyType getCurrencyType();
 }

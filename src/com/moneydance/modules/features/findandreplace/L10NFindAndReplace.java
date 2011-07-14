@@ -14,7 +14,7 @@ package com.moneydance.modules.features.findandreplace;
  * unused strings.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 class L10NFindAndReplace
@@ -87,6 +87,7 @@ class L10NFindAndReplace
     public static final String REPLACE_CHECK_LABEL = "txn_checknum"; //  = Check#:
     public static final String REPLACE_CHECK_MNC = "replaceCheckLabel.mnemonic"; //  = K
     public static final String REPLACING_PROGRESS = "replaceProgress.text"; // Replacing ...
+    public static final String REPLACE_FOUND_TEXT_ONLY = "replaceOnlyFound"; // Found text only
     public static final String CONSOLIDATE_SPLITS = "showParents.text"; // Consolidate splits
     public static final String CONSOLIDATE_SPLITS_TIP = "showParents.toolTip";
     public static final String CONSOLIDATE_SPLITS_MNC = "showParents.mnemonic";
@@ -117,6 +118,8 @@ class L10NFindAndReplace
     public static final String COPY_BUTTON_TEXT = "copyBtn.text";
     public static final String COPY_BUTTON_MNC = "copyBtn.mnemonic";
     public static final String RESET_BUTTON_TEXT = "resetBtn.text"; // = Reset
+
+    public static final String CURRENCY_SHARES = "shares"; // = Shares
 
     public static final String ACCOUNTSELECT_TITLE = "select_acct_title";
     public static final String ACCOUNTSELECT_EXCLUDE = "accountselect.exclude.text"; // Excluded 

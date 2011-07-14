@@ -25,13 +25,13 @@ import java.util.List;
  * interface to Moneydance.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 public class Main extends FeatureModule
 {
-    static final String VERSION = "1.51";
-    static final String BUILD = "73";
+    static final String VERSION = "1.60";
+    static final String BUILD = "76";
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();

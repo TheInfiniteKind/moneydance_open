@@ -61,6 +61,7 @@
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">K</entry>
     <entry key="replaceProgress.text">Replacing ...</entry>
+    <entry key="replaceOnlyFound">Found text only</entry>
 
     <entry key="includeTransfers.text">Include Transfers</entry>
     <entry key="includeTransfers.toolTip">Allow all accounts to be included as categories</entry>
@@ -148,6 +149,7 @@ X is the search text.
     <entry key="table_column_account">Account</entry>
     <entry key="table_column_tags">Tags</entry>
     <entry key="table_column_checknum">Check#</entry>
+    <entry key="shares">Shares</entry>
     <entry key="select_acct_title">Select an Account</entry>
     <entry key="all_categories">All Categories</entry>
     <entry key="show_txn">Go To Transaction</entry>

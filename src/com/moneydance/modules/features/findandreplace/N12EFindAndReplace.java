@@ -15,7 +15,7 @@ package com.moneydance.modules.features.findandreplace;
  * Can this string be localized, or would localizing it break the software?'</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 public class N12EFindAndReplace
@@ -85,6 +85,7 @@ public class N12EFindAndReplace
     public static final String CATEGORY_SELECT = "categorySelect";
     public static final String CATEGORY_USE = "categoryUse";
     public static final String AMOUNT_USE = "amountUse";
+    public static final String AMOUNT_CURRENCY = "amountCurrency";
     public static final String DATE_USE = "dateUse";
     public static final String FREETEXT_USE = "freeTextUse";
     public static final String FREETEXT_DESCRIPTION = "freeTextDescription";
@@ -108,6 +109,9 @@ public class N12EFindAndReplace
     public static final String REPLACE_MEMO = "replaceMemo";
     public static final String REPLACE_CHECK = "replaceCheckNum";
     public static final String REPLACE_TAGS = "replaceTags";
+    public static final String REPLACE_FOUND_DESCRIPTION_ONLY = "replaceDescFoundOnly";
+    public static final String REPLACE_FOUND_MEMO_ONLY = "replaceMemoFoundOnly";
+    public static final String REPLACE_FOUND_CHECK_ONLY = "replaceCheckFoundOnly";
 
     public static final String INCLUDE_TRANSFERS = "includeTransfers";
     public static final String SHOW_PARENTS = "consolidateSplits";

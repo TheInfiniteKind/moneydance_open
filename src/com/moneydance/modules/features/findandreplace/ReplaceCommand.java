@@ -18,12 +18,14 @@ import com.moneydance.apps.md.model.TxnTagSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * <p>Replace data according to the user's wishes.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 public class ReplaceCommand implements IFarCommand
@@ -32,8 +34,12 @@ public class ReplaceCommand implements IFarCommand
     private final Account _replaceCategory;
     private final Long _replaceAmount; // stored as object so we can use null
     private final String _replaceDescription;
+    private final boolean _replaceFoundDescriptionOnly;
     private final String _replaceMemo;
+    private final boolean _replaceFoundMemoOnly;
     private final String _replaceCheckNum;
+    private final boolean _replaceFoundCheckOnly;
+    private final Pattern _findPattern;
     private final ReplaceTagCommandType _replaceTagType;
     private final TxnTag[] _replaceTagSet;
     private final TxnTagSet _userTagSet;
@@ -41,16 +47,23 @@ public class ReplaceCommand implements IFarCommand
     // the transaction changes as the command is applied to all selected transactions in the list
     private FindResultsTableEntry _transaction;
 
-    ReplaceCommand(final Account category, final Long amount, final String description,
-                   final String memo, final String check,
+    ReplaceCommand(final Account category, final Long amount,
+                   final String description, final boolean replaceFoundDescriptionOnly,
+                   final String memo, final boolean replaceFoundMemoOnly,
+                   final String check, final boolean replaceFoundCheckOnly,
+                   final Pattern findPattern,
                    final ReplaceTagCommandType tagCommand, final TxnTag[] tags,
                    final TxnTagSet userTagSet)
     {
         _replaceCategory = category;
         _replaceAmount = amount;
         _replaceDescription = description;
+        _replaceFoundDescriptionOnly = replaceFoundDescriptionOnly;
         _replaceMemo = memo;
+        _replaceFoundMemoOnly = replaceFoundMemoOnly;
         _replaceCheckNum = check;
+        _replaceFoundCheckOnly = replaceFoundCheckOnly;
+        _findPattern = findPattern;
         _replaceTagType = tagCommand;
         _replaceTagSet = tags;
         _userTagSet = userTagSet;
@@ -102,7 +115,7 @@ public class ReplaceCommand implements IFarCommand
         return _replaceAmount;
     }
 
-    public String getPreviewDescription()
+    public String getPreviewDescription(final boolean useParent)
     {
         if (_transaction == null)
         {
@@ -110,7 +123,23 @@ public class ReplaceCommand implements IFarCommand
             return null;
         }
 
-        return _replaceDescription;
+        final String originalText;
+        if (useParent)
+        {
+            originalText = _transaction.getParentTxn().getDescription();
+        }
+        else
+        {
+            originalText = _transaction.getSplitTxn().getDescription();
+        }
+        final String replacedText = applyTextReplace(originalText, _replaceDescription,
+                                                     _replaceFoundDescriptionOnly);
+        if ((originalText != null) && originalText.equals(replacedText))
+        {
+            // no change in the text, therefore no preview
+            return null;
+        }
+        return replacedText;
     }
 
     public String getPreviewMemo()
@@ -121,7 +150,7 @@ public class ReplaceCommand implements IFarCommand
             return null;
         }
 
-        return _replaceMemo;
+        return applyTextReplace(_transaction.getParentTxn().getMemo(), _replaceMemo, _replaceFoundMemoOnly);
     }
 
     public String getPreviewCheckNumber()
@@ -132,7 +161,7 @@ public class ReplaceCommand implements IFarCommand
             return null;
         }
 
-        return _replaceCheckNum;
+        return applyTextReplace(_transaction.getParentTxn().getCheckNumber(), _replaceCheckNum, _replaceFoundCheckOnly);
     }
 
     public TxnTag[] getPreviewTags()
@@ -196,32 +225,48 @@ public class ReplaceCommand implements IFarCommand
 
         if (_replaceDescription != null)
         {
-            // apply description to either type, starting with the split
-            if (_transaction.getSplitTxn().getDescription() == null)
+            // independently replace the split and the parent description
+            final String splitDescription = _transaction.getSplitTxn().getDescription();
+            if (splitDescription != null)
             {
-                changed = true;
-            }
-            else if (!_transaction.getSplitTxn().getDescription().equals(_replaceDescription))
-            {
-                changed = true;
-            }
-            _transaction.getSplitTxn().setDescription(_replaceDescription);
-
-            // Now FindResultsTableModel.add() screens out duplicates where we have a single split
-            // and a parent transaction, to make things simpler. It keeps the split in the list and
-            // throws out the parent. Here we undo that situation and replace in the parent as well
-            // as the split
-            final ParentTxn parent = _transaction.getParentTxn();
-            if (parent != null)
-            {
-                if ((parent.getSplitCount() == 1) &&
-                        ((parent.getDescription() == null) ||
-                                !parent.getDescription().equals(_replaceDescription)))
+                String newDescription = applyTextReplace(splitDescription, _replaceDescription,
+                                                         _replaceFoundDescriptionOnly);
+                if (!splitDescription.equals(newDescription))
                 {
                     changed = true;
-                    parent.setDescription(_replaceDescription);
+                    _transaction.getSplitTxn().setDescription(newDescription);
                 }
-            }            
+            }
+            else if (!_replaceFoundDescriptionOnly)
+            {
+                // blow in the new description since it is blank
+                changed = true;
+                _transaction.getSplitTxn().setDescription(_replaceDescription);
+            }
+
+            // now check the parent
+            final ParentTxn parent = _transaction.getParentTxn();
+            if ((parent != null) && (parent.getSplitCount() == 1))
+            {
+                final String parentDescription = _transaction.getParentTxn().getDescription();
+                if (parentDescription != null)
+                {
+                    String newDescription = applyTextReplace(parentDescription,
+                                                             _replaceDescription,
+                                                             _replaceFoundDescriptionOnly);
+                    if (!parentDescription.equals(newDescription))
+                    {
+                        changed = true;
+                        _transaction.getParentTxn().setDescription(newDescription);
+                    }
+                }
+                else if (!_replaceFoundDescriptionOnly)
+                {
+                    // blow in the new description since it is blank
+                    changed = true;
+                    _transaction.getParentTxn().setDescription(_replaceDescription);
+                }
+            }
         }
 
         if (_replaceMemo != null)
@@ -230,33 +275,38 @@ public class ReplaceCommand implements IFarCommand
             final ParentTxn parent = _transaction.getParentTxn();
             if (parent != null)
             {
+                final String replacementText = applyTextReplace(parent.getMemo(), _replaceMemo,
+                                                                _replaceFoundMemoOnly);
                 if (parent.getMemo() == null)
                 {
                     changed = true;
                 }
-                else if (!parent.getMemo().equals(_replaceMemo))
+                else if (!parent.getMemo().equals(replacementText))
                 {
                     changed = true;
                 }
-                parent.setMemo(_replaceMemo);
+                parent.setMemo(replacementText);
             }
         }
 
         if (_replaceCheckNum != null)
         {
-            // memo only applies to parent transactions
+            // check number only applies to parent transactions
             final ParentTxn parent = _transaction.getParentTxn();
             if (parent != null)
             {
+                final String replacementText = applyTextReplace(parent.getCheckNumber(),
+                                                                _replaceCheckNum,
+                                                                _replaceFoundCheckOnly);
                 if (parent.getCheckNumber() == null)
                 {
                     changed = true;
                 }
-                else if (!parent.getCheckNumber().equals(_replaceCheckNum))
+                else if (!parent.getCheckNumber().equals(replacementText))
                 {
                     changed = true;
                 }
-                parent.setCheckNumber(_replaceCheckNum);
+                parent.setCheckNumber(replacementText);
             }
         }
 
@@ -291,9 +341,26 @@ public class ReplaceCommand implements IFarCommand
         return _transaction.getParentTxn();
     }
 
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private String applyTextReplace(final String originalText, final String replacementText,
+                                    final boolean replaceFoundOnly)
+    {
+        if (replaceFoundOnly)
+        {
+            Matcher result = _findPattern.matcher(originalText);
+            if (result.find())
+            {
+                return result.replaceAll(replacementText);
+            }
+            return originalText;
+        }
+        // replace the entire text
+        return replacementText;
+    }
 
     private TxnTag[] getChangedTagSet(final TxnTag[] baseTags)
     {

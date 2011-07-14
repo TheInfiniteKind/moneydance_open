@@ -30,13 +30,14 @@ import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
+import java.util.regex.Pattern;
 
 /**
  * <p>Utility methods for extracting information from transactions. Many of these could be useful
  * in other plugins.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 final class FarUtil
@@ -194,7 +195,7 @@ final class FarUtil
      */
     static String getLabelText(final IResourceProvider resources, final String key)
     {
-        StringBuffer label = new StringBuffer(resources.getString(key));
+        StringBuilder label = new StringBuilder(resources.getString(key));
         if ((label.length() > 0) &&
                 (label.charAt(label.length() - 1)) != N12EFindAndReplace.COLON.charAt(0))
         {
@@ -219,18 +220,10 @@ final class FarUtil
 
     public static String settingsStringFromPoint(final Point point)
     {
-        final StringBuffer result = new StringBuffer(Integer.toString(point.x));
+        final StringBuilder result = new StringBuilder(Integer.toString(point.x));
         result.append(N12EFindAndReplace.SETTINGS_PT_DELIMITER);
         result.append(Integer.toString(point.y));
         return result.toString();
-    }
-
-    /**
-     * Static utilities, do not instantiate.
-     */
-    private FarUtil()
-    {
-
     }
 
     static void recurseAddFocusListener(final Container root, final FocusListener listener)
@@ -423,5 +416,30 @@ final class FarUtil
             sb.append(N12EFindAndReplace.HTML_END);
             button.setToolTipText(sb.toString());
         }
+    }
+
+    static Pattern buildFindPattern(String textMatch)
+    {
+        // build the regular expression pattern to search with
+        if (hasRegularExpression(textMatch))
+        {
+            String regex = createRegularExpression(textMatch);
+            return Pattern.compile(regex);
+        }
+        else
+        {
+            final StringBuilder buffer = new StringBuilder(N12EFindAndReplace.REGEX_PREFIX);
+            buffer.append(textMatch);
+            buffer.append(N12EFindAndReplace.REGEX_SUFFIX);
+            return Pattern.compile(buffer.toString());
+        }
+    }
+
+
+    /**
+     * Static utilities, do not instantiate.
+     */
+    private FarUtil()
+    {
     }
 }

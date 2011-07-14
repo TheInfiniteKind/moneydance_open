@@ -56,6 +56,7 @@
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">K</entry>
     <entry key="replaceProgress.text">Sustitución ...</entry>
+    <entry key="replaceOnlyFound">Encontró texto sólo</entry>
 
     <entry key="includeTransfers.text">Incluya Transferir</entry>
     <entry key="includeTransfers.toolTip">Permita que todas las cuentas sean incluidas como categorías</entry>
@@ -125,6 +126,7 @@
     <entry key="table_column_account">Cuenta</entry>
     <entry key="table_column_tags">Etiquetas</entry>
     <entry key="table_column_checknum">Cheque#</entry>
+    <entry key="shares">Acciones</entry>
     <entry key="select_acct_title">Elija una cuenta</entry>
     <entry key="all_categories">Todas las Categorías</entry>
     <entry key="show_txn">Ir a la transaccion</entry>

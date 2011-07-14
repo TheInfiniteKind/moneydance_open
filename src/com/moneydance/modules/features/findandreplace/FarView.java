@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 import com.moneydance.apps.md.view.gui.SecondaryFrame;
@@ -61,7 +62,7 @@ import info.clearthought.layout.TableLayoutConstants;
  * hosts the results table as well.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 class FarView extends SecondaryFrame implements PropertyChangeListener
@@ -117,6 +118,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private JCurrencyField _replaceAmount;
     private JCheckBox _replaceDescriptionCheck;
     private JTextField _replaceDescription;
+    private JCheckBox _replaceFoundDescriptionOnly;
     private JCheckBox _replaceTagsCheck;
     private TxnTagsPicker _replaceAddTags;
     private JRadioButton _replaceAddRadio;
@@ -127,8 +129,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private ButtonGroup _replaceTagsGroup;
     private JCheckBox _replaceMemoCheck;
     private JTextField _replaceMemo;
+    private JCheckBox _replaceFoundMemoOnly;
     private JCheckBox _replaceCheckCheck;
     private JTextField _replaceCheck;
+    private JCheckBox _replaceFoundCheckOnly;
 
     private JCheckBox _includeTransfersCheck;
     private JCheckBox _showParentsCheck;
@@ -160,6 +164,23 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _model = model;
     }
 
+    @Override
+    public void setVisible(boolean vis)
+    {
+        if (vis)
+        {
+            // default focus first time the window is displayed
+            _findFreeText.requestFocusInWindow();
+        }
+        super.setVisible(vis);
+    }
+
+    public void goneAway()
+    {
+        super.goneAway();
+        _findAmountPickers.cleanUp();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Package Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,8 +189,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     {
         // initial focus is on the free text field, as it is the most commonly used
         setFocusTraversalPolicy(new FarFocusTraversalPolicy());
-        // the frame itself should not receive focus
-        setFocusable(false);
+        // The frame itself should not receive focus. However, making this call prevents the Tab key
+        // from working on very recent JRE editions. Therefore the call is removed and the user must
+        // press Tab once to get focus.
+//        setFocusable(false);
 
         _focusColor = new Color(255, 255, 180); // light yellow
         this.setIconImage(_controller.getImage(L10NFindAndReplace.FAR_IMAGE));
@@ -218,6 +241,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
         main.add(bottomPanel, new TableLayoutConstraints(0, 4, 2, 4));
         getContentPane().add( main );
+        updateFoundOnlyControls();
 
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         enableEvents(WindowEvent.WINDOW_CLOSING);
@@ -341,6 +365,15 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             _findAmountUseCheck.setSelected(_controller.getUseAmountFilter());
         }
+        if (all || N12EFindAndReplace.AMOUNT_CURRENCY.equals(eventID))
+        {
+            final CurrencyType currencyType = all ? _controller.getCurrencyType() :
+                    (CurrencyType)event.getNewValue();
+            if (currencyType != null)
+            {
+                _replaceAmount.setCurrencyType(currencyType);
+            }
+        }
         if (all || N12EFindAndReplace.DATE_USE.equals(eventID))
         {
             _findDateUseCheck.setSelected(_controller.getUseDateFilter());
@@ -423,13 +456,25 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             _replaceDescriptionCheck.setSelected(_controller.getReplaceDescription());
         }
+        if (all || N12EFindAndReplace.REPLACE_FOUND_DESCRIPTION_ONLY.equals(eventID))
+        {
+            _replaceFoundDescriptionOnly.setSelected(_controller.getReplaceFoundDescriptionOnly());
+        }
         if (all || N12EFindAndReplace.REPLACE_MEMO.equals(eventID))
         {
             _replaceMemoCheck.setSelected(_controller.getReplaceMemo());
         }
+        if (all || N12EFindAndReplace.REPLACE_FOUND_MEMO_ONLY.equals(eventID))
+        {
+            _replaceFoundMemoOnly.setSelected(_controller.getReplaceFoundMemoOnly());
+        }
         if (all || N12EFindAndReplace.REPLACE_CHECK.equals(eventID))
         {
             _replaceCheckCheck.setSelected(_controller.getReplaceCheck());
+        }
+        if (all || N12EFindAndReplace.REPLACE_FOUND_CHECK_ONLY.equals(eventID))
+        {
+            _replaceFoundCheckOnly.setSelected(_controller.getReplaceFoundCheckOnly());
         }
         if (all || N12EFindAndReplace.REPLACE_TAGS.equals(eventID))
         {
@@ -882,7 +927,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _findFreeText = new JTextField();
         _findFreeText.addFocusListener(new ColoredFocusAdapter( _findFreeText, _focusColor) );
         row = addRowField1(findPanel, row, startCol, _findFreeText);
-        
+
         _findFreeTextUseDescriptionCheck = setupControl( new JCheckBox(
                 _controller.getString( L10NFindAndReplace.FIND_FREETEXT_DESCRIPTION )) );
         _findFreeTextUseDescriptionCheck.setToolTipText(
@@ -1045,6 +1090,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                     _controller.setUseAmountFilter(true);
                 }
             }
+
             public void removeUpdate(DocumentEvent e)
             {
                 if (!_suppressAutoCheckUse && isAmountsDifferent())
@@ -1053,7 +1099,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 }
             }
 
-            public void changedUpdate(DocumentEvent e) { }
+            public void changedUpdate(DocumentEvent e)
+            {
+            }
         });
         _findAmountUseCheck.addItemListener(new ItemListener()
         {
@@ -1072,6 +1120,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                     _controller.setUseDateFilter(true);
                 }
             }
+
             public void removeUpdate(DocumentEvent e)
             {
                 if (!_suppressAutoCheckUse)
@@ -1080,7 +1129,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 }
             }
 
-            public void changedUpdate(DocumentEvent e) { }
+            public void changedUpdate(DocumentEvent e)
+            {
+            }
         });
         _findDateUseCheck.addItemListener(new ItemListener()
         {
@@ -1098,22 +1149,29 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 {
                     _controller.setUseFreeTextFilter(true);
                 }
+                updateFoundOnlyControls();
             }
+
             public void removeUpdate(DocumentEvent e)
             {
                 if (!_suppressAutoCheckUse)
                 {
                     _controller.setUseFreeTextFilter(true);
                 }
+                updateFoundOnlyControls();
             }
 
-            public void changedUpdate(DocumentEvent e) { }
+            public void changedUpdate(DocumentEvent e)
+            {
+                updateFoundOnlyControls();
+            }
         });
         _findFreeTextUseCheck.addItemListener(new ItemListener()
         {
             public void itemStateChanged(final ItemEvent event)
             {
                 _controller.setUseFreeTextFilter(event.getStateChange() == ItemEvent.SELECTED);
+                updateFoundOnlyControls();
             }
         });
         _findFreeTextUseDescriptionCheck.addItemListener(new ItemListener()
@@ -1383,7 +1441,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _replaceDescription = new JTextField();
         _replaceDescription.addFocusListener(new ColoredFocusAdapter(_replaceDescription,
                                                                      _focusColor));
-        row = addRowField1(_replacePanel, row, startCol, _replaceDescription);
+        _replaceFoundDescriptionOnly = new JCheckBox(
+                _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
+        row = addRowField2Right(_replacePanel, row, startCol, _replaceDescription,
+                           _replaceFoundDescriptionOnly);
 
         // tags - 3 rows
         _replaceTagsCheck = setupControl(new JCheckBox());
@@ -1416,7 +1477,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                           L10NFindAndReplace.REPLACE_MEMO_MNC, _replaceMemoCheck, true);
         _replaceMemo = new JTextField();
         _replaceMemo.addFocusListener(new ColoredFocusAdapter(_replaceMemo, _focusColor));
-        row = addRowField1(_replacePanel, row, startCol, _replaceMemo);
+        _replaceFoundMemoOnly = new JCheckBox(
+                _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
+        row = addRowField2Right(_replacePanel, row, startCol, _replaceMemo, _replaceFoundMemoOnly);
 
         // check number
         _replaceCheckCheck = setupControl(new JCheckBox());
@@ -1424,7 +1487,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                           L10NFindAndReplace.REPLACE_CHECK_MNC, _replaceCheckCheck, true);
         _replaceCheck = new JTextField();
         _replaceCheck.addFocusListener(new ColoredFocusAdapter(_replaceCheck, _focusColor));
-        row = addRowField1(_replacePanel, row, startCol, _replaceCheck);
+        _replaceFoundCheckOnly = new JCheckBox(
+                _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
+        row = addRowField2Right(_replacePanel, row, startCol, _replaceCheck, _replaceFoundCheckOnly);
 
         _includeTransfersCheck = setupControl(new JCheckBox(
                 _controller.getString(L10NFindAndReplace.INCXFER_LABEL)));
@@ -1559,6 +1624,15 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             public void itemStateChanged(final ItemEvent event)
             {
                 _controller.setReplaceDescription(event.getStateChange() == ItemEvent.SELECTED);
+                updateFoundOnlyControls();
+            }
+        });
+        _replaceFoundDescriptionOnly.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setReplaceFoundDescriptionOnly(
+                        event.getStateChange() == ItemEvent.SELECTED);
             }
         });
 
@@ -1586,6 +1660,15 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             public void itemStateChanged(final ItemEvent event)
             {
                 _controller.setReplaceMemo(event.getStateChange() == ItemEvent.SELECTED);
+                updateFoundOnlyControls();
+            }
+        });
+        _replaceFoundMemoOnly.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setReplaceFoundMemoOnly(
+                        event.getStateChange() == ItemEvent.SELECTED);
             }
         });
 
@@ -1613,6 +1696,15 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             public void itemStateChanged(final ItemEvent event)
             {
                 _controller.setReplaceCheck(event.getStateChange() == ItemEvent.SELECTED);
+                updateFoundOnlyControls();
+            }
+        });
+        _replaceFoundCheckOnly.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                _controller.setReplaceFoundCheckOnly(
+                        event.getStateChange() == ItemEvent.SELECTED);
             }
         });
 
@@ -1682,8 +1774,11 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
         _controller.setReplacementAmount(_replaceAmount.getValue());
         _controller.setReplacementDescription(_replaceDescription.getText());
+        _controller.setReplaceFoundDescriptionOnly(_replaceFoundDescriptionOnly.isSelected());
         _controller.setReplacementMemo(_replaceMemo.getText());
+        _controller.setReplaceFoundMemoOnly(_replaceFoundMemoOnly.isSelected());
         _controller.setReplacementCheck(_replaceCheck.getText());
+        _controller.setReplaceFoundCheckOnly(_replaceFoundCheckOnly.isSelected());
 
         final ButtonModel selectedTagAction = _replaceTagsGroup.getSelection();
         if (selectedTagAction != null)
@@ -1715,13 +1810,22 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _summary.setText(_model.getSummaryText(_controller));
     }
 
+    private void updateFoundOnlyControls()
+    {
+        final String findText = _findFreeText.getText();
+        final boolean allowFoundOnly = _findFreeTextUseCheck.isSelected() &&
+                (findText != null) && !"".equals(findText);
+        _replaceFoundDescriptionOnly.setEnabled(allowFoundOnly);
+        _replaceFoundMemoOnly.setEnabled(allowFoundOnly);
+        _replaceFoundCheckOnly.setEnabled(allowFoundOnly);
+    }
 
     private int addRowLabel(JPanel panel, int rowNum, String labelKey, String labelMnemonicKey,
                             JCheckBox check, boolean addShift)
     {
         TableLayoutConstraints constraints = new TableLayoutConstraints(0, rowNum);
         JLabel label = new JLabel( FarUtil.getLabelText(_controller, labelKey ) );
-        label.setHorizontalAlignment( SwingConstants.RIGHT );
+        label.setHorizontalAlignment(SwingConstants.RIGHT);
         String mnemonic = _controller.getString( labelMnemonicKey );
         if ( (mnemonic != null) && (mnemonic.length() > 0) )
         {
@@ -1749,6 +1853,16 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         panel.add( field1, constraints );
         constraints = new TableLayoutConstraints(startCol+3, rowNum, startCol+3, rowNum);
         panel.add( field2, constraints );
+        return rowNum + 2;
+    }
+
+    private int addRowField2Right( JPanel panel, int rowNum, int startCol, JComponent field1, JComponent field2 )
+    {
+        JPanel subPanel = new JPanel(new BorderLayout());
+        subPanel.add(field1, BorderLayout.CENTER);
+        subPanel.add(field2, BorderLayout.EAST);
+        TableLayoutConstraints constraints = new TableLayoutConstraints(startCol, rowNum, startCol+3, rowNum);
+        panel.add( subPanel, constraints );
         return rowNum + 2;
     }
 

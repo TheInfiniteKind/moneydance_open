@@ -56,6 +56,7 @@
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">J</entry>
     <entry key="replaceProgress.text">Bytte ...</entry>
+    <entry key="replaceOnlyFound">Funnet teksten bare</entry>
 
     <entry key="includeTransfers.text">Inkludere Overfør</entry>
     <entry key="includeTransfers.toolTip">Tillat alle kontoer som skal inkluderes som kategorier</entry>
@@ -125,6 +126,7 @@
     <entry key="table_column_account">Konto</entry>
     <entry key="table_column_tags">Etiketter</entry>
     <entry key="table_column_checknum">Sjekk nr.</entry>
+    <entry key="shares">Aksjer</entry>
     <entry key="select_acct_title">Velge en Konto</entry>
     <entry key="all_categories">Alle Kategorier</entry>
     <entry key="show_txn">Gå Til Transaksjon</entry>

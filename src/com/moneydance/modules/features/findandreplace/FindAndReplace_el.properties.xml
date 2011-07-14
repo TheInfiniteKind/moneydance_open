@@ -55,6 +55,7 @@
     <entry key="replaceMemoLabel.mnemonic">M</entry>
     <entry key="replaceCheckLabel.mnemonic">Ε</entry>
     <entry key="replaceProgress.text">Αντικατάσταση ...</entry>
+    <entry key="replaceOnlyFound">Mόνο κείμενο βρέθηκε</entry>
 
     <entry key="includeTransfers.text">Περιλάβετε Μεταφορά</entry>
     <entry key="includeTransfers.toolTip">Επιτρέψτε όλους τους Λογαριασμοί που πρέπει να περιλαμβάνονται ως κατηγορίες</entry>
@@ -124,6 +125,7 @@
     <entry key="table_column_account">Λογαριασμός</entry>
     <entry key="table_column_tags">Ετικέτες</entry>
     <entry key="table_column_checknum">Επιταγή#</entry>
+    <entry key="shares">Μετοχές</entry>
     <entry key="select_acct_title">Επιλέξτε ένα Λογαριασμό</entry>
     <entry key="all_categories">Όλοι Κατηγορίες</entry>
     <entry key="show_txn">Πηγαίνετε στη συναλλαγή</entry>

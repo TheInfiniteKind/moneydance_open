@@ -35,7 +35,7 @@ import java.util.Set;
  * and performs some of the main functions of the plugin.</p>
  * 
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
@@ -89,7 +89,6 @@ public class FarController implements IFindAndReplaceController
         loadSizeAndPositionFromPreferences();
         _view.setVisible( true );
         _view.toFront();
-        _view.requestFocusInWindow();
         _view.setFreeText(_initialFreeText);
         if (_initialFreeText != null)
         {
@@ -615,6 +614,10 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getAmountMaximum();
     }
+    void setAmountCurrency(final CurrencyType newCurrency, final boolean isSharesCurrency)
+    {
+        _model.setAmountCurrency(newCurrency, isSharesCurrency);
+    }
 
     void setUseDateFilter(final boolean use)
     {
@@ -791,6 +794,14 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getReplaceDescription();
     }
+    void setReplaceFoundDescriptionOnly(boolean foundTextOnly)
+    {
+        _model.setReplaceFoundDescriptionOnly(foundTextOnly);
+    }
+    boolean getReplaceFoundDescriptionOnly()
+    {
+        return _model.getReplaceFoundDescriptionOnly();
+    }
     void setReplacementDescription(final String description)
     {
         _model.setReplacementDescription(description);
@@ -808,6 +819,14 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getReplaceMemo();
     }
+    void setReplaceFoundMemoOnly(boolean foundTextOnly)
+    {
+        _model.setReplaceFoundMemoOnly(foundTextOnly);
+    }
+    boolean getReplaceFoundMemoOnly()
+    {
+        return _model.getReplaceFoundMemoOnly();
+    }
     void setReplacementMemo(final String memo)
     {
         _model.setReplacementMemo(memo);
@@ -824,6 +843,14 @@ public class FarController implements IFindAndReplaceController
     boolean getReplaceCheck()
     {
         return _model.getReplaceCheck();
+    }
+    void setReplaceFoundCheckOnly(boolean foundTextOnly)
+    {
+        _model.setReplaceFoundCheckOnly(foundTextOnly);
+    }
+    boolean getReplaceFoundCheckOnly()
+    {
+        return _model.getReplaceFoundCheckOnly();
     }
     void setReplacementCheck(final String memo)
     {
@@ -861,12 +888,12 @@ public class FarController implements IFindAndReplaceController
         return _model.getReplaceReplaceTagsModel();
     }
 
-    CurrencyType getCurrencyType()
+    public CurrencyType getCurrencyType()
     {
-        final RootAccount root = _model.getData();
-        if (root != null)
+        CurrencyTable currencyTable = getCurrencyTable();
+        if (currencyTable != null)
         {
-            return root.getCurrencyType();
+            return currencyTable.getBaseType();
         }
         return null;
     }
@@ -1003,5 +1030,4 @@ public class FarController implements IFindAndReplaceController
         }
         return result;
     }
-
 }

@@ -16,7 +16,7 @@ import com.moneydance.apps.md.model.TxnTag;
  * <p>Commands specific to Find and Replace.</p>
  *  
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 public interface IFarCommand extends ICommand
@@ -25,7 +25,7 @@ public interface IFarCommand extends ICommand
     
     Account getPreviewCategory();
     Long getPreviewAmount();
-    String getPreviewDescription();
+    String getPreviewDescription(boolean useParent);
     String getPreviewMemo();
     String getPreviewCheckNumber();
     TxnTag[] getPreviewTags();

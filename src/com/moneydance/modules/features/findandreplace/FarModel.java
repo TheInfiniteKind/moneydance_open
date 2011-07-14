@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.TxnTag;
@@ -16,13 +17,14 @@ import com.moneydance.apps.md.controller.Util;
 import java.util.Collection;
 import java.awt.datatransfer.StringSelection;
 import java.awt.Toolkit;
+import java.util.regex.Pattern;
 
 /**
  * <p>Model for the Find and Replace plugin. Stores all the settings you see in the dialog, and
  * fires property changes when selected values change.</p>
  * 
  * @author Kevin Menningen
- * @version 1.50
+ * @version 1.60
  * @since 1.0
  */
 class FarModel extends BasePropertyChangeReporter
@@ -42,6 +44,8 @@ class FarModel extends BasePropertyChangeReporter
     private boolean _useAmountFilter;
     private long _amountMinimum;
     private long _amountMaximum;
+    private CurrencyType _amountCurrency;
+    private boolean _isSharesCurrency;
 
     private boolean _useDateFilter;
     private int _dateMinimum;
@@ -75,11 +79,15 @@ class FarModel extends BasePropertyChangeReporter
 
     private boolean _doReplaceDescription;
     private String _replacementDescription;
+    private boolean _replaceFoundDescriptionOnly;
 
     private boolean _doReplaceMemo;
     private String _replacementMemo;
+    private boolean _replaceFoundMemoOnly;
+
     private boolean _doReplaceCheck;
     private String _replacementCheck;
+    private boolean _replaceFoundCheckOnly;
 
     private boolean _doReplaceTags;
     private ReplaceTagCommandType _replaceTagCommand;
@@ -125,6 +133,9 @@ class FarModel extends BasePropertyChangeReporter
             cleanUp();
             return;
         }
+
+        // store the default/base currency
+        _amountCurrency = _data.getCurrencyTable().getBaseType();
 
         // create the full account list - we don't count sub-accounts for these, which generally
         // are securities within investment accounts
@@ -184,6 +195,14 @@ class FarModel extends BasePropertyChangeReporter
         _useAmountFilter = false;
         _amountMinimum = 0;
         _amountMaximum = 0;
+        if (_data != null)
+        {
+            _amountCurrency = _data.getCurrencyTable().getBaseType();
+        }
+        else
+        {
+            _amountCurrency = null;
+        }
 
         _useDateFilter = false;
         _dateMinimum = Util.getStrippedDateInt();
@@ -214,9 +233,15 @@ class FarModel extends BasePropertyChangeReporter
 
         _doReplaceDescription = false;
         _replacementDescription = N12EFindAndReplace.EMPTY;
+        _replaceFoundDescriptionOnly = false;
 
         _doReplaceMemo = false;
         _replacementMemo = N12EFindAndReplace.EMPTY;
+        _replaceFoundMemoOnly = false;
+
+        _doReplaceCheck = false;
+        _replacementCheck = N12EFindAndReplace.EMPTY;
+        _replaceFoundCheckOnly = false;
 
         _doReplaceTags = false;
         _replaceTagCommand = null;
@@ -301,6 +326,20 @@ class FarModel extends BasePropertyChangeReporter
     long getAmountMaximum()
     {
         return _amountMaximum;
+    }
+
+    /**
+     * Define what currency the user is specifying for the search on amount.
+     * @param newCurrency      The currency to use for searching for amount.
+     * @param isSharesCurrency True if the currency is a generic "number of shares" currency, so
+     * search on the number of shares of a security, or False if it is a standard currency.
+     */
+    void setAmountCurrency(final CurrencyType newCurrency, final boolean isSharesCurrency)
+    {
+        final CurrencyType old = _amountCurrency;
+        _amountCurrency = newCurrency;
+        _isSharesCurrency = isSharesCurrency;
+        _eventNotify.firePropertyChange(N12EFindAndReplace.AMOUNT_CURRENCY, old, newCurrency);
     }
 
     void setUseDateFilter(final boolean use)
@@ -487,7 +526,8 @@ class FarModel extends BasePropertyChangeReporter
         }
         if (_useAmountFilter)
         {
-            result.addFilter(new AmountTxnFilter(_amountMinimum, _amountMaximum, !_combineOr));
+            result.addFilter(new AmountTxnFilter(_amountMinimum, _amountMaximum, _amountCurrency,
+                                                 _isSharesCurrency, !_combineOr));
         }
         if (_useFreeTextFilter)
         {
@@ -585,6 +625,21 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _doReplaceDescription;
     }
+    void setReplaceFoundDescriptionOnly(boolean foundTextOnly)
+    {
+        final boolean old = _replaceFoundDescriptionOnly;
+        if (old != foundTextOnly)
+        {
+            _replaceFoundDescriptionOnly = foundTextOnly;
+            _replaceDirty = true;
+        }
+        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_DESCRIPTION_ONLY, old, 
+                                        foundTextOnly);
+    }
+    boolean getReplaceFoundDescriptionOnly()
+    {
+        return _replaceFoundDescriptionOnly;
+    }
     void setReplacementDescription(final String description)
     {
         if ( ((_replacementDescription == null) && (description != null)) ||
@@ -613,6 +668,21 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _doReplaceMemo;
     }
+    void setReplaceFoundMemoOnly(boolean foundTextOnly)
+    {
+        final boolean old = _replaceFoundMemoOnly;
+        if (old != foundTextOnly)
+        {
+            _replaceFoundMemoOnly = foundTextOnly;
+            _replaceDirty = true;
+        }
+        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_MEMO_ONLY, old, 
+                                        foundTextOnly);
+    }
+    boolean getReplaceFoundMemoOnly()
+    {
+        return _replaceFoundMemoOnly;
+    }
     void setReplacementMemo(final String memo)
     {
         if ( ((_replacementMemo == null) && (memo != null)) ||
@@ -640,6 +710,21 @@ class FarModel extends BasePropertyChangeReporter
     boolean getReplaceCheck()
     {
         return _doReplaceCheck;
+    }
+    void setReplaceFoundCheckOnly(boolean foundTextOnly)
+    {
+        final boolean old = _replaceFoundCheckOnly;
+        if (old != foundTextOnly)
+        {
+            _replaceFoundCheckOnly = foundTextOnly;
+            _replaceDirty = true;
+        }
+        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_CHECK_ONLY, old,
+                                        foundTextOnly);
+    }
+    boolean getReplaceFoundCheckOnly()
+    {
+        return _replaceFoundCheckOnly;
     }
     void setReplacementCheck(final String checkNumber)
     {
@@ -770,9 +855,23 @@ class FarModel extends BasePropertyChangeReporter
         }
 
         _replaceDirty = false;
-
-        return new ReplaceCommand(category, amount, description, memo, check, _replaceTagCommand, 
-                tags, _data.getTxnTagSet());
+        final boolean allowFoundOnly = _useFreeTextFilter &&
+                (_freeTextMatch != null) && !"".equals(_freeTextMatch);
+        final Pattern findPattern;
+        if (allowFoundOnly)
+        {
+            findPattern = FarUtil.buildFindPattern(_freeTextMatch);
+        }
+        else
+        {
+            findPattern = null;
+        }
+        return new ReplaceCommand(category, amount,
+                                  description, allowFoundOnly && _replaceFoundDescriptionOnly,
+                                  memo, allowFoundOnly && _replaceFoundMemoOnly,
+                                  check, allowFoundOnly && _replaceFoundCheckOnly,
+                                  findPattern,
+                                  _replaceTagCommand, tags, _data.getTxnTagSet());
     }
 
     boolean hasFindResults()
@@ -902,7 +1001,7 @@ class FarModel extends BasePropertyChangeReporter
 
     void copyToClipboard(final IResourceProvider resources, int[] rowOrder)
     {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         buffer.append(getSummaryText(resources));
         buffer.append(N12EFindAndReplace.NEWLINE);
         buffer.append(N12EFindAndReplace.NEWLINE);
@@ -925,7 +1024,7 @@ class FarModel extends BasePropertyChangeReporter
 
     private String getColumnHeaders(final IResourceProvider resources)
     {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
 
         // account
         result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_ACCOUNT));
@@ -976,7 +1075,7 @@ class FarModel extends BasePropertyChangeReporter
 
     private String exportRowToClipboard(final int rowModelIndex)
     {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
 
         // account
         result.append(_findResultsModel.getValueAt(rowModelIndex,
@@ -1010,7 +1109,7 @@ class FarModel extends BasePropertyChangeReporter
 
         // category
         result.append(_findResultsModel.getValueAt(rowModelIndex,
-                FindResultsTableModel.CATEGORY_INDEX));
+                FindResultsTableModel.FULL_CATEGORY_INDEX));
         result.append('\t');
 
         // cleared - here we need the text, not an image
