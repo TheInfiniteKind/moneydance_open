@@ -12,7 +12,6 @@ import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.ParentTxn;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.Txn;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.TxnTagSet;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
@@ -102,7 +101,7 @@ final class FarUtil
         return null;
     }
 
-    static String getTransactionMemo(final Txn txn)
+    static String getTransactionMemo(final AbstractTxn txn)
     {
         final String memo;
         if (txn instanceof ParentTxn)
@@ -120,7 +119,7 @@ final class FarUtil
         return memo;
     }
 
-    static String getTransactionCheckNo(final Txn txn)
+    static String getTransactionCheckNo(final AbstractTxn txn)
     {
         final String memo;
         if (txn instanceof ParentTxn)

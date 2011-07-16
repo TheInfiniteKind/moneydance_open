@@ -12,8 +12,6 @@ import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.ParentTxn;
 import com.moneydance.apps.md.model.SplitTxn;
-import com.moneydance.apps.md.view.gui.budgetbars.controller.ITransactionFilter;
-import com.sun.istack.internal.FinalArrayList;
 
 /**
  * <p>Filters out transactions that are filtered by an account filter and/or category filter. An

@@ -11,7 +11,6 @@ package com.moneydance.modules.features.findandreplace;
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.ParentTxn;
-import com.moneydance.apps.md.view.gui.budgetbars.controller.ITransactionFilter;
 
 import java.util.regex.Pattern;
 
