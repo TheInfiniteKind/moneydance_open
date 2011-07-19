@@ -218,9 +218,9 @@ public class DownloadQuotesTask implements Callable<Boolean> {
           System.err.println("Automatically saving current price of " + currType.getName());
         }
         final StockRecord record = connection.getCurrentPrice(currType, autoSaveInHistory);
-        if (record == null) {
+        if (record == null || record.date < 20100101) {
           result.skipped = true;
-          result.logMessage = "No current price obtained for security " + currType.getName();
+          result.logMessage = "No (or invalid) current price obtained for security " + currType.getName();
           return result;
         }
         result.currentError = (record.closeRate == 0.0);
