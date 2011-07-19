@@ -295,7 +295,11 @@ public abstract class SnapshotImporter
       // find the first non-blank line and see if we have textual data
       String header = in.readLine();
       if (header == null) return ERROR_NO_DATA;    // stream is blank, no data
-      while (in.ready() && SQUtil.isBlank(header)) header = in.readLine();
+      if(Main.DEBUG_YAHOOQT) System.err.println("h:"+header);
+      while (in.ready() && SQUtil.isBlank(header)) {
+        header = in.readLine();
+        if(Main.DEBUG_YAHOOQT) System.err.println("h:"+header);
+      }
       if (containsNoText(header)) return ERROR_READING_DATA; // not the right kind of input stream
       String lineItem;
       if (_autoDetectFormat) {
@@ -306,7 +310,9 @@ public abstract class SnapshotImporter
       } else {
         // skip the header and move on to the next line
         lineItem = in.readLine();
+        if(Main.DEBUG_YAHOOQT) System.err.println("dh:"+lineItem);
       }
+      
       errorCount = 0;
       while (lineItem != null) {
         if (isValidItem(lineItem)) {
@@ -322,6 +328,7 @@ public abstract class SnapshotImporter
         }
         // next line
         lineItem = in.readLine();
+        if(Main.DEBUG_YAHOOQT) System.err.println("dl:"+lineItem);
       }
     } catch (IOException error) {
       System.err.println("Error while importing history: "+error);
