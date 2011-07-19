@@ -1,5 +1,5 @@
 {
-  "vendor" = "<html><body>The Infinite Kind, LLC</body></html>"
+  "vendor" = "The Infinite Kind, LLC"
   "vendor.url" = "http://moneydance.com/"
   "module_name" = "Quotes and Exchange Rates 2.0"
   "module_desc" = "<html><body><title>Yahoo!&reg; and Google&trade; Finance Downloader</title><p>This is an extension that downloads financial data from Yahoo! and Google</p></body></html>"
