@@ -115,7 +115,7 @@ public class N12EFindAndReplace
 
     public static final String INCLUDE_TRANSFERS = "includeTransfers";
     public static final String SHOW_PARENTS = "consolidateSplits";
-
+    public static final String SPLITS_AS_MEMOS = "splitsAsMemos";
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // HTML

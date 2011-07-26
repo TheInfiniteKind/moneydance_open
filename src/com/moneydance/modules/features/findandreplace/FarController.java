@@ -374,6 +374,11 @@ public class FarController implements IFindAndReplaceController
         return _model.getShowParents();
     }
 
+    public boolean getSplitsAsMemos()
+    {
+        return _model.getSplitsAsMemos();
+    }
+
     public boolean isDirty()
     {
         boolean dirty = _model.hasFindResults();
@@ -931,6 +936,11 @@ public class FarController implements IFindAndReplaceController
     void setShowParents(final boolean showParents)
     {
         _model.setShowParents(showParents);
+    }
+
+    void setSplitsAsMemos(final boolean useSplitDescriptionAsMemo)
+    {
+        _model.setSplitsAsMemos(useSplitDescriptionAsMemo);
     }
 
     void copyToClipboard()

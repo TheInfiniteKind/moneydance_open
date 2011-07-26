@@ -66,6 +66,10 @@
     <entry key="resultsLabel.text">Finne Resultater</entry>
     <entry key="showParents.text">Konsolidere Deler</entry>
     <entry key="showParents.toolTip">Vis foreldre transaksjoner</entry>
+    <entry key="splitsAsMemos.text">Deler Som Notater</entry>
+    <entry key="splitsAsMemos.mnemonic">L</entry>
+    <entry key="splitsAsMemos.toolTip">Bruk beskrivelsen av deler som notat</entry>
+    <entry key="table_column_parent_memo">Foreldre Transaksjoner Notat</entry>
 
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Telle: %s  Kreditt: %s  Subtraksjonen: %s  Summen: %s</entry>

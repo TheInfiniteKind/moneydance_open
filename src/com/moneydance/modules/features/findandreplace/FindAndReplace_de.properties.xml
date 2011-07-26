@@ -63,8 +63,12 @@
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Suchergebnis</entry>
-    <entry key="showParents.text">geteilte Buchungen konsolidieren</entry>
+    <entry key="showParents.text">Geteilte Buchungen Konsolidieren</entry>
     <entry key="showParents.toolTip">Zeige Hauptbuchungen</entry>
+    <entry key="splitsAsMemos.text">Geteilte Buchungen als Anmerkung</entry>
+    <entry key="splitsAsMemos.mnemonic">L</entry>
+    <entry key="splitsAsMemos.toolTip">Verwenden Sie den geteilte buchungen beschreibung als die anmerkung</entry>
+    <entry key="table_column_parent_memo">Anmerkung von der Hauptbuchungen</entry>
 
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Zählimpuls: %s  Gutschriften: %s  Abzüge: %s  Gesamtsumme: %s</entry>

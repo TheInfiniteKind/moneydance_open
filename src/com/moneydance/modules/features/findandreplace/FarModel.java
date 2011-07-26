@@ -97,6 +97,7 @@ class FarModel extends BasePropertyChangeReporter
 
     private boolean _includeTransfers;
     private boolean _showParents;
+    private boolean _splitDescriptionAsMemo;
 
     FarModel()
     {
@@ -247,6 +248,8 @@ class FarModel extends BasePropertyChangeReporter
         _replaceTagCommand = null;
 
         setIncludeTransfers(false);
+        setShowParents(false);
+        setSplitsAsMemos(false);
 
         if (_data != null)
         {
@@ -959,6 +962,22 @@ class FarModel extends BasePropertyChangeReporter
         return _showParents;
     }
 
+    void setSplitsAsMemos(final boolean useSplitDescriptionAsMemo)
+    {
+        if (useSplitDescriptionAsMemo != _splitDescriptionAsMemo)
+        {
+            final boolean old = _splitDescriptionAsMemo;
+            _splitDescriptionAsMemo = useSplitDescriptionAsMemo;
+            _findResultsModel.refresh();
+            _eventNotify.firePropertyChange(N12EFindAndReplace.SPLITS_AS_MEMOS, old, useSplitDescriptionAsMemo);
+        }
+    }
+
+    boolean getSplitsAsMemos()
+    {
+        return _splitDescriptionAsMemo;
+    }
+
     String getSummaryText(final IResourceProvider resources)
     {
         String format = resources.getString(L10NFindAndReplace.RESULTS_SUMMARY_FMT);
@@ -1046,6 +1065,13 @@ class FarModel extends BasePropertyChangeReporter
         result.append(resources.getString(L10NFindAndReplace.REPLACE_MEMO_LABEL));
         result.append('\t');
 
+        // memo - parent
+        if (_splitDescriptionAsMemo)
+        {
+            result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_PARENT_MEMO));
+            result.append('\t');
+        }
+
         // tag
         result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_TAG));
         result.append('\t');
@@ -1102,6 +1128,13 @@ class FarModel extends BasePropertyChangeReporter
                 FindResultsTableModel.MEMO_INDEX));
         result.append('\t');
 
+        // memo - parent
+        if (_splitDescriptionAsMemo)
+        {
+            result.append(_findResultsModel.getValueAt(rowModelIndex,
+                    FindResultsTableModel.MEMO_PARENT_INDEX));
+            result.append('\t');
+        }
         // tag
         result.append(_findResultsModel.getValueAt(rowModelIndex,
                 FindResultsTableModel.TAG_INDEX));

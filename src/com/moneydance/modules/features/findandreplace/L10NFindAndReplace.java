@@ -91,6 +91,9 @@ class L10NFindAndReplace
     public static final String CONSOLIDATE_SPLITS = "showParents.text"; // Consolidate splits
     public static final String CONSOLIDATE_SPLITS_TIP = "showParents.toolTip";
     public static final String CONSOLIDATE_SPLITS_MNC = "showParents.mnemonic";
+    public static final String SPLITS_AS_MEMOS = "splitsAsMemos.text"; // Splits as memos
+    public static final String SPLITS_AS_MEMOS_TIP = "splitsAsMemos.toolTip";
+    public static final String SPLITS_AS_MEMOS_MNC = "splitsAsMemos.mnemonic";  // = L
     public static final String RESULTS_LABEL = "resultsLabel.text"; //  Find Results
     public static final String RESULTS_COLUMN_DATE = "table_column_date"; // Date
     public static final String RESULTS_COLUMN_ACCOUNT = "table_column_account"; // Account
@@ -100,6 +103,7 @@ class L10NFindAndReplace
     public static final String RESULTS_COLUMN_CLEARED = "table_column_clearedchar"; //C
     public static final String RESULTS_COLUMN_AMOUNT = "table_column_amount"; // Amount
     public static final String RESULTS_SUMMARY_FMT = "resultsSummary.format";
+    public static final String RESULTS_COLUMN_PARENT_MEMO = "table_column_parent_memo"; // Parent memo
 
     public static final String INCXFER_LABEL = "includeTransfers.text"; // Include Transfers
     public static final String INCXFER_TIP = "includeTransfers.toolTip"; // Allow all accounts to be included as categories
@@ -112,7 +116,7 @@ class L10NFindAndReplace
     public static final String REPLACE_BUTTON_TEXT = "replaceBtn.text";
     public static final String REPLACE_BUTTON_MNC = "replaceBtn.mnemonic";
     public static final String REPLACEALL_BUTTON_TEXT = "replaceAllBtn.text";
-    public static final String REPLACEALL_BUTTON_MNC = "replaceAllBtn.mnemonic";
+    public static final String REPLACEALL_BUTTON_MNC = "replaceAllBtn.mnemonic";  // = P
     public static final String GOTO_BUTTON_TEXT = "show_txn";
     public static final String GOTO_BUTTON_MNC = "gotoBtn.mnemonic";
     public static final String COPY_BUTTON_TEXT = "copyBtn.text";

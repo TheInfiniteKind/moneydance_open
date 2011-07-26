@@ -30,8 +30,8 @@ import java.util.List;
  */
 public class Main extends FeatureModule
 {
-    static final String VERSION = "1.60";
-    static final String BUILD = "76";
+    static final String VERSION = "1.65";
+    static final String BUILD = "80";
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();

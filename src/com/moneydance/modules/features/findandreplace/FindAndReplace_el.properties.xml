@@ -65,6 +65,10 @@
     <entry key="resultsLabel.text">Αποτελέσματα του Ευρήματος</entry>
     <entry key="showParents.text">Για την Ομάδα Επιμερισμός</entry>
     <entry key="showParents.toolTip">Εμφάνισε συναλλαγές γονέων</entry>
+    <entry key="splitsAsMemos.text">Επιμερισμός ως Σημείωμα</entry>
+    <entry key="splitsAsMemos.mnemonic">L</entry>
+    <entry key="splitsAsMemos.toolTip">Χρησιμοποιήστε την επιμερισμός τομέα περιγραφής ως το τομέα υπομνημάτων</entry>
+    <entry key="table_column_parent_memo">Συναλλαγή Γονέων Σημείωμα</entry>
 
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Αρίθμηση: %s  Προσθήκες: %s  Αφαιρέσεις: %s  Σύνολο: %s</entry>

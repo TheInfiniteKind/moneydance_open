@@ -50,6 +50,7 @@ public class FindResultsTableModel extends AbstractTableModel
     static final int SHARES_INDEX = 10;        // not shown except in export to clipboard
     static final int CHECK_INDEX = 11;         // not shown except in export to clipboard
     static final int FULL_CATEGORY_INDEX = 12; // not shown except in export to clipboard
+    static final int MEMO_PARENT_INDEX = 13;   // not shown except in export to clipboard
 
     private static final ParentTxn BLANK_TRANSACTION =
             new ParentTxn(
@@ -581,7 +582,14 @@ public class FindResultsTableModel extends AbstractTableModel
                 }
                 case MEMO_INDEX:
                 {
-                    // only the parent has a memo field
+                    // with the Splits as Memos option, we may need either the split or the parent
+                    result += getTxnMemoDisplay(primaryTxn, entry);
+                    break;
+                }
+                case MEMO_PARENT_INDEX:
+                {
+                    // this column always has the parent transaction's memo regardless of the
+                    // splits-as-memos or consolidate splits setting
                     result += getTxnMemoDisplay(parent, entry);
                     break;
                 }
@@ -687,6 +695,14 @@ public class FindResultsTableModel extends AbstractTableModel
                                             final FindResultsTableEntry entry)
     {
         String description = txn.getDescription();
+        if (txn instanceof SplitTxn)
+        {
+            ParentTxn parentTxn = txn.getParentTxn();
+            if (_controller.getSplitsAsMemos() && (parentTxn.getSplitCount() > 1))
+            {
+                description = parentTxn.getDescription();
+            }
+        }
         if ((_commands != null) && (_commands.size() > 0) && entry.isApplied())
         {
             for (final ReplaceCommand command : _commands)
@@ -705,21 +721,28 @@ public class FindResultsTableModel extends AbstractTableModel
     private String getTxnMemoDisplay(final AbstractTxn txn,
                                      final FindResultsTableEntry entry)
     {
-        ParentTxn transaction;
+        String memo;
         if (txn instanceof ParentTxn)
         {
-            transaction = (ParentTxn)txn;
+            memo = ((ParentTxn)txn).getMemo();
         }
         else if (txn instanceof SplitTxn)
         {
-            transaction = txn.getParentTxn();
+            ParentTxn parentTxn = txn.getParentTxn();
+            if (_controller.getSplitsAsMemos() && (parentTxn.getSplitCount() > 1))
+            {
+                memo = txn.getDescription();
+            }
+            else
+            {
+                memo = parentTxn.getMemo();
+            }
         }
         else
         {
             return N12EFindAndReplace.EMPTY;
         }
 
-        String memo = transaction.getMemo();
         if ((_commands != null) && (_commands.size() > 0) && entry.isApplied())
         {
             for (final ReplaceCommand command : _commands)

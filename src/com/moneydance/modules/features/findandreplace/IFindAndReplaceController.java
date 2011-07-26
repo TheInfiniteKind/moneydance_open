@@ -45,6 +45,7 @@ public interface IFindAndReplaceController extends IResourceProvider
 
     void setInitialFreeText(final String freeText);
     boolean getShowParents();
+    boolean getSplitsAsMemos();
 
     /**
      * Obtain the user-defined name of a specific account.

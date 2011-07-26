@@ -66,6 +66,10 @@
     <entry key="resultsLabel.text">Risultati del Trovare</entry>
     <entry key="showParents.text">Consolidare suddivisioni</entry>
     <entry key="showParents.toolTip">Visualizza le operazioni genitore</entry>
+    <entry key="splitsAsMemos.text">Suddivisioni Come Note</entry>
+    <entry key="splitsAsMemos.mnemonic">V</entry>
+    <entry key="splitsAsMemos.toolTip">Utilizzare la descrizione della suddivisione come il note</entry>
+    <entry key="table_column_parent_memo">Operazioni Genitore Note</entry>
 
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Quantità: %s  Aggiunte: %s  Detratto: %s  Totale: %s</entry>

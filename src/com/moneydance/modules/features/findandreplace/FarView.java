@@ -136,6 +136,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private JCheckBox _includeTransfersCheck;
     private JCheckBox _showParentsCheck;
+    private JCheckBox _splitsAsMemosCheck;
     private JTable _findResults;
     private JLabel _summary;
 
@@ -497,6 +498,11 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             updateSummary();
             _findResults.repaint();
         }
+        if (all || N12EFindAndReplace.SPLITS_AS_MEMOS.equals(eventID))
+        {
+            _splitsAsMemosCheck.setSelected(_controller.getSplitsAsMemos());
+            _findResults.repaint();
+        }
 
         if (all)
         {
@@ -598,18 +604,44 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         final Font bold = panelLabel.getFont().deriveFont(Font.BOLD, currentSize + 1.5f);
         panelLabel.setFont( bold );
         headerPanel.add(panelLabel, BorderLayout.WEST);
+        JPanel modePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, UiUtil.HGAP*2, 0));
         _showParentsCheck = setupControl( new JCheckBox(_controller.getString(L10NFindAndReplace.CONSOLIDATE_SPLITS)) );
         _showParentsCheck.setToolTipText(_controller.getString(L10NFindAndReplace.CONSOLIDATE_SPLITS_TIP));
         _showParentsCheck.setHorizontalAlignment(JCheckBox.CENTER);
         addKeystrokeToButton(_showParentsCheck, L10NFindAndReplace.CONSOLIDATE_SPLITS_MNC, false);
-        headerPanel.add(_showParentsCheck, BorderLayout.CENTER);
+        modePanel.add(_showParentsCheck);
         _showParentsCheck.addItemListener(new ItemListener()
         {
             public void itemStateChanged(final ItemEvent event)
             {
-                _controller.setShowParents(event.getStateChange() == ItemEvent.SELECTED);
+                final boolean showParents = event.getStateChange() == ItemEvent.SELECTED;
+                _controller.setShowParents(showParents);
+                if (showParents)
+                {
+                    _controller.setSplitsAsMemos(false);
+                }
+                _splitsAsMemosCheck.setEnabled(!showParents);
             }
         });
+        _splitsAsMemosCheck = setupControl( new JCheckBox(_controller.getString(L10NFindAndReplace.SPLITS_AS_MEMOS)) );
+        _splitsAsMemosCheck.setToolTipText(_controller.getString(L10NFindAndReplace.SPLITS_AS_MEMOS_TIP));
+        _splitsAsMemosCheck.setHorizontalAlignment(JCheckBox.CENTER);
+        addKeystrokeToButton(_splitsAsMemosCheck, L10NFindAndReplace.SPLITS_AS_MEMOS_MNC, true);
+        modePanel.add(_splitsAsMemosCheck, BorderLayout.CENTER);
+        _splitsAsMemosCheck.addItemListener(new ItemListener()
+        {
+            public void itemStateChanged(final ItemEvent event)
+            {
+                final boolean useSplitDescriptionAsMemo = event.getStateChange() == ItemEvent.SELECTED;
+                _controller.setSplitsAsMemos(useSplitDescriptionAsMemo);
+                if (useSplitDescriptionAsMemo)
+                {
+                    _controller.setShowParents(false);
+                }
+                _showParentsCheck.setEnabled(!useSplitDescriptionAsMemo);
+            }
+        });
+        headerPanel.add(modePanel, BorderLayout.CENTER);
 
         _summary = setupControl( new JLabel() );
         headerPanel.add(_summary, BorderLayout.EAST);

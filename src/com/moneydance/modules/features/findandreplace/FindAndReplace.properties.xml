@@ -69,9 +69,13 @@
 
     <!--  Results panel -->
     <entry key="resultsLabel.text">Find Results</entry>
-    <entry key="showParents.text">Consolidate splits</entry>
+    <entry key="showParents.text">Consolidate Splits</entry>
     <entry key="showParents.mnemonic">I</entry>
     <entry key="showParents.toolTip">Show parent transactions</entry>
+    <entry key="splitsAsMemos.text">Splits As Memos</entry>
+    <entry key="splitsAsMemos.mnemonic">L</entry>
+    <entry key="splitsAsMemos.toolTip">Use split description as the memo</entry>
+    <entry key="table_column_parent_memo">Parent Transaction Memo</entry>
 
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Count: %s  Additions: %s  Subtractions: %s  Total: %s</entry>

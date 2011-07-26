@@ -66,6 +66,10 @@
     <entry key="resultsLabel.text">Resultados del Búsqueda</entry>
     <entry key="showParents.text">Consolidar las Divididas</entry>
     <entry key="showParents.toolTip">Muestre transacciones principal</entry>
+    <entry key="splitsAsMemos.text">Divididas Como las Memos</entry>
+    <entry key="splitsAsMemos.mnemonic">L</entry>
+    <entry key="splitsAsMemos.toolTip">Utilizar la descripción de dividir como el memo</entry>
+    <entry key="table_column_parent_memo">Transaccion Principal Memo</entry>
 
     <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
     <entry key="resultsSummary.format">Cuenta: %s  Adiciones: %s  Substracciones: %s  Total: %s</entry>
