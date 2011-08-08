@@ -21,11 +21,13 @@ public class SelectFilePane
   private JComboBox encodingChoice;
   private JButton browseButton;
   
-  public SelectFilePane(Resources rr, ImportState importState) {
+  public SelectFilePane(Resources rr, ImportState importState,
+        String filename) {
     this.rr = rr;
     this.importState = importState;
 
     fileField = new JTextField("", 25);
+    fileField.setText(filename);
     browseButton = new JButton(rr.getString("browse"));
     encodingChoice = new JComboBox(ImportState.FILE_ENCODINGS);
     encodingChoice.setSelectedItem(importState.getFileEncoding());

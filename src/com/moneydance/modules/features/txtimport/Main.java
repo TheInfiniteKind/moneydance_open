@@ -50,6 +50,10 @@ public class Main
     } else {
       setCommand(uri);
     }
+    int theIdx = uri.indexOf('=');
+    if(theIdx>=0) {
+       setParameters(uri.substring(theIdx+1));
+    }
 
     showTxtImport();
   }
@@ -98,9 +102,12 @@ public class Main
       if(importWizard!=null) {
         importWizard.dispose();
       }
-      importWizard = new Wizard(null, rr, getName(),
-                                new SelectFilePane(rr, new ImportState(this, root, rr)),
-                                false);
+      importWizard = new Wizard(
+            null,
+            rr,
+            getName(),
+            new SelectFilePane(rr, new ImportState(this, root, rr), getParameters()),
+            false);
       importWizard.setVisible(true);
     } else {
       importWizard.setVisible(true);

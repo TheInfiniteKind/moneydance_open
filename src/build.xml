@@ -312,6 +312,7 @@ http://jakarta.apache.org/ant/index.html
              com/moneydance/modules/features/txtimport/*.gif
              com/moneydance/modules/features/txtimport/*.png
              com/moneydance/modules/features/txtimport/*.jpg
+             com/moneydance/modules/features/txtimport/english.dict
              com/moneydance/modules/features/txtimport/*.jpeg"/>
       <fileset dir="${build}" includes="com/moneydance/modules/features/txtimport/**"/>
     </jar>
