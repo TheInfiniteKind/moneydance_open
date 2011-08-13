@@ -204,7 +204,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         }
       }
     } // if getting price history and connection is not 'do not update'
-
+    
     // now get the current price
     connection = _model.getSelectedCurrentPriceConnection();
     if ((connection != null) && connection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
@@ -217,12 +217,34 @@ public class DownloadQuotesTask implements Callable<Boolean> {
         if (Main.DEBUG_YAHOOQT && autoSaveInHistory) {
           System.err.println("Automatically saving current price of " + currType.getName());
         }
-        final StockRecord record = connection.getCurrentPrice(currType, autoSaveInHistory);
-        if (record == null || record.date < 20100101) {
-          result.skipped = true;
-          result.logMessage = "No (or invalid) current price obtained for security " + currType.getName();
-          return result;
+        
+        int numAttempts = 0;
+        StockRecord record = null;
+        while(true) {
+          numAttempts++;
+          record = connection.getCurrentPrice(currType, autoSaveInHistory);
+          if (record == null) {
+            result.skipped = true;
+            result.logMessage = "No current price obtained for security " + currType.getName();
+            return result;
+          }
+          
+          // did the 'current date' for this price come from long ago?  If so, re-download a handful of times.
+          // this hacks around a bug in yahoo finance in which horribly wrong prices are returned with a date 
+          // of around 1/1/1970 seemingly at random.
+          if(record.date >= 20100101) {
+            break;
+          }
+          
+          System.err.println("attempt "+numAttempts+" at updating security "+currType.getName()+" has failed");
+          
+          if(numAttempts>=10) {
+            result.skipped = true;
+            result.logMessage = "Quotes provider is returning old or invalid data for security " + currType.getName();
+            return result;
+          }
         }
+        
         result.currentError = (record.closeRate == 0.0);
         result.currentResult = record.priceDisplay;
         if (!result.currentError) {
