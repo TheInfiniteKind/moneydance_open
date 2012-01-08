@@ -20,13 +20,10 @@ import javax.swing.*;
 public class Main
   extends FeatureModule
 {
-  public String command;
-  public String parameters;
-  
-  public void setParameters(String par) { parameters = par; }
-  public void setCommand(String cmd) { command = cmd; }
-  public String getCommand() { return command; }
-  public String getParameters() { return parameters; }
+  private String command;
+  private String filename;
+  private Integer accountNo;
+
   private Resources rr = null;
 
   private Wizard importWizard = null;
@@ -42,17 +39,36 @@ public class Main
   }
 
   public void invoke(String uri) {
-    setParameters("");
     int colonIdx = uri.indexOf(':');
     if(colonIdx>=0) {
-      setCommand(uri.substring(0, colonIdx));
-      setParameters(uri.substring(colonIdx+1));
+      this.command = uri.substring(0, colonIdx);
     } else {
-      setCommand(uri);
+      this.command = uri;
     }
-    int theIdx = uri.indexOf('=');
+    int theIdx = uri.indexOf('?');
     if(theIdx>=0) {
-       setParameters(uri.substring(theIdx+1));
+      String parameters = uri.substring(theIdx+1);
+
+      int fileIdx   = parameters.indexOf("file=");
+      if (fileIdx>=0) {
+        this.filename    = parameters.substring(fileIdx+5);
+        int ampersandIdx = this.filename.indexOf('&');
+        if (ampersandIdx>= 0) {
+          this.filename = this.filename.substring(0, ampersandIdx);
+        }
+      }
+
+      int accountNoIdx = parameters.indexOf("accountno=");
+      if (accountNoIdx>=0) {
+        String accountNo  = parameters.substring(accountNoIdx+10);
+        int ampersandIdx  = accountNo.indexOf('&');
+        if (ampersandIdx>= 0) {
+          accountNo = accountNo.substring(0, ampersandIdx);
+        }
+        if (accountNo.length() > 0) {
+           this.accountNo = Integer.valueOf(accountNo);
+        }
+      }
     }
 
     showTxtImport();
@@ -106,7 +122,14 @@ public class Main
             null,
             rr,
             getName(),
-            new SelectFilePane(rr, new ImportState(this, root, rr), getParameters()),
+            new SelectFilePane(
+                  this.rr,
+                  new ImportState(
+                        this,
+                        root,
+                        this.rr,
+                        this.filename,
+                        this.accountNo)),
             false);
       importWizard.setVisible(true);
     } else {

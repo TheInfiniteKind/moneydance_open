@@ -68,7 +68,12 @@ public class ImportState {
   private RootAccount rootAccount;
   private Resources rr;
   
-  public ImportState(Main m, RootAccount root, Resources rr) {
+  public ImportState(
+        Main m,
+        RootAccount root,
+        Resources rr,
+        String filename,
+        Integer argAcctNum) {
     this.main = m;
     this.rootAccount = root;
     this.rr = rr;
@@ -77,6 +82,7 @@ public class ImportState {
     try {
       String tmp;
       UserPreferences prefs = main.getMainController().getPreferences();
+      this.importFile = new File(filename);
       int numFields = prefs.getIntSetting("txtimport.numfields", FIELD_IDS.length);
       fieldsToImport = new byte[numFields];
       for(int i=0; i<fieldsToImport.length; i++) {
@@ -89,6 +95,7 @@ public class ImportState {
       tmp = prefs.getSetting("txtimport.decimal", ""+decimalPoint);
       if(tmp.length()>0) decimalPoint = tmp.charAt(0);
       int acctNum = prefs.getIntSetting("txtimport.acct", -1);
+      if (argAcctNum != null) acctNum = argAcctNum.intValue();
       if(acctNum>=0) account = root.getAccountById(acctNum);
     } catch (Throwable t) {
       System.err.println("Error restoring preferences: "+t);
@@ -134,6 +141,10 @@ public class ImportState {
   
   void setFile(File fileToImport) {
     this.importFile = fileToImport;
+  }
+
+  File getFile() {
+     return this.importFile;
   }
 
   void setFileEncoding(String encoding) {
