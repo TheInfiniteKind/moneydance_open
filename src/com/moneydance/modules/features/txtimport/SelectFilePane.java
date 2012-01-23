@@ -26,7 +26,7 @@ public class SelectFilePane
     this.importState = importState;
 
     fileField = new JTextField("", 25);
-    fileField.setText(importState.getFile().getAbsolutePath());
+    if(importState.getFile() != null) fileField.setText(importState.getFile().getAbsolutePath());
     browseButton = new JButton(rr.getString("browse"));
     encodingChoice = new JComboBox(ImportState.FILE_ENCODINGS);
     encodingChoice.setSelectedItem(importState.getFileEncoding());
