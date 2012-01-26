@@ -82,7 +82,7 @@ public class ImportState {
     try {
       String tmp;
       UserPreferences prefs = main.getMainController().getPreferences();
-      this.importFile = new File(filename);
+      if("".equals(filename)) this.importFile = new File(filename);
       int numFields = prefs.getIntSetting("txtimport.numfields", FIELD_IDS.length);
       fieldsToImport = new byte[numFields];
       for(int i=0; i<fieldsToImport.length; i++) {
