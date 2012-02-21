@@ -1,5 +1,5 @@
 /*************************************************************************\
- * Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+ * Copyright (C) 2009-2012 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.controller.AccountFilter;
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.ParentTxn;
@@ -19,7 +20,7 @@ import com.moneydance.apps.md.model.SplitTxn;
  * list of one or more accounts.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version Build 83
  * @since 1.0
  */
 class AccountTxnFilter extends TransactionFilterBase implements ITransactionFilter

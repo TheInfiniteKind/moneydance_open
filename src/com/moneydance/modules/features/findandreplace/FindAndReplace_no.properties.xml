@@ -4,8 +4,13 @@
     <!--  Common stuff -->
 
     <entry key="title.text">Finne og Erstatte</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Versjon {0} (Bygge {1})</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Bygge {0}</entry>
+    <entry key="userGuide.label">Brukerhåndbok</entry>
+    <entry key="load">Laste</entry>
+    <entry key="save.title">Husk Finne</entry>
+    <entry key="save.prompt">Angi et unikt navn som ikke er tom</entry>
+    <error key="save.error">Navnet er ugyldig</error>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Finne</entry>

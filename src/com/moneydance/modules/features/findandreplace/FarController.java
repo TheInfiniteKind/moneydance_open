@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.controller.AccountFilter;
 import com.moneydance.apps.md.model.ParentTxn;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.Account;
@@ -17,6 +18,9 @@ import com.moneydance.apps.md.model.CurrencyTable;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.TransactionSet;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.TagLogic;
+import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
+import com.moneydance.apps.md.view.gui.select.AddRemoveAccountDialog;
 
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
@@ -35,7 +39,7 @@ import java.util.Set;
  * and performs some of the main functions of the plugin.</p>
  * 
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 83
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
@@ -48,6 +52,7 @@ public class FarController implements IFindAndReplaceController
     private final List<ReplaceCommand> _commands = new ArrayList<ReplaceCommand>();
 
     private String _initialFreeText = null;
+    private String _dateRangeKey = null;
 
     //////////////////////////////////////////////////////////////////////////////////////////////
     //  Construction
@@ -349,7 +354,7 @@ public class FarController implements IFindAndReplaceController
         _model.getFindResults().fireTableDataChanged();
         _view.getFindResultsTable().clearSelection();
         // send a global refresh request
-        _model.notifyAllListeners();
+        if (_model.getAllowEvents()) _model.notifyAllListeners();
     }
 
     public void updateRow(int modelIndex)
@@ -464,6 +469,11 @@ public class FarController implements IFindAndReplaceController
     //  Package Private Methods
     //////////////////////////////////////////////////////////////////////////////////////////////
 
+    void setAllowEvents(final boolean allow)
+    {
+        _model.setAllowEvents(allow);
+    }
+
     void setHost(final FindAndReplace host)
     {
         _host = host;
@@ -490,11 +500,13 @@ public class FarController implements IFindAndReplaceController
         _model.setFilterCombineOr(combineOr);
     }
 
-    void selectAccounts()
+    void selectAccounts(final MoneydanceGUI mdGui)
     {
-        AccountSelectDialog dialog = new AccountSelectDialog(_view, this, _model.getData(),
-                                                             _model.getAccountFilter());
-
+        final AccountFilter filter = _model.getAccountFilter();
+        AddRemoveAccountDialog dialog = new AddRemoveAccountDialog(_view,
+                                                                   mdGui, filter,
+                                                                   mdGui.getCurrentAccount());
+        dialog.setHeadersAreSpecial(false);
         dialog.loadData();
 
         dialog.pack();
@@ -502,17 +514,26 @@ public class FarController implements IFindAndReplaceController
         dialog.setVisible(true);
         if (dialog.getResult() == JOptionPane.OK_OPTION)
         {
+            // the user accepted the new changes to the listed nodes
+            final List<Account> newNodeList = dialog.getSelectedNodes();
+            filter.reset();
+            for (final Account account : newNodeList)
+            {
+                filter.include(account);
+            }
             // the account list was updated
             _model.accountListUpdated();
         }
         dialog.cleanUp();
     }
 
-    void selectCategories()
+    void selectCategories(final MoneydanceGUI mdGui)
     {
-        AccountSelectDialog dialog = new AccountSelectDialog(_view, this, _model.getData(),
-                                                             _model.getCategoryFilter());
-
+        final AccountFilter filter = _model.getCategoryFilter();
+        AddRemoveAccountDialog dialog = new AddRemoveAccountDialog(_view,
+                                                                   mdGui, filter,
+                                                                   mdGui.getCurrentAccount());
+        dialog.setHeadersAreSpecial(false);
         dialog.loadData();
 
         dialog.pack();
@@ -520,7 +541,14 @@ public class FarController implements IFindAndReplaceController
         dialog.setVisible(true);
         if (dialog.getResult() == JOptionPane.OK_OPTION)
         {
-            // the category list was updated
+            // the user accepted the new changes to the listed nodes
+            final List<Account> newNodeList = dialog.getSelectedNodes();
+            filter.reset();
+            for (final Account account : newNodeList)
+            {
+                filter.include(account);
+            }
+            // the account list was updated
             _model.categoryListUpdated();
         }
         dialog.cleanUp();
@@ -571,10 +599,27 @@ public class FarController implements IFindAndReplaceController
         }
     }
 
-
-    String getAccountListDisplay()
+    void saveUserEdits()
     {
-        return _model.getAccountFilter().getDisplayString(this);
+        _view.saveFindEdits();
+        _view.saveReplaceEdits();
+    }
+
+    String getAccountListDisplay(final MoneydanceGUI mdGui)
+    {
+        return _model.getAccountFilter().getDisplayString(mdGui.getCurrentAccount(),
+                                                          mdGui);
+    }
+    
+    String getAccountListSave()
+    {
+        return GraphReportUtil.encodeAcctList(_model.getAccountFilter());
+    }
+    void setAccountListSave(final String accountList)
+    {
+        FarAccountSelector accountSelector = new FarAccountSelector(_model.getData(),
+                                                                    _model.getAccountFilter());
+        accountSelector.selectFromEncodedString(accountList);
     }
 
     void setUseAccountFilter(final boolean use)
@@ -594,9 +639,20 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getUseCategoryFilter();
     }
-    String getCategoryListDisplay()
+    String getCategoryListDisplay(final MoneydanceGUI mdGui)
     {
-        return _model.getCategoryFilter().getDisplayString(this);
+        return _model.getCategoryFilter().getDisplayString(mdGui.getCurrentAccount(),
+                                                           mdGui);
+    }
+    String getCategoryListSave()
+    {
+        return GraphReportUtil.encodeAcctList(_model.getCategoryFilter());
+    }
+    void setCategoryListSave(final String accountList)
+    {
+        FarAccountSelector accountSelector = new FarAccountSelector(_model.getData(),
+                                                                    _model.getCategoryFilter());
+        accountSelector.selectFromEncodedString(accountList);
     }
 
     void setUseAmountFilter(final boolean use)
@@ -635,6 +691,14 @@ public class FarController implements IFindAndReplaceController
     void setDateRange(final int minimum, final int maximum, final boolean useTaxDate)
     {
         _model.setDateRange(minimum, maximum, useTaxDate);
+    }
+    String getDateRangeKey()
+    {
+        return _dateRangeKey;
+    }
+    void setDateRangeKey(final String rangeKey)
+    {
+        _dateRangeKey = rangeKey;
     }
     int getDateMinimum()
     {
@@ -773,6 +837,10 @@ public class FarController implements IFindAndReplaceController
     {
         _model.setReplacementCategory(category);
     }
+    Account getReplacementCategory()
+    {
+        return _model.getReplacementCategory();
+    }
 
     void setReplaceAmount(boolean replace)
     {
@@ -879,7 +947,10 @@ public class FarController implements IFindAndReplaceController
     {
         _model.setReplaceTagType(commandType);
     }
-
+    ReplaceTagCommandType getReplaceTagType()
+    {
+        return _model.getReplaceTagType();
+    }
     TagPickerModel getReplaceAddTagsModel()
     {
         return _model.getReplaceAddTagsModel();

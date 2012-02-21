@@ -1,8 +1,8 @@
 {
   "vendor" = "Mennē Software Solutions"
-  "module_build" = "80"
+  "module_build" = "83"
   "vendor_url" = "http://www.mennesoft.com/findandreplace/index.html"
-  "module_name" = "Find and Replace (Requires Java 6)"
-  "module_desc" = "Locate transactions based upon criteria and replace data."
-  "desc" = "A handy tool for cleaning up or reorganizing your data, and ad hoc reporting. This plugin requires Java 6 to function, see the Moneydance About window to check the Java version. Please send feedback to info@mennesoft.com."
+  "module_name" = "Find and Replace (Requires Java 6 and MD2010)"
+  "module_desc" = "<html><body><title>Find and Replace</title><p>Locate transactions based upon criteria and replace data.</p></body></html>"
+  "desc" = "A handy tool for cleaning up or reorganizing your data, and ad hoc reporting. This plugin requires Java 6 and MD2010 or greater to function, see the Moneydance About window to check the Java version. Please send feedback to info@mennesoft.com."
 }

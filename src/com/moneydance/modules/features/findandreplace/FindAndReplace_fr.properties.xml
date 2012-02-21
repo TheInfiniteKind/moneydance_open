@@ -4,8 +4,13 @@
     <!--  Common stuff -->
     <entry key="labelColon"> :</entry>
     <entry key="title.text">Recherche et Replacer</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Version {0} (Build {1})</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Build {0}</entry>
+    <entry key="userGuide.label">Guide de l'utilisateur</entry>
+    <entry key="load">Chargez</entry>
+    <entry key="save.title">Mémoriser Recherche</entry>
+    <entry key="save.prompt">Entrez un nom unique qui n'est pas vide</entry>
+    <error key="save.error">Le nom n'est pas valide</error>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Recherche</entry>

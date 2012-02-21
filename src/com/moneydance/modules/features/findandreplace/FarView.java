@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -12,6 +12,7 @@ import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 import com.moneydance.apps.md.view.gui.SecondaryFrame;
+import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.JCurrencyField;
 import com.moneydance.apps.md.view.gui.AccountChoice;
@@ -53,6 +54,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.text.MessageFormat;
 
+import com.moneydance.util.StringUtils;
 import info.clearthought.layout.TableLayout;
 import info.clearthought.layout.TableLayoutConstraints;
 import info.clearthought.layout.TableLayoutConstants;
@@ -62,7 +64,7 @@ import info.clearthought.layout.TableLayoutConstants;
  * hosts the results table as well.</p>
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 83
  * @since 1.0
  */
 class FarView extends SecondaryFrame implements PropertyChangeListener
@@ -182,6 +184,8 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _findAmountPickers.cleanUp();
     }
 
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // Package Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -231,6 +235,16 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         bottomPanel.add(createLowerLeftButtonPanel(), BorderLayout.WEST);
         bottomPanel.add(createLowerRightButtonPanel(), BorderLayout.EAST);
 
+        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, UiUtil.HGAP, 0));
+        JButton userGuide = new JButton(_controller.getString(L10NFindAndReplace.USER_GUIDE));
+        userGuide.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent event) {
+                FarUtil.launchUserGuide();
+            }
+        });
+        mdGUI.applyFilterBarProperties(userGuide);
+        centerPanel.add(userGuide);
+        
         _statusLabel = new JLabel(getVersionText());
         _statusLabel.setOpaque(false);
         _statusLabel.setHorizontalAlignment(JLabel.CENTER);
@@ -238,7 +252,8 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _smallFont = _statusLabel.getFont().deriveFont(_statusLabel.getFont().getSize() - 2f);
         _statusLabel.setFont(_smallFont);
         _statusLabel.setEnabled(false);
-        bottomPanel.add(_statusLabel, BorderLayout.CENTER);
+        centerPanel.add(_statusLabel);
+        bottomPanel.add(centerPanel, BorderLayout.CENTER);
 
         main.add(bottomPanel, new TableLayoutConstraints(0, 4, 2, 4));
         getContentPane().add( main );
@@ -348,7 +363,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         }
         if (all || N12EFindAndReplace.ACCOUNT_SELECT.equals(eventID))
         {
-            _findAccountsList.setText(_controller.getAccountListDisplay());
+            _findAccountsList.setText(_controller.getAccountListDisplay(mdGUI));
         }
         if (all || N12EFindAndReplace.ACCOUNT_USE.equals(eventID))
         {
@@ -356,7 +371,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         }
         if (all || N12EFindAndReplace.CATEGORY_SELECT.equals(eventID))
         {
-            _findCategoryList.setText(_controller.getCategoryListDisplay());
+            _findCategoryList.setText(_controller.getCategoryListDisplay(mdGUI));
         }
         if (all || N12EFindAndReplace.CATEGORY_USE.equals(eventID))
         {
@@ -447,7 +462,8 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         // replacement
         if (all || N12EFindAndReplace.REPLACE_CATEGORY.equals(eventID))
         {
-            _replaceCategoryCheck.setSelected(_controller.getReplaceCategory());
+            final boolean replaceCategory = _controller.getReplaceCategory();
+            _replaceCategoryCheck.setSelected(replaceCategory);
         }
         if (all || N12EFindAndReplace.REPLACE_AMOUNT.equals(eventID))
         {
@@ -479,7 +495,33 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         }
         if (all || N12EFindAndReplace.REPLACE_TAGS.equals(eventID))
         {
-            _replaceTagsCheck.setSelected(_controller.getReplaceTags());
+            final boolean replaceTags = _controller.getReplaceTags();
+            _replaceTagsCheck.setSelected(replaceTags);
+            if (replaceTags)
+            {
+                switch (_controller.getReplaceTagType())
+                {
+                    case ADD:
+                    {
+                        _replaceAddRadio.setSelected(true);
+                        break;
+                    }
+                    case REMOVE:
+                    {
+                        _replaceRemoveRadio.setSelected(true);
+                        break;
+                    }
+                    case REPLACE:
+                    {
+                        _replaceReplaceRadio.setSelected(true);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                _replaceTagsGroup.clearSelection();
+            }
         }
 
         if (all || N12EFindAndReplace.FIND_RESULTS_UPDATE.equals(eventID))
@@ -521,8 +563,21 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             _findFreeText.setText(_controller.getFreeTextMatch());
             _findAmountPickers.getFromAmountPicker().setValue(_controller.getAmountMinimum());
             _findAmountPickers.getToAmountPicker().setValue(_controller.getAmountMaximum());
-            _findDatePickers.getFromDatePicker().setDateInt(_controller.getDateMinimum());
-            _findDatePickers.getToDatePicker().setDateInt(_controller.getDateMaximum());
+            String dateRangeKey = _controller.getDateRangeKey();
+            if (StringUtils.isBlank(dateRangeKey) ||
+                    DateRangeOption.DR_CUSTOM_DATE.getResourceKey().equals(dateRangeKey))
+            {
+                // custom date, use saved dates
+                _findDatePickers.setDateRangeKey(DateRangeOption.DR_CUSTOM_DATE.getResourceKey());
+                _findDatePickers.getFromDatePicker().setDateInt(_controller.getDateMinimum());
+                _findDatePickers.getToDatePicker().setDateInt(_controller.getDateMaximum());
+            }
+            else
+            {
+                // pre-defined date, set the pre-defined date and let the control calculate the
+                // appropriate min and max dates
+                _findDatePickers.setDateRangeKey(dateRangeKey);
+            }
             _useTaxDate.setSelected(_controller.getUseTaxDate());
 
             _replaceDescription.setText(_controller.getReplacementDescription());
@@ -875,6 +930,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         final Font bold = panelLabel.getFont().deriveFont(Font.BOLD, currentSize + 1.5f);
         panelLabel.setFont( bold );
         findPanel.add(panelLabel, new TableLayoutConstraints(0, row));
+        
+        LoadSaveView loadSaveView = new LoadSaveView(mdGUI, _controller);
+        findPanel.add(loadSaveView, new TableLayoutConstraints(6, row));
         row += 2; // skip the gap
 
         // the combine criteria row is a little special -- the only 2 component field set and no
@@ -944,7 +1002,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_DATE_LABEL,
                 L10NFindAndReplace.FIND_DATE_MNC, _findDateUseCheck, false);
 
-        _findDatePickers = new DatePickerGroup(_controller, _controller.getMDGUI());
+        _findDatePickers = new DatePickerGroup(_controller.getMDGUI());
         _findDatePickers.addFocusListener(new ColoredFocusAdapter(
                 _findDatePickers.getFromDatePicker(), _focusColor) );
         _useTaxDate = setupControl( new JCheckBox(_controller.getString(L10NFindAndReplace.USE_TAX_DATE)) );
@@ -1087,7 +1145,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent action)
             {
-                _controller.selectAccounts();
+                _controller.selectAccounts(mdGUI);
             }
         });
         _findAccountsUseCheck.addItemListener(new ItemListener()
@@ -1109,7 +1167,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent action)
             {
-                _controller.selectCategories();
+                _controller.selectCategories(mdGUI);
             }
         });
 
@@ -1343,11 +1401,12 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         return result;
     }
 
-    private boolean saveFindEdits()
+    boolean saveFindEdits()
     {
         // account and category have already been saved
         _controller.setAmountRange(_findAmountPickers.getFromAmountPicker().getValue(),
                 _findAmountPickers.getToAmountPicker().getValue());
+        _controller.setDateRangeKey(_findDatePickers.getDateRangeKey());
         _controller.setDateRange(_findDatePickers.getFromDatePicker().getDateInt(),
                 _findDatePickers.getToDatePicker().getDateInt(),
                 _useTaxDate.isSelected());
@@ -1795,7 +1854,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     }
 
-    private void saveReplaceEdits()
+    void saveReplaceEdits()
     {
         Account selectedAccount = null;
         if (_replaceCategory instanceof AccountChoice)
@@ -1997,11 +2056,8 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private String getVersionText()
     {
-        StringBuffer result = new StringBuffer(_controller.getString(L10NFindAndReplace.TITLE));
-        result.append(N12EFindAndReplace.SPACE);
         final String format = _controller.getString(L10NFindAndReplace.VERSION_FMT);
-        result.append(MessageFormat.format(format, Main.VERSION, Main.BUILD));
-        return result.toString();
+        return MessageFormat.format(format, Main.BUILD);
     }
 
     private boolean isAmountsDifferent()
@@ -2039,7 +2095,16 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             chooser.setShowIncomeAccounts(true);
             chooser.setShowExpenseAccounts(true);
 
-            chooser.setSelectedAccountIndex(0);
+            final Account account = _controller.getReplacementCategory();
+            if (_controller.getReplaceCategory() && (account != null))
+            {
+                chooser.setShowAccount(account, true);
+                chooser.setSelectedAccount(account);
+            }
+            else
+            {
+                chooser.setSelectedAccountIndex(0);
+            }
             _replaceCategory = chooser;
         }
         if ((_replacePanel != null) && (_replaceCategory != null))

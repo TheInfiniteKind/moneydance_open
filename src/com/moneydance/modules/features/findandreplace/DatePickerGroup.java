@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -15,6 +15,7 @@ import com.moneydance.awt.JDateField;
 import com.moneydance.util.CustomDateFormat;
 
 import javax.swing.Box;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -30,7 +31,7 @@ import java.awt.event.FocusListener;
  * <p>Two date pickers, one 'from date' and one 'to date', combined.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version Build 83
  * @since 1.0
  */
 class DatePickerGroup extends JPanel
@@ -39,14 +40,23 @@ class DatePickerGroup extends JPanel
 
     /**
      * Constructor with needed information to create the view
-     * @param resources Localization resources
      * @param mdGui     User interface object
      */
-    DatePickerGroup(final IResourceProvider resources,
-                    final MoneydanceGUI mdGui)
+    DatePickerGroup(final MoneydanceGUI mdGui)
     {
         _dateRanger = new DateRangeChooser(mdGui);
-        layoutUI(resources);
+        layoutUI();
+    }
+
+    String getDateRangeKey()
+    {
+        final int selectedIndex = ((JComboBox) _dateRanger.getChoice()).getSelectedIndex();
+        return _dateRanger.getOption(selectedIndex);
+    }
+    void setDateRangeKey(final String dateRangeKey)
+    {
+        // if not custom, this will set the date range to a pre-defined range
+        _dateRanger.setOption(dateRangeKey);
     }
 
     JDateField getFromDatePicker()
@@ -76,7 +86,7 @@ class DatePickerGroup extends JPanel
     // Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    private void layoutUI(final IResourceProvider resources)
+    private void layoutUI()
     {
         setLayout( new GridBagLayout() );
         // give the chooser more weight than the date fields

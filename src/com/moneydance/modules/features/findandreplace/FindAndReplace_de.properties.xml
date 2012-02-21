@@ -3,8 +3,13 @@
 <properties>
     <!--  Common stuff -->
     <entry key="title.text">Finden und Ersetzen</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Version {0} (Build {1})</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Build {0}</entry>
+    <entry key="userGuide.label">Benutzerhandbuch</entry>
+    <entry key="load">Laden</entry>
+    <entry key="save.title">Gemerkte Suchen</entry>
+    <entry key="save.prompt">Geben Sie einen eindeutigen Namen, der nicht leer ist</entry>
+    <error key="save.error">Der Name ist ungültig</error>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Suchen</entry>

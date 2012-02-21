@@ -6,8 +6,13 @@
     <!--  Common stuff -->
     <entry key="labelColon">:</entry>
     <entry key="title.text">Find and Replace</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Version {0} (Build {1})</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Build {0}</entry>
+    <entry key="userGuide.label">User Guide</entry>
+    <entry key="load">Load</entry>
+    <entry key="save.title">Memorize Search</entry>
+    <entry key="save.prompt">Enter a unique name that is not blank</entry>
+    <error key="save.error">The name is invalid</error>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Find</entry>

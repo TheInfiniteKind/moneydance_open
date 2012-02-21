@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -8,11 +8,14 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.controller.AccountFilter;
 import com.moneydance.apps.md.model.CurrencyType;
+import com.moneydance.apps.md.model.FullAccountList;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.controller.Util;
+import com.moneydance.apps.md.view.gui.TagLogic;
 
 import java.util.Collection;
 import java.awt.datatransfer.StringSelection;
@@ -24,14 +27,15 @@ import java.util.regex.Pattern;
  * fires property changes when selected values change.</p>
  * 
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 83
  * @since 1.0
  */
 class FarModel extends BasePropertyChangeReporter
 {
     private RootAccount _data;
     private FindResultsTableModel _findResultsModel;
-
+    private boolean _allowEvents = true;
+    
     private boolean _combineOr;
     private final AccountFilter _accountFilter;
     private FullAccountList _fullAccountList;
@@ -162,6 +166,22 @@ class FarModel extends BasePropertyChangeReporter
     {
         return _data;
     }
+    
+    void setAllowEvents(final boolean allow)
+    {
+        boolean old = _allowEvents;
+        _allowEvents = allow;
+        if (!old && allow)
+        {
+            // fire a change event
+            notifyAllListeners();
+        }
+    }
+
+    boolean getAllowEvents()
+    {
+        return _allowEvents;
+    }
 
     FindResultsTableModel getFindResults()
     {
@@ -170,19 +190,19 @@ class FarModel extends BasePropertyChangeReporter
 
     void accountListUpdated()
     {
-        _eventNotify.firePropertyChange(N12EFindAndReplace.ACCOUNT_SELECT, null, null);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.ACCOUNT_SELECT, null, null);
         setUseAccountFilter(true);
     }
 
     void categoryListUpdated()
     {
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CATEGORY_SELECT, null, null);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.CATEGORY_SELECT, null, null);
         setUseCategoryFilter(true);
     }
 
     void tableUpdated()
     {
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_RESULTS_UPDATE, null, null);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_RESULTS_UPDATE, null, null);
     }
 
     void setDefaults()
@@ -266,7 +286,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean oldValue = _combineOr;
         _combineOr = combineOr;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_COMBINATION, oldValue, _combineOr);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_COMBINATION, oldValue, _combineOr);
     }
     
     boolean getFilterCombineOr()
@@ -283,7 +303,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         boolean old = _useAccountFilter;
         _useAccountFilter = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.ACCOUNT_USE, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.ACCOUNT_USE, old, use);
     }
     boolean getUseAccountFilter()
     {
@@ -299,7 +319,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         boolean old = _useCategoryFilter;
         _useCategoryFilter = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CATEGORY_USE, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.CATEGORY_USE, old, use);
     }
     boolean getUseCategoryFilter()
     {
@@ -310,7 +330,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         boolean old = _useAmountFilter;
         _useAmountFilter = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.AMOUNT_USE, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.AMOUNT_USE, old, use);
     }
     boolean getUseAmountFilter()
     {
@@ -342,14 +362,14 @@ class FarModel extends BasePropertyChangeReporter
         final CurrencyType old = _amountCurrency;
         _amountCurrency = newCurrency;
         _isSharesCurrency = isSharesCurrency;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.AMOUNT_CURRENCY, old, newCurrency);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.AMOUNT_CURRENCY, old, newCurrency);
     }
 
     void setUseDateFilter(final boolean use)
     {
         boolean old = _useDateFilter;
         _useDateFilter = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.DATE_USE, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.DATE_USE, old, use);
     }
     boolean getUseDateFilter()
     {
@@ -378,7 +398,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         boolean old = _useFreeTextFilter;
         _useFreeTextFilter = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_USE, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_USE, old, use);
     }
     boolean getUseFreeTextFilter()
     {
@@ -397,7 +417,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean old = _freeTextSearchDescription;
         _freeTextSearchDescription = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_DESCRIPTION, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_DESCRIPTION, old, use);
     }
     boolean getFreeTextUseDescription()
     {
@@ -407,7 +427,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean old = _freeTextSearchMemo;
         _freeTextSearchMemo = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_MEMO, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_MEMO, old, use);
     }
     boolean getFreeTextUseMemo()
     {
@@ -417,7 +437,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean old = _freeTextSearchCheck;
         _freeTextSearchCheck = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_CHECK, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_CHECK, old, use);
     }
     boolean getFreeTextUseCheck()
     {
@@ -427,7 +447,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean old = _freeTextIncludeSplits;
         _freeTextIncludeSplits = include;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_SPLITS, old, include);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FREETEXT_SPLITS, old, include);
     }
     boolean getFreeTextIncludeSplits()
     {
@@ -438,7 +458,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         boolean old = _useTagsFilter;
         _useTagsFilter = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.TAGS_USE, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.TAGS_USE, old, use);
     }
     boolean getUseTagsFilter()
     {
@@ -448,7 +468,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final TagLogic old = _combineTagsLogic;
         _combineTagsLogic = combine;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.TAGS_LOGIC, old, combine);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.TAGS_LOGIC, old, combine);
     }
     TagLogic getRequireTagsFilter()
     {
@@ -468,7 +488,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         boolean old = _useClearedFilter;
         _useClearedFilter = use;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_USE, old, use);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_USE, old, use);
     }
     boolean getUseClearedFilter()
     {
@@ -482,7 +502,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean old = _allowCleared;
         _allowCleared = allow;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_CLEARED, old, allow);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_CLEARED, old, allow);
     }
     boolean getAllowReconciling()
     {
@@ -492,7 +512,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean old = _allowReconciling;
         _allowReconciling = allow;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_RECONCILING, old, allow);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_RECONCILING, old, allow);
     }
     boolean getAllowUncleared()
     {
@@ -502,7 +522,7 @@ class FarModel extends BasePropertyChangeReporter
     {
         final boolean old = _allowUncleared;
         _allowUncleared = allow;
-        _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_UNCLEARED, old, allow);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.CLEARED_UNCLEARED, old, allow);
     }
 
     FilterGroup buildTransactionFilter()
@@ -571,7 +591,7 @@ class FarModel extends BasePropertyChangeReporter
             _doReplaceCategory = replace;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_CATEGORY, old, replace);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_CATEGORY, old, replace);
     }
     boolean getReplaceCategory()
     {
@@ -586,6 +606,10 @@ class FarModel extends BasePropertyChangeReporter
             _replaceDirty = true;
         }
     }
+    Account getReplacementCategory()
+    {
+        return _replacementCategory;
+    }
 
     void setReplaceAmount(boolean replace)
     {
@@ -595,7 +619,7 @@ class FarModel extends BasePropertyChangeReporter
             _doReplaceAmount = replace;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_AMOUNT, old, replace);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_AMOUNT, old, replace);
     }
     boolean getReplaceAmount()
     {
@@ -622,7 +646,7 @@ class FarModel extends BasePropertyChangeReporter
             _doReplaceDescription = replace;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_DESCRIPTION, old, replace);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_DESCRIPTION, old, replace);
     }
     boolean getReplaceDescription()
     {
@@ -636,7 +660,7 @@ class FarModel extends BasePropertyChangeReporter
             _replaceFoundDescriptionOnly = foundTextOnly;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_DESCRIPTION_ONLY, old, 
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_DESCRIPTION_ONLY, old,
                                         foundTextOnly);
     }
     boolean getReplaceFoundDescriptionOnly()
@@ -665,7 +689,7 @@ class FarModel extends BasePropertyChangeReporter
             _doReplaceMemo = replace;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_MEMO, old, replace);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_MEMO, old, replace);
     }
     boolean getReplaceMemo()
     {
@@ -679,7 +703,7 @@ class FarModel extends BasePropertyChangeReporter
             _replaceFoundMemoOnly = foundTextOnly;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_MEMO_ONLY, old, 
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_MEMO_ONLY, old,
                                         foundTextOnly);
     }
     boolean getReplaceFoundMemoOnly()
@@ -708,7 +732,7 @@ class FarModel extends BasePropertyChangeReporter
             _doReplaceCheck = replace;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_CHECK, old, replace);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_CHECK, old, replace);
     }
     boolean getReplaceCheck()
     {
@@ -722,7 +746,7 @@ class FarModel extends BasePropertyChangeReporter
             _replaceFoundCheckOnly = foundTextOnly;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_CHECK_ONLY, old,
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_FOUND_CHECK_ONLY, old,
                                         foundTextOnly);
     }
     boolean getReplaceFoundCheckOnly()
@@ -751,7 +775,7 @@ class FarModel extends BasePropertyChangeReporter
             _doReplaceTags = replace;
             _replaceDirty = true;
         }
-        _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_TAGS, old, replace);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPLACE_TAGS, old, replace);
     }
     boolean getReplaceTags()
     {
@@ -778,6 +802,10 @@ class FarModel extends BasePropertyChangeReporter
             _replaceTagCommand = commandType;
             _replaceDirty = true;
         }
+    }
+    ReplaceTagCommandType getReplaceTagType()
+    {
+        return _replaceTagCommand;
     }
 
     public ReplaceCommand buildReplaceCommand()
@@ -937,7 +965,7 @@ class FarModel extends BasePropertyChangeReporter
                 }
             }
 
-            _eventNotify.firePropertyChange(N12EFindAndReplace.INCLUDE_TRANSFERS, old, include);
+            if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.INCLUDE_TRANSFERS, old, include);
         }
     }
 
@@ -953,7 +981,7 @@ class FarModel extends BasePropertyChangeReporter
             final boolean old = _showParents;
             _showParents = showParents;
             _findResultsModel.refresh();
-            _eventNotify.firePropertyChange(N12EFindAndReplace.SHOW_PARENTS, old, showParents);
+            if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.SHOW_PARENTS, old, showParents);
         }
     }
 
@@ -969,7 +997,7 @@ class FarModel extends BasePropertyChangeReporter
             final boolean old = _splitDescriptionAsMemo;
             _splitDescriptionAsMemo = useSplitDescriptionAsMemo;
             _findResultsModel.refresh();
-            _eventNotify.firePropertyChange(N12EFindAndReplace.SPLITS_AS_MEMOS, old, useSplitDescriptionAsMemo);
+            if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.SPLITS_AS_MEMOS, old, useSplitDescriptionAsMemo);
         }
     }
 

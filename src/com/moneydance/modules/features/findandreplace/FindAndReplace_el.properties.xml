@@ -3,8 +3,13 @@
 <properties>
     <!--  Common stuff -->
     <entry key="title.text">Εύρεση και Αντικατάσταση</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Έκδοση {0} (Build {1})</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Build {0}</entry>
+    <entry key="userGuide.label">Οδηγός χρήσης</entry>
+    <entry key="load">Φορτώστε</entry>
+    <entry key="save.title">Απομνημόνευση Βρίσκω</entry>
+    <entry key="save.prompt">Πληκτρολογήστε ένα μοναδικό όνομα που δεν είναι κενό</entry>
+    <error key="save.error">Το όνομα δεν είναι έγκυρο</error>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Βρίσκω</entry>

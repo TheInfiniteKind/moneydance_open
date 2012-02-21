@@ -4,8 +4,13 @@
     <!--  Common stuff -->
 
     <entry key="title.text">Encontrar e Substituir</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Versão {0} (Build {1})</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Build {0}</entry>
+    <entry key="userGuide.label">Guia do Usuário</entry>
+    <entry key="load">Carregue</entry>
+    <entry key="save.title">Memorizar Encontrar</entry>
+    <entry key="save.prompt">Digite um nome único que não está em branco</entry>
+    <entry key="save.error">O nome é inválido</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Encontrar</entry>

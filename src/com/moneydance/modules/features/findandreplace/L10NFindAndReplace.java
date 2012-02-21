@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -14,7 +14,7 @@ package com.moneydance.modules.features.findandreplace;
  * unused strings.</p>
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 83
  * @since 1.0
  */
 class L10NFindAndReplace
@@ -22,6 +22,11 @@ class L10NFindAndReplace
     public static final String LABEL_COLON = "labelColon";
     public static final String TITLE = "title.text"; // Find and Replace
     public static final String VERSION_FMT = "version.format"; //Version V (Build B)
+    public static final String USER_GUIDE = "userGuide.label"; // User Guide
+    public static final String LOAD = "load"; // Load
+    public static final String SAVE_SEARCH_TITLE = "save.title"; // Memorize Search
+    public static final String MEMORIZE_PROMPT = "save.prompt"; // Enter a unique name that is not blank:
+    public static final String MEMORIZE_ERROR = "save.error"; // The name is invalid
 
     public static final String FIND_LABEL = "findLabel.text"; // Find
     public static final String FIND_BOOL_LABEL = "combine_criteria"; // = Combine Criteria:

@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -23,11 +23,15 @@ import javax.swing.UIManager;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Desktop;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.regex.Pattern;
 
@@ -36,7 +40,7 @@ import java.util.regex.Pattern;
  * in other plugins.</p>
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 83
  * @since 1.0
  */
 final class FarUtil
@@ -224,6 +228,26 @@ final class FarUtil
         result.append(Integer.toString(point.y));
         return result.toString();
     }
+
+    public static void launchUserGuide()
+    {
+        if (Desktop.isDesktopSupported())
+        {
+            try
+            {
+                Desktop.getDesktop().browse(new URI("http://www.mennesoft.com/findandreplace/index.html#usage"));
+            }
+            catch (IOException e)
+            {
+                System.err.println("findandreplace: Unable to launch browser for user guide - IO exception");
+            }
+            catch (URISyntaxException e)
+            {
+                System.err.println("findandreplace: Unable to launch browser for user guide - URL issue");
+            }
+        }
+    }
+
 
     static void recurseAddFocusListener(final Container root, final FocusListener listener)
     {

@@ -4,8 +4,13 @@
     <!--  Common stuff -->
 
     <entry key="title.text">Buscar y Reemplazar</entry>
-    <!-- 0 = version, 1 = build -->
-    <entry key="version.format">Versión {0} (Construir {1})</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Construir {0}</entry>
+    <entry key="userGuide.label">Guía del Usuario</entry>
+    <entry key="load">Cargar</entry>
+    <entry key="save.title">Memorizar Buscar</entry>
+    <entry key="save.prompt">Escriba un nombre único que no está en blanco</entry>
+    <error key="save.error">El nombre no es válido</error>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Buscar</entry>

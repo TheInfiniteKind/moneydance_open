@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -12,13 +12,14 @@ import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.TxnTagSet;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.TxnTag;
+import com.moneydance.apps.md.view.gui.TagLogic;
 
 /**
  * <p>Filters transactions based upon what tags they have assigned to them. Only splits can
  * have tags, parent transactions do not.</p>
  * 
  * @author Kevin Menningen
- * @version 1.50
+ * @version Build 83
  * @since 1.0
  */
 class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
