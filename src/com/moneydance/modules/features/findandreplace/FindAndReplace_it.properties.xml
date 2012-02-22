@@ -10,7 +10,7 @@
     <entry key="load">Caricare</entry>
     <entry key="save.title">Memorizza Trovare</entry>
     <entry key="save.prompt">Immettere un nome univoco che non è vuoto</entry>
-    <error key="save.error">Il nome non è valido</error>
+    <entry key="save.error">Il nome non è valido</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Trovare</entry>

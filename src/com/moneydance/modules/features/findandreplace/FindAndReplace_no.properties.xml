@@ -10,7 +10,7 @@
     <entry key="load">Laste</entry>
     <entry key="save.title">Husk Finne</entry>
     <entry key="save.prompt">Angi et unikt navn som ikke er tom</entry>
-    <error key="save.error">Navnet er ugyldig</error>
+    <entry key="save.error">Navnet er ugyldig</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Finne</entry>

@@ -9,7 +9,7 @@
     <entry key="load">Φορτώστε</entry>
     <entry key="save.title">Απομνημόνευση Βρίσκω</entry>
     <entry key="save.prompt">Πληκτρολογήστε ένα μοναδικό όνομα που δεν είναι κενό</entry>
-    <error key="save.error">Το όνομα δεν είναι έγκυρο</error>
+    <entry key="save.error">Το όνομα δεν είναι έγκυρο</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Βρίσκω</entry>

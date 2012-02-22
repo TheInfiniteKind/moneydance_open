@@ -12,7 +12,7 @@
     <entry key="load">Load</entry>
     <entry key="save.title">Memorize Search</entry>
     <entry key="save.prompt">Enter a unique name that is not blank</entry>
-    <error key="save.error">The name is invalid</error>
+    <entry key="save.error">The name is invalid</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Find</entry>

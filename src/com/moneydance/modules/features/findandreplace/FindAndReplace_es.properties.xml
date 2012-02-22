@@ -10,7 +10,7 @@
     <entry key="load">Cargar</entry>
     <entry key="save.title">Memorizar Buscar</entry>
     <entry key="save.prompt">Escriba un nombre único que no está en blanco</entry>
-    <error key="save.error">El nombre no es válido</error>
+    <entry key="save.error">El nombre no es válido</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Buscar</entry>

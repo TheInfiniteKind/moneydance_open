@@ -9,7 +9,7 @@
     <entry key="load">Laden</entry>
     <entry key="save.title">Gemerkte Suchen</entry>
     <entry key="save.prompt">Geben Sie einen eindeutigen Namen, der nicht leer ist</entry>
-    <error key="save.error">Der Name ist ungültig</error>
+    <entry key="save.error">Der Name ist ungültig</entry>
 
     <!--  Find panel -->
     <entry key="findLabel.text">Suchen</entry>
