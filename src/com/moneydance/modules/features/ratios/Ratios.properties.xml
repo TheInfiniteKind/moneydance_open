@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ *************************************************************************
+  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~
+  ~ This code is released as open source under the Apache 2.0 License:<br/>
+  ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
+  ~ http://www.apache.org/licenses/LICENSE-2.0</a><br />
+  ~ *************************************************************************
+  -->
+
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <comment>All localizable strings used by the Ratios extension.
+    Other strings are pulled from Moneydance resources.</comment>
+
+  <entry key="title.text">Ratios</entry>
+  <entry key="homePageLabel">Ratios for</entry>
+
+  <!-- main configuration dialog -->
+  <entry key="settings.title">Ratio Calculator Settings</entry>
+  <entry key="showPercent">Show as percent %</entry>
+  <entry key="alwaysPositive">Always positive</entry>
+  <entry key="matchLabel">Transaction match</entry>
+  <entry key="txnInto">Into</entry>
+  <entry key="txnOutOf">Out of</entry>
+  <entry key="txnBoth">Both (difference)</entry>
+  <entry key="numerator">Numerator</entry>
+  <entry key="denominator">Denominator</entry>
+  <entry key="label">Label</entry>
+  <entry key="columnLabel">Ratio</entry>
+  <!-- Not a number - divide by zero or not defined -->
+  <entry key="nan">n/a</entry>
+  <entry key="generalSettings">General Settings</entry>
+  <entry key="decimals">Decimal places</entry>
+  <entry key="reportTitle">Ratio Report</entry>
+  <entry key="ratio">Ratio</entry>
+  <!-- This is a noun not a verb -->
+  <entry key="copy">Copy</entry>
+  <!-- Custom Date -->
+  <entry key="customDateMenu">Custom dates ...</entry>
+  <entry key="customDateTitle">Enter Custom Dates</entry>
+
+  <entry key="userGuide.label">Ratios User Guide</entry>
+
+  <!-- Dual Account Selector -->
+  <entry key="selAccountTitle">Select Accounts</entry>
+  <entry key="required">Required</entry>
+  <entry key="allowed">Allowed</entry>
+  <entry key="disallowed">Disallowed</entry>
+
+  <!-- Example Entries -->
+  <entry key="exNotes1">This is an example entry.</entry>
+  <entry key="exNotes2">Verify it is correct.</entry>
+  <entry key="exNotes3">Edit it as desired.</entry>
+  <entry key="exGrossIncome">Gross Income</entry>
+  <entry key="exTotalSavings">Total Savings</entry>
+  <entry key="exDtiName">Debt to Income (DTI)</entry>
+  <entry key="exDtiDebt">Total Debt</entry>
+  <entry key="exDtiNotes">Total debt divided by income.</entry>
+  <entry key="exStiName">Savings to Income (STI)</entry>
+  <entry key="exStiNotes">Total savings divided by income.</entry>
+  <entry key="exDstiName">Debt Service to Income</entry>
+  <entry key="exDstiDebt">Debt Payments</entry>
+  <entry key="exDstiNotes">The percentage of gross income that goes toward paying debts.</entry>
+  <entry key="exSRName">Savings Rate</entry>
+  <entry key="exSRSavings">Savings</entry>
+  <entry key="exSRNotes">The percentage of gross income that is saved in low-risk investments.</entry>
+  <entry key="exDtaName">Debt to Assets</entry>
+  <entry key="exDtaAssets">Total Assets</entry>
+  <entry key="exDtaNotes">Total debt divided by total assets.</entry>
+
+  <!-- Copied from Moneydance -->
+
+  <!-- other strings -->
+  <entry key="labelColon">:</entry>
+</properties>

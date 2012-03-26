@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ *************************************************************************
+  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~
+  ~ This code is released as open source under the Apache 2.0 License:<br/>
+  ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
+  ~ http://www.apache.org/licenses/LICENSE-2.0</a><br />
+  ~ *************************************************************************
+  -->
+
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <comment>All localizable strings used by the Ratios extension.
+    Other strings are pulled from Moneydance resources.</comment>
+
+  <entry key="title.text">Δείκτες</entry>
+  <entry key="homePageLabel">Δείκτες για το</entry>
+
+  <!-- main configuration dialog -->
+  <entry key="settings.title">Ρυθμίσεις Υπολογιστής Λόγος</entry>
+  <entry key="showPercent">Εμφάνιση ως ποσοστό %</entry>
+  <entry key="alwaysPositive">Πάντα θετική</entry>
+  <entry key="matchLabel">Ταιριάζει μέ συναλλαγή</entry>
+  <entry key="txnInto">σε αυτόν</entry>
+  <entry key="txnOutOf">βγαίνει από το</entry>
+  <entry key="txnBoth">Και οι δύο τρόποι (διαφορά)</entry>
+  <entry key="numerator">αριθμητή</entry>
+  <entry key="denominator">παρονομαστή</entry>
+  <entry key="label">Ετικέτα</entry>
+  <entry key="columnLabel">Αναλογία</entry>
+  <!-- Not a number - divide by zero or not defined -->
+  <entry key="nan">n/a</entry>
+  <entry key="generalSettings">Γενικές Ρυθμίσεις</entry>
+  <entry key="decimals">δεκαδικά ψηφία</entry>
+  <entry key="reportTitle">Αναλογία Report</entry>
+  <entry key="ratio">Αναλογία</entry>
+  <!-- This is a noun not a verb -->
+  <entry key="copy">αντίγραφο</entry>
+  <!-- Custom Date -->
+  <entry key="customDateMenu">Συγκεκριμένες ημερομηνίες ...</entry>
+  <entry key="customDateTitle">πληκτρολογείστε Συγκεκριμένες ημερομηνίες</entry>
+
+  <entry key="userGuide.label">Δείκτες Οδηγός χρήσης</entry>
+
+  <!-- Dual Account Selector -->
+  <entry key="selAccountTitle">Επιλογή Λογαριασμοί</entry>
+  <entry key="required">απαιτούνται</entry>
+  <entry key="allowed">τα κατοικίδια</entry>
+  <entry key="disallowed">να αρθεί</entry>
+
+  <!-- Example Entries -->
+  <entry key="exNotes1">Αυτό είναι ένα παράδειγμα εισόδου.</entry>
+  <entry key="exNotes2">Βεβαιωθείτε ότι είναι σωστό.</entry>
+  <entry key="exNotes3">Επεξεργαστείτε το όπως θέλετε.</entry>
+  <entry key="exGrossIncome">Ακαθάριστου εισοδήματος</entry>
+  <entry key="exTotalSavings">Συνολικές εξοικονομήσεις</entry>
+  <entry key="exDtiName">Χρέος προς Έσοδα</entry>
+  <entry key="exDtiDebt">Συνολικό χρέος</entry>
+  <entry key="exDtiNotes">Συνολικό χρέος διαιρούμενο με το εισόδημα.</entry>
+  <entry key="exStiName">Ταμιευτήριο να Έσοδα</entry>
+  <entry key="exStiNotes">Σύνολο ισορροπία εξοικονόμηση δια εισόδημα.</entry>
+  <entry key="exDstiName">Εξυπηρέτησης του χρέους προς Έσοδα</entry>
+  <entry key="exDstiDebt">Οι πληρωμές του χρέους</entry>
+  <entry key="exDstiNotes">Το ποσοστό του ακαθάριστου εισοδήματος που πάει προς την πληρωμή των χρεών.</entry>
+  <entry key="exSRName">Εξοικονόμηση ποσοστού</entry>
+  <entry key="exSRSavings">Οικονομίες</entry>
+  <entry key="exSRNotes">Το ποσοστό του ακαθάριστου εισοδήματος που είναι αποθηκευμένο σε χαμηλού κινδύνου επενδύσεις.</entry>
+  <entry key="exDtaName">Χρέος προς Ενεργητικό</entry>
+  <entry key="exDtaAssets">Σύνολο Ενεργητικού</entry>
+  <entry key="exDtaNotes">Το συνολικό χρέος διαιρούμενο με το σύνολο του ενεργητικού.</entry>
+
+  <!-- Copied from Moneydance -->
+
+  <!-- other strings -->
+  <entry key="labelColon">:</entry>
+</properties>

@@ -1,0 +1,213 @@
+/*
+ * ************************************************************************
+ * Copyright (C) 2012 Mennē Software Solutions, LLC
+ *
+ * This code is released as open source under the Apache 2.0 License:<br/>
+ * <a href="http://www.apache.org/licenses/LICENSE-2.0">
+ * http://www.apache.org/licenses/LICENSE-2.0</a><br />
+ * ************************************************************************
+ */
+
+package com.moneydance.modules.features.ratios;
+
+import com.moneydance.apps.md.model.RootAccount;
+import com.moneydance.apps.md.model.TxnTag;
+import com.moneydance.apps.md.model.TxnTagSet;
+import com.moneydance.apps.md.view.gui.MDAction;
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.TagLogic;
+import com.moneydance.apps.md.view.gui.select.ClickLabelListPanel;
+import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
+import com.moneydance.apps.md.view.resources.MDResourceProvider;
+import com.moneydance.awt.GridC;
+import com.moneydance.util.UiUtil;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JCheckBox;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+/**
+ * A tag filtering UI panel.
+ *
+ * @author Kevin Menningen
+ */
+class TxnTagFilterView extends JPanel {
+  private final MoneydanceGUI _mdGui;
+  private JCheckBox _useTagFilter;
+  private SearchTxnTagsField _tagField;
+  private JRadioButton _tagsAnd;
+  private JRadioButton _tagsExact;
+  private JRadioButton _tagsOr;
+  private ClickLabelListPanel _buttonPanel;
+
+  TxnTagFilterView(MoneydanceGUI mdGui) {
+    _mdGui = mdGui;
+  }
+
+  public void setEnabled(boolean enabled) {
+    super.setEnabled(enabled);
+    _useTagFilter.setEnabled(enabled);
+    _tagField.setEnabled(enabled);
+    _tagsAnd.setEnabled(enabled);
+    _tagsExact.setEnabled(enabled);
+    _tagsOr.setEnabled(enabled);
+    _buttonPanel.setEnabled(enabled);
+  }
+
+  void layoutUI() {
+    setLayout(new GridBagLayout());
+    setOpaque(false);
+
+    _useTagFilter = new JCheckBox();
+    _useTagFilter.setOpaque(false);
+//    _useTagFilter.setHorizontalAlignment(SwingConstants.RIGHT);
+//    _useTagFilter.setHorizontalTextPosition(SwingConstants.LEFT);
+    _tagField = new SearchTxnTagsField(_mdGui);
+    final JPanel tagLogicPanel = buildTagsPanel(_mdGui);
+    tagLogicPanel.setOpaque(false);
+
+    add(_useTagFilter, GridC.getc(0, 0).label());
+    // no bottom inset because the one below 'belongs' to it
+    add(_tagField, GridC.getc(1,0).wx(1).fillx().insets(
+            GridC.TOP_FIELD_INSET, GridC.LEFT_FIELD_INSET, 0, GridC.RIGHT_FIELD_INSET));
+    // no top inset because it 'belongs' to the field above it
+    add(tagLogicPanel, GridC.getc(1,1).wx(1).fillx().insets(
+            0, GridC.LEFT_FIELD_INSET, GridC.BOTTOM_FIELD_INSET, GridC.RIGHT_FIELD_INSET));
+
+    // initial conditions
+    reset();
+  }
+
+  void reset() {
+    _useTagFilter.setSelected(false);
+    _tagsOr.setSelected(true);
+    _tagField.selectNone();
+  }
+
+  /**
+   * @return The 'glue' logic to use while searching for transactions that match given tags.
+   */
+  TagLogic getTagLogic() {
+    if (!_useTagFilter.isSelected()) return TagLogic.OR;
+    if (_tagsExact.isSelected()) {
+      return TagLogic.EXACT;
+    } else if (_tagsAnd.isSelected()) {
+      return TagLogic.AND;
+    }
+    return TagLogic.OR;
+  }
+
+  String getSelectedTags() {
+    if (_useTagFilter.isSelected()) {
+      TxnTag tags[] = _tagField.getSelectedTags();
+      return TxnTagSet.getIDStringForTags(tags);
+    }
+    return null;
+  }
+
+  void setSelectedTags(final RootAccount root, final String tags, final TagLogic tagLogic) {
+    if (tags == null) {
+      // tags not used
+      reset();
+      return;
+    }
+    _tagField.setSelectedTags(root.getTxnTagSet().getTagsForIDString(tags));
+    if (TagLogic.AND.equals(tagLogic)) {
+      _tagsAnd.setSelected(true);
+    } else if (TagLogic.EXACT.equals(tagLogic)) {
+      _tagsExact.setSelected(true);
+    } else {
+      _tagsOr.setSelected(true);
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // Private Methods
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * @param resources Object capable of loading strings and other localizable resources.
+   * @return Settings for the transaction tags search criteria.
+   */
+  private JPanel buildTagsPanel(final MDResourceProvider resources)
+  {
+    final JPanel supportPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP * 2, 0));
+    supportPanel.setOpaque(false);
+    _buttonPanel = new ClickLabelListPanel();
+    _buttonPanel.setOpaque(false);
+
+    MDAction selectAll = MDAction.makeKeyedAction(_mdGui, "accountfilter.all", "accountfilter.all", new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        _tagField.selectAll();
+        _useTagFilter.setSelected(true);
+      }
+    });
+    _buttonPanel.addLabel(selectAll);
+
+    MDAction selectNone = MDAction.makeKeyedAction(_mdGui, "none", "accountfilter.none", new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        _tagField.selectNone();
+        _useTagFilter.setSelected(true);
+      }
+    });
+    _buttonPanel.addLabel(selectNone);
+    _buttonPanel.layoutUI();
+    supportPanel.add(_buttonPanel);
+
+    _tagsAnd = new JRadioButton(resources.getStr("findAnd.text"));
+    _tagsAnd.setOpaque(false);
+    _tagsOr = new JRadioButton(resources.getStr("findOr.text"));
+    _tagsOr.setOpaque(false);
+    _tagsExact = new JRadioButton(resources.getStr("findExact.text"));
+    _tagsExact.setOpaque(false);
+    supportPanel.add(_tagsAnd);
+    supportPanel.add(_tagsOr);
+    supportPanel.add(_tagsExact);
+
+    ButtonGroup tagBoolean = new ButtonGroup();
+    tagBoolean.add(_tagsAnd);
+    tagBoolean.add(_tagsOr);
+    tagBoolean.add(_tagsExact);
+    tagBoolean.setSelected(_tagsOr.getModel(), true);
+
+    return supportPanel;
+  }
+
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // Inner Classes
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * A tags selection control that has added ability to report when it has changed and to select
+   * all of the tags or none of them.
+   */
+  private class SearchTxnTagsField extends TxnTagsField
+  {
+    public SearchTxnTagsField(MoneydanceGUI mdGUI)
+    {
+      super(mdGUI, mdGUI.getCurrentAccount());
+    }
+
+    @Override
+    public synchronized void selectorButtonPressed() {
+        super.selectorButtonPressed();
+        _useTagFilter.setSelected(true);
+    }
+
+    void selectAll() {
+      setSelectedTags(_mdGui.getCurrentAccount().getTxnTagSet().getSortedTags());
+      repaint();
+    }
+
+    void selectNone() {
+      setSelectedTags(new TxnTag[0]);
+      repaint();
+    }
+  }
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ *************************************************************************
+  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~
+  ~ This code is released as open source under the Apache 2.0 License:<br/>
+  ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
+  ~ http://www.apache.org/licenses/LICENSE-2.0</a><br />
+  ~ *************************************************************************
+  -->
+
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <comment>All localizable strings used by the Ratios extension.
+    Other strings are pulled from Moneydance resources.</comment>
+
+  <entry key="title.text">Rácios</entry>
+  <entry key="homePageLabel">Rácios para</entry>
+
+  <!-- main configuration dialog -->
+  <entry key="settings.title">Calculadora Razão Preferências</entry>
+  <entry key="showPercent">Mostrar como uma porcentagem %</entry>
+  <entry key="alwaysPositive">Sempre positivo</entry>
+  <entry key="matchLabel">Transações corresponder</entry>
+  <entry key="txnInto">Entrada</entry>
+  <entry key="txnOutOf">Saída</entry>
+  <entry key="txnBoth">Ambos (diferença)</entry>
+  <entry key="numerator">Numerador</entry>
+  <entry key="denominator">Denominador</entry>
+  <entry key="label">Etiqueta</entry>
+  <entry key="columnLabel">Razão</entry>
+  <!-- Not a number - divide by zero or not defined -->
+  <entry key="nan">n/a</entry>
+  <entry key="generalSettings">Preferências Gerais</entry>
+  <entry key="decimals">Casas decimais</entry>
+  <entry key="reportTitle">Relatório da Razão</entry>
+  <entry key="ratio">Proporção</entry>
+  <!-- This is a noun not a verb -->
+  <entry key="copy">Cópia</entry>
+  <!-- Custom Date -->
+  <entry key="customDateMenu">Datas Customizadas ...</entry>
+  <entry key="customDateTitle">Entre em Datas Customizadas</entry>
+
+  <entry key="userGuide.label">Rácios Guia do Usuário</entry>
+
+  <!-- Dual Account Selector -->
+  <entry key="selAccountTitle">Selecionar Contas</entry>
+  <entry key="required">Obrigatório</entry>
+  <entry key="allowed">Permitido</entry>
+  <entry key="disallowed">Não permitido</entry>
+
+  <!-- Example Entries -->
+  <entry key="exNotes1">Esta é uma entrada exemplo.</entry>
+  <entry key="exNotes2">Verifique se está correto.</entry>
+  <entry key="exNotes3">Editá-lo como desejar.</entry>
+  <entry key="exGrossIncome">Receita Bruta</entry>
+  <entry key="exTotalSavings">Poupança Total</entry>
+  <entry key="exDtiName">Dívida à de Receita</entry>
+  <entry key="exDtiDebt">Dívida Total</entry>
+  <entry key="exDtiNotes">Dívida total dividido pela renda.</entry>
+  <entry key="exStiName">Poupança à de Receita</entry>
+  <entry key="exStiNotes">Poupança total dividido pela renda.</entry>
+  <entry key="exDstiName">Pagamentos da Dívida à de Receita</entry>
+  <entry key="exDstiDebt">Pagamentos da Dívida</entry>
+  <entry key="exDstiNotes">O percentual de receita bruta que vai para pagar dívidas.</entry>
+  <entry key="exSRName">Taxa de Poupança</entry>
+  <entry key="exSRSavings">Poupança</entry>
+  <entry key="exSRNotes">O percentual de receita bruta que é salvo em investimentos de baixo risco.</entry>
+  <entry key="exDtaName">Dívida to Ativos</entry>
+  <entry key="exDtaAssets">Total Ativos</entry>
+  <entry key="exDtaNotes">Dívida total dividido pelo total de ativos.</entry>
+
+  <!-- Copied from Moneydance -->
+
+  <!-- other strings -->
+  <entry key="labelColon">:</entry>
+</properties>

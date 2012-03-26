@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ *************************************************************************
+  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~
+  ~ This code is released as open source under the Apache 2.0 License:<br/>
+  ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
+  ~ http://www.apache.org/licenses/LICENSE-2.0</a><br />
+  ~ *************************************************************************
+  -->
+
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <comment>All localizable strings used by the Ratios extension.
+    Other strings are pulled from Moneydance resources.</comment>
+
+  <entry key="title.text">Kennzahlen</entry>
+  <entry key="homePageLabel">Kennzahlen für</entry>
+
+  <!-- main configuration dialog -->
+  <entry key="settings.title">Kennzahlen Taschenrechner Einstellungen</entry>
+  <entry key="showPercent">Zeige als prozentsatz %</entry>
+  <entry key="alwaysPositive">Immer positiv</entry>
+  <entry key="matchLabel">übereinstimmende Buchungen</entry>
+  <entry key="txnInto">Geht auf</entry>
+  <entry key="txnOutOf">Kommt aus</entry>
+  <entry key="txnBoth">Beiden (differenz)</entry>
+  <entry key="numerator">Zähler</entry>
+  <entry key="denominator">Nenner</entry>
+  <entry key="label">Bezeichnung</entry>
+  <entry key="columnLabel">Verhältnis</entry>
+  <!-- Not a number - divide by zero or not defined -->
+  <entry key="nan">n/a</entry>
+  <entry key="generalSettings">Allgemeine Einstellungen</entry>
+  <entry key="decimals">Dezimalstellen</entry>
+  <entry key="reportTitle">Verhältnis Bericht</entry>
+  <entry key="ratio">Verhältnis</entry>
+  <!-- This is a noun not a verb -->
+  <entry key="copy">Kopie</entry>
+  <!-- Custom Date -->
+  <entry key="customDateMenu">Benutzerdefiniert ...</entry>
+  <entry key="customDateTitle">Geben Benutzerdefiniert Daten</entry>
+  <entry key="userGuide.label">Kennzahlen Benutzerhandbuch</entry>
+
+  <!-- Dual Account Selector -->
+  <entry key="selAccountTitle">Konten Wählen</entry>
+  <entry key="required">Erforderlich ist</entry>
+  <entry key="allowed">Erlaubt</entry>
+  <entry key="disallowed">Nicht Erlaubt</entry>
+
+  <!-- Example Entries -->
+  <entry key="exNotes1">Dies ist ein Beispiel-Eintrag.</entry>
+  <entry key="exNotes2">Überprüfen Sie, ob es richtig ist.</entry>
+  <entry key="exNotes3">Bearbeiten Sie sie wie gewünscht.</entry>
+  <entry key="exGrossIncome">Brutto-Einkommen</entry>
+  <entry key="exTotalSavings">Insgesamt Sparguthaben</entry>
+  <entry key="exDtiName">Schulden vor Einkommen</entry>
+  <entry key="exDtiDebt">Gesamtverschuldung</entry>
+  <entry key="exDtiNotes">Die Gesamtverschuldung von Einkommen geteilt.</entry>
+  <entry key="exStiName">Sparguthaben von Einkommen</entry>
+  <entry key="exStiNotes">Insgesamt Sparguthaben von Einkommen geteilt.</entry>
+  <entry key="exDstiName">Schuldendienst vor Einkommen</entry>
+  <entry key="exDstiDebt">Schuldendienst</entry>
+  <entry key="exDstiNotes">Der Prozentsatz des Bruttoeinkommens, die in Richtung Schulden bezahlen geht.</entry>
+  <entry key="exSRName">Sparquote</entry>
+  <entry key="exSRSavings">Ersparnisse</entry>
+  <entry key="exSRNotes">Der Prozentsatz des Bruttoeinkommens, dass in risikoarme Anlagen gespeichert wird.</entry>
+  <entry key="exDtaName">Schulden vor Vermögen</entry>
+  <entry key="exDtaAssets">Bilanzsumme</entry>
+  <entry key="exDtaNotes">Die Gesamtverschuldung von bilanzsumme.</entry>
+
+  <!-- other strings -->
+  <entry key="labelColon">:</entry>
+</properties>

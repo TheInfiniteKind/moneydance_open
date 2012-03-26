@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ *************************************************************************
+  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~
+  ~ This code is released as open source under the Apache 2.0 License:<br/>
+  ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
+  ~ http://www.apache.org/licenses/LICENSE-2.0</a><br />
+  ~ *************************************************************************
+  -->
+
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <comment>All localizable strings used by the Ratios extension.
+    Other strings are pulled from Moneydance resources.</comment>
+
+  <entry key="title.text">Proportions</entry>
+  <entry key="homePageLabel">Proportions pour</entry>
+
+  <!-- main configuration dialog -->
+  <entry key="settings.title">Préférences Calculatrice Proportion</entry>
+  <entry key="showPercent">Voir comme un pourcentage %</entry>
+  <entry key="alwaysPositive">Toujours positif</entry>
+  <entry key="matchLabel">"Correspond à la transaction</entry>
+  <entry key="txnInto">Dans</entry>
+  <entry key="txnOutOf">En sort</entry>
+  <entry key="txnBoth">Tous (différence)</entry>
+  <entry key="numerator">Numérateur</entry>
+  <entry key="denominator">Dénominateur</entry>
+  <entry key="label">Étiquette</entry>
+  <entry key="columnLabel">Proportion</entry>
+  <!-- Not a number - divide by zero or not defined -->
+  <entry key="nan">n/a</entry>
+  <entry key="generalSettings">Préférences Généraux</entry>
+  <entry key="decimals">Décimales</entry>
+  <entry key="reportTitle">Rapport de la Proportion</entry>
+  <entry key="ratio">Proportion</entry>
+  <!-- This is a noun not a verb -->
+  <entry key="copy">Exemplaire</entry>
+  <!-- Custom Date -->
+  <entry key="customDateMenu">Dates spécifiques ...</entry>
+  <entry key="customDateTitle">Sélectionner Dates Spécifiques</entry>
+
+  <entry key="userGuide.label">Guide de l'utilisateur</entry>
+
+  <!-- Dual Account Selector -->
+  <entry key="selAccountTitle">Séléctionner les comptes</entry>
+  <entry key="required">Requis</entry>
+  <entry key="allowed">Admis</entry>
+  <entry key="disallowed">Rejeté</entry>
+
+  <!-- Example Entries -->
+  <entry key="exNotes1">Ceci est un exemple d'entrée.</entry>
+  <entry key="exNotes2">Vérifiez qu'elle est correcte.</entry>
+  <entry key="exNotes3">Modifier comme vous le souhaitez.</entry>
+  <entry key="exGrossIncome">Le Revenu Brut</entry>
+  <entry key="exTotalSavings">Économies Totale</entry>
+  <entry key="exDtiName">La Dette sur Le Revenu</entry>
+  <entry key="exDtiDebt">La Dette Totale</entry>
+  <entry key="exDtiNotes">La dette totale divisée par le revenu.</entry>
+  <entry key="exStiName">Les Économies sur Le Revenu</entry>
+  <entry key="exStiNotes">Les économies totales divisées par le revenu.</entry>
+  <entry key="exDstiName">Paiements de La Dette sur Le Revenu</entry>
+  <entry key="exDstiDebt">Paiements de La Dette</entry>
+  <entry key="exDstiNotes">Le pourcentage du revenu brut qu'il sert à payer les dettes.</entry>
+  <entry key="exSRName">Taux d'Épargne</entry>
+  <entry key="exSRSavings">Les Économies</entry>
+  <entry key="exSRNotes">Le pourcentage du revenu brut qui est enregistré dans les placements à faible risque.</entry>
+  <entry key="exDtaName">La Dette sur Des Actifs</entry>
+  <entry key="exDtaAssets">Des Actifs Totale</entry>
+  <entry key="exDtaNotes">La dette totale divisée par le total des actifs.</entry>
+
+  <!-- Copied from Moneydance -->
+
+  <!-- other strings -->
+  <entry key="labelColon"> :</entry>
+</properties>

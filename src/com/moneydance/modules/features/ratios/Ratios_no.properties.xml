@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ *************************************************************************
+  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~
+  ~ This code is released as open source under the Apache 2.0 License:<br/>
+  ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
+  ~ http://www.apache.org/licenses/LICENSE-2.0</a><br />
+  ~ *************************************************************************
+  -->
+
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <comment>All localizable strings used by the Ratios extension.
+    Other strings are pulled from Moneydance resources.</comment>
+
+  <entry key="title.text">Proporsjoner</entry>
+  <entry key="homePageLabel">Proporsjoner</entry>
+
+  <!-- main configuration dialog -->
+  <entry key="settings.title">Andel Kalkulator Innstillinger</entry>
+  <entry key="showPercent">Vis som en prosentandel %</entry>
+  <entry key="alwaysPositive">Alltid positiv</entry>
+  <entry key="matchLabel">Transaksjonen matche</entry>
+  <entry key="txnInto">Inn</entry>
+  <entry key="txnOutOf">Ut av</entry>
+  <entry key="txnBoth">Både (forskjellen)</entry>
+  <entry key="numerator">Teller</entry>
+  <entry key="denominator">Nevneren</entry>
+  <entry key="label">Etikett</entry>
+  <entry key="columnLabel">Andel</entry>
+  <!-- Not a number - divide by zero or not defined -->
+  <entry key="nan">n/a</entry>
+  <entry key="generalSettings">Generelle Innstillinger</entry>
+  <entry key="decimals">Desimaler</entry>
+  <entry key="reportTitle">Andel Rapport</entry>
+  <entry key="ratio">Andel</entry>
+  <!-- This is a noun not a verb -->
+  <entry key="copy">Kopi</entry>
+  <!-- Custom Date -->
+  <entry key="customDateMenu">Egendefinerte datoer ...</entry>
+  <entry key="customDateTitle">Angi Egendefinerte Datoer</entry>
+
+  <entry key="userGuide.label">Proporsjoner Brukerhåndbok</entry>
+
+  <!-- Dual Account Selector -->
+  <entry key="selAccountTitle">Velg Konti</entry>
+  <entry key="required">Påkrevd</entry>
+  <entry key="allowed">Er tillatt</entry>
+  <entry key="disallowed">Ikke tillatt</entry>
+
+  <!-- Example Entries -->
+  <entry key="exNotes1">Dette er et eksempel oppføring.</entry>
+  <entry key="exNotes2">Bekreft det er riktig.</entry>
+  <entry key="exNotes3">Redigere det som ønsket.</entry>
+  <entry key="exGrossIncome">Brutto Inntekt</entry>
+  <entry key="exTotalSavings">Total Sparekonto</entry>
+  <entry key="exDtiName">Gjeld til Inntekt</entry>
+  <entry key="exDtiDebt">Sum Gjeld</entry>
+  <entry key="exDtiNotes">Samlet gjeld fordelt etter inntekt.</entry>
+  <entry key="exStiName">Sparekonto til Inntekt</entry>
+  <entry key="exStiNotes">Sum sparekonto fordelt etter inntekt.</entry>
+  <entry key="exDstiName">Gjeld Betalinger til Inntekt</entry>
+  <entry key="exDstiDebt">Gjeld Betalinger</entry>
+  <entry key="exDstiNotes">Andelen av brutto inntekt som går mot å betale gjeld.</entry>
+  <entry key="exSRName">Sparerate</entry>
+  <entry key="exSRSavings">Sparekonto</entry>
+  <entry key="exSRNotes">Andelen av brutto inntekt som er lagret i lav-risiko investeringer.</entry>
+  <entry key="exDtaName">Gjeld til Eiendeler</entry>
+  <entry key="exDtaAssets">Sum Eiendeler</entry>
+  <entry key="exDtaNotes">Sum gjeld dividert med totale eiendeler.</entry>
+
+  <!-- Copied from Moneydance -->
+
+  <!-- other strings -->
+  <entry key="labelColon">:</entry>
+</properties>
