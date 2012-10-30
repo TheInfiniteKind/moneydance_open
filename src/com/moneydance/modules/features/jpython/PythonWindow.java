@@ -52,16 +52,14 @@ public class PythonWindow
     readFile = new JButton(rr.getString("r_f"));
 
     JPanel p = new JPanel(new GridBagLayout());
-    p.setBorder(new EmptyBorder(10,10,10,10));
-    p.add(new JScrollPane(pythonArea), AwtUtil.getConstraints(0,0,1,1,4,1,true,true));
-    p.add(inputArea, AwtUtil.getConstraints(0,1,1,0,5,1,true,true));
-    p.add(Box.createVerticalStrut(8), AwtUtil.getConstraints(0,2,0,0,1,1,false,false));
-    p.add(clearButton, AwtUtil.getConstraints(0,3,1,0,1,1,false,true));
-    p.add(closeButton, AwtUtil.getConstraints(1,3,1,0,1,1,false,true));
-    p.add(new JLabel(""), AwtUtil.getConstraints(2,3,1,0,1,1,true,true));
-    p.add(readFile, AwtUtil.getConstraints(3,3,1,0,1,1,false,true));
+    //p.setBorder(new EmptyBorder(10,10,10,10));
+    p.add(new JScrollPane(pythonArea), GridC.getc(0,0).wxy(1,1).colspan(4).fillboth());
+    p.add(inputArea, GridC.getc(0,1).colspan(4).fillboth().insets(2,0,8,0));
+    p.add(clearButton, GridC.getc(0,2).insets(4,4,4,4));
+    p.add(Box.createHorizontalStrut(200), GridC.getc(1,2).wx(1));
+    p.add(readFile, GridC.getc(3,2).insets(4,4,4,4));
     getContentPane().add(p);
-
+    
     setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     enableEvents(WindowEvent.WINDOW_CLOSING);
     closeButton.addActionListener(this);
@@ -129,13 +127,12 @@ public class PythonWindow
   }
 
   private void readAFile() {
-    JFileChooser fc = new JFileChooser();
-    fc.setDialogTitle("Choose Python File");
-    int returnVal = fc.showOpenDialog(this);
-    if(returnVal == JFileChooser.APPROVE_OPTION)
-    {
-      extension.runFile(fc.getSelectedFile(), interpreter);
-    }
+    FileDialog fwin = new FileDialog(this, "Choose Python Script File");
+    fwin.setVisible(true);
+    String filename = fwin.getFile();
+    String dirname = fwin.getDirectory();
+    if(filename==null || dirname==null) return;
+    extension.runFile(new File(new File(dirname), filename), interpreter);
   }
 
   private void processInputCommand() {
