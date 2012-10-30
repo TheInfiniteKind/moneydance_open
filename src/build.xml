@@ -117,7 +117,7 @@ http://jakarta.apache.org/ant/index.html
     </java>
       <delete file="${dist}/findandreplace.mxt" verbose="true" failonerror="false" />
     <move file="${src}/s-findandreplace.mxt" tofile="${dist}/findandreplace.mxt" verbose="true" failonerror="false" />
-    <copy file="${dist}/findandreplace.mxt" tofile="${install}/findandreplace.mxt" verbose="true" failonerror="false" />
+    <!--<copy file="${dist}/findandreplace.mxt" tofile="${install}/findandreplace.mxt" verbose="true" failonerror="false" />-->
   </target>
 
   
@@ -178,7 +178,7 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="yahooqt" depends="init" description="build the yahooqt.mxt">
     <build-mxt feature="yahooqt" javac-source="1.5" javac-target="1.5" />
-    <copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />
+    <!--<copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />-->
   </target>
 
   <target name="yahoofx" depends="init">
@@ -277,7 +277,7 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="jpython" depends="init">
     <delete file="${dist}/jpython.mxt"/>
-    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="1.5" source="1.5" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath" classpath="${lib}/jython-2_1.jar" destdir="${build}"
       includes="com/moneydance/modules/features/jpython/**"/>
     <jar destfile="${dist}/jpython.mxt">
