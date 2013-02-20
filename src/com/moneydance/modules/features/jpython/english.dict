@@ -3,4 +3,5 @@
 "close" = "Close"
 "r_f" = "Read from file"
 "w_f" = "Write to file"
+"error_running_script" = "There was an error running the script"
 }

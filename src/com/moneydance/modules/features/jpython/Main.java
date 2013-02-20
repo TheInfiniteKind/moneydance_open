@@ -6,17 +6,12 @@ package com.moneydance.modules.features.jpython;
 
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
-import com.moneydance.apps.md.controller.ModuleUtil;
-import com.moneydance.apps.md.controller.UserPreferences;
 
 import com.moneydance.apps.md.model.*;
 
 import org.python.util.PythonInterpreter;
-import org.python.core.*;
 
 import java.io.*;
-import java.util.*;
-import java.text.*;
 import java.awt.*;
 
 /** Pluggable module used to give users access to a Python
@@ -90,10 +85,13 @@ public class Main
       if(theIdx>=0) {
         filename = parameters.substring(theIdx+1);
       }
-      File file = new File(filename);
       PythonInterpreter interpreter = new PythonInterpreter();
       interpreter.set("moneydance", getUnprotectedContext());
-      runFile(file, interpreter);
+      try {
+          interpreter.execfile(filename);
+      } catch (Exception e) {
+          e.printStackTrace(System.err);
+      }
     }
     
     if(command.equals("runresource")||command.equals("runresource:")) {
@@ -104,23 +102,6 @@ public class Main
       }
       runResource(resourcename);
     }
-  }
-
-  public synchronized void runFile(File inputFile, PythonInterpreter interpreter) {
-    BufferedReader reader = null;
-    boolean fileNotFound = false;
-    try {
-      try {
-        reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile),"UTF8"));
-      } catch (FileNotFoundException fnfe) {
-        fileNotFound = true;
-        System.err.println("Python input file not found.");
-      }
-    } catch (UnsupportedEncodingException uee) {
-      System.err.println("Exception running file: "+uee);
-    }
-    if(!fileNotFound)
-      runSource(interpreter, reader);
   }
 
   private synchronized void runResource(String resourceToRun) {

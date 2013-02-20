@@ -92,11 +92,10 @@ public class PythonWindow
       System.err.println("IO Exception.");
     }
         
-    //Redirect System.out to the pythonArea
+    // Redirect System.out to the pythonArea
     PrintStream c = new PrintStream(new ConsoleStream());
-
-    //Instantiate the interpreter.
-    interpreter=new InteractiveConsole();
+    
+    interpreter = new InteractiveConsole();
     interpreter.setOut(c);
     interpreter.setErr(c);
 
@@ -107,7 +106,7 @@ public class PythonWindow
     setSize(500,400);
     AwtUtil.centerWindow(this);
   }
-
+    
   public void actionPerformed(ActionEvent evt) {
     Object src = evt.getSource();
     if(src==closeButton) {
@@ -125,14 +124,22 @@ public class PythonWindow
       addLine(">>> ");
     }
   }
-
+  
   private void readAFile() {
     FileDialog fwin = new FileDialog(this, "Choose Python Script File");
     fwin.setVisible(true);
     String filename = fwin.getFile();
     String dirname = fwin.getDirectory();
     if(filename==null || dirname==null) return;
-    extension.runFile(new File(new File(dirname), filename), interpreter);
+    File f = new File(dirname, filename); 
+    try {
+        interpreter.execfile(f.getAbsolutePath());
+    } catch (Exception e) {
+        e.printStackTrace(System.err);
+        JOptionPane.showMessageDialog(this,
+                                      rr.getString("error_running_script")+":\n  "+f.getAbsolutePath()+"\n\n "+e,
+                                      "", JOptionPane.ERROR_MESSAGE);
+    }
   }
 
   private void processInputCommand() {
