@@ -51,6 +51,7 @@ class RatioEntryEditorView extends JPanel {
   private JRadioButton _numeratorMatchOutOf;
   private JRadioButton _numeratorMatchBoth;
   private JRadioButton _numeratorEndBalance;
+  private JRadioButton _numeratorAvgBalance;
   private JTextField _numeratorLabelField;
   private AccountFilterSelectLabel _numeratorDualAcctSelector;
   private TxnTagFilterView _numeratorTagsView;
@@ -59,6 +60,7 @@ class RatioEntryEditorView extends JPanel {
   private JRadioButton _denominatorMatchOutOf;
   private JRadioButton _denominatorMatchBoth;
   private JRadioButton _denominatorEndBalance;
+  private JRadioButton _denominatorAvgBalance;
   private JTextField _denominatorLabelField;
   private AccountFilterSelectLabel _denominatorDualAcctSelector;
   private TxnTagFilterView _denominatorTagsView;
@@ -154,11 +156,18 @@ class RatioEntryEditorView extends JPanel {
     matchPanel.add(_numeratorMatchBoth);
     numeratorPanel.add(matchPanel, GridC.getc(3, y++).wx(1).fillx().insets(
         GridC.TOP_FIELD_INSET, 0, 0, 0));
+    JPanel matchPanel2 = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP * 2, 0));
+    matchPanel2.setOpaque(false);
     _numeratorEndBalance = new JRadioButton(_mdGui.getStr(L10NRatios.ENDING_BALANCE));
     _numeratorEndBalance.setOpaque(false);
     group.add(_numeratorEndBalance);
-    numeratorPanel.add(_numeratorEndBalance, GridC.getc(3, y++).wx(1).fillx().insets(
-        0, UiUtil.HGAP * 2, GridC.BOTTOM_FIELD_INSET + UiUtil.DLG_VGAP, 0));
+    matchPanel2.add(_numeratorEndBalance);
+    _numeratorAvgBalance = new JRadioButton(_resources.getString(L10NRatios.AVERAGE_BALANCE));
+    _numeratorAvgBalance.setOpaque(false);
+    group.add(_numeratorAvgBalance);
+    matchPanel2.add(_numeratorAvgBalance);
+    numeratorPanel.add(matchPanel2, GridC.getc(3, y++).wx(1).fillx().insets(
+      0, 0, GridC.BOTTOM_FIELD_INSET + UiUtil.DLG_VGAP, 0));
     // tag filtering
     numeratorPanel.add(new JLabel(UiUtil.getLabelText(_mdGui, L10NRatios.FILTER_BY_TAG)), GridC.getc(1, y).label().north());
     numeratorPanel.add(_numeratorTagsView, GridC.getc(3, y++).field());
@@ -200,11 +209,18 @@ class RatioEntryEditorView extends JPanel {
     matchPanel.add(_denominatorMatchBoth);
     denominatorPanel.add(matchPanel, GridC.getc(3, y++).wx(1).fillx().insets(
         GridC.TOP_FIELD_INSET, 0, 0, 0));
+    JPanel matchPanel2 = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP * 2, 0));
+    matchPanel2.setOpaque(false);
     _denominatorEndBalance = new JRadioButton(_mdGui.getStr(L10NRatios.ENDING_BALANCE));
     _denominatorEndBalance.setOpaque(false);
     group.add(_denominatorEndBalance);
-    denominatorPanel.add(_denominatorEndBalance, GridC.getc(3, y++).wx(1).fillx().insets(
-        0, UiUtil.HGAP * 2, GridC.BOTTOM_FIELD_INSET + UiUtil.DLG_VGAP, 0));
+    matchPanel2.add(_denominatorEndBalance);
+    _denominatorAvgBalance = new JRadioButton(_resources.getString(L10NRatios.AVERAGE_BALANCE));
+    _denominatorAvgBalance.setOpaque(false);
+    group.add(_denominatorAvgBalance);
+    matchPanel2.add(_denominatorAvgBalance);
+    denominatorPanel.add(matchPanel2, GridC.getc(3, y++).wx(1).fillx().insets(
+        0, 0, GridC.BOTTOM_FIELD_INSET + UiUtil.DLG_VGAP, 0));
     // tag filtering
     denominatorPanel.add(new JLabel(UiUtil.getLabelText(_mdGui, L10NRatios.FILTER_BY_TAG)), GridC.getc(1, y).label().north());
     denominatorPanel.add(_denominatorTagsView, GridC.getc(3, y++).field());
@@ -221,6 +237,7 @@ class RatioEntryEditorView extends JPanel {
     _numeratorMatchOutOf.addItemListener(numeratorListener);
     _numeratorMatchBoth.addItemListener(numeratorListener);
     _numeratorEndBalance.addItemListener(numeratorListener);
+    _numeratorAvgBalance.addItemListener(numeratorListener);
 
     final ItemListener denominatorListener = new ItemListener() {
       public void itemStateChanged(ItemEvent e) {
@@ -231,13 +248,14 @@ class RatioEntryEditorView extends JPanel {
     _denominatorMatchOutOf.addItemListener(denominatorListener);
     _denominatorMatchBoth.addItemListener(denominatorListener);
     _denominatorEndBalance.addItemListener(denominatorListener);
+    _denominatorAvgBalance.addItemListener(denominatorListener);
   }
 
   private void enableNumeratorControls() {
-    final boolean enabled = !_numeratorEndBalance.isSelected();
+    final boolean enabled = !_numeratorEndBalance.isSelected() && !_numeratorAvgBalance.isSelected();
     _numeratorTagsView.setEnabled(enabled);
     // if both parts are using balances, tax date is useless
-    if (!enabled && _denominatorEndBalance.isSelected()) {
+    if (!enabled && (_denominatorEndBalance.isSelected() || _denominatorAvgBalance.isSelected())) {
       _useTaxDate.setEnabled(false);
     } else {
       _useTaxDate.setEnabled(true);
@@ -245,10 +263,10 @@ class RatioEntryEditorView extends JPanel {
   }
 
   private void enableDenominatorControls() {
-    final boolean enabled = !_denominatorEndBalance.isSelected();
+    final boolean enabled = !_denominatorEndBalance.isSelected() && !_denominatorAvgBalance.isSelected();
     _denominatorTagsView.setEnabled(enabled);
     // if both parts are using balances, tax date is useless
-    if (!enabled && _numeratorEndBalance.isSelected()) {
+    if (!enabled && (_numeratorEndBalance.isSelected() || _numeratorAvgBalance.isSelected())) {
       _useTaxDate.setEnabled(false);
     } else {
       _useTaxDate.setEnabled(true);
@@ -275,8 +293,10 @@ class RatioEntryEditorView extends JPanel {
       _editingRatio.setNumeratorTxnMatchOutOf();
     } else if (_numeratorMatchBoth.isSelected()) {
       _editingRatio.setNumeratorTxnMatchBoth();
-    } else {
+    } else if (_numeratorEndBalance.isSelected()) {
       _editingRatio.setNumeratorEndBalanceOnly();
+    } else {
+      _editingRatio.setNumeratorAverageBalance();
     }
     if (_denominatorMatchInto.isSelected()) {
       _editingRatio.setDenominatorTxnMatchInto();
@@ -284,8 +304,10 @@ class RatioEntryEditorView extends JPanel {
       _editingRatio.setDenominatorTxnMatchOutOf();
     } else if (_denominatorMatchBoth.isSelected()) {
       _editingRatio.setDenominatorTxnMatchBoth();
-    } else {
+    } else if (_denominatorEndBalance.isSelected()) {
       _editingRatio.setDenominatorEndBalanceOnly();
+    } else {
+      _editingRatio.setDenominatorAverageBalance();
     }
     _editingRatio.setNumeratorLabel(_numeratorLabelField.getText());
     _editingRatio.setDenominatorLabel(_denominatorLabelField.getText());
@@ -330,8 +352,10 @@ class RatioEntryEditorView extends JPanel {
       _numeratorMatchOutOf.setSelected(true);
     } else if (_editingRatio.getNumeratorTxnMatchBoth()) {
       _numeratorMatchBoth.setSelected(true);
-    } else {
+    } else if (_editingRatio.getNumeratorEndBalanceOnly()) {
       _numeratorEndBalance.setSelected(true);
+    } else {
+      _numeratorAvgBalance.setSelected(true);
     }
     if (_editingRatio.getDenominatorTxnMatchInto()) {
       _denominatorMatchInto.setSelected(true);
@@ -339,8 +363,10 @@ class RatioEntryEditorView extends JPanel {
       _denominatorMatchOutOf.setSelected(true);
     } else if (_editingRatio.getDenominatorTxnMatchBoth()) {
       _denominatorMatchBoth.setSelected(true);
-    } else {
+    } else if (_editingRatio.getDenominatorEndBalanceOnly()) {
       _denominatorEndBalance.setSelected(true);
+    } else {
+      _denominatorAvgBalance.setSelected(true);
     }
     _numeratorLabelField.setText(_editingRatio.getNumeratorLabel());
     _denominatorLabelField.setText(_editingRatio.getDenominatorLabel());

@@ -14,59 +14,60 @@
   <comment>All localizable strings used by the Ratios extension.
     Other strings are pulled from Moneydance resources.</comment>
 
-  <entry key="title.text">Proporciónes</entry>
-  <entry key="homePageLabel">Proporciónes para</entry>
+  <entry key="title.text">Ratios</entry>
+  <entry key="homePageLabel">Ratios para</entry>
 
   <!-- main configuration dialog -->
-  <entry key="settings.title">Configuración Proporción Calculadora</entry>
-  <entry key="showPercent">Mostrar como porcentaje %</entry>
+  <entry key="settings.title">Configuración Calculadora Ratios</entry>
+  <entry key="showPercent">Mostrar como %</entry>
   <entry key="alwaysPositive">Siempre positivo</entry>
   <entry key="matchLabel">Transacción coinciden</entry>
-  <entry key="txnInto">En</entry>
-  <entry key="txnOutOf">Fuera</entry>
+  <entry key="txnInto">Entrada</entry>
+  <entry key="txnOutOf">Salida</entry>
   <entry key="txnBoth">Ambos (diferencia)</entry>
   <entry key="numerator">Numerador</entry>
   <entry key="denominator">Denominador</entry>
   <entry key="label">Etiqueta</entry>
-  <entry key="columnLabel">Proporción</entry>
+  <entry key="columnLabel">Ratio</entry>
   <!-- Not a number - divide by zero or not defined -->
   <entry key="nan">n/a</entry>
-  <entry key="generalSettings">Configuración Général</entry>
+  <entry key="generalSettings">Configuración General</entry>
   <entry key="decimals">Decimales</entry>
-  <entry key="reportTitle">Reporte de la Proporción</entry>
-  <entry key="ratio">Proporción</entry>
+  <entry key="reportTitle">Informe de Ratios</entry>
+  <entry key="ratio">Ratio</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Copia</entry>
+  <entry key="avg_balance">Balance Promedio</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Fechas ...</entry>
-  <entry key="customDateTitle">Introduzca las Fechas de Encargo</entry>
+  <entry key="customDateTitle">Introduzca las Fechas Elegidas</entry>
 
-  <entry key="userGuide.label">Guía del Usuario</entry>
+  <entry key="userGuide.label">Guía de Usuario</entry>
 
   <!-- Dual Account Selector -->
-  <entry key="selAccountTitle">Cuentas Seleccionados</entry>
-  <entry key="required">Requiere</entry>
-  <entry key="allowed">Animales</entry>
+  <entry key="selAccountTitle">Cuentas Seleccionadas</entry>
+  <entry key="required">Requerido</entry>
+  <entry key="allowed">Permitido</entry>
   <entry key="disallowed">No Permitido</entry>
 
   <!-- Example Entries -->
-  <entry key="exNotes1">Esta es una entrada de ejemplo.</entry>
+  <entry key="exNotes1">Esto es una entrada de ejemplo.</entry>
   <entry key="exNotes2">Compruebe que es correcto.</entry>
-  <entry key="exNotes3">Editarlo a su gusto.</entry>
+  <entry key="exNotes3">Edítelo a su gusto.</entry>
   <entry key="exGrossIncome">Ingresos Brutos</entry>
-  <entry key="exTotalSavings">Ahorros Total</entry>
+  <entry key="exTotalSavings">Ahorro Total</entry>
   <entry key="exDtiName">Deudas sobre Ingresos</entry>
-  <entry key="exDtiDebt">Deudas Total</entry>
+  <entry key="exDtiDebt">Deuda Total</entry>
   <entry key="exDtiNotes">La deuda total dividido por los ingresos.</entry>
   <entry key="exStiName">Ahorros sobre Ingresos</entry>
   <entry key="exStiNotes">El ahorro total dividido por los ingresos.</entry>
-  <entry key="exDstiName">Servicio de la Deuda sobre Ingresos</entry>
-  <entry key="exDstiDebt">Los Pagos de los Deudas</entry>
+  <entry key="exDstiName">Ratio de Deuda sobre Ingresos</entry>
+  <entry key="exDstiDebt">Deudas</entry>
   <entry key="exDstiNotes">El porcentaje de los ingresos brutos que se destina a pagar las deudas.</entry>
-  <entry key="exSRName">Tasa de Ahorros</entry>
-  <entry key="exSRSavings">Ahorros</entry>
+  <entry key="exSRName">Tasa de Ahorro</entry>
+  <entry key="exSRSavings">Ahorro</entry>
   <entry key="exSRNotes">El porcentaje de los ingresos brutos que se guarda en inversiones de bajo riesgo.</entry>
-  <entry key="exDtaName">Deudas sobre Activo</entry>
+  <entry key="exDtaName">Deuda sobre Activo</entry>
   <entry key="exDtaAssets">Activo Total</entry>
   <entry key="exDtaNotes">La deuda total dividida por el total de activos.</entry>
 

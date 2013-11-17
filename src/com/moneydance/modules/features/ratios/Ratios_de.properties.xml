@@ -18,13 +18,13 @@
   <entry key="homePageLabel">Kennzahlen für</entry>
 
   <!-- main configuration dialog -->
-  <entry key="settings.title">Kennzahlen Taschenrechner Einstellungen</entry>
-  <entry key="showPercent">Zeige als prozentsatz %</entry>
+  <entry key="settings.title">Einstellungen Kennzahlenrechner</entry>
+  <entry key="showPercent">Zeige als Prozentsatz %</entry>
   <entry key="alwaysPositive">Immer positiv</entry>
   <entry key="matchLabel">übereinstimmende Buchungen</entry>
   <entry key="txnInto">Geht auf</entry>
   <entry key="txnOutOf">Kommt aus</entry>
-  <entry key="txnBoth">Beiden (differenz)</entry>
+  <entry key="txnBoth">Beides (Differenz)</entry>
   <entry key="numerator">Zähler</entry>
   <entry key="denominator">Nenner</entry>
   <entry key="label">Bezeichnung</entry>
@@ -37,10 +37,11 @@
   <entry key="ratio">Verhältnis</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Kopie</entry>
+  <entry key="avg_balance">Durchschnittkontostand</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Benutzerdefiniert ...</entry>
-  <entry key="customDateTitle">Geben Benutzerdefiniert Daten</entry>
-  <entry key="userGuide.label">Kennzahlen Benutzerhandbuch</entry>
+  <entry key="customDateTitle">Benutzerdefinierte Daten eingeben</entry>
+  <entry key="userGuide.label">Benutzerhandbuch Kennzahlenrechner</entry>
 
   <!-- Dual Account Selector -->
   <entry key="selAccountTitle">Konten Wählen</entry>
@@ -50,24 +51,24 @@
 
   <!-- Example Entries -->
   <entry key="exNotes1">Dies ist ein Beispiel-Eintrag.</entry>
-  <entry key="exNotes2">Überprüfen Sie, ob es richtig ist.</entry>
-  <entry key="exNotes3">Bearbeiten Sie sie wie gewünscht.</entry>
+  <entry key="exNotes2">Überprüfen Sie, ob er richtig ist.</entry>
+  <entry key="exNotes3">Bearbeiten Sie dies, wie gewünscht.</entry>
   <entry key="exGrossIncome">Brutto-Einkommen</entry>
-  <entry key="exTotalSavings">Insgesamt Sparguthaben</entry>
+  <entry key="exTotalSavings">Gesamtes Sparguthaben</entry>
   <entry key="exDtiName">Schulden vor Einkommen</entry>
   <entry key="exDtiDebt">Gesamtverschuldung</entry>
-  <entry key="exDtiNotes">Die Gesamtverschuldung von Einkommen geteilt.</entry>
+  <entry key="exDtiNotes">Gesamtverschuldung zu Einkommen.</entry>
   <entry key="exStiName">Sparguthaben von Einkommen</entry>
   <entry key="exStiNotes">Insgesamt Sparguthaben von Einkommen geteilt.</entry>
   <entry key="exDstiName">Schuldendienst vor Einkommen</entry>
   <entry key="exDstiDebt">Schuldendienst</entry>
-  <entry key="exDstiNotes">Der Prozentsatz des Bruttoeinkommens, die in Richtung Schulden bezahlen geht.</entry>
+  <entry key="exDstiNotes">Der Prozentsatz des Bruttoeinkommens, der für Schuldendienst benötigt wird.</entry>
   <entry key="exSRName">Sparquote</entry>
   <entry key="exSRSavings">Ersparnisse</entry>
-  <entry key="exSRNotes">Der Prozentsatz des Bruttoeinkommens, dass in risikoarme Anlagen gespeichert wird.</entry>
-  <entry key="exDtaName">Schulden vor Vermögen</entry>
-  <entry key="exDtaAssets">Bilanzsumme</entry>
-  <entry key="exDtaNotes">Die Gesamtverschuldung von bilanzsumme.</entry>
+  <entry key="exSRNotes">Der Prozentsatz des Bruttoeinkommens, der in risikoarmen Anlagen angelegt wird.</entry>
+  <entry key="exDtaName">Schulden zu Vermögen</entry>
+  <entry key="exDtaAssets">Gesamtvermögen</entry>
+  <entry key="exDtaNotes">Die Gesamtverschuldung als Teil des Gesamtvermögens.</entry>
 
   <!-- other strings -->
   <entry key="labelColon">:</entry>

@@ -5,5 +5,5 @@
   "module_desc" = "<html><body><title>Ratio Calculator</title><p>Allows you to create fully customizable ratios. For Moneydance 2011 or later.</p></body></html>"
   "desc" = "Show a custom list of ratios on your home page. Examples include savings rate, debt-to-income ratio, or debt to assets. For Moneydance 2011 or later."
   "id" = "mennesoft.ratios"
-  "module_build" = "14"
+  "module_build" = "18"
 }

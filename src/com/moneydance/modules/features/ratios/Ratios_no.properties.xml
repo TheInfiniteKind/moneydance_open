@@ -37,6 +37,7 @@
   <entry key="ratio">Andel</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Kopi</entry>
+  <entry key="avg_balance">Gjennomsnittlig saldo</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Egendefinerte datoer ...</entry>
   <entry key="customDateTitle">Angi Egendefinerte Datoer</entry>

@@ -91,6 +91,8 @@ class RatioPart {
   boolean getTxnMatchOutOf() { return TxnMatchLogic.OUT.equals(_txnMatchLogic); }
   void setEndBalanceOnly() { _txnMatchLogic = TxnMatchLogic.END_BALANCE; }
   boolean getEndBalanceOnly() { return TxnMatchLogic.END_BALANCE.equals(_txnMatchLogic); }
+  void setAverageBalance() { _txnMatchLogic = TxnMatchLogic.AVERAGE_BALANCE; }
+  boolean getAverageBalance() { return TxnMatchLogic.AVERAGE_BALANCE.equals(_txnMatchLogic); }
 
   String getLabel() { return _label; }
   void setLabel(final String label) { _label = label; }
@@ -189,7 +191,7 @@ class RatioPart {
   }
 
   void prepareForTxnProcessing(final RootAccount root, final DateRange dateRange, final boolean useTaxDate) {
-    if (getEndBalanceOnly()) return; // nothing to do
+    if (getEndBalanceOnly() || getAverageBalance()) return; // nothing to do
     _baseCurrency = root.getCurrencyTable().getBaseType();
     _txnValue = 0;
     _dateFilter = new TxnDateSearch(dateRange.getStartDateInt(), dateRange.getEndDateInt(), useTaxDate);
@@ -226,7 +228,7 @@ class RatioPart {
    * @param reporting The reporting callback interface to add the transaction to.
    */
   void accumulateTxn(final Txn txn, final IRatioReporting reporting) {
-    if (getEndBalanceOnly()) return; // nothing to do
+    if (getEndBalanceOnly() || getAverageBalance()) return; // nothing to do
     if (!_dateFilter.matches(txn)) return; // does not match the date range
     if ((_tagFilter != null) && !_tagFilter.matches(txn)) return;
     // There is an assumption here that an account can't be simultaneously required and disallowed.
@@ -277,7 +279,7 @@ class RatioPart {
   }
 
   void endTxnProcessing() {
-    if (getEndBalanceOnly()) return; // nothing to do
+    if (getEndBalanceOnly() || getAverageBalance()) return; // nothing to do
     // convert to the base currency value as a double
     setValue(_baseCurrency.getDoubleValue(_txnValue));
   }

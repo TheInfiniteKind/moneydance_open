@@ -39,7 +39,7 @@ import java.util.ResourceBundle;
 public class Main
     extends FeatureModule
     implements ResourceProvider {
-  public static final String VERSION = "Build 14"; // should match meta_info.dict
+  public static final String VERSION = "Build 18"; // should match meta_info.dict
   private final PreferencesListener _prefListener = new RatiosPreferencesListener();
   private final RatiosExtensionModel _model;
   private RatiosHomeView _homePageView = null;

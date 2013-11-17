@@ -90,9 +90,10 @@ class RatioReportGenerator extends ReportGenerator {
     // numerator
     report.addRow(RecordRow.BLANK_ROW);
     addTitleRow(report, L10NRatios.NUMERATOR, _ratio.getNumeratorLabel());
-    if (_ratio.getNumeratorEndBalanceOnly()) {
+    if (_ratio.getNumeratorEndBalanceOnly() || _ratio.getNumeratorAverageBalance()) {
       addSubtitleRow(report, mdGUI.getStr("accounts"));
-      addBalanceRows(baseCurrency, _ratio.getNumeratorRequiredAccountList(), dateRange, true);
+      boolean useDailyAverage = _ratio.getNumeratorAverageBalance();
+      addBalanceRows(baseCurrency, _ratio.getNumeratorRequiredAccountList(), dateRange, useDailyAverage, true);
     } else {
       addSubtitleRow(report, mdGUI.getStr("report_transactions"));
       addTransactionRows(dateRange, true);
@@ -103,9 +104,10 @@ class RatioReportGenerator extends ReportGenerator {
     // denominator
     report.addRow(RecordRow.BLANK_ROW);
     addTitleRow(report, L10NRatios.DENOMINATOR, _ratio.getDenominatorLabel());
-    if (_ratio.getDenominatorEndBalanceOnly()) {
+    if (_ratio.getDenominatorEndBalanceOnly() || _ratio.getDenominatorAverageBalance()) {
       addSubtitleRow(report, mdGUI.getStr("accounts"));
-      addBalanceRows(baseCurrency, _ratio.getDenominatorRequiredAccountList(), dateRange, false);
+      boolean useDailyAverage = _ratio.getDenominatorAverageBalance();
+      addBalanceRows(baseCurrency, _ratio.getDenominatorRequiredAccountList(), dateRange, useDailyAverage, false);
     } else {
       addSubtitleRow(report, mdGUI.getStr("report_transactions"));
       addTransactionRows(dateRange, false);
@@ -260,11 +262,12 @@ class RatioReportGenerator extends ReportGenerator {
   }
 
   private void addBalanceRows(final CurrencyType baseCurrency, final List<Account> accountList, final DateRange dateRange,
+                              final boolean useDailyAverage,
                               final boolean isNumerator) {
     _reporting.startReportSection();
     // For now we compute both starting and ending balance, and just use the end balance, later we may use both
     // of them as a different mode. This does not appreciably slow down the calculation.
-    final long result = _computer.computeBalanceResult(dateRange, baseCurrency, accountList, _reporting);
+    final long result = _computer.computeBalanceResult(dateRange, baseCurrency, accountList, useDailyAverage, _reporting);
     if (isNumerator) {
       _ratio.setNumeratorValue(baseCurrency.getDoubleValue(result));
     } else {
@@ -314,7 +317,7 @@ class RatioReportGenerator extends ReportGenerator {
     rpt.addRow(row);
   }
 
-  void addAccountTypeRow(Report rpt, int accountType) {
+  void addAccountTypeRow(Report rpt, int accountType, boolean isAverageBalance, boolean showAmountTitle) {
     final String[] labels = new String[NUM_COLUMNS];
     final byte[] align = new byte[NUM_COLUMNS];
     final byte[] color = new byte[NUM_COLUMNS];
@@ -323,6 +326,11 @@ class RatioReportGenerator extends ReportGenerator {
     RecordRow row = new RecordRow(labels, align, color, style, totals);
 
     labels[0] = RatiosUtil.getAccountTypeNameAllCaps(mdGUI, accountType);
+    if (showAmountTitle && isAverageBalance) {
+      labels[4] = _mainModel.getResources().getString(L10NRatios.AVERAGE_BALANCE);
+    } else if (showAmountTitle) {
+      labels[4] = mdGUI.getStr(L10NRatios.ENDING_BALANCE);
+    }
     style[0] = RecordRow.STYLE_PLAIN;
     align[0] = RecordRow.ALIGN_LEFT;
     for (int index = 1; index < NUM_COLUMNS; index++) {
@@ -333,7 +341,8 @@ class RatioReportGenerator extends ReportGenerator {
     rpt.addRow(row);
   }
 
-  void addAccountTypeSubtotalRow(Report report, int accountType, CurrencyType baseCurrency, long subtotal) {
+  void addAccountTypeSubtotalRow(Report report, int accountType, CurrencyType baseCurrency, long subtotal,
+                                 boolean isAverageBalance, int endingDate) {
     final String[] labels = new String[NUM_COLUMNS];
     final byte[] align = new byte[NUM_COLUMNS];
     final byte[] color = new byte[NUM_COLUMNS];
@@ -355,7 +364,7 @@ class RatioReportGenerator extends ReportGenerator {
     totals[1] = RecordRow.TOTAL_SUBTOTAL;
 
     // Date
-    labels[2] = " ";
+    labels[2] = (isAverageBalance || (endingDate == 0)) ? " " : _dateFormat.format(endingDate);
     totals[2] = RecordRow.TOTAL_SUBTOTAL;
 
     // Description
@@ -376,8 +385,9 @@ class RatioReportGenerator extends ReportGenerator {
 
   RecordRow createAccountReportRow(BalanceHolder accountResult, boolean showFullAccountName,
                                    CurrencyType baseCurrency, int[] widths) {
+    final long accountBalance = accountResult.isAverageBalanceComputed() ? accountResult.getAverageBalance() : accountResult.getEndBalance();
     // do not show zero balance accounts - currently only checking the end balance since that is all we use
-    if (accountResult.getEndBalance() == 0) return null;
+    if (accountBalance == 0) return null;
 
     final Account account = accountResult.getAccount();
     final String[] labels = new String[NUM_COLUMNS];
@@ -408,10 +418,10 @@ class RatioReportGenerator extends ReportGenerator {
     //               and the start balance.
     if (!baseCurrency.equals(account.getCurrencyType())) {
       CurrencyType accountCurrency = account.getCurrencyType();
-      long accountBalance = CurrencyUtil.convertValue(accountResult.getEndBalance(),
+      long displayBalance = CurrencyUtil.convertValue(accountBalance,
                                                       baseCurrency, accountCurrency,
                                                       accountResult.getEndDate());
-      labels[3] = accountCurrency.formatFancy(accountBalance, _dec);
+      labels[3] = accountCurrency.formatFancy(displayBalance, _dec);
       widths[3] = Math.max(widths[3], measureStringWidth(labels[3], _graphics, fontMetrics));
     } else {
       labels[3] = N12ERatios.EMPTY;
@@ -420,12 +430,11 @@ class RatioReportGenerator extends ReportGenerator {
     align[3] = RecordRow.ALIGN_LEFT;
 
     // Amount - ending balance
-    final long result = accountResult.getEndBalance();
-    labels[4] = baseCurrency.formatFancy(result, _dec);
+    labels[4] = baseCurrency.formatFancy(accountBalance, _dec);
     widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
     style[4] = RecordRow.STYLE_PLAIN;
     align[4] = RecordRow.ALIGN_RIGHT;
-    color[4] = (result < 0) ? RecordRow.COLOR_RED : RecordRow.COLOR_BLACK;
+    color[4] = (accountBalance < 0) ? RecordRow.COLOR_RED : RecordRow.COLOR_BLACK;
 
     return row;
   } // createAccountReportRow()

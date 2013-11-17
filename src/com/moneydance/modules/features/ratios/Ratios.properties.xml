@@ -37,6 +37,7 @@
   <entry key="ratio">Ratio</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Copy</entry>
+  <entry key="avg_balance">Average Balance</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Custom dates ...</entry>
   <entry key="customDateTitle">Enter Custom Dates</entry>

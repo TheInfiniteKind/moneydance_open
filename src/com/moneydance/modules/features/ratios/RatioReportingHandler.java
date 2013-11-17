@@ -10,6 +10,7 @@
 
 package com.moneydance.modules.features.ratios;
 
+import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.Txn;
@@ -75,8 +76,9 @@ class RatioReportingHandler
     _txnCache.clear();
   }
 
-  public void addAccountResult(Account account, long startBalance, long endBalance, int startDate, int endDate) {
-    _accountCache.put(account, new BalanceHolder(account, startBalance, endBalance, startDate, endDate));
+  public void addAccountResult(Account account, long startBalance, long endBalance, long averageBalance, 
+                               boolean useAverage, int startDate, int endDate) {
+    _accountCache.put(account, new BalanceHolder(account, startBalance, endBalance, averageBalance, startDate, endDate, useAverage));
   }
 
   public void endReportAccountSection() {
@@ -85,27 +87,36 @@ class RatioReportingHandler
     int accountType = -1;
     long typeTotal = 0;
     final int rowsAtStart = _report.getRowCount();
+    boolean isAverageBalance = false;
+    int endingDate = Util.getStrippedDateInt();
     for (Account account : sortedAccounts) {
+      // skip any account that is not active - they are hidden by default
+      if (account.getAccountOrParentIsInactive()) continue;
       final BalanceHolder result = _accountCache.get(account);
       RecordRow row = _reportGenerator.createAccountReportRow(result, _showFullAccountName,
                                                               _baseCurrency, _widths);
+      // these won't change from account to account
+      isAverageBalance = result.isAverageBalanceComputed();
+      endingDate = result.getEndDate();
       if (row != null) {
         if (account.getAccountType() != accountType) {
           // close up shop on the previous type, skipping -1 and 0 (root account type)
-          if (accountType > 0) _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal);
+          if (accountType > 0) _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal,
+                                                                          isAverageBalance, endingDate);
           typeTotal = 0;
           // change to the new type
           accountType = account.getAccountType();
           // add a header
-          _reportGenerator.addAccountTypeRow(_report, accountType);
+          _reportGenerator.addAccountTypeRow(_report, accountType, isAverageBalance, true);
         }
         _report.addRow(row);
-        typeTotal += result.getEndBalance();
+        typeTotal += isAverageBalance ? result.getAverageBalance() : result.getEndBalance();
       }
     }
     // wrap up last account type if needed
     if ((_report.getRowCount() != rowsAtStart) && (accountType > 0)) {
-      _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal);
+      _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal,
+                                                 isAverageBalance, endingDate);
     }
   }
 
@@ -128,12 +139,13 @@ class RatioReportingHandler
       if (row != null) {
         if (txn.getAccount().getAccountType() != accountType) {
           // close up shop on the previous type, skipping -1 and 0 (root account type)
-          if (accountType > 0) _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal);
+          if (accountType > 0) _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal,
+                                                                          true, 0);
           typeTotal = 0;
           // change to the new type
           accountType = txn.getAccount().getAccountType();
           // add a header
-          _reportGenerator.addAccountTypeRow(_report, accountType);
+          _reportGenerator.addAccountTypeRow(_report, accountType, false, false);
         }
         _report.addRow(row);
         typeTotal += info.convertedValue;
@@ -141,7 +153,7 @@ class RatioReportingHandler
     }
     // wrap up last account type if needed
     if ((_report.getRowCount() != rowsAtStart) && (accountType > 0)) {
-      _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal);
+      _reportGenerator.addAccountTypeSubtotalRow(_report, accountType, _baseCurrency, typeTotal, true, 0);
     }
   }
 }

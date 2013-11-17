@@ -20,7 +20,8 @@ import com.moneydance.apps.md.model.Txn;
  */
 public interface IRatioReporting {
   void startReportSection();
-  void addAccountResult(Account account, long startBalance, long endBalance, int startDate, int endDate);
+  void addAccountResult(Account account, long startBalance, long endBalance, long avgBalance,
+                        boolean useAverage, int startDate, int endDate);
   void addTxn(Txn txn, TxnReportInfo info);
   void endReportAccountSection();
   void endReportTxnSection();

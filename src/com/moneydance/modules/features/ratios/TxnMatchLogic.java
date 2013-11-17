@@ -38,7 +38,12 @@ public enum TxnMatchLogic {
    * Not a transaction match, instead just compute the ending balance for the specified time period. No filtering
    * by tag or using tax date.
    */
-  END_BALANCE('e');
+  END_BALANCE('e'),
+  /**
+   * Not a transaction match, instead compute the average daily balance for the specified time period. No tag
+   * filtering or using tax date.
+   */
+  AVERAGE_BALANCE('a');
 
   public static final TxnMatchLogic DEFAULT = IN;
 
@@ -59,6 +64,7 @@ public enum TxnMatchLogic {
     if (key == 'b') return BOTH;
     if (key == 'e') return END_BALANCE;
     if (key == 'o') return OUT;
+    if (key == 'a') return AVERAGE_BALANCE;
     return DEFAULT;
   }
 

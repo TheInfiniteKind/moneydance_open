@@ -37,6 +37,7 @@
   <entry key="ratio">Αναλογία</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">αντίγραφο</entry>
+  <entry key="avg_balance">Μέσος Υπόλοιπο</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Συγκεκριμένες ημερομηνίες ...</entry>
   <entry key="customDateTitle">πληκτρολογείστε Συγκεκριμένες ημερομηνίες</entry>

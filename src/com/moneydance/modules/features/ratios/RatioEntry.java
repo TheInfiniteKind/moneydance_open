@@ -121,6 +121,10 @@ public class RatioEntry {
   boolean getNumeratorEndBalanceOnly() { return _numerator.getEndBalanceOnly(); }
   void setDenominatorEndBalanceOnly() { _denominator.setEndBalanceOnly(); }
   boolean getDenominatorEndBalanceOnly() { return _denominator.getEndBalanceOnly(); }
+  void setNumeratorAverageBalance() { _numerator.setAverageBalance(); }
+  boolean getNumeratorAverageBalance() { return _numerator.getAverageBalance(); }
+  void setDenominatorAverageBalance() { _denominator.setAverageBalance(); }
+  boolean getDenominatorAverageBalance() { return _denominator.getAverageBalance(); }
   String getName() { return _name; }
   void setName(final String name) { _name = name; }
   String getNotes() { return _notes; }

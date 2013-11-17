@@ -72,16 +72,20 @@ class RatioCompute {
   }
 
   private void computeBalances(RatioEntry ratio, CurrencyType baseCurrency, DateRange dateRange) {
-    if (ratio.getNumeratorEndBalanceOnly()) {
+    if (ratio.getNumeratorEndBalanceOnly() || ratio.getNumeratorAverageBalance()) {
+      boolean useDailyAverage = ratio.getNumeratorAverageBalance();
       long result = computeBalanceResult(dateRange, baseCurrency,
                                          ratio.getNumeratorRequiredAccountList(),
+                                         useDailyAverage,
                                          null);
       // now calculate the final result
       ratio.setNumeratorValue(baseCurrency.getDoubleValue(result));
     }
-    if (ratio.getDenominatorEndBalanceOnly()) {
+    if (ratio.getDenominatorEndBalanceOnly() || ratio.getDenominatorAverageBalance()) {
+      boolean useDailyAverage = ratio.getDenominatorAverageBalance();
       long result = computeBalanceResult(dateRange, baseCurrency,
                                          ratio.getDenominatorRequiredAccountList(),
+                                         useDailyAverage,
                                          null);
       // now calculate the final result
       ratio.setDenominatorValue(baseCurrency.getDoubleValue(result));
@@ -93,16 +97,19 @@ class RatioCompute {
    * Also, it currently computes both the starting and the ending balance, but only uses the end balance
    * at this time. It may be useful in the future to compute a balance difference (again, no transaction
    * filtering).
-   * @param dateRange    The date range to compute the balances for.
-   * @param baseCurrency Target currency to convert all values into.
-   * @param accountList  The list of accounts to compute balances for.
-   * @param reporting    If non-null, the report generator handling object.
+   * @param dateRange       The date range to compute the balances for.
+   * @param baseCurrency    Target currency to convert all values into.
+   * @param accountList     The list of accounts to compute balances for.
+   * @param useDailyAverage True if a daily average daily balance should be computed.
+   * @param reporting       If non-null, the report generator handling object.
    * @return The sum of the end balances for the given date range and account list, converted to base currency.
    */
   long computeBalanceResult(DateRange dateRange, CurrencyType baseCurrency,
                             final List<Account> accountList,
+                            boolean useDailyAverage,
                             IRatioReporting reporting) {
     long startBalance = 0; // not currently used
+    long averageDailyBalance = 0;
     long endBalance = 0;
     // since transactions on the start date are included in this report, and since the account
     // balance computation includes the date (it is as of the end of the day), then we want the
@@ -111,8 +118,29 @@ class RatioCompute {
         Util.incrementDate(dateRange.getStartDateInt(), 0, 0, -1),
         dateRange.getEndDateInt()
     };
+    final int[] dailyDates;
+    if (useDailyAverage) {
+      // Compute the daily dates array only once, it won't change.
+      // For the daily average balance, we don't want the decremented start date calculated previously,
+      // so compute based on the dates the user specified and therefore expects
+      // Add one day since we are including both start and end days
+      int numDays = Util.calculateDaysBetween(dateRange.getStartDateInt(), dateRange.getEndDateInt()) + 1;
+      // fill in a daily range
+      dailyDates = new int[numDays];
+      int thisDay = dateRange.getStartDateInt();
+      for (int index = 0; index < numDays; index++) {
+        dailyDates[index] = thisDay;
+        thisDay = Util.incrementDate(thisDay);
+      }
+    } else {
+      dailyDates = null;
+    }
     for (Account account : accountList) {
-      BalanceHolder balance = calculateBalances(account, _balanceCache, asOfDates);
+      // skip any account that is not active - they are hidden by default
+      if (account.getAccountOrParentIsInactive()) continue;
+      final BalanceHolder balance = useDailyAverage ?
+                                    calculateBalancesWithDailyAverage(account, _balanceCache, asOfDates, dailyDates) :
+                                    calculateBalances(account, _balanceCache, asOfDates);
       // convert to the base currency
       final long accountStartBalance = CurrencyUtil.convertValue(balance.getStartBalance(),
                                                account.getCurrencyType(),
@@ -124,11 +152,17 @@ class RatioCompute {
                                                baseCurrency,
                                                asOfDates[1]);
       endBalance += accountEndBalance;
-      if (reporting != null) reporting.addAccountResult(account, accountStartBalance, accountEndBalance,
-                                                        asOfDates[0], asOfDates[1]);
+      final long accountAvgBalance = CurrencyUtil.convertValue(balance.getAverageBalance(),
+                                                               account.getCurrencyType(),
+                                                               baseCurrency,
+                                                               asOfDates[1]);
+      averageDailyBalance += accountAvgBalance;
+
+      if (reporting != null) reporting.addAccountResult(account, accountStartBalance, accountEndBalance, accountAvgBalance,
+                                                        useDailyAverage, asOfDates[0], asOfDates[1]);
     }
     // here you would subtract (endBalance - startBalance) if you wanted balance difference.
-    return endBalance;
+    return useDailyAverage ? averageDailyBalance : endBalance;
   }
 
   private BalanceHolder calculateBalances(Account account, Map<Account, BalanceHolder> cache, int[] asOfDates) {
@@ -155,9 +189,45 @@ class RatioCompute {
         }
       }
       if (account.balanceIsNegated()) {
-        result = new BalanceHolder(account, -balances[0], -balances[1], asOfDates[0], asOfDates[1]);
+        result = new BalanceHolder(account, -balances[0], -balances[1], 0, asOfDates[0], asOfDates[1], false);
       } else {
-        result = new BalanceHolder(account, balances[0], balances[1], asOfDates[0], asOfDates[1]);
+        result = new BalanceHolder(account, balances[0], balances[1], 0, asOfDates[0], asOfDates[1], false);
+      }
+      if (cache != null) cache.put(account, result);
+    }
+    return result;
+  }
+  
+  private BalanceHolder calculateBalancesWithDailyAverage(Account account, Map<Account, BalanceHolder> cache, int[] asOfDates,
+                                                          int[] datesToCompute) {
+    BalanceHolder result = (cache == null) ? null : cache.get(account);
+    if ((result == null) || !result.isAverageBalanceComputed()) {
+      final int numDays = datesToCompute.length;
+      // this will get balances in the account's currency type
+      long[] balances = AccountUtil.getBalancesAsOfDates(_root, account, datesToCompute, true);
+      // For investment accounts only, we must include the child accounts, the securities, since security accounts
+      // are not included in the filter criteria. Users assume the security accounts are part of the investment
+      // account balance. If we don't do this, all we get is the cash balance of the investment account.
+      if (account.getAccountType() == Account.ACCOUNT_TYPE_INVESTMENT) {
+        for (int index = 0; index < account.getSubAccountCount(); index++) {
+          Account security = account.getSubAccount(index);
+          long[] securityBalances = AccountUtil.getBalancesAsOfDates(_root, security, datesToCompute, true);
+          // convert to the account's currency type, later that will be converted to base currency
+          for (int dateIndex = 0; dateIndex < numDays; dateIndex++) {
+            balances[dateIndex] += CurrencyUtil.convertValue(securityBalances[dateIndex],
+                                                     security.getCurrencyType(),
+                                                     account.getCurrencyType(),
+                                                     datesToCompute[dateIndex]);
+          }
+        }
+      }
+      double average = 0;
+      for (int index = 0; index < numDays; index++) average += balances[index];
+      long averageDailyBalance = Math.round(average / (double)numDays);
+      if (account.balanceIsNegated()) {
+        result = new BalanceHolder(account, -balances[0], -balances[numDays-1], averageDailyBalance, asOfDates[0], asOfDates[1], true);
+      } else {
+        result = new BalanceHolder(account, balances[0], balances[numDays-1], averageDailyBalance, asOfDates[0], asOfDates[1], true);
       }
       if (cache != null) cache.put(account, result);
     }
@@ -205,8 +275,8 @@ class RatioCompute {
    */
   private boolean allBalancesOnly(List<RatioEntry> ratios) {
     for (RatioEntry ratio : ratios) {
-      if (!ratio.getNumeratorEndBalanceOnly()) return false;
-      if (!ratio.getDenominatorEndBalanceOnly()) return false;
+      if (!ratio.getNumeratorEndBalanceOnly() && !ratio.getNumeratorAverageBalance()) return false;
+      if (!ratio.getDenominatorEndBalanceOnly() && !ratio.getDenominatorAverageBalance()) return false;
     }
     return true;
   }

@@ -47,6 +47,7 @@ public class L10NRatios
   static final String CUSTOM_DATE_MENU = "customDateMenu";
   static final String CUSTOM_DATE_TITLE = "customDateTitle";
   static final String COPY_SUFFIX = "copy";
+  static final String AVERAGE_BALANCE = "avg_balance";
 
   public static final String USER_GUIDE = "userGuide.label";
   // dual account selector

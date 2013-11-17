@@ -37,6 +37,7 @@
   <entry key="ratio">Proporzione</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Copia</entry>
+  <entry key="avg_balance">Saldo Media</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Date su ordinazione ...</entry>
   <entry key="customDateTitle">Immetti Date su Ordinazione</entry>
