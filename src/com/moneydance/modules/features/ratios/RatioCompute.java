@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -72,20 +72,24 @@ class RatioCompute {
   }
 
   private void computeBalances(RatioEntry ratio, CurrencyType baseCurrency, DateRange dateRange) {
-    if (ratio.getNumeratorEndBalanceOnly() || ratio.getNumeratorAverageBalance()) {
+    if (RatiosUtil.isAccountBalanceType(ratio.getNumeratorMatchingLogic())) {
       boolean useDailyAverage = ratio.getNumeratorAverageBalance();
+      boolean useStartBalance = ratio.getNumeratorBeginningBalance();
       long result = computeBalanceResult(dateRange, baseCurrency,
                                          ratio.getNumeratorRequiredAccountList(),
                                          useDailyAverage,
+                                         useStartBalance,
                                          null);
       // now calculate the final result
       ratio.setNumeratorValue(baseCurrency.getDoubleValue(result));
     }
-    if (ratio.getDenominatorEndBalanceOnly() || ratio.getDenominatorAverageBalance()) {
+    if (RatiosUtil.isAccountBalanceType(ratio.getDenominatorMatchingLogic())) {
       boolean useDailyAverage = ratio.getDenominatorAverageBalance();
+      boolean useStartBalance = ratio.getDenominatorBeginningBalance();
       long result = computeBalanceResult(dateRange, baseCurrency,
                                          ratio.getDenominatorRequiredAccountList(),
                                          useDailyAverage,
+                                         useStartBalance,
                                          null);
       // now calculate the final result
       ratio.setDenominatorValue(baseCurrency.getDoubleValue(result));
@@ -100,15 +104,17 @@ class RatioCompute {
    * @param dateRange       The date range to compute the balances for.
    * @param baseCurrency    Target currency to convert all values into.
    * @param accountList     The list of accounts to compute balances for.
-   * @param useDailyAverage True if a daily average daily balance should be computed.
+   * @param useDailyAverage True if a daily average daily balance should be computed. If false, use start or end balance.
+   * @param useStartBalance True if a the start balance should be used, false if the end balance should be used.
    * @param reporting       If non-null, the report generator handling object.
    * @return The sum of the end balances for the given date range and account list, converted to base currency.
    */
   long computeBalanceResult(DateRange dateRange, CurrencyType baseCurrency,
                             final List<Account> accountList,
                             boolean useDailyAverage,
+                            boolean useStartBalance,
                             IRatioReporting reporting) {
-    long startBalance = 0; // not currently used
+    long startBalance = 0;
     long averageDailyBalance = 0;
     long endBalance = 0;
     // since transactions on the start date are included in this report, and since the account
@@ -162,7 +168,7 @@ class RatioCompute {
                                                         useDailyAverage, asOfDates[0], asOfDates[1]);
     }
     // here you would subtract (endBalance - startBalance) if you wanted balance difference.
-    return useDailyAverage ? averageDailyBalance : endBalance;
+    return useDailyAverage ? averageDailyBalance : (useStartBalance ? startBalance : endBalance);
   }
 
   private BalanceHolder calculateBalances(Account account, Map<Account, BalanceHolder> cache, int[] asOfDates) {

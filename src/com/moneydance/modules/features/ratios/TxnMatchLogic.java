@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -43,7 +43,12 @@ public enum TxnMatchLogic {
    * Not a transaction match, instead compute the average daily balance for the specified time period. No tag
    * filtering or using tax date.
    */
-  AVERAGE_BALANCE('a');
+  AVERAGE_BALANCE('a'),
+  /**
+   * Not a transaction match, instead just compute the beginning balance for the specified time period. No filtering
+   * by tag or using tax date.
+   */
+  BEGIN_BALANCE('g');
 
   public static final TxnMatchLogic DEFAULT = IN;
 
@@ -65,6 +70,7 @@ public enum TxnMatchLogic {
     if (key == 'e') return END_BALANCE;
     if (key == 'o') return OUT;
     if (key == 'a') return AVERAGE_BALANCE;
+    if (key == 'g') return BEGIN_BALANCE;
     return DEFAULT;
   }
 

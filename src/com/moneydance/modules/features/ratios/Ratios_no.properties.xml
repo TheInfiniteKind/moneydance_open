@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ *************************************************************************
-  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~ Copyright (C) 2012-2013 Mennē Software Solutions, LLC
   ~
   ~ This code is released as open source under the Apache 2.0 License:<br/>
   ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -22,9 +22,6 @@
   <entry key="showPercent">Vis som en prosentandel %</entry>
   <entry key="alwaysPositive">Alltid positiv</entry>
   <entry key="matchLabel">Transaksjonen matche</entry>
-  <entry key="txnInto">Inn</entry>
-  <entry key="txnOutOf">Ut av</entry>
-  <entry key="txnBoth">Både (forskjellen)</entry>
   <entry key="numerator">Teller</entry>
   <entry key="denominator">Nevneren</entry>
   <entry key="label">Etikett</entry>
@@ -37,6 +34,12 @@
   <entry key="ratio">Andel</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Kopi</entry>
+  <!-- Match Entry Types -->
+  <entry key="txnInto">Posteringer Inn</entry>
+  <entry key="txnOutOf">Posteringer Ut av</entry>
+  <entry key="txnBoth">Posteringer Både (forskjellen)</entry>
+  <entry key="beg_balance">Inngående saldo</entry>
+  <entry key="end_balance">Utgående saldo</entry>
   <entry key="avg_balance">Gjennomsnittlig saldo</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Egendefinerte datoer ...</entry>

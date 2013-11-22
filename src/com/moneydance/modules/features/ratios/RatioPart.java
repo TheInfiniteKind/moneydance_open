@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -93,6 +93,11 @@ class RatioPart {
   boolean getEndBalanceOnly() { return TxnMatchLogic.END_BALANCE.equals(_txnMatchLogic); }
   void setAverageBalance() { _txnMatchLogic = TxnMatchLogic.AVERAGE_BALANCE; }
   boolean getAverageBalance() { return TxnMatchLogic.AVERAGE_BALANCE.equals(_txnMatchLogic); }
+  void setBeginningBalance() { _txnMatchLogic = TxnMatchLogic.BEGIN_BALANCE; }
+  boolean getBeginningBalance() { return TxnMatchLogic.BEGIN_BALANCE.equals(_txnMatchLogic); }
+
+  void setMatchingLogic(TxnMatchLogic logic) { _txnMatchLogic = logic; }
+  TxnMatchLogic getMatchingLogic() { return _txnMatchLogic; }
 
   String getLabel() { return _label; }
   void setLabel(final String label) { _label = label; }
@@ -191,7 +196,7 @@ class RatioPart {
   }
 
   void prepareForTxnProcessing(final RootAccount root, final DateRange dateRange, final boolean useTaxDate) {
-    if (getEndBalanceOnly() || getAverageBalance()) return; // nothing to do
+    if (isAccountBalanceType()) return; // nothing to do
     _baseCurrency = root.getCurrencyTable().getBaseType();
     _txnValue = 0;
     _dateFilter = new TxnDateSearch(dateRange.getStartDateInt(), dateRange.getEndDateInt(), useTaxDate);
@@ -228,7 +233,7 @@ class RatioPart {
    * @param reporting The reporting callback interface to add the transaction to.
    */
   void accumulateTxn(final Txn txn, final IRatioReporting reporting) {
-    if (getEndBalanceOnly() || getAverageBalance()) return; // nothing to do
+    if (isAccountBalanceType()) return; // nothing to do
     if (!_dateFilter.matches(txn)) return; // does not match the date range
     if ((_tagFilter != null) && !_tagFilter.matches(txn)) return;
     // There is an assumption here that an account can't be simultaneously required and disallowed.
@@ -278,8 +283,12 @@ class RatioPart {
     }
   }
 
+  private boolean isAccountBalanceType() {
+    return RatiosUtil.isAccountBalanceType(_txnMatchLogic);
+  }
+
   void endTxnProcessing() {
-    if (getEndBalanceOnly() || getAverageBalance()) return; // nothing to do
+    if (isAccountBalanceType()) return; // nothing to do
     // convert to the base currency value as a double
     setValue(_baseCurrency.getDoubleValue(_txnValue));
   }

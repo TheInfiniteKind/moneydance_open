@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -153,7 +153,7 @@ class RatioSettingsDialog
   private JPanel buildButtonPanel() {
     final OKButtonPanel okPanel = new OKButtonPanel(mdGUI, this, OKButtonPanel.QUESTION_OK_CANCEL);
 
-    JLabel version = new JLabel(Main.VERSION); // version number
+    JLabel version = new JLabel(Main.getVersionString()); // version number
     version.setOpaque(false);
     version.setHorizontalAlignment(JLabel.LEFT);
     version.setVerticalAlignment(JLabel.BOTTOM);

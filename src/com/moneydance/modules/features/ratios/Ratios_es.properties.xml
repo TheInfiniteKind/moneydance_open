@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ *************************************************************************
-  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~ Copyright (C) 2012-2013 Mennē Software Solutions, LLC
   ~
   ~ This code is released as open source under the Apache 2.0 License:<br/>
   ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -22,9 +22,6 @@
   <entry key="showPercent">Mostrar como %</entry>
   <entry key="alwaysPositive">Siempre positivo</entry>
   <entry key="matchLabel">Transacción coinciden</entry>
-  <entry key="txnInto">Entrada</entry>
-  <entry key="txnOutOf">Salida</entry>
-  <entry key="txnBoth">Ambos (diferencia)</entry>
   <entry key="numerator">Numerador</entry>
   <entry key="denominator">Denominador</entry>
   <entry key="label">Etiqueta</entry>
@@ -37,6 +34,12 @@
   <entry key="ratio">Ratio</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Copia</entry>
+  <!-- Match Entry Types -->
+  <entry key="txnInto">Transacciones Entrada</entry>
+  <entry key="txnOutOf">Transacciones Salida</entry>
+  <entry key="txnBoth">Transacciones Ambos (diferencia)</entry>
+  <entry key="beg_balance">Balance al Empezar</entry>
+  <entry key="end_balance">Balance al Final</entry>
   <entry key="avg_balance">Balance Promedio</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Fechas ...</entry>

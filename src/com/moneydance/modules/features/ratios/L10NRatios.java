@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -37,6 +37,9 @@ public class L10NRatios
   static final String TXN_INTO = "txnInto";
   static final String TXN_OUT_OF = "txnOutOf";
   static final String TXN_BOTH = "txnBoth";
+  static final String START_BALANCE = "beg_balance";
+  static final String END_BALANCE = "end_balance";
+  static final String AVERAGE_BALANCE = "avg_balance";
   static final String NUMERATOR = "numerator";
   static final String DENOMINATOR = "denominator";
   static final String LABEL = "label";
@@ -47,7 +50,6 @@ public class L10NRatios
   static final String CUSTOM_DATE_MENU = "customDateMenu";
   static final String CUSTOM_DATE_TITLE = "customDateTitle";
   static final String COPY_SUFFIX = "copy";
-  static final String AVERAGE_BALANCE = "avg_balance";
 
   public static final String USER_GUIDE = "userGuide.label";
   // dual account selector

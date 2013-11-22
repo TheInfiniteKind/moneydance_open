@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ *************************************************************************
-  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~ Copyright (C) 2012-2013 Mennē Software Solutions, LLC
   ~
   ~ This code is released as open source under the Apache 2.0 License:<br/>
   ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -22,9 +22,6 @@
   <entry key="showPercent">Zeige als Prozentsatz %</entry>
   <entry key="alwaysPositive">Immer positiv</entry>
   <entry key="matchLabel">übereinstimmende Buchungen</entry>
-  <entry key="txnInto">Geht auf</entry>
-  <entry key="txnOutOf">Kommt aus</entry>
-  <entry key="txnBoth">Beides (Differenz)</entry>
   <entry key="numerator">Zähler</entry>
   <entry key="denominator">Nenner</entry>
   <entry key="label">Bezeichnung</entry>
@@ -37,6 +34,12 @@
   <entry key="ratio">Verhältnis</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Kopie</entry>
+  <!-- Match Entry Types -->
+  <entry key="txnInto">Buchungen Geht in</entry>
+  <entry key="txnOutOf">Buchungen Kommt aus</entry>
+  <entry key="txnBoth">Buchungen Beides (Differenz)</entry>
+  <entry key="beg_balance">Anfangssaldo</entry>
+  <entry key="end_balance">Schlußkontostand</entry>
   <entry key="avg_balance">Durchschnittkontostand</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Benutzerdefiniert ...</entry>

@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -125,6 +125,10 @@ public class RatioEntry {
   boolean getNumeratorAverageBalance() { return _numerator.getAverageBalance(); }
   void setDenominatorAverageBalance() { _denominator.setAverageBalance(); }
   boolean getDenominatorAverageBalance() { return _denominator.getAverageBalance(); }
+  void setNumeratorBeginningBalance() { _numerator.setBeginningBalance(); }
+  boolean getNumeratorBeginningBalance() { return _numerator.getBeginningBalance(); }
+  void setDenominatorBeginningBalance() { _denominator.setBeginningBalance(); }
+  boolean getDenominatorBeginningBalance() { return _denominator.getBeginningBalance(); }
   String getName() { return _name; }
   void setName(final String name) { _name = name; }
   String getNotes() { return _notes; }
@@ -193,5 +197,19 @@ public class RatioEntry {
   void endTxnProcessing(final boolean isNumerator, final IRatioReporting reporting) {
     if ((reporting == null) || isNumerator) _numerator.endTxnProcessing();
     if ((reporting == null) || !isNumerator) _denominator.endTxnProcessing();
+  }
+
+  public void setNumeratorMatchingLogic(TxnMatchLogic logic) {
+    _numerator.setMatchingLogic(logic);
+  }
+  public TxnMatchLogic getNumeratorMatchingLogic() {
+    return _numerator.getMatchingLogic();
+  }
+
+  public void setDenominatorMatchingLogic(TxnMatchLogic logic) {
+    _denominator.setMatchingLogic(logic);
+  }
+  public TxnMatchLogic getDenominatorMatchingLogic() {
+    return _denominator.getMatchingLogic();
   }
 }

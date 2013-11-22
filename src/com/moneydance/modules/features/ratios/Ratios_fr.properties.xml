@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ *************************************************************************
-  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~ Copyright (C) 2012-2013 Mennē Software Solutions, LLC
   ~
   ~ This code is released as open source under the Apache 2.0 License:<br/>
   ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -22,9 +22,6 @@
   <entry key="showPercent">Voir comme un pourcentage %</entry>
   <entry key="alwaysPositive">Toujours positif</entry>
   <entry key="matchLabel">"Correspond à la transaction</entry>
-  <entry key="txnInto">Dans</entry>
-  <entry key="txnOutOf">En sort</entry>
-  <entry key="txnBoth">Tous (différence)</entry>
   <entry key="numerator">Numérateur</entry>
   <entry key="denominator">Dénominateur</entry>
   <entry key="label">Étiquette</entry>
@@ -37,7 +34,13 @@
   <entry key="ratio">Proportion</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Exemplaire</entry>
-  <entry key="avg_balance">Solde Moyenne</entry>
+  <!-- Match Entry Types -->
+  <entry key="txnInto">Transactions dans</entry>
+  <entry key="txnOutOf">Transactions en sort</entry>
+  <entry key="txnBoth">Transactions fois (différence)</entry>
+  <entry key="beg_balance">Solde d'ouverture</entry>
+  <entry key="end_balance">Solde final</entry>
+  <entry key="avg_balance">Solde moyenne</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Dates spécifiques ...</entry>
   <entry key="customDateTitle">Sélectionner Dates Spécifiques</entry>

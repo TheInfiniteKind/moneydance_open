@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -198,6 +198,16 @@ public final class RatiosUtil {
    */
   public static String getLabelText(final ResourceProvider resources, final String key) {
     return addLabelSuffix(resources, resources.getString(key));
+  }
+
+  /**
+   * Determine if the matching logic is a balance logic or transaction-based logic. Transaction based logic scans each transaction and
+   * can screen out transactions based on date and tags, but balance based computes the account balance, it includes all transactions.
+   * @param logic The matching logic to check.
+   * @return True if the logic is a balance-based type, or false if it is transaction-based.
+   */
+  public static boolean isAccountBalanceType(final TxnMatchLogic logic) {
+    return TxnMatchLogic.END_BALANCE.equals(logic) || TxnMatchLogic.AVERAGE_BALANCE.equals(logic) || TxnMatchLogic.BEGIN_BALANCE.equals(logic);
   }
 
   /**

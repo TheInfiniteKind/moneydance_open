@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ *************************************************************************
-  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~ Copyright (C) 2012-2013 Mennē Software Solutions, LLC
   ~
   ~ This code is released as open source under the Apache 2.0 License:<br/>
   ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -22,9 +22,6 @@
   <entry key="showPercent">Εμφάνιση ως ποσοστό %</entry>
   <entry key="alwaysPositive">Πάντα θετική</entry>
   <entry key="matchLabel">Ταιριάζει μέ συναλλαγή</entry>
-  <entry key="txnInto">σε αυτόν</entry>
-  <entry key="txnOutOf">βγαίνει από το</entry>
-  <entry key="txnBoth">Και οι δύο τρόποι (διαφορά)</entry>
   <entry key="numerator">αριθμητή</entry>
   <entry key="denominator">παρονομαστή</entry>
   <entry key="label">Ετικέτα</entry>
@@ -37,6 +34,12 @@
   <entry key="ratio">Αναλογία</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">αντίγραφο</entry>
+  <!-- Match Entry Types -->
+  <entry key="txnInto">Συναλλαγές σε αυτόν</entry>
+  <entry key="txnOutOf">Συναλλαγές βγαίνει από το</entry>
+  <entry key="txnBoth">Συναλλαγές Και οι δύο τρόποι (διαφορά)</entry>
+  <entry key="beg_balance">Υπόλοιπο εκκίνησης</entry>
+  <entry key="end_balance">Υπόλοιπο λογαριασμού κίνησης</entry>
   <entry key="avg_balance">Μέσος Υπόλοιπο</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Συγκεκριμένες ημερομηνίες ...</entry>

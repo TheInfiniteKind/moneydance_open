@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ *************************************************************************
-  ~ Copyright (C) 2012 Mennē Software Solutions, LLC
+  ~ Copyright (C) 2012-2013 Mennē Software Solutions, LLC
   ~
   ~ This code is released as open source under the Apache 2.0 License:<br/>
   ~ <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -22,9 +22,6 @@
   <entry key="showPercent">Show as percent %</entry>
   <entry key="alwaysPositive">Always positive</entry>
   <entry key="matchLabel">Transaction match</entry>
-  <entry key="txnInto">Into</entry>
-  <entry key="txnOutOf">Out of</entry>
-  <entry key="txnBoth">Both (difference)</entry>
   <entry key="numerator">Numerator</entry>
   <entry key="denominator">Denominator</entry>
   <entry key="label">Label</entry>
@@ -37,6 +34,12 @@
   <entry key="ratio">Ratio</entry>
   <!-- This is a noun not a verb -->
   <entry key="copy">Copy</entry>
+  <!-- Match Entry Types -->
+  <entry key="txnInto">Transactions Into</entry>
+  <entry key="txnOutOf">Transactions Out of</entry>
+  <entry key="txnBoth">Transactions (difference)</entry>
+  <entry key="beg_balance">Beginning Balance</entry>
+  <entry key="end_balance">Ending Balance</entry>
   <entry key="avg_balance">Average Balance</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Custom dates ...</entry>

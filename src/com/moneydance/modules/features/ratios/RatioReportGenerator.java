@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -93,7 +93,8 @@ class RatioReportGenerator extends ReportGenerator {
     if (_ratio.getNumeratorEndBalanceOnly() || _ratio.getNumeratorAverageBalance()) {
       addSubtitleRow(report, mdGUI.getStr("accounts"));
       boolean useDailyAverage = _ratio.getNumeratorAverageBalance();
-      addBalanceRows(baseCurrency, _ratio.getNumeratorRequiredAccountList(), dateRange, useDailyAverage, true);
+      boolean useStartBalance = _ratio.getNumeratorBeginningBalance();
+      addBalanceRows(baseCurrency, _ratio.getNumeratorRequiredAccountList(), dateRange, useDailyAverage, useStartBalance, true);
     } else {
       addSubtitleRow(report, mdGUI.getStr("report_transactions"));
       addTransactionRows(dateRange, true);
@@ -107,7 +108,8 @@ class RatioReportGenerator extends ReportGenerator {
     if (_ratio.getDenominatorEndBalanceOnly() || _ratio.getDenominatorAverageBalance()) {
       addSubtitleRow(report, mdGUI.getStr("accounts"));
       boolean useDailyAverage = _ratio.getDenominatorAverageBalance();
-      addBalanceRows(baseCurrency, _ratio.getDenominatorRequiredAccountList(), dateRange, useDailyAverage, false);
+      boolean useStartBalance = _ratio.getDenominatorBeginningBalance();
+      addBalanceRows(baseCurrency, _ratio.getDenominatorRequiredAccountList(), dateRange, useDailyAverage, useStartBalance, false);
     } else {
       addSubtitleRow(report, mdGUI.getStr("report_transactions"));
       addTransactionRows(dateRange, false);
@@ -262,12 +264,12 @@ class RatioReportGenerator extends ReportGenerator {
   }
 
   private void addBalanceRows(final CurrencyType baseCurrency, final List<Account> accountList, final DateRange dateRange,
-                              final boolean useDailyAverage,
+                              final boolean useDailyAverage, final boolean useStartBalance,
                               final boolean isNumerator) {
     _reporting.startReportSection();
     // For now we compute both starting and ending balance, and just use the end balance, later we may use both
     // of them as a different mode. This does not appreciably slow down the calculation.
-    final long result = _computer.computeBalanceResult(dateRange, baseCurrency, accountList, useDailyAverage, _reporting);
+    final long result = _computer.computeBalanceResult(dateRange, baseCurrency, accountList, useDailyAverage, useStartBalance, _reporting);
     if (isNumerator) {
       _ratio.setNumeratorValue(baseCurrency.getDoubleValue(result));
     } else {

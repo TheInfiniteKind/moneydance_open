@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -39,7 +39,7 @@ import java.util.ResourceBundle;
 public class Main
     extends FeatureModule
     implements ResourceProvider {
-  public static final String VERSION = "Build 18"; // should match meta_info.dict
+  private static final String VERSION = "Build 21"; // should match meta_info.dict
   private final PreferencesListener _prefListener = new RatiosPreferencesListener();
   private final RatiosExtensionModel _model;
   private RatiosHomeView _homePageView = null;
@@ -72,6 +72,10 @@ public class Main
   public void cleanup() {
     removePreferencesListener();
     _model.cleanUp();
+  }
+
+  public static String getVersionString() {
+    return VERSION;
   }
 
   public String getString(final String key) {
