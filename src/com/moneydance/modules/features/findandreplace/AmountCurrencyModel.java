@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2011 Mennē Software Solutions, LLC
+* Copyright (C) 2011-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -22,27 +22,25 @@ import java.util.Vector;
  * additional generic option of "shares" for any security.
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 94
  * @since 1.60
  */
 public class AmountCurrencyModel
-        extends AbstractListModel
-        implements ComboBoxModel,
+        extends AbstractListModel<CurrencyType>
+        implements ComboBoxModel<CurrencyType>,
         CurrencyListener
 {
+    public static final String SHARES_CURRENCY_ID_STRING = "MSS";
     private final Vector<CurrencyType> _currencies = new Vector<CurrencyType>();
     private CurrencyTable _currencyTable;
     private CurrencyType _selectedType = null;
     private final CurrencyType _specialSharesType;
 
-    public AmountCurrencyModel(CurrencyTable currencyTable, final String sharesName)
+    public AmountCurrencyModel(CurrencyTable currencyTable, final String sharesName, final boolean addSharesCurrency)
     {
         _currencyTable = currencyTable;
         // create a special type that generically represents any security "currency"
-        _specialSharesType = new CurrencyType(currencyTable.getNextID(), sharesName, sharesName, 1.0,
-                                              getMaxDecimalsShares(currencyTable),
-                                              "", "", "", 0, CurrencyType.CURRTYPE_CURRENCY,
-                                              currencyTable);
+        _specialSharesType = addSharesCurrency ? buildSharesCurrencyType(currencyTable, sharesName) : null;
         build();
         if (!_currencies.isEmpty())
         {
@@ -53,6 +51,14 @@ public class AmountCurrencyModel
         currencyTable.addCurrencyListener(this);
     }
 
+    public static CurrencyType buildSharesCurrencyType(CurrencyTable currencyTable, String sharesName)
+    {
+        return new CurrencyType(currencyTable.getNextID(), SHARES_CURRENCY_ID_STRING, sharesName, 1.0,
+                                              getMaxDecimalsShares(currencyTable),
+                                              "", "", "", 0, CurrencyType.CURRTYPE_CURRENCY,
+                                              currencyTable);
+    }
+
     void cleanUp()
     {
         _currencyTable.removeCurrencyListener(this);
@@ -60,7 +66,7 @@ public class AmountCurrencyModel
 
     boolean isSharesCurrency(final CurrencyType candidate)
     {
-        return _specialSharesType.equals(candidate);
+        return (_specialSharesType != null) && _specialSharesType.equals(candidate);
     }
 
     boolean isVisible(CurrencyType c)
@@ -79,7 +85,7 @@ public class AmountCurrencyModel
         return _currencies.size();
     }
 
-    public Object getElementAt(int i)
+    public CurrencyType getElementAt(int i)
     {
         return _currencies.elementAt(i);
     }
@@ -115,7 +121,10 @@ public class AmountCurrencyModel
             if (isVisible(curr))
                 _currencies.addElement(curr);
         }
-        _currencies.add(_specialSharesType);
+        if (_specialSharesType != null)
+        {
+            _currencies.add(_specialSharesType);
+        }
         fireContentsChanged(this, -1, -1);
     }
 

@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <comment>All localizable strings used by the Find and Replace plugin.</comment>
+    
+    <!--  Common stuff -->
+    <entry key="labelColon">:</entry>
+    <entry key="title.text">Find and Replace</entry>
+    <!-- 0 = build -->
+    <entry key="version.format">Build {0}</entry>
+    <entry key="userGuide.label">User Guide</entry>
+    <entry key="load">Load</entry>
+    <entry key="save.title">Memorise Search</entry>
+    <entry key="save.prompt">Enter a unique name that is not blank</entry>
+    <entry key="save.error">The name is invalid</entry>
+
+    <!--  Find panel -->
+    <entry key="findLabel.text">Find</entry>
+    <entry key="findBooleanAnd.mnemonic">N</entry>
+    <entry key="findBooleanOr.mnemonic">O</entry>
+
+    <entry key="findAccountsLabel.mnemonic">A</entry>
+    <entry key="findAccountsSelect.text">Select</entry>
+    <entry key="findAccountsSelect.mnemonic">S</entry>
+
+    <entry key="findCategoriesLabel.mnemonic">Y</entry>
+    <entry key="findCategoriesSelect.text">Select</entry>
+    <entry key="findCategoriesSelect.mnemonic">T</entry>
+
+    <entry key="findAmountLabel.mnemonic">U</entry>
+    <entry key="findDateLabel.mnemonic">E</entry>
+    <entry key="findFreeTextLabel.text">Free Text:</entry>
+    <entry key="findFreeTextLabel.mnemonic">R</entry>
+    <entry key="findDescription.toolTip">Search in the description field (parent transactions and splits)</entry>
+    <entry key="findMemo.toolTip">Search in the memo field (parent transactions only)</entry>
+    <entry key="findCheck.toolTip">Search in the Cheque# field (parent transactions only)</entry>
+    <entry key="findSplits.text">Include Splits</entry>
+    <entry key="findSplits.toolTip">If the text is found in the parent transaction, include all the splits for that transaction as a match.</entry>
+    <entry key="findTagsLabel.text">Tags:</entry>
+    <entry key="findTagsLabel.mnemonic">T</entry>
+    <entry key="findNot.text">but not</entry>
+    <entry key="findAnd.text">And</entry>
+    <entry key="findOr.text">Or</entry>
+    <entry key="findExact.text">Exact</entry>
+
+    <entry key="findClearedLabel.mnemonic">L</entry>
+    <entry key="findCleared.toolTip">Include cleared transactions</entry>
+    <entry key="findReconciling.toolTip">Include reconciling transactions</entry>
+    <entry key="findUncleared.toolTip">Include uncleared transactions</entry>
+    <entry key="findUseTaxDate.mnemonic">X</entry>
+    <entry key="findUse.toolTip">Use this criterion to search for transactions</entry>
+
+    <!--  Replace panel -->
+    <entry key="replaceLabel.text">Replace</entry>
+    <entry key="replaceCategoryLabel.mnemonic">Y</entry>
+    <entry key="replaceAmountLabel.mnemonic">O</entry>
+    <entry key="replaceDescriptionLabel.mnemonic">D</entry>
+    <entry key="replaceTags.text">Modify tags:</entry>
+    <entry key="replaceTags.mnemonic">F</entry>
+    <entry key="replaceTagsAdd.text">Add tags:</entry>
+    <entry key="replaceTagsRemove.text">Remove tags:</entry>
+    <entry key="replaceTagsReplace.text">Replace all with:</entry>
+    <entry key="replaceTagsAdd.mnemonic">A</entry>
+    <entry key="replaceTagsRemove.mnemonic">V</entry>
+    <entry key="replaceTagsReplace.mnemonic">W</entry>
+    <entry key="replaceMemoLabel.mnemonic">M</entry>
+    <entry key="replaceCheckLabel.mnemonic">K</entry>
+    <entry key="replaceProgress.text">Replacing ...</entry>
+    <entry key="replaceOnlyFound">Found text only</entry>
+
+    <entry key="includeTransfers.text">Include Transfers</entry>
+    <entry key="includeTransfers.toolTip">Allow all accounts to be included as categories</entry>
+    <entry key="includeTransfers.mnemonic">I</entry>
+
+    <!--  Results panel -->
+    <entry key="resultsLabel.text">Find Results</entry>
+    <entry key="showParents.text">Consolidate Splits</entry>
+    <entry key="showParents.mnemonic">I</entry>
+    <entry key="showParents.toolTip">Show parent transactions</entry>
+    <entry key="splitsAsMemos.text">Splits As Memos</entry>
+    <entry key="splitsAsMemos.mnemonic">L</entry>
+    <entry key="splitsAsMemos.toolTip">Use split description as the memo</entry>
+    <entry key="table_column_parent_memo">Parent Transaction Memo</entry>
+
+    <!--  0 - number of matching transactions, 1 - additions, 2 - subtractions, 3 - total -->
+    <entry key="resultsSummary.format">Count: %s  Additions: %s  Subtractions: %s  Total: %s</entry>
+
+    <!--  Buttons at the bottom -->
+    <entry key="findBtn.text">Find</entry>
+    <entry key="findBtn.mnemonic">F</entry>
+    <entry key="replaceBtn.text">Replace</entry>
+    <entry key="replaceBtn.mnemonic">R</entry>
+    <entry key="replaceAllBtn.text">Replace All</entry>
+    <entry key="replaceAllBtn.mnemonic">P</entry>
+    <entry key="closeBtn.text">Close</entry>
+    <entry key="closeBtn.mnemonic">C</entry>
+    <entry key="gotoBtn.mnemonic">O</entry>
+    <entry key="resetBtn.text">Reset</entry>
+    <entry key="copyBtn.text">Copy</entry>
+    <entry key="copyBtn.mnemonic">C</entry>
+
+    <entry key="markAllBtn.text">Mark All</entry>
+    <entry key="markAllBtn.mnemonic">M</entry>
+    <entry key="markNoneBtn.text">Mark None</entry>
+    <entry key="markNoneBtn.mnemonic">N</entry>
+
+    <!--  Account/category selection dialog -->
+    <entry key="accountselect.exclude.text">Excluded</entry>
+    <entry key="accountselect.include.text">Included</entry>
+    <entry key="accountselect.add.text">Add &gt;</entry>
+    <entry key="accountselect.addexcept.text">Add Except &gt;&gt;</entry>
+    <entry key="accountselect.addall.text">Add All &gt;&gt;</entry>
+    <entry key="accountselect.remove.text">&lt; Remove</entry>
+    <entry key="accountselect.removeexcept.text">&lt;&lt; Remove Except</entry>
+    <entry key="accountselect.removeall.text">&lt;&lt; Remove All</entry>
+    <entry key="accountfilter.all">All</entry>
+
+    <!--  Error messages -->
+    <entry key="error.title">Error in Find and Replace Plugin</entry>
+    <entry key="error.load">An error occurred while loading the Find and Replace module.&#10;&#10;Message: {0}</entry>
+    <entry key="error.nodata">You must have a file loaded to use Find and Replace.</entry>
+    <entry key="accountselect.accountnotfound">Attempt to process an unknown account. Data may be invalid.</entry>
+    <entry key="notice.title">Notice</entry>
+    <!--  0 = user-entered text  1 = error message -->
+    <entry key="error.regex">Invalid regular expression. 
+&#10;&#10;If the search text begins with ''='', the remainder is used as a regular expression with the
+Java Matcher.find() method. 
+&#10;&#10;If no regular expression is provided, the expression ''(?ui)\QX\E'' is used, where
+X is the search text.
+&#10;&#10;You entered: {0}
+&#10;Error message: {1}</entry>
+
+    <!--  General strings - copied from Moneydance -->
+    <entry key="ok">OK</entry>
+    <entry key="cancel">Cancel</entry>
+    <entry key="none">None</entry>
+    <entry key="done">Done</entry>
+
+    <entry key="split_label1">-</entry>
+    <entry key="split_label2">splits -</entry>
+    <entry key="cancel_txn">Cancel</entry>
+    <entry key="record_txn">Record</entry>
+    <entry key="combine_criteria">Combine Criteria:</entry>
+    <entry key="srch_op_intersect">And (Intersection)</entry>
+    <entry key="srch_op_union">Or (Union)</entry>
+    <entry key="srch_range0">Between</entry>
+    <entry key="srch_range1">and</entry>
+    <entry key="accounts">Accounts</entry>
+    <entry key="amount">Amount</entry>
+    <entry key="srch_by_date">Date</entry>
+    <entry key="memo">Memo</entry>
+    <entry key="desc">Description</entry>
+    <entry key="category">Category</entry>
+    <entry key="table_column_date">Date</entry>
+    <entry key="table_column_description">Description</entry>
+    <entry key="table_column_clearedchar">C</entry>
+    <entry key="table_column_amount">Amount</entry>
+    <entry key="table_column_account">Account</entry>
+    <entry key="table_column_tags">Tags</entry>
+    <entry key="table_column_checknum">Cheque#</entry>
+    <entry key="shares">Shares</entry>
+    <entry key="select_acct_title">Select an Account</entry>
+    <entry key="all_categories">All Categories</entry>
+    <entry key="show_txn">Go To Transaction</entry>
+    <entry key="txn_checknum">Cheque#</entry>
+    <entry key="srch_use_tax_date">Use Tax Date</entry>
+
+    <!--  Account types (copied) -->
+    <entry key="acct_type4300s">Asset</entry>
+    <entry key="acct_type1000s">Bank</entry>
+    <entry key="acct_type2000s">Credit Card</entry>
+    <entry key="acct_type7000s">Income</entry>
+    <entry key="acct_type3000s">Investment</entry>
+    <entry key="acct_type4600s">Liability</entry>
+    <entry key="acct_type5000s">Loan</entry>
+    <entry key="acct_type6000s">Expense</entry>
+    <entry key="acct_type4000s">Security</entry>
+    <entry key="all_accounts">All Accounts</entry>
+
+    <!-- Transaction status (copied) -->
+    <entry key="cleared">Cleared</entry>
+    <entry key="uncleared">Uncleared</entry>
+    <entry key="reconciling">Reconciling</entry>
+
+    <!-- Images -->
+    <entry key="findAndReplace.image">/com/moneydance/modules/features/findandreplace/icon.png</entry>
+
+</properties>

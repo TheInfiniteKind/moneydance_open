@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,6 +10,8 @@ package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.Account;
+import com.moneydance.apps.md.model.CurrencyType;
+import com.moneydance.apps.md.model.CurrencyUtil;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.ParentTxn;
@@ -25,7 +27,7 @@ import java.util.regex.Pattern;
  * <p>Replace data according to the user's wishes.</p>
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 94
  * @since 1.0
  */
 public class ReplaceCommand implements IFarCommand
@@ -33,6 +35,7 @@ public class ReplaceCommand implements IFarCommand
     // the input is immutable
     private final Account _replaceCategory;
     private final Long _replaceAmount; // stored as object so we can use null
+    private final CurrencyType _replaceCurrency;
     private final String _replaceDescription;
     private final boolean _replaceFoundDescriptionOnly;
     private final String _replaceMemo;
@@ -47,7 +50,7 @@ public class ReplaceCommand implements IFarCommand
     // the transaction changes as the command is applied to all selected transactions in the list
     private FindResultsTableEntry _transaction;
 
-    ReplaceCommand(final Account category, final Long amount,
+    ReplaceCommand(final Account category, final Long amount, final CurrencyType amountCurrency,
                    final String description, final boolean replaceFoundDescriptionOnly,
                    final String memo, final boolean replaceFoundMemoOnly,
                    final String check, final boolean replaceFoundCheckOnly,
@@ -57,6 +60,7 @@ public class ReplaceCommand implements IFarCommand
     {
         _replaceCategory = category;
         _replaceAmount = amount;
+        _replaceCurrency = amountCurrency;
         _replaceDescription = description;
         _replaceFoundDescriptionOnly = replaceFoundDescriptionOnly;
         _replaceMemo = memo;
@@ -113,6 +117,15 @@ public class ReplaceCommand implements IFarCommand
         }
 
         return _replaceAmount;
+    }
+
+    public CurrencyType getAmountCurrency()
+    {
+        if (_replaceCurrency == null)
+        {
+            return (_transaction == null) ? null : _transaction.getCurrencyType();
+        }
+        return _replaceCurrency;
     }
 
     public String getPreviewDescription(final boolean useParent)
@@ -193,6 +206,7 @@ public class ReplaceCommand implements IFarCommand
         }
 
         boolean changed = false;
+        Account previousCategory = null;
         if (_replaceCategory != null)
         {
             // Only apply category replacement to splits. Do not replace if the category is already
@@ -202,24 +216,56 @@ public class ReplaceCommand implements IFarCommand
                 !_transaction.getParentTxn().getAccount().equals(_replaceCategory))
             {
                 changed = true;
+                previousCategory = _transaction.getSplitTxn().getAccount();
                 _transaction.getSplitTxn().setAccount(_replaceCategory);
             }
         }
 
+        final boolean newCategory = (previousCategory != null) && (_replaceCategory != null);
         if (_replaceAmount != null)
         {
             // only apply amount changes to splits because it is too complicated to change the
             // amount for a parent transaction with multiple splits
+            // If we replace both the category AND the amount, we have to assume the user put the amount
+            // in the target currency, and no conversion takes place
             final SplitTxn split = _transaction.getSplitTxn();
-
+            //  check if the target category has changed to == new rate
             long value = _replaceAmount.longValue();
-            long diff = value - split.getAmount();
-            if (diff != 0)
+            // replacing with a negative value flips the sign
+            long signFlip = (value < 0) ? -1 : 1;
+            long prevSign = (split.getValue() < 0) ? -1 : 1;
+            CurrencyType targetCurr = split.getAccount().getCurrencyType();
+            CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
+            changed = true;
+            if (newCategory) {
+                targetCurr = _replaceCategory.getCurrencyType();
+            }
+            // convert the replacement amount into the category's currency, then set the proper sign
+            long splitAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt())) * prevSign * signFlip;
+            // the parent amount has the same sign as the split amount under the hood, the sign is negated in the UI only
+            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt())) * prevSign * signFlip;
+            double rate = CurrencyUtil.getRawRate(parentCurr, targetCurr, split.getDateInt());
+            split.setAmount(splitAmount, rate, parentAmount);
+        }
+        else if (newCategory)
+        {
+            // we have not changed the amount, but the category has been changed, so do a currency conversion
+            CurrencyType sourceCurr = previousCategory.getCurrencyType();
+            CurrencyType targetCurr = _replaceCategory.getCurrencyType();
+            if (!sourceCurr.equals(targetCurr))
             {
-                changed = true;
-                final double rate = split.getRate();
-                long parentAmount = split.getParentAmount();
-                split.setAmount(value, rate, parentAmount + diff);
+                final SplitTxn split = _transaction.getSplitTxn();
+                CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
+                // parent amount should stay the same (or flip sign), split amount will change
+                // the sign is flipped in the getParentAmount() method, so flip it again - must stay the same
+                // unless we're switching from an expense category to an income one
+                long parentAmount = -split.getParentAmount();
+                // the rate is always a positive number, raw rate refers to actual number used to convert two longs to each other
+                // whereas user rate is a display and/or editable value
+                double rate = CurrencyUtil.getRawRate(parentCurr, targetCurr, split.getDateInt());
+                // the parent amount has the same sign under the hood, the sign is negated in the UI only
+                long splitAmount = Math.round(parentAmount * rate);
+                split.setAmount(splitAmount, rate, parentAmount);
             }
         }
 

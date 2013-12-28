@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  * fires property changes when selected values change.</p>
  * 
  * @author Kevin Menningen
- * @version Build 83
+ * @version Build 94
  * @since 1.0
  */
 class FarModel extends BasePropertyChangeReporter
@@ -48,7 +48,7 @@ class FarModel extends BasePropertyChangeReporter
     private boolean _useAmountFilter;
     private long _amountMinimum;
     private long _amountMaximum;
-    private CurrencyType _amountCurrency;
+    private CurrencyType _findAmountCurrency;
     private boolean _isSharesCurrency;
 
     private boolean _useDateFilter;
@@ -80,6 +80,7 @@ class FarModel extends BasePropertyChangeReporter
 
     private boolean _doReplaceAmount;
     private long _replacementAmount;
+    private CurrencyType _replaceAmountCurrency;
 
     private boolean _doReplaceDescription;
     private String _replacementDescription;
@@ -140,7 +141,8 @@ class FarModel extends BasePropertyChangeReporter
         }
 
         // store the default/base currency
-        _amountCurrency = _data.getCurrencyTable().getBaseType();
+        _findAmountCurrency = _data.getCurrencyTable().getBaseType();
+        _replaceAmountCurrency = _data.getCurrencyTable().getBaseType();
 
         // create the full account list - we don't count sub-accounts for these, which generally
         // are securities within investment accounts
@@ -218,11 +220,13 @@ class FarModel extends BasePropertyChangeReporter
         _amountMaximum = 0;
         if (_data != null)
         {
-            _amountCurrency = _data.getCurrencyTable().getBaseType();
+            _findAmountCurrency = _data.getCurrencyTable().getBaseType();
+            _replaceAmountCurrency = _data.getCurrencyTable().getBaseType();
         }
         else
         {
-            _amountCurrency = null;
+            _findAmountCurrency = null;
+            _replaceAmountCurrency = null;
         }
 
         _useDateFilter = false;
@@ -357,12 +361,31 @@ class FarModel extends BasePropertyChangeReporter
      * @param isSharesCurrency True if the currency is a generic "number of shares" currency, so
      * search on the number of shares of a security, or False if it is a standard currency.
      */
-    void setAmountCurrency(final CurrencyType newCurrency, final boolean isSharesCurrency)
+    void setFindAmountCurrency(final CurrencyType newCurrency, final boolean isSharesCurrency)
     {
-        final CurrencyType old = _amountCurrency;
-        _amountCurrency = newCurrency;
+        final CurrencyType old = _findAmountCurrency;
+        _findAmountCurrency = newCurrency;
         _isSharesCurrency = isSharesCurrency;
-        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.AMOUNT_CURRENCY, old, newCurrency);
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.FIND_AMOUNT_CURRENCY, old, newCurrency);
+    }
+    CurrencyType getFindAmountCurrency()
+    {
+        return _findAmountCurrency;
+    }
+
+    /**
+     * Define what currency the user is specifying for the replace amount.
+     * @param newCurrency      The currency to use for replacing an amount.
+     */
+    void setReplaceAmountCurrency(final CurrencyType newCurrency)
+    {
+        final CurrencyType old = _replaceAmountCurrency;
+        _replaceAmountCurrency = newCurrency;
+        if (_allowEvents) _eventNotify.firePropertyChange(N12EFindAndReplace.REPL_AMOUNT_CURRENCY, old, newCurrency);
+    }
+    CurrencyType getReplaceAmountCurrency()
+    {
+        return _replaceAmountCurrency;
     }
 
     void setUseDateFilter(final boolean use)
@@ -549,7 +572,7 @@ class FarModel extends BasePropertyChangeReporter
         }
         if (_useAmountFilter)
         {
-            result.addFilter(new AmountTxnFilter(_amountMinimum, _amountMaximum, _amountCurrency,
+            result.addFilter(new AmountTxnFilter(_amountMinimum, _amountMaximum, _findAmountCurrency,
                                                  _isSharesCurrency, !_combineOr));
         }
         if (_useFreeTextFilter)
@@ -897,7 +920,7 @@ class FarModel extends BasePropertyChangeReporter
         {
             findPattern = null;
         }
-        return new ReplaceCommand(category, amount,
+        return new ReplaceCommand(category, amount, _replaceAmountCurrency,
                                   description, allowFoundOnly && _replaceFoundDescriptionOnly,
                                   memo, allowFoundOnly && _replaceFoundMemoOnly,
                                   check, allowFoundOnly && _replaceFoundCheckOnly,
@@ -1018,7 +1041,7 @@ class FarModel extends BasePropertyChangeReporter
             // if the user unchecks the box, remove that from the results value
             if (_findResultsModel.getEntry(modelIndex).isUseInReplace())
             {
-                long value = _findResultsModel.getAmount(modelIndex);
+                long value = _findResultsModel.getAmountInBaseCurrency(modelIndex);
                 if (value >= 0)
                 {
                     plusses += value;
@@ -1040,9 +1063,11 @@ class FarModel extends BasePropertyChangeReporter
         }
         String countDisplay = String.format("%d / %d", Integer.valueOf(selectedCount),
                 Integer.valueOf(displayCount));
-        String adds = _findResultsModel.getAmountText(null, plusses);
-        String subtracts = _findResultsModel.getAmountText(null, minuses);
-        String totalDisplay = _findResultsModel.getAmountText(null, total);
+        CurrencyType baseCurrency = _data.getCurrencyTable().getBaseType();
+        char dec = _findResultsModel.getDecimalChar();
+        String adds = baseCurrency.formatFancy(plusses, dec);
+        String subtracts = baseCurrency.formatFancy(minuses, dec);
+        String totalDisplay = baseCurrency.formatFancy(total, dec);
         return String.format(format, countDisplay, adds, subtracts, totalDisplay);
     }
 
@@ -1116,9 +1141,14 @@ class FarModel extends BasePropertyChangeReporter
         result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
         result.append('\t');
 
-        // shares
+        // shares (category currency)
         result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
         result.append(N12EFindAndReplace.SHARES_SUFFIX);
+        result.append('\t');
+
+        // other amount (parent currency)
+        result.append(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
+        result.append(N12EFindAndReplace.OTHER_SUFFIX);
         result.append('\t');
 
         // selected yes/no
@@ -1182,9 +1212,14 @@ class FarModel extends BasePropertyChangeReporter
                 FindResultsTableModel.AMOUNT_INDEX));
         result.append('\t');
 
-        // shares
+        // shares (category currency)
         result.append(_findResultsModel.getValueAt(rowModelIndex,
                 FindResultsTableModel.SHARES_INDEX));
+        result.append('\t');
+
+        // other amount (parent account currency)
+        result.append(_findResultsModel.getValueAt(rowModelIndex,
+                                                   FindResultsTableModel.OTHER_AMOUNT_INDEX));
         result.append('\t');
 
         // selected

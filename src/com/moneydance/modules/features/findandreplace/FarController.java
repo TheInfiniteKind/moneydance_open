@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -39,7 +39,7 @@ import java.util.Set;
  * and performs some of the main functions of the plugin.</p>
  * 
  * @author Kevin Menningen
- * @version Build 83
+ * @version Build 94
  * @since 1.0
  */
 public class FarController implements IFindAndReplaceController
@@ -469,6 +469,11 @@ public class FarController implements IFindAndReplaceController
     //  Package Private Methods
     //////////////////////////////////////////////////////////////////////////////////////////////
 
+    String getBuildString()
+    {
+        return _host.getBuildString();
+    }
+
     void setAllowEvents(final boolean allow)
     {
         _model.setAllowEvents(allow);
@@ -665,7 +670,9 @@ public class FarController implements IFindAndReplaceController
     }
     void setAmountRange(final long minimum, final long maximum)
     {
-        _model.setAmountRange(minimum, maximum);
+        final long lhs = Math.abs(minimum);
+        final long rhs = Math.abs(maximum);
+        _model.setAmountRange(Math.min(lhs, rhs), Math.max(lhs, rhs));
     }
     long getAmountMinimum()
     {
@@ -677,7 +684,11 @@ public class FarController implements IFindAndReplaceController
     }
     void setAmountCurrency(final CurrencyType newCurrency, final boolean isSharesCurrency)
     {
-        _model.setAmountCurrency(newCurrency, isSharesCurrency);
+        _model.setFindAmountCurrency(newCurrency, isSharesCurrency);
+    }
+    CurrencyType getAmountCurrency()
+    {
+        return _model.getFindAmountCurrency();
     }
 
     void setUseDateFilter(final boolean use)
@@ -850,13 +861,18 @@ public class FarController implements IFindAndReplaceController
     {
         return _model.getReplaceAmount();
     }
-    void setReplacementAmount(final long amount)
+    void setReplacementAmount(final long amount, final CurrencyType replaceCurrency)
     {
         _model.setReplacementAmount(amount);
+        _model.setReplaceAmountCurrency(replaceCurrency);
     }
     long getReplacementAmount()
     {
         return _model.getReplacementAmount();
+    }
+    CurrencyType getReplaceAmountCurrency()
+    {
+        return _model.getReplaceAmountCurrency();
     }
 
     void setReplaceDescription(boolean replace)

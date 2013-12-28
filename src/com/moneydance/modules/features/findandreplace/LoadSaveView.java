@@ -1,32 +1,60 @@
+/*************************************************************************\
+ * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+ *
+ * This code is released as open source under the Apache 2.0 License:<br/>
+ * <a href="http://www.apache.org/licenses/LICENSE-2.0">
+ * http://www.apache.org/licenses/LICENSE-2.0</a><br />
+ \*************************************************************************/
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MDImages;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.OKButtonListener;
-import com.moneydance.apps.md.view.gui.OKButtonPanel;
-import com.moneydance.apps.md.view.gui.OKButtonWindow;
+import com.moneydance.awt.GridC;
 import com.moneydance.util.StringUtils;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.Collection;
+import java.util.Vector;
 
+/**
+ * <p>View (menu and a dialog) for loading and saving find and replace parameters.</p>
+ *
+ * @author Kevin Menningen
+ * @version Build 94
+ * @since Build 83
+ */
 public class LoadSaveView extends JPanel
 {
     private final LoadSaveModel _model;
@@ -135,44 +163,81 @@ public class LoadSaveView extends JPanel
 
     private void saveCurrentSearch(final MoneydanceGUI mdGUI, final IResourceProvider resources)
     {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
-        final JLabel prompt = new JLabel(FarUtil.getLabelText(resources, L10NFindAndReplace.MEMORIZE_PROMPT));
-        prompt.setBorder(BorderFactory.createEmptyBorder(0, 0, UiUtil.VGAP, 0));
-        panel.add(prompt, BorderLayout.NORTH);
         final JTextField nameField = new JTextField();
-        panel.add(nameField, BorderLayout.CENTER);
-        OKButtonListener listener = new OKButtonListener()
+        JPanel p = buildSaveAsPanel(resources, nameField);
+        // Requests focus on the field component.
+        nameField.addHierarchyListener(new HierarchyListener()
         {
-            public void buttonPressed(int nButton)
+            public void hierarchyChanged(HierarchyEvent e)
             {
-                final String name = nameField.getText();
-                if ((nButton == OKButtonPanel.ANSWER_OK))
+                final Component c = e.getComponent();
+                if (c.isShowing() && (e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0)
                 {
-                    if (_model.isValidName(name))
+                    Window toplevel = SwingUtilities.getWindowAncestor(c);
+                    toplevel.addWindowFocusListener(new WindowAdapter()
                     {
-                        LoadSaveView.this.saveSearchSettings(name, mdGUI);
-                    }
-                    else
-                    {
-                        String title = mdGUI.getStr("error");
-                        String message = FarUtil.getLabelText(resources, L10NFindAndReplace.MEMORIZE_ERROR)
-                                + ' ' + name;
-                        JOptionPane.showMessageDialog(LoadSaveView.this, message, title, JOptionPane.ERROR_MESSAGE);
-                    }
+                        public void windowGainedFocus(WindowEvent e)
+                        {
+                            c.requestFocusInWindow();
+                        }
+                    });
                 }
             }
-        };
-        OKButtonWindow dialog = new OKButtonWindow(mdGUI, this,
-                                                   resources.getString(L10NFindAndReplace.SAVE_SEARCH_TITLE),
-                                                   listener, OKButtonPanel.QUESTION_OK_CANCEL) {
-            @Override
-            public void isNowVisible()
+        });
+        int result = JOptionPane.showConfirmDialog(this, p, resources.getString(L10NFindAndReplace.SAVE_SEARCH_TITLE),
+                                                   JOptionPane.OK_CANCEL_OPTION,
+                                                   JOptionPane.QUESTION_MESSAGE);
+        if (result == JOptionPane.OK_OPTION)
+        {
+            final String name = nameField.getText();
+            if (_model.isValidName(name))
             {
+                LoadSaveView.this.saveSearchSettings(name, mdGUI);
+            }
+            else
+            {
+                String title = mdGUI.getStr("error");
+                String message = FarUtil.getLabelText(resources, L10NFindAndReplace.MEMORIZE_ERROR)
+                        + ' ' + name;
+                JOptionPane.showMessageDialog(LoadSaveView.this, message, title, JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private JPanel buildSaveAsPanel(IResourceProvider resources, final JTextField nameField)
+    {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, UiUtil.HGAP * 4));
+        final JLabel prompt = new JLabel(FarUtil.getLabelText(resources, L10NFindAndReplace.MEMORIZE_PROMPT));
+        prompt.setBorder(BorderFactory.createEmptyBorder(0, 0, UiUtil.VGAP, UiUtil.HGAP * 2));
+        p.add(prompt, GridC.getc(0, 0).wx(1).fillx());
+        p.add(nameField, GridC.getc(0, 1).wx(1).fillx());
+        p.add(Box.createHorizontalStrut(150), GridC.getc(0, 2));   // minimum width 150 pixels
+        final Vector<String> existingNames = new Vector<String>(_model.getSavedSearchNames());
+        final JList<String> existingList = new JList<String>(existingNames);
+        existingList.setBorder(null);
+        existingList.setOpaque(true);
+        existingList.setFocusable(false);
+        existingList.setBackground(UIManager.getColor("control"));
+        existingList.setForeground(UIManager.getColor("controlText"));
+        existingList.setVisibleRowCount(Math.min(10, existingNames.size()));
+        existingList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        existingList.addListSelectionListener(new ListSelectionListener()
+        {
+            public void valueChanged(ListSelectionEvent e)
+            {
+                final String selectedName = existingList.getSelectedValue();
+                if (selectedName != null) {
+                    nameField.setText(selectedName);
+                    nameField.setCaretPosition(selectedName.length());
+                }
                 nameField.requestFocusInWindow();
             }
-        };
-        dialog.showDialog(panel);
+        });
+        final JScrollPane listPane = new JScrollPane(existingList, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        listPane.setBorder(null);
+        p.add(listPane, GridC.getc(0,3).wxy(1, 1).fillboth());
+        return p;
     }
 
     private void saveSearchSettings(String searchName, MoneydanceGUI mdGUI)

@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -14,7 +14,6 @@ import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 import com.moneydance.apps.md.view.gui.SecondaryFrame;
 import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.awt.AwtUtil;
-import com.moneydance.awt.JCurrencyField;
 import com.moneydance.apps.md.view.gui.AccountChoice;
 import com.moneydance.apps.md.model.Account;
 
@@ -64,7 +63,7 @@ import info.clearthought.layout.TableLayoutConstants;
  * hosts the results table as well.</p>
  *
  * @author Kevin Menningen
- * @version Build 83
+ * @version Build 94
  * @since 1.0
  */
 class FarView extends SecondaryFrame implements PropertyChangeListener
@@ -117,7 +116,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private TableLayoutConstraints _replaceCategoryConstraints;
 
     private JCheckBox _replaceAmountCheck;
-    private JCurrencyField _replaceAmount;
+    private AmountPickerGroup _replaceAmount;
     private JCheckBox _replaceDescriptionCheck;
     private JTextField _replaceDescription;
     private JCheckBox _replaceFoundDescriptionOnly;
@@ -182,6 +181,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     {
         super.goneAway();
         _findAmountPickers.cleanUp();
+        _replaceAmount.cleanUp();
     }
 
 
@@ -246,7 +246,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         centerPanel.add(userGuide);
         
         _statusLabel = new JLabel(getVersionText());
-        _statusLabel.setOpaque(false);
+        setupControl(_statusLabel);
         _statusLabel.setHorizontalAlignment(JLabel.CENTER);
         _statusLabel.setVerticalAlignment(JLabel.BOTTOM);
         _smallFont = _statusLabel.getFont().deriveFont(_statusLabel.getFont().getSize() - 2f);
@@ -381,13 +381,13 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             _findAmountUseCheck.setSelected(_controller.getUseAmountFilter());
         }
-        if (all || N12EFindAndReplace.AMOUNT_CURRENCY.equals(eventID))
+        if (all || N12EFindAndReplace.FIND_AMOUNT_CURRENCY.equals(eventID))
         {
-            final CurrencyType currencyType = all ? _controller.getCurrencyType() :
+            final CurrencyType currencyType = all ? _controller.getAmountCurrency() :
                     (CurrencyType)event.getNewValue();
             if (currencyType != null)
             {
-                _replaceAmount.setCurrencyType(currencyType);
+                _findAmountPickers.setCurrencyType(currencyType);
             }
         }
         if (all || N12EFindAndReplace.DATE_USE.equals(eventID))
@@ -468,6 +468,15 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         if (all || N12EFindAndReplace.REPLACE_AMOUNT.equals(eventID))
         {
             _replaceAmountCheck.setSelected(_controller.getReplaceAmount());
+        }
+        if (all || N12EFindAndReplace.REPL_AMOUNT_CURRENCY.equals(eventID))
+        {
+            final CurrencyType currencyType = all ? _controller.getReplaceAmountCurrency() :
+                    (CurrencyType)event.getNewValue();
+            if (currencyType != null)
+            {
+                _replaceAmount.setCurrencyType(currencyType);
+            }
         }
         if (all || N12EFindAndReplace.REPLACE_DESCRIPTION.equals(eventID))
         {
@@ -583,7 +592,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             _replaceDescription.setText(_controller.getReplacementDescription());
             _replaceMemo.setText(_controller.getReplacementMemo());
             _replaceCheck.setText(_controller.getReplacementCheck());
-            _replaceAmount.setValue(_controller.getReplacementAmount());
+            _replaceAmount.getToAmountPicker().setValue(_controller.getReplacementAmount());
         }
 
         // clear the update suppression
@@ -991,7 +1000,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_AMOUNT_LABEL,
                 L10NFindAndReplace.FIND_AMOUNT_MNC, _findAmountUseCheck, false);
 
-        _findAmountPickers = new AmountPickerGroup(_controller);
+        _findAmountPickers = new AmountPickerGroup(_controller, true, true);
         _findAmountPickers.addFocusListener(new ColoredFocusAdapter(
                 _findAmountPickers.getFromAmountPicker(), _focusColor) );
         row = addRowField1(findPanel, row, startCol, _findAmountPickers );
@@ -1406,6 +1415,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         // account and category have already been saved
         _controller.setAmountRange(_findAmountPickers.getFromAmountPicker().getValue(),
                 _findAmountPickers.getToAmountPicker().getValue());
+        CurrencyType findCurrency = _findAmountPickers.getCurrencyType();
+        _controller.setAmountCurrency(findCurrency, _findAmountPickers.isSharesCurrency(findCurrency));
+
         _controller.setDateRangeKey(_findDatePickers.getDateRangeKey());
         _controller.setDateRange(_findDatePickers.getFromDatePicker().getDateInt(),
                 _findDatePickers.getToDatePicker().getDateInt(),
@@ -1519,10 +1531,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _replaceAmountCheck = setupControl(new JCheckBox());
         row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_AMOUNT_LABEL,
                           L10NFindAndReplace.REPLACE_AMOUNT_MNC, _replaceAmountCheck, true);
-        _replaceAmount = new JCurrencyField(_controller.getCurrencyType(),
-                                            _controller.getCurrencyTable(), _controller.getDecimalChar(),
-                                            _controller.getCommaChar());
-        _replaceAmount.addFocusListener(new ColoredFocusAdapter(_replaceAmount, _focusColor));
+
+        _replaceAmount = new AmountPickerGroup(_controller, false, false);
+        _replaceAmount.addFocusListener(new ColoredFocusAdapter( _replaceAmount.getToAmountPicker(), _focusColor) );
         row = addRowField1(_replacePanel, row, startCol, _replaceAmount);
 
         // description
@@ -1534,6 +1545,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                                                                      _focusColor));
         _replaceFoundDescriptionOnly = new JCheckBox(
                 _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
+        setupControl(_replaceFoundDescriptionOnly);
         row = addRowField2Right(_replacePanel, row, startCol, _replaceDescription,
                            _replaceFoundDescriptionOnly);
 
@@ -1570,6 +1582,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _replaceMemo.addFocusListener(new ColoredFocusAdapter(_replaceMemo, _focusColor));
         _replaceFoundMemoOnly = new JCheckBox(
                 _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
+        setupControl(_replaceFoundMemoOnly);
         row = addRowField2Right(_replacePanel, row, startCol, _replaceMemo, _replaceFoundMemoOnly);
 
         // check number
@@ -1580,6 +1593,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _replaceCheck.addFocusListener(new ColoredFocusAdapter(_replaceCheck, _focusColor));
         _replaceFoundCheckOnly = new JCheckBox(
                 _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
+        setupControl(_replaceFoundCheckOnly);
         row = addRowField2Right(_replacePanel, row, startCol, _replaceCheck, _replaceFoundCheckOnly);
 
         _includeTransfersCheck = setupControl(new JCheckBox(
@@ -1662,11 +1676,11 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             }
         });
 
-        _replaceAmount.getDocument().addDocumentListener(new DocumentListener()
+        _replaceAmount.addChangeListener(new DocumentListener()
         {
             public void insertUpdate(DocumentEvent e)
             {
-                boolean different = _replaceAmount.getValue() != _controller.getReplacementAmount();
+                boolean different = _replaceAmount.getToAmountPicker().getValue() != _controller.getReplacementAmount();
                 if (!_suppressAutoCheckUse && different)
                 {
                     _controller.setReplaceAmount(true);
@@ -1674,7 +1688,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             }
             public void removeUpdate(DocumentEvent e)
             {
-                boolean different = _replaceAmount.getValue() != _controller.getReplacementAmount();
+                boolean different = _replaceAmount.getToAmountPicker().getValue() != _controller.getReplacementAmount();
                 if (!_suppressAutoCheckUse && different)
                 {
                     _controller.setReplaceAmount(true);
@@ -1863,7 +1877,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         }
         _controller.setReplacementCategory(selectedAccount);
 
-        _controller.setReplacementAmount(_replaceAmount.getValue());
+        _controller.setReplacementAmount(_replaceAmount.getToAmountPicker().getValue(), _replaceAmount.getCurrencyType());
         _controller.setReplacementDescription(_replaceDescription.getText());
         _controller.setReplaceFoundDescriptionOnly(_replaceFoundDescriptionOnly.isSelected());
         _controller.setReplacementMemo(_replaceMemo.getText());
@@ -1950,6 +1964,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private int addRowField2Right( JPanel panel, int rowNum, int startCol, JComponent field1, JComponent field2 )
     {
         JPanel subPanel = new JPanel(new BorderLayout());
+        setupControl(subPanel);
         subPanel.add(field1, BorderLayout.CENTER);
         subPanel.add(field2, BorderLayout.EAST);
         TableLayoutConstraints constraints = new TableLayoutConstraints(startCol, rowNum, startCol+3, rowNum);
@@ -2057,7 +2072,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private String getVersionText()
     {
         final String format = _controller.getString(L10NFindAndReplace.VERSION_FMT);
-        return MessageFormat.format(format, Main.BUILD);
+        return MessageFormat.format(format, _controller.getBuildString());
     }
 
     private boolean isAmountsDifferent()
@@ -2119,11 +2134,11 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     {
         // File
         mainMenu.fileNewAction.setEnabled(true);
-        mainMenu.fileOpenAction.setEnabled(true);
+        //mainMenu.fileOpenAction.setEnabled(true);
         mainMenu.fileExportAction.setEnabled(true);
         mainMenu.fileEncryptionAction.setEnabled(false);
         mainMenu.fileArchiveAction.setEnabled(false);
-        mainMenu.fileSaveAsAction.setEnabled(true);
+        //mainMenu.fileSaveAsAction.setEnabled(true);
         mainMenu.fileSaveAction.setEnabled(true);
         mainMenu.printChecksAction.setEnabled(false);
         mainMenu.printTxnsAction.setEnabled(false);
@@ -2136,7 +2151,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         mainMenu.viewDBNothing.setEnabled(false);
         mainMenu.viewDBNetWorth.setEnabled(false);
         mainMenu.viewHomeAction.setEnabled(false);
-        mainMenu.viewShowSourceListAction.setEnabled(false);
+        //mainMenu.viewShowSourceListAction.setEnabled(false);
         // Account
         mainMenu.acctNewAction.setEnabled(false);
         mainMenu.acctEditAction.setEnabled(false);

@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -9,6 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.model.AbstractTxn;
+import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.ParentTxn;
 
@@ -19,23 +20,24 @@ import java.util.HashSet;
  * <p>Single row in the find results table.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version Build 94
  * @since 1.0
  */
 class FindResultsTableEntry
 {
     private final SplitTxn _split;
     private final ParentTxn _parent;
+    private final CurrencyType _currency;
     private boolean _useInReplace;
     private boolean _applied;
     private final Set<Integer> _modifiedColumns = new HashSet<Integer>();
 
-    FindResultsTableEntry(final AbstractTxn txn)
+    FindResultsTableEntry(final AbstractTxn txn, final CurrencyType baseCurrency)
     {
-        this(txn, true);
+        this(txn, true, baseCurrency);
     }
 
-    FindResultsTableEntry(final AbstractTxn txn, final boolean useInReplace)
+    FindResultsTableEntry(final AbstractTxn txn, final boolean useInReplace, final CurrencyType baseCurrency)
     {
         if (txn instanceof SplitTxn)
         {
@@ -59,6 +61,9 @@ class FindResultsTableEntry
         {
             throw new IllegalArgumentException(N12EFindAndReplace.UNKNOWN_TRANSACTION);
         }
+        // we'll display the values with the parent account's currency, converted as needed
+        // the account could be null for the blank transaction
+        _currency = (_parent.getAccount() != null) ? _parent.getAccount().getCurrencyType() : baseCurrency;
         _applied = false;
         _useInReplace = useInReplace;
     }
@@ -108,5 +113,10 @@ class FindResultsTableEntry
     ParentTxn getParentTxn()
     {
         return _parent;
+    }
+
+    CurrencyType getCurrencyType()
+    {
+        return _currency;
     }
 }

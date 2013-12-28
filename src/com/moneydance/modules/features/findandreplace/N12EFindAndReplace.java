@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -15,7 +15,7 @@ package com.moneydance.modules.features.findandreplace;
  * Can this string be localized, or would localizing it break the software?'</p>
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 94
  * @since 1.0
  */
 public class N12EFindAndReplace
@@ -69,6 +69,11 @@ public class N12EFindAndReplace
     public static final String SHARES_SUFFIX = " 2";
 
     /**
+     * Suffix appended to the 'amount' label to specify this is the un-converted amount (shares).
+     */
+    public static final String OTHER_SUFFIX = " 3";
+
+    /**
      * Event fired when a new file is opened.
      */
     public static final String MD_OPEN_EVENT_ID = "md:file:opened";
@@ -85,7 +90,8 @@ public class N12EFindAndReplace
     public static final String CATEGORY_SELECT = "categorySelect";
     public static final String CATEGORY_USE = "categoryUse";
     public static final String AMOUNT_USE = "amountUse";
-    public static final String AMOUNT_CURRENCY = "amountCurrency";
+    public static final String FIND_AMOUNT_CURRENCY = "findAmountCurrency";
+    public static final String REPL_AMOUNT_CURRENCY = "replAmountCurrency";
     public static final String DATE_USE = "dateUse";
     public static final String FREETEXT_USE = "freeTextUse";
     public static final String FREETEXT_DESCRIPTION = "freeTextDescription";

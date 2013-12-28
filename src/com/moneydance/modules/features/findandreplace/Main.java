@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -25,12 +25,12 @@ import java.util.List;
  * interface to Moneydance.</p>
  *
  * @author Kevin Menningen
- * @version Build 83
+ * @version Build 94
  * @since 1.0
  */
 public class Main extends FeatureModule
 {
-    static final String BUILD = "83";
+    private static final int BUILD = 94;
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();
@@ -40,6 +40,11 @@ public class Main extends FeatureModule
 
     private boolean _testMode;
     private RootAccount _testRootAccount;
+
+    public String getBuildString()
+    {
+        return Integer.toString(BUILD);
+    }
 
     public void init()
     {

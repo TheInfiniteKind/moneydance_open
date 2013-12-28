@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -17,7 +17,7 @@ import java.util.Comparator;
  * class is one of the reasons why 1.6 is required for Find and Replace.</p>
  * 
  * @author Kevin Menningen
- * @version 1.50
+ * @version Build 94
  * @since 1.0
  */
 class FindResultsTable extends JTableBase
@@ -39,6 +39,7 @@ class FindResultsTable extends JTableBase
         FindResultsRowSorter(final FindResultsTableModel model)
         {
             setModelWrapper(new FindResultsModelWrapper(model));
+            setComparator(FindResultsTableModel.SEL_INDEX, new RowNumComparator());
             setComparator(FindResultsTableModel.AMOUNT_INDEX, new AmountComparator());
             setComparator(FindResultsTableModel.DATE_INDEX, new DateComparator());
         }
@@ -71,7 +72,7 @@ class FindResultsTable extends JTableBase
                 // we don't want to compare with strings, we want to compare with the value
                 if (column == FindResultsTableModel.AMOUNT_INDEX)
                 {
-                    return Long.valueOf(_model.getAmount(row));
+                    return Long.valueOf(_model.getAmountInBaseCurrency(row));
                 }
                 if (column == FindResultsTableModel.DATE_INDEX)
                 {
@@ -91,6 +92,13 @@ class FindResultsTable extends JTableBase
         }
     } // class FindResultsRowSorter
 
+    private class RowNumComparator implements Comparator<Integer>
+    {
+        public int compare(Integer o1, Integer o2)
+        {
+            return o1.compareTo(o2);
+        }
+    }
     private class AmountComparator implements Comparator<Long>
     {
         public int compare(Long o1, Long o2)

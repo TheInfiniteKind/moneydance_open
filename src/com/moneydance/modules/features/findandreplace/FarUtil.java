@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -15,6 +15,7 @@ import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.TxnTagSet;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.util.StringUtils;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -40,7 +41,7 @@ import java.util.regex.Pattern;
  * in other plugins.</p>
  *
  * @author Kevin Menningen
- * @version Build 83
+ * @version Build 94
  * @since 1.0
  */
 final class FarUtil
@@ -458,6 +459,15 @@ final class FarUtil
         }
     }
 
+    static boolean isStringMatch(final Pattern pattern, final String text)
+    {
+        if (StringUtils.isBlank(text))
+        {
+            // check to see if the user is trying to find things that are blank
+            return (pattern == null);
+        }
+        return (pattern != null) && pattern.matcher(text).find();
+    }
 
     /**
      * Static utilities, do not instantiate.

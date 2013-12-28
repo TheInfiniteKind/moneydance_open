@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -27,7 +27,7 @@ import java.awt.Color;
  * <p>Columns for the results table.</p>
  * 
  * @author Kevin Menningen
- * @version 1.50
+ * @version Build 94
  * @since 1.0
  */
 class FindResultsTableColumnModel extends DefaultTableColumnModel
@@ -190,8 +190,7 @@ class FindResultsTableColumnModel extends DefaultTableColumnModel
         @Override
         protected Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
         {
-            long txnValue = tableModel.getAmount(modelIndex);
-            if (txnValue < 0)
+            if (tableModel.isNegative(modelIndex))
             {
                 return _mdGui.getColors().negativeBalFG;
             }

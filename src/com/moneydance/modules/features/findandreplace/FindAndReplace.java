@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -15,7 +15,7 @@ import java.awt.Image;
  * This glues the Find and Replace dialog to the feature.</p>
  *
  * @author Kevin Menningen
- * @version 1.50
+ * @version Build 94
  * @since 1.0
  */
 class FindAndReplace
@@ -72,6 +72,10 @@ class FindAndReplace
         return _extension.getImage( resourceKey );
     }
 
+    public String getBuildString()
+    {
+        return _extension.getBuildString();
+    }
 
     void cleanUp(IFindAndReplaceController controller)
     {

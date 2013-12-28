@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -32,7 +32,7 @@ import java.awt.Color;
  * <p>Model for the results table.</p>
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 94
  * @since 1.0
  */
 public class FindResultsTableModel extends AbstractTableModel
@@ -51,6 +51,7 @@ public class FindResultsTableModel extends AbstractTableModel
     static final int CHECK_INDEX = 11;         // not shown except in export to clipboard
     static final int FULL_CATEGORY_INDEX = 12; // not shown except in export to clipboard
     static final int MEMO_PARENT_INDEX = 13;   // not shown except in export to clipboard
+    static final int OTHER_AMOUNT_INDEX = 14;  // not shown except in export to clipboard
 
     private static final ParentTxn BLANK_TRANSACTION =
             new ParentTxn(
@@ -64,7 +65,7 @@ public class FindResultsTableModel extends AbstractTableModel
                     0,                           // long id
                     AbstractTxn.STATUS_CLEARED); // byte status
     private static final FindResultsTableEntry BLANK_ENTRY =
-            new FindResultsTableEntry(BLANK_TRANSACTION, false);
+            new FindResultsTableEntry(BLANK_TRANSACTION, false, null);
 
     private static final String DEFAULT_DATE_FORMAT = "MM/dd/YYYY";
     private static final char DEFAULT_DECIMAL_CHAR = '.';
@@ -128,7 +129,12 @@ public class FindResultsTableModel extends AbstractTableModel
     //  Package Private Methods
     //////////////////////////////////////////////////////////////////////////////////////////////
 
-     void refresh()
+    char getDecimalChar()
+    {
+        return _decimalChar;
+    }
+
+    void refresh()
     {
         _data.clear();
         final Set<Long> foundIDs = new HashSet<Long>(_splitData.size());
@@ -196,7 +202,7 @@ public class FindResultsTableModel extends AbstractTableModel
     void add(final SplitTxn txn, final boolean notify)
     {
         final int index = _splitData.size();
-        _splitData.add(new FindResultsTableEntry(txn));
+        _splitData.add(new FindResultsTableEntry(txn, _controller.getCurrencyType()));
         if (notify)
         {
             fireTableRowsInserted(index, index);
@@ -318,12 +324,12 @@ public class FindResultsTableModel extends AbstractTableModel
         buffer.append(N12EFindAndReplace.COL_END);
 
         buffer.append(N12EFindAndReplace.COL_BEGIN);
-        final long value = getTxnAmountValue(txn, entry, AMOUNT_INDEX, false);
+        final TxnValue value = getTxnAmount(txn, entry, AMOUNT_INDEX);
         // For stocks and the like, this will display in shares versus the base currency. Because
         // the table shows the base currency in the amount column, the tooltip can provide
         // additional information in this way.
-        final String amountText = getAmountText(txn, value);
-        if (value < 0)
+        final String amountText = getAmountTooltipText(txn, value);
+        if (value.value < 0)
         {
             final Color negColor = _controller.getMDGUI().getColors().negativeBalFG;
             buffer.append(String.format(N12EFindAndReplace.COLOR_BEGIN_FMT,
@@ -346,21 +352,84 @@ public class FindResultsTableModel extends AbstractTableModel
         return buffer.toString();
     }
 
-    String getAmountText(final AbstractTxn txn, final long value)
+    private String getAmountTooltipText(AbstractTxn txn, TxnValue value)
     {
-        final CurrencyType currencyType;
-        if (txn != null)
+        // start with the default display
+        StringBuilder result = new StringBuilder(getAmountText(null, value));
+        // if a split, or if a parent with only one split, we can tack on the other side's currency
+        CurrencyType otherCurrency = (txn.getOtherTxnCount() == 1) ?
+                txn.getOtherTxn(0).getAccount().getCurrencyType() : null;
+        // by default the table shows base currency, so include that into the mix
+        CurrencyType baseCurrency = _controller.getCurrencyType();
+        if (baseCurrency == null)
         {
-            currencyType = txn.getAccount().getCurrencyType();
+            return result.toString();
         }
-        else
+        if (!baseCurrency.equals(value.currency))
         {
-            currencyType = _controller.getCurrencyType();
+            // show the base currency value
+            result.append(" (");
+            result.append(baseCurrency.formatFancy(
+                    CurrencyUtil.convertValue(value.value, value.currency, baseCurrency, txn.getDateInt()),
+                    _decimalChar));
+            if ((otherCurrency != null) && !otherCurrency.equals(value.currency) && !otherCurrency.equals(baseCurrency))
+            {
+                // include the other side's currency too
+                result.append(" | ");
+                result.append(otherCurrency.formatFancy(
+                        CurrencyUtil.convertValue(value.value, value.currency, otherCurrency, txn.getDateInt()),
+                        _decimalChar));
+            }
+            result.append(')');
         }
-        return currencyType.formatFancy(value, _decimalChar);
+        else if ((otherCurrency != null) && !otherCurrency.equals(value.currency))
+        {
+            // show the other side's currency
+            result.append(" (");
+            result.append(otherCurrency.formatFancy(
+                    CurrencyUtil.convertValue(value.value, value.currency, otherCurrency, txn.getDateInt()),
+                    _decimalChar));
+            result.append(')');
+        }
+        return result.toString();
     }
 
-    long getAmount(final int index)
+    String getAmountText(final CurrencyType displayCurrency, final TxnValue txnValue)
+    {
+        if (displayCurrency != null)
+        {
+            long displayValue = CurrencyUtil.convertValue(txnValue.value, txnValue.currency, displayCurrency, txnValue.date);
+            return displayCurrency.formatFancy(displayValue, _decimalChar);
+        }
+        return txnValue.currency.formatFancy(txnValue.value, _decimalChar);
+    }
+
+    long getAmountInBaseCurrency(final int index)
+    {
+        final CurrencyType baseCurrency = _controller.getCurrencyType();
+        return getAmountInCurrency(index, baseCurrency);
+    }
+
+    boolean isNegative(final int index)
+    {
+        final FindResultsTableEntry entry = _data.get(index);
+        final ParentTxn parent = entry.getParentTxn();
+        if ((parent == null) || BLANK_TRANSACTION.equals(parent))
+        {
+            return false;
+        }
+
+        final SplitTxn split = entry.getSplitTxn();
+        final int type = _controller.getShowParents() ? parent.getAccount().getAccountType() : split.getAccount().getAccountType();
+        final boolean flip = ((type == Account.ACCOUNT_TYPE_EXPENSE) || (type == Account.ACCOUNT_TYPE_INCOME));
+        if (_controller.getShowParents())
+        {
+            return flip ? (parent.getValue() > 0) : (parent.getValue() < 0);
+        }
+        return flip ? (split.getValue() > 0) : (split.getValue() < 0);
+    }
+
+    private long getAmountInCurrency(int index, CurrencyType outputCurrency)
     {
         final FindResultsTableEntry entry = _data.get(index);
         final ParentTxn parent = entry.getParentTxn();
@@ -370,16 +439,24 @@ public class FindResultsTableModel extends AbstractTableModel
         }
 
         final SplitTxn split = entry.getSplitTxn();
-        long value;
+        TxnValue value;
         if (_controller.getShowParents())
         {
-            value = getTxnAmountValue(parent, entry, AMOUNT_INDEX, true);
+            value = getTxnAmount(parent, entry, AMOUNT_INDEX);
         }
         else
         {
-            value = getTxnAmountValue(split, entry, AMOUNT_INDEX, true);
+            value = getTxnAmount(split, entry, AMOUNT_INDEX);
         }
-        return value;
+        return CurrencyUtil.convertValue(value.value, value.currency, outputCurrency, value.date);
+    }
+
+    CurrencyType getDisplayCurrency(final int index)
+    {
+        final FindResultsTableEntry entry = _data.get(index);
+        // if we've replaced the value, return the replacement currency
+        CurrencyType displayCurrency = getCommandCurrency(entry);
+        return (displayCurrency != null) ? displayCurrency : _controller.getCurrencyType();
     }
 
     int getDateInt(final int index)
@@ -560,9 +637,9 @@ public class FindResultsTableModel extends AbstractTableModel
                 case AMOUNT_INDEX:
                 {
                     // for expense categories, a positive value should be negative, so invert
-                    long value = getAmount(rowIndex);
-                    // we always show the value in the table using the root account currency
-                    result += getAmountText(null, value);
+                    TxnValue txnValue = getTxnAmount(primaryTxn, entry, AMOUNT_INDEX);
+                    // we show the value in the table either using the replace currency or base currency
+                    result += getAmountText(getDisplayCurrency(rowIndex), txnValue);
                     break;
                 }
                 case SHARES_INDEX:
@@ -574,9 +651,24 @@ public class FindResultsTableModel extends AbstractTableModel
                     }
                     else
                     {
-                        final long value = getTxnAmountValue(split, entry, AMOUNT_INDEX, false);
-                        // in this case we do not convert the result, so we specify the transaction
-                        result += getAmountText(split, value);
+                        final TxnValue value = getTxnAmount(split, entry, AMOUNT_INDEX);
+                        // in this case we convert the result to the category's currency
+                        result += getAmountText(split.getAccount().getCurrencyType(), value);
+                    }
+                    break;
+                }
+                case OTHER_AMOUNT_INDEX:
+                {
+                    // this will only be useful for splits
+                    if (split == null)
+                    {
+                        result += N12EFindAndReplace.SPACE;
+                    }
+                    else
+                    {
+                        final TxnValue value = getTxnAmount(split, entry, AMOUNT_INDEX);
+                        // in this case we convert the result to the other side's (parent's) currency
+                        result += getAmountText(split.getOtherTxn(0).getAccount().getCurrencyType(), value);
                     }
                     break;
                 }
@@ -641,7 +733,7 @@ public class FindResultsTableModel extends AbstractTableModel
     private Long getCommandValue(final FindResultsTableEntry entry)
     {
         Long value = null;
-        if ((_commands != null) && (_commands.size() > 0) && entry.isApplied())
+        if ((_commands != null) && !_commands.isEmpty() && entry.isApplied())
         {
             for (final ReplaceCommand command : _commands)
             {
@@ -655,40 +747,53 @@ public class FindResultsTableModel extends AbstractTableModel
         return value;
     }
 
-    private long getTxnAmountValue(final AbstractTxn txn,
-                                   final FindResultsTableEntry entry,
-                                   final int columnIndex,
-                                   final boolean convertCurrency)
+    private CurrencyType getCommandCurrency(final FindResultsTableEntry entry)
+    {
+        CurrencyType currencyType = null;
+        if ((_commands != null) && !_commands.isEmpty() && entry.isApplied())
+        {
+            for (final ReplaceCommand command : _commands)
+            {
+                command.setTransactionEntry(entry);
+                if (command.getPreviewAmount() != null)
+                {
+                    currencyType = command.getAmountCurrency();
+                }
+            }
+        }
+        return currencyType;
+    }
+
+    private TxnValue getTxnAmount(final AbstractTxn txn,
+                              final FindResultsTableEntry entry,
+                              final int columnIndex)
     {
         long value = txn.getValue();
-
+        CurrencyType sourceCurrency = null;
         Long commandValue = getCommandValue(entry);
         if (commandValue != null)
         {
             value = commandValue.longValue();
             entry.addModifiedColumn(columnIndex);
+            sourceCurrency = getCommandCurrency(entry);
         }
         // if the transaction is under a category account, negate the value because it is the
         // 'other side' to an actual transaction
         final Account account = txn.getAccount();
         if (account != null)
         {
+            if (sourceCurrency == null)
+            {
+                sourceCurrency = account.getCurrencyType();
+            }
             int type = account.getAccountType();
             if ((type == Account.ACCOUNT_TYPE_EXPENSE) || (type == Account.ACCOUNT_TYPE_INCOME))
             {
                 value = -value;
             }
-
-            if (convertCurrency)
-            {
-                value = CurrencyUtil.convertValue(value,
-                        account.getCurrencyType(),
-                        _controller.getRootAccount().getCurrencyTable().getBaseType(),
-                        txn.getDateInt());
-            }
         }
 
-        return value;
+        return new TxnValue(value, sourceCurrency, txn.getDateInt());
     }
 
     private String getTxnDescriptionDisplay(final AbstractTxn txn,

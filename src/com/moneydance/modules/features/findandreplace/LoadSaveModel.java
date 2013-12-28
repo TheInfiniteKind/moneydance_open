@@ -1,7 +1,15 @@
+/*************************************************************************\
+* Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+*
+* This code is released as open source under the Apache 2.0 License:<br/>
+* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.model.Account;
+import com.moneydance.apps.md.model.CurrencyType;
 import com.moneydance.apps.md.model.RootAccount;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.TxnTagSet;
@@ -18,6 +26,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+
+/**
+ * <p>Data model for loading and saving find and replace parameters.</p>
+ *
+ * @author Kevin Menningen
+ * @version Build 94
+ * @since Build 83
+ */
 public class LoadSaveModel
 {
     private static final String SAVE_KEY_NAME = "mennesoft.far";
@@ -29,6 +45,7 @@ public class LoadSaveModel
     private static final String FIND_CATEGORIES = "f.cats";
     private static final String FIND_AMT_MIN = "f.amt.lo";
     private static final String FIND_AMT_MAX = "f.amt.hi";
+    private static final String FIND_AMT_CURR = "f.curr";
     private static final String FIND_DATE_OPTION = "f.date.opt";
     private static final String FIND_DATE_MIN = "f.date.lo";
     private static final String FIND_DATE_MAX = "f.date.hi";
@@ -44,6 +61,7 @@ public class LoadSaveModel
     private static final String FIND_ALLOW_UNCLEARED = "f.clr.unc";
     private static final String REPL_CATEGORY = "r.cat";
     private static final String REPL_AMOUNT = "r.amt";
+    private static final String REPL_AMOUNT_CURRENCY = "r.curr";
     private static final String REPL_DESC = "r.desc";
     private static final String REPL_DESC_FOUND_ONLY = "r.desc.fo";
     private static final String REPL_MEMO = "r.memo";
@@ -196,6 +214,9 @@ public class LoadSaveModel
         {
             streamTable.put(FIND_AMT_MIN, _controller.getAmountMinimum());
             streamTable.put(FIND_AMT_MAX, _controller.getAmountMaximum());
+            final CurrencyType findAmountCurrency = _controller.getAmountCurrency();
+            final String currencyId = (findAmountCurrency != null) ? findAmountCurrency.getIDString() : _controller.getCurrencyType().getIDString();
+            streamTable.put(FIND_AMT_CURR, currencyId);
         }
         if (_controller.getUseDateFilter())
         {
@@ -245,6 +266,13 @@ public class LoadSaveModel
             _controller.setUseAmountFilter(true);
             _controller.setAmountRange(streamTable.getLong(FIND_AMT_MIN, 0),
                                        streamTable.getLong(FIND_AMT_MAX, 1));
+            String currencyId = streamTable.getStr(FIND_AMT_CURR, null);
+            boolean isSharesCurrency = AmountCurrencyModel.SHARES_CURRENCY_ID_STRING.equals(currencyId);
+            CurrencyType currencyType = isSharesCurrency ?
+                    AmountCurrencyModel.buildSharesCurrencyType(_controller.getCurrencyTable(),
+                                                                _controller.getString(L10NFindAndReplace.CURRENCY_SHARES)) :
+                    loadCurrency(currencyId);
+            _controller.setAmountCurrency(currencyType, isSharesCurrency);
         }
         if (keySet.contains(FIND_DATE_MIN))
         {
@@ -310,6 +338,9 @@ public class LoadSaveModel
         if (_controller.getReplaceAmount())
         {
             streamTable.put(REPL_AMOUNT, _controller.getReplacementAmount());
+            final CurrencyType replaceAmountCurrency = _controller.getReplaceAmountCurrency();
+            final String currencyId = (replaceAmountCurrency != null) ? replaceAmountCurrency.getIDString() : _controller.getCurrencyType().getIDString();
+            streamTable.put(REPL_AMOUNT_CURRENCY, currencyId);
         }
         if (_controller.getReplaceDescription())
         {
@@ -375,7 +406,10 @@ public class LoadSaveModel
         if (keySet.contains(REPL_AMOUNT))
         {
             _controller.setReplaceAmount(true);
-            _controller.setReplacementAmount(streamTable.getLong(REPL_AMOUNT, 0));
+            CurrencyType replaceCurrency = keySet.contains(REPL_AMOUNT_CURRENCY) ?
+                    loadCurrency(streamTable.getStr(REPL_AMOUNT_CURRENCY, null)) :
+                    loadCurrency(null);
+            _controller.setReplacementAmount(streamTable.getLong(REPL_AMOUNT, 0), replaceCurrency);
         }
         if (keySet.contains(REPL_DESC))
         {
@@ -437,6 +471,21 @@ public class LoadSaveModel
                 tagModel.setSelectedTags(info.tags);
             }
         }
+    }
+
+    private CurrencyType loadCurrency(final String currencyId)
+    {
+        if (StringUtils.isBlank(currencyId))
+        {
+            // just return the base currency
+            return _controller.getCurrencyType();
+        }
+        final CurrencyType currencyType = _controller.getRootAccount().getCurrencyTable().getCurrencyByIDString(currencyId);
+        if (currencyType == null)
+        {
+            return _controller.getCurrencyType();
+        }
+        return currencyType;
     }
     
     private String saveTags(final TagPickerModel tagModel, final TagLogic tagLogic)

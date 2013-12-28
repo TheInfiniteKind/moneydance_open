@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -11,6 +11,7 @@ package com.moneydance.modules.features.findandreplace;
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.ParentTxn;
+import com.moneydance.util.StringUtils;
 
 import java.util.regex.Pattern;
 
@@ -18,7 +19,7 @@ import java.util.regex.Pattern;
  * <p>Filter to find text in the description, memo or check # fields.</p>
  *
  * @author Kevin Menningen
- * @version 1.60
+ * @version Build 94
  * @since 1.0
  */
 class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFilter
@@ -39,7 +40,8 @@ class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFil
         _searchMemo = searchMemo;
         _searchCheck = searchCheck;
         _includeSplits = includeSplits;
-        _pattern = FarUtil.buildFindPattern(textMatch);
+        boolean isBlank = "=".equals(textMatch) || StringUtils.isBlank(textMatch);
+        _pattern = isBlank ? null : FarUtil.buildFindPattern(textMatch);
     }
 
     /**
@@ -72,27 +74,18 @@ class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFil
         if (_searchDescription)
         {
             final String description = txn.getDescription();
-            if ((description != null) && !description.isEmpty())
-            {
-                result = _pattern.matcher(description).find();
-            }
+            result = FarUtil.isStringMatch(_pattern, description);
         }
         if (!result && _searchMemo)
         {
             // memo text is only in parent transactions, splits only have descriptions not memos
             final String memo = FarUtil.getTransactionMemo(txn);
-            if ((memo != null) && !memo.isEmpty())
-            {
-                result = _pattern.matcher(memo).find();
-            }
+            result = FarUtil.isStringMatch(_pattern, memo);
         }
         if (!result && _searchCheck)
         {
             final String checkNumber = FarUtil.getTransactionCheckNo(txn);
-            if ((checkNumber != null) && !checkNumber.isEmpty())
-            {
-                result = _pattern.matcher(checkNumber).find();
-            }
+            result = FarUtil.isStringMatch(_pattern, checkNumber);
         }
 
         return result;
