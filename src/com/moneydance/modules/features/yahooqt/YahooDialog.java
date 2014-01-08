@@ -598,7 +598,7 @@ public class YahooDialog
     saveControlsToSettings();
 
     _okButtonPressed = true;
-    dispose();
+    setVisible(false);
   }
 
   private void saveControlsToSettings() {
@@ -904,7 +904,7 @@ public class YahooDialog
       if (buttonId == OKButtonPanel.ANSWER_OK) {
         onOK();
       } else {
-        dispose();
+        setVisible(false);
       }
     }
   }

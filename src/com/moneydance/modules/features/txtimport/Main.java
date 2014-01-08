@@ -116,7 +116,7 @@ public class Main
 
     if(importWizard==null || !importWizard.isVisible()) {
       if(importWizard!=null) {
-        importWizard.dispose();
+        importWizard.setVisible(false);
       }
       importWizard = new Wizard(
             null,
@@ -142,7 +142,6 @@ public class Main
   synchronized void closeTxtImport() {
     if(importWizard!=null) {
       importWizard.setVisible(false);
-      importWizard.dispose();
       importWizard = null;
       System.gc();
     }

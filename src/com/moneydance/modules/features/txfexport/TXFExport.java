@@ -165,7 +165,7 @@ public class TXFExport
     } else if (o.equals(btSetup)) {
       doSetup();
     } else if (o.equals(btDone)) {
-      setupDlg.dispose();
+      setupDlg.setVisible(false);
       System.gc();
     } else if (o.equals(btClear)) {
       if (!lsmAcct.isSelectionEmpty()) {
@@ -175,7 +175,7 @@ public class TXFExport
       }
     }
   }
-
+  
   public void valueChanged(ListSelectionEvent e) {
     ListSelectionModel lsm = (ListSelectionModel)e.getSource();
     if (lsm==lsmAcct && !lsmAcct.isSelectionEmpty()) {

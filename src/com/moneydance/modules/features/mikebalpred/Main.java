@@ -79,7 +79,7 @@ public class Main
 		System.out.println("^^^^ entering showBalancePredicter");
     if(win==null || !win.isVisible()) {
       if(win!=null) {
-        win.dispose();
+        win.setVisible(false);
 				System.out.println("^^^^ disposed old win");
       }
       BalPredConf conf = new BalPredConf(getRoot(), getName());

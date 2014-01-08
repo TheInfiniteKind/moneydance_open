@@ -170,7 +170,6 @@ public class PythonWindow
 
   void goAway() {
     setVisible(false);
-    dispose();
   }
 
   private class ConsoleStream

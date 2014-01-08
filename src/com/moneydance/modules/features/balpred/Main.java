@@ -78,7 +78,7 @@ public class Main
   private synchronized void showBalancePredicter() {
     if(balpredWizard==null || !balpredWizard.isVisible()) {
       if(balpredWizard!=null) {
-        balpredWizard.dispose();
+        balpredWizard.setVisible(false);
       }
       BalPredConf conf = new BalPredConf(getRoot(), rr, getName());
       FeatureModuleContext context = getContext();

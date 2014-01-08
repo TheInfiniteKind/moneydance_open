@@ -1,7 +1,7 @@
 {
-  "vendor" = "The Infinite Kind, LLC"
+  "vendor" = "The Infinite Kind"
   "vendor.url" = "http://infinitekind.com/"
-  "module_build" = "2"
+  "module_build" = "3"
   "id" = "txfexport"
   "module_name" = "TXF Export"
   "module_desc" = "<html><body><title>TXF Export</title><p>This extension can be used to export tax data to a format (TXF) that can be read by some tax preparation software</p></body></html>"
