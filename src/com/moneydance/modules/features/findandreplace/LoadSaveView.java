@@ -11,7 +11,6 @@ import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MDImages;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
-import com.moneydance.util.StringUtils;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -92,7 +91,7 @@ public class LoadSaveView extends JPanel
     private String getCurrentSearchName(final MoneydanceGUI mdGui)
     {
         String currentSave = _model.getCurrentSearchName();
-        if (StringUtils.isBlank(currentSave))
+        if (FarUtil.isBlank(currentSave))
         {
             return mdGui.getStr("Memorized") + "...";
         }
@@ -214,7 +213,7 @@ public class LoadSaveView extends JPanel
         p.add(nameField, GridC.getc(0, 1).wx(1).fillx());
         p.add(Box.createHorizontalStrut(150), GridC.getc(0, 2));   // minimum width 150 pixels
         final Vector<String> existingNames = new Vector<String>(_model.getSavedSearchNames());
-        final JList<String> existingList = new JList<String>(existingNames);
+        final JList existingList = new JList(existingNames);
         existingList.setBorder(null);
         existingList.setOpaque(true);
         existingList.setFocusable(false);
@@ -226,7 +225,7 @@ public class LoadSaveView extends JPanel
         {
             public void valueChanged(ListSelectionEvent e)
             {
-                final String selectedName = existingList.getSelectedValue();
+                final String selectedName = (String)existingList.getSelectedValue();
                 if (selectedName != null) {
                     nameField.setText(selectedName);
                     nameField.setCaretPosition(selectedName.length());

@@ -40,7 +40,7 @@ class AmountPickerGroup extends JPanel
 {
     private final JCurrencyField _from;
     private final JCurrencyField _to;
-    private final JComboBox<CurrencyType> _currencyPicker;
+    private final JComboBox _currencyPicker;
     private final AmountCurrencyModel _currencyModel;
 
     /**
@@ -58,7 +58,7 @@ class AmountPickerGroup extends JPanel
         _to =  new JCurrencyField(currencyType, currencyTable, decimalChar, commaChar);
         final String sharesDisplay = controller.getString(L10NFindAndReplace.CURRENCY_SHARES);
         _currencyModel = new AmountCurrencyModel(currencyTable, sharesDisplay, addSharesCurrency);
-        _currencyPicker = new JComboBox<CurrencyType>(_currencyModel);
+        _currencyPicker = new JComboBox(_currencyModel);
         setupCurrencySelector(currencyType);
         layoutUI(controller, showFromAndTo);
         if (showFromAndTo)

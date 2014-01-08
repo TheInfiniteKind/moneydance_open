@@ -16,7 +16,6 @@ import com.moneydance.apps.md.model.TxnTagSet;
 import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.util.StreamTable;
 import com.moneydance.util.StringEncodingException;
-import com.moneydance.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -99,7 +98,7 @@ public class LoadSaveModel
 
     public boolean isValidName(final String candidateName)
     {
-        if (StringUtils.isBlank(candidateName)) return false;
+        if (FarUtil.isBlank(candidateName)) return false;
         for (String currentName : _savedSearches.keySet())
         {
             if (currentName.equals(candidateName)) return false;
@@ -123,7 +122,7 @@ public class LoadSaveModel
     public void loadSearchSettings(final String name)
     {
         final String settings = _savedSearches.get(name);
-        if (StringUtils.isBlank(settings)) return;
+        if (FarUtil.isBlank(settings)) return;
         final StreamTable streamTable = new StreamTable();
         try
         {
@@ -160,7 +159,7 @@ public class LoadSaveModel
         if (_rootAccount == null) return;
         _savedSearches.clear();
         String settings = _rootAccount.getParameter(SAVE_KEY_NAME, N12EFindAndReplace.EMPTY);
-        if (StringUtils.isBlank(settings)) return;
+        if (FarUtil.isBlank(settings)) return;
         StreamTable streamTable = new StreamTable();
         try
         {
@@ -179,11 +178,11 @@ public class LoadSaveModel
 
     private void loadSavedSearchInfo(String searchSetting) throws StringEncodingException
     {
-        if (StringUtils.isBlank(searchSetting)) return;
+        if (FarUtil.isBlank(searchSetting)) return;
         StreamTable streamTable = new StreamTable();
         streamTable.readFrom(searchSetting);
         String name = streamTable.getStr(SEARCH_NAME, N12EFindAndReplace.EMPTY);
-        if (StringUtils.isBlank(name)) return;
+        if (FarUtil.isBlank(name)) return;
         _savedSearches.put(name, searchSetting);
     }
 
@@ -283,7 +282,7 @@ public class LoadSaveModel
             _controller.setDateRange(streamTable.getInt(FIND_DATE_MIN, today),
                                      streamTable.getInt(FIND_DATE_MAX, today),
                                      streamTable.getBoolean(FIND_USE_TAX_DATE, false));
-            if (StringUtils.isBlank(dateRangeKey) ||
+            if (FarUtil.isBlank(dateRangeKey) ||
                     DateRangeOption.DR_CUSTOM_DATE.getResourceKey().equals(dateRangeKey))
             {
                 _controller.setDateRangeKey(DateRangeOption.DR_CUSTOM_DATE.getResourceKey());
@@ -307,7 +306,7 @@ public class LoadSaveModel
         {
             _controller.setUseTagsFilter(true);
             final String settings = streamTable.getStr(FIND_TAGS, N12EFindAndReplace.EMPTY);
-            if (!StringUtils.isBlank(settings))
+            if (!FarUtil.isBlank(settings))
             {
                 final TagsInfo info = loadTagsFromSettings(settings);
                 final TagPickerModel tagModel = _controller.getIncludedTagsModel();
@@ -440,7 +439,7 @@ public class LoadSaveModel
             _controller.setReplaceTags(true);
             _controller.setReplaceTagType(ReplaceTagCommandType.ADD);
             final String settings = streamTable.getStr(REPL_TAGS_ADD, N12EFindAndReplace.EMPTY);
-            if (!StringUtils.isBlank(settings))
+            if (!FarUtil.isBlank(settings))
             {
                 final TagsInfo info = loadTagsFromSettings(settings);
                 final TagPickerModel tagModel = _controller.getReplaceAddTagsModel();
@@ -452,7 +451,7 @@ public class LoadSaveModel
             _controller.setReplaceTags(true);
             _controller.setReplaceTagType(ReplaceTagCommandType.REMOVE);
             final String settings = streamTable.getStr(REPL_TAGS_REMOVE, N12EFindAndReplace.EMPTY);
-            if (!StringUtils.isBlank(settings))
+            if (!FarUtil.isBlank(settings))
             {
                 final TagsInfo info = loadTagsFromSettings(settings);
                 final TagPickerModel tagModel = _controller.getReplaceRemoveTagsModel();
@@ -464,7 +463,7 @@ public class LoadSaveModel
             _controller.setReplaceTags(true);
             _controller.setReplaceTagType(ReplaceTagCommandType.REPLACE);
             final String settings = streamTable.getStr(REPL_TAGS_REPLACE, N12EFindAndReplace.EMPTY);
-            if (!StringUtils.isBlank(settings))
+            if (!FarUtil.isBlank(settings))
             {
                 final TagsInfo info = loadTagsFromSettings(settings);
                 final TagPickerModel tagModel = _controller.getReplaceReplaceTagsModel();
@@ -475,7 +474,7 @@ public class LoadSaveModel
 
     private CurrencyType loadCurrency(final String currencyId)
     {
-        if (StringUtils.isBlank(currencyId))
+        if (FarUtil.isBlank(currencyId))
         {
             // just return the base currency
             return _controller.getCurrencyType();

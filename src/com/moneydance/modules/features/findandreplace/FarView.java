@@ -53,7 +53,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.text.MessageFormat;
 
-import com.moneydance.util.StringUtils;
 import info.clearthought.layout.TableLayout;
 import info.clearthought.layout.TableLayoutConstraints;
 import info.clearthought.layout.TableLayoutConstants;
@@ -573,7 +572,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             _findAmountPickers.getFromAmountPicker().setValue(_controller.getAmountMinimum());
             _findAmountPickers.getToAmountPicker().setValue(_controller.getAmountMaximum());
             String dateRangeKey = _controller.getDateRangeKey();
-            if (StringUtils.isBlank(dateRangeKey) ||
+            if (FarUtil.isBlank(dateRangeKey) ||
                     DateRangeOption.DR_CUSTOM_DATE.getResourceKey().equals(dateRangeKey))
             {
                 // custom date, use saved dates

@@ -11,7 +11,6 @@ package com.moneydance.modules.features.findandreplace;
 import com.moneydance.apps.md.model.AbstractTxn;
 import com.moneydance.apps.md.model.SplitTxn;
 import com.moneydance.apps.md.model.ParentTxn;
-import com.moneydance.util.StringUtils;
 
 import java.util.regex.Pattern;
 
@@ -40,7 +39,7 @@ class FreeTextTxnFilter extends TransactionFilterBase implements ITransactionFil
         _searchMemo = searchMemo;
         _searchCheck = searchCheck;
         _includeSplits = includeSplits;
-        boolean isBlank = "=".equals(textMatch) || StringUtils.isBlank(textMatch);
+        boolean isBlank = "=".equals(textMatch) || FarUtil.isBlank(textMatch);
         _pattern = isBlank ? null : FarUtil.buildFindPattern(textMatch);
     }
 

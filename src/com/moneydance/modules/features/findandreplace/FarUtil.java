@@ -15,7 +15,6 @@ import com.moneydance.apps.md.model.Account;
 import com.moneydance.apps.md.model.TxnTag;
 import com.moneydance.apps.md.model.TxnTagSet;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.util.StringUtils;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -461,12 +460,48 @@ final class FarUtil
 
     static boolean isStringMatch(final Pattern pattern, final String text)
     {
-        if (StringUtils.isBlank(text))
+        if (isBlank(text))
         {
             // check to see if the user is trying to find things that are blank
             return (pattern == null);
         }
         return (pattern != null) && pattern.matcher(text).find();
+    }
+
+    /**
+     * Null safe check for "" (empty string).
+     *
+     * @param candidate the String to evaluate.
+     * @return true if candidate is null or "" (empty string)
+     */
+    public static boolean isEmpty(String candidate)
+    {
+        return candidate == null || candidate.length() == 0;
+    }
+
+    /**
+     * Null safe check for a String with nothing but whitespace characters.
+     *
+     * @param candidate the String to evaluate.
+     * @return true if the candidate is null or all whitespace.
+     */
+    public static boolean isBlank(String candidate)
+    {
+        boolean isBlank = isEmpty(candidate);
+
+        if (!isBlank)
+        {
+            for (int index = candidate.length()-1; index >= 0; index--)
+            {
+                isBlank = Character.isWhitespace(candidate.charAt(index));
+                if (!isBlank)
+                {
+                    break; // non-whitespace character found, don't bother checking the remainder
+                }
+            }
+        }
+
+        return isBlank;
     }
 
     /**

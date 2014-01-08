@@ -26,8 +26,8 @@ import java.util.Vector;
  * @since 1.60
  */
 public class AmountCurrencyModel
-        extends AbstractListModel<CurrencyType>
-        implements ComboBoxModel<CurrencyType>,
+        extends AbstractListModel
+        implements ComboBoxModel,
         CurrencyListener
 {
     public static final String SHARES_CURRENCY_ID_STRING = "MSS";
