@@ -104,7 +104,7 @@ public class ExchangeDialog extends JDialog {
         if (buttonId == OKButtonPanel.ANSWER_OK) {
           onOK();
         } else {
-          dispose();
+          setVisible(false);
         }
       }
     },OKButtonPanel.QUESTION_OK_CANCEL);
@@ -166,6 +166,6 @@ public class ExchangeDialog extends JDialog {
     if (!success) {
       _mdGui.showErrorMessage(this, _resources.getString(L10NStockQuotes.ERROR_SAVE));
     }
-    dispose();
+    setVisible(false);
   }
 }
