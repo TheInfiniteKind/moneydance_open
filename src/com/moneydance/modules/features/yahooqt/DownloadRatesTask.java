@@ -51,7 +51,7 @@ public class DownloadRatesTask implements Callable<Boolean> {
     // figure out the last date of an update...
     final CurrencyType baseCurrency = ctable.getBaseType();
     final int today = Util.getStrippedDateInt();
-    boolean success = false;
+    boolean success = true;
     try {
       Vector<CurrencyType> currenciesToCheck = new Vector<CurrencyType>();
       ctable.dumpCurrencies();
@@ -68,34 +68,37 @@ public class DownloadRatesTask implements Callable<Boolean> {
         final CurrencyType currencyType = currenciesToCheck.elementAt(i);
         // skip if no conversion necessary
         if (baseCurrency.equals(currencyType)) continue;
-        final FXConnection connection = (FXConnection) _model.getSelectedExchangeRatesConnection();
-        double rate = getRate(currencyType, baseCurrency, connection);
-        progressPercent += progressIncrement;
-        final String message, logMessage;
-        if (rate <= 0.0) {
-          message = MessageFormat.format(
-                  _resources.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT), 
-                  currencyType.getIDString(),  baseCurrency.getIDString());
-          logMessage = MessageFormat.format("Unable to get rate from {0} to {1}",
-                  currencyType.getIDString(),  baseCurrency.getIDString());
-        } else {
-          message = buildRateDisplayText(currencyType, baseCurrency, rate, today);
-          logMessage = buildRateLogText(currencyType, baseCurrency, rate, today);
+        
+        System.err.println("updating currency: "+currencyType+" ("+currencyType.getTickerSymbol()+")");
+        try {
+          final FXConnection connection = (FXConnection) _model.getSelectedExchangeRatesConnection();
+          double rate = getRate(currencyType, baseCurrency, connection);
+          progressPercent += progressIncrement;
+          final String message, logMessage;
+          if (rate <= 0.0) {
+            message = MessageFormat.format(
+                                            _resources.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT), 
+                                            currencyType.getIDString(),  baseCurrency.getIDString());
+            logMessage = MessageFormat.format("Unable to get rate from {0} to {1}",
+                                              currencyType.getIDString(),  baseCurrency.getIDString());
+          } else {
+            message = buildRateDisplayText(currencyType, baseCurrency, rate, today);
+            logMessage = buildRateLogText(currencyType, baseCurrency, rate, today);
+          }
+          _model.showProgress(progressPercent, message);
+          if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
+        } catch (Exception error) {
+          String message = MessageFormat.format(
+                                                 _resources.getString(L10NStockQuotes.ERROR_DOWNLOADING_FMT),
+                                                 _resources.getString(L10NStockQuotes.RATES),
+                                                 error.getLocalizedMessage());
+          _model.showProgress(0f, message);
+          if(Main.DEBUG_YAHOOQT) System.err.println(MessageFormat.format("Error while downloading Currency Exchange Rates: {0}",
+                                                                         error.getMessage()));
+          error.printStackTrace();
+          success = false;
         }
-        _model.showProgress(progressPercent, message);
-        if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
       }
-      success = true;
-    } catch (Exception error) {
-      String message = MessageFormat.format(
-              _resources.getString(L10NStockQuotes.ERROR_DOWNLOADING_FMT),
-              _resources.getString(L10NStockQuotes.RATES),
-              error.getLocalizedMessage());
-      _model.showProgress(0f, message);
-      if(Main.DEBUG_YAHOOQT) System.err.println(MessageFormat.format("Error while downloading Currency Exchange Rates: {0}",
-                                                                     error.getMessage()));
-      error.printStackTrace();
-      success = false;
     } finally {
       ctable.fireCurrencyTableModified();
     }

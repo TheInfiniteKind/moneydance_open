@@ -60,6 +60,7 @@ public class FXConnection extends BaseConnection {
     urlStr.append("=X");
     urlStr.append("&f=sl1d1t1c1ohgv"); // format of each line
     urlStr.append("&e=.csv");          // response format
+    System.err.println("downloading from: "+urlStr);
     URL url = new URL(urlStr.toString());
     BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream(), "UTF8"));
     // read the message...
