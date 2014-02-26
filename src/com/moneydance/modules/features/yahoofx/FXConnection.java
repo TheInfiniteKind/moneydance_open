@@ -8,7 +8,8 @@ import java.util.*;
 /** Class used to download currency histories via HTTP using the
     same spreadsheet format as at finance.yahoo.com. */
 public class FXConnection {
-  private static final String CURRENT_BASE_URL = "http://finance.yahoo.com/d/quotes.csv";
+  private static final String CURRENT_BASE_URL = "http://download.finance.yahoo.com/d/quotes.csv";
+  
   // the rest of it: ?s=USDEUR=X&f=sl1d1t1c1ohgv&e=.csv"
   
   private static final String NEWLINE = "\r\n";

@@ -71,9 +71,9 @@ public class Main
   public String getName() {
     return "Exchange Rate Downloader";
   }
-
+  
   private void getRates() {
-    getContext().showURL("moneydance:setstatus:Connecting to finance.yahoo.com...");
+    getContext().showURL("moneydance:setstatus:Connecting to Yahoo...");
     RootAccount root = getContext().getRootAccount();
     if(root==null) return;
 
@@ -114,7 +114,7 @@ public class Main
       return;
     
     getContext().showURL("moneydance:setstatus:Getting rate for "+
-                         currType.getIDString()+" from finance.yahoo.com...");
+                         currType.getIDString()+" from yahoo...");
 
     FXConnection fxConn = new FXConnection();
     FXConnection.ExchangeRate rateInfo =
