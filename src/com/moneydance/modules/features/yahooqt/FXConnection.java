@@ -13,6 +13,7 @@ import com.moneydance.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 
@@ -24,7 +25,7 @@ import java.net.URLEncoder;
  * @author Sean Reilly - The Infinite Kind, LLC
  */
 public class FXConnection extends BaseConnection {
-  private static final String CURRENT_BASE_URL = "http://finance.yahoo.com/d/quotes.csv";
+  private static final String CURRENT_BASE_URL = "http://download.finance.yahoo.com/d/quotes.csv";
   // the rest of it: ?s=USDEUR=X&f=sl1d1t1c1ohgv&e=.csv"
   private final String _displayName;
   static final String PREFS_KEY = "yahooRates";
@@ -62,7 +63,9 @@ public class FXConnection extends BaseConnection {
     urlStr.append("&e=.csv");          // response format
     System.err.println("downloading from: "+urlStr);
     URL url = new URL(urlStr.toString());
-    BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream(), "UTF8"));
+    HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+    conn.addRequestProperty("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.73.11 (KHTML, like Gecko) Version/7.0.1 Safari/537.73.11");
+    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF8"));
     // read the message...
     double rate = -1;
     while (true) {
