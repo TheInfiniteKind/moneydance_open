@@ -1,7 +1,7 @@
 {
   "vendor" = "The Infinite Kind"
   "vendor.url" = "http://infinitekind.com/"
-  "module_build" = "16"
+  "module_build" = "17"
   "id" = "balpred"
   "module_name" = "Balance Predictor"
   "module_desc" = "<html><body><title>Balance Predicter</title><p>This extension attempts to calculate and graph the future balance of an account based on past transactions and scheduled reminders.</p></body></html>"
