@@ -40,6 +40,9 @@ public class L10NRatios
   static final String START_BALANCE = "beg_balance";
   static final String END_BALANCE = "end_balance";
   static final String AVERAGE_BALANCE = "avg_balance";
+  static final String CONSTANT = "constant";
+  static final String DAYS_IN_PERIOD = "days_in_period";
+  static final String INVALID_CONSTANT = "invalid_constant";
   static final String NUMERATOR = "numerator";
   static final String DENOMINATOR = "denominator";
   static final String LABEL = "label";

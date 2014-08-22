@@ -180,6 +180,23 @@ public final class RatiosUtil {
     return StringUtils.formatFixedDecimals(sValue, decimalChar, decimalPlaces);
   }
 
+  public static double getConstantValue(String text, char decimal, boolean allowZero, double defaultValue) {
+    double value = StringUtils.parseRate(text, Double.MAX_VALUE, decimal);
+    boolean isError = isConstantError(allowZero, value);
+    return isError ? defaultValue : value;
+  }
+
+  public static boolean getConstantError(String text, char decimal, boolean allowZero) {
+    double value = StringUtils.parseRate(text, Double.MAX_VALUE, decimal);
+    return isConstantError(allowZero, value);
+  }
+
+  private static boolean isConstantError(boolean allowZero, double value) {
+    boolean isError = !allowZero && (value == 0.0);
+    isError |= (value == Double.MAX_VALUE) || Double.isInfinite(value) || Double.isNaN(value);
+    return isError;
+  }
+
   private static double roundToDecimal(final double value, final int decimalPlaces) {
     final double power = Math.pow(10.0, (decimalPlaces < 1) ? 0 : decimalPlaces);
     return Math.round(value * power) / power;

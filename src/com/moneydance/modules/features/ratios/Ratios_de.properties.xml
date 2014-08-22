@@ -41,6 +41,10 @@
   <entry key="beg_balance">Anfangssaldo</entry>
   <entry key="end_balance">Schlußkontostand</entry>
   <entry key="avg_balance">Durchschnittkontostand</entry>
+  <entry key="constant">Konstante</entry>
+  <entry key="days_in_period">Tage im Zeitraum</entry>
+  <!-- Error messages -->
+  <entry key="invalid_constant">Ungültige Konstante</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Benutzerdefiniert ...</entry>
   <entry key="customDateTitle">Benutzerdefinierte Daten eingeben</entry>

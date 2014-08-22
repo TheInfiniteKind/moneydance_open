@@ -169,16 +169,32 @@ class RatioSettingsDialog
       }
     });
     mdGUI.applyFilterBarProperties(userGuide);
+    JButton reset = new JButton(mdGUI.getStr("reset"));
+    reset.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent event) {
+        resetToFactory();
+      }
+    });
+    mdGUI.applyFilterBarProperties(reset);
     // gap to avoid overcrowded appearance
     JLabel gap = new JLabel();
     gap.setBorder(BorderFactory.createEmptyBorder(0, UiUtil.DLG_HGAP, 0, 0));
     gap.setOpaque(false);
-    okPanel.setExtraButtons(new JComponent[] { version, gap, userGuide });
+    JLabel gap2 = new JLabel();
+    gap2.setBorder(BorderFactory.createEmptyBorder(0, UiUtil.DLG_HGAP, 0, 0));
+    gap2.setOpaque(false);
+    okPanel.setExtraButtons(new JComponent[] { version, gap, userGuide, gap2, reset });
 
     // pad the dialog on the outside
     okPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP * 2,
                                                           UiUtil.DLG_VGAP, UiUtil.DLG_HGAP * 2));
     return okPanel;
+  }
+
+  private void resetToFactory() {
+    if (mdGUI.askQuestion(_view, "Reset to factory defaults?")) {
+      _controller.resetToFactory();
+    }
   }
 
   private void onOk() {

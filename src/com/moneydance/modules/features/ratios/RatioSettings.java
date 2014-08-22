@@ -182,10 +182,16 @@ public class RatioSettings
     }
   }
 
+  void ratioListReset() {
+    if (_fireNotifications) {
+      _eventNotify.firePropertyChange(N12ERatios.RATIO_LIST_RESET, null, null);
+    }
+  }
+
   public void loadFromSettings(final RootAccount root, final ResourceProvider resources) {
     // if the file never contained a ratios setting, build from what we have
     if (!root.doesParameterExist(N12ERatios.SETTINGS_ID)) {
-      buildInitialSettings(root, resources);
+      buildInitialSettings(root, resources, true);
       return;
     }
 
@@ -254,6 +260,11 @@ public class RatioSettings
     _fireNotifications = !suspend;
   }
 
+  public void resetToDefaults(final RootAccount root, final ResourceProvider resources) {
+    _ratioList.clear();
+    buildInitialSettings(root, resources, false);
+    ratioListUpdated();
+  }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // Private Methods
@@ -265,8 +276,9 @@ public class RatioSettings
    *
    * @param root The account file to load.
    * @param resources Object to obtain localized strings and other resources.
+   * @param save True to immediately save the initial settings to the file
    */
-  private void buildInitialSettings(final RootAccount root, final ResourceProvider resources) {
+  private void buildInitialSettings(final RootAccount root, final ResourceProvider resources, final boolean save) {
     setDefaults();
     System.err.println("ratios: Adding example ratio entries");
     addDebtServiceToIncomeRatio(resources);

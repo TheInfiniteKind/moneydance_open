@@ -41,6 +41,10 @@
   <entry key="beg_balance">Beginning Balance</entry>
   <entry key="end_balance">Ending Balance</entry>
   <entry key="avg_balance">Average Balance</entry>
+  <entry key="constant">Constant</entry>
+  <entry key="days_in_period">Days in the Period</entry>
+  <!-- Error messages -->
+  <entry key="invalid_constant">Invalid constant</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Custom dates ...</entry>
   <entry key="customDateTitle">Enter Custom Dates</entry>

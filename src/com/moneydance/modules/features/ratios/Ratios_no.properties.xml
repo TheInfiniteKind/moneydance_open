@@ -41,6 +41,10 @@
   <entry key="beg_balance">Inngående saldo</entry>
   <entry key="end_balance">Utgående saldo</entry>
   <entry key="avg_balance">Gjennomsnittlig saldo</entry>
+  <entry key="constant">Konstant</entry>
+  <entry key="days_in_period">Dager i Perioden</entry>
+  <!-- Error messages -->
+  <entry key="invalid_constant">Ikke gyldig konstant</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Egendefinerte datoer ...</entry>
   <entry key="customDateTitle">Angi Egendefinerte Datoer</entry>

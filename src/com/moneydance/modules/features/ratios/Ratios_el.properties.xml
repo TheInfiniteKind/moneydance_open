@@ -41,6 +41,10 @@
   <entry key="beg_balance">Υπόλοιπο εκκίνησης</entry>
   <entry key="end_balance">Υπόλοιπο λογαριασμού κίνησης</entry>
   <entry key="avg_balance">Μέσος Υπόλοιπο</entry>
+  <entry key="constant">ένα σταθερό</entry>
+  <entry key="days_in_period">Μέρες στην Περίοδο</entry>
+  <!-- Error messages -->
+  <entry key="invalid_constant">Μή έγκυρος σταθερό</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Συγκεκριμένες ημερομηνίες ...</entry>
   <entry key="customDateTitle">πληκτρολογείστε Συγκεκριμένες ημερομηνίες</entry>

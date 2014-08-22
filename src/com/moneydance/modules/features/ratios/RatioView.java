@@ -71,17 +71,6 @@ class RatioView extends JPanel {
     validate();
   }
 
-//  void updateData(int decimalPlaces, final Color alternateColor) {
-//    if ((_name == null) || (_ratioValue == null)) {
-//      layoutUI(decimalPlaces, alternateColor);
-//      return;
-//    }
-//    _name.setText(_ratio.toString());
-//    _ratioValue.setText(RatiosUtil.formatPercent(_ratio.getValue(), decimalPlaces, _nanString));
-//    updateBackgroundColor(alternateColor);
-//    repaint();
-//  }
-
   private void setupReportIcon() {
     _report.setHorizontalAlignment(JLabel.CENTER);
     _report.addMouseListener(new MouseAdapter() {

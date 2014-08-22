@@ -41,6 +41,10 @@
   <entry key="beg_balance">Solde d'ouverture</entry>
   <entry key="end_balance">Solde final</entry>
   <entry key="avg_balance">Solde moyenne</entry>
+  <entry key="constant">Constante</entry>
+  <entry key="days_in_period">Jours de la période</entry>
+  <!-- Error messages -->
+  <entry key="invalid_constant">Constante invalide</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Dates spécifiques ...</entry>
   <entry key="customDateTitle">Sélectionner Dates Spécifiques</entry>

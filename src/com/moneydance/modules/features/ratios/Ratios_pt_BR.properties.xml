@@ -41,6 +41,10 @@
   <entry key="beg_balance">Balanço Inicial</entry>
   <entry key="end_balance">Balanço Total Final</entry>
   <entry key="avg_balance">Balanço Média</entry>
+  <entry key="constant">Constante</entry>
+  <entry key="days_in_period">Dias no Período</entry>
+  <!-- Error messages -->
+  <entry key="invalid_constant">Constante inválida</entry>
   <!-- Custom Date -->
   <entry key="customDateMenu">Datas Customizadas ...</entry>
   <entry key="customDateTitle">Entre em Datas Customizadas</entry>

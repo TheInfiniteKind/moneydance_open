@@ -96,7 +96,7 @@ class RatiosExtensionModel
       cancelCurrentTask();
       createSettings();
       loadRatioList();
-      _ratioCompute = new RatioCompute(rootAccount);
+      _ratioCompute = new RatioCompute(rootAccount, getGUI().getPreferences().getDecimalChar());
       recalculate();
     } else if (rootAccount == null) {
       // clear out the data
@@ -105,6 +105,27 @@ class RatiosExtensionModel
       _rootAccount = null;
     }
     // otherwise the same file has been assigned again, do nothing
+  }
+
+  RatioEntry getEntryFromSettingString(String setting) {
+    try {
+      StreamTable settingTable = new StreamTable();
+      settingTable.readFrom(setting);
+      String encodedAccounts = settingTable.getStr(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
+      String revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
+      if (!revisedAccounts.equals(encodedAccounts)) {
+        settingTable.put(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, revisedAccounts);
+      }
+      encodedAccounts = settingTable.getStr(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
+      revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
+      if (!revisedAccounts.equals(encodedAccounts)) {
+        settingTable.put(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, revisedAccounts);
+      }
+      return new RatioEntry(settingTable, _mdGUI);
+    } catch (StringEncodingException e) {
+      System.err.println("ratios: Error reading ratio entry settings: " + e.getMessage());
+    }
+    return null;
   }
 
   private void addAccountListener() {
@@ -133,24 +154,10 @@ class RatiosExtensionModel
     synchronized (_ratioSync) {
       _ratios.clear();
       for (String setting : _settings.getRatioEntryList()) {
-        try {
-          StreamTable settingTable = new StreamTable();
-          settingTable.readFrom(setting);
-          String encodedAccounts = settingTable.getStr(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
-          String revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
-          if (!revisedAccounts.equals(encodedAccounts)) {
-            settingTable.put(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, revisedAccounts);
-          }
-          encodedAccounts = settingTable.getStr(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
-          revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
-          if (!revisedAccounts.equals(encodedAccounts)) {
-            settingTable.put(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, revisedAccounts);
-          }
-          final RatioEntry ratioEntry = new RatioEntry(settingTable, _mdGUI);
+        RatioEntry ratioEntry = getEntryFromSettingString(setting);
+        if (ratioEntry != null) {
           ratioEntry.setIndex(_ratios.size());
           _ratios.add(ratioEntry);
-        } catch (StringEncodingException e) {
-          System.err.println("ratios: Error reading ratio entry settings: " + e.getMessage());
         }
       }
     }
@@ -213,7 +220,7 @@ class RatiosExtensionModel
   ///////////////////////////////////////////////////////////////////////////////////////////
 
   void setDateRangeOption(final String dateRangeOption) {
-    final String oldOption = _settings.getDateRangeOption();
+    final String oldOption = (_settings != null) ? _settings.getDateRangeOption() : "this_year";
     if (_settings != null) {
       _settings.setDateRangeOption(dateRangeOption);
       recalculate();
@@ -224,7 +231,7 @@ class RatiosExtensionModel
   }
 
   void setCustomDateRange(final DateRange dateRange) {
-    final String oldOption = _settings.getDateRangeOption();
+    final String oldOption = (_settings != null) ? _settings.getDateRangeOption() : "this_year";
     if (_settings != null) {
       _settings.setCustomDateRange(dateRange);
       recalculate();

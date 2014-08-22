@@ -73,6 +73,8 @@ class RatioSettingsView
     // list change
     if (all || N12ERatios.RATIO_LIST_CHANGE.equals(eventName)) {
       if (_initialized) loadControlsFromData(false);
+    } else if (N12ERatios.RATIO_LIST_RESET.equals(eventName)) {
+      _list.selectFirstRow();
     }
     refresh();
   }

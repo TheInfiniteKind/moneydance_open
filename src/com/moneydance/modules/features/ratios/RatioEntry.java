@@ -129,6 +129,22 @@ public class RatioEntry {
   boolean getNumeratorBeginningBalance() { return _numerator.getBeginningBalance(); }
   void setDenominatorBeginningBalance() { _denominator.setBeginningBalance(); }
   boolean getDenominatorBeginningBalance() { return _denominator.getBeginningBalance(); }
+  boolean isNumeratorAccountBalances() {
+    return _numerator.getEndBalanceOnly() || _numerator.getAverageBalance() || _numerator.getBeginningBalance();
+  }
+  boolean isDenominatorAccountBalances() {
+    return _denominator.getEndBalanceOnly() || _denominator.getAverageBalance() || _denominator.getBeginningBalance();
+  }
+  boolean getNumeratorConstant() { return _numerator.getConstant(); }
+  boolean getDenominatorConstant() { return _denominator.getConstant(); }
+  boolean getNumeratorDaysInPeriod() { return _numerator.getDaysInPeriod(); }
+  boolean getDenominatorDaysInPeriod() { return _denominator.getDaysInPeriod(); }
+  boolean isNumeratorConstant() {
+    return _numerator.getConstant() || _numerator.getDaysInPeriod();
+  }
+  boolean isDenominatorConstant() {
+    return _denominator.getConstant() || _denominator.getDaysInPeriod();
+  }
   String getName() { return _name; }
   void setName(final String name) { _name = name; }
   String getNotes() { return _notes; }

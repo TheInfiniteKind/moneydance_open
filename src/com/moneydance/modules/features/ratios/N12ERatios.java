@@ -108,6 +108,7 @@ class N12ERatios {
   //////////////////////////////////////////////////////////////////////////////////////////////
   static final String STATUS_UPDATE = "testStatus";
   static final String RATIO_LIST_CHANGE = "ratioListChange";
+  static final String RATIO_LIST_RESET = "factoryReset";
   static final String DATE_RANGE_OPTION = "dateRange";
   static final String RECALCULATE = "recalculate";
   static final String DECIMALS_CHANGE = "decimalPlaces";

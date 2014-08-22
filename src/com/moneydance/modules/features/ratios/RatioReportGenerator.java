@@ -48,7 +48,7 @@ class RatioReportGenerator extends ReportGenerator {
     _graphics = graphics;
     setGUI(_mainModel.getGUI());
     setInfo(_mainModel.getRootAccount());
-    _computer = new RatioCompute(_mainModel.getRootAccount());
+    _computer = new RatioCompute(_mainModel.getRootAccount(), _mainModel.getGUI().getPreferences().getDecimalChar());
   }
 
   public String getName() {
@@ -90,32 +90,36 @@ class RatioReportGenerator extends ReportGenerator {
     // numerator
     report.addRow(RecordRow.BLANK_ROW);
     addTitleRow(report, L10NRatios.NUMERATOR, _ratio.getNumeratorLabel());
-    if (_ratio.getNumeratorEndBalanceOnly() || _ratio.getNumeratorAverageBalance()) {
+    if (_ratio.isNumeratorAccountBalances()) {
       addSubtitleRow(report, mdGUI.getStr("accounts"));
       boolean useDailyAverage = _ratio.getNumeratorAverageBalance();
       boolean useStartBalance = _ratio.getNumeratorBeginningBalance();
       addBalanceRows(baseCurrency, _ratio.getNumeratorRequiredAccountList(), dateRange, useDailyAverage, useStartBalance, true);
+    } else if (_ratio.isNumeratorConstant()) {
+      addConstantRow(report, _ratio.getNumeratorConstant(), _ratio.getNumeratorLabel(), 0.0, _ratio.getNumeratorDaysInPeriod(), dateRange, widths);
     } else {
       addSubtitleRow(report, mdGUI.getStr("report_transactions"));
       addTransactionRows(dateRange, true);
     }
     addSubtotalRow(report, L10NRatios.NUMERATOR, _ratio.getNumeratorLabel(), baseCurrency, _ratio.getNumeratorValue(),
-                   nanString, fm, widths);
+                   _ratio.isNumeratorConstant(), nanString, fm, widths);
 
     // denominator
     report.addRow(RecordRow.BLANK_ROW);
     addTitleRow(report, L10NRatios.DENOMINATOR, _ratio.getDenominatorLabel());
-    if (_ratio.getDenominatorEndBalanceOnly() || _ratio.getDenominatorAverageBalance()) {
+    if (_ratio.isDenominatorAccountBalances()) {
       addSubtitleRow(report, mdGUI.getStr("accounts"));
       boolean useDailyAverage = _ratio.getDenominatorAverageBalance();
       boolean useStartBalance = _ratio.getDenominatorBeginningBalance();
       addBalanceRows(baseCurrency, _ratio.getDenominatorRequiredAccountList(), dateRange, useDailyAverage, useStartBalance, false);
+    } else if (_ratio.isDenominatorConstant()) {
+      addConstantRow(report,_ratio.getDenominatorConstant(), _ratio.getDenominatorLabel(), 1.0, _ratio.getDenominatorDaysInPeriod(), dateRange, widths);
     } else {
       addSubtitleRow(report, mdGUI.getStr("report_transactions"));
       addTransactionRows(dateRange, false);
     }
     addSubtotalRow(report, L10NRatios.DENOMINATOR, _ratio.getDenominatorLabel(), baseCurrency, _ratio.getDenominatorValue(),
-                   nanString, fm, widths);
+                   _ratio.isDenominatorConstant(), nanString, fm, widths);
 
     // final result
     RatioCompute.computeFinalRatio(_ratio);
@@ -133,7 +137,63 @@ class RatioReportGenerator extends ReportGenerator {
     return report;
   }
 
-  private void addSubtotalRow(Report report, String typeKey, String userLabel, CurrencyType baseCurrency, double value,
+  private void addConstantRow(Report report, boolean isConstant, String constant, double defaultConstant, boolean isDaysInPeriod, DateRange dateRange, int[] widths) {
+    final String[] labels = new String[NUM_COLUMNS];
+    final byte[] align = new byte[NUM_COLUMNS];
+    final byte[] color = new byte[NUM_COLUMNS];
+    final byte[] style = new byte[NUM_COLUMNS];
+    final byte[] totals = new byte[NUM_COLUMNS];
+    RecordRow row = new RecordRow(labels, align, color, style, totals);
+    FontMetrics fontMetrics = _graphics.getFontMetrics();
+
+    // Account
+    labels[0] = _mainModel.getResources().getString(isConstant ? L10NRatios.CONSTANT : L10NRatios.DAYS_IN_PERIOD);
+    widths[0] = Math.max(widths[0], measureStringWidth(labels[0], _graphics, fontMetrics));
+    style[0] = RecordRow.STYLE_PLAIN;
+    align[0] = RecordRow.ALIGN_LEFT;
+
+    // Category
+    labels[1] = " ";
+
+    // Date
+    labels[2] = " ";
+
+    // Description
+    final boolean allowZero = defaultConstant == 0.0;
+    boolean isError = false;
+    if (isDaysInPeriod) {
+      labels[3] = dateRange.format(_dateFormat);
+      widths[3] = Math.max(widths[3], measureStringWidth(labels[3], _graphics, fontMetrics));
+    } else {
+      isError = RatiosUtil.getConstantError(constant, _dec, allowZero);
+      final String display;
+      if (isError) {
+        display = RatiosUtil.getLabelText(_mainModel.getResources(), L10NRatios.INVALID_CONSTANT) + ' ' + constant;
+      } else {
+        display = N12ERatios.EMPTY;
+      }
+      labels[3] = display;
+    }
+    style[3] = RecordRow.STYLE_PLAIN;
+    align[3] = RecordRow.ALIGN_LEFT;
+
+    // Amount - ending balance
+    final double value;
+    if (isConstant) {
+      value = isError ? defaultConstant : RatiosUtil.getConstantValue(constant, _dec, allowZero, defaultConstant);
+    } else {
+      value = RatioCompute.getDaysInPeriod(dateRange);
+    }
+    labels[4] = StringUtils.formatRate(value, _dec);
+    widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
+    style[4] = RecordRow.STYLE_PLAIN;
+    align[4] = RecordRow.ALIGN_RIGHT;
+    color[4] = (value < 0.0) ? RecordRow.COLOR_RED : RecordRow.COLOR_BLACK;
+
+    report.addRow(row);
+  }
+
+  private void addSubtotalRow(Report report, String typeKey, String userLabel, CurrencyType baseCurrency, double value, boolean isConstant,
                               String nanString, FontMetrics fontMetrics, int[] widths) {
     final String[] labels = new String[NUM_COLUMNS];
     final byte[] align = new byte[NUM_COLUMNS];
@@ -168,7 +228,7 @@ class RatioReportGenerator extends ReportGenerator {
     totals[3] = RecordRow.TOTAL_SUBTOTAL;
 
     // Amount
-    labels[4] = formatRatioPartValue(baseCurrency, value, _dec, nanString);
+    labels[4] = formatRatioPartValue(baseCurrency, value, _dec, nanString, isConstant);
     widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
     style[4] = RecordRow.STYLE_BOLD;
     align[4] = RecordRow.ALIGN_RIGHT;
@@ -230,9 +290,9 @@ class RatioReportGenerator extends ReportGenerator {
 
     // Description
     StringBuilder sb = new StringBuilder();
-    sb.append(formatRatioPartValue(baseCurrency, _ratio.getNumeratorValue(), _dec, nanString));
+    sb.append(formatRatioPartValue(baseCurrency, _ratio.getNumeratorValue(), _dec, nanString, _ratio.isNumeratorConstant()));
     sb.append(" / ");
-    sb.append(formatRatioPartValue(baseCurrency, _ratio.getDenominatorValue(), _dec, nanString));
+    sb.append(formatRatioPartValue(baseCurrency, _ratio.getDenominatorValue(), _dec, nanString, _ratio.isDenominatorConstant()));
     labels[3] = sb.toString();
     widths[3] = Math.max(widths[3], measureStringWidth(labels[3], _graphics, fontMetrics));
     style[3] = RecordRow.STYLE_BOLD;
@@ -251,8 +311,9 @@ class RatioReportGenerator extends ReportGenerator {
     report.addRow(row);
   }
 
-  private String formatRatioPartValue(CurrencyType baseCurrency, final double value, final char decimal, final String nanString) {
+  private String formatRatioPartValue(CurrencyType baseCurrency, final double value, final char decimal, final String nanString, boolean isConstant) {
     if (Double.isInfinite(value) || Double.isNaN(value)) return nanString;
+    if (isConstant) return StringUtils.formatRate(value, decimal);
     return baseCurrency.formatFancy(baseCurrency.getLongValue(value), decimal);
   }
 

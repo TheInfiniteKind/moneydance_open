@@ -32,6 +32,10 @@ class RatioTableModel
     _columnLabel = columnLabel;
   }
 
+  public void clear() {
+    _data.clear();
+  }
+
   public String getColumnName(int column) {
     if (column == 0) return _columnLabel;
     return super.getColumnName(column);

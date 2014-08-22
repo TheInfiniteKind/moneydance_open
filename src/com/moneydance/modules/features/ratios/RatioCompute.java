@@ -32,10 +32,12 @@ import java.util.Map;
 class RatioCompute {
   private static final double MINIMUM_DENOMINATOR = 0.00001;
   private final RootAccount _root;
+  private final char _decimal;
   private final Map<Account,BalanceHolder> _balanceCache;
 
-  public RatioCompute(final RootAccount root) {
+  public RatioCompute(final RootAccount root, final char decimal) {
     _root = root;
+    _decimal = decimal;
     _balanceCache = new HashMap<Account, BalanceHolder>();
   }
 
@@ -43,6 +45,7 @@ class RatioCompute {
     _balanceCache.clear();
     computeTxnBasedValues(ratios, dateRange);
     computeBalanceBasedValues(ratios, dateRange);
+    computeConstantValues(ratios, dateRange);
     computeFinalRatios(ratios);
   }
 
@@ -60,6 +63,10 @@ class RatioCompute {
     return !isSourceRequired && isTargetRequired && !isTargetCategory;
   }
 
+  static int getDaysInPeriod(DateRange dateRange) {
+    return Util.calculateDaysBetween(dateRange.getStartDateInt(), dateRange.getEndDateInt()) + 1;
+  }
+
   private void computeBalanceBasedValues(List<RatioEntry> ratios, DateRange dateRange) {
     if (_root == null) {
       System.err.println("ratios: no data file defined for balance calculations");
@@ -68,6 +75,29 @@ class RatioCompute {
     final CurrencyType baseCurrency = _root.getCurrencyTable().getBaseType();
     for (RatioEntry ratio : ratios) {
       computeBalances(ratio, baseCurrency, dateRange);
+    }
+  }
+
+  private void computeConstantValues(List<RatioEntry> ratios, DateRange dateRange) {
+    for (RatioEntry ratio : ratios) {
+      if (TxnMatchLogic.CONSTANT.equals(ratio.getNumeratorMatchingLogic())) {
+        final double value = RatiosUtil.getConstantValue(ratio.getNumeratorLabel(), _decimal, true, 0.0);
+        ratio.setNumeratorValue(value);
+        if (value == 0.0) {
+          System.err.println("ratios: did not parse numerator constant '" + ratio.getNumeratorLabel() + "' correctly for ratio: " + ratio.getName());
+        }
+      } else if (TxnMatchLogic.DAYS_IN_PERIOD.equals(ratio.getNumeratorMatchingLogic())) {
+        ratio.setNumeratorValue(getDaysInPeriod(dateRange));
+      }
+      if (TxnMatchLogic.CONSTANT.equals(ratio.getDenominatorMatchingLogic())) {
+        final double value = RatiosUtil.getConstantValue(ratio.getDenominatorLabel(), _decimal, false, 1.0);
+        ratio.setDenominatorValue(value);
+        if (value == 1.0) {
+          System.err.println("ratios: did not parse denominator constant '" + ratio.getDenominatorLabel() + "' correctly for ratio: " + ratio.getName());
+        }
+      } else if (TxnMatchLogic.DAYS_IN_PERIOD.equals(ratio.getDenominatorMatchingLogic())) {
+        ratio.setDenominatorValue(getDaysInPeriod(dateRange));
+      }
     }
   }
 
@@ -130,7 +160,7 @@ class RatioCompute {
       // For the daily average balance, we don't want the decremented start date calculated previously,
       // so compute based on the dates the user specified and therefore expects
       // Add one day since we are including both start and end days
-      int numDays = Util.calculateDaysBetween(dateRange.getStartDateInt(), dateRange.getEndDateInt()) + 1;
+      int numDays = getDaysInPeriod(dateRange);
       // fill in a daily range
       dailyDates = new int[numDays];
       int thisDay = dateRange.getStartDateInt();
@@ -257,7 +287,7 @@ class RatioCompute {
       System.err.println("ratios: no data file defined for transaction calculations");
       return;
     }
-    if (allBalancesOnly(ratios)) return;
+    if (noTransactionPartsExist(ratios)) return;
     // setup
     for (RatioEntry ratio : ratios) ratio.prepareForTxnProcessing(_root, dateRange, true, null);
     // calculate for each ratio on each matching transaction
@@ -274,19 +304,26 @@ class RatioCompute {
   }
 
   /**
-   * Determine if all of the ratios use account balances only, which means it's pointless to run
+   * Determine if all of the ratios use account balances or constant values, which means it's pointless to run
    * through all the transactions.
    * @param ratios The list of ratio definitions.
    * @return True if all ratios (numerator and denominator) are account-balance-based, false otherwise.
    */
-  private boolean allBalancesOnly(List<RatioEntry> ratios) {
+  private boolean noTransactionPartsExist(List<RatioEntry> ratios) {
     for (RatioEntry ratio : ratios) {
-      if (!ratio.getNumeratorEndBalanceOnly() && !ratio.getNumeratorAverageBalance()) return false;
-      if (!ratio.getDenominatorEndBalanceOnly() && !ratio.getDenominatorAverageBalance()) return false;
+      if (!ratio.getNumeratorEndBalanceOnly()
+          && !ratio.getNumeratorAverageBalance()
+          && !ratio.getNumeratorBeginningBalance()
+          && !ratio.getNumeratorConstant()
+          && !ratio.getNumeratorDaysInPeriod()) return false;
+      if (!ratio.getDenominatorEndBalanceOnly()
+          && !ratio.getDenominatorAverageBalance()
+          && !ratio.getDenominatorBeginningBalance()
+          && !ratio.getDenominatorConstant()
+          && !ratio.getDenominatorDaysInPeriod()) return false;
     }
     return true;
   }
-
   /**
    * Divide the numerator by the denominator on all ratios, checking for oddball numbers.
    * @param ratios The list of ratio definitions.

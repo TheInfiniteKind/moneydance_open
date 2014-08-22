@@ -48,7 +48,18 @@ public enum TxnMatchLogic {
    * Not a transaction match, instead just compute the beginning balance for the specified time period. No filtering
    * by tag or using tax date.
    */
-  BEGIN_BALANCE('g');
+  BEGIN_BALANCE('g'),
+
+  /**
+   * Not a transaction match, just a numerical constant.
+   */
+  CONSTANT('c'),
+
+  /**
+   * Not a transaction match, just the count of the number of days in the selected date range.
+   */
+  DAYS_IN_PERIOD('d');
+
 
   public static final TxnMatchLogic DEFAULT = IN;
 
@@ -71,6 +82,8 @@ public enum TxnMatchLogic {
     if (key == 'o') return OUT;
     if (key == 'a') return AVERAGE_BALANCE;
     if (key == 'g') return BEGIN_BALANCE;
+    if (key == 'c') return CONSTANT;
+    if (key == 'd') return DAYS_IN_PERIOD;
     return DEFAULT;
   }
 

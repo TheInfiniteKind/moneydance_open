@@ -163,4 +163,21 @@ public class RatioSettingsController
   public void updateItem(int index, String editedText) {
     _settingsModel.getTableModel().setValueAt(editedText, index, 0);
   }
+
+  public void resetToFactory() {
+    // reset the editing settings only to the factory defaults, the user has not applied yet
+    final RatioSettings editingSettings = _settingsModel.getEditingSettings();
+    editingSettings.resetToDefaults(_settingsModel.getData(), _resources);
+    // load the table model from the editing settings again
+    final RatioTableModel tableModel = _settingsModel.getTableModel();
+    tableModel.clear();
+    int index = 0;
+    for (String setting : editingSettings.getRatioEntryList()) {
+      RatioEntry entry = _extensionModel.getEntryFromSettingString(setting);
+      tableModel.add(index, entry, false);
+      ++index;
+    }
+    tableModel.fireTableDataChanged();
+    editingSettings.ratioListReset();
+  }
 }

@@ -95,6 +95,10 @@ class RatioPart {
   boolean getAverageBalance() { return TxnMatchLogic.AVERAGE_BALANCE.equals(_txnMatchLogic); }
   void setBeginningBalance() { _txnMatchLogic = TxnMatchLogic.BEGIN_BALANCE; }
   boolean getBeginningBalance() { return TxnMatchLogic.BEGIN_BALANCE.equals(_txnMatchLogic); }
+  void setConstant() { _txnMatchLogic = TxnMatchLogic.CONSTANT; }
+  boolean getConstant() { return TxnMatchLogic.CONSTANT.equals(_txnMatchLogic); }
+  void setDaysInPeriod() { _txnMatchLogic = TxnMatchLogic.DAYS_IN_PERIOD; }
+  boolean getDaysInPeriod() { return TxnMatchLogic.DAYS_IN_PERIOD.equals(_txnMatchLogic); }
 
   void setMatchingLogic(TxnMatchLogic logic) { _txnMatchLogic = logic; }
   TxnMatchLogic getMatchingLogic() { return _txnMatchLogic; }
