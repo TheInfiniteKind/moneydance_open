@@ -11,14 +11,14 @@ package com.moneydance.modules.features.yahooqt;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.time.TimeInterval;
+import com.infinitekind.moneydance.model.CurrencyTable;
+import com.moneydance.apps.md.controller.time.TimeInterval;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
 import com.moneydance.awt.GridC;
 import com.moneydance.awt.JDateField;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 import com.moneydance.util.UiUtil;
 
 import javax.swing.AbstractAction;
@@ -541,7 +541,7 @@ public class YahooDialog
     // find all of the stock exchange items that have a currency that exists in the data file
     List<StockExchange> items = new ArrayList<StockExchange>();
     items.add(StockExchange.DEFAULT);
-    final CurrencyTable ctable = _model.getRootAccount().getCurrencyTable();
+    final CurrencyTable ctable = _model.getBook().getCurrencies();
     for (StockExchange exchange : _model.getExchangeList().getFullList()) {
       if (isValidExchange(ctable, exchange)) items.add(exchange);
     }
@@ -613,7 +613,8 @@ public class YahooDialog
     if (_model.isDirty()) {
       _model.saveSettings();
       // mark that we made changes to the file
-      _model.getRootAccount().accountModified(_model.getRootAccount());
+      //_model.getRootAccount().accountModified(_model.getRootAccount());
+      _model.getRootAccount().syncItem();
     }
   }
 

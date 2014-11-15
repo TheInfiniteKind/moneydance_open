@@ -4,11 +4,11 @@
 
 package com.moneydance.modules.features.balpred;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.*;
 import com.moneydance.awt.*;
 import com.moneydance.awt.graph.*;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -28,9 +28,8 @@ public class SelectBasedOn
   private Wizard wizard;
   private Resources rr = null;
   private BalPredConf balpredConf = null;
-  private JTextPanel tpSelect = new JTextPanel("");
-  private JTextPanel tpDescReminders = new JTextPanel("");
-  private JTextPanel tpDescTransactions = new JTextPanel("");
+  private JTextPanel tpDescReminders;
+  private JTextPanel tpDescTransactions;
 
   public SelectBasedOn(Resources rr, BalPredConf balpredConf) {
     this.rr = rr;
@@ -42,17 +41,16 @@ public class SelectBasedOn
       balpredConf.rbReminders.setEnabled(false);
       balpredConf.rbTransactions.setSelected(true);
     }
-    tpSelect.setText(rr.getString("basedon_info"));
-    tpDescReminders.setText(rr.getString("basedon_rem_desc"));
-    tpDescTransactions.setText(rr.getString("basedon_txn_desc"));
+    tpDescReminders = new JTextPanel(rr.getString("basedon_rem_desc"));
+    tpDescTransactions =  new JTextPanel(rr.getString("basedon_txn_desc"));
     int y = 0;
     balpredConf.rbReminders.addActionListener(this);
     balpredConf.rbTransactions.addActionListener(this);
-    add(tpSelect, AwtUtil.getConstraints(0,y++,1,1,1,1,true,true));
-    add(balpredConf.rbReminders, AwtUtil.getConstraints(0,y++,1,1,1,1,true,false));
-    add(tpDescReminders, AwtUtil.getConstraints(0,y++,1,1,1,1,true,true));
-    add(balpredConf.rbTransactions, AwtUtil.getConstraints(0,y++,1,1,1,1,true,false));
-    add(tpDescTransactions, AwtUtil.getConstraints(0,y++,1,1,1,1,true,true));
+    add(new JTextPanel(rr.getString("basedon_info")), AwtUtil.getConstraints(0,y++,1,1,1,1,true,true));
+    add(balpredConf.rbReminders, GridC.getc(0,y++).west());
+    add(tpDescReminders, GridC.getc(0,y++).wxy(1,1).fillboth().insets(0,15,15,0));
+    add(balpredConf.rbTransactions, GridC.getc(0,y++).west());
+    add(tpDescTransactions, GridC.getc(0,y++).wxy(1,1).fillboth().insets(0,15,15,0));
   }
 
   public void actionPerformed(ActionEvent e) {

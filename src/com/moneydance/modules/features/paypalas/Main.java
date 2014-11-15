@@ -7,8 +7,8 @@ package com.moneydance.modules.features.paypalas;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.ModuleUtil;
-import com.moneydance.apps.md.model.*;
-import com.moneydance.util.StreamTable;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.StreamTable;
 
 import java.io.*;
 import java.net.*;
@@ -81,8 +81,8 @@ public class Main
     return "PayPal Account Synchronizer";
   }
 
-  public RootAccount getRoot() {
-    return getContext().getRootAccount();
+  public AccountBook getRoot() {
+    return getContext().getRootAccount().getBook();
   }
 
   private synchronized void showPayPalWindow() {
@@ -92,9 +92,9 @@ public class Main
     } else {
       extensionWindow.removeAllPayPalAccounts();
       extensionWindow.removeAllAccounts();
-      extensionWindow.loadPayPalAccounts(getRoot());
+      extensionWindow.loadPayPalAccounts(getRoot().getRootAccount());
       extensionWindow.setUserID();
-      extensionWindow.loadAccounts(getRoot());
+      extensionWindow.loadAccounts(getRoot().getRootAccount());
       extensionWindow.setVisible(true);
       extensionWindow.toFront();
       extensionWindow.requestFocus();

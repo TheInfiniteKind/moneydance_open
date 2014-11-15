@@ -10,9 +10,9 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.AccountIterator;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountIterator;
+import com.infinitekind.moneydance.model.RootAccount;
 import com.moneydance.apps.md.view.gui.AccountTreeCellRenderer;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.*;

@@ -10,8 +10,8 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.BasePropertyChangeReporter;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.util.BasePropertyChangeReporter;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;

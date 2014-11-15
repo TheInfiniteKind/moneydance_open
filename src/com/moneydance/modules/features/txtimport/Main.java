@@ -7,7 +7,7 @@ package com.moneydance.modules.features.txtimport;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.ModuleUtil;
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.awt.*;
 
 import java.io.*;
@@ -95,7 +95,7 @@ public class Main
     return null;
   }
   
-  public RootAccount getRoot() {
+  public Account getRoot() {
     return getContext().getRootAccount();
   }
 
@@ -104,7 +104,7 @@ public class Main
   }
 
   private synchronized void showTxtImport() {
-    RootAccount root = getContext().getRootAccount();
+    Account root = getContext().getRootAccount();
     if(root==null) {
       JOptionPane.
         showMessageDialog(AwtUtil.getFrame(importWizard), 

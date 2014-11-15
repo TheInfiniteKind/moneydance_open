@@ -8,9 +8,9 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.DateRange;
+import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

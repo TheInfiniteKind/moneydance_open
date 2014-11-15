@@ -8,8 +8,8 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.TxnTagSet;
-import com.moneydance.apps.md.model.TxnTag;
+import com.infinitekind.moneydance.model.TxnTagSet;
+import com.infinitekind.moneydance.model.TxnTag;
 
 import javax.swing.DefaultComboBoxModel;
 import java.util.List;

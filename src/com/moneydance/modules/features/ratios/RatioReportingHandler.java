@@ -11,9 +11,9 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.Txn;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.Txn;
 import com.moneydance.apps.md.view.gui.reporttool.RecordRow;
 import com.moneydance.apps.md.view.gui.reporttool.Report;
 

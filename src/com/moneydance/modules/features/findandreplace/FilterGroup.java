@@ -5,7 +5,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
+import com.infinitekind.moneydance.model.AbstractTxn;
 
 import java.util.LinkedList;
 import java.util.ListIterator;

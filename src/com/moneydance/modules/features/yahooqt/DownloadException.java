@@ -8,7 +8,7 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyType;
 
 /**
  * An exception encountered while downloading data.

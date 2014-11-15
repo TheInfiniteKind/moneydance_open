@@ -8,8 +8,8 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

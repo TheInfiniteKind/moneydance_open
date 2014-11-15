@@ -7,9 +7,9 @@ package com.moneydance.modules.features.miscdebug;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.HomePageView;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 
 import javax.swing.*;
 import java.io.*;

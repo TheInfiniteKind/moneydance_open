@@ -1,10 +1,9 @@
 {
   "vendor" = "Reilly Technologies, LLC"
-  "vendor.url" = "http://moneydance.com/"
-  "module_name" = "PDA Synchronization"
-  "module_desc" = "<html><body><title>Palm Pilot Synchronization</title><p>This allows you to synchronize Moneydance with your PalmOS-based PDA's Expense, PocketMoney, or SplashMoney application.</p></body></html>"
+  "vendor_url" = "http://moneydance.com/"
+  "name" = "PDA Synchronization"
   "desc" = "This is an extension that will allow you to syncronize Moneydance with your PalmOS-based PDA's Expense, PocketMoney, or SplashMoney application."
   "module_build" = "15"
   "id" = "palmsync"
-  "min_build" = "246"
+  "minbuild" = "246"
 }

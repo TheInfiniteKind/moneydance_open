@@ -10,9 +10,9 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.Common;
-import com.moneydance.util.StreamTable;
-import com.moneydance.util.StreamVector;
-import com.moneydance.util.StringEncodingException;
+import com.infinitekind.util.StreamTable;
+import com.infinitekind.util.StreamVector;
+import com.infinitekind.util.StringEncodingException;
 
 import java.io.File;
 import java.io.IOException;

@@ -8,21 +8,12 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.view.gui.CurrencyModel;
-import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.OKButtonListener;
-import com.moneydance.apps.md.view.gui.OKButtonPanel;
+import com.infinitekind.moneydance.model.*;
+import com.moneydance.apps.md.view.gui.*;
 import com.moneydance.awt.GridC;
 import com.moneydance.util.UiUtil;
 
-import javax.swing.BorderFactory;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.GridBagLayout;
@@ -109,14 +100,14 @@ public class ExchangeDialog extends JDialog {
       }
     },OKButtonPanel.QUESTION_OK_CANCEL);
     okButtons.setBorder(BorderFactory.createEmptyBorder(UiUtil.VGAP, UiUtil.DLG_HGAP,
-            UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
+                                                        UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
     contentPane.add(okButtons, BorderLayout.SOUTH);
     pack();
   }
 
   private void setupCurrencySelector() {
-    CurrencyTable currencyTable = _mdGui.getCurrentAccount().getCurrencyTable();
-    CurrencyModel currencyModel = new CurrencyModel(currencyTable, CurrencyType.CURRTYPE_CURRENCY);
+    CurrencyTable currencyTable = _mdGui.getCurrentBook().getCurrencies();
+    CurrencyModel currencyModel = new CurrencyModel(currencyTable, CurrencyType.Type.CURRENCY);
     _currencyChoice = new JComboBox(currencyModel);
     CurrencyType currency = currencyTable.getCurrencyByIDString(_exchange.getCurrencyCode());
     if (currency == null) currency = currencyTable.getBaseType();

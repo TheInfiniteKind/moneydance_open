@@ -9,10 +9,10 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.ParentTxn;
-import com.moneydance.apps.md.model.SplitTxn;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.ParentTxn;
+import com.infinitekind.moneydance.model.SplitTxn;
 
 /**
  * <p>Filters out transactions that are filtered by an account filter and/or category filter. An

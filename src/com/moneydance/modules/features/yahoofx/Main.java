@@ -6,12 +6,9 @@ package com.moneydance.modules.features.yahoofx;
 
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
-import com.moneydance.apps.md.controller.ModuleUtil;
-import com.moneydance.apps.md.controller.UserPreferences;
 
-import com.moneydance.apps.md.model.*;
-import com.moneydance.apps.md.controller.Util;
-import com.moneydance.util.Constants;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.DateUtil;
 
 import java.io.*;
 import java.util.*;
@@ -74,18 +71,17 @@ public class Main
   
   private void getRates() {
     getContext().showURL("moneydance:setstatus:Connecting to Yahoo...");
-    RootAccount root = getContext().getRootAccount();
+    Account root = getContext().getRootAccount();
     if(root==null) return;
 
-    CurrencyTable ctable = root.getCurrencyTable();
+    CurrencyTable ctable = root.getBook().getCurrencies();
     
     boolean success = false;
     try {
       Vector currenciesToCheck = new Vector();
       ctable.dumpCurrencies();
-      for(Enumeration cenum=ctable.getAllValues(); cenum.hasMoreElements();) {
-        CurrencyType ctype = (CurrencyType)cenum.nextElement();
-        if(ctype.getCurrencyType()==CurrencyType.CURRTYPE_CURRENCY) {
+      for(CurrencyType ctype : ctable.getAllCurrencies()) {
+        if(ctype.getCurrencyType()==CurrencyType.Type.CURRENCY) {
           currenciesToCheck.addElement(ctype);
         }
       }
@@ -128,19 +124,16 @@ public class Main
       return;
     
     
-    long lastDate = 0;
-    for(int i=0; i<currType.getSnapshotCount(); i++) {
-      CurrencyType.Snapshot snap = currType.getSnapshot(i);
-      if(snap.getDate()>lastDate)
-        lastDate = snap.getDate();
+    int lastDate = 0;
+    for(CurrencySnapshot snap : currType.getSnapshots()) {
+      if(snap.getDateInt()>lastDate)
+        lastDate = snap.getDateInt();
     }
     
-    lastDate = Util.stripTimeFromDate(lastDate);
-    long today = Util.stripTimeFromDate(System.currentTimeMillis());
-    boolean addSnapshot = ((lastDate + 86400000 * HISTORY_INTERVAL) < today);
+    int today = DateUtil.getStrippedDateInt();
+    boolean addSnapshot = DateUtil.incrementDate(lastDate, 0, 0, HISTORY_INTERVAL) < today;
 
-    if(addSnapshot)
-      currType.setSnapshot(today, rate);
+    if(addSnapshot) currType.addSnapshotInt(today, rate);
     currType.setUserRate(rate);
   }
 

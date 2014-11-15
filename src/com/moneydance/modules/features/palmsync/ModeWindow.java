@@ -6,9 +6,9 @@ package com.moneydance.modules.features.palmsync;
 
 import com.moneydance.apps.md.controller.Common;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.util.StringUtils;
 import com.moneydance.awt.*;
 
 import javax.swing.event.*;

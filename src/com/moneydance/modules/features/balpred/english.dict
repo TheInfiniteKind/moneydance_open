@@ -1,8 +1,10 @@
 {
-"account" = "Account: "
+"account" = "Account"
 "reminders" = "Reminders"
+"reminder" = "Reminder"
 "enabled" = "Enabled"
-"build_graph" = "Build Graph"
+"include" = "Include"
+"build_graph" = "Update Graph"
 "done" = "Done"
 "transactions" = "Transactions"
 "past_period" = "Past period "

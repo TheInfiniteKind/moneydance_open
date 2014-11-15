@@ -10,9 +10,9 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.TxnTag;
-import com.moneydance.apps.md.model.TxnTagSet;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.TxnTag;
+import com.infinitekind.moneydance.model.TxnTagSet;
 import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.TagLogic;
@@ -20,7 +20,7 @@ import com.moneydance.apps.md.view.gui.select.ClickLabelListPanel;
 import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
 import com.moneydance.apps.md.view.resources.MDResourceProvider;
 import com.moneydance.awt.GridC;
-import com.moneydance.util.UiUtil;
+import com.infinitekind.util.UiUtil;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;

@@ -8,9 +8,8 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyType;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.*;
 
 /**
  * Date range specific to a security to fill in the needed number of days of history.
@@ -23,21 +22,20 @@ public class HistoryDateRange {
 
   public static DateRange getRangeForSecurity(CurrencyType secCurrency, int numDays) {
     int lastDate = 0;
-    for (int snapIndex = 0; snapIndex < secCurrency.getSnapshotCount(); snapIndex++) {
-      CurrencyType.Snapshot snap = secCurrency.getSnapshot(snapIndex);
+    for (CurrencySnapshot snap : secCurrency.getSnapshots()) {
       lastDate = Math.max(lastDate, snap.getDateInt());
     }
     // determine how many days of history to download
     int days;
-    final int today = Util.getStrippedDateInt();
+    final int today = DateUtil.getStrippedDateInt();
     if (lastDate == 0) {
       days = Math.max(numDays, NEW_DOWNLOAD_DAYS); // no history exists for that security/currency
     } else {
-      days = Util.calculateDaysBetween(lastDate, today);
+      days = DateUtil.calculateDaysBetween(lastDate, today);
       days = Math.max(days, numDays);
       days = Math.max(days, MINIMUM_DAYS);
     }
 
-    return new DateRange(Util.incrementDate(today, 0, 0, -(days + 1)), today);
+    return new DateRange(DateUtil.incrementDate(today, 0, 0, -(days + 1)), today);
   }
 }

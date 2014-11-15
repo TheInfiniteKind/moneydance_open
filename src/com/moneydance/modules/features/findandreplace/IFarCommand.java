@@ -8,8 +8,8 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.TxnTag;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.TxnTag;
 
 
 /**

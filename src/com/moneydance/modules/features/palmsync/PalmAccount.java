@@ -4,7 +4,7 @@
 
 package com.moneydance.modules.features.palmsync;
 
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.Account;
 
 /** Abstract class that all palm accounts inherit from. */
 public class PalmAccount {

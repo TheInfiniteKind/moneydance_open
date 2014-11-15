@@ -8,14 +8,14 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.TxnTag;
-import com.moneydance.apps.md.model.TxnTagSet;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.TxnTag;
+import com.infinitekind.moneydance.model.TxnTagSet;
 import com.moneydance.apps.md.view.gui.TagLogic;
-import com.moneydance.util.StreamTable;
-import com.moneydance.util.StringEncodingException;
+import com.infinitekind.util.StreamTable;
+import com.infinitekind.util.StringEncodingException;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -479,7 +479,7 @@ public class LoadSaveModel
             // just return the base currency
             return _controller.getCurrencyType();
         }
-        final CurrencyType currencyType = _controller.getRootAccount().getCurrencyTable().getCurrencyByIDString(currencyId);
+        final CurrencyType currencyType = _controller.getBook().getCurrencyTable().getCurrencyByIDString(currencyId);
         if (currencyType == null)
         {
             return _controller.getCurrencyType();

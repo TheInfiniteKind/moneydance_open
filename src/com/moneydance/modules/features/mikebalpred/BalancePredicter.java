@@ -4,10 +4,10 @@
 
 package com.moneydance.modules.features.mikebalpred;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.awt.*;
 import com.moneydance.awt.graph.*;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 
 import java.awt.*;
 import java.awt.event.*;

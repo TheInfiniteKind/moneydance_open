@@ -8,11 +8,9 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.CustomDateFormat;
+import com.infinitekind.util.DateUtil;
 
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -51,12 +49,12 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     String format = _model.getGUI().getStr("downloading_acct_x");
     _model.showProgress(0.0f, SQUtil.replaceAll(format, "{acctname}", taskDisplayName));
 
-    RootAccount root = _model.getRootAccount();
-    if (root == null) {
-      if(Main.DEBUG_YAHOOQT) System.err.println("Skipping security prices download, no root account");
+    AccountBook book = _model.getBook();
+    if (book == null) {
+      if(Main.DEBUG_YAHOOQT) System.err.println("Skipping security prices download, no book account");
       return Boolean.FALSE;
     }
-    CurrencyTable ctable = root.getCurrencyTable();
+    CurrencyTable ctable = book.getCurrencies();
     final int numDays = _model.getHistoryDays();
 
     boolean success = false;
@@ -64,14 +62,13 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     try {
       int totalValues = (int) ctable.getCurrencyCount();
       int currIdx = 0;
-      for (Enumeration cen = ctable.getAllValues(); cen.hasMoreElements();) {
-        CurrencyType currencyType = (CurrencyType) cen.nextElement();
+      for (CurrencyType currencyType : ctable) {
         _progressPercent = currIdx / (float) totalValues;
         if (_progressPercent == 0.0f) {
           _progressPercent = 0.01f;
         }
 
-        if (currencyType.getCurrencyType() == CurrencyType.CURRTYPE_SECURITY) {
+        if (currencyType.getCurrencyType() == CurrencyType.Type.SECURITY) {
           DownloadResult result = updateSecurity(currencyType, numDays);
           if (result.skipped) {
             ++skippedCount;
@@ -270,7 +267,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     } // if getting the current price
     
     // update the current price if possible, the last price date is stored as a long
-    final String lastUpdateDate = currType.getTag("price_date");
+    final String lastUpdateDate = currType.getParameter("price_date");
     final long storedCurrentPriceDate = (lastUpdateDate == null) ? 0 : Long.parseLong(lastUpdateDate);
     // for now we're going to skip the time check because it introduces too many glitches and
     // unexpected behavior, mainly because the Currency/Security History Window will update the
@@ -289,8 +286,8 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     }
     if (currentPriceUpdated) {
       // the user rate should be stored in terms of the base currency, just like the snapshots
-      currType.setUserRate(CurrencyTable.convertToBasePrice(latestRate, priceCurrency, latestPriceDate));
-      currType.setTag("price_date", String.valueOf(latestPriceDate));
+      currType.setUserRate(CurrencyUtil.convertToBasePrice(latestRate, priceCurrency, DateUtil.convertLongDateToInt(latestPriceDate)));
+      currType.setParameter("price_date", String.valueOf(latestPriceDate));
       // see comments above - no longer skipping due to an older time stamp downloaded
 //    } else if (foundPrice) {
 //      // log that we skipped the update and why

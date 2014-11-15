@@ -7,8 +7,8 @@ package com.moneydance.modules.features.txfexport;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.ModuleUtil;
-import com.moneydance.apps.md.model.*;
-import com.moneydance.util.StreamTable;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.StreamTable;
 
 import java.io.*;
 import java.net.*;
@@ -72,7 +72,7 @@ public class Main
     return "TXF Export";
   }
 
-  public RootAccount getRoot() {
+  public Account getRoot() {
     return getContext().getRootAccount();
   }
   

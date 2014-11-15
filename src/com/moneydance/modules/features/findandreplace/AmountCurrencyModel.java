@@ -8,9 +8,9 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.CurrencyListener;
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyListener;
+import com.infinitekind.moneydance.model.CurrencyTable;
+import com.infinitekind.moneydance.model.CurrencyType;
 
 import javax.swing.AbstractListModel;
 import javax.swing.ComboBoxModel;

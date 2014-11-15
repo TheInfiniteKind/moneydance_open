@@ -4,10 +4,10 @@
 
 package com.moneydance.modules.features.balpred;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.awt.*;
 import com.moneydance.awt.graph.*;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -30,15 +30,15 @@ public class SelectAccount
   public SelectAccount(BalPredConf balpredConf) {
     this.balpredConf = balpredConf;
     this.rr = balpredConf.getResources();
-
+    
     setLayout(new GridBagLayout());
     
-    add(new JTextPanel(rr.getString("sel_acct_desc")),
-        AwtUtil.getConstraints(0,0,1,1,2,1,true,true));
-    add(new JLabel(rr.getString("account")+"   ", JLabel.RIGHT), 
-        AwtUtil.getConstraints(0,1,0,1,1,1,true,false));
-    add(balpredConf.cbAccounts,
-        AwtUtil.getConstraints(1,1,1,1,1,1,true,false));
+    add(Box.createRigidArea(new Dimension(10,10)), GridC.getc(0,0).wxy(1,1));
+    add(new JTextPanel(rr.getString("sel_acct_desc")), GridC.getc(1,1).wx(1).colspan(2).fillboth().insets(0,0,15,0));
+    add(new JLabel(rr.getString("account")+":"), GridC.getc(1,2).label());
+    add(balpredConf.cbAccounts, GridC.getc(2,2).field());
+    add(Box.createRigidArea(new Dimension(10,10)), GridC.getc(3,3).wxy(1,1));
+    setPreferredSize(new Dimension(500,350));
   }
   
   public void activated(Wizard wiz) {

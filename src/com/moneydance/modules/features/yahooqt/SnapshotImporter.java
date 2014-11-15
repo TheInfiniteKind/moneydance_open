@@ -8,9 +8,10 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -23,7 +24,7 @@ import java.util.Vector;
 
 /**
  * Imports price history / exchange rate history from a text stream into a list of
- * {@link CurrencyType.Snapshot} objects. The default format is from Yahoo price history which
+ * {@link CurrencySnapshot} objects. The default format is from Yahoo price history which
  * returns data in this format:
  * <pre>
  * Date,Open,High,Low,Close,Volume,Adj Close
@@ -358,7 +359,7 @@ public abstract class SnapshotImporter
     if (_importRecords.isEmpty()) return false;
     boolean success = false;
     for (StockRecord record : _importRecords) {
-      CurrencyType.Snapshot snap = addOrUpdateSnapshot(_currency, priceCurrency, record);
+      CurrencySnapshot snap = addOrUpdateSnapshot(_currency, priceCurrency, record);
       success |= (snap.getUserRate() > 0.0);
     }
     return success;
@@ -374,13 +375,13 @@ public abstract class SnapshotImporter
   protected abstract BufferedReader getInputStream() 
           throws IOException, DownloadException, NumberFormatException;
 
-  private static CurrencyType.Snapshot addOrUpdateSnapshot(CurrencyType currency,
-                                                           CurrencyType baseCurrency,
-                                                           StockRecord record)
+  private static CurrencySnapshot addOrUpdateSnapshot(CurrencyType currency,
+                                                      CurrencyType baseCurrency,
+                                                      StockRecord record)
   {
     // all snapshots are recorded in terms of the base currency.
     final double newRate = convertToBasePrice(record.closeRate, baseCurrency, record.date);
-    CurrencyType.Snapshot result = currency.setSnapshotInt(record.date, newRate);
+    CurrencySnapshot result = currency.setSnapshotInt(record.date, newRate);
     // downloaded values are prices in a certain currency, change to rates for the stock history
     result.setUserDailyHigh(convertToBasePrice(record.highRate, baseCurrency, record.date));
     result.setUserDailyLow(convertToBasePrice(record.lowRate, baseCurrency, record.date));

@@ -10,9 +10,9 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.StreamTable;
-import com.moneydance.util.StringEncodingException;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.util.StreamTable;
+import com.infinitekind.util.StringEncodingException;
 
 import javax.swing.table.TableModel;
 

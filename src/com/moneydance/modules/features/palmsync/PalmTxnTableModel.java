@@ -5,8 +5,8 @@
 package com.moneydance.modules.features.palmsync;
 
 import com.syncbuilder.storage.expense.Record;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.util.CustomDateFormat;
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;

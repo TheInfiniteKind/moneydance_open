@@ -1,9 +1,9 @@
 {
   "vendor" = "The Infinite Kind, LLC"
-  "vendor.url" = "http://moneydance.com/"
-  "module_name" = "Yahoo! Exchange Rate Retriever"
-  "module_desc" = "<html><body><title>Yahoo! Exchange Rate Retriever</title><p>This is an extension that retrieves the latest currecy exchange rates from <a href=\"http://finance.yahoo.com\">finance.yahoo.com</a>!</p></body></html>"
+  "vendor_url" = "http://moneydance.com/"
+  "name" = "Yahoo! Exchange Rate Retriever"
   "desc" = "This is an extension that retrieves the latest currency exchange rates from finance.yahoo.com"
   "id" = yahoofx
-  "module_build" = 2
+  "module_build" = "10"
+  "minbuild" = "1000"
 }

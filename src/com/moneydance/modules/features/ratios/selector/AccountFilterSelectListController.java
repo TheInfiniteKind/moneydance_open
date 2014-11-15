@@ -11,7 +11,7 @@
 package com.moneydance.modules.features.ratios.selector;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.Account;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.modules.features.ratios.RatiosUtil;
 import com.moneydance.modules.features.ratios.ResourceProvider;

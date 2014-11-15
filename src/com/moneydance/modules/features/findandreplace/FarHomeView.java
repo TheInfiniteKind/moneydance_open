@@ -9,7 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.HomePageView;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.RootAccount;
 
 import javax.swing.JComponent;
 

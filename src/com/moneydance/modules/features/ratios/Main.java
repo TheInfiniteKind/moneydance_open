@@ -13,10 +13,10 @@ package com.moneydance.modules.features.ratios;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.PreferencesListener;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.RootAccount;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.AwtUtil;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 import javax.swing.SwingUtilities;
 import java.awt.Component;

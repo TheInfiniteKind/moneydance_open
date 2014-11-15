@@ -11,7 +11,7 @@ package com.moneydance.modules.features.findandreplace;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.PreferencesListener;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 
 import javax.swing.JOptionPane;
 import java.io.*;
@@ -39,7 +39,7 @@ public class Main extends FeatureModule
     private ResourceBundle _resources;
 
     private boolean _testMode;
-    private RootAccount _testRootAccount;
+    private AccountBook _testBook;
 
     public String getBuildString()
     {
@@ -95,9 +95,9 @@ public class Main extends FeatureModule
 
     }
 
-    void setTestData(RootAccount rootTestAccount)
+    void setTestData(AccountBook testBook)
     {
-        _testRootAccount = rootTestAccount;
+        _testBook = testBook;
     }
 
     String getString(final String key)
@@ -211,20 +211,20 @@ public class Main extends FeatureModule
         {
             // obtain the data if possible
             FeatureModuleContext context = getUnprotectedContext();
-            RootAccount root = null;
+            AccountBook book = null;
             if (context != null)
             {
-                root = getUnprotectedContext().getRootAccount();
+                book = getUnprotectedContext().getCurrentAccountBook();
             }
             else if (_testMode)
             {
-                root = _testRootAccount;
+                book = _testBook;
             }
 
-            if (root != null)
+            if (book != null)
             {
                 final IFindAndReplaceController controller = FindAndReplace.createInstance(this);
-                controller.loadData(root);
+                controller.loadData(book);
                 controller.setInitialFreeText(initialText);
                 controller.show();
                 synchronized (_listSync)

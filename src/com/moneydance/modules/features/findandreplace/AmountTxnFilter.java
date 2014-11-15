@@ -8,9 +8,9 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyUtil;
 
 /**
  * <p>Filters transactions on whether they are within a specified amount range.</p>

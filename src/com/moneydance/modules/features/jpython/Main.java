@@ -7,7 +7,7 @@ package com.moneydance.modules.features.jpython;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 
 import org.python.util.PythonInterpreter;
 

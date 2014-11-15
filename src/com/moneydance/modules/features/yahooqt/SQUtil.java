@@ -8,9 +8,10 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.moneydance.model.Legacy;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.time.TimeInterval;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.moneydance.apps.md.controller.time.TimeInterval;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -44,12 +45,11 @@ final class SQUtil {
    * @return A string with a colon at the end.
    */
   static String addLabelSuffix(final ResourceProvider resources, final String label) {
-    StringBuffer result = new StringBuffer(label);
-    if ((result.length() > 0) && (result.charAt(result.length() - 1)) != ':') {
-      result.append(resources.getString(L10NStockQuotes.LABEL_COLON));
+    if ((label.length() > 0) && (label.charAt(label.length() - 1)) != ':') {
+      return label + resources.getString(L10NStockQuotes.LABEL_COLON) + ' ';
+    } else {
+      return label;
     }
-    result.append(' ');
-    return result.toString();
   }
 
   static String urlEncode(final String toEncode) {
@@ -264,8 +264,8 @@ final class SQUtil {
    */
   public static void main(String argv[]) {
     // test the parsing of symbols. Using symbol GIL.F or GILG.DE for Gildemeister
-    CurrencyType security = new CurrencyType(5000, "GIL", "Gildemeister", 1.0, 2, "", "GIL", "",
-            19990101, CurrencyType.CURRTYPE_SECURITY, null);
+    CurrencyType security = Legacy.makeCurrencyType(5000, "GIL", "Gildemeister", 1.0, 2, "", "GIL", "",
+                                                    19990101, CurrencyType.CURRTYPE_SECURITY, null);
     security.setTickerSymbol("  \t   \n ");
     SymbolData data = parseTickerSymbol(security);
     System.err.println("Blank test: " + ((data != null) ? "FAIL" : "pass"));

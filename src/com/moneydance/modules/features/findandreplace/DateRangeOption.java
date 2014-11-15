@@ -8,7 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.DisplayableObject;
+import com.infinitekind.moneydance.model.DisplayableObject;
 
 /**
  * Defines the various date ranges that can be selected in reports, budgets, etc. The ordinal 

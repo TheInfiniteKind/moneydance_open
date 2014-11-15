@@ -10,8 +10,8 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.time.TimeInterval;
+import com.infinitekind.moneydance.model.*;
+import com.moneydance.apps.md.controller.time.TimeInterval;
 
 import java.beans.PropertyChangeListener;
 import java.util.concurrent.Callable;
@@ -54,8 +54,8 @@ public class UpdateIfNeededTask implements Callable<Boolean> {
   }
 
   private Boolean updateIfNeeded() {
-    RootAccount rootAccount = _model.getRootAccount();
-    if (rootAccount == null) return Boolean.FALSE; // nothing to do
+    AccountBook book = _model.getBook();
+    if (book == null) return Boolean.FALSE; // nothing to do
     UserPreferences preferences = _model.getPreferences();
     boolean success = false;
     if (preferences.getBoolSetting(Main.AUTO_UPDATE_KEY, false)) {
@@ -64,18 +64,18 @@ public class UpdateIfNeededTask implements Callable<Boolean> {
       // exchange rates first so that the proper exchange rates are used for security price
       // conversions
       if (_model.isExchangeRateSelected()) {
-        success = updateExchangeRates(rootAccount, frequency, today);
+        success = updateExchangeRates(book, frequency, today);
       }
       if (_model.isStockPriceSelected()) {
-        success |= updateSecurityPrices(rootAccount, frequency, today);
+        success |= updateSecurityPrices(book, frequency, today);
       }
     }
     return Boolean.valueOf(success);
   }
 
-  private boolean updateSecurityPrices(RootAccount rootAccount, TimeInterval frequency, int today)
+  private boolean updateSecurityPrices(AccountBook book, TimeInterval frequency, int today)
   {
-    int lastUpdateDate = Main.getQuotesLastUpdateDate(rootAccount);
+    int lastUpdateDate = Main.getQuotesLastUpdateDate(book.getRootAccount());
     int nextUpdateDate = SQUtil.getNextDate(lastUpdateDate, frequency);
     if (today >= nextUpdateDate) {
       DownloadQuotesTask task = new DownloadQuotesTask(_model, _resources);
@@ -95,9 +95,9 @@ public class UpdateIfNeededTask implements Callable<Boolean> {
     return true; // no update needed, so success
   }
 
-  private boolean updateExchangeRates(RootAccount rootAccount, TimeInterval frequency, int today)
+  private boolean updateExchangeRates(AccountBook book, TimeInterval frequency, int today)
   {
-    int lastUpdateDate = Main.getRatesLastUpdateDate(rootAccount);
+    int lastUpdateDate = Main.getRatesLastUpdateDate(book.getRootAccount());
     int nextUpdateDate = SQUtil.getNextDate(lastUpdateDate, frequency);
     if (today >= nextUpdateDate) {
       DownloadRatesTask task = new DownloadRatesTask(_model, _resources);

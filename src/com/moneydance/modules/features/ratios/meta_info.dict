@@ -1,9 +1,9 @@
 {
   "vendor" = "Mennē Software Solutions, LLC"
-  "vendor.url" = "http://mennesoft.com/ratios/index.html"
-  "module_name" = "Ratio Calculator"
-  "module_desc" = "<html><body><title>Ratio Calculator</title><p>Allows you to create fully customizable ratios. For Moneydance 2011 or later.</p></body></html>"
+  "vendor_url" = "http://mennesoft.com/ratios/index.html"
+  "name" = "Ratio Calculator"
   "desc" = "Show a custom list of ratios or percentages on your home page. Examples include savings rate, debt-to-income ratio, or debt to assets. For Moneydance 2011 or later."
   "id" = "mennesoft.ratios"
-  "module_build" = "26"
+  "minbuild" = "1000"
+  "module_build" = "100"
 }

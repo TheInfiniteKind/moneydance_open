@@ -9,14 +9,14 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.apps.md.model.ParentTxn;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.SplitTxn;
-import com.moneydance.apps.md.model.TransactionSet;
+import com.infinitekind.moneydance.model.ParentTxn;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyTable;
+import com.infinitekind.moneydance.model.SplitTxn;
+import com.infinitekind.moneydance.model.TransactionSet;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
@@ -434,7 +434,7 @@ public class FarController implements IFindAndReplaceController
         return _host.getMDGUI();
     }
 
-    public RootAccount getRootAccount()
+    public RootAccount getBook()
     {
         return _model.getData();
     }

@@ -11,7 +11,7 @@ import com.moneydance.apps.md.controller.UserPreferences;
 
 import com.moneydance.awt.*;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 
 import java.util.Vector;
 import java.io.*;

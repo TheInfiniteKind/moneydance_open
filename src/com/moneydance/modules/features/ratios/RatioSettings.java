@@ -10,15 +10,15 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.controller.DateRange;
+import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.time.DateRangeOption;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.RootAccount;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.util.StreamTable;
-import com.moneydance.util.BasePropertyChangeReporter;
-import com.moneydance.util.StringEncodingException;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StreamTable;
+import com.infinitekind.util.BasePropertyChangeReporter;
+import com.infinitekind.util.StringEncodingException;
+import com.infinitekind.util.StringUtils;
 
 import java.util.Collections;
 import java.util.Comparator;

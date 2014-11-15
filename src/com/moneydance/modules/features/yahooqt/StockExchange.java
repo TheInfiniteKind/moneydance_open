@@ -8,8 +8,8 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.util.StreamTable;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.util.StreamTable;
 
 import java.util.ArrayList;
 import java.util.Collections;

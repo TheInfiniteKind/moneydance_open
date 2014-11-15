@@ -9,10 +9,7 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.UserPreferences;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.AccountIterator;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.SecurityAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.util.UiUtil;
 
@@ -63,8 +60,8 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     Iterator<Account> iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
       Account account = iter.next();
-      if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
-        addAccount((SecurityAccount)account);
+      if (account.getAccountType() == Account.AccountType.SECURITY) {
+        addAccount(account);
       }
     }
     // sort the list alphabetically
@@ -83,7 +80,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     Iterator<Account> iter = new AccountIterator(_model.getRootAccount());
     while (iter.hasNext()) {
       Account account = iter.next();
-      if (account.getAccountType() == Account.ACCOUNT_TYPE_SECURITY) {
+      if (account.getAccountType() == Account.AccountType.SECURITY) {
         final CurrencyType currency = account.getCurrencyType();
         if (currency == null) continue; // nothing to do, unlikely
         SecurityEntry entry = getEntryByCurrency(currency);
@@ -120,7 +117,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (StockExchange.DEFAULT.getExchangeId().equals(entry.exchangeId)) return;
     final StockExchange exchange = _model.getExchangeList().getById(entry.exchangeId);
     if (exchange != null) {
-      securityCurrency.setTag(CurrencyType.TAG_RELATIVE_TO_CURR, exchange.getCurrencyCode());
+      securityCurrency.setParameter(CurrencyType.TAG_RELATIVE_TO_CURR, exchange.getCurrencyCode());
     }
   }
 
@@ -243,13 +240,12 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       if (connection == null) return null;
       SymbolData parsedSymbol = SQUtil.parseTickerSymbol(tableEntry.editSymbol);
       String fullSymbol = connection.getFullTickerSymbol(parsedSymbol, exchange);
-      return UiUtil.getLabelText(_model.getGUI(), "currency_ticker") + fullSymbol;
+      return UiUtil.getLabelText(_model.getGUI().getResources(), "currency_ticker") + fullSymbol;
     }
     if (columnIndex == EXCHANGE_COL) {
       StockExchange exchange = _model.getExchangeList().getById(tableEntry.exchangeId);
       StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
-      CurrencyType priceCurrency =  _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(
-              exchange.getCurrencyCode());
+      CurrencyType priceCurrency =  _model.getBook().getCurrencies().getCurrencyByIDString(exchange.getCurrencyCode());
       if (priceCurrency != null) {
         sb.append(UiUtil.getLabelText(_model.getGUI(), L10NStockQuotes.CURRENCY_LABEL));
         sb.append(getCurrencyAbbreviatedDisplay(priceCurrency));
@@ -347,8 +343,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         stripExchangeOverrides(entry);
         if (SQUtil.isBlank(entry.testResult)) {
           // validate the currency for the override exchange
-          CurrencyType priceCurrency = _model.getRootAccount().getCurrencyTable()
-                  .getCurrencyByIDString(override.getCurrencyCode());
+          CurrencyType priceCurrency = _model.getBook().getCurrencies().getCurrencyByIDString(override.getCurrencyCode());
           setPriceCurrencyMessage(entry, override.getCurrencyCode(), priceCurrency);
         }
       } else {
@@ -359,7 +354,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
           currencyCode = exchange.getCurrencyCode();
         }
         CurrencyType priceCurrency = SQUtil.isBlank(currencyCode) ? null :
-                _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(currencyCode);
+                                     _model.getBook().getCurrencies().getCurrencyByIDString(currencyCode);
         // if the price currency is null we will display a message later
         // if the exchange is null we can't check for a currency mismatch (shouldn't happen)
         // if there isn't an overridden currency, there can't be a mismatch
@@ -392,9 +387,9 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 
   private void buildCurrencyMismatchMessage(SecurityEntry entry, String currencyCode, StockExchange exchange) {
     CurrencyType overrideCurrency = SQUtil.isBlank(currencyCode) ? null :
-            _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(currencyCode);
+            _model.getBook().getCurrencies().getCurrencyByIDString(currencyCode);
     CurrencyType exchangeCurrency = (exchange == null) ? null :
-            _model.getRootAccount().getCurrencyTable().getCurrencyByIDString(exchange.getCurrencyCode());
+            _model.getBook().getCurrencies().getCurrencyByIDString(exchange.getCurrencyCode());
     if ((overrideCurrency == null) || (exchangeCurrency == null)) {
       // missing one or both currencies, so just show the codes
       StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
@@ -457,7 +452,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     return null;
   }
 
-  private void addAccount(SecurityAccount account) {
+  private void addAccount(Account account) {
     final CurrencyType currency = account.getCurrencyType();
     if (currency == null) return; // nothing to do
     _model.addSecurity(account, currency);

@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 /**
  * Defines whether we look for transactions into an account, transactions out of an account, or the sum total

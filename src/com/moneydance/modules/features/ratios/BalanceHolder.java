@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.Account;
 
 /**
  * Immutable class to hold an account and the balance calculation results.

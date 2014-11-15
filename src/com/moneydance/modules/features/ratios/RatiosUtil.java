@@ -10,10 +10,10 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.Txn;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.Txn;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;

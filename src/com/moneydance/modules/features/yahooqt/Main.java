@@ -12,9 +12,9 @@ import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.PreferencesListener;
 import com.moneydance.apps.md.controller.UserPreferences;
-import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.time.TimeInterval;
+import com.infinitekind.util.DateUtil;
+import com.infinitekind.moneydance.model.*;
+import com.moneydance.apps.md.controller.time.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 
 import javax.swing.*;
@@ -68,18 +68,18 @@ public class Main
     addPreferencesListener();
     MoneydanceGUI mdGUI = (MoneydanceGUI)((com.moneydance.apps.md.controller.Main) context).getUI();
     _model.initialize(mdGUI, this);
-    final RootAccount root = getContext().getRootAccount();
+    final AccountBook book = getContext().getCurrentAccountBook();
     // If root is null, then we'll just wait for the MD_OPEN_EVENT_ID event. When the plugin
     // is first installed, the root should be non-null. When MD starts up, it is likely to be null
     // until the file is opened.
-    if (root != null) _model.setData(root);
+    if (book != null) _model.setData(book);
   }
 
   public void cleanup() {
     removePreferencesListener();
     _model.cleanUp();
   }
-
+  
   void loadResources() {
     Locale locale = ((com.moneydance.apps.md.controller.Main) getContext())
             .getPreferences().getLocale();
@@ -128,11 +128,11 @@ public class Main
     _model.runUpdateIfNeeded(delayStart, _progressListener);
   }
 
-  static int getQuotesLastUpdateDate(RootAccount rootAccount) {
+  static int getQuotesLastUpdateDate(Account rootAccount) {
     return rootAccount.getIntParameter(QUOTE_LAST_UPDATE_KEY, 0);
   }
-
-  static int getRatesLastUpdateDate(RootAccount rootAccount) {
+  
+  static int getRatesLastUpdateDate(Account rootAccount) {
     return rootAccount.getIntParameter(RATE_LAST_UPDATE_KEY, 0);
   }
 
@@ -143,7 +143,7 @@ public class Main
   }
 
   private void updateNow() {
-    RootAccount rootAccount = _model.getRootAccount();
+    Account rootAccount = _model.getRootAccount();
     if (rootAccount == null) return; // nothing to do
     // exchange rates first so that the proper exchange rates are used for security price conversions
     if (_model.isExchangeRateSelected()) {
@@ -178,7 +178,7 @@ public class Main
     if (N12EStockQuotes.MD_OPEN_EVENT_ID.equals(s)) {
       // cancel any running update
       _model.cancelCurrentTask();
-      _model.setData(getContext().getRootAccount());
+      _model.setData(getContext().getCurrentAccountBook());
       updateIfNeeded(true); // delay the start of downloading a bit to allow MD to finish up loading
     } else if (N12EStockQuotes.MD_CLOSING_EVENT_ID.equals(s) ||
             N12EStockQuotes.MD_EXITING_EVENT_ID.equals(s)) {
@@ -280,7 +280,7 @@ public class Main
         String taskName = (String)event.getOldValue();
         if (result.booleanValue()) {
           // the download was successful, update last success date
-          int today = Util.getStrippedDateInt();
+          int today = DateUtil.getStrippedDateInt();
           if (DownloadRatesTask.NAME.equals(taskName)) {
             _model.saveLastExchangeRatesUpdateDate(today);
           } else if (DownloadQuotesTask.NAME.equals(taskName)) {

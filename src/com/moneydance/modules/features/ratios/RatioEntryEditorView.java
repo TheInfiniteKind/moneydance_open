@@ -10,13 +10,13 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.RootAccount;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
 import com.moneydance.modules.features.ratios.selector.AccountFilterSelectLabel;
 import com.moneydance.modules.features.ratios.selector.RatioAccountSelector;
-import com.moneydance.util.StringUtils;
-import com.moneydance.util.UiUtil;
+import com.infinitekind.util.StringUtils;
+import com.infinitekind.util.UiUtil;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;

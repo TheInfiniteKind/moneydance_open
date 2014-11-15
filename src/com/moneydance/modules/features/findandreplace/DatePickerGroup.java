@@ -12,7 +12,7 @@ import com.moneydance.apps.md.view.gui.DateRangeChooser;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
 import com.moneydance.awt.JDateField;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.util.CustomDateFormat;
 
 import javax.swing.Box;
 import javax.swing.JComboBox;

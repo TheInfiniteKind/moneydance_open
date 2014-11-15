@@ -10,8 +10,8 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.Txn;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.Txn;
 
 /**
  * Interface to gather reporting data during a ratio calculation.

@@ -8,10 +8,10 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.TxnTagSet;
-import com.moneydance.apps.md.model.SplitTxn;
-import com.moneydance.apps.md.model.TxnTag;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.TxnTagSet;
+import com.infinitekind.moneydance.model.SplitTxn;
+import com.infinitekind.moneydance.model.TxnTag;
 import com.moneydance.apps.md.view.gui.TagLogic;
 
 /**

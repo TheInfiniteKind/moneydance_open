@@ -21,10 +21,10 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.RootAccount;
 import com.moneydance.apps.md.view.gui.SecondaryDialog;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.util.UiUtil;
+import com.infinitekind.util.UiUtil;
 
 /**
  * <p>Dialog that allows the user to change Ratios settings.</p>

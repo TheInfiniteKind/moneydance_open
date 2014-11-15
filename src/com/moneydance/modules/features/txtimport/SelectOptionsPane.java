@@ -1,7 +1,7 @@
 
 package com.moneydance.modules.features.txtimport;
 
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.Account;
 import com.moneydance.awt.*;
 import javax.swing.*;
 import javax.swing.border.*;

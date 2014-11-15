@@ -69,7 +69,7 @@ public class Wizard
     enableEvents(WindowEvent.WINDOW_OPENED);
 
     pack();
-    setSize(360, 300);
+    setSize(getPreferredSize());
     
     //AwtUtil.setWindowPosition(this, parentFrame);
     AwtUtil.centerWindow(this);

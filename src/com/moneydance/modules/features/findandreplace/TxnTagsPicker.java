@@ -9,7 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.RootAccount;
 
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;

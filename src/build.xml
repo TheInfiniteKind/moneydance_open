@@ -9,10 +9,10 @@ http://jakarta.apache.org/ant/index.html
   <property file="${src}/user.properties"/>
   <property name="build" value="./build"/>
   <property name="lib" value="../lib"/>
-  <property name="privkeyfile" value="${src}/priv_key"/>
-  <property name="pubkeyfile" value="${src}/pub_key"/>
+  <property name="extprivkeyfile" value="${src}/priv_key"/>
+  <property name="extpubkeyfile" value="${src}/pub_key"/>
   <property name="privkeyid" value="99"/>
-
+  
   <property name="build.sysclasspath" value="ignore" /> <!-- suppress "includeantruntime not set" messages from ant -->
   <property name="build.compiler"  value="classic"/>
   <property name="build.compiler.fulldepend"  value="true"/>
@@ -21,7 +21,7 @@ http://jakarta.apache.org/ant/index.html
   <property name="tmp"  value="../tmp"/>
   <property name="debug"  value="on"/>
   <property name="optimize"  value="off"/>
-
+  
   <path id="classpath">
     <pathelement path="../lib/moneydance.jar"/>
     <pathelement path="../lib/mdadmin.jar"/> <!-- Since mdadmin has a StringUtils, it needs to come after moneydance.jar -->
@@ -113,7 +113,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="findandreplace"/>
       <arg line="${dist}/findandreplace.mxt"/>
@@ -125,7 +125,7 @@ http://jakarta.apache.org/ant/index.html
 
   
   <target name="mikebalpred" depends="init">
-    <javac target="1.5"  source="1.5" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac target="1.6"  source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
            classpathref="classpath"  destdir="${build}"
            includes="com/moneydance/modules/features/mikebalpred/**"/>
     
@@ -143,7 +143,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
         <arg value="signextjar"/>
-        <arg value="${privkeyfile}"/>
+        <arg value="${extprivkeyfile}"/>
         <arg value="${privkeyid}"/>
         <arg value="mikebalpred"/>
         <arg line="${dist}/mikebalpred.mxt"/>
@@ -152,7 +152,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="autorates" depends="init">
-    <javac target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/autorates/**"/>
 
@@ -170,7 +170,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="autorates"/>
       <arg line="${dist}/autorates.mxt"/>
@@ -201,7 +201,7 @@ http://jakarta.apache.org/ant/index.html
           classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
       <arg value="${extprivkeyfile}"/>
-      <arg value="${extprivkeyid}"/>
+      <arg value="${privkeyid}"/>
       <arg value="miscdebug"/>
       <arg line="${dist}/miscdebug.mxt"/>
     </java>
@@ -236,7 +236,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="ratios"/>
       <arg line="${dist}/ratios.mxt"/>
@@ -248,7 +248,7 @@ http://jakarta.apache.org/ant/index.html
   
 
   <target name="yahoofx" depends="init">
-    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/yahoofx/**"/>
     <jar destfile="${dist}/yahoofx.mxt">
@@ -262,7 +262,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="yahoofx"/>
       <arg line="${dist}/yahoofx.mxt"/>
@@ -272,7 +272,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="balpred" depends="init">
-    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/balpred/**"/>
     <jar destfile="${dist}/balpred.mxt">
@@ -287,7 +287,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="balpred"/>
       <arg line="${dist}/balpred.mxt"/>
@@ -296,7 +296,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="cmdline" depends="init">
-    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/cmdline/**"/>
     <jar destfile="${dist}/cmdline.mxt">
@@ -310,7 +310,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="cmdline"/>
       <arg line="${dist}/cmdline.mxt"/>
@@ -319,7 +319,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="console" depends="init">
-    <javac encoding="utf8" target="1.1" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/console/**"/>
     <jar destfile="${dist}/console.mxt">
@@ -333,7 +333,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="console"/>
       <arg line="${dist}/console.mxt"/>
@@ -359,7 +359,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="jpython"/>
       <arg line="${dist}/jpython.mxt"/>
@@ -369,7 +369,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="txtimport" depends="init">
-    <javac target="1.4" source="1.4" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/txtimport/**"/>
 
@@ -388,7 +388,7 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="txtimport"/>
       <arg line="${dist}/txtimport.mxt"/>
@@ -413,7 +413,7 @@ http://jakarta.apache.org/ant/index.html
       classname="com.moneydance.admin.KeyAdmin"
       fork="true">
       <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="${feature}"/>
       <arg line="${dist}/${feature}.mxt"/>
@@ -426,8 +426,8 @@ http://jakarta.apache.org/ant/index.html
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="genkey"/>
-      <arg value="${privkeyfile}"/>
-      <arg value="${pubkeyfile}"/>
+      <arg value="${extprivkeyfile}"/>
+      <arg value="${extpubkeyfile}"/>
     </java>
   </target>
 

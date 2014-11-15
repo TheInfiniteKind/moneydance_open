@@ -8,7 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyType;
 
 /**
  * Group together a value and the currency type assigned to that value, for clarity. The date is

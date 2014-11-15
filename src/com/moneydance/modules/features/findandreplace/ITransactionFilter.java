@@ -5,8 +5,8 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.TxnFilter;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.TxnFilter;
 
 /**
  * <p>Filter out transactions from the full list.</p>

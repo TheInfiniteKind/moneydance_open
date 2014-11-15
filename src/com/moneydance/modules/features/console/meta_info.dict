@@ -1,7 +1,7 @@
 {
-  "vendor" = "Appgen Personal Software"
-  "vendor.url" = "http://moneydance.com/"
-  "module_name" = "Console Tool"
-  "module_desc" = "<html><body><title>Moneydance Console Tool</title><p>This is an extension that prints a message every time something in Moneydance is modified.</p></body></html>"
+  "vendor" = "The Infinite Kind"
+  "vendor_url" = "http://moneydance.com/"
+  "minbuild" = "1000"
+  "name" = "Console Tool"
   "desc" = "This is an extension that prints a message every time something in Moneydance is modified."
 }

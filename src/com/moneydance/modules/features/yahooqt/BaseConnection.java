@@ -8,12 +8,9 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.DateRange;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.util.CustomDateFormat;
 
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -85,9 +82,9 @@ public abstract class BaseConnection {
    * the current data file, the method does nothing.
    */
   public void setDefaultCurrency() {
-    final RootAccount root = _model.getRootAccount();
+    final Account root = _model.getRootAccount();
     if (root == null) return;
-    CurrencyType currency = root.getCurrencyTable().getCurrencyByIDString("USD");
+    CurrencyType currency = root.getBook().getCurrencies().getCurrencyByIDString("USD");
     if (currency == null) return;
     StockExchange.DEFAULT.setCurrency(currency);
   }
@@ -151,8 +148,7 @@ public abstract class BaseConnection {
     // first check for a currency override in the symbol
     SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
     if (parsedSymbol == null) return null;
-    CurrencyTable cTable = _model.getRootAccount() == null ? null :
-            _model.getRootAccount().getCurrencyTable();
+    CurrencyTable cTable = _model.getRootAccount() == null ? null : _model.getRootAccount().getBook().getCurrencies();
     if (cTable == null) return null;
     if (!SQUtil.isBlank(parsedSymbol.currencyCode)) {
       // see if the override currency exists in the file

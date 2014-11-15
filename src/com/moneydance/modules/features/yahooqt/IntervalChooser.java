@@ -8,7 +8,8 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.model.time.TimeInterval;
+import com.infinitekind.moneydance.model.*;
+import com.moneydance.apps.md.controller.time.*;
 import com.moneydance.apps.md.view.resources.MDResourceProvider;
 
 import javax.swing.JComboBox;

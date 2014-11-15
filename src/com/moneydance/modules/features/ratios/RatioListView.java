@@ -14,7 +14,7 @@ import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MDImages;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
-import com.moneydance.util.UiUtil;
+import com.infinitekind.util.UiUtil;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;

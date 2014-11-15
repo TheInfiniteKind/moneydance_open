@@ -4,10 +4,10 @@
 
 package com.moneydance.modules.features.txtimport;
 
-import com.moneydance.apps.md.model.*;
-import com.moneydance.apps.md.controller.Util;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.UserPreferences;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 import java.io.*;
 import java.util.*;
 
@@ -65,17 +65,17 @@ public class ImportState {
 
   private int recordCount = 0;
 
-  private RootAccount rootAccount;
+  private AccountBook book;
   private Resources rr;
   
   public ImportState(
         Main m,
-        RootAccount root,
+        Account root,
         Resources rr,
         String filename,
         Integer argAcctNum) {
     this.main = m;
-    this.rootAccount = root;
+    this.book = root.getBook();
     this.rr = rr;
     setFields(FIELD_IDS);
 
@@ -96,7 +96,7 @@ public class ImportState {
       if(tmp.length()>0) decimalPoint = tmp.charAt(0);
       int acctNum = prefs.getIntSetting("txtimport.acct", -1);
       if (argAcctNum != null) acctNum = argAcctNum.intValue();
-      if(acctNum>=0) account = root.getAccountById(acctNum);
+      if(acctNum>=0) account = book.getAccountByNum(acctNum);
     } catch (Throwable t) {
       System.err.println("Error restoring preferences: "+t);
     }
@@ -190,7 +190,7 @@ public class ImportState {
   /** Get a list of the accounts that can be selected for importing. */
   Account[] getAccountList() {
     Vector accounts = new Vector();
-    getAccounts(rootAccount, accounts);
+    getAccounts(book.getRootAccount(), accounts);
     Account accountArray[] = new Account[accounts.size()];
     for(int i=accountArray.length-1; i>=0; i--) {
       accountArray[i] = (Account)accounts.elementAt(i);
@@ -219,19 +219,19 @@ public class ImportState {
       rdr = new InputStreamReader(new FileInputStream(importFile), encoding);
       
       brdr = new BufferedReader(rdr);
-      txnSet = rootAccount.getTransactionSet();
+      txnSet = book.getTransactionSet();
       
       String line;
       String[] fields = null;
 
       long amount = 0;
       Account category = null;
-      long date = 0;
+      int date = 0;
       String checkNum = null;
       String description = null;
       String memo = null;
       byte status = AbstractTxn.STATUS_UNRECONCILED;
-      long today = Util.getStrippedDate();
+      int today = DateUtil.getStrippedDateInt();
       CurrencyType currency = account.getCurrencyType();
       
       while(true) {
@@ -240,12 +240,10 @@ public class ImportState {
         line = line.trim();
 
         if(line.length()<=0) continue; // skip blank lines
-
-        if (!line.matches("^(.*" + this.delimiter + "){"
-            + (this.fieldsToImport.length - 1) + "}.*$")) {
-            // skip lines with too much or too few fields
-
-            continue;
+        
+        if (!line.matches("^(.*" + this.delimiter + "){" + (this.fieldsToImport.length - 1) + "}.*$")) {
+          // skip lines with too much or too few fields
+          continue;
         }
 
         // replace double quotes surrounding each field
@@ -270,11 +268,11 @@ public class ImportState {
         }
 
         category = getAccount(fields, rr.getString("default_category"),
-                              amount<=0 ? Account.ACCOUNT_TYPE_EXPENSE : Account.ACCOUNT_TYPE_INCOME);
-
-        ParentTxn ptxn = new ParentTxn(date, date, System.currentTimeMillis(), 
-                                       checkNum, account, description, memo, -1, status);
-        ptxn.addSplit(new SplitTxn(ptxn, amount, 1.0, category, ptxn.getDescription(), -1, status));
+                              amount<=0 ? Account.AccountType.EXPENSE : Account.AccountType.INCOME);
+        
+        ParentTxn ptxn = ParentTxn.makeParentTxn(book, date, date, System.currentTimeMillis(), 
+                                                 checkNum, account, description, memo, -1, status);
+        ptxn.addSplit(SplitTxn.makeSplitTxn(ptxn, amount, 1.0, category, ptxn.getDescription(), -1, status));
         txnSet.addNewTxn(ptxn);
       }
 
@@ -320,24 +318,23 @@ public class ImportState {
   }
   
   /** Find and return the DATE field in the appropriate format. */
-  private final long getDate(String[] fieldValues, long defaultDate) {
+  private final int getDate(String[] fieldValues, int defaultDate) {
     String dateStr = getField(fieldValues, DATE, null);
     if(dateStr==null) return defaultDate;
     dateStr = dateStr.trim();
     if(dateStr.length()<=0) return defaultDate;
-    return Util.stripTimeFromDate(parseDate(dateStr)).getTime();
+    return parseDate(dateStr);
   }
   
   /** Find and return the ACCOUNT field in the appropriate format. */
-  private final Account getAccount(String[] fieldValues, String defaultAccount,
-                                   int defaultAcctType)
+  private final Account getAccount(String[] fieldValues, String defaultAccount, Account.AccountType defaultAcctType)
     throws Exception
   {
     String acctStr = getField(fieldValues, ACCOUNT, null);
     if(acctStr==null) return addNewAccount(defaultAccount, account.getCurrencyType(),
-                                           rootAccount, "", defaultAcctType, true, -1);
+                                           book.getRootAccount(), "", defaultAcctType, true, -1);
     acctStr = acctStr.trim();
-    return addNewAccount(acctStr, account.getCurrencyType(), rootAccount, "",
+    return addNewAccount(acctStr, account.getCurrencyType(), book.getRootAccount(), "",
                          defaultAcctType, true, -1);
   }
   
@@ -357,20 +354,24 @@ public class ImportState {
       getAccounts(subAcct, acctList);
     }
   }
-
+  
   private final boolean isChoosable(Account acct) {
-    int acctType = acct.getAccountType();
-    return acctType==Account.ACCOUNT_TYPE_BANK ||
-      acctType==Account.ACCOUNT_TYPE_CREDIT_CARD ||
-      acctType==Account.ACCOUNT_TYPE_ASSET ||
-      acctType==Account.ACCOUNT_TYPE_LIABILITY ||
-      acctType==Account.ACCOUNT_TYPE_LOAN;
+    switch(acct.getAccountType()) {
+      case BANK:
+      case CREDIT_CARD:
+      case ASSET:
+      case LIABILITY:
+      case LOAN:
+        return true;
+      default:
+        return false;
+    }
   }
 
   private final Calendar cal = Calendar.getInstance();
 
-  private final Date parseDate(String dateStr) {
-    if(dateStr==null) return new Date();
+  private final int parseDate(String dateStr) {
+    if(dateStr==null) return DateUtil.getStrippedDateInt();
     dateStr = dateStr.trim();
     int len = dateStr.length();
     char thisChar;
@@ -495,7 +496,7 @@ public class ImportState {
     cal.set(Calendar.MINUTE,0);
     cal.set(Calendar.SECOND,0);
     cal.set(Calendar.MILLISECOND,0);
-    return cal.getTime();
+    return DateUtil.convertCalToInt(cal);
   }
 
   private static final int guessCenturyForYear(int year) {
@@ -510,12 +511,11 @@ public class ImportState {
 
   private Account addNewAccount(String accountName, CurrencyType currencyType,
                                 Account parentAccount, String description,
-                                int accountType, boolean lenientMatch,
+                                Account.AccountType accountType, boolean lenientMatch,
                                 int currAccountId)
     throws Exception
   {
-    if(accountName.indexOf(':')==0 &&
-       parentAccount.getAccountType()==Account.ACCOUNT_TYPE_ROOT) {
+    if(accountName.indexOf(':')==0 && parentAccount.getAccountType()== Account.AccountType.ROOT) {
       accountName = accountName.substring(1);
     }
 
@@ -542,16 +542,12 @@ public class ImportState {
     }
 
     if(newAccount==null) {
-      newAccount = 
-        Account.makeAccount(accountType, thisAcctName, currencyType, parentAccount);
-      if(newAccount instanceof BankAccount) {
-        ((BankAccount)newAccount).setBankName(description);
-      } else if(newAccount instanceof InvestmentAccount) {
-        ((InvestmentAccount)newAccount).setAccountDescription(description);
-      }
+      newAccount = Legacy.makeAccount(book, accountType, thisAcctName, currencyType, parentAccount);
+      newAccount.setBankName(description);
+      newAccount.setAccountDescription(description);
       parentAccount.addSubAccount(newAccount);
     }
-
+    
     if(restOfAcctName!=null) {
       return addNewAccount(restOfAcctName, currencyType, newAccount,
                            description, accountType,lenientMatch,
@@ -560,18 +556,15 @@ public class ImportState {
       if(newAccount.getAccountNum()==currAccountId) {
         // if the found account is the same as the container account
         // create another account with the same name and return it
-        if(accountType==Account.ACCOUNT_TYPE_BANK &&
-           parentAccount==rootAccount) {
-          newAccount = Account.makeAccount(Account.ACCOUNT_TYPE_INCOME, 
-                                           thisAcctName+"X", currencyType, 
-                                           parentAccount);
+        if(accountType==Account.AccountType.BANK && parentAccount==book.getRootAccount()) {
+          newAccount = Legacy.makeAccount(book, Account.AccountType.INCOME, 
+                                          thisAcctName+"X", currencyType, 
+                                          parentAccount);
         } else {
-          newAccount = Account.makeAccount(accountType, thisAcctName+"X", 
-                                           currencyType, parentAccount);
+          newAccount = Legacy.makeAccount(book, accountType, thisAcctName+"X", 
+                                          currencyType, parentAccount);
         }
-        if(newAccount instanceof BankAccount) {
-          ((BankAccount)newAccount).setBankName(description);
-        }
+        newAccount.setBankName(description);
         parentAccount.addSubAccount(newAccount);
       }
       return newAccount;

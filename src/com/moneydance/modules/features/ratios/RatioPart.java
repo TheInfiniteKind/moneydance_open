@@ -11,21 +11,21 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.AcctFilter;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.CurrencyUtil;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.Txn;
+import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AcctFilter;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.Txn;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.TxnDateSearch;
 import com.moneydance.apps.md.view.gui.TxnTagsSearch;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
 import com.moneydance.modules.features.ratios.selector.RatioAccountSelector;
-import com.moneydance.util.StreamTable;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StreamTable;
+import com.infinitekind.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;

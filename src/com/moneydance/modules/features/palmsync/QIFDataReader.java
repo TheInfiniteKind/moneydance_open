@@ -6,11 +6,11 @@ package com.moneydance.modules.features.palmsync;
 
 import java.io.*;
 import java.util.*;
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.*;
 import com.moneydance.apps.md.view.resources.Resources;
 import com.moneydance.apps.md.view.MoneydanceUI;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 
 /** Object that converts a QIF file to PalmTxns.*/
 public class QIFDataReader {

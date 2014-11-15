@@ -8,12 +8,8 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.StreamTable;
-import com.moneydance.util.StreamVector;
-import com.moneydance.util.StringEncodingException;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -54,10 +50,10 @@ public class SymbolMap {
 
   /**
    * Save the map of currency IDs to the stock exchange in the data file.
-   * @param rootAccount The data file root account.
+   * @param book The data file
    */
-  void saveToFile(RootAccount rootAccount) {
-    if (rootAccount == null) return;
+  void saveToFile(AccountBook book) {
+    if (book == null) return;
     StreamVector exchangeList = new StreamVector();
     for (Integer currencyId : _symbolMap.keySet()) {
       String exchangeId = _symbolMap.get(currencyId).exchangeId;
@@ -72,18 +68,18 @@ public class SymbolMap {
     }
     StreamTable table = new StreamTable();
     table.put(EXCHANGE_LIST_KEY, exchangeList);
-    rootAccount.setParameter(EXCHANGE_MAP_KEY, table.writeToString());
+    book.getRootAccount().setParameter(EXCHANGE_MAP_KEY, table.writeToString());
   }
-
+  
   void clear() { _symbolMap.clear(); }
   /**
    * Load the map of currencyIDs to stock exchange from the data file.
-   * @param rootAccount The data file root account.
+   * @param book The main data structure
    */
-  void loadFromFile(RootAccount rootAccount) {
-    if (rootAccount == null) return;
+  void loadFromFile(AccountBook book) {
+    if (book == null) return;
     clear();
-    String settings = rootAccount.getParameter(EXCHANGE_MAP_KEY);
+    String settings = book.getRootAccount().getParameter(EXCHANGE_MAP_KEY);
     if (SQUtil.isBlank(settings)) return;
     try {
       StreamTable table = new StreamTable();
@@ -97,7 +93,7 @@ public class SymbolMap {
         if (!(mapPair instanceof StreamTable)) continue;
         StreamTable pairTable = (StreamTable)mapPair;
         int currencyId = pairTable.getInt(CURRENCY_ID_KEY, -1);
-        if (isValidCurrency(rootAccount, currencyId)) {
+        if (isValidCurrency(book, currencyId)) {
           String exchangeId = pairTable.getStr(EXCHANGE_ID_KEY, DEFAULT_EXCHANGE_ID);
           boolean use = pairTable.getBoolean(USE_SYMBOL_KEY, DEFAULT_USE);
           _symbolMap.put(Integer.valueOf(currencyId), new CurrencyData(exchangeId, use));
@@ -153,8 +149,8 @@ public class SymbolMap {
     return DEFAULT_EXCHANGE_ID;
   }
 
-  private boolean isValidCurrency(RootAccount rootAccount, int currencyId) {
-    CurrencyTable currencyTable = rootAccount.getCurrencyTable();
+  private boolean isValidCurrency(AccountBook book, int currencyId) {
+    CurrencyTable currencyTable = book.getCurrencies();
     if (currencyTable == null) return false;
     return (currencyTable.getCurrencyByID(currencyId) != null);
   }

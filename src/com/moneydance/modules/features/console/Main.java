@@ -6,14 +6,10 @@ package com.moneydance.modules.features.console;
 
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
-import com.moneydance.apps.md.controller.ModuleUtil;
-import com.moneydance.apps.md.controller.UserPreferences;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 
 import java.io.*;
-import java.util.*;
-import java.text.*;
 import java.awt.*;
 
 /** Pluggable module used to give users access to their 
@@ -31,7 +27,7 @@ public class Main
   private String buffer[] = null;
   private int bufferSize = 0;
 
-  private RootAccount root = null;
+  private AccountBook book = null;
   private ConsoleWindow consoleWindow = null;
   
   public void init() {
@@ -73,19 +69,19 @@ public class Main
 
   private synchronized void startListening() {
     stopListening();
-    root = getContext().getRootAccount();
-    if(root==null) {
+    book = getContext().getCurrentAccountBook();
+    if(book ==null) {
       return;
     }
-    root.getTransactionSet().addTransactionListener(this);
-    root.addAccountListener(this);
+    book.getTransactionSet().addTransactionListener(this);
+    book.getRootAccount().addAccountListener(this);
   }
 
   private synchronized void stopListening() {
-    if(root==null) return;
-    root.getTransactionSet().removeTransactionListener(this);
-    root.removeAccountListener(this);
-    root = null;
+    if(book ==null) return;
+    book.getTransactionSet().removeTransactionListener(this);
+    book.getRootAccount().removeAccountListener(this);
+    book = null;
   }
 
   public void cleanup() {
@@ -104,7 +100,7 @@ public class Main
       parameters = uri.substring(colonIdx+1);
     }
 
-    if(root==null) startListening();
+    if(book ==null) startListening();
     if(command.equals("showconsole")) {
       showConsole();
     } else if(command.equals("reset")) {

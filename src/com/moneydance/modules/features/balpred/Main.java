@@ -7,8 +7,8 @@ package com.moneydance.modules.features.balpred;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.ModuleUtil;
-import com.moneydance.apps.md.model.*;
-import com.moneydance.util.StreamTable;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.StreamTable;
 
 import java.io.*;
 import java.net.*;
@@ -71,8 +71,8 @@ public class Main
     return "Balance Predictor";
   }
 
-  public RootAccount getRoot() {
-    return getContext().getRootAccount();
+  public AccountBook getRoot() {
+    return getContext().getRootAccount().getBook();
   }
 
   private synchronized void showBalancePredicter() {

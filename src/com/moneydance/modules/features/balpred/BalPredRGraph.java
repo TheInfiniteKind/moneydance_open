@@ -62,6 +62,11 @@ public class BalPredRGraph
     if(g==null)
       return;
 
+    if(g instanceof Graphics2D) {
+      ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                       RenderingHints.VALUE_ANTIALIAS_ON);
+    }
+    
     g.setColor(Color.white);
     g.fillRect(0,0,w,h);
     
@@ -140,7 +145,7 @@ public class BalPredRGraph
       int tickPosition = h-bottomMargin-
         ((h-bottomMargin-topMargin)*tickNum)/(yTicks.length-1);
       g.setColor(Color.black);
-      g.drawString(tempString, leftMargin-strWidth, tickPosition);
+      g.drawString(tempString, leftMargin-strWidth-2, tickPosition-2);
 
       g.setColor(Color.lightGray);
       g.drawLine(2, tickPosition, leftMargin, tickPosition);

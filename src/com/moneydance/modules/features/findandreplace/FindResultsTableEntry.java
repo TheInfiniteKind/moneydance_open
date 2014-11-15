@@ -8,10 +8,10 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.SplitTxn;
-import com.moneydance.apps.md.model.ParentTxn;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.SplitTxn;
+import com.infinitekind.moneydance.model.ParentTxn;
 
 import java.util.Set;
 import java.util.HashSet;

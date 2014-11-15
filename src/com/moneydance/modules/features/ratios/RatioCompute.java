@@ -10,15 +10,15 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.controller.DateRange;
+import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.AccountUtil;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.CurrencyUtil;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.Txn;
-import com.moneydance.apps.md.model.TxnIterator;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountUtil;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.Txn;
+import com.infinitekind.moneydance.model.TxnIterator;
 
 import java.util.HashMap;
 import java.util.List;

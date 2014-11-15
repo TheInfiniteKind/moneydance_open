@@ -4,7 +4,7 @@
 
 package com.moneydance.modules.features.palmsync;
 
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 import java.util.*;
 import java.io.*;
 

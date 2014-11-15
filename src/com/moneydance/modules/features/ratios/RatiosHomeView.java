@@ -10,9 +10,9 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.controller.DateRange;
+import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.time.DateRangeOption;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.RootAccount;
 import com.moneydance.apps.md.view.HomePageView;
 import com.moneydance.apps.md.view.gui.DateRangeChooser;
 import com.moneydance.apps.md.view.gui.MDAction;
@@ -23,8 +23,8 @@ import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
 import com.moneydance.apps.md.view.gui.OKButtonWindow;
 import com.moneydance.awt.GridC;
-import com.moneydance.util.CustomDateFormat;
-import com.moneydance.util.UiUtil;
+import com.infinitekind.util.CustomDateFormat;
+import com.infinitekind.util.UiUtil;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;

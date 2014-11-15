@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.Account;
 import com.moneydance.apps.md.view.resources.MDResourceProvider;
 import com.moneydance.modules.features.ratios.L10NRatios;
 import com.moneydance.modules.features.ratios.RatiosUtil;

@@ -7,7 +7,7 @@ package com.moneydance.modules.features.palmsync;
 import com.moneydance.awt.*;
 import com.moneydance.apps.md.controller.Common;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 import javax.swing.event.*;
 import javax.swing.*;
@@ -16,8 +16,8 @@ import java.io.*;
 import java.util.*;
 import java.text.*;
 import java.awt.*;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.util.CustomDateFormat;
 
 abstract class PalmDataSource {
 

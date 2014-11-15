@@ -8,8 +8,7 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 
 import java.text.SimpleDateFormat;
 
@@ -38,12 +37,12 @@ public class YahooConnectionUK extends YahooConnection {
    * the Euro doesn't exist, then do nothing.
    */
   public void setDefaultCurrency() {
-    final RootAccount root = getModel().getRootAccount();
-    if (root == null) return;
+    final AccountBook book = getModel().getBook();
+    if (book == null) return;
     // assume the London exchange
-    CurrencyType currency = root.getCurrencyTable().getCurrencyByIDString("GBP");
+    CurrencyType currency = book.getCurrencies().getCurrencyByIDString("GBP");
     // assume some other European exchange is in use
-    if (currency == null) currency = root.getCurrencyTable().getCurrencyByIDString("EUR");
+    if (currency == null) currency = book.getCurrencies().getCurrencyByIDString("EUR");
     if (currency == null) return;
     StockExchange.DEFAULT.setCurrency(currency);
   }

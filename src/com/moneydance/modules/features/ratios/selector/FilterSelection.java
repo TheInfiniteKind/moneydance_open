@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.moneydance.apps.md.model.DisplayableObject;
+import com.infinitekind.moneydance.model.DisplayableObject;
 import com.moneydance.modules.features.ratios.L10NRatios;
 
 public enum FilterSelection

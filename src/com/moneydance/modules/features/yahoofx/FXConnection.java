@@ -1,6 +1,6 @@
 package com.moneydance.modules.features.yahoofx;
 
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 import java.net.*;
 import java.io.*;
 import java.util.*;

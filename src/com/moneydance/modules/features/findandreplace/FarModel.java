@@ -9,11 +9,11 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.FullAccountList;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.TxnTag;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.FullAccountList;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.TxnTag;
 import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.view.gui.TagLogic;
 

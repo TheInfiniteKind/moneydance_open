@@ -10,19 +10,19 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.controller.DateRange;
+import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.UserPreferences;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.CurrencyUtil;
-import com.moneydance.apps.md.model.ParentTxn;
-import com.moneydance.apps.md.model.SplitTxn;
-import com.moneydance.apps.md.model.Txn;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.ParentTxn;
+import com.infinitekind.moneydance.model.SplitTxn;
+import com.infinitekind.moneydance.model.Txn;
 import com.moneydance.apps.md.view.gui.reporttool.RecordRow;
 import com.moneydance.apps.md.view.gui.reporttool.Report;
 import com.moneydance.apps.md.view.gui.reporttool.ReportGenerator;
-import com.moneydance.util.StreamTable;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StreamTable;
+import com.infinitekind.util.StringUtils;
 
 import javax.swing.JPanel;
 import java.awt.FontMetrics;

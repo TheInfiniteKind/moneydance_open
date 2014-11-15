@@ -8,8 +8,8 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.CustomDateFormat;
 
 import java.text.MessageFormat;
 import java.util.concurrent.Callable;

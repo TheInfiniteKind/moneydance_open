@@ -4,9 +4,10 @@
 
 package com.moneydance.modules.features.txfexport;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.*;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 import com.moneydance.awt.*;
 
 import java.awt.*;
@@ -26,7 +27,7 @@ public class TXFExport
 {
   private Main mainObject;
   private Resources rr;
-  private RootAccount root;
+  private AccountBook book;
   private JPanel mp, tp, fp, bp;
   private JPanel smp, slrp, slp, srp, sbp;
   private Vector txfVector;
@@ -55,7 +56,7 @@ public class TXFExport
     this.mainObject = mainObject;
     this.context = context;
     rr = mainObject.getResources();
-    root = mainObject.getRoot();
+    book = mainObject.getRoot().getBook();
 
     mp = new JPanel(gbl);
     mp.setBorder(new EmptyBorder(10,10,10,10));
@@ -125,11 +126,10 @@ public class TXFExport
   private void loadAccount(Account acct) {
     for(int i=0; i<acct.getSubAccountCount(); i++) {
       Account subAcct = acct.getSubAccount(i);
-      int acctType = subAcct.getAccountType();
-      if((acctType==Account.ACCOUNT_TYPE_EXPENSE) ||
-        (acctType==Account.ACCOUNT_TYPE_INCOME)) {
-        if (subAcct.toString().length()>0)
-          lmAcct.addElement(subAcct);
+      switch(subAcct.getAccountType()) {
+        case EXPENSE:
+        case INCOME:
+          if (subAcct.toString().length()>0) lmAcct.addElement(subAcct);
       }
       loadAccount(subAcct);
     }
@@ -255,8 +255,11 @@ public class TXFExport
 
       setText(o.toString());
       Account acct = (Account)o;
-      if (acct.getParentAccount() == root) setFont(bf);
-      else setFont(nf);
+      if (acct.getParentAccount() == book.getRootAccount()) {
+        setFont(bf);
+      } else {
+        setFont(nf);
+      }
       setBackground(isSelected ? Color.darkGray : Color.white);
       setForeground(isSelected ? Color.white : Color.black);
       return this;
@@ -265,10 +268,10 @@ public class TXFExport
 
   private class AccountRecord {
     Account account;
-    Vector transactions;
+    ArrayList<AbstractTxn> transactions;
     AccountRecord(Account a) {
       account = a;
-      transactions = new Vector();
+      transactions = new ArrayList<AbstractTxn>();
     }
     public void addTxn(SplitTxn s) {transactions.add(s);}
     public Account getAccount() {return account;}
@@ -345,7 +348,7 @@ public class TXFExport
     listAcct.setModel(lmAcct);
     listAcct.setCellRenderer(new AcctCellRenderer());
     lmAcct.removeAllElements();
-    loadAccount(root);
+    loadAccount(book.getRootAccount());
     JScrollPane spAcct = new JScrollPane(listAcct);
     slp.add(new JLabel(rr.getString("category")),
       AwtUtil.getConstraints(0,0,0,0,1,1,true,false));
@@ -417,8 +420,7 @@ public class TXFExport
       tfFile.setText(dir + file);
     }
     CategoryRecordVector categories = new CategoryRecordVector();
-    TransactionSet ts = root.getTransactionSet();
-    AbstractTxn txn;
+    TransactionSet ts = book.getTransactionSet();
     ParentTxn ptxn;
     SplitTxn stxn;
     CategoryRecord cr;
@@ -440,15 +442,14 @@ public class TXFExport
       }
     }
 
-    long sd = dateStart.getDate().getTime();
-    long ed = dateEnd.getDate().getTime();
+    int sd = dateStart.getDateInt();
+    int ed = dateEnd.getDateInt();
     String taxc;
-    for(Enumeration txns=ts.getAllTransactions(); txns.hasMoreElements();) {
-      txn = (AbstractTxn)txns.nextElement();
+    for(AbstractTxn txn : book.getTransactionSet()) {
       if (txn.getClass() == SplitTxn.class) continue;
       ptxn = txn.getParentTxn();
       Account parentAcct = ptxn.getAccount();
-      if ((ptxn.getDate()<sd)||(ptxn.getDate()>ed)) continue;
+      if ((ptxn.getDateInt()<sd)||(ptxn.getDateInt()>ed)) continue;
       for (int i=0;i<ptxn.getSplitCount();i++) {
         stxn = ptxn.getSplit(i);
         String type = stxn.getParentTxn().getTransferType();
@@ -496,8 +497,7 @@ public class TXFExport
           ar = (AccountRecord)cr.accounts.elementAt(j);
           curr = ar.getAccount().getCurrencyType();
           long summary = 0;
-          for (k=0;k<ar.transactions.size();k++) { // for all txns
-            txn = (AbstractTxn)ar.transactions.elementAt(k);
+          for (AbstractTxn txn : ar.transactions) { // for all txns
             summary += txn.getValue();
             switch(fn) {
               case 1:
@@ -506,9 +506,9 @@ public class TXFExport
                 tout.write("C1\n");
                 tout.write("L"+(j+1)+"\n");
                 tout.write("$"+curr.formatSemiFancy(-1*txn.getValue(),'.')+"\n");
-                tout.write("X"+shortDateFormat.format(new Date(txn.getDate()))+" "+
-                              ar.getAccount().toString()+" "+
-                              txn.getDescription()+"\n");
+                tout.write("X"+shortDateFormat.format(DateUtil.convertIntDateToLong(txn.getDateInt()))+" "+
+                           ar.getAccount().toString()+" "+
+                           txn.getDescription()+"\n");
                 tout.write("^\n");
                 break;
               case 2:
@@ -517,7 +517,7 @@ public class TXFExport
                 tout.write("C1\n");
                 tout.write("L"+(j+1)+"\n");
                 tout.write("P"+txn.getDescription()+"\n");
-                tout.write("X"+shortDateFormat.format(new Date(txn.getDate()))+" "+
+                tout.write("X"+shortDateFormat.format(DateUtil.convertIntDateToLong(txn.getDateInt()))+" "+
                               ar.getAccount().toString()+" "+
                               txn.getDescription()+"\n");
                 tout.write("^\n");
@@ -529,13 +529,13 @@ public class TXFExport
                 tout.write("L"+(j+1)+"\n");
                 tout.write("$"+curr.formatSemiFancy(-1*txn.getValue(),'.')+"\n");
                 tout.write("P"+txn.getDescription()+"\n");
-                tout.write("X"+shortDateFormat.format(new Date(txn.getDate()))+" "+
+                tout.write("X"+shortDateFormat.format(DateUtil.convertIntDateToLong(txn.getDateInt()))+" "+
                               ar.getAccount().toString()+" "+
                               txn.getDescription()+"\n");
                 tout.write("^\n");
                 break;
               case 4:
-                if (txn.getAccount().getClass() == SecurityAccount.class) {
+                if (txn.getAccount().getAccountType()== Account.AccountType.SECURITY) {
                   Vector v = getTXFInfo(txn);
                   if (v.size()>0) {
                     for (int ii=0;ii<v.size();ii++) {
@@ -551,7 +551,7 @@ public class TXFExport
                       tout.write("D"+shortDateFormat.format(new Date(sr[1].longValue()))+"\n");
                       tout.write("$"+curr.formatSemiFancy(sr[2].longValue(),'.')+"\n");
                       tout.write("$"+curr.formatSemiFancy(sr[3].longValue(),'.')+"\n");
-                      tout.write("X"+shortDateFormat.format(new Date(txn.getDate()))+" "+
+                      tout.write("X"+shortDateFormat.format(DateUtil.convertIntDateToLong(txn.getDateInt()))+" "+
                                     ar.getAccount().toString()+" "+
                                     txn.getDescription()+"\n");
                       tout.write("^\n");
@@ -564,10 +564,10 @@ public class TXFExport
                 tout.write("N"+cr.getTaxC()+"\n");
                 tout.write("C1\n");
                 tout.write("L"+(j+1)+"\n");
-                tout.write("D"+shortDateFormat.format(new Date(txn.getDate()))+"\n");
+                tout.write("D"+shortDateFormat.format(DateUtil.convertIntDateToLong(txn.getDateInt()))+"\n");
                 tout.write("$"+curr.formatSemiFancy(-1*txn.getValue(),'.')+"\n");
                 tout.write("P"+txn.getDescription()+"\n"); // must be state initials
-                tout.write("X"+shortDateFormat.format(new Date(txn.getDate()))+" "+
+                tout.write("X"+shortDateFormat.format(DateUtil.convertIntDateToLong(txn.getDateInt()))+" "+
                               ar.getAccount().toString()+" "+
                               txn.getDescription()+"\n");
                 tout.write("^\n");
@@ -619,24 +619,20 @@ public class TXFExport
     txfVector = new Vector();
     Long[] longTerm = new Long[4];
     Long[] shortTerm = new Long[4];
-    long stBuyDate = 0;
-    long ltBuyDate = 0;
+    int stBuyDate = 0;
+    int ltBuyDate = 0;
 
     long numShares = -1 * TxnUtil.getSecurityPart(atxn.getParentTxn()).getValue();
-    long sellDate = atxn.getDate();
-    Calendar c = Calendar.getInstance();
-    c.setTime(new Date(sellDate));
-    c.add(Calendar.YEAR, -1);
-    c.add(Calendar.DATE, -1);
-    long cutOffDate = c.getTime().getTime();
-
+    int sellDate = atxn.getDateInt();
+    int cutOffDate = DateUtil.incrementDate(sellDate, -1, 0, -1);
+    
     String type = atxn.getParentTxn().getTransferType();
     if(type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELL)||
        type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELLXFR)){
       SplitTxn split = TxnUtil.getSecurityPart(atxn.getParentTxn());
       if(split.getAmount() > 0){
-        SecurityAccount account = (SecurityAccount)split.getAccount();
-        TransactionSet tSet = account.getRootAccount().getTransactionSet();
+        Account account = split.getAccount();
+        TransactionSet tSet = account.getBook().getTransactionSet();
         TxnSet txnSet = tSet.getTransactionsForAccount(account);
         AccountUtil.sortTransactions(txnSet, AccountUtil.DATE);
         if(account.getUsesAverageCost()){
@@ -649,7 +645,7 @@ public class TXFExport
             if((type1.equals(AbstractTxn.TRANSFER_TYPE_BUYSELL))||
                (type1.equals(AbstractTxn.TRANSFER_TYPE_BUYSELLXFR))||
                (type1.equals(AbstractTxn.TRANSFER_TYPE_DIVIDEND))){
-              if((absTxn.getDate() <= atxn.getDate())&&(absTxn.getTxnId()!=atxn.getTxnId())){
+              if((absTxn.getDateInt() <= atxn.getDateInt()) && ( ! absTxn.getUUID().equals(atxn.getUUID()))) {
                 validTxns.addTxn(absTxn);
               }
             }
@@ -658,15 +654,15 @@ public class TXFExport
           long totalCostBasis = 0;
           long shares = 0;
           double perShareCost = 0.0;
-          long splitDate = 0;
+          int splitDate = 0;
 
           for(int j = 0; j < validTxns.getSize(); j++){
             AbstractTxn absTxn = validTxns.getTxn(j);
             if(splitDate==0){
-              splitDate = absTxn.getDate();
+              splitDate = absTxn.getDateInt();
             }
             SplitTxn splitTxn = TxnUtil.getSecurityPart(absTxn.getParentTxn());
-            shares = curr.adjustValueForSplits(splitDate, shares, splitTxn.getDate());
+            shares = curr.adjustValueForSplitsInt(splitDate, shares, splitTxn.getDateInt());
             if(splitTxn.getAmount() < 0){
               SplitTxn commission = TxnUtil.getCommissionPart(absTxn.getParentTxn());
               totalCostBasis += (-1 * splitTxn.getAmount()) + (-1 * commission.getAmount());
@@ -681,9 +677,9 @@ public class TXFExport
                 sellSet.addTxn(absTxn);
               }
             }
-            splitDate = splitTxn.getDate();
+            splitDate = splitTxn.getDateInt();
           }
-          shares = curr.adjustValueForSplits(splitDate, shares, sellDate);
+          shares = curr.adjustValueForSplitsInt(splitDate, shares, sellDate);
 
           perShareCost = (double)totalCostBasis / shares;
           long thisCostBasis = Math.round(numShares * perShareCost);
@@ -691,8 +687,8 @@ public class TXFExport
           long sharesSold = 0;
           for(int l = 0; l < sellSet.getSize(); l++){
             SplitTxn sellTxn = TxnUtil.getSecurityPart(sellSet.getTxn(l).getParentTxn());
-            sharesSold += Math.abs(curr.adjustValueForSplits(sellTxn.getDate(),
-                                                             sellTxn.getValue(), sellDate));
+            sharesSold += Math.abs(curr.adjustValueForSplitsInt(sellTxn.getDateInt(),
+                                                                sellTxn.getValue(), sellDate));
           }
 
           boolean partial = false;
@@ -702,8 +698,8 @@ public class TXFExport
           int index = 0;
           for(int k = 0; k < buySet.getSize() && sharesSold > 0; k++){
             SplitTxn buyTxn = TxnUtil.getSecurityPart(buySet.getTxn(k).getParentTxn());
-            sharesBought = curr.adjustValueForSplits(buyTxn.getDate(),
-                                                     buyTxn.getValue(), sellDate);
+            sharesBought = curr.adjustValueForSplitsInt(buyTxn.getDateInt(),
+                                                        buyTxn.getValue(), sellDate);
             if(sharesBought < sharesSold){
               sharesSold -= sharesBought;
             } else if(sharesBought == sharesSold){
@@ -720,24 +716,24 @@ public class TXFExport
           if(partial){
             SplitTxn buyTxn = TxnUtil.getSecurityPart(buySet.getTxn(index).getParentTxn());
             if(sharesBought > numShares){
-              if(buyTxn.getDate() < cutOffDate){
-                if(buyTxn.getDate() > ltBuyDate)
-                  ltBuyDate = buyTxn.getDate();
+              if(buyTxn.getDateInt() < cutOffDate){
+                if(buyTxn.getDateInt() > ltBuyDate)
+                  ltBuyDate = buyTxn.getDateInt();
                 ltShares += numShares;
               } else {
-                if((buyTxn.getDate() < stBuyDate)||(stBuyDate==0))
-                  stBuyDate = buyTxn.getDate();
+                if((buyTxn.getDateInt() < stBuyDate)||(stBuyDate==0))
+                  stBuyDate = buyTxn.getDateInt();
                 stShares += numShares;
               }
               numShares = 0;
             } else {
-              if(buyTxn.getDate() < cutOffDate){
-                if(buyTxn.getDate() > ltBuyDate)
-                  ltBuyDate = buyTxn.getDate();
+              if(buyTxn.getDateInt() < cutOffDate){
+                if(buyTxn.getDateInt() > ltBuyDate)
+                  ltBuyDate = buyTxn.getDateInt();
                 ltShares += sharesBought;
               } else {
-                if((buyTxn.getDate() < stBuyDate)||(stBuyDate==0))
-                  stBuyDate = buyTxn.getDate();
+                if((buyTxn.getDateInt() < stBuyDate)||(stBuyDate==0))
+                  stBuyDate = buyTxn.getDateInt();
                 stShares += sharesBought;
               }
               numShares -= sharesBought;
@@ -747,27 +743,27 @@ public class TXFExport
 
           for (int m = index; m < buySet.getSize() && numShares > 0; m++){
             SplitTxn buyTxn = TxnUtil.getSecurityPart(buySet.getTxn(m).getParentTxn());
-            long bShares = curr.adjustValueForSplits(buyTxn.getDate(),
-                                                     buyTxn.getValue(), sellDate);
+            long bShares = curr.adjustValueForSplitsInt(buyTxn.getDateInt(),
+                                                        buyTxn.getValue(), sellDate);
             if(bShares > numShares){
-              if(buyTxn.getDate() < cutOffDate){
-                if(buyTxn.getDate() > ltBuyDate)
-                  ltBuyDate = buyTxn.getDate();
+              if(buyTxn.getDateInt() < cutOffDate){
+                if(buyTxn.getDateInt() > ltBuyDate)
+                  ltBuyDate = buyTxn.getDateInt();
                 ltShares += numShares;
               } else {
-                if((buyTxn.getDate() < stBuyDate)||(stBuyDate==0))
-                  stBuyDate = buyTxn.getDate();
+                if((buyTxn.getDateInt() < stBuyDate)||(stBuyDate==0))
+                  stBuyDate = buyTxn.getDateInt();
                 stShares += numShares;
               }
               numShares = 0;
             } else {
-              if(buyTxn.getDate() < cutOffDate){
-                if(buyTxn.getDate() > ltBuyDate)
-                  ltBuyDate = buyTxn.getDate();
+              if(buyTxn.getDateInt() < cutOffDate){
+                if(buyTxn.getDateInt() > ltBuyDate)
+                  ltBuyDate = buyTxn.getDateInt();
                 ltShares += sharesBought;
               } else {
-                if((buyTxn.getDate() < stBuyDate)||(stBuyDate==0))
-                  stBuyDate = buyTxn.getDate();
+                if((buyTxn.getDateInt() < stBuyDate)||(stBuyDate==0))
+                  stBuyDate = buyTxn.getDateInt();
                 stShares += sharesBought;
               }
               numShares -= sharesBought;
@@ -777,14 +773,14 @@ public class TXFExport
           double ltRate = (double)ltShares / (ltShares + stShares);
           double stRate = (double)stShares / (ltShares + stShares);
 
-          longTerm[0] = new Long(ltBuyDate);
-          longTerm[1] = new Long(sellDate);
+          longTerm[0] = new Long(DateUtil.convertIntDateToLong(ltBuyDate).getTime());
+          longTerm[1] = new Long(DateUtil.convertIntDateToLong(sellDate).getTime());
           longTerm[2] = new Long(Math.round(ltRate * thisCostBasis));
           longTerm[3] = new Long(Math.round(ltRate * getPerShareSalesNet(atxn)));
           txfVector.addElement(longTerm);
 
-          shortTerm[0] = new Long(stBuyDate);
-          shortTerm[1] = new Long(sellDate);
+          shortTerm[0] = new Long(DateUtil.convertIntDateToLong(stBuyDate).getTime());
+          shortTerm[1] = new Long(DateUtil.convertIntDateToLong(sellDate).getTime());
           shortTerm[2] = new Long(Math.round(stRate * thisCostBasis));
           shortTerm[3] = new Long(Math.round(stRate * getPerShareSalesNet(atxn)));
           txfVector.addElement(shortTerm);
@@ -800,43 +796,43 @@ public class TXFExport
           if(tag==null) return false;
           for(Enumeration e = tag.keys(); e.hasMoreElements();){
             String txnID = (String)e.nextElement();
-            SplitTxn stxn = (SplitTxn)txnSet.getTxnByID(Long.parseLong(txnID));
+            SplitTxn stxn = (SplitTxn)txnSet.getTxnByLegacyID(Long.parseLong(txnID));
             long shares = Long.parseLong((String)tag.get(txnID));
             SplitTxn commission = TxnUtil.getCommissionPart(stxn.getParentTxn());
             long commFees = 0;
             if(commission!=null){
-              double commRate = (double)shares/Math.abs(curr.adjustValueForSplits(stxn.getDate(),
-                                                                                  stxn.getValue(),
-                                                                                  sellDate));
+              double commRate = (double)shares/Math.abs(curr.adjustValueForSplitsInt(stxn.getDateInt(),
+                                                                                     stxn.getValue(),
+                                                                                     sellDate));
               commFees = Math.round(commRate * Math.abs(commission.getAmount()));
             }
-            if(stxn.getDate() < cutOffDate){
-              ltTotal = ltTotal + Math.round(shares / curr.adjustRateForSplits(stxn.getDate(),
-                                                                               stxn.getRate(),
-                                                                               sellDate))
+            if(stxn.getDateInt() < cutOffDate){
+              ltTotal = ltTotal + Math.round(shares / curr.adjustRateForSplitsInt(stxn.getDateInt(),
+                                                                                  stxn.getRate(),
+                                                                                  sellDate))
                 + commFees;
               ltShares += shares;
-              ltBuyDate = stxn.getDate();
+              ltBuyDate = stxn.getDateInt();
             } else {
-              stTotal = stTotal + Math.round(shares / curr.adjustRateForSplits(stxn.getDate(),
-                                                                               stxn.getRate(),
-                                                                               sellDate))
+              stTotal = stTotal + Math.round(shares / curr.adjustRateForSplitsInt(stxn.getDateInt(),
+                                                                                  stxn.getRate(),
+                                                                                  sellDate))
                 + commFees;
               stShares += shares;
-              if((stxn.getDate() < stBuyDate)||(stBuyDate==0))
-                stBuyDate = stxn.getDate();
+              if((stxn.getDateInt() < stBuyDate)||(stBuyDate==0))
+                stBuyDate = stxn.getDateInt();
             }
           }
           long ltRate = Math.round((1.0 * ltShares) / numShares);
-          longTerm[0] = new Long(ltBuyDate);
-          longTerm[1] = new Long(sellDate);
+          longTerm[0] = new Long(DateUtil.convertIntDateToLong(ltBuyDate).getTime());
+          longTerm[1] = new Long(DateUtil.convertIntDateToLong(sellDate).getTime());
           longTerm[2] = new Long(ltTotal);
           longTerm[3] = new Long(ltRate * getPerShareSalesNet(atxn));
           txfVector.addElement(longTerm);
 
           long stRate = Math.round((1.0 * stShares) / numShares);
-          shortTerm[0] = new Long(stBuyDate);
-          shortTerm[1] = new Long(sellDate);
+          shortTerm[0] = new Long(DateUtil.convertIntDateToLong(stBuyDate).getTime());
+          shortTerm[1] = new Long(DateUtil.convertIntDateToLong(sellDate).getTime());
           shortTerm[2] = new Long(stTotal);
           shortTerm[3] = new Long(stRate * getPerShareSalesNet(atxn));
           txfVector.addElement(shortTerm);

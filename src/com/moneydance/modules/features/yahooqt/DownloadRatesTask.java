@@ -9,10 +9,8 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.model.CurrencyTable;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.CustomDateFormat;
 
 import java.text.MessageFormat;
 import java.util.Enumeration;
@@ -45,9 +43,9 @@ public class DownloadRatesTask implements Callable<Boolean> {
     _model.showProgress(0.0f, MessageFormat.format(
             _resources.getString(L10NStockQuotes.EXCHANGE_RATES_BEGIN),
             _model.getSelectedExchangeRatesConnection().toString()));
-    RootAccount root =  _model.getRootAccount();
-    if (root == null) return Boolean.FALSE;
-    CurrencyTable ctable = root.getCurrencyTable();
+    AccountBook book =  _model.getBook();
+    if (book == null) return Boolean.FALSE;
+    CurrencyTable ctable = book.getCurrencies();
     // figure out the last date of an update...
     final CurrencyType baseCurrency = ctable.getBaseType();
     final int today = Util.getStrippedDateInt();
@@ -55,9 +53,8 @@ public class DownloadRatesTask implements Callable<Boolean> {
     try {
       Vector<CurrencyType> currenciesToCheck = new Vector<CurrencyType>();
       ctable.dumpCurrencies();
-      for (Enumeration cen = ctable.getAllValues(); cen.hasMoreElements();) {
-        CurrencyType ctype = (CurrencyType) cen.nextElement();
-        if (ctype.getCurrencyType() == CurrencyType.CURRTYPE_CURRENCY) {
+      for (CurrencyType ctype : ctable.getAllCurrencies()) {
+        if (ctype.getCurrencyType() == CurrencyType.Type.CURRENCY) {
           currenciesToCheck.addElement(ctype);
         }
       }
@@ -131,8 +128,7 @@ public class DownloadRatesTask implements Callable<Boolean> {
       return rate;
 
     int lastDate = 0;
-    for (int i = 0; i < currType.getSnapshotCount(); i++) {
-      CurrencyType.Snapshot snap = currType.getSnapshot(i);
+    for (CurrencySnapshot snap : currType.getSnapshots()) {
       lastDate = Math.max(lastDate, snap.getDateInt());
     }
 

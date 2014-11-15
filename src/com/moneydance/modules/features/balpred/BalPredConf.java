@@ -4,12 +4,9 @@
 
 package com.moneydance.modules.features.balpred;
 
-import com.moneydance.apps.md.model.*;
-import com.moneydance.apps.md.controller.*;
-import com.moneydance.awt.*;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.awt.graph.*;
 
-import java.util.*;
 import java.awt.event.*;
 import javax.swing.*;
 
@@ -21,7 +18,7 @@ public class BalPredConf
   public static final int DEF_NUM = 6;
   public static final int INTERVALS = 60;
 
-  private RootAccount root = null;
+  private AccountBook book = null;
   private TransactionSet ts = null;
   private TxnSet txns = null;
   private Resources rr = null;
@@ -34,13 +31,13 @@ public class BalPredConf
   public ReminderSet rs = null;
   public String dateFormatStr = "MM/dd/yyyy";
   
-  public BalPredConf(RootAccount root, Resources rr, String extensionName) {
-    this.root = root;
+  public BalPredConf(AccountBook book, Resources rr, String extensionName) {
+    this.book = book;
     this.rr = rr;
     this.extensionName = extensionName;
-    loadAccount(root);
-    ts = root.getTransactionSet();
-    rs = root.getReminderSet();
+    loadAccount(book.getRootAccount());
+    ts = book.getTransactionSet();
+    rs = book.getReminders();
     txns = ts.getTransactionsForAccount((Account)cbAccounts.getSelectedItem());
     rbReminders.setLabel(rr.getString("reminders"));
     rbReminders.setSelected(true);
@@ -48,18 +45,19 @@ public class BalPredConf
     rbTransactions.setSelected(false);
   }
   
-  public RootAccount getRootAccount() { return root; }
+  public AccountBook getRootAccount() { return book; }
   public Resources getResources() { return rr; }
   public Account getAccount() { return (Account)cbAccounts.getSelectedItem(); }
   public void loadAccount(Account acct) {
     for(int i=0; i<acct.getSubAccountCount(); i++) {
       Account subAcct = acct.getSubAccount(i);
-      int acctType = subAcct.getAccountType();
-      if((acctType==Account.ACCOUNT_TYPE_BANK) || 
-        (acctType==Account.ACCOUNT_TYPE_CREDIT_CARD) ||
-        (acctType==Account.ACCOUNT_TYPE_ASSET) ||
-        (acctType==Account.ACCOUNT_TYPE_LIABILITY)) {
-        cbAccounts.addItem(subAcct);
+      switch(subAcct.getAccountType()) {
+        case BANK:
+        case CREDIT_CARD:
+        case ASSET:
+        case LIABILITY:
+          cbAccounts.addItem(subAcct);
+        default:
       }
       loadAccount(subAcct);
     }
@@ -83,12 +81,12 @@ public class BalPredConf
     ParentTxn ptxn = null;
     SplitTxn stxn = null;
     Account acct = getAccount();
-    for(int i=0; i<rs.getReminderCount();i++) {
-      Reminder r = rs.getReminder(i);
-      if (r.getReminderType() == Reminder.TXN_REMINDER_TYPE) {
-        ptxn = ((TransactionReminder)r).getTransaction();
-        if (ptxn.getAccount().equals(acct)) rc++;
-        else {
+    for(Reminder r : book.getReminders().getAllReminders()) {
+      if (r.getReminderType() == Reminder.Type.TRANSACTION) {
+        ptxn = r.getTransaction();
+        if (ptxn.getAccount().equals(acct)) {
+          rc++;
+        } else {
           for(int j=0;j<ptxn.getSplitCount();j++) {
             stxn = ptxn.getSplit(j);
             if (stxn.getAccount().equals(acct)) rc++;

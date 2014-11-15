@@ -1,12 +1,9 @@
 package com.moneydance.modules.features.cmdline;
 
 import com.moneydance.apps.md.controller.*;
-import com.moneydance.apps.md.model.*;
-import com.moneydance.util.*;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.*;
 import javax.swing.*;
-import javax.swing.event.*;
-import java.awt.*;
-import java.awt.event.*;
 import java.util.*;
 import java.text.SimpleDateFormat;
 import java.net.URLDecoder;
@@ -60,8 +57,8 @@ public class Main
   }
 
   private void addTransaction(Params params) {
-    RootAccount root = getContext().getRootAccount();
-    if(root==null) {
+    AccountBook book = getContext().getCurrentAccountBook();
+    if(book ==null) {
       JOptionPane.showMessageDialog(null, "Unable to add transaction - no file is open",
                                     "Error", JOptionPane.ERROR_MESSAGE);
       return;
@@ -76,28 +73,29 @@ public class Main
     String memo = params.get("memo", "");
     String dateStr = params.get("date", "");
 
-    Account bankAcct = root.getAccountByName(bankAcctStr);
+    Account bankAcct = book.getRootAccount().getAccountByName(bankAcctStr);
     if(bankAcct==null ||
-       (bankAcct.getAccountType()!=Account.ACCOUNT_TYPE_BANK &&
-        bankAcct.getAccountType()!=Account.ACCOUNT_TYPE_CREDIT_CARD)) {
+       (bankAcct.getAccountType()!=Account.AccountType.BANK &&
+        bankAcct.getAccountType()!=Account.AccountType.CREDIT_CARD)) {
       JOptionPane.showMessageDialog(null, "Unable to add transaction - account \"+bankAcctStr+\" not found",
                                     "Error", JOptionPane.ERROR_MESSAGE);
       System.exit(-1);
     }
 
     long amount = bankAcct.getCurrencyType().parse(params.get("amount", ""),'.');
-    Account category = getCategory(categoryStr, root);
+    Account category = getCategory(categoryStr, book.getRootAccount());
     
-    Date date = new Date();
+    Date dateObj = new Date();
     try {
-      date = dateFormat.parse(dateStr);
+      dateObj = dateFormat.parse(dateStr);
     } catch (Exception e) { }
-    date = Util.stripTimeFromDate(date);
+    dateObj = Util.stripTimeFromDate(dateObj);
+    int dateInt = DateUtil.convertDateToInt(dateObj);
 
     
     // bankAcct, category, date, payee, memo, checknum, amount
     String message = "<html><body>Would you like to add the following transaction?<br><br>";
-    message += "&nbsp;&nbsp;<b>Date:</b> "+dateFormat.format(date)+"<br>";
+    message += "&nbsp;&nbsp;<b>Date:</b> "+dateFormat.format(dateObj)+"<br>";
     message += "&nbsp;&nbsp;<b>Account:</b> "+bankAcct.getFullAccountName()+"<br>";
     message += "&nbsp;&nbsp;<b>Check#:</b> "+checkNum+"<br>";
     message += "&nbsp;&nbsp;<b>Payee:</b> "+payee+"<br>";
@@ -112,15 +110,15 @@ public class Main
                         JOptionPane.YES_NO_OPTION);
 
     if(result==JOptionPane.YES_OPTION) {
-      ParentTxn txn = new ParentTxn(date.getTime(), date.getTime(),
-                                    System.currentTimeMillis(),
-                                    checkNum, bankAcct,
-                                    payee, memo,
-                                    -1, AbstractTxn.STATUS_UNRECONCILED);
-      txn.addSplit(new SplitTxn(txn, -amount, 1.0, category, payee,
-                                -1, AbstractTxn.STATUS_UNRECONCILED));
-      txn.setTag("cmdline_addtxn_uri", params.getParamString());
-      root.getTransactionSet().addNewTxn(txn);
+      ParentTxn txn = ParentTxn.makeParentTxn(book, dateInt, dateInt,
+                                              System.currentTimeMillis(),
+                                              checkNum, bankAcct,
+                                              payee, memo,
+                                              -1, AbstractTxn.STATUS_UNRECONCILED);
+      txn.addSplit(SplitTxn.makeSplitTxn(txn, -amount, 1.0, category, payee,
+                                         -1, AbstractTxn.STATUS_UNRECONCILED));
+      txn.setParameter("cmdline_addtxn_uri", params.getParamString());
+      book.getTransactionSet().addNewTxn(txn);
       if(!((com.moneydance.apps.md.controller.Main)getContext()).saveCurrentAccount()) {
         System.out.println("ERROR: Unable to add transaction - account \""+bankAcctStr+"\" not found");
         JOptionPane.showMessageDialog(null, "Unable to save transaction!",
@@ -180,11 +178,11 @@ public class Main
    */
   private Account getCategory(String accountName, Account parentAccount) {
     if(accountName.startsWith(":") &&
-       parentAccount.getAccountType()==Account.ACCOUNT_TYPE_ROOT) {
+       parentAccount.getAccountType()==Account.AccountType.ROOT) {
       accountName = accountName.substring(1);
     }
 
-    int parentType = parentAccount.getAccountType();
+    Account.AccountType parentType = parentAccount.getAccountType();
     int colIndex = accountName.indexOf(':');
     String restOfAcctName;
     String thisAcctName;
@@ -199,11 +197,11 @@ public class Main
     // find an existing account
     for(int i=0; i<parentAccount.getSubAccountCount(); i++) {
       Account subAcct = parentAccount.getSubAccount(i);
-      int subAcctType = subAcct.getAccountType();
-      if(!(subAcctType==Account.ACCOUNT_TYPE_BANK ||
-           subAcctType==Account.ACCOUNT_TYPE_CREDIT_CARD ||
-           subAcctType==Account.ACCOUNT_TYPE_EXPENSE ||
-           subAcctType==Account.ACCOUNT_TYPE_INCOME)) {
+      Account.AccountType subAcctType = subAcct.getAccountType();
+      if(!(subAcctType==Account.AccountType.BANK ||
+           subAcctType==Account.AccountType.CREDIT_CARD ||
+           subAcctType==Account.AccountType.EXPENSE ||
+           subAcctType==Account.AccountType.INCOME)) {
         continue;
       }
       if(subAcct.getAccountName().equalsIgnoreCase(thisAcctName)) {
@@ -218,27 +216,22 @@ public class Main
     // no existing sub-account was found... create one
     Account newAccount;
     switch(parentType) {
-      case Account.ACCOUNT_TYPE_INCOME:
-        newAccount =
-          new IncomeAccount(thisAcctName, -1, parentAccount.getCurrencyType(),
-                            null, null, parentAccount);
+      case INCOME:
+        newAccount = Legacy.makeIncomeAccount(parentAccount.getBook(), thisAcctName, -1, parentAccount.getCurrencyType(),
+                                              null, null, parentAccount);
         break;
-      case Account.ACCOUNT_TYPE_BANK:
-        newAccount =
-          new BankAccount(thisAcctName, -1, parentAccount.getCurrencyType(),
-                          null, null, parentAccount, 0);
+      case BANK:
+        newAccount = Legacy.makeBankAccount(parentAccount.getBook(), thisAcctName, -1, parentAccount.getCurrencyType(),
+                                            null, null, parentAccount, 0);
         break;
-      case Account.ACCOUNT_TYPE_CREDIT_CARD:
-        newAccount =
-          new CreditCardAccount(thisAcctName, -1, parentAccount.getCurrencyType(),
-                                null, null, parentAccount, 0);
+      case CREDIT_CARD:
+        newAccount = Legacy.makeAccount(parentAccount.getBook(), Account.AccountType.CREDIT_CARD, thisAcctName, parentAccount.getCurrencyType(), parentAccount);
         break;
-      case Account.ACCOUNT_TYPE_ROOT:
-      case Account.ACCOUNT_TYPE_EXPENSE:
+      case ROOT:
+      case EXPENSE:
       default:
-        newAccount =
-          new ExpenseAccount(thisAcctName, -1, parentAccount.getCurrencyType(),
-                             null, null, parentAccount);
+        newAccount = Legacy.makeExpenseAccount(parentAccount.getBook(), thisAcctName, -1, parentAccount.getCurrencyType(),
+                                               null, null, parentAccount);
         break; 
     }
     parentAccount.addSubAccount(newAccount);

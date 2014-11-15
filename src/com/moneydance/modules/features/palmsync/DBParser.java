@@ -12,7 +12,7 @@ import com.syncbuilder.sync.*;
 import com.syncbuilder.extstorage.*;
 import com.syncbuilder.storage.*;
 import com.syncbuilder.util.Util;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 
 public class DBParser {
   

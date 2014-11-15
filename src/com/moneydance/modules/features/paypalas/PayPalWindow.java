@@ -4,10 +4,11 @@
 
 package com.moneydance.modules.features.paypalas;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.*;
 import com.moneydance.apps.md.controller.olb.*;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
 import com.moneydance.awt.*;
 
 import java.awt.*;
@@ -28,7 +29,7 @@ public class PayPalWindow
   private Main extension;
   private WaitWindow waitWindow = null;
   private Resources rr;
-  private RootAccount root = null;
+  private AccountBook book = null;
   private Account ca = null;
   private JPanel mp, bp, lp, rp, idp;
   private JButton btUpdate, btExit, btExit1, btAccounts, btAdd, btRemove;
@@ -82,7 +83,7 @@ public class PayPalWindow
     this.extension = extension;
     
     rr = (Resources)ResourceBundle.getBundle("com.moneydance.modules.features.paypalas.Resources", Locale.getDefault());
-    root = extension.getRoot();
+    book = extension.getRoot();
     
     mp = new JPanel(new GridBagLayout());
     mp.setBorder(new EmptyBorder(10,10,10,10));
@@ -109,9 +110,9 @@ public class PayPalWindow
     tfUserID.setEnabled(false);
     tfPassword = new JPasswordField(5);
     cbAccounts = new JComboBox();
-    loadPayPalAccounts(root);
+    loadPayPalAccounts(book.getRootAccount());
     setUserID();
-    loadAccounts(root);
+    loadAccounts(book.getRootAccount());
 
     bp = new JPanel(new GridLayout(1,3));
     bp.add(btUpdate);
@@ -147,11 +148,9 @@ public class PayPalWindow
   }
 
   public void loadPayPalAccounts(Account acct) {
-    for(int i=0; i<acct.getSubAccountCount(); i++) {
-      Account subAcct = acct.getSubAccount(i);
-      int acctType = subAcct.getAccountType();
+    for(Account subAcct : acct.getSubAccounts()) {
       String paypalID = subAcct.getParameter("paypal_id");
-      if((acctType==Account.ACCOUNT_TYPE_BANK)&&(paypalID!=null)) {
+      if((subAcct.getAccountType()==Account.AccountType.BANK) && (paypalID!=null)) {
         cbAccounts.addItem(subAcct);
       }
       loadPayPalAccounts(subAcct);
@@ -183,10 +182,8 @@ public class PayPalWindow
   }
 
   public void loadAccounts(Account acct) {
-    for(int i=0; i<acct.getSubAccountCount(); i++) {
-      Account subAcct = acct.getSubAccount(i);
-      int acctType = subAcct.getAccountType();
-      if(acctType==Account.ACCOUNT_TYPE_BANK) {
+    for(Account subAcct : acct.getSubAccounts()) {
+      if(subAcct.getAccountType()== Account.AccountType.BANK) {
         lmAcct.addElement(subAcct);
       }
       loadAccounts(subAcct);
@@ -281,8 +278,8 @@ public class PayPalWindow
         Account a = (Account)listAcct.getSelectedValue();
         if (cbContains(cbAccounts, a)) {
           cbAccounts.removeItem(a);
-          a.setParameter("paypal_id", null);
-          a.setParameter("paypal_dldate", null);
+          a.removeParameter("paypal_id");
+          a.removeParameter("paypal_dldate");
           firePayPalAccountsChanged();
         }
       }
@@ -343,21 +340,20 @@ public class PayPalWindow
     cal.set(Calendar.MINUTE,0);
     cal.set(Calendar.SECOND,0);
     cal.set(Calendar.MILLISECOND,0);
-
-    ParentTxn ptxn = new ParentTxn(cal.getTime().getTime(), cal.getTime().getTime(), 
-      System.currentTimeMillis(), "", ca, csv.getStr(PAYPAL_NAME), csv.getStr(PAYPAL_SUBJ), 
-      -1, AbstractTxn.STATUS_CLEARED);
-      
+    int calDate = DateUtil.convertCalToInt(cal);
+    ParentTxn ptxn = ParentTxn.makeParentTxn(book, calDate, calDate, 
+                                             System.currentTimeMillis(), "", ca, csv.getStr(PAYPAL_NAME), csv.getStr(PAYPAL_SUBJ), 
+                                             -1, AbstractTxn.STATUS_CLEARED);
+    
     long gross = ca.getCurrencyType().parse(csv.getStr(PAYPAL_GROSS),'.');
     long fee = ca.getCurrencyType().parse(csv.getStr(PAYPAL_FEE),'.');
-    int acctType = gross<0 ? Account.ACCOUNT_TYPE_EXPENSE : Account.ACCOUNT_TYPE_INCOME;
+    Account.AccountType acctType = gross<0 ? Account.AccountType.EXPENSE : Account.AccountType.INCOME;
     Account category = null;
     ParentTxn ttxn = null;
 
     ttxn = ts.findBestMatch(csv.getStr(PAYPAL_NAME), gross+fee, ca);
     if (ttxn == null) {
-      for(Enumeration subs = root.getSubAccounts(); subs.hasMoreElements(); ) {
-        Account ac = (Account)subs.nextElement();
+      for(Account ac : book.getRootAccount().getSubAccounts()) {
         if (ac.getAccountType() == acctType) {
           category = ac;
           break;
@@ -367,24 +363,23 @@ public class PayPalWindow
       category = ttxn.getSplit(0).getAccount();
       // finding exact match by date, amount and account
       AbstractTxn atxn;
-      atxn = findMatch(cal.getTime().getTime(), gross+fee, ca);
+      atxn = findMatch(DateUtil.convertCalToInt(cal), gross+fee, ca);
       if (atxn != null) {
         // transaction already exist
-        atxn.setTag("paypal_email", csv.getStr(PAYPAL_EMAIL));
-        atxn.setTag("paypal_tid", csv.getStr(PAYPAL_TID));
-        atxn.setTag("paypal_item", csv.getStr(PAYPAL_ITEM));
+        atxn.setParameter("paypal_email", csv.getStr(PAYPAL_EMAIL));
+        atxn.setParameter("paypal_tid", csv.getStr(PAYPAL_TID));
+        atxn.setParameter("paypal_item", csv.getStr(PAYPAL_ITEM));
         return;
       }
     }
 
-    ptxn.addSplit(new SplitTxn(ptxn,gross,1.0,category,"",-1,AbstractTxn.STATUS_CLEARED));
+    ptxn.addSplit(SplitTxn.makeSplitTxn(ptxn, gross, 1.0, category, "", -1, AbstractTxn.STATUS_CLEARED));
     // PayPal transactions are specific, they often containt 2 splits (second is fee) 
     // and never more than 2 splits
     if (fee != 0) {
       if (ttxn == null) {
-        for(Enumeration subs = root.getSubAccounts(); subs.hasMoreElements(); ) {
-          Account ac = (Account)subs.nextElement();
-          if (ac.getAccountType() == Account.ACCOUNT_TYPE_EXPENSE) {
+        for(Account ac : book.getRootAccount().getSubAccounts()) {
+          if (ac.getAccountType() == Account.AccountType.EXPENSE) {
             category = ac;
             break;
           }
@@ -392,11 +387,11 @@ public class PayPalWindow
       } else {
         category = ttxn.getSplit(ttxn.getSplitCount()-1).getAccount();
       }
-      ptxn.addSplit(new SplitTxn(ptxn,fee,1.0,category,"",-1,AbstractTxn.STATUS_CLEARED));
+      ptxn.addSplit(SplitTxn.makeSplitTxn(ptxn, fee, 1.0, category, "", -1, AbstractTxn.STATUS_CLEARED));
     }
-    ptxn.setTag("paypal_email", csv.getStr(PAYPAL_EMAIL));
-    ptxn.setTag("paypal_tid", csv.getStr(PAYPAL_TID));
-    ptxn.setTag("paypal_item", csv.getStr(PAYPAL_ITEM));
+    ptxn.setParameter("paypal_email", csv.getStr(PAYPAL_EMAIL));
+    ptxn.setParameter("paypal_tid", csv.getStr(PAYPAL_TID));
+    ptxn.setParameter("paypal_item", csv.getStr(PAYPAL_ITEM));
       
     ts.addNewTxn(ptxn);
   }
@@ -563,7 +558,7 @@ public class PayPalWindow
     public void POST(String url, String msg) {
       POST(url, msg, false, 0);
     }
-
+    
     public void POST(String url, String msg, boolean output) {
       POST(url, msg, output, 0);
     }
@@ -770,7 +765,7 @@ public class PayPalWindow
     }
     if (txns == null) return;
     ca.setParameter("paypal_dldate", fmt.format(Calendar.getInstance()));
-    ts = root.getTransactionSet();
+    ts = book.getTransactionSet();
     tset = ts.getTransactionsForAccount(ca);
     int i,j;
     String tid = null;
@@ -789,7 +784,7 @@ public class PayPalWindow
       tid_match = false;
       for (j=0; j<tset.getSize();j++) {
         atxn = tset.getTxnAt(j);
-        if (atxn.getTag("paypal_tid", ".").equals(tid)) {
+        if (atxn.getParameter("paypal_tid", ".").equals(tid)) {
           txns.removeElementAt(i);
           tid_match = true;
           break;
@@ -908,15 +903,15 @@ public class PayPalWindow
     }
   }
 
-  private AbstractTxn findMatch(long date, long amount, Account acct) {
+  private AbstractTxn findMatch(int date, long amount, Account acct) {
     if (acct == null) return null;
-    synchronized(root) {
+    synchronized(book) {
       AbstractTxn match = null;
 
       for(int i=tset.getSize()-1; i>=0; i--) {
         AbstractTxn txn = tset.getTxnAt(i);
         if (txn.getAccount()!=acct) continue;
-        if (txn.getDate()!=date) continue;
+        if (txn.getDateInt()!=date) continue;
         if (txn.getValue()!=amount) continue;
         match = txn;
       }

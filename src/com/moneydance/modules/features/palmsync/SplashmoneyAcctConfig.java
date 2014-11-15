@@ -7,8 +7,8 @@ package com.moneydance.modules.features.palmsync;
 import com.moneydance.awt.*;
 import com.moneydance.apps.md.controller.Common;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.util.StringUtils;
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.util.StringUtils;
+import com.infinitekind.moneydance.model.*;
 
 import javax.swing.event.*;
 import java.io.File;

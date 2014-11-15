@@ -8,14 +8,14 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyType;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 import com.moneydance.apps.md.view.gui.SecondaryFrame;
 import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.awt.AwtUtil;
 import com.moneydance.apps.md.view.gui.AccountChoice;
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.Account;
 
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;

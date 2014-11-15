@@ -1,9 +1,9 @@
 {
-  "vendor" = "Reilly Technologies, LLC"
+  "vendor" = "The Infinite Kind"
   "module_build" = "1"
-  "vendor.url" = "http://moneydance.com/"
-  "module_name" = "Command-line operations"
-  "module_desc" = "<html><body><title>Command-line Operations</title><p>This is an extension that provides a command-line interface to Moneydance.  For details on how to use this interface, send email to support@moneydance.com.</p></body></html>"
+  "minbuild" = "1000"
+  "vendor_url" = "http://moneydance.com/"
+  "name" = "Command-line operations"
   "desc" = "This is an extension that provides a command-line interface to Moneydance.  For details on how to use this interface, send email to support@moneydance.com."
 
 }

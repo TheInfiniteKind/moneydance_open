@@ -11,13 +11,13 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.Txn;
+import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.Txn;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.TagLogic;
-import com.moneydance.util.StreamTable;
+import com.infinitekind.util.StreamTable;
 
 import java.util.List;
 

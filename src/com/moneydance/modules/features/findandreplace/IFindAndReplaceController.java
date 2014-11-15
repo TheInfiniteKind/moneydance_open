@@ -8,9 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.RootAccount;
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.*;
 
 /**
  * <p>Main interface for the Find and Replace plugin. All the user actions related to the plugin
@@ -27,7 +25,7 @@ public interface IFindAndReplaceController extends IResourceProvider
      * Initialize the dialog with the data from the application.
      * @param data The data to load with.
      */
-    void loadData(final RootAccount data);
+    void loadData(final AccountBook data);
 
     /**
      * Display the dialog/frame on the screen.
@@ -58,6 +56,6 @@ public interface IFindAndReplaceController extends IResourceProvider
 
     public com.moneydance.apps.md.view.gui.MoneydanceGUI getMDGUI();
 
-    public RootAccount getRootAccount();
+    public AccountBook getBook();
     public CurrencyType getCurrencyType();
 }

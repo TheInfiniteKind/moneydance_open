@@ -8,8 +8,7 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.moneydance.apps.md.controller.DateRange;
-import com.moneydance.apps.md.model.CurrencyType;
+import com.infinitekind.moneydance.model.*;
 
 /**
  * A stock connection that means the user doesn't want to use any connection at all, which disables

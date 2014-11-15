@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.moneydance.apps.md.model.Account;
+import com.infinitekind.moneydance.model.Account;
 
 /**
  * A single item in the table for the account selector list.

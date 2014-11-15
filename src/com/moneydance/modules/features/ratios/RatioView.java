@@ -15,7 +15,7 @@ import com.moneydance.apps.md.view.gui.reporttool.Report;
 import com.moneydance.apps.md.view.gui.reporttool.ShowReportWindow;
 import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.GridC;
-import com.moneydance.util.UiUtil;
+import com.infinitekind.util.UiUtil;
 
 import javax.swing.BorderFactory;
 import javax.swing.Icon;

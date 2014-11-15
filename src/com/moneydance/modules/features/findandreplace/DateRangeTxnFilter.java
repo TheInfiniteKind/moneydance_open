@@ -8,8 +8,8 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.controller.DateRange;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.DateRange;
 
 /**
  * <p>Filters transactions based upon whether they are within a specified date range.<p>

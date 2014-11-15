@@ -4,7 +4,7 @@
 
 package com.moneydance.modules.features.mikebalpred;
 
-import com.moneydance.apps.md.model.*;
+import com.infinitekind.moneydance.model.*;
 //import com.moneydance.apps.md.controller.*;
 //import com.moneydance.awt.*;
 //import com.moneydance.awt.graph.*;

@@ -16,7 +16,7 @@ import com.moneydance.awt.AwtUtil;
 import com.moneydance.modules.features.ratios.L10NRatios;
 import com.moneydance.modules.features.ratios.RatiosUtil;
 import com.moneydance.modules.features.ratios.ResourceProvider;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;

@@ -8,17 +8,17 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.ParentTxn;
-import com.moneydance.apps.md.model.SplitTxn;
-import com.moneydance.apps.md.model.TxnTagSet;
-import com.moneydance.apps.md.model.TxnTag;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.CurrencyUtil;
-import com.moneydance.apps.md.model.CurrencyType;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.ParentTxn;
+import com.infinitekind.moneydance.model.SplitTxn;
+import com.infinitekind.moneydance.model.TxnTagSet;
+import com.infinitekind.moneydance.model.TxnTag;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.CurrencyType;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.view.gui.MDImages;
-import com.moneydance.util.CustomDateFormat;
+import com.infinitekind.util.CustomDateFormat;
 
 import javax.swing.table.AbstractTableModel;
 import javax.swing.Icon;

@@ -8,14 +8,14 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.model.AbstractTxn;
-import com.moneydance.apps.md.model.Account;
-import com.moneydance.apps.md.model.CurrencyType;
-import com.moneydance.apps.md.model.CurrencyUtil;
-import com.moneydance.apps.md.model.TxnTag;
-import com.moneydance.apps.md.model.SplitTxn;
-import com.moneydance.apps.md.model.ParentTxn;
-import com.moneydance.apps.md.model.TxnTagSet;
+import com.infinitekind.moneydance.model.AbstractTxn;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.TxnTag;
+import com.infinitekind.moneydance.model.SplitTxn;
+import com.infinitekind.moneydance.model.ParentTxn;
+import com.infinitekind.moneydance.model.TxnTagSet;
 
 import java.util.List;
 import java.util.ArrayList;
