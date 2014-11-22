@@ -10,7 +10,7 @@ package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 
 import javax.swing.JComponent;
 import java.awt.Component;
@@ -33,9 +33,9 @@ class TagPickerField extends TxnTagsField
     private final List<ActionListener> _selectionListeners = new ArrayList<ActionListener>();
     private ColoredParentFocusAdapter _parentFocusListener = null;
 
-    public TagPickerField(MoneydanceGUI moneydanceGUI, RootAccount rootAccount)
+    public TagPickerField(MoneydanceGUI moneydanceGUI, AccountBook book)
     {
-        super(moneydanceGUI, rootAccount);
+        super(moneydanceGUI, book);
         for (Component child : getComponents())
         {
             if (child instanceof JComponent)

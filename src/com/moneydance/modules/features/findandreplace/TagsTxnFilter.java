@@ -8,11 +8,9 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.AbstractTxn;
-import com.infinitekind.moneydance.model.TxnTagSet;
-import com.infinitekind.moneydance.model.SplitTxn;
-import com.infinitekind.moneydance.model.TxnTag;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.TagLogic;
+import java.util.*;
 
 /**
  * <p>Filters transactions based upon what tags they have assigned to them. Only splits can
@@ -24,11 +22,11 @@ import com.moneydance.apps.md.view.gui.TagLogic;
  */
 class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
 {
-    private final TxnTag[] _includedTags;
-    private final TxnTag[] _excludedTags;
+    private final List<String> _includedTags;
+    private final List<String> _excludedTags;
     private final TagLogic _combineLogic;
 
-    TagsTxnFilter(final TxnTag[] included, final TxnTag[] excluded, final TagLogic combine,
+    TagsTxnFilter(final List<String> included, final List<String> excluded, final TagLogic combine,
                   final boolean required)
     {
         super(required);
@@ -67,11 +65,11 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
             contained = hasAnyMatch(split);
         }
 
-        if (contained && (_excludedTags != null) && (_excludedTags.length > 0))
+        if (contained && (_excludedTags != null) && (_excludedTags.size() > 0))
         {
-            for (final TxnTag excludedTag : _excludedTags)
+            for (final String excludedTag : _excludedTags)
             {
-                if (TxnTagSet.txnContainsTag(split, excludedTag))
+                if (split.getKeywords().contains(excludedTag))
                 {
                     contained = false;
                     break;
@@ -91,39 +89,31 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
     {
         boolean contained = true;
         // this will be a '|' delimited list of user-defined tag IDs for the transaction
-        final String tagStr = split.getTag(TxnTagSet.TXN_TAG_KEY, null);
-        if ((_includedTags != null) && (_includedTags.length > 0))
+        final List<String> splitTags = split.getKeywords();
+        if ((_includedTags != null) && (_includedTags.size() > 0))
         {
             // All tags defined in the split must be in the included tags. We can't do an exact
             // comparison for two reasons: the split's tags will contain null or empty strings,
             // and the lists could be in a different order.
-            if ((tagStr == null) || (tagStr.length() == 0))
+            if (splitTags.size()<=0)
             {
                 // can't be an exact match, included tags are defined and the split doesn't have any
                 return false;
             }
             
-            String[] tagText = tagStr.split("\\|");
-            String[] includedTagIDs = new String[_includedTags.length];
-            int index = 0;
-            for (final TxnTag includedTag : _includedTags)
-            {
-                includedTagIDs[index++] = includedTag.getID();
-            }
-
             // check that all included tags are in the split
-            for (String tagName : includedTagIDs)
+            for (String tagName : _includedTags)
             {
-                contained = findStringInList(tagName, tagText);
+                contained = splitTags.contains(tagName);
                 if (!contained) break;
             }
 
             if (contained)
             {
                 // check that all split tags are contained in the included list
-                for (String tagName : tagText)
+                for (String tagName : splitTags)
                 {
-                    contained = findStringInList(tagName, includedTagIDs);
+                    contained = splitTags.contains(_includedTags);
                     if (!contained) break;
                 }
             }
@@ -131,7 +121,7 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
         else
         {
             // no tags defined, see if this transaction has no tags
-            contained = ((tagStr == null) || (tagStr.length() == 0));
+            contained = splitTags.size()==0;
         }
         return contained;
     }
@@ -159,11 +149,12 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
     {
         boolean contained = true;
 
-        if ((_includedTags != null) && (_includedTags.length > 0))
+        if ((_includedTags != null) && (_includedTags.size() > 0))
         {
-            for (final TxnTag includedTag : _includedTags)
+            List<String> splitTags = split.getKeywords(); 
+            for (final String includedTag : _includedTags)
             {
-                if (!TxnTagSet.txnContainsTag(split, includedTag))
+                if (!splitTags.contains(includedTag)) 
                 {
                     contained = false;
                     break;
@@ -184,11 +175,12 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
     {
         boolean contained = false;
 
-        if ((_includedTags != null) && (_includedTags.length > 0))
+        if ((_includedTags != null) && (_includedTags.size() > 0))
         {
-            for (final TxnTag includedTag : _includedTags)
+            List<String> splitTags = split.getKeywords();
+            for (final String includedTag : _includedTags)
             {
-                if (TxnTagSet.txnContainsTag(split, includedTag))
+                if (splitTags.contains(includedTag))
                 {
                     contained = true;
                     break;

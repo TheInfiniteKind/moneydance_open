@@ -61,7 +61,7 @@ public class LoadSaveView extends JPanel
 
     LoadSaveView(final MoneydanceGUI mdGui, final FarController controller)
     {
-        _model = new LoadSaveModel(mdGui.getCurrentAccount(), controller);
+        _model = new LoadSaveModel(mdGui.getCurrentBook(), controller);
         createControls(mdGui, controller);
     }
     

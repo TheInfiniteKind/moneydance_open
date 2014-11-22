@@ -8,12 +8,11 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.TxnTagSet;
-import com.infinitekind.moneydance.model.TxnTag;
-
 import javax.swing.DefaultComboBoxModel;
+import java.util.Collections;
 import java.util.List;
-import java.util.ArrayList;import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 
 /**
@@ -25,33 +24,33 @@ import java.util.ArrayList;import java.util.Arrays;
  */
 class TagPickerModel extends DefaultComboBoxModel
 {
-    private final TxnTagSet _fullTagSet;
-    private final List<TxnTag> _selected;
+    private final List<String> _fullTagSet;
+    private final List<String> _selected;
 
-    TagPickerModel(final TxnTagSet tagSet)
+    TagPickerModel(final List<String> tagSet)
     {
         _fullTagSet = tagSet;
 
         if (_fullTagSet != null)
         {
-            _selected = new ArrayList<TxnTag>(_fullTagSet.getNumTags());
+            Collections.sort(_fullTagSet);
+            _selected = new ArrayList<String>(_fullTagSet.size());
         }
         else
         {
-            _selected = new ArrayList<TxnTag>();
+            _selected = new ArrayList<String>();
         }
     }
 
-    TxnTag[] getSelectedTags()
+    List<String> getSelectedTags()
     {
-        final int size = _selected.size();
-        return _selected.toArray(new TxnTag[size]);
+      return new ArrayList<String>(_selected);
     }
 
-    void setSelectedTags(final TxnTag[] tags)
+    void setSelectedTags(final List<String> tags)
     {
-        _selected.clear();
-        _selected.addAll(Arrays.asList(tags));
+      _selected.clear();
+      _selected.addAll(tags);
     }
 
     void selectAll()
@@ -59,7 +58,7 @@ class TagPickerModel extends DefaultComboBoxModel
         if (_fullTagSet != null)
         {
             clear();
-            _selected.addAll(Arrays.asList(_fullTagSet.getSortedTags()));
+            _selected.addAll(_fullTagSet);
         }
     }
 

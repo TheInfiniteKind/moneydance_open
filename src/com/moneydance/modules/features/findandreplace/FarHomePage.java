@@ -8,7 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 
 import javax.swing.JPanel;

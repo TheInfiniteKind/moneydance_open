@@ -7,23 +7,14 @@
 \*************************************************************************/
 package com.moneydance.modules.features.findandreplace;
 
+import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.Util;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.RootAccount;
-import com.infinitekind.moneydance.model.TxnTag;
-import com.infinitekind.moneydance.model.TxnTagSet;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.TagLogic;
 import com.infinitekind.util.StreamTable;
 import com.infinitekind.util.StringEncodingException;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 
 /**
@@ -55,6 +46,7 @@ public class LoadSaveModel
     private static final String FIND_USE_CHECK = "f.text.c";
     private static final String FIND_INC_SPLIT = "f.text.s";
     private static final String FIND_TAGS = "f.tags";
+    private static final String FIND_TAGS2 = "f.tags2";
     private static final String FIND_ALLOW_CLEARED = "f.clr.clr";
     private static final String FIND_ALLOW_RECONCILE = "f.clr.rec";
     private static final String FIND_ALLOW_UNCLEARED = "f.clr.unc";
@@ -68,10 +60,13 @@ public class LoadSaveModel
     private static final String REPL_CHECK = "r.check";
     private static final String REPL_CHECK_FOUND_ONLY = "r.check.fo";
     private static final String REPL_TAGS_ADD = "r.tags.add";
+    private static final String REPL_TAGS_ADD2 = "r.tags.add2";
     private static final String REPL_TAGS_REMOVE = "r.tags.remove";
+    private static final String REPL_TAGS_REMOVE2 = "r.tags.remove2";
     private static final String REPL_TAGS_REPLACE = "r.tags.replace";
+    private static final String REPL_TAGS_REPLACE2 = "r.tags.replace2";
 
-    private final RootAccount _rootAccount;
+    private final AccountBook _book;
     private final FarController _controller;
 
     /** The key is the user-supplied name (non-blank, unique), value are the settings. */
@@ -79,9 +74,9 @@ public class LoadSaveModel
     
     private String _currentSearchName = N12EFindAndReplace.EMPTY;
     
-    LoadSaveModel(final RootAccount rootAccount, final FarController controller)
+    LoadSaveModel(final AccountBook book, final FarController controller)
     {
-        _rootAccount = rootAccount;
+        _book = book;
         _controller = controller;
         loadSavedSearchList();
     }
@@ -156,9 +151,9 @@ public class LoadSaveModel
 
     private void loadSavedSearchList()
     {
-        if (_rootAccount == null) return;
+        if (_book == null) return;
         _savedSearches.clear();
-        String settings = _rootAccount.getParameter(SAVE_KEY_NAME, N12EFindAndReplace.EMPTY);
+        String settings = _book.getRootAccount().getParameter(SAVE_KEY_NAME, N12EFindAndReplace.EMPTY);
         if (FarUtil.isBlank(settings)) return;
         StreamTable streamTable = new StreamTable();
         try
@@ -192,9 +187,10 @@ public class LoadSaveModel
         final Collection<String> values = _savedSearches.values();
         final String[] settingsList = values.toArray(new String[values.size()]);
         streamTable.setField(SEARCH_LIST, settingsList);
-        _rootAccount.setParameter(SAVE_KEY_NAME, streamTable.writeToString());
+        Account root = _book.getRootAccount();
+        root.setParameter(SAVE_KEY_NAME, streamTable.writeToString());
         // notify user they changed something
-        _rootAccount.accountModified(_rootAccount);
+        root.notifyAccountModified(root);
     }
 
     private void saveFindCriteria(final StreamTable streamTable)
@@ -236,7 +232,7 @@ public class LoadSaveModel
         {
             final TagPickerModel tagModel = _controller.getIncludedTagsModel();
             final TagLogic tagLogic = _controller.getRequireTagsFilter();
-            streamTable.put(FIND_TAGS, saveTags(tagModel, tagLogic));
+            streamTable.put(FIND_TAGS2, saveTags(tagModel, tagLogic));
         }
         if (_controller.getUseClearedFilter())
         {
@@ -244,6 +240,7 @@ public class LoadSaveModel
             streamTable.put(FIND_ALLOW_RECONCILE, _controller.getAllowReconciling());
             streamTable.put(FIND_ALLOW_UNCLEARED, _controller.getAllowUncleared());
         }
+        streamTable.remove(FIND_TAGS); // remove the old FIND_TAGS setting
     }
     
     private void loadFindCriteria(final StreamTable streamTable, final Set<String> keySet)
@@ -302,17 +299,27 @@ public class LoadSaveModel
             _controller.setFreeTextUseCheck(streamTable.getBoolean(FIND_USE_CHECK, true));
             _controller.setFreeTextIncludeSplits(streamTable.getBoolean(FIND_INC_SPLIT, true));
         }
-        if (keySet.contains(FIND_TAGS))
+        if (keySet.contains(FIND_TAGS2))
         {
             _controller.setUseTagsFilter(true);
-            final String settings = streamTable.getStr(FIND_TAGS, N12EFindAndReplace.EMPTY);
+            final String settings = streamTable.getStr(FIND_TAGS2, N12EFindAndReplace.EMPTY);
             if (!FarUtil.isBlank(settings))
             {
-                final TagsInfo info = loadTagsFromSettings(settings);
+                final TagsInfo info = loadNewTagsFromSettings(settings);
                 final TagPickerModel tagModel = _controller.getIncludedTagsModel();
                 tagModel.setSelectedTags(info.tags);
                 _controller.setTagsFilterLogic(info.logic);
             }
+        } else if(keySet.contains(FIND_TAGS)) {
+          _controller.setUseTagsFilter(true);
+          final String settings = streamTable.getStr(FIND_TAGS, N12EFindAndReplace.EMPTY);
+          if (!FarUtil.isBlank(settings))
+          {
+            final TagsInfo info = loadOldTagsFromSettings(settings);
+            final TagPickerModel tagModel = _controller.getIncludedTagsModel();
+            tagModel.setSelectedTags(info.tags);
+            _controller.setTagsFilterLogic(info.logic);
+          }
         }
         if (keySet.contains(FIND_ALLOW_CLEARED))
         {
@@ -365,25 +372,27 @@ public class LoadSaveModel
                 {
                     case ADD:
                     {
-                        streamTable.put(REPL_TAGS_ADD, 
-                                        saveTags(_controller.getReplaceAddTagsModel(), null));
+                        streamTable.put(REPL_TAGS_ADD2, saveTags(_controller.getReplaceAddTagsModel(), null));
                         break;
                     }
                     case REMOVE:
                     {
-                        streamTable.put(REPL_TAGS_REMOVE,
+                        streamTable.put(REPL_TAGS_REMOVE2,
                                         saveTags(_controller.getReplaceRemoveTagsModel(), null));
                         break;
                     }
                     case REPLACE:
                     {
-                        streamTable.put(REPL_TAGS_REPLACE,
+                        streamTable.put(REPL_TAGS_REPLACE2,
                                         saveTags(_controller.getReplaceReplaceTagsModel(), null));
                         break;
                     }
                 }
             }
         }
+      streamTable.remove(REPL_TAGS_ADD);
+      streamTable.remove(REPL_TAGS_REMOVE);
+      streamTable.remove(REPL_TAGS_REPLACE);
     }
     
     private void loadReplaceInfo(final StreamTable streamTable, final Set<String> keySet)
@@ -394,7 +403,7 @@ public class LoadSaveModel
             Account account = null;
             if (accountId >= 0)
             {
-                account = _rootAccount.getAccountById(accountId);
+                account = _book.getAccountByNum(accountId);
             }
             if (account != null)
             {
@@ -434,42 +443,77 @@ public class LoadSaveModel
             _controller.setReplaceFoundCheckOnly(
                     streamTable.getBoolean(REPL_CHECK_FOUND_ONLY, false));
         }
-        if (keySet.contains(REPL_TAGS_ADD))
+        if (keySet.contains(REPL_TAGS_ADD2))
         {
             _controller.setReplaceTags(true);
             _controller.setReplaceTagType(ReplaceTagCommandType.ADD);
-            final String settings = streamTable.getStr(REPL_TAGS_ADD, N12EFindAndReplace.EMPTY);
+            final String settings = streamTable.getStr(REPL_TAGS_ADD2, N12EFindAndReplace.EMPTY);
             if (!FarUtil.isBlank(settings))
             {
-                final TagsInfo info = loadTagsFromSettings(settings);
+                final TagsInfo info = loadNewTagsFromSettings(settings);
                 final TagPickerModel tagModel = _controller.getReplaceAddTagsModel();
                 tagModel.setSelectedTags(info.tags);
             }
+        } else if(keySet.contains(REPL_TAGS_ADD)) {
+          _controller.setReplaceTags(true);
+          _controller.setReplaceTagType(ReplaceTagCommandType.ADD);
+          final String settings = streamTable.getStr(REPL_TAGS_ADD, N12EFindAndReplace.EMPTY);
+          if (!FarUtil.isBlank(settings))
+          {
+            final TagsInfo info = loadOldTagsFromSettings(settings);
+            final TagPickerModel tagModel = _controller.getReplaceAddTagsModel();
+            tagModel.setSelectedTags(info.tags);
+          }
+          
         }
-        if (keySet.contains(REPL_TAGS_REMOVE))
+
+      if (keySet.contains(REPL_TAGS_REMOVE2))
+      {
+        _controller.setReplaceTags(true);
+        _controller.setReplaceTagType(ReplaceTagCommandType.REMOVE);
+        final String settings = streamTable.getStr(REPL_TAGS_REMOVE2, N12EFindAndReplace.EMPTY);
+        if (!FarUtil.isBlank(settings))
         {
-            _controller.setReplaceTags(true);
-            _controller.setReplaceTagType(ReplaceTagCommandType.REMOVE);
-            final String settings = streamTable.getStr(REPL_TAGS_REMOVE, N12EFindAndReplace.EMPTY);
-            if (!FarUtil.isBlank(settings))
-            {
-                final TagsInfo info = loadTagsFromSettings(settings);
-                final TagPickerModel tagModel = _controller.getReplaceRemoveTagsModel();
-                tagModel.setSelectedTags(info.tags);
-            }
+          final TagsInfo info = loadNewTagsFromSettings(settings);
+          final TagPickerModel tagModel = _controller.getReplaceRemoveTagsModel();
+          tagModel.setSelectedTags(info.tags);
         }
-        if (keySet.contains(REPL_TAGS_REPLACE))
+      } else if (keySet.contains(REPL_TAGS_REMOVE))
+      {
+        _controller.setReplaceTags(true);
+        _controller.setReplaceTagType(ReplaceTagCommandType.REMOVE);
+        final String settings = streamTable.getStr(REPL_TAGS_REMOVE, N12EFindAndReplace.EMPTY);
+        if (!FarUtil.isBlank(settings))
+        {
+          final TagsInfo info = loadOldTagsFromSettings(settings);
+          final TagPickerModel tagModel = _controller.getReplaceRemoveTagsModel();
+          tagModel.setSelectedTags(info.tags);
+        }
+      }
+      
+        if (keySet.contains(REPL_TAGS_REPLACE2))
         {
             _controller.setReplaceTags(true);
             _controller.setReplaceTagType(ReplaceTagCommandType.REPLACE);
-            final String settings = streamTable.getStr(REPL_TAGS_REPLACE, N12EFindAndReplace.EMPTY);
+            final String settings = streamTable.getStr(REPL_TAGS_REPLACE2, N12EFindAndReplace.EMPTY);
             if (!FarUtil.isBlank(settings))
             {
-                final TagsInfo info = loadTagsFromSettings(settings);
+                final TagsInfo info = loadNewTagsFromSettings(settings);
                 final TagPickerModel tagModel = _controller.getReplaceReplaceTagsModel();
                 tagModel.setSelectedTags(info.tags);
             }
+        } else if (keySet.contains(REPL_TAGS_REPLACE))
+      {
+        _controller.setReplaceTags(true);
+        _controller.setReplaceTagType(ReplaceTagCommandType.REPLACE);
+        final String settings = streamTable.getStr(REPL_TAGS_REPLACE, N12EFindAndReplace.EMPTY);
+        if (!FarUtil.isBlank(settings))
+        {
+          final TagsInfo info = loadOldTagsFromSettings(settings);
+          final TagPickerModel tagModel = _controller.getReplaceReplaceTagsModel();
+          tagModel.setSelectedTags(info.tags);
         }
+      }
     }
 
     private CurrencyType loadCurrency(final String currencyId)
@@ -479,7 +523,7 @@ public class LoadSaveModel
             // just return the base currency
             return _controller.getCurrencyType();
         }
-        final CurrencyType currencyType = _controller.getBook().getCurrencyTable().getCurrencyByIDString(currencyId);
+        final CurrencyType currencyType = _controller.getBook().getCurrencies().getCurrencyByIDString(currencyId);
         if (currencyType == null)
         {
             return _controller.getCurrencyType();
@@ -489,41 +533,46 @@ public class LoadSaveModel
     
     private String saveTags(final TagPickerModel tagModel, final TagLogic tagLogic)
     {
-        // store a '|' delimited list of tags
-        final String tagList = TxnTagSet.getIDStringForTags(tagModel.getSelectedTags());
-        final StringBuilder sb = new StringBuilder();
-        sb.append(tagList);
-        if (tagLogic != null)
-        {
-            sb.append('+');
-            sb.append(tagLogic.getConfigKey());
-        }
-        return sb.toString();
+      // store a delimited list of tags
+      final List<String> tagList = tagModel.getSelectedTags();
+      StringBuilder sb = new StringBuilder();
+      sb.append(tagLogic.getConfigKey());
+      sb.append('|');
+      sb.append(MoneydanceSyncableItem.encodeKeywordList(tagList));
+      return sb.toString();
     }
-    
-    private TagsInfo loadTagsFromSettings(final String settings)
-    {
-        final int delimIndex = settings.lastIndexOf('+');
-        TagLogic tagLogic = TagLogic.OR;
-        String tagStr = settings;
-        if (delimIndex >= 0)
-        {
-            String logic = settings.substring(delimIndex + 1);
-            tagLogic = TagLogic.fromString(logic);
-            tagStr = settings.substring(0, delimIndex);
-        }
-        return new TagsInfo(tagStr, tagLogic);
+  
+  private TagsInfo loadOldTagsFromSettings( String settings)
+  {
+    final int delimIndex = settings.lastIndexOf('+');
+    TagLogic tagLogic = TagLogic.OR;
+    if (delimIndex >= 0) {
+      String logic = settings.substring(delimIndex + 1);
+      tagLogic = TagLogic.fromString(logic);
+      settings = settings.substring(0, delimIndex);
     }
-    
-    private class TagsInfo
+    return new TagsInfo(MoneydanceSyncableItem.decodeKeywordList(settings), tagLogic);
+  }
+  
+  private TagsInfo loadNewTagsFromSettings(String settings) {
+    final int delimIndex = settings.indexOf('|');
+    TagLogic tagLogic = TagLogic.OR;
+    if( delimIndex >= 0 ) {
+      tagLogic = TagLogic.fromString(settings.substring(0, delimIndex));
+      settings = settings.substring(delimIndex+1);
+    }
+    return new TagsInfo(MoneydanceSyncableItem.decodeKeywordList(settings), tagLogic);
+  }
+
+
+  private class TagsInfo
     {
-        private final TxnTag[] tags;
+        private final List<String> tags;
         private final TagLogic logic;
         
-        TagsInfo(final String tagsStr, final TagLogic tagLogic)
-        {
-            tags = _rootAccount.getTxnTagSet().getTagsForIDString(tagsStr);
-            logic = tagLogic;
+        TagsInfo(final List<String> tagsStr, final TagLogic tagLogic) {
+          tags = new ArrayList<String>(tagsStr);
+          logic = tagLogic;
         }
     }
 }

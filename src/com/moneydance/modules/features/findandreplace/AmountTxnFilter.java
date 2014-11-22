@@ -53,7 +53,7 @@ class AmountTxnFilter extends TransactionFilterBase implements ITransactionFilte
         if (_isSharesCurrency)
         {
             // check for whether this transaction is in shares of a security or not
-            if (txnCurrency.getCurrencyType() == CurrencyType.CURRTYPE_SECURITY)
+            if (txnCurrency.getCurrencyType() == CurrencyType.Type.SECURITY)
             {
                 // No conversion other than decimal places needed. The UI control has the max
                 // decimal places of any security in the file. So if that currency has more decimal
@@ -73,7 +73,7 @@ class AmountTxnFilter extends TransactionFilterBase implements ITransactionFilte
             return false; // wrong kind of currency
         }
         // we're looking for a standard currency value
-        if (txnCurrency.getCurrencyType() == CurrencyType.CURRTYPE_SECURITY)
+        if (txnCurrency.getCurrencyType() == CurrencyType.Type.SECURITY)
         {
             // wrong kind of currency
             return false;

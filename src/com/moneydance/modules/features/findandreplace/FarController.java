@@ -9,14 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.moneydance.model.ParentTxn;
-import com.infinitekind.moneydance.model.RootAccount;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.AbstractTxn;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.CurrencyTable;
-import com.infinitekind.moneydance.model.SplitTxn;
-import com.infinitekind.moneydance.model.TransactionSet;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
@@ -73,7 +66,7 @@ public class FarController implements IFindAndReplaceController
      *
      * @param data The data to load with.
      */
-    public void loadData(final RootAccount data)
+    public void loadData(final AccountBook data)
     {
         _model.setData( data );
     }
@@ -135,8 +128,8 @@ public class FarController implements IFindAndReplaceController
 
     public void find()
     {
-        final RootAccount root = _model.getData();
-        if ( root == null )
+        final AccountBook book = _model.getData();
+        if ( book == null )
         {
             return;
         }
@@ -147,7 +140,7 @@ public class FarController implements IFindAndReplaceController
         _model.getFindResults().reset();
 
         // run the filter
-        final int matched = filterTransactions(root, filter);
+        final int matched = filterTransactions(book, filter);
         if (matched > 0)
         {
             _model.getFindResults().refresh();
@@ -171,20 +164,18 @@ public class FarController implements IFindAndReplaceController
      * will be shown or the parents will be shown. Both lists are derived from the splits list, so
      * we simply create the split list here.
      *
-     * @param rootAccount The main data account
+     * @param book The main data account
      * @param filter      The search filter.
      * @return The number of splits that matched
      */
-    private int filterTransactions(RootAccount rootAccount, FilterGroup filter)
+    private int filterTransactions(AccountBook book, FilterGroup filter)
     {
         // build the list of transactions that match the criteria
         Set<Long> uniqueTxnIDs = new HashSet<Long>();
-        final TransactionSet txnSet = rootAccount.getTransactionSet();
-        final Enumeration txnEnum = txnSet.getAllTransactions();
-        while (txnEnum.hasMoreElements())
+        final TransactionSet txnSet = book.getTransactionSet();
+        for(AbstractTxn txn : txnSet) 
         {
             // both parents and splits will be run through here
-            final AbstractTxn txn = (AbstractTxn) txnEnum.nextElement();
             if (filter.containsTxn(txn))
             {
                 // the report set should contain splits only, find any parents and add all of their splits
@@ -193,7 +184,7 @@ public class FarController implements IFindAndReplaceController
                     for (int ii = txn.getOtherTxnCount() - 1; ii >= 0; ii--)
                     {
                         final SplitTxn split = (SplitTxn) txn.getOtherTxn(ii);
-                        final Long key = Long.valueOf(split.getTxnId());
+                        final Long key = Long.valueOf(split.getOldTxnID());
                         if (uniqueTxnIDs.contains(key)) continue;
                         _model.getFindResults().add(split, false);
                         uniqueTxnIDs.add(key);
@@ -203,7 +194,7 @@ public class FarController implements IFindAndReplaceController
                 {
                     // must be a split transaction, just add it
                     final SplitTxn split = (SplitTxn) txn;
-                    final Long key = Long.valueOf(split.getTxnId());
+                    final Long key = Long.valueOf(split.getOldTxnID());
                     if (uniqueTxnIDs.contains(key)) continue;
                     _model.getFindResults().add(split, false);
                     uniqueTxnIDs.add(key);
@@ -290,7 +281,7 @@ public class FarController implements IFindAndReplaceController
         // save everything to the Moneydance file
         if (isDirty())
         {
-            final RootAccount root = _model.getData();
+            final AccountBook root = _model.getData();
             final MoneydanceGUI mdGui = getMDGUI();
             if (mdGui != null)
             {
@@ -410,10 +401,10 @@ public class FarController implements IFindAndReplaceController
      */
     public String getAccountName(final int accountID)
     {
-        final RootAccount root = _model.getData();
+        final AccountBook root = _model.getData();
         if (root != null)
         {
-            final Account acct = root.getAccountById(accountID);
+            final Account acct = root.getAccountByNum(accountID);
             if (acct == null)
             {
                 return N12EFindAndReplace.EMPTY;
@@ -434,7 +425,7 @@ public class FarController implements IFindAndReplaceController
         return _host.getMDGUI();
     }
 
-    public RootAccount getBook()
+    public AccountBook getBook()
     {
         return _model.getData();
     }
@@ -612,8 +603,7 @@ public class FarController implements IFindAndReplaceController
 
     String getAccountListDisplay(final MoneydanceGUI mdGui)
     {
-        return _model.getAccountFilter().getDisplayString(mdGui.getCurrentAccount(),
-                                                          mdGui);
+        return _model.getAccountFilter().getDisplayString(getBook(), mdGui);
     }
     
     String getAccountListSave()
@@ -646,8 +636,7 @@ public class FarController implements IFindAndReplaceController
     }
     String getCategoryListDisplay(final MoneydanceGUI mdGui)
     {
-        return _model.getCategoryFilter().getDisplayString(mdGui.getCurrentAccount(),
-                                                           mdGui);
+        return _model.getCategoryFilter().getDisplayString(getBook(), mdGui);
     }
     String getCategoryListSave()
     {
@@ -992,10 +981,10 @@ public class FarController implements IFindAndReplaceController
 
     CurrencyTable getCurrencyTable()
     {
-        final RootAccount root = _model.getData();
-        if (root != null)
+        final AccountBook book = _model.getData();
+        if (book != null)
         {
-            return root.getCurrencyTable();
+            return book.getCurrencies();
         }
         return null;
     }

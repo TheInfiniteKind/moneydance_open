@@ -11,10 +11,11 @@ package com.moneydance.modules.features.findandreplace;
 import com.infinitekind.moneydance.model.CurrencyListener;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.Legacy;
 
 import javax.swing.AbstractListModel;
 import javax.swing.ComboBoxModel;
-import java.util.Vector;
+import java.util.*;
 
 
 /**
@@ -53,10 +54,10 @@ public class AmountCurrencyModel
 
     public static CurrencyType buildSharesCurrencyType(CurrencyTable currencyTable, String sharesName)
     {
-        return new CurrencyType(currencyTable.getNextID(), SHARES_CURRENCY_ID_STRING, sharesName, 1.0,
-                                              getMaxDecimalsShares(currencyTable),
-                                              "", "", "", 0, CurrencyType.CURRTYPE_CURRENCY,
-                                              currencyTable);
+      return Legacy.makeCurrencyType(-1, SHARES_CURRENCY_ID_STRING, sharesName, 1.0,
+                                     getMaxDecimalsShares(currencyTable),
+                                     "", "", "", 0, CurrencyType.CURRTYPE_CURRENCY,
+                                     currencyTable);
     }
 
     void cleanUp()
@@ -72,7 +73,7 @@ public class AmountCurrencyModel
     boolean isVisible(CurrencyType c)
     {
         if (c == null) return false;
-        return c.getCurrencyType() == CurrencyType.CURRTYPE_CURRENCY;
+        return c.getCurrencyType() == CurrencyType.Type.CURRENCY;
     }
 
     public void currencyTableModified(CurrencyTable table)
@@ -106,7 +107,7 @@ public class AmountCurrencyModel
         int result = 0;
         for (CurrencyType curr : currencyTable.getAllCurrencies())
         {
-            if (curr.getCurrencyType() == CurrencyType.CURRTYPE_SECURITY)
+            if (curr.getCurrencyType() == CurrencyType.Type.SECURITY)
                 result = Math.max(result, curr.getDecimalPlaces());
         }
         return result;
@@ -114,7 +115,7 @@ public class AmountCurrencyModel
 
     private synchronized void build()
     {
-        CurrencyType list[] = _currencyTable.getAllCurrencies();
+        List<CurrencyType> list = _currencyTable.getAllCurrencies();
         _currencies.clear();
         for (CurrencyType curr : list)
         {

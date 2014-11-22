@@ -9,7 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
@@ -31,7 +31,7 @@ class TxnTagsPicker
      * @param mdGui GUI controller for Moneydance
      * @param data Datafile
      */
-    TxnTagsPicker(final MoneydanceGUI mdGui, final RootAccount data)
+    TxnTagsPicker(final MoneydanceGUI mdGui, final AccountBook data)
     {
         _view = new TagPickerField(mdGui, data);
         _view.setOpaque(false);

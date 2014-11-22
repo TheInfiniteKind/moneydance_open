@@ -10,13 +10,14 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.infinitekind.moneydance.model.AccountBook;
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.moneydance.model.AccountUtil;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
 import com.moneydance.apps.md.view.gui.select.IAccountSelector;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -27,12 +28,12 @@ public class FarAccountSelector
         implements IAccountSelector
 {
     private final List<Integer> _selectedAccountIds = new ArrayList<Integer>();
-    private final RootAccount _rootAccount;
+    private final AccountBook _book;
     private AccountFilter _filter;
 
-    public FarAccountSelector(final RootAccount root, final AccountFilter filter)
+    public FarAccountSelector(final AccountBook book, final AccountFilter filter)
     {
-        _rootAccount = root;
+        _book = book;
         _filter = filter;
     }
 
@@ -69,7 +70,7 @@ public class FarAccountSelector
             if (value.intValue() < 0)
             {
                 // account type, find the total number of that type
-                count += getAccountTypeCount(-value.intValue());
+                count += getAccountTypeCount(Account.AccountType.typeForCode(-value.intValue()));
             }
             else
             {
@@ -109,9 +110,9 @@ public class FarAccountSelector
     // Private Methods
     //////////////////////////////////////////////////////////////////////////////
 
-    private int getAccountTypeCount(final int accountType)
+    private int getAccountTypeCount(final Account.AccountType accountType)
     {
-        return AccountUtil.getAccountIdsOfType(_rootAccount, accountType).size();
+        return getAccountIdsOfType(_book, accountType).size();
     }
 
     private void loadSelectedIds()
@@ -122,4 +123,25 @@ public class FarAccountSelector
         // number (account IDs are positive).
         _selectedAccountIds.addAll(_filter.getAllIncludedCollapsed());
     }
+
+
+  /**
+   * Get all account IDs of a particular type.
+   * @param book The account book object
+   * @param accountType The type of account to get a list for.
+   * @return A list of all account IDs of the specified type.
+   */
+  public static List<Integer> getAccountIdsOfType(AccountBook book, Account.AccountType accountType) {
+    List<Integer> result = new ArrayList<Integer>();
+    for (Iterator acctIter = AccountUtil.getAccountIterator(book.getRootAccount()); acctIter.hasNext(); )
+    {
+      final Account account = (Account)acctIter.next();
+      if (account.getAccountType() == accountType) {
+        result.add(Integer.valueOf(account.getAccountNum()));
+      }
+    }
+    return result;
+  }
+
+
 }

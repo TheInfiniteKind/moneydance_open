@@ -9,6 +9,8 @@ import com.moneydance.awt.*;
 import com.moneydance.awt.graph.*;
 import com.infinitekind.util.*;
 
+
+import java.util.List;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -42,7 +44,7 @@ public class BalancePredicter extends JDialog
   private BalPredConf balpredConf     = null;
   private Date prDate                 = new Date();
   private GridBagLayout gbl           = new GridBagLayout();
-  private Hashtable remindersStatus   = new Hashtable();
+  private HashMap<Reminder,Boolean> remindersStatus   = new HashMap<Reminder, Boolean>();
   private SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yy");
   private JTextArea text              = new JTextArea();
   private JTable table;
@@ -71,9 +73,9 @@ public class BalancePredicter extends JDialog
 
 public void run() {
     setTitle(balpredConf.extensionName);
-    Vector v = getTxnRemindersVect();
-    for(int i=0;i<v.size();i++) {
-      remindersStatus.put(v.elementAt(i), new Boolean(true));
+    List<Reminder> v = getTxnRemindersVect();
+    for(Reminder r : v) {
+      remindersStatus.put(r, true);
     }
     mp = new JPanel(gbl);
     mp.setBorder(new EmptyBorder(0,0,10,0));
@@ -186,33 +188,30 @@ public void run() {
     if (date == 0) {
       row[1] = new String("");
     } else {
-      row[1] = new Long(date).toString();
+      row[1] = String.valueOf(date);
     }
 
     row[2]=description;
-    row[3]=new Long(amount).toString();
+    row[3]=String.valueOf(amount);
     row[4]=format(balance);
 
     rowList.add(row);
   }
 
   private long findOverdueTxns(Calendar curr, long startBal, Account acct, ArrayList rowList){
-	long          balance = startBal;
-	Calendar today = Calendar.getInstance();
-             today.setTime(curr.getTime());
-	long todayLong = curr.getTime().getTime();
-	dd("todayLong = "+todayLong);
-
-
-	// adjust the starting balance to take into account the un-applied reminders
+    long          balance = startBal;
+    Calendar todayCal = Calendar.getInstance();
+    todayCal.setTime(curr.getTime());
+    int today = DateUtil.getStrippedDateInt();
+    dd("today = "+today);
+    
+    // adjust the starting balance to take into account the un-applied reminders
 	    //long firstReminderDate = todayLong;
-	    for(Enumeration en=balpredConf.rs.getAllReminders(); en.hasMoreElements();) {
-	      Reminder r = (Reminder)en.nextElement();
-	      if(!(r instanceof TransactionReminder)) continue;
-	      if(!((Boolean)remindersStatus.get(r)).booleanValue()) continue;
-	      TransactionReminder tr = (TransactionReminder)r;
-	      if(Math.max(tr.getDateAcknowledged(), tr.getInitialDate())>=todayLong) continue;
-	      ParentTxn txn = tr.getTransaction();
+	    for(Reminder r : balpredConf.rs.getAllReminders()) {
+        if(r.getReminderType() != Reminder.Type.TRANSACTION) continue;
+        if(!((Boolean)remindersStatus.get(r))) continue;
+	      if(Math.max(r.getDateAcknowledgedInt(), r.getInitialDateInt())>=today) continue;
+	      ParentTxn txn = r.getTransaction();
 	      if(txn==null) continue;
 	      long txnValue = 0;
 	      if(txn.getAccount()==acct) {
@@ -229,18 +228,18 @@ public void run() {
 	      // this transaction is overdue, and affects this account with a non-zero value.
 	      // adjust the starting balance by amount 'txnValue' for every overdue occurance
 
-	      Vector overdueDates = tr.getPastDueDates(today);
+	      List<Date> overdueDates = r.getPastDueDates(todayCal);
 
-	      long delta =  (txnValue * tr.getPastDueDates(today).size());
+	      long delta =  (txnValue * r.getPastDueDates(todayCal).size());
 	      if (delta == 0) continue;
 
 	      dd("found overdue Reminder.");
 	      dd("   delta = "+delta);
 
 	      dd("  "+overdueDates.size()+" overdue dates.");
-	      for (int i = 0; i<overdueDates.size(); i++) {
+	      for (Date date : overdueDates) {
 	    	  balance += txnValue;
-	        addRow("O", ((Date) overdueDates.get(i)).getTime(), tr.getDescription(), txnValue,balance, rowList);
+	        addRow("O", date.getTime(), r.getDescription(), txnValue,balance, rowList);
 	      }
 
 	      dd("   currentBalance = "+balance);
@@ -269,7 +268,7 @@ public void run() {
       if (txn.getDateInt() > today)
       {
         balance += txn.getValue();
-        addRow("F", txn.getDate(), txn.getDescription(), txn.getValue(), balance, rowList);
+        addRow("F", DateUtil.convertIntDateToLong(txn.getDateInt()).getTime(), txn.getDescription(), txn.getValue(), balance, rowList);
         dd("adding "+txn.getDateInt()+txn.getDescription());
       }
     }
@@ -336,23 +335,22 @@ public void run() {
       for(int i = 0; i < txnList.size(); i++){
     	  Object[] data = (Object[]) txnList.get(i);
 
-    	  long txnDate = new Long((String) data[1]).longValue();
+    	  long txnDate = Long.parseLong((String)data[1]);
 
     	  if(txnDate >= curr.getTime().getTime() && txnDate < nextDay.getTime().getTime()){
-    	  	long txnAmt = new Long((String) data[3]).longValue();
+    	  	long txnAmt = Long.parseLong((String) data[3]);
     	  	changes += txnAmt;
     	  	addRow((String) data[0], txnDate, (String) data[2], txnAmt, currentBalance + changes, rowList);
     	  }
 
       }
 
-      for(Enumeration en = balpredConf.rs.getRemindersOnDay(curr).elements(); en.hasMoreElements();) {
-        Reminder r = (Reminder)en.nextElement();
-        if ((r.getReminderType() == Reminder.TXN_REMINDER_TYPE) && ((Boolean)remindersStatus.get(r)).booleanValue()) {
-          ptxn = ((TransactionReminder)r).getTransaction();
+      for(Reminder r : balpredConf.rs.getRemindersOnDay(curr)) {
+        if ( r.getReminderType() != Reminder.Type.TRANSACTION || !remindersStatus.get(r)) {
+          ptxn = r.getTransaction();
           if (ptxn.getAccount().equals(cacct)) {
             changes += ptxn.getValue();
-			dd("RM(p): "+dateFormat.format(currentTime)+" "+r.getDescription()+" "+format(ptxn.getValue()));
+            dd("RM(p): "+dateFormat.format(currentTime)+" "+r.getDescription()+" "+format(ptxn.getValue()));
             addRow("R", currentTime, r.getDescription(), ptxn.getValue(), currentBalance + changes, rowList);
           }
           for(int i=0; i<ptxn.getSplitCount(); i++) {
@@ -361,7 +359,7 @@ public void run() {
                 long val = CurrencyTable.convertValue(-stxn.getAmount(),
                                                       stxn.getParentTxn().getAccount().getCurrencyType(),
                                                       cacct.getCurrencyType(),
-                                                      ptxn.getDate());
+                                                      DateUtil.convertIntDateToLong(ptxn.getDateInt()).getTime());
                 changes += val;
                 dd("RM(s): "+dateFormat.format(currentTime)+" "+r.getDescription()+" "+format(val));
                 addRow("R", currentTime, r.getDescription(), val, currentBalance + changes, rowList);
@@ -436,12 +434,11 @@ public void run() {
 //     mouseMoved(e);
 //   }
 
-  private Vector getTxnRemindersVect() {
-    Vector v = balpredConf.rs.getAllRemindersVect();
+  private List<Reminder> getTxnRemindersVect() {
+    List<Reminder> v = balpredConf.rs.getAllReminders();
     Vector res = new Vector();
-    for(int i=0;i<v.size();i++) {
-      Reminder r  = (Reminder)v.elementAt(i);
-      if (r.getReminderType()==Reminder.TXN_REMINDER_TYPE) res.add(r);
+    for(Reminder r : balpredConf.rs.getAllReminders()) {
+      if (r.getReminderType()==Reminder.Type.TRANSACTION) res.add(r);
     }
     return res;
   }
@@ -451,19 +448,19 @@ public void run() {
 	  private static final long serialVersionUID = 1L;
 	  private String[] headNames = new String[] {"Reminders","Enabled"};
       private Object[][] data = null;
-      private int tsize = getTxnRemindersVect().size();
+      List<Reminder> v = getTxnRemindersVect();
       private Reminder r = null;
       RemindersTableModel() {
-        data = new Object[tsize][2];
-        Vector v = getTxnRemindersVect();
-        for (int i=0;i<tsize;i++) {
-          r = (Reminder)v.elementAt(i);
+        data = new Object[v.size()][2];
+        int i = 0;
+        for (Reminder r : v) {
           data[i][0] = r;
           data[i][1] = remindersStatus.get(r);
+          i++;
         }
       }
       public int getColumnCount() { return 2; }
-      public int getRowCount() { return tsize;}
+      public int getRowCount() { return v.size();}
       public String getColumnName(int col) {
         return headNames[col];
       }
@@ -477,8 +474,10 @@ public void run() {
         if (col==1) {
           data[row][1] = value;
           Reminder r  = (Reminder)data[row][0];
-          remindersStatus.remove(r);
-          remindersStatus.put(r, value);
+          //remindersStatus.remove(r);
+          if(value instanceof Boolean) {
+            remindersStatus.put(r, (Boolean)value);
+          }
         }
         fireTableCellUpdated(row, col);
       }
@@ -559,7 +558,7 @@ public void run() {
 
   class CurrencyLabeler implements ValueLabeler {
     private CurrencyType curr;
-
+    
     CurrencyLabeler(CurrencyType ct) {
       this.curr = ct;
     }

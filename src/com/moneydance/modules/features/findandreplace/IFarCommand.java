@@ -8,8 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.TxnTag;
+import com.infinitekind.moneydance.model.*;
 
 
 /**
@@ -28,5 +27,5 @@ public interface IFarCommand extends ICommand
     String getPreviewDescription(boolean useParent);
     String getPreviewMemo();
     String getPreviewCheckNumber();
-    TxnTag[] getPreviewTags();
+    java.util.List<String> getPreviewTags();
 }

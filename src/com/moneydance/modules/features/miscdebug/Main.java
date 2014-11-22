@@ -4,6 +4,7 @@
 
 package com.moneydance.modules.features.miscdebug;
 
+import com.moneydance.apps.md.controller.AccountBookWrapper;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 
@@ -11,7 +12,7 @@ import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.HomePageView;
 import com.infinitekind.util.*;
 
-import javax.swing.*;
+import java.util.*;
 import java.io.*;
 import java.lang.String;
 import java.security.SecureRandom;
@@ -26,8 +27,9 @@ import javax.swing.JTextArea;
 public class Main
   extends FeatureModule
 {
-
-
+  private static final String STORE_PINS_PARAM = "store_passwords";
+  
+  
   public void init() {
     // the first thing we will do is register this module to be invoked
     // via the application toolbar
@@ -70,19 +72,19 @@ public class Main
 
   private void clearAllOnline() {
     try {
-      RootAccount root = getContext().getRootAccount();
-      if(root==null) return;
-
-      root.removeParameter(RootAccount.STORE_PINS_PARAM);
-      root.removeParameter(RootAccount.PASSWD_CACHE_KEY);
-      OnlineInfo olInfo = root.getOnlineInfo();
-      while(olInfo.getServiceCount()>0) {
-        OnlineService svc = olInfo.getService(0);
+      AccountBook book = getContext().getCurrentAccountBook();
+      if(book==null) return;
+      
+      Account root = book.getRootAccount();
+      book.getLocalStorage().remove(AccountBookWrapper.STORE_PINS_PARAM);
+      book.getLocalStorage().remove(AccountBookWrapper.PASSWD_CACHE_KEY);
+      OnlineInfo olInfo = book.getOnlineInfo();
+      for(OnlineService svc : new ArrayList<OnlineService>(olInfo.getAllServices())) {
         svc.clearAuthenticationCache();
-        olInfo.removeService(0);
+        svc.deleteItem();
       }
-      root.removeParameter(RootAccount.STORE_PINS_PARAM);
-      root.removeParameter(RootAccount.PASSWD_CACHE_KEY);
+      book.getLocalStorage().remove(AccountBookWrapper.STORE_PINS_PARAM);
+      book.getLocalStorage().remove(AccountBookWrapper.PASSWD_CACHE_KEY);
       AccountIterator acctIterator = new AccountIterator(root);
       while(acctIterator.hasNext()) {
         Account acct = acctIterator.next();
@@ -123,11 +125,12 @@ public class Main
 
   
   private void dumpCurrencyInfo() {
-    RootAccount root = getContext().getRootAccount();
-    if(root==null) return;
+    AccountBook book = getContext().getCurrentAccountBook();
+    if(book==null) return;
+    Account root = book.getRootAccount();
     System.err.println("printing info for all currencies and securities.");
     System.err.println("types: "+CurrencyType.CURRTYPE_CURRENCY+"=currency, "+CurrencyType.CURRTYPE_SECURITY+"=security");
-    for(CurrencyType curr : root.getCurrencyTable().getAllCurrencies()) {
+    for(CurrencyType curr : book.getCurrencies()) {
       System.err.println("Currency: '"+curr.getName()+"'");
       System.err.println("  type: "+curr.getCurrencyType());
       System.err.println("  decimalplaces: " + curr.getDecimalPlaces());
@@ -143,16 +146,13 @@ public class Main
       System.err.println("  prefix: '" + curr.getPrefix() + "'");
       System.err.println("  suffix: '" + curr.getSuffix() + "'");
       System.err.println("  uuid: " + curr.getUUID());
-      TagSet tags = curr.getTags();
-      for(int i=0; i<tags.getTagCount(); i++) {
-        System.err.println("  tag:"+tags.getTagAt(i).getKey()+":"+tags.getTagAt(i).getValue());
+      for(String key : curr.getParameterKeys()) {
+        System.err.println("  tag:"+key+":"+curr.getParameter(key));
       }
-      for(int i=0; i<curr.getStockSplitCount(); i++) {
-        CurrencyType.StockSplit split = curr.getStockSplit(i);
+      for(CurrencySplit split : curr.getSplits()) {
         System.err.println("  stock split on "+split.getDateInt()+", trading "+split.getOldShares()+" for "+split.getNewShares()+" shares at a ratio of "+split.getSplitRatio());
       }
-      for(int i=0; i<curr.getSnapshotCount(); i++) {
-        CurrencyType.Snapshot snap = curr.getSnapshot(i);
+      for(CurrencySnapshot snap : curr.getSnapshots()) {
         System.err.println("  snapshot on "+snap.getDateInt()+" ");
         System.err.println("  --userrate: "+snap.getUserRate());
         System.err.println("  --rawrate: "+snap.getRawRate());
@@ -165,8 +165,9 @@ public class Main
   }
 
   private void addManualFI() {
-    RootAccount root = getContext().getRootAccount();
-    if(root==null) return;
+    AccountBook book = getContext().getCurrentAccountBook();
+    if(book==null) return;
+    Account root = book.getRootAccount();
 
     String infoStr =
       "{\n"
@@ -199,22 +200,21 @@ public class Main
         continue;
       }
 
-      OnlineInfo olInfo = root.getOnlineInfo();
+      OnlineInfo olInfo = book.getOnlineInfo();
       OnlineService newService = new OnlineService(null, infoTable);
 
-      for(int i=olInfo.getServiceCount()-1; i>=0; i--) {
-        OnlineService svc = olInfo.getService(i);
+      for(OnlineService svc : olInfo.getAllServices()) {
         if(svc.isSameAs(newService)) {
           svc.setMsgSetURL(OnlineService.MESSAGE_TYPE_PROF, newService.getBootstrapURL());
-          svc.mergeDataTables(newService.getTable());
+          svc.mergeDataTables(newService.getSyncInfo());
           svc.setProfileUpdateNeeded();
           JOptionPane.showMessageDialog(null, "Updated existing FI with new information: "+newService);
           return;
         }
       }
-
+      
       // no existing FI matched.. so add it
-      olInfo.addService(newService);
+      newService.syncItem();
       JOptionPane.showMessageDialog(null, "Added new FI: "+newService);
       return;
     }
@@ -273,9 +273,7 @@ public class Main
 
     /** Returns a GUI component that provides a view of the info panel
      for the given data file. */
-    public javax.swing.JComponent getGUIView(RootAccount rootAccount) {
-      return label;
-    }
+    public javax.swing.JComponent getGUIView(AccountBook book) { return label; }
 
     /** Sets the view as active or inactive.  When not active, a view
      should not have any registered listeners with other parts of

@@ -71,8 +71,8 @@ public class Main
     return "Mike's Balance Predictor";
   }
 
-  public RootAccount getRoot() {
-    return getContext().getRootAccount();
+  public AccountBook getBook() {
+    return getContext().getCurrentAccountBook();
   }
 
   private synchronized void showBalancePredicter() {
@@ -82,7 +82,7 @@ public class Main
         win.setVisible(false);
 				System.out.println("^^^^ disposed old win");
       }
-      BalPredConf conf = new BalPredConf(getRoot(), getName());
+      BalPredConf conf = new BalPredConf(getBook(), getName());
 			System.out.println("^^^^ made new BalPredConf");
       FeatureModuleContext context = getContext();
       if(context instanceof com.moneydance.apps.md.controller.Main) {

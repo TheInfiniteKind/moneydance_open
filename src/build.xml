@@ -24,6 +24,7 @@ http://jakarta.apache.org/ant/index.html
   
   <path id="classpath">
     <pathelement path="../lib/moneydance.jar"/>
+    <pathelement path="../lib/moneydance2015.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
     <pathelement path="../lib/mdadmin.jar"/> <!-- Since mdadmin has a StringUtils, it needs to come after moneydance.jar -->
     <pathelement path="../lib/jfreechart-1.0.9.jar"/>
     <pathelement path="../lib/jcommon-1.0.12.jar"/>
@@ -61,7 +62,7 @@ http://jakarta.apache.org/ant/index.html
             <exclude name="**/contact.*" />
           </fileset>
         </copy>
-        <!-- move license and contact to root of mxt -->
+        <!-- move license and contact to book of mxt -->
         <copy todir="${build}">
           <fileset dir="${src}/com/moneydance/modules/features/@{feature}">
             <include name="contact.*" />
@@ -431,6 +432,6 @@ http://jakarta.apache.org/ant/index.html
     </java>
   </target>
 
-  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport,featureloader"/>
+  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport,featureloader,findandreplace,jpython"/>
 
 </project>

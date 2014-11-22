@@ -21,7 +21,7 @@ import java.awt.*;
 public class Main
   extends FeatureModule
 {
-  private RootAccount root = null;
+  private AccountBook book = null;
   private PythonWindow pythonWindow = null;
 
   public void init() {

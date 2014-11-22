@@ -9,7 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.HomePageView;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 
 import javax.swing.JComponent;
 
@@ -36,7 +36,7 @@ class FarHomeView implements HomePageView
         return N12EFindAndReplace.HOME_PAGE_ID;
     }
 
-    public JComponent getGUIView(RootAccount rootAccount)
+    public JComponent getGUIView(AccountBook book)
     {
         if (_view == null)
         {

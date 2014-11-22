@@ -8,12 +8,9 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.FullAccountList;
-import com.infinitekind.moneydance.model.RootAccount;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.TxnTag;
+import com.infinitekind.moneydance.model.*;
+import com.moneydance.util.*;
+import com.moneydance.apps.md.controller.*;
 import com.moneydance.apps.md.controller.Util;
 import com.moneydance.apps.md.view.gui.TagLogic;
 
@@ -21,6 +18,7 @@ import java.util.Collection;
 import java.awt.datatransfer.StringSelection;
 import java.awt.Toolkit;
 import java.util.regex.Pattern;
+import java.util.*;
 
 /**
  * <p>Model for the Find and Replace plugin. Stores all the settings you see in the dialog, and
@@ -32,7 +30,7 @@ import java.util.regex.Pattern;
  */
 class FarModel extends BasePropertyChangeReporter
 {
-    private RootAccount _data;
+    private AccountBook _data;
     private FindResultsTableModel _findResultsModel;
     private boolean _allowEvents = true;
     
@@ -108,12 +106,12 @@ class FarModel extends BasePropertyChangeReporter
     {
         _accountFilter = new AccountFilter(L10NFindAndReplace.ACCOUNTFILTER_ALL_ACCOUNTS);
         // all types except categories and securities (which act like categories for investments)
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_ASSET);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_BANK);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_CREDIT_CARD);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_INVESTMENT);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LIABILITY);
-        _accountFilter.addAllowedType(Account.ACCOUNT_TYPE_LOAN);
+        _accountFilter.addAllowedType(Account.AccountType.ASSET);
+        _accountFilter.addAllowedType(Account.AccountType.BANK);
+        _accountFilter.addAllowedType(Account.AccountType.CREDIT_CARD);
+        _accountFilter.addAllowedType(Account.AccountType.INVESTMENT);
+        _accountFilter.addAllowedType(Account.AccountType.LIABILITY);
+        _accountFilter.addAllowedType(Account.AccountType.LOAN);
 
         setupCategoryFilter();
 
@@ -130,7 +128,7 @@ class FarModel extends BasePropertyChangeReporter
         _findResultsModel = resultsModel;
     }
 
-    void setData( final RootAccount data )
+    void setData( final AccountBook data )
     {
         _data = data;
         if (_data == null)
@@ -141,8 +139,8 @@ class FarModel extends BasePropertyChangeReporter
         }
 
         // store the default/base currency
-        _findAmountCurrency = _data.getCurrencyTable().getBaseType();
-        _replaceAmountCurrency = _data.getCurrencyTable().getBaseType();
+        _findAmountCurrency = _data.getCurrencies().getBaseType();
+        _replaceAmountCurrency = _data.getCurrencies().getBaseType();
 
         // create the full account list - we don't count sub-accounts for these, which generally
         // are securities within investment accounts
@@ -151,20 +149,21 @@ class FarModel extends BasePropertyChangeReporter
 
         // create the full category list, including sub-categories
         loadCategoryFilter();
-
+        
         // to display user-defined tags, we have to have the list
-        _findResultsModel.setUserTagSet(_data.getTxnTagSet());
+        List<String> allTxnTags = TxnUtil.getListOfAllUsedTransactionTags(_data.getTransactionSet().getAllTxns());
+        _findResultsModel.setUserTagSet(allTxnTags);
 
         // and the pickers need the same
-        _includeTagPickerModel = new TagPickerModel(_data.getTxnTagSet());
+        _includeTagPickerModel = new TagPickerModel(allTxnTags);
         _includeTagPickerModel.selectAll();  // all are selected by default
-        _excludeTagPickerModel = new TagPickerModel(_data.getTxnTagSet());
-        _replaceAddTagPickerModel = new TagPickerModel(_data.getTxnTagSet());
-        _replaceRemoveTagPickerModel = new TagPickerModel(_data.getTxnTagSet());
-        _replaceReplaceTagPickerModel = new TagPickerModel(_data.getTxnTagSet());
+        _excludeTagPickerModel = new TagPickerModel(allTxnTags);
+        _replaceAddTagPickerModel = new TagPickerModel(allTxnTags);
+        _replaceRemoveTagPickerModel = new TagPickerModel(allTxnTags);
+        _replaceReplaceTagPickerModel = new TagPickerModel(allTxnTags);
     }
 
-    RootAccount getData()
+    AccountBook getData()
     {
         return _data;
     }
@@ -220,8 +219,8 @@ class FarModel extends BasePropertyChangeReporter
         _amountMaximum = 0;
         if (_data != null)
         {
-            _findAmountCurrency = _data.getCurrencyTable().getBaseType();
-            _replaceAmountCurrency = _data.getCurrencyTable().getBaseType();
+            _findAmountCurrency = _data.getCurrencies().getBaseType();
+            _replaceAmountCurrency = _data.getCurrencies().getBaseType();
         }
         else
         {
@@ -883,7 +882,7 @@ class FarModel extends BasePropertyChangeReporter
             check = null;
         }
 
-        final TxnTag[] tags;
+        final List<String> tags;
         if (_doReplaceTags)
         {
             if (ReplaceTagCommandType.ADD.equals(_replaceTagCommand))
@@ -925,7 +924,7 @@ class FarModel extends BasePropertyChangeReporter
                                   memo, allowFoundOnly && _replaceFoundMemoOnly,
                                   check, allowFoundOnly && _replaceFoundCheckOnly,
                                   findPattern,
-                                  _replaceTagCommand, tags, _data.getTxnTagSet());
+                                  _replaceTagCommand, tags, TxnUtil.getListOfAllUsedTransactionTags(_data.getTransactionSet().getAllTxns()));
     }
 
     boolean hasFindResults()
@@ -979,7 +978,7 @@ class FarModel extends BasePropertyChangeReporter
             {
                 for (Integer accountId : includedCats)
                 {
-                    Account catAccount = _data.getAccountById(accountId.intValue());
+                    Account catAccount = _data.getAccountByNum(accountId.intValue());
                     if (catAccount != null)
                     {
                         // this won't add if the account type isn't allowed - good
@@ -1063,7 +1062,7 @@ class FarModel extends BasePropertyChangeReporter
         }
         String countDisplay = String.format("%d / %d", Integer.valueOf(selectedCount),
                 Integer.valueOf(displayCount));
-        CurrencyType baseCurrency = _data.getCurrencyTable().getBaseType();
+        CurrencyType baseCurrency = _data.getCurrencies().getBaseType();
         char dec = _findResultsModel.getDecimalChar();
         String adds = baseCurrency.formatFancy(plusses, dec);
         String subtracts = baseCurrency.formatFancy(minuses, dec);
@@ -1241,17 +1240,17 @@ class FarModel extends BasePropertyChangeReporter
     {
         _categoryFilter = new AccountFilter(L10NFindAndReplace.ACCOUNTFILTER_ALL_CATEGORIES);
         // all categories
-        _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_INCOME);
-        _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_EXPENSE);
+        _categoryFilter.addAllowedType(Account.AccountType.INCOME);
+        _categoryFilter.addAllowedType(Account.AccountType.EXPENSE);
         if (_includeTransfers)
         {
-            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_ASSET);
-            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_BANK);
-            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_CREDIT_CARD);
-            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_INVESTMENT);
-            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_LIABILITY);
-            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_LOAN);
-            _categoryFilter.addAllowedType(Account.ACCOUNT_TYPE_SECURITY);
+            _categoryFilter.addAllowedType(Account.AccountType.ASSET);
+            _categoryFilter.addAllowedType(Account.AccountType.BANK);
+            _categoryFilter.addAllowedType(Account.AccountType.CREDIT_CARD);
+            _categoryFilter.addAllowedType(Account.AccountType.INVESTMENT);
+            _categoryFilter.addAllowedType(Account.AccountType.LIABILITY);
+            _categoryFilter.addAllowedType(Account.AccountType.LOAN);
+            _categoryFilter.addAllowedType(Account.AccountType.SECURITY);
         }
     }
 

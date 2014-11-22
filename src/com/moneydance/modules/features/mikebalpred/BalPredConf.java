@@ -21,7 +21,7 @@ public class BalPredConf
   public static final int DEF_NUM = 6;
   public static final int INTERVALS = 60;
 
-  private RootAccount root = null;
+  private AccountBook book = null;
   private TransactionSet ts = null;
   private TxnSet txns = null;
 /*  private GraphModel gm = null;*/
@@ -30,27 +30,32 @@ public class BalPredConf
   public ReminderSet rs = null;
   public String dateFormatStr = "MM/dd/yy";
   
-  public BalPredConf(RootAccount root, String extensionName) {
-    this.root = root;
+  public BalPredConf(AccountBook book, String extensionName) {
+    this.book = book;
     this.extensionName = extensionName;
-    loadAccount(root);
-    ts = root.getTransactionSet();
-    rs = root.getReminderSet();
+    loadAccount(book.getRootAccount());
+    ts = book.getTransactionSet();
+    rs = book.getReminders();
     txns = ts.getTransactionsForAccount((Account)cbAccounts.getSelectedItem());
 		cbAccounts.setSelectedIndex(1);
   }
   
-  public RootAccount getRootAccount() { return root; }
+  public AccountBook getRootAccount() { return book; }
 
   public Account getAccount() { return (Account)cbAccounts.getSelectedItem(); }
 
   public void loadAccount(Account acct) {
     for(int i=0; i<acct.getSubAccountCount(); i++) {
       Account subAcct = acct.getSubAccount(i);
-      int acctType = subAcct.getAccountType();
-      if(		(acctType==Account.ACCOUNT_TYPE_BANK) || (acctType==Account.ACCOUNT_TYPE_CREDIT_CARD)
-				 || (acctType==Account.ACCOUNT_TYPE_ASSET) || (acctType==Account.ACCOUNT_TYPE_LIABILITY)) {
-        cbAccounts.addItem(subAcct);
+      Account.AccountType acctType = subAcct.getAccountType();
+      switch (acctType) {
+        case BANK:
+        case CREDIT_CARD:
+        case ASSET:
+        case LIABILITY:
+          cbAccounts.addItem(subAcct);
+          break;
+        default:
       }
       loadAccount(subAcct);
     }
@@ -74,10 +79,9 @@ public class BalPredConf
     ParentTxn ptxn = null;
     SplitTxn stxn = null;
     Account acct = getAccount();
-    for(int i=0; i<rs.getReminderCount();i++) {
-      Reminder r = rs.getReminder(i);
-      if (r.getReminderType() == Reminder.TXN_REMINDER_TYPE) {
-        ptxn = ((TransactionReminder)r).getTransaction();
+    for(Reminder r : rs.getAllReminders()) {
+      if (r.getReminderType() == Reminder.Type.TRANSACTION) {
+        ptxn = r.getTransaction();
         if (ptxn.getAccount().equals(acct)) rc++;
         else {
           for(int j=0;j<ptxn.getSplitCount();j++) {

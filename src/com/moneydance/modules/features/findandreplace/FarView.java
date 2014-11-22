@@ -2091,7 +2091,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         if (_controller.getMDGUI() != null)
         {
             AccountChoice chooser = setupControl( new AccountChoice(_model.getData(), _controller.getMDGUI()) );
-            chooser.setContainerAccount(_model.getData());
+            chooser.setContainerAccount(_model.getData().getRootAccount());
             
             final boolean normalAccounts = _controller.getIncludeTransfers();
             chooser.setShowAssetAccounts(normalAccounts);

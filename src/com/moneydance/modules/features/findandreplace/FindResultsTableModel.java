@@ -8,14 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.AbstractTxn;
-import com.infinitekind.moneydance.model.ParentTxn;
-import com.infinitekind.moneydance.model.SplitTxn;
-import com.infinitekind.moneydance.model.TxnTagSet;
-import com.infinitekind.moneydance.model.TxnTag;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.CurrencyUtil;
-import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.view.gui.MDImages;
 import com.infinitekind.util.CustomDateFormat;
@@ -53,24 +46,23 @@ public class FindResultsTableModel extends AbstractTableModel
     static final int MEMO_PARENT_INDEX = 13;   // not shown except in export to clipboard
     static final int OTHER_AMOUNT_INDEX = 14;  // not shown except in export to clipboard
 
-    private static final ParentTxn BLANK_TRANSACTION =
-            new ParentTxn(
-                    0,                           // int date
-                    0,                           // int taxDate
-                    100,                         // long dateEntered
-                    "Hello",                     // java.lang.String checkNumber
-                    null,                        // Account account
-                    "Goodbye",                   // java.lang.String description
-                    "hello",                     // java.lang.String memo
-                    0,                           // long id
-                    AbstractTxn.STATUS_CLEARED); // byte status
-    private static final FindResultsTableEntry BLANK_ENTRY =
-            new FindResultsTableEntry(BLANK_TRANSACTION, false, null);
+    private static final ParentTxn BLANK_TRANSACTION = 
+      ParentTxn.makeParentTxn(null,
+                              0,                           // int date
+                              0,                           // int taxDate
+                              100,                         // long dateEntered
+                              "Hello",                     // java.lang.String checkNumber
+                              null,                        // Account account
+                              "Goodbye",                   // java.lang.String description
+                              "hello",                     // java.lang.String memo
+                              0,                           // long id
+                              AbstractTxn.STATUS_CLEARED); // byte status
+    private static final FindResultsTableEntry BLANK_ENTRY = new FindResultsTableEntry(BLANK_TRANSACTION, false, null);
 
     private static final String DEFAULT_DATE_FORMAT = "MM/dd/YYYY";
     private static final char DEFAULT_DECIMAL_CHAR = '.';
 
-    private TxnTagSet _userTagSet;
+    private List<String> _userTagSet;
     /** The full set of data, including all splits. */
     private final List<FindResultsTableEntry> _splitData;
     /** Display data. Can be the full splits data or could be just one entry per parent. */
@@ -137,15 +129,14 @@ public class FindResultsTableModel extends AbstractTableModel
     void refresh()
     {
         _data.clear();
-        final Set<Long> foundIDs = new HashSet<Long>(_splitData.size());
+        final Set<String> foundIDs = new HashSet<String>(_splitData.size());
         if (_controller.getShowParents())
         {
             // build a smaller list of entries containing only one entry per parent transaction
             for (FindResultsTableEntry entry : _splitData)
             {
-                final Long parentId = Long.valueOf(entry.getParentTxn().getTxnId());
-                if (!foundIDs.contains(parentId))
-                {
+                final String parentId = entry.getParentTxn().getUUID();
+                if (!foundIDs.contains(parentId)) {
                     // add the first one found in the splits list, all others will be ignored
                     _data.add(entry);
                     foundIDs.add(parentId);
@@ -165,7 +156,7 @@ public class FindResultsTableModel extends AbstractTableModel
         return _data.get(index);
     }
     
-    void setUserTagSet(final TxnTagSet userTags)
+    void setUserTagSet(final List<String> userTags)
     {
         _userTagSet = userTags;
     }
@@ -420,8 +411,8 @@ public class FindResultsTableModel extends AbstractTableModel
         }
 
         final SplitTxn split = entry.getSplitTxn();
-        final int type = _controller.getShowParents() ? parent.getAccount().getAccountType() : split.getAccount().getAccountType();
-        final boolean flip = ((type == Account.ACCOUNT_TYPE_EXPENSE) || (type == Account.ACCOUNT_TYPE_INCOME));
+        final Account.AccountType type = _controller.getShowParents() ? parent.getAccount().getAccountType() : split.getAccount().getAccountType();
+        final boolean flip = ((type == Account.AccountType.EXPENSE) || (type == Account.AccountType.INCOME));
         if (_controller.getShowParents())
         {
             return flip ? (parent.getValue() > 0) : (parent.getValue() < 0);
@@ -786,8 +777,8 @@ public class FindResultsTableModel extends AbstractTableModel
             {
                 sourceCurrency = account.getCurrencyType();
             }
-            int type = account.getAccountType();
-            if ((type == Account.ACCOUNT_TYPE_EXPENSE) || (type == Account.ACCOUNT_TYPE_INCOME))
+            Account.AccountType type = account.getAccountType();
+            if ((type == Account.AccountType.EXPENSE) || (type == Account.AccountType.INCOME))
             {
                 value = -value;
             }
@@ -886,7 +877,7 @@ public class FindResultsTableModel extends AbstractTableModel
                                     final FindResultsTableEntry entry)
     {
         // user tags are associated with splits only
-        TxnTag[] tags = FarUtil.getTransactionTags(txn, _userTagSet);
+        List<String> tags = FarUtil.getTransactionTags(txn, _userTagSet);
 
         // TODO: this won't work with more than one command -- fix so that tags are applied in succession
         if ((_commands != null) && !_commands.isEmpty() && entry.isApplied())
@@ -903,21 +894,21 @@ public class FindResultsTableModel extends AbstractTableModel
         }
 
         // checks for valid transaction and for a non-null user tag set
-        if (tags.length == 0)
+        if (tags.size() == 0)
         {
             // no tags associated with parent transactions with more than one split
             return N12EFindAndReplace.EMPTY;
         }
 
         StringBuilder buffer = new StringBuilder(N12EFindAndReplace.EMPTY);
-        for (final TxnTag tag : tags)
+        for (final String tag : tags)
         {
             if (buffer.length() > 0)
             {
                 buffer.append(N12EFindAndReplace.COMMA_SEPARATOR);
             }
 
-            buffer.append(tag.getName());
+            buffer.append(tag);
         }
         return buffer.toString();
     }

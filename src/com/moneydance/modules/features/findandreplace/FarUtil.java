@@ -8,13 +8,10 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.AbstractTxn;
-import com.infinitekind.moneydance.model.ParentTxn;
-import com.infinitekind.moneydance.model.SplitTxn;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.TxnTag;
-import com.infinitekind.moneydance.model.TxnTagSet;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+
+import java.util.*;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -141,7 +138,7 @@ final class FarUtil
         return memo;
     }
 
-    static TxnTag[] getTransactionTags(final AbstractTxn txn, final TxnTagSet tagSet)
+    static List<String> getTransactionTags(final AbstractTxn txn, final List<String> tagSet)
     {
         // user tags are associated with splits only
         final SplitTxn split;
@@ -157,16 +154,16 @@ final class FarUtil
         else
         {
             // no tags associated with parent transactions with more than one split
-            return new TxnTag[0];
+            return new ArrayList<String>();
         }
 
         if (tagSet == null)
         {
             // enforce the use of the API method
-            return new TxnTag[0];
+            return new ArrayList<String>();
         }
 
-        return tagSet.getTagsForTxn(split);
+        return split.getKeywords();
     }
 
     static boolean hasRegularExpression(final String freeTextSearch)

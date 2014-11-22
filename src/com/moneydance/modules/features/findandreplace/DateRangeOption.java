@@ -8,7 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.DisplayableObject;
+import com.infinitekind.moneydance.model.*;
 
 /**
  * Defines the various date ranges that can be selected in reports, budgets, etc. The ordinal 
@@ -47,7 +47,7 @@ import com.infinitekind.moneydance.model.DisplayableObject;
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
-public enum DateRangeOption implements DisplayableObject {
+public enum DateRangeOption {
   
   /** Current year to today's date. */
   DR_YEAR_TO_DATE("year_to_date"), // ordinal 0

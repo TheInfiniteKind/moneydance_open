@@ -8,14 +8,7 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.AbstractTxn;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.CurrencyUtil;
-import com.infinitekind.moneydance.model.TxnTag;
-import com.infinitekind.moneydance.model.SplitTxn;
-import com.infinitekind.moneydance.model.ParentTxn;
-import com.infinitekind.moneydance.model.TxnTagSet;
+import com.infinitekind.moneydance.model.*;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -44,8 +37,8 @@ public class ReplaceCommand implements IFarCommand
     private final boolean _replaceFoundCheckOnly;
     private final Pattern _findPattern;
     private final ReplaceTagCommandType _replaceTagType;
-    private final TxnTag[] _replaceTagSet;
-    private final TxnTagSet _userTagSet;
+    private final List<String> _replaceTagSet;
+    private final List<String> _userTagSet;
 
     // the transaction changes as the command is applied to all selected transactions in the list
     private FindResultsTableEntry _transaction;
@@ -55,8 +48,8 @@ public class ReplaceCommand implements IFarCommand
                    final String memo, final boolean replaceFoundMemoOnly,
                    final String check, final boolean replaceFoundCheckOnly,
                    final Pattern findPattern,
-                   final ReplaceTagCommandType tagCommand, final TxnTag[] tags,
-                   final TxnTagSet userTagSet)
+                   final ReplaceTagCommandType tagCommand, final List<String> tags,
+                   final List<String> userTagSet)
     {
         _replaceCategory = category;
         _replaceAmount = amount;
@@ -177,7 +170,7 @@ public class ReplaceCommand implements IFarCommand
         return applyTextReplace(_transaction.getParentTxn().getCheckNumber(), _replaceCheckNum, _replaceFoundCheckOnly);
     }
 
-    public TxnTag[] getPreviewTags()
+    public List<String> getPreviewTags()
     {
         if ((_transaction == null) || (_replaceTagSet == null))
         {
@@ -188,7 +181,7 @@ public class ReplaceCommand implements IFarCommand
         // There can be tags on both sides: split and parent. However the parent side is hard to
         // get to (Show Other Side, then edit tags) and has some UI issues for the user. Currently
         // we only support tags on the split.
-        final TxnTag[] baseTags = FarUtil.getTransactionTags(_transaction.getSplitTxn(), _userTagSet);
+        final List<String> baseTags = FarUtil.getTransactionTags(_transaction.getSplitTxn(), _userTagSet);
 
         return getChangedTagSet(baseTags);
     }
@@ -362,15 +355,15 @@ public class ReplaceCommand implements IFarCommand
             // get to (Show Other Side, then edit tags) and has some UI issues for the user. Currently
             // we only support tags on the split.
             final SplitTxn split = _transaction.getSplitTxn();
-            final TxnTag[] existingTags = FarUtil.getTransactionTags(split, _userTagSet);
-            final TxnTag[] newTags = getChangedTagSet(existingTags);
+            final List<String> existingTags = FarUtil.getTransactionTags(split, _userTagSet);
+            final List<String> newTags = getChangedTagSet(existingTags);
             if (newTags != null)
             {
-                if (!Arrays.equals(existingTags, newTags))
+                if (!existingTags.equals(newTags))
                 {
                     changed = true;
                 }
-                TxnTagSet.setTagsForTxn(split, newTags);
+                split.setKeywords(newTags);
             }
         }
 
@@ -382,8 +375,7 @@ public class ReplaceCommand implements IFarCommand
     // Package Private Methods
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    AbstractTxn getParentTransaction()
-    {
+    AbstractTxn getParentTransaction() {
         return _transaction.getParentTxn();
     }
 
@@ -408,7 +400,7 @@ public class ReplaceCommand implements IFarCommand
         return replacementText;
     }
 
-    private TxnTag[] getChangedTagSet(final TxnTag[] baseTags)
+    private List<String> getChangedTagSet(final List<String> baseTags)
     {
         if (_replaceTagSet == null)
         {
@@ -416,25 +408,23 @@ public class ReplaceCommand implements IFarCommand
             return null;
         }
 
-        final List<TxnTag> newTags;
+        final List<String> newTags;
         if (ReplaceTagCommandType.ADD.equals(_replaceTagType))
         {
             if (baseTags != null)
             {
-                newTags = new ArrayList<TxnTag>(Arrays.asList(baseTags));
+                newTags = new ArrayList<String>(baseTags);
             }
             else
             {
-                newTags = new ArrayList<TxnTag>();
+                newTags = new ArrayList<String>();
             }
 
-            for (final TxnTag addTag : _replaceTagSet)
+            for (final String addTag : _replaceTagSet)
             {
                 boolean found = false;
-                for (final TxnTag existing : newTags)
-                {
-                    if (existing.equals(addTag))
-                    {
+                for (final String existing : newTags) {
+                    if (existing.equals(addTag)) {
                         found = true;
                         break;
                     }
@@ -451,17 +441,17 @@ public class ReplaceCommand implements IFarCommand
         {
             if (baseTags != null)
             {
-                newTags = new ArrayList<TxnTag>(Arrays.asList(baseTags));
+                newTags = new ArrayList<String>(baseTags);
             }
             else
             {
-                newTags = new ArrayList<TxnTag>();
+                newTags = new ArrayList<String>();
             }
 
-            for (final TxnTag removeTag : _replaceTagSet)
+            for (final String removeTag : _replaceTagSet)
             {
-                TxnTag tagToDelete = null;
-                for (final TxnTag existing : newTags)
+                String tagToDelete = null;
+                for (final String existing : newTags)
                 {
                     if (existing.equals(removeTag))
                     {
@@ -479,7 +469,7 @@ public class ReplaceCommand implements IFarCommand
         }
         else if (ReplaceTagCommandType.REPLACE.equals(_replaceTagType))
         {
-            newTags = new ArrayList<TxnTag>(Arrays.asList(_replaceTagSet));
+            newTags = new ArrayList<String>(_replaceTagSet);
         }
         else
         {
@@ -487,6 +477,6 @@ public class ReplaceCommand implements IFarCommand
             return null;
         }
 
-        return newTags.toArray(new TxnTag[newTags.size()]);
+        return newTags;
     }
 }

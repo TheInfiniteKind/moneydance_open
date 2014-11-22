@@ -10,6 +10,8 @@ package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
 
+import java.util.Arrays;
+
 
 /**
  * <p>Mediates between view and model for the tag picker control.</p>
@@ -36,7 +38,7 @@ class TagPickerController
 
     void updateFromView()
     {
-        _model.setSelectedTags(_view.getSelectedTags());
+        _model.setSelectedTags(Arrays.asList(_view.getSelectedTags()));
     }
 
     void selectAll()

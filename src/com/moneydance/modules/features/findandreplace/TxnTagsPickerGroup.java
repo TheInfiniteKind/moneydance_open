@@ -9,7 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -37,7 +37,7 @@ class TxnTagsPickerGroup extends JPanel
      * @param data Datafile
      * @param controller Localization resources
      */
-    TxnTagsPickerGroup(final MoneydanceGUI mdGui, final RootAccount data,
+    TxnTagsPickerGroup(final MoneydanceGUI mdGui, final AccountBook data,
                        final FarController controller)
     {
         _include = new TxnTagsPicker(mdGui, data);
