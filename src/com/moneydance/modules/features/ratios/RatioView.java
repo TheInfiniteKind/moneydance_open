@@ -15,7 +15,7 @@ import com.moneydance.apps.md.view.gui.reporttool.Report;
 import com.moneydance.apps.md.view.gui.reporttool.ShowReportWindow;
 import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.GridC;
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
@@ -85,7 +85,7 @@ class RatioView extends JPanel {
         RatioReportGenerator generator = new RatioReportGenerator(_mainModel, _ratio, (Graphics2D)getGraphics());
         Report report = (Report)generator.generate();
         ShowReportWindow reportWindow = new ShowReportWindow(_mainModel.getGUI(), AwtUtil.getFrame(RatioView.this),
-                                                             generator, report, null);
+                                                             generator, report);
         reportWindow.setVisible(true);
       }
     });

@@ -21,10 +21,10 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.SecondaryDialog;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 /**
  * <p>Dialog that allows the user to change Ratios settings.</p>
@@ -72,7 +72,7 @@ class RatioSettingsDialog
   public RatioSettingsDialog(MoneydanceGUI mdGui, Frame owner,
                              ResourceProvider resources,
                              RatiosExtensionModel mainModel,
-                             RootAccount data,
+                             AccountBook data,
                              RatioSettings settings) {
     super(mdGui, owner, resources.getString(L10NRatios.SETTINGS_TITLE), false);
 

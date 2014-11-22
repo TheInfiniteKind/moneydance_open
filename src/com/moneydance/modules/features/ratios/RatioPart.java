@@ -11,15 +11,8 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.moneydance.model.DateRange;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.AcctFilter;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.CurrencyUtil;
-import com.infinitekind.moneydance.model.RootAccount;
-import com.infinitekind.moneydance.model.Txn;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.TxnDateSearch;
 import com.moneydance.apps.md.view.gui.TxnTagsSearch;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
@@ -68,7 +61,7 @@ class RatioPart {
     buildAccountList(mdGui, _encodedDisallowedAccounts, _disallowedAccounts);
     loadTags(settings.getStr(tagsKey, N12ERatios.EMPTY));
   }
-
+  
   void saveToSettings(final StreamTable settings,
                       final String txnMatchKey, final String labelKey,
                       final String requiredListKey, final String disallowedListKey,
@@ -106,17 +99,17 @@ class RatioPart {
   String getLabel() { return _label; }
   void setLabel(final String label) { _label = label; }
 
-  void setRequiredAccounts(AccountFilter accountFilter, final RootAccount root) {
+  void setRequiredAccounts(AccountFilter accountFilter, final AccountBook book) {
     _requiredAccounts.clear();
-    _requiredAccounts.addAll(accountFilter.buildIncludedAccountList(root));
+    _requiredAccounts.addAll(accountFilter.buildIncludedAccountList(book));
     _encodedRequiredAccounts = GraphReportUtil.encodeAcctList(accountFilter);
   }
   void setEncodedRequiredAccounts(final String encodedAccounts) { _encodedRequiredAccounts = encodedAccounts; }
   String getEncodedRequiredAccounts() { return _encodedRequiredAccounts; }
   List<Account> getRequiredAccountList() { return _requiredAccounts; }
-  void setDisallowedAccounts(AccountFilter accountFilter, final RootAccount root) {
+  void setDisallowedAccounts(AccountFilter accountFilter, final AccountBook book) {
     _disallowedAccounts.clear();
-    _disallowedAccounts.addAll(accountFilter.buildIncludedAccountList(root));
+    _disallowedAccounts.addAll(accountFilter.buildIncludedAccountList(book));
     _encodedDisallowedAccounts = GraphReportUtil.encodeAcctList(accountFilter);
   }
   void setEncodedDisallowedAccounts(final String encodedAccounts) { _encodedDisallowedAccounts = encodedAccounts; }
@@ -193,15 +186,15 @@ class RatioPart {
     // start with nothing
     accounts.clear();
     // use an account selector so as to not duplicate code
-    final RootAccount root = mdGui.getCurrentAccount();
-    RatioAccountSelector selector = RatioEntryEditorView.createAccountSelector(root);
+    final AccountBook book = mdGui.getCurrentBook();
+    RatioAccountSelector selector = RatioEntryEditorView.createAccountSelector(book);
     AccountFilter accountFilter = selector.selectFromEncodedString(encodedAccountIDs);
-    accounts.addAll(accountFilter.buildIncludedAccountList(root));
+    accounts.addAll(accountFilter.buildIncludedAccountList(book));
   }
 
-  void prepareForTxnProcessing(final RootAccount root, final DateRange dateRange, final boolean useTaxDate) {
+  void prepareForTxnProcessing(final AccountBook book, final DateRange dateRange, final boolean useTaxDate) {
     if (isAccountBalanceType()) return; // nothing to do
-    _baseCurrency = root.getCurrencyTable().getBaseType();
+    _baseCurrency = book.getCurrencies().getBaseType();
     _txnValue = 0;
     _dateFilter = new TxnDateSearch(dateRange.getStartDateInt(), dateRange.getEndDateInt(), useTaxDate);
     _requiredFilter = new AcctFilter() {
@@ -223,7 +216,7 @@ class RatioPart {
       }
     };
     if (!StringUtils.isBlank(_tags)) {
-      _tagFilter = new TxnTagsSearch(root.getTxnTagSet().getTagsForIDString(_tags), _tagLogic);
+      _tagFilter = new TxnTagsSearch(book.getTxnTagSet().getTagsForIDString(_tags), _tagLogic);
     } else {
       _tagFilter = null;
     }
@@ -249,8 +242,8 @@ class RatioPart {
       return;
     }
     // we do not allow security accounts either
-    if ((sourceAccount.getAccountType() == Account.ACCOUNT_TYPE_SECURITY)
-        || (targetAccount.getAccountType() == Account.ACCOUNT_TYPE_SECURITY)) {
+    if ((sourceAccount.getAccountType() == Account.AccountType.SECURITY)
+        || (targetAccount.getAccountType() == Account.AccountType.SECURITY)) {
       // do nothing, can't use this transaction
       return;
     }

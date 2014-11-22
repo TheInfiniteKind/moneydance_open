@@ -13,7 +13,7 @@ package com.moneydance.modules.features.ratios;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.PreferencesListener;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.AwtUtil;
 import com.infinitekind.util.StringUtils;
@@ -59,11 +59,11 @@ public class Main
     addPreferencesListener();
     MoneydanceGUI mdGUI = (MoneydanceGUI) ((com.moneydance.apps.md.controller.Main) context).getUI();
     _model.initialize(mdGUI);
-    final RootAccount root = getContext().getRootAccount();
+    final AccountBook book = getContext().getCurrentAccountBook();
     // If root is null, then we'll just wait for the MD_OPEN_EVENT_ID event. When the plugin
     // is first installed, the root should be non-null. When MD starts up, it is likely to be null
     // until the file is opened.
-    if (root != null) _model.setData(root);
+    if (book != null) _model.setData(book);
     // setup the home page view
     _homePageView = new RatiosHomeView(this, _model);
     getContext().registerHomePageView(this, _homePageView);
@@ -104,7 +104,7 @@ public class Main
   public void handleEvent(String s) {
     super.handleEvent(s);
     if (N12ERatios.MD_OPEN_EVENT_ID.equals(s)) {
-      _model.setData(getContext().getRootAccount());
+      _model.setData(getContext().getCurrentAccountBook());
     } else if (N12ERatios.MD_CLOSING_EVENT_ID.equals(s) ||
                N12ERatios.MD_EXITING_EVENT_ID.equals(s)) {
       _model.setData(null);
@@ -126,13 +126,13 @@ public class Main
       SwingUtilities.invokeLater(new Runnable() {
         public void run() {
           Component parent = null;
-          final RootAccount rootAccount = _model.getRootAccount();
+          final AccountBook book = _model.getRootAccount();
           if (_homePageView != null) {
-            parent = _homePageView.getGUIView(rootAccount);
+            parent = _homePageView.getGUIView(book);
           }
           RatioSettingsDialog dialog = new RatioSettingsDialog(_model.getGUI(), AwtUtil.getFrame(parent),
                                                                _model.getResources(),
-                                                               _model, rootAccount, _model.getSettings());
+                                                               _model, book, _model.getSettings());
           dialog.loadData();
           dialog.setVisible(true);
         }

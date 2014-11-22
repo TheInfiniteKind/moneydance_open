@@ -12,11 +12,10 @@ package com.moneydance.modules.features.ratios;
 
 import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.time.DateRangeOption;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.infinitekind.util.StreamTable;
-import com.infinitekind.util.BasePropertyChangeReporter;
+import com.moneydance.util.BasePropertyChangeReporter;
 import com.infinitekind.util.StringEncodingException;
 import com.infinitekind.util.StringUtils;
 
@@ -188,10 +187,11 @@ public class RatioSettings
     }
   }
 
-  public void loadFromSettings(final RootAccount root, final ResourceProvider resources) {
+  public void loadFromSettings(final AccountBook book, final ResourceProvider resources) {
+    Account root = book.getRootAccount();
     // if the file never contained a ratios setting, build from what we have
     if (!root.doesParameterExist(N12ERatios.SETTINGS_ID)) {
-      buildInitialSettings(root, resources, true);
+      buildInitialSettings(book, resources, true);
       return;
     }
 
@@ -229,12 +229,12 @@ public class RatioSettings
     buildDateRangeFromOption();
   }
 
-  public void saveToSettings(final RootAccount root) {
+  public void saveToSettings(final AccountBook book) {
     if (_readOnly) {
       // do nothing
       return;
     }
-
+    Account root = book.getRootAccount();
     StreamTable stream = new StreamTable();
     // save global settings
     stream.put(N12ERatios.DECIMALS_KEY, _decimalPlaces);
@@ -260,9 +260,9 @@ public class RatioSettings
     _fireNotifications = !suspend;
   }
 
-  public void resetToDefaults(final RootAccount root, final ResourceProvider resources) {
+  public void resetToDefaults(final AccountBook book, final ResourceProvider resources) {
     _ratioList.clear();
-    buildInitialSettings(root, resources, false);
+    buildInitialSettings(book, resources, false);
     ratioListUpdated();
   }
 
@@ -274,11 +274,11 @@ public class RatioSettings
    * Setup the ratios for the very first time. Add a debt-to-income ratio and a working capital
    * ratio. Finally save the initial settings
    *
-   * @param root The account file to load.
+   * @param book The account file to load.
    * @param resources Object to obtain localized strings and other resources.
    * @param save True to immediately save the initial settings to the file
    */
-  private void buildInitialSettings(final RootAccount root, final ResourceProvider resources, final boolean save) {
+  private void buildInitialSettings(final AccountBook book, final ResourceProvider resources, final boolean save) {
     setDefaults();
     System.err.println("ratios: Adding example ratio entries");
     addDebtServiceToIncomeRatio(resources);
@@ -286,7 +286,7 @@ public class RatioSettings
     addSavingsToIncomeRatio(resources);
     addSavingsRate(resources);
     addDebtToAssetRatio(resources);
-    saveToSettings(root);
+    saveToSettings(book);
   }
 
   /**
@@ -324,11 +324,11 @@ public class RatioSettings
     // numerator - accounts - loans, liabilities and credit cards
     // negative account type means select all accounts of that type
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_LOAN));
+    sb.append(Integer.toString(-Account.AccountType.LOAN.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_LIABILITY));
+    sb.append(Integer.toString(-Account.AccountType.LIABILITY.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_CREDIT_CARD));
+    sb.append(Integer.toString(-Account.AccountType.CREDIT_CARD.code()));
     ratioEntry.setNumeratorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setNumeratorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // numerator - tags and tag logic
@@ -339,7 +339,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_INCOME));
+    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic
@@ -381,11 +381,11 @@ public class RatioSettings
     // numerator - accounts - loans, liabilities and credit cards
     // negative account type means select all accounts of that type
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_LOAN));
+    sb.append(Integer.toString(-Account.AccountType.LOAN.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_LIABILITY));
+    sb.append(Integer.toString(-Account.AccountType.LIABILITY.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_CREDIT_CARD));
+    sb.append(Integer.toString(-Account.AccountType.CREDIT_CARD.code()));
     ratioEntry.setNumeratorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setNumeratorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // numerator - tags and tag logic
@@ -396,7 +396,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_INCOME));
+    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic
@@ -439,9 +439,9 @@ public class RatioSettings
     // non-liquid assets like a house or boat
     // negative account type means select all accounts of that type
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_BANK));
+    sb.append(Integer.toString(-Account.AccountType.BANK.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_INVESTMENT));
+    sb.append(Integer.toString(-Account.AccountType.INVESTMENT.code()));
     ratioEntry.setNumeratorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setNumeratorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // numerator - tags and tag logic
@@ -452,7 +452,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_INCOME));
+    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic
@@ -492,7 +492,7 @@ public class RatioSettings
     // numerator - label
     ratioEntry.setNumeratorLabel(resources.getString(L10NRatios.SAVINGS_NAME));
     // numerator - accounts - Bank accounts only - low risk
-    ratioEntry.setNumeratorEncodedRequiredAccounts(Integer.toString(-Account.ACCOUNT_TYPE_BANK));
+    ratioEntry.setNumeratorEncodedRequiredAccounts(Integer.toString(-Account.AccountType.BANK.code()));
     ratioEntry.setNumeratorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // numerator - tags and tag logic
     ratioEntry.setNumeratorTags(null);
@@ -502,7 +502,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_INCOME));
+    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic
@@ -544,11 +544,11 @@ public class RatioSettings
     // numerator - accounts - loans, liabilities and credit cards
     // negative account type means select all accounts of that type
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_LOAN));
+    sb.append(Integer.toString(-Account.AccountType.LOAN.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_LIABILITY));
+    sb.append(Integer.toString(-Account.AccountType.LIABILITY.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_CREDIT_CARD));
+    sb.append(Integer.toString(-Account.AccountType.CREDIT_CARD.code()));
     ratioEntry.setNumeratorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setNumeratorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // numerator - tags and tag logic
@@ -559,11 +559,11 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.TOTAL_ASSETS_NAME));
     // denominator - accounts - assets
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_BANK));
+    sb.append(Integer.toString(-Account.AccountType.BANK.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_INVESTMENT));
+    sb.append(Integer.toString(-Account.AccountType.INVESTMENT.code()));
     sb.append(',');
-    sb.append(Integer.toString(-Account.ACCOUNT_TYPE_ASSET));
+    sb.append(Integer.toString(-Account.AccountType.ASSET.code()));
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic

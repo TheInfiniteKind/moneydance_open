@@ -11,12 +11,8 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.moneydance.model.DateRange;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.RootAccount;
-import com.infinitekind.moneydance.model.Txn;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import com.infinitekind.util.StreamTable;
 
 import java.util.List;
@@ -154,16 +150,16 @@ public class RatioEntry {
   String getDenominatorLabel() { return _denominator.getLabel(); }
   void setDenominatorLabel(final String label) { _denominator.setLabel(label); }
 
-  void setNumeratorRequiredAccounts(AccountFilter accountFilter, final RootAccount root) {
-    _numerator.setRequiredAccounts(accountFilter, root);
+  void setNumeratorRequiredAccounts(AccountFilter accountFilter, final AccountBook book) {
+    _numerator.setRequiredAccounts(accountFilter, book);
   }
   void setNumeratorEncodedRequiredAccounts(final String encodedAccounts) { 
     _numerator.setEncodedRequiredAccounts(encodedAccounts); 
   }
   String getNumeratorEncodedRequiredAccounts() { return _numerator.getEncodedRequiredAccounts(); }
   List<Account> getNumeratorRequiredAccountList() { return _numerator.getRequiredAccountList(); }
-  void setNumeratorDisallowedAccounts(AccountFilter accountFilter, final RootAccount root) {
-    _numerator.setDisallowedAccounts(accountFilter, root);
+  void setNumeratorDisallowedAccounts(AccountFilter accountFilter, final AccountBook book) {
+    _numerator.setDisallowedAccounts(accountFilter, book);
   }
   void setNumeratorEncodedDisallowedAccounts(final String encodedAccounts) { 
     _numerator.setEncodedDisallowedAccounts(encodedAccounts); 
@@ -171,16 +167,16 @@ public class RatioEntry {
   String getNumeratorEncodedDisallowedAccounts() { return _numerator.getEncodedDisallowedAccounts(); }
   List<Account> getNumeratorDisallowedAccountList() { return _numerator.getDisallowedAccountList(); }
 
-  void setDenominatorRequiredAccounts(AccountFilter accountFilter, final RootAccount root) {
-    _denominator.setRequiredAccounts(accountFilter, root);
+  void setDenominatorRequiredAccounts(AccountFilter accountFilter, final AccountBook book) {
+    _denominator.setRequiredAccounts(accountFilter, book);
   }
   void setDenominatorEncodedRequiredAccounts(final String encodedAccounts) { 
     _denominator.setEncodedRequiredAccounts(encodedAccounts); 
   }
   String getDenominatorEncodedRequiredAccounts() { return _denominator.getEncodedRequiredAccounts(); }
   List<Account> getDenominatorRequiredAccountList() { return _denominator.getRequiredAccountList(); }
-  void setDenominatorDisallowedAccounts(AccountFilter accountFilter, final RootAccount root) {
-    _denominator.setDisallowedAccounts(accountFilter, root);
+  void setDenominatorDisallowedAccounts(AccountFilter accountFilter, final AccountBook book) {
+    _denominator.setDisallowedAccounts(accountFilter, book);
   }
   void setDenominatorEncodedDisallowedAccounts(final String encodedAccounts) { 
     _denominator.setEncodedDisallowedAccounts(encodedAccounts); 
@@ -199,10 +195,10 @@ public class RatioEntry {
   void setDenominatorTagLogic(final TagLogic tagLogic) { _denominator.setTagLogic(tagLogic); }
   TagLogic getDenominatorTagLogic() { return _denominator.getTagLogic(); }
 
-  void prepareForTxnProcessing(final RootAccount root, final DateRange dateRange,
+  void prepareForTxnProcessing(final AccountBook book, final DateRange dateRange,
                                       final boolean isNumerator, final IRatioReporting reporting) {
-    if ((reporting == null) || isNumerator) _numerator.prepareForTxnProcessing(root, dateRange, _useTaxDate);
-    if ((reporting == null) || !isNumerator) _denominator.prepareForTxnProcessing(root, dateRange, _useTaxDate);
+    if ((reporting == null) || isNumerator) _numerator.prepareForTxnProcessing(book, dateRange, _useTaxDate);
+    if ((reporting == null) || !isNumerator) _denominator.prepareForTxnProcessing(book, dateRange, _useTaxDate);
   }
 
   void accumulateTxn(final Txn txn, final boolean isNumerator, final IRatioReporting reporting) {

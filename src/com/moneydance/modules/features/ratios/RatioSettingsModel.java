@@ -10,8 +10,8 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.RootAccount;
-import com.infinitekind.util.BasePropertyChangeReporter;
+import com.infinitekind.moneydance.model.*;
+import com.moneydance.util.BasePropertyChangeReporter;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
@@ -24,13 +24,13 @@ import java.beans.PropertyChangeEvent;
 class RatioSettingsModel
     extends BasePropertyChangeReporter
     implements PropertyChangeListener {
-  private final RootAccount _data;
+  private final AccountBook _data;
   private final RatioSettings _actualSettings;
   private final RatioSettings _editSettings;
 
   private final RatioTableModel _tableModel;
 
-  public RatioSettingsModel(RootAccount data, RatiosExtensionModel mainModel,
+  public RatioSettingsModel(AccountBook data, RatiosExtensionModel mainModel,
                             RatioSettings settings, ResourceProvider resources) {
     _data = data;
     _actualSettings = settings;
@@ -71,7 +71,7 @@ class RatioSettingsModel
     return _tableModel;
   }
 
-  public RootAccount getData() {
+  public AccountBook getData() {
     return _data;
   }
 

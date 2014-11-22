@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;

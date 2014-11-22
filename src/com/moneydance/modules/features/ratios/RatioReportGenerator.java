@@ -11,6 +11,7 @@
 package com.moneydance.modules.features.ratios;
 
 import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.tiksync.SyncRecord;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.CurrencyType;
@@ -60,7 +61,7 @@ class RatioReportGenerator extends ReportGenerator {
     return null;
   }
 
-  public void setParameters(StreamTable streamTable) {
+  public void setParameters(SyncRecord params) {
     // do nothing - we get our own data
   }
 
@@ -83,7 +84,7 @@ class RatioReportGenerator extends ReportGenerator {
       widths[column] = measureStringWidth(report.getColumnName(column), _graphics, fm);
     }
     final DateRange dateRange = _mainModel.getSettings().getDateRange();
-    final CurrencyType baseCurrency = rootAccount.getCurrencyTable().getBaseType();
+    final CurrencyType baseCurrency = book.getCurrencies().getBaseType();
     _reporting = new RatioReportingHandler(this, report, fullName, baseCurrency, widths);
     final String nanString = _mainModel.getResources().getString(L10NRatios.NAN);
 
@@ -380,7 +381,7 @@ class RatioReportGenerator extends ReportGenerator {
     rpt.addRow(row);
   }
 
-  void addAccountTypeRow(Report rpt, int accountType, boolean isAverageBalance, boolean showAmountTitle) {
+  void addAccountTypeRow(Report rpt, Account.AccountType accountType, boolean isAverageBalance, boolean showAmountTitle) {
     final String[] labels = new String[NUM_COLUMNS];
     final byte[] align = new byte[NUM_COLUMNS];
     final byte[] color = new byte[NUM_COLUMNS];
@@ -404,7 +405,7 @@ class RatioReportGenerator extends ReportGenerator {
     rpt.addRow(row);
   }
 
-  void addAccountTypeSubtotalRow(Report report, int accountType, CurrencyType baseCurrency, long subtotal,
+  void addAccountTypeSubtotalRow(Report report, Account.AccountType accountType, CurrencyType baseCurrency, long subtotal,
                                  boolean isAverageBalance, int endingDate) {
     final String[] labels = new String[NUM_COLUMNS];
     final byte[] align = new byte[NUM_COLUMNS];
@@ -461,8 +462,7 @@ class RatioReportGenerator extends ReportGenerator {
     RecordRow row = new RecordRow(labels, align, color, style, totals);
     FontMetrics fontMetrics = _graphics.getFontMetrics();
     // Account
-    if ((account.getAccountType() != Account.ACCOUNT_TYPE_INCOME) &&
-        (account.getAccountType() != Account.ACCOUNT_TYPE_EXPENSE)) {
+    if ((account.getAccountType() != Account.AccountType.INCOME) && (account.getAccountType() != Account.AccountType.EXPENSE)) {
       labels[0] = showFullAccountName ? account.getFullAccountName() : account.getAccountName();
       widths[0] = Math.max(widths[0], measureStringWidth(labels[0], _graphics, fontMetrics));
       style[0] = RecordRow.STYLE_PLAIN;

@@ -10,26 +10,23 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.RootAccount;
-import com.infinitekind.moneydance.model.TxnTag;
-import com.infinitekind.moneydance.model.TxnTagSet;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.select.ClickLabelListPanel;
 import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
 import com.moneydance.apps.md.view.resources.MDResourceProvider;
 import com.moneydance.awt.GridC;
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import java.awt.FlowLayout;
-import java.awt.GridBagLayout;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.*;
 
 /**
  * A tag filtering UI panel.
@@ -104,19 +101,18 @@ class TxnTagFilterView extends JPanel {
 
   String getSelectedTags() {
     if (_useTagFilter.isSelected()) {
-      TxnTag tags[] = _tagField.getSelectedTags();
-      return TxnTagSet.getIDStringForTags(tags);
+      return _tagField.getSelectedTagsAsString();
     }
     return null;
   }
 
-  void setSelectedTags(final RootAccount root, final String tags, final TagLogic tagLogic) {
+  void setSelectedTags(final AccountBook book, final String tags, final TagLogic tagLogic) {
     if (tags == null) {
       // tags not used
       reset();
       return;
     }
-    _tagField.setSelectedTags(root.getTxnTagSet().getTagsForIDString(tags));
+    _tagField.setSelectedTags(tags);
     if (TagLogic.AND.equals(tagLogic)) {
       _tagsAnd.setSelected(true);
     } else if (TagLogic.EXACT.equals(tagLogic)) {
@@ -191,22 +187,31 @@ class TxnTagFilterView extends JPanel {
   {
     public SearchTxnTagsField(MoneydanceGUI mdGUI)
     {
-      super(mdGUI, mdGUI.getCurrentAccount());
+      super(mdGUI, mdGUI.getCurrentBook());
     }
 
     @Override
     public synchronized void selectorButtonPressed() {
-        super.selectorButtonPressed();
-        _useTagFilter.setSelected(true);
+      super.selectorButtonPressed();
+      _useTagFilter.setSelected(true);
     }
 
     void selectAll() {
-      setSelectedTags(_mdGui.getCurrentAccount().getTxnTagSet().getSortedTags());
+      HashMap<String,String> keywordCache = new HashMap<String, String>();
+      for(AbstractTxn txn : _mdGui.getCurrentBook().getTransactionSet().getAllTxns() ) {
+        for(String tag : txn.getKeywords()) {
+          keywordCache.put(tag, "hi");
+        }
+      }
+      
+      ArrayList<String> allTags = new ArrayList<String>(keywordCache.keySet());
+      Collections.sort(allTags);
+      setSelectedTags(allTags);
       repaint();
     }
 
     void selectNone() {
-      setSelectedTags(new TxnTag[0]);
+      setSelectedTags("");
       repaint();
     }
   }

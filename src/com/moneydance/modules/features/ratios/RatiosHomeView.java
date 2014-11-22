@@ -10,9 +10,8 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.time.DateRangeOption;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.HomePageView;
 import com.moneydance.apps.md.view.gui.DateRangeChooser;
 import com.moneydance.apps.md.view.gui.MDAction;
@@ -24,7 +23,7 @@ import com.moneydance.apps.md.view.gui.OKButtonPanel;
 import com.moneydance.apps.md.view.gui.OKButtonWindow;
 import com.moneydance.awt.GridC;
 import com.infinitekind.util.CustomDateFormat;
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -72,8 +71,8 @@ class RatiosHomeView
     return N12ERatios.HOME_PAGE_ID;
   }
 
-  public JComponent getGUIView(RootAccount rootAccount) {
-    _mainModel.setData(rootAccount);
+  public JComponent getGUIView(AccountBook book) {
+    _mainModel.setData(book);
     if (_view == null) {
       _view = new RatiosHomePage(_resources, _mainModel.getGUI());
       _view.layoutUI();

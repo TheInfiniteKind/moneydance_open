@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.StreamTable;
 import com.infinitekind.util.StringEncodingException;
 
@@ -47,16 +47,16 @@ public class RatioSettingsController
     // copy edited settings to actual settings
     _settingsModel.apply();
     // store the settings in the data file
-    RootAccount root = getData();
-    if (root != null) {
+    AccountBook book = getData();
+    if (book != null) {
       final RatioSettings updatedSettings = _settingsModel.getActualSettings();
-      updatedSettings.saveToSettings(root);
+      updatedSettings.saveToSettings(book);
 
       // reload
       _extensionModel.setSettings(updatedSettings);
 
       // ensure file is marked dirty
-      root.accountModified(root);
+      book.getRootAccount().notifyAccountModified(book.getRootAccount());
     }
   }
 
@@ -71,7 +71,7 @@ public class RatioSettingsController
     return _resources.getString(resourceKey);
   }
 
-  RootAccount getData() {
+  AccountBook getData() {
     return _settingsModel.getData();
   }
 

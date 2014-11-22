@@ -54,22 +54,22 @@ public final class RatiosUtil {
     public int compare(Account lhs, Account rhs) {
       if (lhs == null) { return (rhs == null) ? 0 : -1; }
       if (rhs == null) return 1;
-      final int lType = lhs.getAccountType();
-      final int rType = rhs.getAccountType();
+      final int lType = lhs.getAccountType().code();
+      final int rType = rhs.getAccountType().code();
       if (lType == rType) return 0; // shortcut
       // first put the non-income, non-expense accounts in account type order
-      if ((lType != Account.ACCOUNT_TYPE_INCOME)
-          && (lType != Account.ACCOUNT_TYPE_EXPENSE)
-          && (rType != Account.ACCOUNT_TYPE_INCOME)
-          && (rType != Account.ACCOUNT_TYPE_EXPENSE)) {
+      if ((lType != Account.AccountType.INCOME.code())
+          && (lType != Account.AccountType.EXPENSE.code())
+          && (rType != Account.AccountType.INCOME.code())
+          && (rType != Account.AccountType.EXPENSE.code())) {
         return lType - rType;
       }
       // at this point one or both sides is a category
-      if ((lType != Account.ACCOUNT_TYPE_INCOME) && (lType != Account.ACCOUNT_TYPE_EXPENSE)) {
+      if ((lType != Account.AccountType.INCOME.code()) && (lType != Account.AccountType.EXPENSE.code())) {
         // normal accounts first, left hand side is normal account but right hand side isn't
         return -1;
       }
-      if ((rType != Account.ACCOUNT_TYPE_INCOME) && (rType != Account.ACCOUNT_TYPE_EXPENSE)) {
+      if ((rType != Account.AccountType.INCOME.code()) && (rType != Account.AccountType.EXPENSE.code())) {
         // normal accounts first, right hand side is normal account but left hand side isn't
         return 1;
       }
@@ -116,7 +116,7 @@ public final class RatiosUtil {
 
   private static final Comparator<Txn> TXN_ID_COMPARATOR = new Comparator<Txn>() {
     public int compare(Txn lhs, Txn rhs) {
-      int val = (int) (lhs.getTxnId() - rhs.getTxnId()); // last resort, compare the txn ID
+      int val = (int) (lhs.getDateEntered() - rhs.getDateEntered()); // last resort, compare the date/time entered
       if (val != 0) return val;
       if (lhs == rhs) {
         return 0;
@@ -202,8 +202,8 @@ public final class RatiosUtil {
     return Math.round(value * power) / power;
   }
 
-  public static String getAccountTypeNameAllCaps(final MoneydanceGUI mdGUI, final int accountType) {
-    return mdGUI.getStr("acct_type"+accountType+'S');
+  public static String getAccountTypeNameAllCaps(final MoneydanceGUI mdGUI, final Account.AccountType accountType) {
+    return mdGUI.getResources().getShortAccountTypeInCaps(accountType);
   }
   /**
    * Get a label from (plugin) resources, and if it does not have a colon, add it. Also adds a

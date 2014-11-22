@@ -72,7 +72,7 @@ class AccountFilterSelectListTableModel
 
 
   AccountFilterSelectListTableEntry add(final Account account, final String name, final String fullName,
-                                  final int accountId, final int accountType, boolean notify) {
+                                        final int accountId, final Account.AccountType accountType, boolean notify) {
     final int index = _data.size();
     final AccountFilterSelectListTableEntry entry = new AccountFilterSelectListTableEntry(account, name, fullName,
                                                                               accountId, accountType);
@@ -193,7 +193,7 @@ class AccountFilterSelectListTableModel
    * @param rowIndex    The row of the account item that was changed.
    * @return The minimum row index of an item that changed.
    */
-  private int updateHeaderRow(int accountType, FilterSelection selection, int rowIndex) {
+  private int updateHeaderRow(Account.AccountType accountType, FilterSelection selection, int rowIndex) {
     int headerIndex = -1;
     // this assumes a sorted order where the header precedes the account
     for (int index = rowIndex - 1; index >= 0; index--) {
@@ -232,7 +232,7 @@ class AccountFilterSelectListTableModel
    * @param headerIndex The index of the header row that was clicked on.
    * @return The maximum row index of an entry that changed.
    */
-  private int setAllOfType(int accountType, FilterSelection selection, int headerIndex) {
+  private int setAllOfType(Account.AccountType accountType, FilterSelection selection, int headerIndex) {
     int maxRowIndex = headerIndex;
     // this assumes accounts sorted by type, so header is above all others of that type
     for (int index = headerIndex; index < _data.size(); index++) {

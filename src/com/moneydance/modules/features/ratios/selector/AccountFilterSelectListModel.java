@@ -9,9 +9,10 @@
  */
 
 package com.moneydance.modules.features.ratios.selector;
+import com.moneydance.util.*;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.util.BasePropertyChangeReporter;
+//import com.infinitekind.util.BasePropertyChangeReporter;
 
 /**
  * <p>Model for a control that allows the user to select one or more accounts and shows the

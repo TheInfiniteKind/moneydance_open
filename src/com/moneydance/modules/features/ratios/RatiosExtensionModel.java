@@ -12,15 +12,13 @@ package com.moneydance.modules.features.ratios;
 
 import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.UserPreferences;
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.AccountListener;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.infinitekind.util.BasePropertyChangeReporter;
+import com.moneydance.util.BasePropertyChangeReporter;
 import com.infinitekind.util.StreamTable;
 import com.infinitekind.util.StringEncodingException;
 import com.infinitekind.util.StringUtils;
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
@@ -38,7 +36,7 @@ class RatiosExtensionModel
     extends BasePropertyChangeReporter {
   private ResourceProvider _resources;
   private MoneydanceGUI _mdGUI = null;
-  private RootAccount _rootAccount = null;
+  private AccountBook _book = null;
   private UserPreferences _preferences = null;
   private final AccountListener _accountListener = new RatiosAccountListener();
 
@@ -86,10 +84,10 @@ class RatiosExtensionModel
    *
    * @param rootAccount The Moneydance data file.
    */
-  void setData(final RootAccount rootAccount) {
-    final RootAccount oldRoot = _rootAccount;
+  void setData(final AccountBook rootAccount) {
+    final AccountBook oldRoot = _book;
     removeAccountListener();
-    _rootAccount = rootAccount;
+    _book = rootAccount;
     addAccountListener();
     if ((rootAccount != null) && !RatiosUtil.areEqual(oldRoot, rootAccount)) {
       // setup for a new file - stop any current update
@@ -102,7 +100,7 @@ class RatiosExtensionModel
       // clear out the data
       setCurrentTask(null, true);
       _settings = null;
-      _rootAccount = null;
+      _book = null;
     }
     // otherwise the same file has been assigned again, do nothing
   }
@@ -112,12 +110,12 @@ class RatiosExtensionModel
       StreamTable settingTable = new StreamTable();
       settingTable.readFrom(setting);
       String encodedAccounts = settingTable.getStr(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
-      String revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
+      String revisedAccounts = removeMissingAccounts(encodedAccounts, _book);
       if (!revisedAccounts.equals(encodedAccounts)) {
         settingTable.put(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, revisedAccounts);
       }
       encodedAccounts = settingTable.getStr(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
-      revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
+      revisedAccounts = removeMissingAccounts(encodedAccounts, _book);
       if (!revisedAccounts.equals(encodedAccounts)) {
         settingTable.put(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, revisedAccounts);
       }
@@ -129,14 +127,14 @@ class RatiosExtensionModel
   }
 
   private void addAccountListener() {
-    if (_rootAccount != null) {
-      _rootAccount.addAccountListener(_accountListener);
+    if (_book != null) {
+      _book.getRootAccount().addAccountListener(_accountListener);
     }
   }
 
   private void removeAccountListener() {
-    if (_rootAccount != null) {
-      _rootAccount.removeAccountListener(_accountListener);
+    if (_book != null) {
+      _book.getRootAccount().removeAccountListener(_accountListener);
     }
   }
 
@@ -144,7 +142,7 @@ class RatiosExtensionModel
     // settings can be written back to the file
     final boolean readOnly = false;
     _settings = new RatioSettings(getGUI(), readOnly);
-    _settings.loadFromSettings(_rootAccount, _resources);
+    _settings.loadFromSettings(_book, _resources);
     // override the date range from user preferences, which does not require saving the file
     String dateRangeOption = _preferences.getSetting(N12ERatios.DATE_RANGE_PREF_KEY, _settings.getDateRangeOption());
     _settings.setDateRangeOption(dateRangeOption);
@@ -163,7 +161,7 @@ class RatiosExtensionModel
     }
   }
 
-  private static String removeMissingAccounts(String encodedAccounts, RootAccount data) {
+  private static String removeMissingAccounts(String encodedAccounts, AccountBook data) {
     if (StringUtils.isBlank(encodedAccounts)) return encodedAccounts;
     StringBuilder result = new StringBuilder();
     String[] accountsList = StringUtils.split(encodedAccounts, ',');
@@ -173,7 +171,7 @@ class RatiosExtensionModel
         final int accountOrTypeId = Integer.parseInt(accountId);
         if (accountOrTypeId >= 0) {
           // specific account ID
-          Account account = data.getAccountById(accountOrTypeId);
+          Account account = data.getAccountByNum(accountOrTypeId);
           addThisId = (account != null);
         } else {
           // account type, always valid
@@ -195,8 +193,8 @@ class RatiosExtensionModel
     return _mdGUI;
   }
 
-  RootAccount getRootAccount() {
-    return _rootAccount;
+  AccountBook getRootAccount() {
+    return _book;
   }
 
   RatioSettings getSettings() {

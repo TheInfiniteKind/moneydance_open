@@ -18,7 +18,7 @@ import com.moneydance.modules.features.ratios.L10NRatios;
 import com.moneydance.modules.features.ratios.Main;
 import com.moneydance.modules.features.ratios.RatiosUtil;
 import com.moneydance.modules.features.ratios.ResourceProvider;
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;

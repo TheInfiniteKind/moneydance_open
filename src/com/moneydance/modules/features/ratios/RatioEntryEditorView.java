@@ -10,13 +10,13 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
 import com.moneydance.modules.features.ratios.selector.AccountFilterSelectLabel;
 import com.moneydance.modules.features.ratios.selector.RatioAccountSelector;
 import com.infinitekind.util.StringUtils;
-import com.infinitekind.util.UiUtil;
+import com.moneydance.util.UiUtil;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -306,10 +306,10 @@ class RatioEntryEditorView extends JPanel {
     _editingRatio.setDenominatorMatchingLogic(_denominatorMatchModel.getSelectedMatchLogic());
     _editingRatio.setNumeratorLabel(_numeratorLabelField.getText());
     _editingRatio.setDenominatorLabel(_denominatorLabelField.getText());
-    _editingRatio.setNumeratorRequiredAccounts(_numeratorDualAcctSelector.getRequiredAccountFilter(), _mdGui.getCurrentAccount());
-    _editingRatio.setNumeratorDisallowedAccounts(_numeratorDualAcctSelector.getDisallowedAccountFilter(), _mdGui.getCurrentAccount());
-    _editingRatio.setDenominatorRequiredAccounts(_denominatorDualAcctSelector.getRequiredAccountFilter(), _mdGui.getCurrentAccount());
-    _editingRatio.setDenominatorDisallowedAccounts(_denominatorDualAcctSelector.getDisallowedAccountFilter(), _mdGui.getCurrentAccount());
+    _editingRatio.setNumeratorRequiredAccounts(_numeratorDualAcctSelector.getRequiredAccountFilter(), _mdGui.getCurrentBook());
+    _editingRatio.setNumeratorDisallowedAccounts(_numeratorDualAcctSelector.getDisallowedAccountFilter(), _mdGui.getCurrentBook());
+    _editingRatio.setDenominatorRequiredAccounts(_denominatorDualAcctSelector.getRequiredAccountFilter(), _mdGui.getCurrentBook());
+    _editingRatio.setDenominatorDisallowedAccounts(_denominatorDualAcctSelector.getDisallowedAccountFilter(), _mdGui.getCurrentBook());
     _editingRatio.setNumeratorTags(_numeratorTagsView.getSelectedTags());
     _editingRatio.setNumeratorTagLogic(_numeratorTagsView.getTagLogic());
     _editingRatio.setDenominatorTags(_denominatorTagsView.getSelectedTags());
@@ -328,10 +328,10 @@ class RatioEntryEditorView extends JPanel {
       _denominatorMatchModel.setSelectedMatchLogic(TxnMatchLogic.DEFAULT);
       _numeratorLabelField.setText(N12ERatios.EMPTY);
       _denominatorLabelField.setText(N12ERatios.EMPTY);
-      _numeratorDualAcctSelector.setRequiredAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
-      _denominatorDualAcctSelector.setRequiredAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
-      _numeratorDualAcctSelector.setDisallowedAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
-      _denominatorDualAcctSelector.setDisallowedAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
+      _numeratorDualAcctSelector.setRequiredAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
+      _denominatorDualAcctSelector.setRequiredAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
+      _numeratorDualAcctSelector.setDisallowedAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
+      _denominatorDualAcctSelector.setDisallowedAccountFilter(RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
       _numeratorTagsView.reset();
       _denominatorTagsView.reset();
       _notesField.setText(N12ERatios.EMPTY);
@@ -346,7 +346,7 @@ class RatioEntryEditorView extends JPanel {
     _denominatorLabelField.setText(_editingRatio.getDenominatorLabel());
 
     // use the object that supports IAccountSelector to re-use common code for loading an account list
-    RatioAccountSelector accountSelector = createAccountSelector(_mdGui.getCurrentAccount());
+    RatioAccountSelector accountSelector = createAccountSelector(_mdGui.getCurrentBook());
     _numeratorDualAcctSelector.setRequiredAccountFilter(
         accountSelector.selectFromEncodedString(_editingRatio.getNumeratorEncodedRequiredAccounts()));
     _numeratorDualAcctSelector.setDisallowedAccountFilter(accountSelector.selectFromEncodedString(
@@ -356,9 +356,9 @@ class RatioEntryEditorView extends JPanel {
     _denominatorDualAcctSelector.setDisallowedAccountFilter(accountSelector.selectFromEncodedString(
         _editingRatio.getDenominatorEncodedDisallowedAccounts()));
 
-    _numeratorTagsView.setSelectedTags(_mdGui.getCurrentAccount(),
+    _numeratorTagsView.setSelectedTags(_mdGui.getCurrentBook(),
                                        _editingRatio.getNumeratorTags(), _editingRatio.getNumeratorTagLogic());
-    _denominatorTagsView.setSelectedTags(_mdGui.getCurrentAccount(),
+    _denominatorTagsView.setSelectedTags(_mdGui.getCurrentBook(),
                                          _editingRatio.getDenominatorTags(), _editingRatio.getDenominatorTagLogic());
     _denominatorTagsView.reset();
     _notesField.setText(_editingRatio.getNotes());
@@ -366,21 +366,21 @@ class RatioEntryEditorView extends JPanel {
     validateDenominatorLabel();
   }
 
-  static RatioAccountSelector createAccountSelector(final RootAccount rootAccount) {
-    return new RatioAccountSelector(rootAccount);
+  static RatioAccountSelector createAccountSelector(final AccountBook book) {
+    return new RatioAccountSelector(book);
   }
 
   private void setupAccountSelectors() {
     _numeratorDualAcctSelector = new AccountFilterSelectLabel(_mdGui, _resources);
     _numeratorDualAcctSelector.setRequiredAccountFilter(
-        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
+        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
     _numeratorDualAcctSelector.setDisallowedAccountFilter(
-        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
+        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
     _denominatorDualAcctSelector = new AccountFilterSelectLabel(_mdGui, _resources);
     _denominatorDualAcctSelector.setRequiredAccountFilter(
-        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
+        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
     _denominatorDualAcctSelector.setDisallowedAccountFilter(
-        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentAccount()));
+        RatioAccountSelector.buildAccountFilter(_mdGui.getCurrentBook()));
   }
 
 

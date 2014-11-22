@@ -123,7 +123,7 @@ public class AccountFilterSelectLabel
     if (requiredFilter == null) {
       return _mdGui.getStr(L10NRatios.NONE);
     }
-    return requiredFilter.getDisplayString(_mdGui.getCurrentAccount(), _mdGui);
+    return requiredFilter.getDisplayString(_mdGui.getCurrentBook(), _mdGui);
   }
 
   private String getDisallowedAccountList() {
@@ -131,7 +131,7 @@ public class AccountFilterSelectLabel
     if (disallowedFilter == null) {
       return _mdGui.getStr(L10NRatios.NONE);
     }
-    return disallowedFilter.getDisplayString(_mdGui.getCurrentAccount(), _mdGui);
+    return disallowedFilter.getDisplayString(_mdGui.getCurrentBook(), _mdGui);
   }
 
   /**

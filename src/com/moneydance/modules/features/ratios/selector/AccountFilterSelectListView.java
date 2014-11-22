@@ -10,9 +10,7 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.AccountIterator;
-import com.infinitekind.moneydance.model.RootAccount;
+import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.AccountTreeCellRenderer;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.*;
@@ -219,7 +217,7 @@ class AccountFilterSelectListView
       }
     }
 
-    private int getMaxDepth(RootAccount root) {
+    private int getMaxDepth(Account root) {
       int result = 0;
       AccountIterator iterator = new AccountIterator(root);
       while (iterator.hasNext()) {

@@ -73,9 +73,9 @@ class AccountFilterSelectListController {
     // all other modes show the complete list of accounts
     final List<Account> fullAccountList = requiredFilter.getFullList().getFullAccountList();
     final List<AccountFilterSelectListTableEntry> typeHeaders = new ArrayList<AccountFilterSelectListTableEntry>();
-    int currentAccountType = -1;
+    Account.AccountType currentAccountType = null;
     for (final Account account : fullAccountList) {
-      final int newAccountType = account.getAccountType();
+      final Account.AccountType newAccountType = account.getAccountType();
       if (newAccountType != currentAccountType) {
         // add a header row with the account type
         final String typeName = RatiosUtil.getAccountTypeNameAllCaps(_mdGui, newAccountType);
@@ -154,7 +154,7 @@ class AccountFilterSelectListController {
     final int count = tableModel.getRowCount();
     for (AccountFilterSelectListTableEntry header : typeHeaders) {
       FilterSelection filter = null;
-      int accountType = header.getAccountType();
+      Account.AccountType accountType = header.getAccountType();
       for (int rowIndex = 0; rowIndex < count; rowIndex++) {
         AccountFilterSelectListTableEntry rowEntry = tableModel.getEntry(rowIndex);
         if (rowEntry.getAccountType() != accountType) continue;

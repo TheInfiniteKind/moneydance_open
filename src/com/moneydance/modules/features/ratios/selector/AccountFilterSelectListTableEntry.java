@@ -37,14 +37,14 @@ class AccountFilterSelectListTableEntry {
   /**
    * The account type itself, to help with filtering.
    */
-  private final int _accountType;
+  private final Account.AccountType _accountType;
   /**
    * The account ID, which helps keep the account filter up-to-date.
    */
   private final Integer _accountId;
 
   AccountFilterSelectListTableEntry(final Account account, final String name, final String fullName,
-                                    final int accountId, final int accountType) {
+                                    final int accountId, final Account.AccountType accountType) {
     _account = account;
     if (name.equalsIgnoreCase(fullName)) {
       // no tooltip needed, full name is same as short name
@@ -116,7 +116,7 @@ class AccountFilterSelectListTableEntry {
     return _accountId;
   }
 
-  int getAccountType() {
+  Account.AccountType getAccountType() {
     return _accountType;
   }
 }
