@@ -45,20 +45,7 @@ public class FindResultsTableModel extends AbstractTableModel
     static final int FULL_CATEGORY_INDEX = 12; // not shown except in export to clipboard
     static final int MEMO_PARENT_INDEX = 13;   // not shown except in export to clipboard
     static final int OTHER_AMOUNT_INDEX = 14;  // not shown except in export to clipboard
-
-    private static final ParentTxn BLANK_TRANSACTION = 
-      ParentTxn.makeParentTxn(null,
-                              0,                           // int date
-                              0,                           // int taxDate
-                              100,                         // long dateEntered
-                              "Hello",                     // java.lang.String checkNumber
-                              null,                        // Account account
-                              "Goodbye",                   // java.lang.String description
-                              "hello",                     // java.lang.String memo
-                              0,                           // long id
-                              AbstractTxn.STATUS_CLEARED); // byte status
-    private static final FindResultsTableEntry BLANK_ENTRY = new FindResultsTableEntry(BLANK_TRANSACTION, false, null);
-
+    
     private static final String DEFAULT_DATE_FORMAT = "MM/dd/YYYY";
     private static final char DEFAULT_DECIMAL_CHAR = '.';
 
@@ -171,12 +158,37 @@ public class FindResultsTableModel extends AbstractTableModel
         _data.clear();
         _splitData.clear();
     }
-
+    
+    private ParentTxn blankTxn = null;
+    private FindResultsTableEntry blankEntry = null;
+    
+    FindResultsTableEntry getBlankEntry(AccountBook book) {
+        if(blankEntry==null) {
+            if(blankTxn==null) {
+                blankTxn =
+                  ParentTxn.makeParentTxn(book,
+                                          0,                           // int date
+                                          0,                           // int taxDate
+                                          100,                         // long dateEntered
+                                          "Hello",                     // java.lang.String checkNumber
+                                          book.getRootAccount(),       // Account account
+                                          "Goodbye",                   // java.lang.String description
+                                          "hello",                     // java.lang.String memo
+                                          0,                           // long id
+                                          AbstractTxn.STATUS_CLEARED); // byte status
+            }
+            
+            blankEntry = new FindResultsTableEntry(blankTxn, false, null);
+        }
+        return blankEntry;
+    }
+    
     void addBlankTransaction()
     {
+        FindResultsTableEntry blankEntry = getBlankEntry(_controller.getBook());
         reset();
-        _splitData.add(BLANK_ENTRY);
-        _data.add(BLANK_ENTRY);
+        _splitData.add(blankEntry);
+        _data.add(blankEntry);
         fireTableDataChanged();
     }
     
@@ -186,7 +198,7 @@ public class FindResultsTableModel extends AbstractTableModel
         {
             return true;
         }
-        return entry.getParentTxn().equals(BLANK_TRANSACTION);
+        return entry.getParentTxn().equals(blankTxn);
     }
 
 
@@ -217,7 +229,7 @@ public class FindResultsTableModel extends AbstractTableModel
         {
             txn = entry.getSplitTxn();
         }
-        if ((txn == null) || (txn.equals(BLANK_TRANSACTION)))
+        if ((txn == null) || (txn.equals(blankTxn)))
         {
             return null;
         }
@@ -405,8 +417,7 @@ public class FindResultsTableModel extends AbstractTableModel
     {
         final FindResultsTableEntry entry = _data.get(index);
         final ParentTxn parent = entry.getParentTxn();
-        if ((parent == null) || BLANK_TRANSACTION.equals(parent))
-        {
+        if ((parent == null) || parent.equals(getBlankEntry(_controller.getBook()).getParentTxn())) {
             return false;
         }
 
@@ -424,7 +435,7 @@ public class FindResultsTableModel extends AbstractTableModel
     {
         final FindResultsTableEntry entry = _data.get(index);
         final ParentTxn parent = entry.getParentTxn();
-        if ((parent == null) || BLANK_TRANSACTION.equals(parent))
+        if ((parent == null) || parent.equals(getBlankEntry(_controller.getBook()).getParentTxn()))
         {
             return 0;
         }
@@ -563,7 +574,7 @@ public class FindResultsTableModel extends AbstractTableModel
                 return Integer.valueOf(rowIndex + 1);
             }
 
-            if (parent.equals(BLANK_TRANSACTION))
+            if (parent.equals(getBlankEntry(_controller.getBook()).getParentTxn()))
             {
                 if (columnIndex == DESCRIPTION_INDEX)
                 {

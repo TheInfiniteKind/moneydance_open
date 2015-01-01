@@ -1,6 +1,6 @@
 {
   "vendor" = "Mennē Software Solutions"
-  "module_build" = "200"
+  "module_build" = "201"
   "minbuild" = "1000"
   "vendor_url" = "http://www.mennesoft.com/findandreplace/index.html"
   "name" = "Find and Replace (Requires Java 6 and MD2010)"
