@@ -26,7 +26,7 @@ http://jakarta.apache.org/ant/index.html
     <pathelement path="../lib/moneydance.jar"/>
     <pathelement path="../lib/moneydance2015.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
     <pathelement path="../lib/mdadmin.jar"/> <!-- Since mdadmin has a StringUtils, it needs to come after moneydance.jar -->
-    <pathelement path="../lib/jfreechart-1.0.9.jar"/>
+    <pathelement path="../lib/jfreechart-1.0.13.jar"/>
     <pathelement path="../lib/jcommon-1.0.12.jar"/>
   </path>
 
@@ -340,6 +340,40 @@ http://jakarta.apache.org/ant/index.html
       <arg line="${dist}/console.mxt"/>
     </java>
     <move file="${src}/s-console.mxt" tofile="${dist}/console.mxt"/>
+  </target>
+  
+  <target name="moneyPie" depends="init">
+      <javac encoding="utf8" target="1.7" source="1.7" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath" destdir="${build}"
+      includes="com/moneydance/modules/features/moneyPie/**"/>
+      <jar destfile="${dist}/moneyPie.mxt">
+          <manifest>
+              <attribute name="Built-By" value="RagingCoders"/>
+          </manifest>
+          
+          <fileset dir="${src}" includes="
+          com/moneydance/modules/features/moneyPie/meta_info.dict
+          com/moneydance/modules/features/moneyPie/images/*.gif
+          com/moneydance/modules/features/moneyPie/images/*.jpg
+          com/moneydance/modules/features/moneyPie/images/*.jpeg
+          net/java/balloontip/images/*.png"/>
+          <fileset dir="${build}" includes="com/moneydance/modules/features/moneyPie/**"/>
+          <fileset dir="${build}" includes="org/w3c/dom/**"/>
+          <fileset dir="${build}" includes="org/apache/**"/>
+          <fileset dir="${build}" includes="org/xml/**"/>
+          <fileset dir="${build}" includes="javax/**"/>
+          <fileset dir="${build}" includes="net/**"/>
+      </jar>
+      <java newenvironment="true"
+          classpathref="classpath"
+          classname="com.moneydance.admin.KeyAdmin">
+          <arg value="signextjar"/>
+          <arg value="${extprivkeyfile}"/>
+          <arg value="${privkeyid}"/>
+          <arg value="moneyPie"/>
+          <arg line="${dist}/moneyPie.mxt"/>
+      </java>
+      <move file="${src}/s-moneyPie.mxt" tofile="${dist}/moneyPie.mxt"/>
   </target>
 
 
