@@ -5,4 +5,5 @@
   "module_build" = "100"
   "minbuild" = "1000"
   "desc" = "This is an extension that allows you to import formatted text files into Moneydance."
+  "id" = "txtimport"
 }
