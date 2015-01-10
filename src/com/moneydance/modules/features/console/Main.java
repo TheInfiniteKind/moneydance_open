@@ -74,13 +74,13 @@ public class Main
       return;
     }
     book.getTransactionSet().addTransactionListener(this);
-    book.getRootAccount().addAccountListener(this);
+    book.addAccountListener(this);
   }
 
   private synchronized void stopListening() {
     if(book ==null) return;
     book.getTransactionSet().removeTransactionListener(this);
-    book.getRootAccount().removeAccountListener(this);
+    book.removeAccountListener(this);
     book = null;
   }
 

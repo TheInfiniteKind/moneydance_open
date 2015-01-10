@@ -38,7 +38,7 @@ class TagPickerController
 
     void updateFromView()
     {
-        _model.setSelectedTags(Arrays.asList(_view.getSelectedTags()));
+        _model.setSelectedTags(_view.getSelectedTags());
     }
 
     void selectAll()

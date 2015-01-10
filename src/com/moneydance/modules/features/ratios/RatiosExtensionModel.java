@@ -128,13 +128,13 @@ class RatiosExtensionModel
 
   private void addAccountListener() {
     if (_book != null) {
-      _book.getRootAccount().addAccountListener(_accountListener);
+      _book.addAccountListener(_accountListener);
     }
   }
 
   private void removeAccountListener() {
     if (_book != null) {
-      _book.getRootAccount().removeAccountListener(_accountListener);
+      _book.removeAccountListener(_accountListener);
     }
   }
 

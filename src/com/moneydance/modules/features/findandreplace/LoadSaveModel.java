@@ -190,7 +190,7 @@ public class LoadSaveModel
         Account root = _book.getRootAccount();
         root.setParameter(SAVE_KEY_NAME, streamTable.writeToString());
         // notify user they changed something
-        root.notifyAccountModified(root);
+        _book.notifyAccountModified(root);
     }
 
     private void saveFindCriteria(final StreamTable streamTable)

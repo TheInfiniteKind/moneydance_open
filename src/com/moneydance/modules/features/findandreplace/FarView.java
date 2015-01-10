@@ -2177,7 +2177,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         mainMenu.toolsCategoriesAction.setEnabled(true);
         mainMenu.toolsAddressBookAction.setEnabled(true);
         mainMenu.toolsReportsAction.setEnabled(true);
-        mainMenu.toolsTxnTagsAction.setEnabled(true);
         // Extensions, Windows and Help all stay enabled
     }
 
