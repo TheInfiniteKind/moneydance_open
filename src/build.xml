@@ -345,6 +345,7 @@ http://jakarta.apache.org/ant/index.html
   <target name="moneyPie" depends="init">
       <javac encoding="utf8" target="1.7" source="1.7" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath" destdir="${build}"
+      classpath="${lib}/moneyPieSupport.jar"
       includes="com/moneydance/modules/features/moneyPie/**"/>
       <jar destfile="${dist}/moneyPie.mxt">
           <manifest>
@@ -358,11 +359,7 @@ http://jakarta.apache.org/ant/index.html
           com/moneydance/modules/features/moneyPie/images/*.jpeg
           net/java/balloontip/images/*.png"/>
           <fileset dir="${build}" includes="com/moneydance/modules/features/moneyPie/**"/>
-          <fileset dir="${build}" includes="org/w3c/dom/**"/>
-          <fileset dir="${build}" includes="org/apache/**"/>
-          <fileset dir="${build}" includes="org/xml/**"/>
-          <fileset dir="${build}" includes="javax/**"/>
-          <fileset dir="${build}" includes="net/**"/>
+      	  <fileset dir="${lib}" includes="moneyPieSupport.jar" />
       </jar>
       <java newenvironment="true"
           classpathref="classpath"
