@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <comment>de_DE translation</comment>
+
+    <entry key="title.text">Börsenkursabfrage</entry>
+
+    <!-- main configuration dialog -->
+    <entry key="settings.title">Börsenkursabfrage Einstellungen</entry>
+    <entry key="ratesConnection">Wechselkurse</entry>
+    <entry key="historyConnection">Historische Wertpapierkurse</entry>
+    <entry key="currentConnection">Akueller Kurs</entry>
+    <entry key="frequency">Aktualisierungshäufigkeit</entry>
+    <entry key="nextDate">Nächste Aktualisierung</entry>
+    <entry key="saveCurrHistory">Speicher aktuellen Kurs als vergangenen</entry>
+    <entry key="test">Test</entry>
+    <entry key="exchangeColumn.title">Börse</entry>
+    <entry key="testColumn.title">Testergebnis</entry>
+    <entry key="errDefaultEdit">Die Basis-Börse ist nicht editierbar.</entry>
+    <entry key="showOwnedOnly">Zeig nur Wertpapiere, die ich gerade besitze</entry>
+    <entry key="updateNow">Aktualisiere jetzt</entry>
+    <entry key="lastUpdate.fmt">Letzte Wechselkursaktualisierung war {0}, letzte Wertpapierkursaktualisierung war {1}</entry>
+    <entry key="never">nie</entry>
+    <entry key="hideTest.tip">Verstecke Teststeuerung</entry>
+    <entry key="showTest.tip">Zeige Teststeuerung</entry>
+    <entry key="basic">&#xab; Einfach</entry>
+    <entry key="advanced">Erweitert &#xbb;</entry>
+
+    <!-- other strings -->
+    <entry key="labelColon">: </entry>
+    <entry key="yahooUSA">Yahoo!® Finance - USA</entry>
+    <entry key="yahooUK">Yahoo!® Finance - UK</entry>
+    <entry key="yahooUSAexchangeRates">Yahoo!® Currency Exchange Rates</entry>
+    <entry key="google">Google™ Finance - History Only</entry>
+    <entry key="downloading">Herunterladen...</entry>
+    <entry key="skipped">Übersprungen</entry>
+    <entry key="error.setup">Fehler im Setup</entry>
+    <entry key="notUsed">--- Bitte nicht aktualisieren ---</entry>
+    <entry key="quotes">Wertpapierkurse</entry>
+    <entry key="exchangeRates">Wechselkurse</entry>
+    <entry key="error.no_connection">Keine Verbindung etabliert</entry>
+    <entry key="no_update">Nutzer wollte nicht aktualisieren</entry>
+    <entry key="error.no_symbol">Kein Symbol definiert</entry>
+    <entry key="history">Kurs Historie</entry>
+    <entry key="quote">Aktueller Kurs</entry>
+    <entry key="error.invalid_symbol">Ungültiges Symbol</entry>
+    <entry key="modified">Verändert</entry>
+    <entry key="error.curr_undefined">Wechselkurs nicht definiert</entry>
+    <entry key="curr_not_found.fmt">Wechselkurs {0} nicht gefunden</entry>
+    <entry key="price_currency.fmt">Kurse in {0}</entry>
+    <entry key="error.curr_mismatch.fmt">Währung {0} stimmt nicht mit Währung an Börse {1} überein</entry>
+    <entry key="error.curr_code_mismatch.fmt">Währungscode {0} stimmt nicht überein {1}</entry>
+    <entry key="editExchange.tip">Rechter Mausklick oder drücke {0} zum Editieren</entry>
+  
+    <!-- Import Errors -->
+    <!-- {0} = the currency ID that is supposed to be used for price updates, but doesn't exist. -->
+    <entry key="error.price_currency.fmt">Price currency ID not found: {0}</entry>
+    <entry key="error.history.not_supported">History is not supported by this connection</entry>
+    <entry key="error.current.not_supported">Current price is not supported by this connection</entry>
+    <entry key="error.import.no_input">Could not open input data.</entry>
+    <entry key="error.import.read_input">Could not read input data.</entry>
+    <entry key="error.import.no_data">No data found.</entry>
+    <entry key="error.import.while.read">Error while reading data.</entry>
+    <entry key="error.import.no_valid_data">No valid data found.</entry>
+    <entry key="error.import.not_text">Input data was not text.</entry>
+    <entry key="error.import.no_columns">Input data was not separated into columns.</entry>
+    <entry key="error.import.malformed">Input data was malformed.</entry>
+    <entry key="error.import.no_header">No header found.</entry>
+    <entry key="error.import.other">Unexpected error during import.</entry>
+    <entry key="error.import.communication">Communication</entry>
+    <entry key="error.import.invalid_number">Invalid Number</entry>
+
+    <!-- {0} = the error received, {1} = response message text. -->
+    <entry key="error.url.fmt">Error: {0}, received response message ''{1}''.</entry>
+    <!-- {0} = the code received, {1} = response message text. -->
+    <entry key="error.url_code.fmt">Received response code {0} and message ''{1}''.</entry>
+    
+    <!--  status messages -->
+    <!-- 0 = connection name -->
+    <entry key="status.exchangeRates.start.fmt">Downloading exchange rates from {0}...</entry>
+    <!-- {0} = name of item, {1} error text -->
+    <entry key="error.download.fmt">Error while downloading {0}: {1}</entry>
+    <!-- {0} = name of item -->
+    <entry key="finished.download.fmt">Finished downloading {0}</entry>
+    <!-- {0} = number skipped, {1} = number of errors, {2} = number of successful quotes -->
+    <entry key="quotes.done.fmt">Security price update complete with {0} skipped, {1} errors and {2} quotes obtained</entry>
+    <!-- {0} = name of security, {1} = date, {2} = price -->
+    <entry key="priceAsOfDate.fmt">Price for {0} as of {1}: {2}</entry>
+    <!-- {0} = from currency, {1} = to currency, {2} = date: {3} = rate -->
+    <entry key="exchangeRateAsOfDate.fmt">Exchange Rate from {0} to {1} as of {2}: {3}</entry>
+    <!-- {0} = from currency, {1} = to currency -->
+    <entry key="error.exchangeRate.fmt">Unable to get rate from {0} to {1}</entry>
+    <!-- {0} = name of security, {1} error text -->
+    <entry key="error.history.fmt">Error downloading price history for {0}: {1}</entry>
+    <!-- {0} = name of security, {1} error text -->
+    <entry key="error.current.fmt">Error downloading current price for {0}: {1}</entry>
+    <!-- {0} = number of successful records, {1} error count -->
+    <entry key="test.some_success.fmt">Historical prices successfully downloaded: {0}  Errors encountered: {1}</entry>
+    <!-- {0} = number of successful records -->
+    <entry key="test.success.fmt">Historical prices successfully downloaded: {0}</entry>
+    <!-- {0} = number of errors -->
+    <entry key="test.error.fmt">Errors received downloading historical prices: {0}</entry>
+    <entry key="test.no_records">No historical prices received</entry>
+    <!-- {0} = date, {1} = price -->
+    <entry key="test.current.fmt">Successfully downloaded current price as of {0}: {1}</entry>
+
+    <!--  exchange edit dialog -->
+    <entry key="editExchangeTitle">Editier Börse</entry>
+    <entry key="exchangeName">Name der Börse</entry>
+    <entry key="yahooSuffix">Yahoo!® Suffix</entry>
+    <entry key="googlePrefix">Google™ Prefix</entry>
+    <entry key="currency">Währung</entry>
+    <entry key="multiplier">Kurs Multiplizierer</entry>
+    <entry key="errNameBlank">Bitte geben Sie einen Namen ein</entry>
+    <entry key="errMultiplier">Bitte geben Sie einen gültigen Kurs Multiplizierer ein (Standard ist 1)</entry>
+    <entry key="errSave">Ein Problem tauchte beim Speichern der Börsenkursabfrageneinstellungen auf.</entry>
+
+</properties>
