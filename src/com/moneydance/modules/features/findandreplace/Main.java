@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -25,12 +25,12 @@ import java.util.List;
  * interface to Moneydance.</p>
  *
  * @author Kevin Menningen
- * @version Build 94
+ * @version Build 207
  * @since 1.0
  */
 public class Main extends FeatureModule
 {
-    private static final int BUILD = 94;
+    private static final int BUILD = 207;
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();
@@ -68,6 +68,7 @@ public class Main extends FeatureModule
                 _homePageView = new FarHomeView(this);
                 getContext().registerHomePageView(this, _homePageView);
             }
+            Logger.log(String.format("Initialized build %s ok", getBuildString()));
         }
         catch (Exception error)
         {
@@ -249,9 +250,7 @@ public class Main extends FeatureModule
 
     void handleException(Exception error)
     {
-        final PrintStream output = System.err;
-        output.println(N12EFindAndReplace.ERROR_LOADING);
-        fullDumpStackTrace(error, output, 0);
+        Logger.logError(N12EFindAndReplace.ERROR_LOADING, error);
         if (_resources != null)
         {
             final String title = _resources.getString(L10NFindAndReplace.ERROR_TITLE);
@@ -267,21 +266,6 @@ public class Main extends FeatureModule
         }
     }
 
-    private void fullDumpStackTrace(final Throwable error, final PrintStream output, int level)
-    {
-        output.println(error.getMessage());
-        for (StackTraceElement element : error.getStackTrace())
-        {
-            output.print("    ");
-            output.println(element.toString());
-        }
-        Throwable cause = error.getCause();
-        if ((cause != null) && (level < 10))
-        {
-            output.print("Caused by: ");
-            fullDumpStackTrace(cause, output, level + 1);
-        }
-    }
 
     FeatureModuleContext getUnprotectedContext()
     {

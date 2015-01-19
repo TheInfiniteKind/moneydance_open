@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -88,35 +88,18 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
     private boolean isExactMatch(SplitTxn split)
     {
         boolean contained = true;
-        // this will be a '|' delimited list of user-defined tag IDs for the transaction
         final List<String> splitTags = split.getKeywords();
         if ((_includedTags != null) && (_includedTags.size() > 0))
         {
-            // All tags defined in the split must be in the included tags. We can't do an exact
-            // comparison for two reasons: the split's tags will contain null or empty strings,
-            // and the lists could be in a different order.
-            if (splitTags.size()<=0)
+            // All tags defined in the split must be in the included tags, and the two lists must
+            // be the same size
+            if (splitTags.size() != _includedTags.size())
             {
                 // can't be an exact match, included tags are defined and the split doesn't have any
                 return false;
             }
-            
-            // check that all included tags are in the split
-            for (String tagName : _includedTags)
-            {
-                contained = splitTags.contains(tagName);
-                if (!contained) break;
-            }
 
-            if (contained)
-            {
-                // check that all split tags are contained in the included list
-                for (String tagName : splitTags)
-                {
-                    contained = splitTags.contains(_includedTags);
-                    if (!contained) break;
-                }
-            }
+            contained = _includedTags.containsAll(splitTags);
         }
         else
         {
@@ -126,40 +109,16 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
         return contained;
     }
 
-    private static boolean findStringInList(String searchStr, String[] stringList)
-    {
-        if ((searchStr == null) || (searchStr.length() == 0))
-        {
-            // null is always found - handles split's tags that might contain blanks
-            return true;
-        }
-        boolean found = false;
-        for (String includedName : stringList)
-        {
-            if (searchStr.equals(includedName))
-            {
-                found = true;
-                break;
-            }
-        }
-        return found;
-    }
-
     private boolean hasAllMatch(final SplitTxn split)
     {
         boolean contained = true;
 
         if ((_includedTags != null) && (_includedTags.size() > 0))
         {
-            List<String> splitTags = split.getKeywords(); 
-            for (final String includedTag : _includedTags)
-            {
-                if (!splitTags.contains(includedTag)) 
-                {
-                    contained = false;
-                    break;
-                }
-            }
+            // the split can have a different number of tags, but must have all of the tags the
+            // user has included
+            List<String> splitTags = split.getKeywords();
+            contained = splitTags.containsAll(_includedTags);
         }
         else
         {
@@ -177,6 +136,7 @@ class TagsTxnFilter extends TransactionFilterBase implements ITransactionFilter
 
         if ((_includedTags != null) && (_includedTags.size() > 0))
         {
+            // the split must have at least one of the tags the user has chosen in order to match
             List<String> splitTags = split.getKeywords();
             for (final String includedTag : _includedTags)
             {

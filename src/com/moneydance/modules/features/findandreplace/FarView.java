@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -159,10 +159,11 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private JLabel _statusLabel;
     private Font _smallFont;
 
-    FarView(final FarModel model, MoneydanceGUI mdGui, String title)
+    FarView(final FarModel model, final FarController controller, MoneydanceGUI mdGui, String title)
     {
         super(mdGui, title);
         _model = model;
+        _controller = controller;
     }
 
     @Override
@@ -337,6 +338,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     public void propertyChange(final PropertyChangeEvent event)
     {
+        if (_controller == null) return;  // shutting down
         final String eventID = event.getPropertyName();
         final boolean all = N12EFindAndReplace.ALL_PROPERTIES.equals(eventID);
 
@@ -1305,6 +1307,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent event)
             {
+                if (N12EFindAndReplace.SELECT_TAG_LIST.equals(event.getActionCommand()))
+                {
+                    showTagsPopup(_findTagPicker);
+                }
                 // notify that tags will be used
                 if (!_suppressAutoCheckUse)
                 {
@@ -1363,6 +1369,12 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 }
             }
         });
+    }
+
+    private void showTagsPopup(final TxnTagsPicker picker)
+    {
+        final JDialog popup = new TagSelectPopup(this, picker, _focusColor);
+        popup.setVisible(true);
     }
 
     private JPanel createTagSupportPanel()
@@ -1824,6 +1836,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent event)
             {
+                if (N12EFindAndReplace.SELECT_TAG_LIST.equals(event.getActionCommand()))
+                {
+                    showTagsPopup(_replaceAddTags);
+                }
                 // notify that tags will be used
                 if (!_suppressAutoCheckUse)
                 {
@@ -1836,6 +1852,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent event)
             {
+                if (N12EFindAndReplace.SELECT_TAG_LIST.equals(event.getActionCommand()))
+                {
+                    showTagsPopup(_replaceRemoveTags);
+                }
                 // notify that tags will be used
                 if (!_suppressAutoCheckUse)
                 {
@@ -1848,6 +1868,10 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             public void actionPerformed(final ActionEvent event)
             {
+                if (N12EFindAndReplace.SELECT_TAG_LIST.equals(event.getActionCommand()))
+                {
+                    showTagsPopup(_replaceReplaceTags);
+                }
                 // notify that tags will be used
                 if (!_suppressAutoCheckUse)
                 {
@@ -2131,53 +2155,59 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private void disableMenus()
     {
-        // File
-        mainMenu.fileNewAction.setEnabled(true);
-        //mainMenu.fileOpenAction.setEnabled(true);
-        mainMenu.fileExportAction.setEnabled(true);
-        mainMenu.fileEncryptionAction.setEnabled(false);
-        mainMenu.fileArchiveAction.setEnabled(false);
-        //mainMenu.fileSaveAsAction.setEnabled(true);
-        mainMenu.fileSaveAction.setEnabled(true);
-        mainMenu.printChecksAction.setEnabled(false);
-        mainMenu.printTxnsAction.setEnabled(false);
-        mainMenu.newTxnAction.setEnabled(false);
-        // Edit
-        mainMenu.editFindAction.setEnabled(false);
-        mainMenu.editAdvancedFindAction.setEnabled(false);
-        // View
-        mainMenu.viewDBBudget.setEnabled(false);
-        mainMenu.viewDBNothing.setEnabled(false);
-        mainMenu.viewDBNetWorth.setEnabled(false);
-        mainMenu.viewHomeAction.setEnabled(false);
-        //mainMenu.viewShowSourceListAction.setEnabled(false);
-        // Account
-        mainMenu.acctNewAction.setEnabled(false);
-        mainMenu.acctEditAction.setEnabled(false);
-        mainMenu.acctDeleteAction.setEnabled(false);
-        mainMenu.reconcileAction.setEnabled(false);
-        // Online
-        mainMenu.downloadAllAction.setEnabled(false);
-        mainMenu.setupOnlineAction.setEnabled(false);
-        mainMenu.setupOnlineBPAction.setEnabled(false);
-        mainMenu.showOnlineBPAction.setEnabled(false);
-        mainMenu.sendOnlineBPAction.setEnabled(false);
-        mainMenu.confirmSelectedTxnsAction.setEnabled(false);
-        mainMenu.forgetPasswdsAction.setEnabled(false);
-        mainMenu.downloadTxnsAction.setEnabled(false);
-        // Tools
-        mainMenu.toolsLoanCalcAction.setEnabled(true);
-        mainMenu.toolsNormalCalcAction.setEnabled(true);
-        mainMenu.toolsRemindersAction.setEnabled(true);
-        mainMenu.toolsBudgetAction.setEnabled(true);
-        mainMenu.toolsTranslateCurrencyAction.setEnabled(true);
-        mainMenu.toolsCurrencyAction.setEnabled(true);
-        mainMenu.toolsSecuritiesAction.setEnabled(true);
-        mainMenu.toolsCOAAction.setEnabled(true);
-        mainMenu.toolsCategoriesAction.setEnabled(true);
-        mainMenu.toolsAddressBookAction.setEnabled(true);
-        mainMenu.toolsReportsAction.setEnabled(true);
-        // Extensions, Windows and Help all stay enabled
+        try {
+            // File
+            mainMenu.fileNewAction.setEnabled(true);
+            //mainMenu.fileOpenAction.setEnabled(true);
+            mainMenu.fileExportAction.setEnabled(true);
+            mainMenu.fileEncryptionAction.setEnabled(false);
+            mainMenu.fileArchiveAction.setEnabled(false);
+            //mainMenu.fileSaveAsAction.setEnabled(true);
+            mainMenu.fileSaveAction.setEnabled(true);
+            mainMenu.printChecksAction.setEnabled(false);
+            mainMenu.printTxnsAction.setEnabled(false);
+            mainMenu.newTxnAction.setEnabled(false);
+            // Edit
+            mainMenu.editFindAction.setEnabled(false);
+            mainMenu.editAdvancedFindAction.setEnabled(false);
+            // View
+            mainMenu.viewDBBudget.setEnabled(false);
+            mainMenu.viewDBNothing.setEnabled(false);
+            mainMenu.viewDBNetWorth.setEnabled(false);
+            mainMenu.viewHomeAction.setEnabled(false);
+            //mainMenu.viewShowSourceListAction.setEnabled(false);
+            // Account
+            mainMenu.acctNewAction.setEnabled(false);
+            mainMenu.acctEditAction.setEnabled(false);
+            mainMenu.acctDeleteAction.setEnabled(false);
+            mainMenu.reconcileAction.setEnabled(false);
+            // Online
+            mainMenu.downloadAllAction.setEnabled(false);
+            mainMenu.setupOnlineAction.setEnabled(false);
+            mainMenu.setupOnlineBPAction.setEnabled(false);
+            mainMenu.showOnlineBPAction.setEnabled(false);
+            mainMenu.sendOnlineBPAction.setEnabled(false);
+            mainMenu.confirmSelectedTxnsAction.setEnabled(false);
+            mainMenu.forgetPasswdsAction.setEnabled(false);
+            mainMenu.downloadTxnsAction.setEnabled(false);
+            // Tools
+            mainMenu.toolsLoanCalcAction.setEnabled(true);
+            mainMenu.toolsNormalCalcAction.setEnabled(true);
+            mainMenu.toolsRemindersAction.setEnabled(true);
+            mainMenu.toolsBudgetAction.setEnabled(true);
+            mainMenu.toolsTranslateCurrencyAction.setEnabled(true);
+            mainMenu.toolsCurrencyAction.setEnabled(true);
+            mainMenu.toolsSecuritiesAction.setEnabled(true);
+            mainMenu.toolsCOAAction.setEnabled(true);
+            mainMenu.toolsCategoriesAction.setEnabled(true);
+            mainMenu.toolsAddressBookAction.setEnabled(true);
+            mainMenu.toolsReportsAction.setEnabled(true);
+            // Extensions, Windows and Help all stay enabled
+        }
+        catch (Throwable error)
+        {
+            Logger.logError("Error while disabling menus", error);
+        }
     }
 
     private class ColoredFocusAdapter extends FocusAdapter

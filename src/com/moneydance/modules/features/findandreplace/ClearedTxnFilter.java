@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2008-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2008-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -9,10 +9,7 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.infinitekind.moneydance.model.AbstractTxn;
-import com.infinitekind.moneydance.model.SplitTxn;
 import com.infinitekind.moneydance.model.ParentTxn;
-
-import java.util.regex.Pattern;
 
 /**
  * <p>Filter to determine if a transaction's cleared status meets search criteria.</p>

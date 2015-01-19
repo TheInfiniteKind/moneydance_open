@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -236,11 +236,11 @@ final class FarUtil
             }
             catch (IOException e)
             {
-                System.err.println("findandreplace: Unable to launch browser for user guide - IO exception");
+                Logger.logError("Unable to launch browser for user guide - IO exception", e);
             }
             catch (URISyntaxException e)
             {
-                System.err.println("findandreplace: Unable to launch browser for user guide - URL issue");
+                Logger.logError("Unable to launch browser for user guide - URL issue", e);
             }
         }
     }

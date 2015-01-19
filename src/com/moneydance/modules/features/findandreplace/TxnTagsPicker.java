@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -11,6 +11,7 @@ package com.moneydance.modules.features.findandreplace;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.infinitekind.moneydance.model.*;
 
+import javax.swing.ListModel;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 
@@ -56,7 +57,13 @@ class TxnTagsPicker
     void setModel(TagPickerModel model)
     {
         _controller = new TagPickerController(model, _view);
+        _view.setController(_controller);
         _controller.updateFromModel();
+    }
+
+    void toggle(String candidate) {
+        _controller.toggle(candidate);
+        _view.repaint();
     }
 
     TagPickerField getView()
@@ -81,4 +88,13 @@ class TxnTagsPicker
         _view.repaint();
     }
 
+    public ListModel<String> getFullTagsList()
+    {
+        return _controller.getFullTagsList();
+    }
+
+    public boolean isTagSelected(String tag)
+    {
+        return _controller.isTagSelected(tag);
+    }
 }
