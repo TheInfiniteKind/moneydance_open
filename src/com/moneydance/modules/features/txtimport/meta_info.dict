@@ -2,7 +2,7 @@
   "vendor" = "The Infinite Kind"
   "vendor_url" = "http://infinitekind.com/"
   "name" = "Text Import"
-  "module_build" = "102"
+  "module_build" = "103"
   "minbuild" = "1000"
   "desc" = "This is an extension that allows you to import formatted text files into Moneydance."
   "id" = "txtimport"

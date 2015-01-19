@@ -545,7 +545,7 @@ public class ImportState {
       newAccount = Legacy.makeAccount(book, accountType, thisAcctName, currencyType, parentAccount);
       newAccount.setBankName(description);
       newAccount.setAccountDescription(description);
-      parentAccount.addSubAccount(newAccount);
+      newAccount.syncItem();
     }
     
     if(restOfAcctName!=null) {
@@ -565,7 +565,7 @@ public class ImportState {
                                           currencyType, parentAccount);
         }
         newAccount.setBankName(description);
-        parentAccount.addSubAccount(newAccount);
+        newAccount.syncItem();
       }
       return newAccount;
     }
