@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -17,7 +17,6 @@ import java.util.Properties;
 import java.util.Enumeration;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.security.AccessController;
 import java.security.PrivilegedExceptionAction;
 import java.security.PrivilegedActionException;
@@ -86,9 +85,7 @@ class XmlResourceControl extends ResourceBundle.Control
         }
         catch (IOException ioex)
         {
-            final PrintStream output = System.err;
-            output.println(N12EFindAndReplace.XML_RESOURCE_LOAD_FAIL + resourceName);
-            ioex.printStackTrace(output);
+            Logger.logError(N12EFindAndReplace.XML_RESOURCE_LOAD_FAIL + resourceName, ioex);
         }
         finally
         {

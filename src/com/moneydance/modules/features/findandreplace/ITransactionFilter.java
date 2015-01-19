@@ -5,7 +5,6 @@
 
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.moneydance.model.AbstractTxn;
 import com.infinitekind.moneydance.model.TxnFilter;
 
 /**

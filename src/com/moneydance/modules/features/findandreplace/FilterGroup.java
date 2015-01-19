@@ -49,7 +49,7 @@ class FilterGroup implements ITransactionFilter
      */
     public boolean containsTxn(final AbstractTxn txn)
     {
-        if ((_filterList == null) || _filterList.isEmpty())
+        if (_filterList.isEmpty())
         {
             // nothing to do
             return false;

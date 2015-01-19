@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2012 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -12,17 +12,11 @@ import com.moneydance.apps.md.view.gui.DateRangeChooser;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
 import com.moneydance.awt.JDateField;
-import com.infinitekind.util.CustomDateFormat;
 
 import javax.swing.Box;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JPanel;
-import javax.swing.JLabel;
 import javax.swing.event.DocumentListener;
-
-import info.clearthought.layout.TableLayout;
-import info.clearthought.layout.TableLayoutConstraints;
 
 import java.awt.GridBagLayout;
 import java.awt.event.FocusListener;

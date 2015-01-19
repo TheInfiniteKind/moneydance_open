@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+* Copyright (C) 2012-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -7,7 +7,6 @@
 \*************************************************************************/
 package com.moneydance.modules.features.findandreplace;
 
-import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.TagLogic;
@@ -133,7 +132,7 @@ public class LoadSaveModel
         }
         catch (StringEncodingException e)
         {
-            System.err.println("findandreplace: Error loading saved settings: "+e.getMessage());
+            Logger.logError("Error loading saved settings: " + e.getMessage(), e);
         }
     }
 
@@ -167,7 +166,7 @@ public class LoadSaveModel
         }
         catch (StringEncodingException error)
         {
-            System.err.println("findandreplace: Error retrieving settings: " + error.getMessage());
+            Logger.logError("Error retrieving settings: " + error.getMessage(), error);
         }
     }
 
@@ -190,7 +189,7 @@ public class LoadSaveModel
         Account root = _book.getRootAccount();
         root.setParameter(SAVE_KEY_NAME, streamTable.writeToString());
         // notify user they changed something
-        _book.notifyAccountModified(root);
+        root.notifyAccountModified();
     }
 
     private void saveFindCriteria(final StreamTable streamTable)
