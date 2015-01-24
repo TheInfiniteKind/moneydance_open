@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2011 Mennē Software Solutions, LLC
+* Copyright (C) 2011-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -35,25 +35,9 @@ class ColoredParentFocusAdapter extends FocusAdapter
         _parent.setOpaque(true);
         _normalBackground = parent.getBackground();
         Color adjustedColor = _normalBackground;
+        adjustedColor = getAdjustedColor(adjustedColor);
 
-        // surround in try/catch in case HSL color utilities are not available
-        try
-        {
-            // derive a new color, either darker or lighter depending upon the normal background
-            final float[] hslBackground = HSLColorUtil.convertRGBtoHSL(_normalBackground);
-            if (hslBackground[HSLColorUtil.LUMINANCE_INDEX] > 0.97f)
-            {
-                adjustedColor = HSLColorUtil.getLighterColor(hslBackground, -0.03f);
-            }
-            else
-            {
-                adjustedColor = HSLColorUtil.getLighterColor(hslBackground, 0.03f);
-            }
-        }
-        catch (Throwable error)
-        {
-            // ignore, we'll just use the default background
-        }
+
         _focusedBackground = adjustedColor;
     }
 
@@ -76,5 +60,29 @@ class ColoredParentFocusAdapter extends FocusAdapter
     void disableColorChange()
     {
         _colorChangeEnabled = false;
+    }
+
+    private static Color getAdjustedColor(Color baseColor)
+    {
+        Color result = baseColor;
+        // surround in try/catch in case HSL color utilities are not available
+        try
+        {
+            // derive a new color, either darker or lighter depending upon the normal background
+            final float[] hslBackground = HSLColorUtil.convertRGBtoHSL(baseColor);
+            if (hslBackground[HSLColorUtil.LUMINANCE_INDEX] > 0.97f)
+            {
+                result = HSLColorUtil.getLighterColor(hslBackground, -0.03f);
+            }
+            else
+            {
+                result = HSLColorUtil.getLighterColor(hslBackground, 0.03f);
+            }
+        }
+        catch (Throwable error)
+        {
+            // ignore, we'll just use the default background
+        }
+        return result;
     }
 }

@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -9,11 +9,11 @@
 package com.moneydance.modules.features.findandreplace;
 
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListModel;
+import javax.swing.ListModel;
 import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
-
 
 /**
  * <p>Tracks user's selections from the list of tags.</p>
@@ -67,5 +67,30 @@ class TagPickerModel extends DefaultComboBoxModel
         _selected.clear();
     }
 
-    
+    void toggle(String candidate)
+    {
+        if (_selected.contains(candidate))
+        {
+            _selected.remove(candidate);
+        }
+        else
+        {
+            _selected.add(candidate);
+        }
+    }
+
+    public ListModel<String> getFullTagsList()
+    {
+        DefaultListModel<String> result = new DefaultListModel<String>();
+        for (String knownTag : _fullTagSet)
+        {
+            result.addElement(knownTag);
+        }
+        return result;
+    }
+
+    public boolean isTagSelected(String tag)
+    {
+        return _selected.contains(tag);
+    }
 }

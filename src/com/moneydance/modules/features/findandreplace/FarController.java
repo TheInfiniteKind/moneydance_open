@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -18,7 +18,6 @@ import com.moneydance.apps.md.view.gui.select.AddRemoveAccountDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import java.awt.Cursor;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
@@ -173,7 +172,7 @@ public class FarController implements IFindAndReplaceController
         // build the list of transactions that match the criteria
         Set<Long> uniqueTxnIDs = new HashSet<Long>();
         final TransactionSet txnSet = book.getTransactionSet();
-        for(AbstractTxn txn : txnSet) 
+        for(AbstractTxn txn : txnSet.iterableTxns())
         {
             // both parents and splits will be run through here
             if (filter.containsTxn(txn))
@@ -317,8 +316,7 @@ public class FarController implements IFindAndReplaceController
             } // try
             catch (Exception error)
             {
-                System.err.print("Error replacing data with Find and Replace: ");
-                error.printStackTrace();
+                Logger.logError("Error replacing data with Find and Replace", error);
             }
             finally
             {
@@ -1039,9 +1037,8 @@ public class FarController implements IFindAndReplaceController
     {
         if (_view == null)
         {
-            _view = new FarView(_model, getMDGUI(), getString(L10NFindAndReplace.TITLE));
+            _view = new FarView(_model, this, getMDGUI(), getString(L10NFindAndReplace.TITLE));
             // hook up listeners
-            _view.setController(this);
             _model.addPropertyChangeListener(_view);
         }
     }

@@ -1,5 +1,5 @@
 /*************************************************************************\
- * Copyright (C) 2010-2012 The Infinite Kind, LLC
+ * Copyright (C) 2010-2015 The Infinite Kind, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -7,8 +7,6 @@
  \*************************************************************************/
 
 package com.moneydance.modules.features.findandreplace;
-
-import com.infinitekind.moneydance.model.*;
 
 /**
  * Defines the various date ranges that can be selected in reports, budgets, etc. The ordinal 

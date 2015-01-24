@@ -26,6 +26,8 @@ public class SelectFilePane
     this.importState = importState;
 
     fileField = new JTextField("", 25);
+    fileField.setEditable(false);
+    fileField.setEnabled(false);
     if(importState.getFile() != null) fileField.setText(importState.getFile().getAbsolutePath());
     browseButton = new JButton(rr.getString("browse"));
     encodingChoice = new JComboBox(ImportState.FILE_ENCODINGS);
@@ -60,6 +62,7 @@ public class SelectFilePane
   public void activated(Wizard wiz) {
     this.wizard = wiz;
     this.wizard.setNextButtonEnabled(true);
+    browseForFile();
   }
 
   /** Is called when the 'next' button is clicked to store

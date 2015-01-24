@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -12,7 +12,6 @@ import com.infinitekind.moneydance.model.*;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -12,6 +12,7 @@ import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.infinitekind.moneydance.model.*;
 
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import java.awt.Component;
 import java.awt.event.ActionListener;
@@ -32,6 +33,7 @@ class TagPickerField extends TxnTagsField
 {
     private final List<ActionListener> _selectionListeners = new ArrayList<ActionListener>();
     private ColoredParentFocusAdapter _parentFocusListener = null;
+    private TagPickerController _controller;
 
     public TagPickerField(MoneydanceGUI moneydanceGUI, AccountBook book)
     {
@@ -41,6 +43,19 @@ class TagPickerField extends TxnTagsField
             if (child instanceof JComponent)
             {
                 ((JComponent)child).setOpaque(false);
+            }
+
+            // show a popup window when clicking the button
+            if (child instanceof JButton)
+            {
+                JButton selectorButton = (JButton)child;
+                selectorButton.addActionListener(new ActionListener()
+                {
+                    public void actionPerformed(ActionEvent e)
+                    {
+                        fireTagSelectEvent(N12EFindAndReplace.SELECT_TAG_LIST);
+                    }
+                });
             }
         }
     }
@@ -65,12 +80,19 @@ class TagPickerField extends TxnTagsField
         }
 
         super.selectorButtonPressed();
+        fireTagSelectEvent(N12EFindAndReplace.SELECT_TAG);
+    }
 
+    private void fireTagSelectEvent(final String eventName)
+    {
+        _controller.updateFromView();
         for (final ActionListener listener : _selectionListeners)
         {
-            listener.actionPerformed(new ActionEvent(this, 0, N12EFindAndReplace.SELECT_TAG));
+            listener.actionPerformed(new ActionEvent(this, 0, eventName));
         }
     }
+
+    void setController(TagPickerController controller) { _controller = controller; }
 
     void addSelectionListener(final ActionListener listener)
     {

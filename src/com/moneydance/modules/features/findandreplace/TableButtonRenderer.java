@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2011 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,11 +10,8 @@ package com.moneydance.modules.features.findandreplace;
 
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.JButton;
 import javax.swing.JTable;
 import javax.swing.UIManager;
-import javax.swing.JToggleButton;
-import javax.swing.border.Border;
 import java.awt.Component;
 import java.awt.Color;
 

@@ -273,7 +273,7 @@ public class ImportState {
         ParentTxn ptxn = ParentTxn.makeParentTxn(book, date, date, System.currentTimeMillis(), 
                                                  checkNum, account, description, memo, -1, status);
         ptxn.addSplit(SplitTxn.makeSplitTxn(ptxn, amount, 1.0, category, ptxn.getDescription(), -1, status));
-        txnSet.addNewTxn(ptxn);
+        ptxn.syncItem();
       }
 
       // safe the settings in the preferences
@@ -545,7 +545,7 @@ public class ImportState {
       newAccount = Legacy.makeAccount(book, accountType, thisAcctName, currencyType, parentAccount);
       newAccount.setBankName(description);
       newAccount.setAccountDescription(description);
-      parentAccount.addSubAccount(newAccount);
+      newAccount.syncItem();
     }
     
     if(restOfAcctName!=null) {
@@ -565,7 +565,7 @@ public class ImportState {
                                           currencyType, parentAccount);
         }
         newAccount.setBankName(description);
-        parentAccount.addSubAccount(newAccount);
+        newAccount.syncItem();
       }
       return newAccount;
     }

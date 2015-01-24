@@ -1,5 +1,5 @@
 /*************************************************************************\
-* Copyright (C) 2009-2013 Mennē Software Solutions, LLC
+* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
 *
 * This code is released as open source under the Apache 2.0 License:<br/>
 * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -108,6 +108,7 @@ public class N12EFindAndReplace
     public static final String CLEARED_UNCLEARED = "allowUncleared";
 
     public static final String SELECT_TAG = "selectTag";
+    public static final String SELECT_TAG_LIST = "selectTagFromList";
 
     public static final String REPLACE_CATEGORY = "replaceCategory";
     public static final String REPLACE_AMOUNT = "replaceAmount";
