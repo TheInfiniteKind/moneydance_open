@@ -184,6 +184,10 @@ http://jakarta.apache.org/ant/index.html
     <!--<copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />-->
   </target>
 
+  <target name="txfexport" depends="init" description="build the TXF export extension">
+    <build-mxt feature="txfexport" javac-source="1.6" javac-target="1.6" />
+    <!--<copy file="${dist}/txfexport.mxt" tofile="${install}/txfexport.mxt" verbose="true" failonerror="false" />-->
+  </target>
 
   <target name="miscdebug" depends="init">
     <javac encoding="utf8" target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
