@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,20 +10,20 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.DateRange;
-import com.infinitekind.tiksync.SyncRecord;
-import com.moneydance.apps.md.controller.UserPreferences;
 import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.DateRange;
 import com.infinitekind.moneydance.model.ParentTxn;
+import com.infinitekind.moneydance.model.ReportSpec;
 import com.infinitekind.moneydance.model.SplitTxn;
 import com.infinitekind.moneydance.model.Txn;
+import com.infinitekind.tiksync.SyncRecord;
+import com.infinitekind.util.StringUtils;
+import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.view.gui.reporttool.RecordRow;
 import com.moneydance.apps.md.view.gui.reporttool.Report;
 import com.moneydance.apps.md.view.gui.reporttool.ReportGenerator;
-import com.infinitekind.util.StreamTable;
-import com.infinitekind.util.StringUtils;
 
 import javax.swing.JPanel;
 import java.awt.FontMetrics;
@@ -48,7 +48,11 @@ class RatioReportGenerator extends ReportGenerator {
     _ratio = ratio;
     _graphics = graphics;
     setGUI(_mainModel.getGUI());
-    setInfo(_mainModel.getRootAccount());
+
+    // todo - need to set any of these properties?
+    ReportSpec reportSpec = new ReportSpec(_mainModel.getRootAccount());
+    reportSpec.setMemorized(false);
+    setInfo(reportSpec);
     _computer = new RatioCompute(_mainModel.getRootAccount(), _mainModel.getGUI().getPreferences().getDecimalChar());
   }
 
@@ -61,7 +65,7 @@ class RatioReportGenerator extends ReportGenerator {
     return null;
   }
 
-  public void setParameters(SyncRecord params) {
+  public void setParameters(SyncRecord syncRecord) {
     // do nothing - we get our own data
   }
 
@@ -389,7 +393,7 @@ class RatioReportGenerator extends ReportGenerator {
     final byte[] totals = new byte[NUM_COLUMNS];
     RecordRow row = new RecordRow(labels, align, color, style, totals);
 
-    labels[0] = RatiosUtil.getAccountTypeNameAllCaps(mdGUI, accountType);
+    labels[0] = RatiosUtil.getAccountTypeNameAllCaps(mdGUI, accountType.code());
     if (showAmountTitle && isAverageBalance) {
       labels[4] = _mainModel.getResources().getString(L10NRatios.AVERAGE_BALANCE);
     } else if (showAmountTitle) {
@@ -417,7 +421,7 @@ class RatioReportGenerator extends ReportGenerator {
     // Account
     StringBuilder sb = new StringBuilder(mdGUI.getStr(L10NRatios.REPORT_TOTAL));
     sb.append(" - ");
-    sb.append(RatiosUtil.getAccountTypeNameAllCaps(mdGUI, accountType));
+    sb.append(RatiosUtil.getAccountTypeNameAllCaps(mdGUI, accountType.code()));
     labels[0] = sb.toString();
     style[0] = RecordRow.STYLE_PLAIN;
     align[0] = RecordRow.ALIGN_LEFT;
@@ -462,7 +466,8 @@ class RatioReportGenerator extends ReportGenerator {
     RecordRow row = new RecordRow(labels, align, color, style, totals);
     FontMetrics fontMetrics = _graphics.getFontMetrics();
     // Account
-    if ((account.getAccountType() != Account.AccountType.INCOME) && (account.getAccountType() != Account.AccountType.EXPENSE)) {
+    if ((account.getAccountType() != Account.AccountType.INCOME) &&
+        (account.getAccountType() != Account.AccountType.EXPENSE)) {
       labels[0] = showFullAccountName ? account.getFullAccountName() : account.getAccountName();
       widths[0] = Math.max(widths[0], measureStringWidth(labels[0], _graphics, fontMetrics));
       style[0] = RecordRow.STYLE_PLAIN;

@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,18 +10,26 @@
 
 package com.moneydance.modules.features.ratios;
 
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.AcctFilter;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.moneydance.model.Txn;
+import com.infinitekind.util.StreamTable;
+import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.TxnDateSearch;
 import com.moneydance.apps.md.view.gui.TxnTagsSearch;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
 import com.moneydance.modules.features.ratios.selector.RatioAccountSelector;
-import com.infinitekind.util.StreamTable;
-import com.infinitekind.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * One part of a ratio, either the numerator or the denominator.
@@ -31,16 +39,16 @@ import java.util.List;
 class RatioPart {
   private final List<Account> _requiredAccounts = new ArrayList<Account>();
   private final List<Account> _disallowedAccounts = new ArrayList<Account>();
+  private final List<String> _tags = new ArrayList<String>();
   private String _encodedRequiredAccounts;
   private String _encodedDisallowedAccounts;
-  private String _tags;
   private TagLogic _tagLogic;
   private String _label;
   private long _txnValue;
   private TxnDateSearch _dateFilter;
   private AcctFilter _requiredFilter;
   private AcctFilter _disallowedFilter;
-  private TxnTagsSearch _tagFilter;
+  private TxnTagsFilter _tagFilter;
   private double _value;
   private TxnMatchLogic _txnMatchLogic = TxnMatchLogic.DEFAULT;
   private CurrencyType _baseCurrency;
@@ -49,7 +57,7 @@ class RatioPart {
     _label = N12ERatios.EMPTY;
   }
 
-  void loadFromSettings(final StreamTable settings, final MoneydanceGUI mdGui,
+  void loadFromSettings(final StreamTable settings, final MoneydanceGUI mdGui, final Map<Integer, String> tagMap,
                         final String txnMatchKey, final String labelKey,
                         final String requiredListKey, final String disallowedListKey,
                         final String tagsKey) {
@@ -59,9 +67,9 @@ class RatioPart {
     buildAccountList(mdGui, _encodedRequiredAccounts, _requiredAccounts);
     _encodedDisallowedAccounts = settings.getStr(disallowedListKey, N12ERatios.EMPTY);
     buildAccountList(mdGui, _encodedDisallowedAccounts, _disallowedAccounts);
-    loadTags(settings.getStr(tagsKey, N12ERatios.EMPTY));
+    loadTags(settings.getStr(tagsKey, N12ERatios.EMPTY), tagMap);
   }
-  
+
   void saveToSettings(final StreamTable settings,
                       final String txnMatchKey, final String labelKey,
                       final String requiredListKey, final String disallowedListKey,
@@ -99,25 +107,28 @@ class RatioPart {
   String getLabel() { return _label; }
   void setLabel(final String label) { _label = label; }
 
-  void setRequiredAccounts(AccountFilter accountFilter, final AccountBook book) {
+  void setRequiredAccounts(AccountFilter accountFilter, final AccountBook root) {
     _requiredAccounts.clear();
-    _requiredAccounts.addAll(accountFilter.buildIncludedAccountList(book));
+    _requiredAccounts.addAll(accountFilter.buildIncludedAccountList(root));
     _encodedRequiredAccounts = GraphReportUtil.encodeAcctList(accountFilter);
   }
   void setEncodedRequiredAccounts(final String encodedAccounts) { _encodedRequiredAccounts = encodedAccounts; }
   String getEncodedRequiredAccounts() { return _encodedRequiredAccounts; }
   List<Account> getRequiredAccountList() { return _requiredAccounts; }
-  void setDisallowedAccounts(AccountFilter accountFilter, final AccountBook book) {
+  void setDisallowedAccounts(AccountFilter accountFilter, final AccountBook root) {
     _disallowedAccounts.clear();
-    _disallowedAccounts.addAll(accountFilter.buildIncludedAccountList(book));
+    _disallowedAccounts.addAll(accountFilter.buildIncludedAccountList(root));
     _encodedDisallowedAccounts = GraphReportUtil.encodeAcctList(accountFilter);
   }
   void setEncodedDisallowedAccounts(final String encodedAccounts) { _encodedDisallowedAccounts = encodedAccounts; }
   String getEncodedDisallowedAccounts() { return _encodedDisallowedAccounts; }
   List<Account> getDisallowedAccountList() { return _disallowedAccounts; }
 
-  void setTags(final String tagString) { _tags = tagString;  }
-  String getTags() { return _tags; }
+  void setTags(final List<String> tagList) {
+    _tags.clear();
+    if ((tagList != null) && !tagList.isEmpty()) _tags.addAll(tagList);
+  }
+  List<String> getTags() { return _tags; }
   void setTagLogic(final TagLogic tagLogic) { _tagLogic = tagLogic; }
   TagLogic getTagLogic() { return _tagLogic; }
 
@@ -150,7 +161,7 @@ class RatioPart {
     return hash;
   }
 
-  private void loadTags(final String settings) {
+  private void loadTags(final String settings, Map<Integer, String> tagMap) {
     if (StringUtils.isBlank(settings)) return;
     int delim = settings.lastIndexOf('+');
     TagLogic tagLogic = TagLogic.OR;
@@ -160,18 +171,13 @@ class RatioPart {
       tagLogic = TagLogic.fromString(logic);
       tagStr = settings.substring(0, delim);
     }
-    setTags(tagStr);
+    setTags(TxnTagUtils.convertTags(tagStr, tagMap));
     setTagLogic(tagLogic);
   }
 
   private String saveTags() {
-    if (StringUtils.isBlank(_tags)) return N12ERatios.EMPTY;
-    // the tags have already been put in a '|'-delimited list using TxnTagSet.getIDStringForTags()
-    final StringBuilder sb = new StringBuilder();
-    sb.append(_tags);
-    sb.append('+');
-    sb.append(_tagLogic.getConfigKey());
-    return sb.toString();
+    if (_tags.isEmpty()) return N12ERatios.EMPTY;
+    return RatiosUtil.toCSV(_tags) + '+' + _tagLogic.getConfigKey();
   }
 
 
@@ -186,15 +192,15 @@ class RatioPart {
     // start with nothing
     accounts.clear();
     // use an account selector so as to not duplicate code
-    final AccountBook book = mdGui.getCurrentBook();
-    RatioAccountSelector selector = RatioEntryEditorView.createAccountSelector(book);
+    final AccountBook root = mdGui.getCurrentBook();
+    RatioAccountSelector selector = RatioEntryEditorView.createAccountSelector(root);
     AccountFilter accountFilter = selector.selectFromEncodedString(encodedAccountIDs);
-    accounts.addAll(accountFilter.buildIncludedAccountList(book));
+    accounts.addAll(accountFilter.buildIncludedAccountList(root));
   }
 
-  void prepareForTxnProcessing(final AccountBook book, final DateRange dateRange, final boolean useTaxDate) {
+  void prepareForTxnProcessing(final AccountBook root, final DateRange dateRange, final boolean useTaxDate) {
     if (isAccountBalanceType()) return; // nothing to do
-    _baseCurrency = book.getCurrencies().getBaseType();
+    _baseCurrency = root.getCurrencies().getBaseType();
     _txnValue = 0;
     _dateFilter = new TxnDateSearch(dateRange.getStartDateInt(), dateRange.getEndDateInt(), useTaxDate);
     _requiredFilter = new AcctFilter() {
@@ -215,8 +221,8 @@ class RatioPart {
         return account.getFullAccountName();
       }
     };
-    if (!StringUtils.isBlank(_tags)) {
-      _tagFilter = new TxnTagsSearch(book.getTxnTagSet().getTagsForIDString(_tags), _tagLogic);
+    if (!_tags.isEmpty()) {
+      _tagFilter = new TxnTagsFilter(_tags, _tagLogic);
     } else {
       _tagFilter = null;
     }
@@ -267,15 +273,14 @@ class RatioPart {
       // destination
       if (RatioCompute.shouldFlipTxn(sourceAccount, targetAccount, sourceRequired, targetRequired)) {
         convertedValue = -CurrencyUtil.convertValue(txnValue, sourceAccount.getCurrencyType(),
-                                                            _baseCurrency, txnDate);
+                                                    _baseCurrency, txnDate);
       } else {
         convertedValue = CurrencyUtil.convertValue(txnValue, sourceAccount.getCurrencyType(),
                                                     _baseCurrency, txnDate);
       }
       _txnValue += convertedValue;
       if (reporting != null) {
-        reporting.addTxn(txn,
-                         new TxnReportInfo(convertedValue, sourceRequired, targetRequired));
+        reporting.addTxn(txn, new TxnReportInfo(convertedValue, sourceRequired, targetRequired));
       }
     }
   }

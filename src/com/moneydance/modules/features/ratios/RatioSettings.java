@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,14 +10,15 @@
 
 package com.moneydance.modules.features.ratios;
 
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.time.DateRangeOption;
-import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.infinitekind.util.StreamTable;
-import com.moneydance.util.BasePropertyChangeReporter;
 import com.infinitekind.util.StringEncodingException;
 import com.infinitekind.util.StringUtils;
+import com.moneydance.util.BasePropertyChangeReporter;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -187,15 +188,14 @@ public class RatioSettings
     }
   }
 
-  public void loadFromSettings(final AccountBook book, final ResourceProvider resources) {
-    Account root = book.getRootAccount();
+  public void loadFromSettings(final AccountBook root, final ResourceProvider resources) {
     // if the file never contained a ratios setting, build from what we have
-    if (!root.doesParameterExist(N12ERatios.SETTINGS_ID)) {
-      buildInitialSettings(book, resources, true);
+    if (!root.getRootAccount().doesParameterExist(N12ERatios.SETTINGS_ID)) {
+      buildInitialSettings(root, resources, true);
       return;
     }
 
-    String settings = root.getParameter(N12ERatios.SETTINGS_ID);
+    String settings = root.getRootAccount().getParameter(N12ERatios.SETTINGS_ID);
     if (StringUtils.isBlank(settings)) {
       setDefaults();
       return;
@@ -223,18 +223,18 @@ public class RatioSettings
         ++backupIndex;
       }
     } catch (StringEncodingException e) {
-      System.err.println(N12ERatios.ERROR_LOADING_SETTINGS);
+      Logger.log(N12ERatios.ERROR_LOADING_SETTINGS);
       setDefaults();
     }
     buildDateRangeFromOption();
   }
 
-  public void saveToSettings(final AccountBook book) {
+  public void saveToSettings(final AccountBook root) {
     if (_readOnly) {
       // do nothing
       return;
     }
-    Account root = book.getRootAccount();
+
     StreamTable stream = new StreamTable();
     // save global settings
     stream.put(N12ERatios.DECIMALS_KEY, _decimalPlaces);
@@ -249,7 +249,7 @@ public class RatioSettings
     }
     stream.setField(N12ERatios.RATIO_ENTRIES_KEY, ratioEntryList);
     String settings = stream.writeToString();
-    root.setParameter(N12ERatios.SETTINGS_ID, settings);
+    root.getRootAccount().setParameter(N12ERatios.SETTINGS_ID, settings);
   }
 
   public List<String> getDateRangeChoiceKeys() {
@@ -260,9 +260,9 @@ public class RatioSettings
     _fireNotifications = !suspend;
   }
 
-  public void resetToDefaults(final AccountBook book, final ResourceProvider resources) {
+  public void resetToDefaults(final AccountBook root, final ResourceProvider resources) {
     _ratioList.clear();
-    buildInitialSettings(book, resources, false);
+    buildInitialSettings(root, resources, false);
     ratioListUpdated();
   }
 
@@ -274,19 +274,19 @@ public class RatioSettings
    * Setup the ratios for the very first time. Add a debt-to-income ratio and a working capital
    * ratio. Finally save the initial settings
    *
-   * @param book The account file to load.
+   * @param root The account file to load.
    * @param resources Object to obtain localized strings and other resources.
    * @param save True to immediately save the initial settings to the file
    */
-  private void buildInitialSettings(final AccountBook book, final ResourceProvider resources, final boolean save) {
+  private void buildInitialSettings(final AccountBook root, final ResourceProvider resources, final boolean save) {
     setDefaults();
-    System.err.println("ratios: Adding example ratio entries");
+    Logger.log("Adding example ratio entries");
     addDebtServiceToIncomeRatio(resources);
     addDebtToIncomeRatio(resources);
     addSavingsToIncomeRatio(resources);
     addSavingsRate(resources);
     addDebtToAssetRatio(resources);
-    saveToSettings(book);
+    saveToSettings(root);
   }
 
   /**

@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,7 +10,14 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.*;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.AccountUtil;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.moneydance.model.Txn;
+import com.infinitekind.moneydance.model.TxnIterator;
 import com.moneydance.apps.md.controller.Util;
 
 import java.util.HashMap;
@@ -24,12 +31,12 @@ import java.util.Map;
  */
 class RatioCompute {
   private static final double MINIMUM_DENOMINATOR = 0.00001;
-  private final AccountBook _book;
+  private final AccountBook _root;
   private final char _decimal;
   private final Map<Account,BalanceHolder> _balanceCache;
 
-  public RatioCompute(final AccountBook book, final char decimal) {
-    _book = book;
+  public RatioCompute(final AccountBook root, final char decimal) {
+    _root = root;
     _decimal = decimal;
     _balanceCache = new HashMap<Account, BalanceHolder>();
   }
@@ -61,11 +68,11 @@ class RatioCompute {
   }
 
   private void computeBalanceBasedValues(List<RatioEntry> ratios, DateRange dateRange) {
-    if (_book == null) {
-      System.err.println("ratios: no data file defined for balance calculations");
+    if (_root == null) {
+      Logger.log("No data file defined for balance calculations");
       return;
     }
-    final CurrencyType baseCurrency = _book.getCurrencies().getBaseType();
+    final CurrencyType baseCurrency = _root.getCurrencies().getBaseType();
     for (RatioEntry ratio : ratios) {
       computeBalances(ratio, baseCurrency, dateRange);
     }
@@ -77,7 +84,7 @@ class RatioCompute {
         final double value = RatiosUtil.getConstantValue(ratio.getNumeratorLabel(), _decimal, true, 0.0);
         ratio.setNumeratorValue(value);
         if (value == 0.0) {
-          System.err.println("ratios: did not parse numerator constant '" + ratio.getNumeratorLabel() + "' correctly for ratio: " + ratio.getName());
+          Logger.log("Did not parse numerator constant '" + ratio.getNumeratorLabel() + "' correctly for ratio: " + ratio.getName());
         }
       } else if (TxnMatchLogic.DAYS_IN_PERIOD.equals(ratio.getNumeratorMatchingLogic())) {
         ratio.setNumeratorValue(getDaysInPeriod(dateRange));
@@ -86,7 +93,7 @@ class RatioCompute {
         final double value = RatiosUtil.getConstantValue(ratio.getDenominatorLabel(), _decimal, false, 1.0);
         ratio.setDenominatorValue(value);
         if (value == 1.0) {
-          System.err.println("ratios: did not parse denominator constant '" + ratio.getDenominatorLabel() + "' correctly for ratio: " + ratio.getName());
+          Logger.log("Did not parse denominator constant '" + ratio.getDenominatorLabel() + "' correctly for ratio: " + ratio.getName());
         }
       } else if (TxnMatchLogic.DAYS_IN_PERIOD.equals(ratio.getDenominatorMatchingLogic())) {
         ratio.setDenominatorValue(getDaysInPeriod(dateRange));
@@ -172,9 +179,9 @@ class RatioCompute {
                                     calculateBalances(account, _balanceCache, asOfDates);
       // convert to the base currency
       final long accountStartBalance = CurrencyUtil.convertValue(balance.getStartBalance(),
-                                               account.getCurrencyType(),
-                                               baseCurrency,
-                                               asOfDates[0]);
+                                                                 account.getCurrencyType(),
+                                                                 baseCurrency,
+                                                                 asOfDates[0]);
       startBalance += accountStartBalance;
       final long accountEndBalance = CurrencyUtil.convertValue(balance.getEndBalance(),
                                                account.getCurrencyType(),
@@ -198,14 +205,14 @@ class RatioCompute {
     BalanceHolder result = (cache == null) ? null : cache.get(account);
     if (result == null) {
       // this will get balances in the account's currency type
-      long[] balances = AccountUtil.getBalancesAsOfDates(_book, account, asOfDates, true);
+      long[] balances = AccountUtil.getBalancesAsOfDates(_root, account, asOfDates, true);
       // For investment accounts only, we must include the child accounts, the securities, since security accounts
       // are not included in the filter criteria. Users assume the security accounts are part of the investment
       // account balance. If we don't do this, all we get is the cash balance of the investment account.
       if (account.getAccountType() == Account.AccountType.INVESTMENT) {
         for (int index = 0; index < account.getSubAccountCount(); index++) {
           Account security = account.getSubAccount(index);
-          long[] securityBalances = AccountUtil.getBalancesAsOfDates(_book, security, asOfDates, true);
+          long[] securityBalances = AccountUtil.getBalancesAsOfDates(_root, security, asOfDates, true);
           // convert to the account's currency type, later that will be converted to base currency
           balances[0] += CurrencyUtil.convertValue(securityBalances[0],
                                                    security.getCurrencyType(),
@@ -233,14 +240,14 @@ class RatioCompute {
     if ((result == null) || !result.isAverageBalanceComputed()) {
       final int numDays = datesToCompute.length;
       // this will get balances in the account's currency type
-      long[] balances = AccountUtil.getBalancesAsOfDates(_book, account, datesToCompute, true);
+      long[] balances = AccountUtil.getBalancesAsOfDates(_root, account, datesToCompute, true);
       // For investment accounts only, we must include the child accounts, the securities, since security accounts
       // are not included in the filter criteria. Users assume the security accounts are part of the investment
       // account balance. If we don't do this, all we get is the cash balance of the investment account.
       if (account.getAccountType() == Account.AccountType.INVESTMENT) {
         for (int index = 0; index < account.getSubAccountCount(); index++) {
           Account security = account.getSubAccount(index);
-          long[] securityBalances = AccountUtil.getBalancesAsOfDates(_book, security, datesToCompute, true);
+          long[] securityBalances = AccountUtil.getBalancesAsOfDates(_root, security, datesToCompute, true);
           // convert to the account's currency type, later that will be converted to base currency
           for (int dateIndex = 0; dateIndex < numDays; dateIndex++) {
             balances[dateIndex] += CurrencyUtil.convertValue(securityBalances[dateIndex],
@@ -264,9 +271,9 @@ class RatioCompute {
   }
 
   void computeTransactionResult(final RatioEntry ratio, final DateRange dateRange, boolean isNumerator, final IRatioReporting reporting) {
-    ratio.prepareForTxnProcessing(_book, dateRange, isNumerator, reporting);
+    ratio.prepareForTxnProcessing(_root, dateRange, isNumerator, reporting);
     // calculate for each ratio on each matching transaction
-    TxnIterator txnIterator = new TxnIterator(_book.getTransactionSet());
+    TxnIterator txnIterator = new TxnIterator(_root.getTransactionSet());
     while (txnIterator.hasNext()) {
       Txn txn = txnIterator.next();
       ratio.accumulateTxn(txn, isNumerator, reporting);
@@ -276,15 +283,15 @@ class RatioCompute {
   }
 
   private void computeTxnBasedValues(List<RatioEntry> ratios, DateRange dateRange) {
-    if (_book == null) {
-      System.err.println("ratios: no data file defined for transaction calculations");
+    if (_root == null) {
+      Logger.log("No data file defined for transaction calculations");
       return;
     }
     if (noTransactionPartsExist(ratios)) return;
     // setup
-    for (RatioEntry ratio : ratios) ratio.prepareForTxnProcessing(_book, dateRange, true, null);
+    for (RatioEntry ratio : ratios) ratio.prepareForTxnProcessing(_root, dateRange, true, null);
     // calculate for each ratio on each matching transaction
-    TxnIterator txnIterator = new TxnIterator(_book.getTransactionSet());
+    TxnIterator txnIterator = new TxnIterator(_root.getTransactionSet());
     while(txnIterator.hasNext()) {
       Txn txn = txnIterator.next();
       for (RatioEntry ratio : ratios) {

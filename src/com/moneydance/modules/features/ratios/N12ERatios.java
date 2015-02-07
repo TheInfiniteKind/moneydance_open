@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -31,6 +31,7 @@ class N12ERatios {
    */
   static final String BAR = "|";
   static final String BAR_REGEX = "\\|";
+  static final String COMMA_REGEX = "\\s*,\\s*";
   /**
    * Standard new line character.
    */
@@ -55,6 +56,7 @@ class N12ERatios {
   static final String JTABLE_AUTO_EDIT = "JTable.autoStartsEdit";
   static final String DELETE_ACTION_KEY = "delete";
   static final String INSERT_ACTION_KEY = "insert";
+  static final String SELECT_TAG_LIST = "selectTagFromList";
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //  Settings Keys
@@ -142,10 +144,10 @@ class N12ERatios {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // Logging and Errors
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  static final String XML_RESOURCE_LOAD_FAIL = "ratios: Unable to load an XML resource bundle: ";
+  static final String XML_RESOURCE_LOAD_FAIL = "Unable to load an XML resource bundle: ";
   static final String SHOW_DIALOG_COMMAND = "showDialog";
   public static final String ERROR_LOADING_SETTINGS =
-          "ratios: Error loading settings for Ratios extension, setting defaults.";
+          "Error loading settings for Ratios extension, setting defaults.";
 
 
   /**

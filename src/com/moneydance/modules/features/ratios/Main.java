@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,10 +10,10 @@
 
 package com.moneydance.modules.features.ratios;
 
+import com.infinitekind.moneydance.model.AccountBook;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.PreferencesListener;
-import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.AwtUtil;
 import com.infinitekind.util.StringUtils;
@@ -39,7 +39,7 @@ import java.util.ResourceBundle;
 public class Main
     extends FeatureModule
     implements ResourceProvider {
-  private static final String VERSION = "Build 26"; // should match meta_info.dict
+  private static final String VERSION = "Build 1029"; // should match meta_info.dict
   private final PreferencesListener _prefListener = new RatiosPreferencesListener();
   private final RatiosExtensionModel _model;
   private RatiosHomeView _homePageView = null;
@@ -59,14 +59,15 @@ public class Main
     addPreferencesListener();
     MoneydanceGUI mdGUI = (MoneydanceGUI) ((com.moneydance.apps.md.controller.Main) context).getUI();
     _model.initialize(mdGUI);
-    final AccountBook book = getContext().getCurrentAccountBook();
+    final AccountBook root = getContext().getCurrentAccountBook();
     // If root is null, then we'll just wait for the MD_OPEN_EVENT_ID event. When the plugin
     // is first installed, the root should be non-null. When MD starts up, it is likely to be null
     // until the file is opened.
-    if (book != null) _model.setData(book);
+    if (root != null) _model.setData(root);
     // setup the home page view
     _homePageView = new RatiosHomeView(this, _model);
     getContext().registerHomePageView(this, _homePageView);
+    Logger.log(String.format("Initialized build %s ok", getVersionString()));
   }
 
   public void cleanup() {
@@ -126,13 +127,13 @@ public class Main
       SwingUtilities.invokeLater(new Runnable() {
         public void run() {
           Component parent = null;
-          final AccountBook book = _model.getRootAccount();
+          final AccountBook rootAccount = _model.getRootAccount();
           if (_homePageView != null) {
-            parent = _homePageView.getGUIView(book);
+            parent = _homePageView.getGUIView(rootAccount);
           }
           RatioSettingsDialog dialog = new RatioSettingsDialog(_model.getGUI(), AwtUtil.getFrame(parent),
                                                                _model.getResources(),
-                                                               _model, book, _model.getSettings());
+                                                               _model, rootAccount, _model.getSettings());
           dialog.loadData();
           dialog.setVisible(true);
         }
@@ -176,7 +177,7 @@ public class Main
         _resources = englishBundle;
       }
     } catch (Exception error) {
-      System.err.println(N12ERatios.XML_RESOURCE_LOAD_FAIL);
+      Logger.log(N12ERatios.XML_RESOURCE_LOAD_FAIL);
       error.printStackTrace();
     }
   }

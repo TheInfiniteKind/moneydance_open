@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,12 +10,17 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.moneydance.apps.md.controller.AccountFilter;
-import com.infinitekind.moneydance.model.*;
-import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.moneydance.model.Txn;
 import com.infinitekind.util.StreamTable;
+import com.moneydance.apps.md.controller.AccountFilter;
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.TagLogic;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A definition of a ratio. Contains a numerator, a denominator, and some settings.
@@ -39,20 +44,20 @@ public class RatioEntry {
     _index = -1;
   }
 
-  RatioEntry(final StreamTable settings, final MoneydanceGUI mdGui) {
+  RatioEntry(final StreamTable settings, final MoneydanceGUI mdGui, Map<Integer, String> tagMap) {
     _name = settings.getStr(N12ERatios.NAME_KEY, N12ERatios.EMPTY);
     _index = settings.getInt(N12ERatios.INDEX_KEY, -1);
     _notes = settings.getStr(N12ERatios.NOTES_KEY, N12ERatios.EMPTY);
     _showPercent = settings.getBoolean(N12ERatios.SHOW_PERCENT_KEY, true);
     _alwaysPositive = settings.getBoolean(N12ERatios.ALWAYS_POSITIVE_KEY, true);
     _useTaxDate = settings.getBoolean(N12ERatios.USE_TAX_DATE_KEY, false);
-    _numerator.loadFromSettings(settings, mdGui,
+    _numerator.loadFromSettings(settings, mdGui, tagMap,
                                 N12ERatios.NUMERATOR_TXN_MATCH_KEY,
                                 N12ERatios.NUMERATOR_LABEL_KEY,
                                 N12ERatios.NUMERATOR_REQUIRED_LIST_KEY,
                                 N12ERatios.NUMERATOR_DISALLOWED_LIST_KEY,
                                 N12ERatios.NUMERATOR_TAGS_KEY);
-    _denominator.loadFromSettings(settings, mdGui,
+    _denominator.loadFromSettings(settings, mdGui, tagMap,
                                   N12ERatios.DENOMINATOR_TXN_MATCH_KEY,
                                   N12ERatios.DENOMINATOR_LABEL_KEY,
                                   N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY,
@@ -85,6 +90,20 @@ public class RatioEntry {
 
   public String toString() {
     return (_name == null) ? N12ERatios.NOT_SPECIFIED : _name;
+  }
+
+  public boolean equals(Object obj) {
+    if (obj == this) return true;
+    if (!(obj instanceof RatioEntry)) return false;
+    RatioEntry other = (RatioEntry)obj;
+    return (RatiosUtil.areEqual(_name, other._name) && (_index == other._index));
+  }
+
+  public int hashCode() {
+    int hash = 37;
+    hash = 23 * hash + _name.hashCode();
+    hash = 29 * hash + _index;
+    return hash;
   }
 
   void setIndex(int index) { _index = index; }
@@ -150,16 +169,16 @@ public class RatioEntry {
   String getDenominatorLabel() { return _denominator.getLabel(); }
   void setDenominatorLabel(final String label) { _denominator.setLabel(label); }
 
-  void setNumeratorRequiredAccounts(AccountFilter accountFilter, final AccountBook book) {
-    _numerator.setRequiredAccounts(accountFilter, book);
+  void setNumeratorRequiredAccounts(AccountFilter accountFilter, final AccountBook root) {
+    _numerator.setRequiredAccounts(accountFilter, root);
   }
   void setNumeratorEncodedRequiredAccounts(final String encodedAccounts) { 
     _numerator.setEncodedRequiredAccounts(encodedAccounts); 
   }
   String getNumeratorEncodedRequiredAccounts() { return _numerator.getEncodedRequiredAccounts(); }
   List<Account> getNumeratorRequiredAccountList() { return _numerator.getRequiredAccountList(); }
-  void setNumeratorDisallowedAccounts(AccountFilter accountFilter, final AccountBook book) {
-    _numerator.setDisallowedAccounts(accountFilter, book);
+  void setNumeratorDisallowedAccounts(AccountFilter accountFilter, final AccountBook root) {
+    _numerator.setDisallowedAccounts(accountFilter, root);
   }
   void setNumeratorEncodedDisallowedAccounts(final String encodedAccounts) { 
     _numerator.setEncodedDisallowedAccounts(encodedAccounts); 
@@ -167,16 +186,16 @@ public class RatioEntry {
   String getNumeratorEncodedDisallowedAccounts() { return _numerator.getEncodedDisallowedAccounts(); }
   List<Account> getNumeratorDisallowedAccountList() { return _numerator.getDisallowedAccountList(); }
 
-  void setDenominatorRequiredAccounts(AccountFilter accountFilter, final AccountBook book) {
-    _denominator.setRequiredAccounts(accountFilter, book);
+  void setDenominatorRequiredAccounts(AccountFilter accountFilter, final AccountBook root) {
+    _denominator.setRequiredAccounts(accountFilter, root);
   }
   void setDenominatorEncodedRequiredAccounts(final String encodedAccounts) { 
     _denominator.setEncodedRequiredAccounts(encodedAccounts); 
   }
   String getDenominatorEncodedRequiredAccounts() { return _denominator.getEncodedRequiredAccounts(); }
   List<Account> getDenominatorRequiredAccountList() { return _denominator.getRequiredAccountList(); }
-  void setDenominatorDisallowedAccounts(AccountFilter accountFilter, final AccountBook book) {
-    _denominator.setDisallowedAccounts(accountFilter, book);
+  void setDenominatorDisallowedAccounts(AccountFilter accountFilter, final AccountBook root) {
+    _denominator.setDisallowedAccounts(accountFilter, root);
   }
   void setDenominatorEncodedDisallowedAccounts(final String encodedAccounts) { 
     _denominator.setEncodedDisallowedAccounts(encodedAccounts); 
@@ -185,20 +204,20 @@ public class RatioEntry {
   List<Account> getDenominatorDisallowedAccountList() { return _denominator.getDisallowedAccountList(); }
 
 
-  void setNumeratorTags(final String tagString) { _numerator.setTags(tagString);  }
-  String getNumeratorTags() { return _numerator.getTags(); }
+  void setNumeratorTags(final List<String> tagString) { _numerator.setTags(tagString);  }
+  List<String> getNumeratorTags() { return _numerator.getTags(); }
   void setNumeratorTagLogic(final TagLogic tagLogic) { _numerator.setTagLogic(tagLogic); }
   TagLogic getNumeratorTagLogic() { return _numerator.getTagLogic(); }
   
-  void setDenominatorTags(final String tagString) {_denominator.setTags(tagString);  }
-  String getDenominatorTags() { return _denominator.getTags(); }
+  void setDenominatorTags(final List<String> tagString) {_denominator.setTags(tagString);  }
+  List<String> getDenominatorTags() { return _denominator.getTags(); }
   void setDenominatorTagLogic(final TagLogic tagLogic) { _denominator.setTagLogic(tagLogic); }
   TagLogic getDenominatorTagLogic() { return _denominator.getTagLogic(); }
 
-  void prepareForTxnProcessing(final AccountBook book, final DateRange dateRange,
+  void prepareForTxnProcessing(final AccountBook root, final DateRange dateRange,
                                       final boolean isNumerator, final IRatioReporting reporting) {
-    if ((reporting == null) || isNumerator) _numerator.prepareForTxnProcessing(book, dateRange, _useTaxDate);
-    if ((reporting == null) || !isNumerator) _denominator.prepareForTxnProcessing(book, dateRange, _useTaxDate);
+    if ((reporting == null) || isNumerator) _numerator.prepareForTxnProcessing(root, dateRange, _useTaxDate);
+    if ((reporting == null) || !isNumerator) _denominator.prepareForTxnProcessing(root, dateRange, _useTaxDate);
   }
 
   void accumulateTxn(final Txn txn, final boolean isNumerator, final IRatioReporting reporting) {

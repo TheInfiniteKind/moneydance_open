@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,8 +10,11 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.moneydance.apps.md.controller.*;
-import com.infinitekind.moneydance.model.*;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.AccountIterator;
+import com.moneydance.apps.md.controller.AccountFilter;
+import com.moneydance.apps.md.controller.FullAccountList;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
 import com.moneydance.apps.md.view.gui.select.IAccountSelector;
 
@@ -36,10 +39,10 @@ public class RatioAccountSelector
    * Create a filter based upon the current account selection settings which includes or
    * excludes source accounts.
    *
-   * @param book The root account of the file.
+   * @param root The root account of the file.
    * @return The new account filter containing all accounts now available.
    */
-  public static AccountFilter buildAccountFilter(final AccountBook book) {
+  public static AccountFilter buildAccountFilter(final AccountBook root) {
     // any type is allowed except security accounts or root, since those are special
     final AccountFilter accountFilter = new AccountFilter("all_accounts");
     accountFilter.addAllowedType(Account.AccountType.ASSET);
@@ -50,8 +53,8 @@ public class RatioAccountSelector
     accountFilter.addAllowedType(Account.AccountType.LOAN);
     accountFilter.addAllowedType(Account.AccountType.INCOME);
     accountFilter.addAllowedType(Account.AccountType.EXPENSE);
-    FullAccountList fullAccountList = new FullAccountList(book, accountFilter, true);
-    
+    FullAccountList fullAccountList = new FullAccountList(root, accountFilter, true);
+
     // this will automatically include all allowed accounts
     accountFilter.setFullList(fullAccountList);
     // so we reset it because we want the default to be no accounts
@@ -60,9 +63,9 @@ public class RatioAccountSelector
     return accountFilter;
   }
 
-  public RatioAccountSelector(final AccountBook book) {
-    _rootAccount = book;
-    _filter = buildAccountFilter(book);
+  public RatioAccountSelector(final AccountBook root) {
+    _rootAccount = root;
+    _filter = buildAccountFilter(root);
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -91,7 +94,7 @@ public class RatioAccountSelector
     for (Integer value : getSelectedAccountIds()) {
       if (value.intValue() < 0) {
         // account type, find the total number of that type
-        count += getAccountTypeCount(Account.AccountType.typeForCode(-value.intValue()));
+        count += getAccountTypeCount(-value.intValue());
       } else {
         ++count;
       }
@@ -127,10 +130,16 @@ public class RatioAccountSelector
   // Private Methods
   //////////////////////////////////////////////////////////////////////////////
 
-  private int getAccountTypeCount(final Account.AccountType accountType) {
-    return AccountUtil.allMatchesForSearch(_rootAccount.getRootAccount(), AccountUtil.getFilterForType(accountType)).size();
+  private int getAccountTypeCount(final int accountType) {
+    AccountIterator iterator = new AccountIterator(_rootAccount);
+    int count = 0;
+    while (iterator.hasNext()) {
+      Account account = iterator.next();
+      if (account.getAccountType().code() == accountType) count++;
+    }
+    return count;
   }
-  
+
   private void loadSelectedIds() {
     // commit user settings to the model in preparation for save.
     _selectedAccountIds.clear();

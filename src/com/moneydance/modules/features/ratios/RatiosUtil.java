@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012-2013 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -25,7 +25,9 @@ import java.awt.event.FocusListener;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * Utility methods.
@@ -54,27 +56,27 @@ public final class RatiosUtil {
     public int compare(Account lhs, Account rhs) {
       if (lhs == null) { return (rhs == null) ? 0 : -1; }
       if (rhs == null) return 1;
-      final int lType = lhs.getAccountType().code();
-      final int rType = rhs.getAccountType().code();
+      final Account.AccountType lType = lhs.getAccountType();
+      final Account.AccountType rType = rhs.getAccountType();
       if (lType == rType) return 0; // shortcut
       // first put the non-income, non-expense accounts in account type order
-      if ((lType != Account.AccountType.INCOME.code())
-          && (lType != Account.AccountType.EXPENSE.code())
-          && (rType != Account.AccountType.INCOME.code())
-          && (rType != Account.AccountType.EXPENSE.code())) {
-        return lType - rType;
+      if ((lType != Account.AccountType.INCOME)
+          && (lType != Account.AccountType.EXPENSE)
+          && (rType != Account.AccountType.INCOME)
+          && (rType != Account.AccountType.EXPENSE)) {
+        return lType.code() - rType.code();
       }
       // at this point one or both sides is a category
-      if ((lType != Account.AccountType.INCOME.code()) && (lType != Account.AccountType.EXPENSE.code())) {
+      if ((lType != Account.AccountType.INCOME) && (lType != Account.AccountType.EXPENSE)) {
         // normal accounts first, left hand side is normal account but right hand side isn't
         return -1;
       }
-      if ((rType != Account.AccountType.INCOME.code()) && (rType != Account.AccountType.EXPENSE.code())) {
+      if ((rType != Account.AccountType.INCOME) && (rType != Account.AccountType.EXPENSE)) {
         // normal accounts first, right hand side is normal account but left hand side isn't
         return 1;
       }
       // both are income or expense accounts, put income accounts first which is in reverse numerical order
-      return rType - lType;
+      return rType.code() - lType.code();
     }
   };
 
@@ -114,20 +116,6 @@ public final class RatiosUtil {
     }
   };
 
-  private static final Comparator<Txn> TXN_ID_COMPARATOR = new Comparator<Txn>() {
-    public int compare(Txn lhs, Txn rhs) {
-      int val = (int) (lhs.getDateEntered() - rhs.getDateEntered()); // last resort, compare the date/time entered
-      if (val != 0) return val;
-      if (lhs == rhs) {
-        return 0;
-      } else {
-        val = lhs.hashCode() - rhs.hashCode();
-        if (val == 0) return -1;
-        return val;
-      }
-    }
-  };
-
   static Comparator<Account> getAccountComparator() {
     return createComparator(ACCOUNT_TYPE_COMPARATOR, ACCOUNT_NAME_COMPARATOR);
   }
@@ -137,13 +125,11 @@ public final class RatiosUtil {
            createComparator(TXN_ACCOUNT_COMPARATOR,
                             TXN_TAX_DATE_COMPARATOR,
                             TXN_AMOUNT_COMPARATOR,
-                            TXN_DATE_ENTERED_COMPARATOR,
-                            TXN_ID_COMPARATOR) :
+                            TXN_DATE_ENTERED_COMPARATOR) :
            createComparator(TXN_ACCOUNT_COMPARATOR,
                             TXN_DATE_COMPARATOR,
                             TXN_AMOUNT_COMPARATOR,
-                            TXN_DATE_ENTERED_COMPARATOR,
-                            TXN_ID_COMPARATOR);
+                            TXN_DATE_ENTERED_COMPARATOR);
   }
 
   /**
@@ -202,8 +188,8 @@ public final class RatiosUtil {
     return Math.round(value * power) / power;
   }
 
-  public static String getAccountTypeNameAllCaps(final MoneydanceGUI mdGUI, final Account.AccountType accountType) {
-    return mdGUI.getResources().getShortAccountTypeInCaps(accountType);
+  public static String getAccountTypeNameAllCaps(final MoneydanceGUI mdGUI, final int accountType) {
+    return mdGUI.getStr("acct_type"+accountType+'S');
   }
   /**
    * Get a label from (plugin) resources, and if it does not have a colon, add it. Also adds a
@@ -289,11 +275,32 @@ public final class RatiosUtil {
       try {
         Desktop.getDesktop().browse(new URI("http://www.mennesoft.com/ratios/index.html#usage"));
       } catch (IOException e) {
-        System.err.println("ratios: Unable to launch browser for user guide - IO exception");
+        Logger.log("Unable to launch browser for user guide - IO exception");
       } catch (URISyntaxException e) {
-        System.err.println("ratios: Unable to launch browser for user guide - URL issue");
+        Logger.log("Unable to launch browser for user guide - URL issue");
       }
     }
+  }
+
+  public static List<String> fromCSV(String list) {
+    List<String> result = new ArrayList<String>();
+    if (StringUtils.isBlank(list)) return result;
+    String[] items = list.split(N12ERatios.COMMA_REGEX);
+    for (String item : items) {
+      if (!StringUtils.isBlank(item)) {
+        result.add(item);
+      }
+    }
+    return result;
+  }
+
+  public static String toCSV(List<String> items) {
+    StringBuilder sb = new StringBuilder();
+    for (String value : items) {
+      if (sb.length() > 0) sb.append(',');
+      sb.append(value);
+    }
+    return sb.toString();
   }
 
   /**

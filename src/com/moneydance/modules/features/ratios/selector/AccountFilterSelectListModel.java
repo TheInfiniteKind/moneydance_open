@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -9,10 +9,9 @@
  */
 
 package com.moneydance.modules.features.ratios.selector;
-import com.moneydance.util.*;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-//import com.infinitekind.util.BasePropertyChangeReporter;
+import com.moneydance.util.BasePropertyChangeReporter;
 
 /**
  * <p>Model for a control that allows the user to select one or more accounts and shows the
