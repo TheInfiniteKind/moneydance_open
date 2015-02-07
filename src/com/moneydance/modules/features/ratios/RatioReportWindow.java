@@ -120,12 +120,6 @@ public class RatioReportWindow
     _nothingLabel.setFont(currentFont.deriveFont(Font.BOLD, currentFont.getSize() + 3f));
     _nothingLabel.setOpaque(false);
 
-    _cardLayout = new CardLayout();
-    _mainDetailView = new JPanel(_cardLayout);
-    _mainDetailView.add(_reportViewer, CARD_REPORT);
-    _mainDetailView.add(_nothingLabel, CARD_NOTHING);
-    _cardLayout.show(_mainDetailView, CARD_NOTHING);
-
     int x = 0;
     JPanel bp = new JPanel(new GridBagLayout());
     bp.add(printButton, GridC.getc(x++, 0));
@@ -136,7 +130,16 @@ public class RatioReportWindow
     bp.add(Box.createHorizontalStrut(UiUtil.DLG_HGAP), GridC.getc(x++,0).wx(1).fillx());
     bp.add(doneButton, GridC.getc(x,0));
     bp.setBorder(new EmptyBorder(UiUtil.DLG_VGAP,UiUtil.DLG_HGAP,UiUtil.DLG_VGAP,UiUtil.DLG_HGAP));
-    _mainDetailView.add(bp, BorderLayout.SOUTH);
+
+    JPanel reportPanel = new JPanel(new BorderLayout());
+    reportPanel.add(_reportViewer, BorderLayout.CENTER);
+    reportPanel.add(bp, BorderLayout.SOUTH);
+
+    _cardLayout = new CardLayout();
+    _mainDetailView = new JPanel(_cardLayout);
+    _mainDetailView.add(reportPanel, CARD_REPORT);
+    _mainDetailView.add(_nothingLabel, CARD_NOTHING);
+    _cardLayout.show(_mainDetailView, CARD_NOTHING);
     return _mainDetailView;
   }
 
