@@ -238,7 +238,6 @@ class RatioPart {
   void accumulateTxn(final Txn txn, final IRatioReporting reporting) {
     if (isAccountBalanceType()) return; // nothing to do
     if (!_dateFilter.matches(txn)) return; // does not match the date range
-    if ((_tagFilter != null) && !_tagFilter.matches(txn)) return;
     // There is an assumption here that an account can't be simultaneously required and disallowed.
     final Account sourceAccount = txn.getAccount();
     final Account targetAccount = txn.getOtherTxn(0).getAccount();
@@ -262,6 +261,8 @@ class RatioPart {
     // Both sides will be visited by the enumeration, we just so happen to pick the target account
     // to get the sign right.
     if (targetRequired && txnDirectionMatches(txn, targetAccount.balanceIsNegated())) {
+      // we have a candidate transaction, now check both sides for a tag match if applicable
+      if ((_tagFilter != null) && !_tagFilter.matches(txn)) return;
       // we have a matching transaction
       final int txnDate = txn.getDateInt();
       final long rawValue = txn.getValue();
