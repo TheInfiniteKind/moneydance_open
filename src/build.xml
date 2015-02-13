@@ -364,7 +364,7 @@ http://jakarta.apache.org/ant/index.html
           com/moneydance/modules/features/moneyPie/images/*.jpeg
           net/java/balloontip/images/*.png"/>
           <fileset dir="${build}" includes="com/moneydance/modules/features/moneyPie/**"/>
-      	  <fileset dir="${lib}" includes="moneyPieSupport.jar" />
+      	  <zipgroupfileset dir="${lib}" includes="moneyPieSupport.jar" />
       </jar>
       <java newenvironment="true"
           classpathref="classpath"
