@@ -307,8 +307,8 @@ public void run() {
 	  for (int i = 0; i < budgetList.size(); i++) {
 		  b = budgetList.get(i);
           if (b.getName().equals( data.getCurrentBudgetName() )){
-        	  for (int j = 0; j < b.getItemCount(); j++) {
-	        	  BudgetItem bi = b.getItem(j);
+        	  for (int j = 0; j < b.getItemList().getItemCount(); j++) {
+	        	  BudgetItem bi = b.getItemList().getItem(j);
 		          Account a = bi.getTransferAccount();
 
 		          if(bi.getIntervalStartDate() > 0){

@@ -214,8 +214,8 @@ public class BudgetData  {
 		  for (int i = 0; i < budgetList.size(); i++) {
 			  b = budgetList.get(i);
 	          if (b.getName().equals( bName )){
-	        	  if(b.getItemCount() > 0){
-	    			  BudgetItem bi = b.getItem(0);
+	        	  if(b.getItemList().getItemCount() > 0){
+	    			  BudgetItem bi = b.getItemList().getItem(0);
 	    			  String startDate = String.valueOf(bi.getIntervalStartDate()); 
 	    			  String startYear = startDate.substring(0, 4);
 	    			  year = (new Integer(startYear)).intValue();
@@ -236,8 +236,8 @@ public class BudgetData  {
 			  b = budList.get(i);
 	          if (b.getName().equals( budgetName )){
 
-		          for (int j = 0; j < b.getItemCount(); j++) {
-		        	  BudgetItem bi = b.getItem(j);
+		          for (int j = 0; j < b.getItemList().getItemCount(); j++) {
+		        	  BudgetItem bi = b.getItemList().getItem(j);
 			          if(bi.getIntervalStartDate() > 0){
 			        	  String startDate = String.valueOf(bi.getIntervalStartDate()); //YYYYMMDD
 			        	  String endDate   = String.valueOf(bi.getIntervalEndDate()); //YYYYMMDD
@@ -268,8 +268,8 @@ public class BudgetData  {
 			  b = budList.get(i);
 	          if (b.getName().equals( budgetName )){
 
-		          for (int j = 0; j < b.getItemCount(); j++) {
-		        	  BudgetItem bi = b.getItem(j);
+		          for (int j = 0; j < b.getItemList().getItemCount(); j++) {
+		        	  BudgetItem bi = b.getItemList().getItem(j);
 		        	  
 		        	  double amount = bi.getAmount();
 		        	  if(amount > 1000){
@@ -388,8 +388,8 @@ public class BudgetData  {
 		  if(b == null) return false;
 
 		  Vector<BudgetItem> foundBudgets = new Vector<BudgetItem>();
-	      for (int j = 0; j < b.getItemCount(); j++) {
-	    	  BudgetItem bi = b.getItem(j);
+	      for (int j = 0; j < b.getItemList().getItemCount(); j++) {
+	    	  BudgetItem bi = b.getItemList().getItem(j);
 	    	  if(bi.getIntervalStartDate() > 0){
 	    		  Account a = bi.getTransferAccount();
 
@@ -416,7 +416,7 @@ public class BudgetData  {
 	    	  return true;
 	      } else{
 	    	  if(foundBudgets.size() == 1) {
-	    		  b.removeItem(foundBudgets.get(0));
+	    		  b.getItemList().removeItem(foundBudgets.get(0));
 	        	  return true;
 	    	  }
 	      }
@@ -463,8 +463,8 @@ public class BudgetData  {
 		  if(b == null) return false;
 
 		  Vector<BudgetItem> foundBudgets = new Vector<BudgetItem>();
-	      for (int j = 0; j < b.getItemCount(); j++) {
-	    	  BudgetItem bi = b.getItem(j);
+	      for (int j = 0; j < b.getItemList().getItemCount(); j++) {
+	    	  BudgetItem bi = b.getItemList().getItem(j);
 	    	  if(bi.getIntervalStartDate() > 0){
 	    		  Account a = bi.getTransferAccount();
 
@@ -576,8 +576,8 @@ public class BudgetData  {
 		Budget b = this.getCurrentBudget();
 		BudgetItem bi = null;
 		
-		for (int j = 0; j < b.getItemCount(); j++) {
-			   BudgetItem tbi = b.getItem(j);
+		for (int j = 0; j < b.getItemList().getItemCount(); j++) {
+			   BudgetItem tbi = b.getItemList().getItem(j);
 		       Account a = tbi.getTransferAccount();
 		       String  aName = a.getFullAccountName();
 		          
@@ -628,8 +628,8 @@ public class BudgetData  {
 	          if (b.getName().equals( budgetName )){
 	        	  budgetCurrent = b;
 
-		          for (int j = 0; j < b.getItemCount(); j++) {
-		        	  BudgetItem bi = b.getItem(j);
+		          for (int j = 0; j < b.getItemList().getItemCount(); j++) {
+		        	  BudgetItem bi = b.getItemList().getItem(j);
 			          Account a = bi.getTransferAccount();
 
 			          if(bi.getIntervalStartDate() > 0 && 

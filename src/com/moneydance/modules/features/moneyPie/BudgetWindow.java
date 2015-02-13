@@ -425,7 +425,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
       		  b = budgetList.get(i);
               if (b.getName().equals( data.getCurrentBudgetName() )){
             	  
-            	  Budget cBudget = b.cloneBudget();
+            	  Budget cBudget = b.duplicateAsNew("New");
             	  cBudget.setName(s);
             	  data.getBudgetList().addBudget(cBudget);
             	  
