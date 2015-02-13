@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.*;
+import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.util.StreamTable;
 import com.infinitekind.util.StringEncodingException;
 
@@ -47,16 +47,16 @@ public class RatioSettingsController
     // copy edited settings to actual settings
     _settingsModel.apply();
     // store the settings in the data file
-    AccountBook book = getData();
-    if (book != null) {
+    AccountBook root = getData();
+    if (root != null) {
       final RatioSettings updatedSettings = _settingsModel.getActualSettings();
-      updatedSettings.saveToSettings(book);
+      updatedSettings.saveToSettings(root);
 
       // reload
       _extensionModel.setSettings(updatedSettings);
 
       // ensure file is marked dirty
-      book.getRootAccount().notifyAccountModified(book.getRootAccount());
+      root.getRootAccount().notifyAccountModified();
     }
   }
 
@@ -93,9 +93,9 @@ public class RatioSettingsController
     RatioEntry target = null;
     try {
       settingTable.readFrom(source.getSettingsString());
-      target = new RatioEntry(settingTable, _extensionModel.getGUI());
+      target = new RatioEntry(settingTable, _extensionModel.getGUI(), null);
     } catch (StringEncodingException e) {
-      System.err.println("ratios: Error copying ratio entry settings: " + e.getMessage());
+      Logger.log("Error copying ratio entry settings: " + e.getMessage());
       target = new RatioEntry();
     }
     target.setName(getCopyName(source.getName()));
@@ -173,7 +173,7 @@ public class RatioSettingsController
     tableModel.clear();
     int index = 0;
     for (String setting : editingSettings.getRatioEntryList()) {
-      RatioEntry entry = _extensionModel.getEntryFromSettingString(setting);
+      RatioEntry entry = _extensionModel.getEntryFromSettingString(setting, null);
       tableModel.add(index, entry, false);
       ++index;
     }

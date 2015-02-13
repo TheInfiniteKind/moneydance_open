@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,8 +10,8 @@
 
 package com.moneydance.modules.features.ratios.selector;
 
-import com.moneydance.apps.md.controller.AccountFilter;
 import com.infinitekind.moneydance.model.Account;
+import com.moneydance.apps.md.controller.AccountFilter;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.modules.features.ratios.RatiosUtil;
 import com.moneydance.modules.features.ratios.ResourceProvider;
@@ -78,7 +78,7 @@ class AccountFilterSelectListController {
       final Account.AccountType newAccountType = account.getAccountType();
       if (newAccountType != currentAccountType) {
         // add a header row with the account type
-        final String typeName = RatiosUtil.getAccountTypeNameAllCaps(_mdGui, newAccountType);
+        final String typeName = RatiosUtil.getAccountTypeNameAllCaps(_mdGui, newAccountType.code());
         AccountFilterSelectListTableEntry header = tableModel.add(null,
                                                            typeName,
                                                            typeName,

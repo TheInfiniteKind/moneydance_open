@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -11,8 +11,6 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.view.gui.MDImages;
-import com.moneydance.apps.md.view.gui.reporttool.Report;
-import com.moneydance.apps.md.view.gui.reporttool.ShowReportWindow;
 import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.GridC;
 import com.moneydance.util.UiUtil;
@@ -83,9 +81,8 @@ class RatioView extends JPanel {
       public void mouseClicked(MouseEvent event) {
         // it doesn't matter if it's the right or left button, or if double clicked
         RatioReportGenerator generator = new RatioReportGenerator(_mainModel, _ratio, (Graphics2D)getGraphics());
-        Report report = (Report)generator.generate();
-        ShowReportWindow reportWindow = new ShowReportWindow(_mainModel.getGUI(), AwtUtil.getFrame(RatioView.this),
-                                                             generator, report);
+        RatioReportWindow reportWindow = new RatioReportWindow(_mainModel.getGUI(), AwtUtil.getFrame(RatioView.this),
+                                                               generator);
         reportWindow.setVisible(true);
       }
     });

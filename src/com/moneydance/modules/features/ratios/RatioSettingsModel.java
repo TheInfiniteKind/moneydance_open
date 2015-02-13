@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,7 +10,7 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.*;
+import com.infinitekind.moneydance.model.AccountBook;
 import com.moneydance.util.BasePropertyChangeReporter;
 
 import java.beans.PropertyChangeListener;

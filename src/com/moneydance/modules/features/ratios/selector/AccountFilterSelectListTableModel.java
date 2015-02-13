@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -34,7 +34,7 @@ import java.util.ArrayList;
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 class AccountFilterSelectListTableModel
-    extends AbstractTableModel {
+  extends AbstractTableModel {
   static final int NAME_INDEX = 0;
   static final int SEL_INDEX = 1;
 
@@ -75,7 +75,7 @@ class AccountFilterSelectListTableModel
                                         final int accountId, final Account.AccountType accountType, boolean notify) {
     final int index = _data.size();
     final AccountFilterSelectListTableEntry entry = new AccountFilterSelectListTableEntry(account, name, fullName,
-                                                                              accountId, accountType);
+                                                                                          accountId, accountType);
     _data.add(entry);
 
     if (notify) {
@@ -166,7 +166,7 @@ class AccountFilterSelectListTableModel
     super.setValueAt(aValue, rowIndex, columnIndex);
     if ((columnIndex == SEL_INDEX) && (aValue instanceof FilterSelection)) {
       final AccountFilterSelectListTableEntry entry = _data.get(rowIndex);
-      final FilterSelection selection = (FilterSelection)aValue;
+      final FilterSelection selection = (FilterSelection) aValue;
       entry.setFilterSelection(selection);
       int maxRowIndex = rowIndex;
       int minRowIndex = rowIndex;
@@ -318,6 +318,5 @@ class AccountFilterSelectListTableModel
     _columns.add(resources.getStr(L10NRatios.ACCOUNT_NAME));
     _columns.add(resources.getStr(L10NRatios.SELECT));
   }
-
 
 }

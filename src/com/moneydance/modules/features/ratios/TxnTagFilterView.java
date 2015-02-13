@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,23 +10,25 @@
 
 package com.moneydance.modules.features.ratios;
 
-import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.select.ClickLabelListPanel;
-import com.moneydance.apps.md.view.gui.txnreg.TxnTagsField;
 import com.moneydance.apps.md.view.resources.MDResourceProvider;
 import com.moneydance.awt.GridC;
 import com.moneydance.util.UiUtil;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;
+import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.*;
+import java.util.List;
 
 /**
  * A tag filtering UI panel.
@@ -41,6 +43,7 @@ class TxnTagFilterView extends JPanel {
   private JRadioButton _tagsExact;
   private JRadioButton _tagsOr;
   private ClickLabelListPanel _buttonPanel;
+  private Color _focusColor;
 
   TxnTagFilterView(MoneydanceGUI mdGui) {
     _mdGui = mdGui;
@@ -60,11 +63,12 @@ class TxnTagFilterView extends JPanel {
     setLayout(new GridBagLayout());
     setOpaque(false);
 
+    _focusColor = new Color(255, 255, 180); // light yellow
     _useTagFilter = new JCheckBox();
     _useTagFilter.setOpaque(false);
 //    _useTagFilter.setHorizontalAlignment(SwingConstants.RIGHT);
 //    _useTagFilter.setHorizontalTextPosition(SwingConstants.LEFT);
-    _tagField = new SearchTxnTagsField(_mdGui);
+    _tagField = new SearchTxnTagsField(this, _mdGui);
     final JPanel tagLogicPanel = buildTagsPanel(_mdGui);
     tagLogicPanel.setOpaque(false);
 
@@ -78,6 +82,18 @@ class TxnTagFilterView extends JPanel {
 
     // initial conditions
     reset();
+
+    // add listener
+    _tagField.addSelectionListener(new ActionListener() {
+      public void actionPerformed(final ActionEvent event) {
+        if (N12ERatios.SELECT_TAG_LIST.equals(event.getActionCommand())) {
+          showTagsPopup();
+        }
+        // notify that tags will be used
+        selectUseTags();
+      }
+    });
+
   }
 
   void reset() {
@@ -99,15 +115,19 @@ class TxnTagFilterView extends JPanel {
     return TagLogic.OR;
   }
 
-  String getSelectedTags() {
+  List<String> getSelectedTags() {
     if (_useTagFilter.isSelected()) {
-      return _tagField.getSelectedTagsAsString();
+      return _tagField.getSelectedTags();
     }
     return null;
   }
 
-  void setSelectedTags(final AccountBook book, final String tags, final TagLogic tagLogic) {
-    if (tags == null) {
+  void selectUseTags() {
+    _useTagFilter.setSelected(true);
+  }
+
+  void setSelectedTags(final List<String> tags, final TagLogic tagLogic) {
+    if ((tags == null) || tags.isEmpty()) {
       // tags not used
       reset();
       return;
@@ -120,6 +140,7 @@ class TxnTagFilterView extends JPanel {
     } else {
       _tagsOr.setSelected(true);
     }
+    selectUseTags();
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,45 +195,8 @@ class TxnTagFilterView extends JPanel {
     return supportPanel;
   }
 
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // Inner Classes
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-
-  /**
-   * A tags selection control that has added ability to report when it has changed and to select
-   * all of the tags or none of them.
-   */
-  private class SearchTxnTagsField extends TxnTagsField
-  {
-    public SearchTxnTagsField(MoneydanceGUI mdGUI)
-    {
-      super(mdGUI, mdGUI.getCurrentBook());
-    }
-
-    @Override
-    public synchronized void selectorButtonPressed() {
-      super.selectorButtonPressed();
-      _useTagFilter.setSelected(true);
-    }
-
-    void selectAll() {
-      HashMap<String,String> keywordCache = new HashMap<String, String>();
-      for(AbstractTxn txn : _mdGui.getCurrentBook().getTransactionSet().getAllTxns() ) {
-        for(String tag : txn.getKeywords()) {
-          keywordCache.put(tag, "hi");
-        }
-      }
-      
-      ArrayList<String> allTags = new ArrayList<String>(keywordCache.keySet());
-      Collections.sort(allTags);
-      setSelectedTags(allTags);
-      repaint();
-    }
-
-    void selectNone() {
-      setSelectedTags("");
-      repaint();
-    }
+  private void showTagsPopup() {
+    final JDialog popup = new TagSelectPopup(com.moneydance.awt.AwtUtil.getWindow(this), _tagField, _focusColor);
+    popup.setVisible(true);
   }
 }

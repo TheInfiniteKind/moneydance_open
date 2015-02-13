@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -53,8 +53,8 @@ import java.beans.PropertyChangeListener;
 class RatioListView
     extends JPanel
     implements PropertyChangeListener {
-  /** How tall should the list be so that this number of rows are visible? Includes header row. */
-  private static final int SHOW_ROWS_IN_LIST = 4;
+  /** How tall should the list be so that this number of rows are visible? Includes header row. Contains all 6 example ratios */
+  private static final int SHOW_ROWS_IN_LIST = 7;
   private final RatioSettingsController _controller;
   private final MoneydanceGUI _mdGui;
 
@@ -355,7 +355,7 @@ class RatioListView
   private JPanel buildButtonPanel() {
     final JPanel buttonPanel = new JPanel(new GridBagLayout());
     buttonPanel.add(_addItemButton, GridC.getc(0, 0).north());
-    buttonPanel.add(_delItemButton, GridC.getc(1, 0).north());
+    buttonPanel.add(_delItemButton, GridC.getc(1, 0).fillboth());
     buttonPanel.add(_copyButton, GridC.getc(2, 0).north());
     buttonPanel.add(_moveUpButton, GridC.getc(3, 0).north());
     buttonPanel.add(_moveDownButton, GridC.getc(4, 0).north());

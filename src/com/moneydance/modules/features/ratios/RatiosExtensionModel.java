@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,9 +10,11 @@
 
 package com.moneydance.modules.features.ratios;
 
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.AccountListener;
 import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.UserPreferences;
-import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.util.BasePropertyChangeReporter;
 import com.infinitekind.util.StreamTable;
@@ -23,6 +25,7 @@ import com.moneydance.util.UiUtil;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,7 +39,7 @@ class RatiosExtensionModel
     extends BasePropertyChangeReporter {
   private ResourceProvider _resources;
   private MoneydanceGUI _mdGUI = null;
-  private AccountBook _book = null;
+  private AccountBook _rootAccount = null;
   private UserPreferences _preferences = null;
   private final AccountListener _accountListener = new RatiosAccountListener();
 
@@ -85,9 +88,9 @@ class RatiosExtensionModel
    * @param rootAccount The Moneydance data file.
    */
   void setData(final AccountBook rootAccount) {
-    final AccountBook oldRoot = _book;
+    final AccountBook oldRoot = _rootAccount;
     removeAccountListener();
-    _book = rootAccount;
+    _rootAccount = rootAccount;
     addAccountListener();
     if ((rootAccount != null) && !RatiosUtil.areEqual(oldRoot, rootAccount)) {
       // setup for a new file - stop any current update
@@ -100,41 +103,41 @@ class RatiosExtensionModel
       // clear out the data
       setCurrentTask(null, true);
       _settings = null;
-      _book = null;
+      _rootAccount = null;
     }
     // otherwise the same file has been assigned again, do nothing
   }
 
-  RatioEntry getEntryFromSettingString(String setting) {
+  RatioEntry getEntryFromSettingString(String setting, Map<Integer, String> tagMap) {
     try {
       StreamTable settingTable = new StreamTable();
       settingTable.readFrom(setting);
       String encodedAccounts = settingTable.getStr(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
-      String revisedAccounts = removeMissingAccounts(encodedAccounts, _book);
+      String revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
       if (!revisedAccounts.equals(encodedAccounts)) {
         settingTable.put(N12ERatios.NUMERATOR_REQUIRED_LIST_KEY, revisedAccounts);
       }
       encodedAccounts = settingTable.getStr(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, N12ERatios.EMPTY);
-      revisedAccounts = removeMissingAccounts(encodedAccounts, _book);
+      revisedAccounts = removeMissingAccounts(encodedAccounts, _rootAccount);
       if (!revisedAccounts.equals(encodedAccounts)) {
         settingTable.put(N12ERatios.DENOMINATOR_REQUIRED_LIST_KEY, revisedAccounts);
       }
-      return new RatioEntry(settingTable, _mdGUI);
+      return new RatioEntry(settingTable, _mdGUI, tagMap);
     } catch (StringEncodingException e) {
-      System.err.println("ratios: Error reading ratio entry settings: " + e.getMessage());
+      Logger.log("Error reading ratio entry settings: " + e.getMessage());
     }
     return null;
   }
 
   private void addAccountListener() {
-    if (_book != null) {
-      _book.addAccountListener(_accountListener);
+    if (_rootAccount != null) {
+      _rootAccount.addAccountListener(_accountListener);
     }
   }
 
   private void removeAccountListener() {
-    if (_book != null) {
-      _book.removeAccountListener(_accountListener);
+    if (_rootAccount != null) {
+      _rootAccount.removeAccountListener(_accountListener);
     }
   }
 
@@ -142,7 +145,7 @@ class RatiosExtensionModel
     // settings can be written back to the file
     final boolean readOnly = false;
     _settings = new RatioSettings(getGUI(), readOnly);
-    _settings.loadFromSettings(_book, _resources);
+    _settings.loadFromSettings(_rootAccount, _resources);
     // override the date range from user preferences, which does not require saving the file
     String dateRangeOption = _preferences.getSetting(N12ERatios.DATE_RANGE_PREF_KEY, _settings.getDateRangeOption());
     _settings.setDateRangeOption(dateRangeOption);
@@ -151,8 +154,9 @@ class RatiosExtensionModel
   private void loadRatioList() {
     synchronized (_ratioSync) {
       _ratios.clear();
+      Map<Integer, String> tagMap = TxnTagUtils.loadLegacyTagMap(_rootAccount);
       for (String setting : _settings.getRatioEntryList()) {
-        RatioEntry ratioEntry = getEntryFromSettingString(setting);
+        RatioEntry ratioEntry = getEntryFromSettingString(setting, tagMap);
         if (ratioEntry != null) {
           ratioEntry.setIndex(_ratios.size());
           _ratios.add(ratioEntry);
@@ -182,7 +186,7 @@ class RatiosExtensionModel
           result.append(accountId);
         }
       } catch (NumberFormatException nfex) {
-        System.err.println("ratios: Invalid account ID selecting accounts: " + accountId);
+        Logger.log("Invalid account ID selecting accounts: " + accountId);
       }
     } // for accountId
     return result.toString();
@@ -194,7 +198,7 @@ class RatiosExtensionModel
   }
 
   AccountBook getRootAccount() {
-    return _book;
+    return _rootAccount;
   }
 
   RatioSettings getSettings() {
@@ -374,11 +378,11 @@ class RatiosExtensionModel
           firePropertyChange(_eventNotify, N12ERatios.RECALCULATE, null, null);
           currentTaskDone();
         } catch (Throwable error) {
-          System.err.println("ratios: Error computing ratios: " + error.getMessage());
+          Logger.log("Error computing ratios: " + error.getMessage());
           error.printStackTrace();
         }
       } else {
-        System.err.println("ratios: Background recalculate task was canceled.");
+        Logger.log("Background recalculate task was canceled.");
       }
     } // run()
   }

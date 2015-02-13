@@ -1,6 +1,6 @@
 /*
  * ************************************************************************
- * Copyright (C) 2012 Mennē Software Solutions, LLC
+ * Copyright (C) 2012-2015 Mennē Software Solutions, LLC
  *
  * This code is released as open source under the Apache 2.0 License:<br/>
  * <a href="http://www.apache.org/licenses/LICENSE-2.0">
@@ -10,8 +10,10 @@
 
 package com.moneydance.modules.features.ratios;
 
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.util.CustomDateFormat;
 import com.moneydance.apps.md.controller.time.DateRangeOption;
-import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.HomePageView;
 import com.moneydance.apps.md.view.gui.DateRangeChooser;
 import com.moneydance.apps.md.view.gui.MDAction;
@@ -22,7 +24,6 @@ import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
 import com.moneydance.apps.md.view.gui.OKButtonWindow;
 import com.moneydance.awt.GridC;
-import com.infinitekind.util.CustomDateFormat;
 import com.moneydance.util.UiUtil;
 
 import javax.swing.AbstractAction;
@@ -71,8 +72,8 @@ class RatiosHomeView
     return N12ERatios.HOME_PAGE_ID;
   }
 
-  public JComponent getGUIView(AccountBook book) {
-    _mainModel.setData(book);
+  public JComponent getGUIView(AccountBook rootAccount) {
+    _mainModel.setData(rootAccount);
     if (_view == null) {
       _view = new RatiosHomePage(_resources, _mainModel.getGUI());
       _view.layoutUI();
