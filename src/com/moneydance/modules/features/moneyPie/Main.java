@@ -7,6 +7,7 @@ import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 
+import java.sql.Timestamp;
 import java.util.Observable;
 import java.util.Observer;
 import java.io.*;
@@ -63,19 +64,16 @@ public class Main extends FeatureModule implements Observer {
 			BudgetForecastConf conf = new BudgetForecastConf(this.getBook(), 
 					  "Forecast: " + this.data.getCurrentBudgetName() + 
 					  " (" + data.getCurrentBudgetYear() + ") ");
-			  
+			
 			castWindow = new BudgetForecast(this, conf);
-		} else {
-			castWindow.refresh();
 		}
-		
+
 		if(rprtWindow == null){
 			rprtWindow = new BudgetReportWindow(this);
 		} else {
 			rprtWindow.updateReport();
 		}
-	}
-
+	  }
   }
   
   public String getName(){
@@ -83,7 +81,7 @@ public class Main extends FeatureModule implements Observer {
   }
   
   public int getBuild(){
-	  return 1001;
+	  return 1002;
   }
 
   public void cleanup() {
@@ -122,8 +120,6 @@ public class Main extends FeatureModule implements Observer {
 
   /** Process an invocation of this module with the given URI */
   public void invoke(String uri) {
-	System.err.println("URI: " + uri);
-	
     String command = uri;
     int theIdx = uri.indexOf('?');
     if(theIdx>=0) {
@@ -139,18 +135,27 @@ public class Main extends FeatureModule implements Observer {
     	showPie();
     }
   }
+  
+  void println(String message){
+	  java.util.Date date= new java.util.Date();
+	  System.err.println(new Timestamp(date.getTime()) + " : " + message);
+  }
 
   protected synchronized void showPie() {
-	this.setup();
-
-	mainWindow.setVisible(true);
-  	mainWindow.toFront();
-    mainWindow.requestFocus();
+	  this.setup();
+	  
+	  mainWindow.setVisible(true);
+  	  mainWindow.toFront();
+  	  mainWindow.requestFocus();
   }
   
   protected void showForecast(){
 	  this.setup();
 
+	  castWindow.setWaitCursor();
+	  castWindow.refresh();
+	  castWindow.setDefaultCursor();
+	  
 	  castWindow.setVisible(true);
 	  castWindow.toFront();
 	  castWindow.requestFocus();

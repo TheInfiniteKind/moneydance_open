@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.sql.Timestamp;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 
@@ -180,7 +181,7 @@ public void run() {
 
     getContentPane().add(mp);
 
-    this.refresh();
+    //XXX this.refresh();
     
     pack();
     this.setSize(1000, 1000);
@@ -872,6 +873,11 @@ private XYSeries calcPredictedRBalance(Account cacct) {
 	      sAmount.add(amount);
 
 	      txnMap.put(accName, sAmount);
+	}
+	
+	void println(String message){
+		  java.util.Date date= new java.util.Date();
+		  System.err.println(new Timestamp(date.getTime()) + " : " + message);
 	}
 }
 

@@ -49,6 +49,7 @@ import java.util.LinkedList;
 import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.Collections;
+import java.sql.Timestamp;
 
 /** Window used for Account List interface
   ------------------------------------------------------------------------
@@ -594,7 +595,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 
 	        if(! dValue.isNoEntry() ){
 		        if(cValue.isEqual(dValue)){
-		        	//System.err.println("No Change: " + columnName + "," + categoryName +":" + amount +"->"+data +"\n");
+		        	//this.println("No Change: " + columnName + "," + categoryName +":" + amount +"->"+data +"\n");
 		        } else {
 		        	if(! data.budgetUpdateItem(categoryName, column, dValue)){
 			        	data.budgetAddItem(categoryName, column, dValue);
@@ -882,5 +883,10 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
   void goAway() {
     setVisible(false);
     dispose();
+  }
+  
+  void println(String message){
+	  java.util.Date date= new java.util.Date();
+	  System.err.println(new Timestamp(date.getTime()) + " : " + message);
   }
 }
