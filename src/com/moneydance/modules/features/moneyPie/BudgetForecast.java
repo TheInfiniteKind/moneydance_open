@@ -27,15 +27,7 @@ import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
-import java.util.Date;
-import java.util.Hashtable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-import java.util.Iterator;
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.*;
 import java.util.GregorianCalendar;
 import java.sql.Timestamp;
 import java.text.NumberFormat;
@@ -58,28 +50,28 @@ import org.jfree.ui.RectangleEdge;
 public class BudgetForecast extends JDialog implements ActionListener, Runnable {
   private static final long serialVersionUID = 7904680121905462798L;
  
-  private Main             extension;
-  private BudgetData       data;
+  private Main                extension;
+  private BudgetData          data;
   
   private JPanel              mp, bigP, smaP, bp, bpl, bpr;
   private JScrollPane         tp;
   private JButton             btRefresh;
   private JComboBox           cbFutuIntervals   = new JComboBox();
   private JComboBox           cbFutuNum         = new JComboBox();
-  private BudgetForecastConf  predConf       = null;
+  private BudgetForecastConf  predConf          = null;
   private Date                prDate            = new Date();
   private GridBagLayout       gbl               = new GridBagLayout();
   
   @SuppressWarnings({"rawtypes" })
-  private Hashtable  remindersStatus   = new Hashtable();
-  private SimpleDateFormat dateFormat              = new SimpleDateFormat("MM/dd/yy");
-  private JTable           table;
+  private Hashtable           remindersStatus   = new Hashtable();
+  private SimpleDateFormat    dateFormat        = new SimpleDateFormat("MM/dd/yy");
+  private JTable              table;
   
   @SuppressWarnings("rawtypes")
-  private Map[]            spendingData      = new Map[13];
+  private Map[]               spendingData      = new Map[13];
   private Object[][]	      tabData;
   private static NumberFormat nf;
-  private static String[]     cols           = {"","Date","Description","Amount","Balance"};
+  private static String[]     cols              = {"","Date","Description","Amount","Balance"};
   
   
   public BudgetForecast(Main ext, BudgetForecastConf predConf) {
@@ -94,7 +86,6 @@ public class BudgetForecast extends JDialog implements ActionListener, Runnable 
     nf.setMaximumFractionDigits(2);
 	run();
   }
-
 
 
  @SuppressWarnings("unchecked")
@@ -181,8 +172,6 @@ public void run() {
 
     getContentPane().add(mp);
 
-    //XXX this.refresh();
-    
     pack();
     this.setSize(1000, 1000);
     this.setResizable(false);
@@ -221,45 +210,43 @@ public void run() {
 		              long date, 
 		              String description, 
 		              long amount, 
-		              long balance, ArrayList<Object> rowList) {
+		              long balance, ArrayList<BudgetForecastRow> rowList) {
     
-    Object[] row = new Object[5];   // {"Date","Description","Amount","Balance"};
-    row[0]=type;
+	BudgetForecastRow row = new BudgetForecastRow();
+    row.type = type;
 
     Calendar cal = Calendar.getInstance();
     cal.setTimeInMillis(date);
 
     if (date == 0) {
-      row[1] = new String("");
+      row.date = new String("");
     } else {
-      row[1] = new Long(date).toString();
+      row.date = new Long(date).toString();
     }
 
-    row[2]=description;
-    row[3]=new Long(amount).toString();
-    row[4]=format(balance);
+    row.description = description;
+    row.amount      = new Long(amount).toString();
 
     //Scan rowList for collision between transaction types
     boolean foundDuplicate = false;
     for(int i = 0; i < rowList.size(); i++){
-  	  Object[] data = (Object[]) rowList.get(i);
-
-  	  String txnType = (String) data[0];
-  	  long   txnDate = new Long((String) data[1]).longValue();
-  	  String txnDesc = (String) data[2];
-  	  long   txnAmnt = new Long((String) data[3]).longValue();
+      BudgetForecastRow data = (BudgetForecastRow) rowList.get(i);
+  
+  	  String txnType = data.type;
+  	  long   txnDate = new Long(data.date).longValue();
+  	  String txnDesc = data.description;
+  	  long   txnAmnt = new Long(data.amount).longValue();
 
   	  Calendar txnCal = Calendar.getInstance();
   	  txnCal.setTime(new Date(txnDate));
-  	  //txnCal.setTimeInMillis(txnDate);
 
   	  if(! txnType.equalsIgnoreCase(type)
   	     && txnDesc.equalsIgnoreCase(description)
   		 && cal.get(Calendar.MONTH) == txnCal.get(Calendar.MONTH)
   		 && cal.get(Calendar.YEAR) == txnCal.get(Calendar.YEAR)){
 
-  		data[0] = row[0]+txnType;
-  		data[1] = row[1];
+  		data.type = row.type+txnType;
+  		data.date = row.date;
   		
   		long dataAmount = 0;
   		if(txnAmnt > 0){
@@ -276,7 +263,7 @@ public void run() {
   			}
   		}
   		
-  		data[3] = (new Long(dataAmount)).toString();
+  		data.amount = (new Long(dataAmount)).toString();
   		
   		rowList.set(i, data);
   		foundDuplicate = true;
@@ -288,7 +275,7 @@ public void run() {
     }
   }
 
-  private long findBudgetTxns(Calendar curr, long startBal, Account acct, ArrayList<Object> rowList) {
+  private long findBudgetTxns(Calendar curr, long startBal, Account acct, ArrayList<BudgetForecastRow> rowList) {
 	  long    balance = startBal;
 	  
 	  @SuppressWarnings("unchecked")
@@ -315,11 +302,19 @@ public void run() {
 		          if(bi.getIntervalStartDate() > 0){
 		        	  for(int month = 1; month <= 12; month++){
 		        		  if(today.get(Calendar.MONTH) + 1 > month) continue;
+		        		  
+		        		  Date budgetDay = new GregorianCalendar(data.getCurrentBudgetYear(), month-1, 2).getTime();
+			              Calendar start = Calendar.getInstance();
+			        	  start.setTime(budgetDay);
+			        	  Calendar stop = Calendar.getInstance();
+			      	      stop.setTime(prDate);
+
+			      	      if (stop.before(start)) break;
+			      	      
 			        	  Date startDay   = new GregorianCalendar(data.getCurrentBudgetYear(), month-1, 1).getTime();
 			        	  Date endDay     = new GregorianCalendar(data.getCurrentBudgetYear(), month-1, getMonthEndDay(month, data.getCurrentBudgetYear())).getTime();
 
 			        	  String  budgetCategory = a.getFullAccountName();
-
 			        	  BudgetValue budgetedAmount = new BudgetValue(data, 0);
 			        	  
 			        	  if(acct.getComment().indexOf("MAIN") > -1) {
@@ -329,17 +324,10 @@ public void run() {
 				        		  budgetedAmount = getBudgetedAmount(bi,startDay,endDay);
 				        	  }
 			        	  }
-
+			        	  
 			              if (budgetedAmount.isEqual(0)) continue;
+			              //this.println("DEBUG (BUDGET): " + startDay + " - " + endDay + " --> " + month + " : " + budgetCategory + " -- " + budgetedAmount);
 
-			              Date budgetDay   = new GregorianCalendar(data.getCurrentBudgetYear(), month-1, 2).getTime();
-			              Calendar start = Calendar.getInstance();
-			        	  start.setTime(budgetDay);
-			        	  Calendar stop = Calendar.getInstance();
-			      	      stop.setTime(prDate);
-
-			      	      if (stop.before(start)) continue;
-			      	      
 			      	      budgetData[month].put(budgetCategory,budgetedAmount);
 
 		        	  }
@@ -378,18 +366,14 @@ public void run() {
 		        }
 		          
 		        addRow(type, BudgetDateUtil.getLngDateTime(budgetDay), budgetCategory, budgetedAmount, balance, rowList);
-				  
 		  }
-		    
-		  
-		  
 	  }
 	  
 
 	  return balance;
   }
 
-  private long findFutureTxns(long startBal, Account acct, ArrayList<Object> rowList) {
+  private long findFutureTxns(long startBal, Account acct, ArrayList<BudgetForecastRow> rowList) {
     AbstractTxn   txn;
     long          balance = startBal;
     int           i;
@@ -406,6 +390,8 @@ public void run() {
     for (i=0; i<txns.getSize(); i++) {
       txn = txns.getTxn(i);
       if (txn.getDateInt() > today){
+    	  
+        //TODO: Limit by prDate
         balance += txn.getValue();
 
         addRow("F", data.getTxnDate(txn).getTime(), 
@@ -431,8 +417,8 @@ public void run() {
 	  
 	  
 	  //Split series between two charts
-	  for(int i = 0; i < predConf.getNumAccounts(); i++){
-		  XYSeries dataSeries = calcPredictedRBalance(predConf.getAccount(i));
+	  //for(int i = 0; i < predConf.getNumAccounts(); i++){
+		  XYSeries dataSeries = calcPredictedRBalance(predConf.getAccount());
 		  
 		  BudgetPreferences prefs = extension.getPreferences();
 		  String largeThreshold   = prefs.getDefaults("large");
@@ -447,7 +433,7 @@ public void run() {
 		  } else {
 			  datasetSmall.addSeries(dataSeries);
 		  }
-	  }
+	  //}
 	  
 	  //Build charts
 	  JFreeChart chartSmall = buildChart(datasetSmall, true);
@@ -488,8 +474,7 @@ private JFreeChart buildChart(XYSeriesCollection dataset, boolean showZero){
 			"Account Balances", "", "Balance", dataset, PlotOrientation.VERTICAL,
 			true, true, false);
   chart.setBackgroundPaint(new Color(237, 237, 237));
-  chart.getLegend().setPosition(RectangleEdge.RIGHT);
-  
+  chart.removeLegend();
 
   final XYPlot plot = chart.getXYPlot();
   
@@ -525,12 +510,13 @@ private JFreeChart buildChart(XYSeriesCollection dataset, boolean showZero){
 }
 private XYSeries calcPredictedRBalance(Account cacct) {
 
-    ArrayList<Object> rowList = new ArrayList<Object>();
-    ArrayList<Object> txnList = new ArrayList<Object>();
+    ArrayList<BudgetForecastRow> rowList = new ArrayList<BudgetForecastRow>();
+    ArrayList<BudgetForecastRow> txnList = new ArrayList<BudgetForecastRow>();
 
     long changes  = 0;
-    long currentBalance = getAccountBalance(cacct);
-
+    long startingBalance = getAccountBalance(cacct); 
+    long currentBalance  = startingBalance;
+    
     Calendar curr = Calendar.getInstance();
 	    curr.set(Calendar.HOUR_OF_DAY, 12);
 	    curr.set(Calendar.AM_PM, Calendar.AM);
@@ -564,34 +550,41 @@ private XYSeries calcPredictedRBalance(Account cacct) {
     SplitTxn  stxn = null;
 
     //Find all Reminders
+    //Calendar nextDay;
+    
     while(curr.before(stop) || curr.equals(stop)) {
-      long currentTime = BudgetDateUtil.getLngDateTime(curr.getTime());
 
+      long currentTime = BudgetDateUtil.getLngDateTime(curr.getTime());
       Calendar nextDay = Calendar.getInstance();
       nextDay.setTime(curr.getTime());
       nextDay.add(Calendar.DAY_OF_MONTH, 1);
 
-      List<Reminder> rl = predConf.rs.getRemindersOnDay(curr);
+      List<Reminder> rl = predConf.rs.getRemindersOnDay(nextDay);
       for (int n = 0; n < rl.size(); n++) {
         Reminder r = rl.get(n);
-        if ((r.getReminderType() == Reminder.Type.typeForCode(Reminder.TXN_REMINDER_TYPE)) && ((Boolean)remindersStatus.get(r)).booleanValue()) {
-        	ptxn = r.getTransaction();
-          if (ptxn.getAccount().equals(cacct)) {
-            changes += ptxn.getValue();
-			addRow("R", currentTime, r.getDescription(), ptxn.getValue(), currentBalance + changes, txnList);
-          }
-          for(int i=0; i<ptxn.getSplitCount(); i++) {
-            stxn = ptxn.getSplit(i);
-            if (stxn.getAccount().equals(cacct)) {
-                long val = CurrencyTable.convertValue(-stxn.getAmount(),
-                                                      stxn.getParentTxn().getAccount().getCurrencyType(),
-                                                      cacct.getCurrencyType(),
-                                                      ptxn.getDateInt());
-                changes += val;
-                addRow("R", currentTime, r.getDescription(), val, currentBalance + changes, txnList);
-            }
-          }
-        }
+        //if ( (r.getReminderType() == Reminder.Type.typeForCode(Reminder.TXN_REMINDER_TYPE)) ) {
+        	//if ( ((Boolean)remindersStatus.get(r)).booleanValue() ) {
+
+            	ptxn = r.getTransaction();
+            	
+                if (ptxn.getAccount().equals(cacct)) {
+                  changes += ptxn.getValue();
+                  addRow("R", currentTime, r.getDescription(), ptxn.getValue(), currentBalance + changes, txnList);
+                }
+                
+                for(int i=0; i<ptxn.getSplitCount(); i++) {
+                  stxn = ptxn.getSplit(i);
+                  if (stxn.getAccount().equals(cacct)) {
+                    long val = CurrencyTable.convertValue(stxn.getAmount(),
+                                                          stxn.getParentTxn().getAccount().getCurrencyType(),
+                                                          cacct.getCurrencyType(),
+                                                          ptxn.getDateInt());
+                    changes += val;
+                    addRow("R", currentTime, r.getDescription(), val, currentBalance + changes, txnList);
+                  }
+                }
+            //}
+        //}
       }
 
       curr.add(Calendar.DAY_OF_MONTH, 1);
@@ -610,18 +603,18 @@ private XYSeries calcPredictedRBalance(Account cacct) {
         //Loop through array and add all found transactions
         for(int i = 0; i < txnList.size(); i++){
           
-      	  Object[] data = (Object[]) txnList.get(i);
+          BudgetForecastRow data = (BudgetForecastRow) txnList.get(i);
 
-      	  long txnDate = new Long((String) data[1]).longValue();
+      	  long txnDate = new Long((String) data.date).longValue();
       	  
       	  if(txnDate >= curr.getTime().getTime() && txnDate < nextDay.getTime().getTime()){
-      	  	long txnAmt = new Long((String) data[3]).longValue();
-      	  	String txnType = (String) data[0];
+      	  	long txnAmt = new Long((String) data.amount).longValue();
+      	  	String txnType = data.type;
 
       	  	if (! txnType.equalsIgnoreCase("B") &&
       	  		! txnType.equalsIgnoreCase("BT")){
       	  	    changes += txnAmt;
-      	  		addRow(txnType, txnDate, (String) data[2], txnAmt, currentBalance + changes, rowList);
+      	  		addRow(txnType, txnDate, data.description, txnAmt, currentBalance + changes, rowList);
       	  	}
 
       	  }
@@ -633,24 +626,32 @@ private XYSeries calcPredictedRBalance(Account cacct) {
 
 
     if(cacct.getAccountName().equalsIgnoreCase(predConf.getAccount().getAccountName())){
-    	fillTable(rowList);
+    	fillTable(startingBalance, rowList);
     }
     
     return series;
   }
 
-  private void fillTable(ArrayList<Object> rowList){
+  private void fillTable(long balance, ArrayList<BudgetForecastRow> rowList){
+
+	    Collections.sort(rowList);
+	    
 	    tabData = new Object[rowList.size()][5];
 
 	    for (int i=0; i<rowList.size(); i++) {
-	      Object[] data = (Object[]) rowList.get(i);
-	      long txnDate  = new Long((String) data[1]).longValue();
-	      long txnAmt   = new Long((String) data[3]).longValue();
+	    	BudgetForecastRow row = (BudgetForecastRow) rowList.get(i);
+	    	long txnDate  = new Long((String) row.date).longValue();
+		    long txnAmt   = new Long((String) row.amount).longValue();
+		    balance = balance + txnAmt;
+		    
+	    	Object[] data = new Object[5];
+	    	data[0] = row.type;
+	    	data[1] = dateFormat.format(txnDate);
+	    	data[2] = row.description;
+	    	data[3] = format(txnAmt);
+	    	data[4] = format(balance);
 
-	      data[1] = dateFormat.format(txnDate);
-	      data[3] = format(txnAmt);
-
-	      tabData[i] = data;
+	        tabData[i] = data;
 	    }
 
 	    table.setModel(new DefaultTableModel(tabData,cols));
