@@ -417,6 +417,8 @@ public class BudgetData  {
 	      } else{
 	    	  if(foundBudgets.size() == 1) {
 	    		  b.getItemList().removeItem(foundBudgets.get(0));
+	    		  
+	    		  b.syncItem();
 	        	  return true;
 	    	  }
 	      }
@@ -455,6 +457,9 @@ public class BudgetData  {
 		  ti.setIntervalEndDate(Integer.parseInt(this.getCurrentBudgetYear() + 
 				                                 monthNum + 
 				                                 String.valueOf(BudgetDateUtil.getMonthEndDay(this.getCurrentBudgetYear(), month))));
+		  
+		  ti.syncItem();
+		  b.syncItem();
 
 	}
 	
@@ -494,7 +499,10 @@ public class BudgetData  {
 	        	  BudgetValue amount = new BudgetValue(this, dataValue);
 	        	  amount.multiply(100.00d);
 	        	  
-	        	  foundBudgets.get(0).setAmount( amount.longValue() );
+	        	  BudgetItem bi = foundBudgets.get(0);
+	        	  bi.setAmount( amount.longValue() );
+	        	  
+	        	  bi.syncItem();
 	        	  return true;
 	    	  }
 	      }
