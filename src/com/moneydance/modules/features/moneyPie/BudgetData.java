@@ -3,6 +3,7 @@
 \************************************************************/
 package com.moneydance.modules.features.moneyPie;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -307,7 +308,7 @@ public class BudgetData  {
 		          Account txnAccount    = t.getAccount();
 		          AbstractTxn to = t.getOtherTxn(0);
 		          if(to == null) {
-		        	  System.err.println("ERROR: " + txnAccount.getFullAccountName());
+		        	  this.println("ERROR: " + txnAccount.getFullAccountName());
 		        	  continue;
 		          }
 		          
@@ -736,7 +737,11 @@ public class BudgetData  {
 	                      count++;
 	              }
 	              // Get next budgeted date
-	              switch (bi.getInterval()) {
+	              int interval = bi.getInterval();
+	              if(interval > 50){
+	            	  interval = interval - 50;
+	              }
+	              switch (interval) {
 	                      case BudgetItem.INTERVAL_ANNUALLY: budDt   = BudgetDateUtil.addYears(budDt  , 1); break;
 	                      case BudgetItem.INTERVAL_BI_MONTHLY: budDt = BudgetDateUtil.addMonths(budDt , 2); break;
 	                      case BudgetItem.INTERVAL_BI_WEEKLY: budDt  = BudgetDateUtil.addWeeks(budDt  , 2); break;
@@ -763,7 +768,9 @@ public class BudgetData  {
 	                      case BudgetItem.INTERVAL_TRI_MONTHLY: budDt = BudgetDateUtil.addMonths(budDt , 3); break;
 	                      case BudgetItem.INTERVAL_TRI_WEEKLY: budDt  = BudgetDateUtil.addWeeks(budDt  , 3); break;
 	                      case BudgetItem.INTERVAL_WEEKLY: budDt      = BudgetDateUtil.addWeeks(budDt  , 1); break;
-	                      default: done = true;
+	                      default: {
+	                    	  done = true;
+	                      }
 	              }
 
 	              // Is it past date
@@ -848,5 +855,9 @@ public class BudgetData  {
 	      sAmount.add(amount);
 	      txnMap.put(accName,sAmount.dFormat());
 	}
-	  
+	 
+    void println(String message){
+		  java.util.Date date= new java.util.Date();
+		  System.err.println(new Timestamp(date.getTime()) + " : " + message);
+    }
 }
