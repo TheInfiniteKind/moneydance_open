@@ -168,7 +168,7 @@ public class BudgetCellRenderer extends DefaultTableCellRenderer {
     	    				if( bValue.diff(sValue) < 0){
     	    					setBackground(lgreenColor);
     				    	} else if( currentMonth == column && (wValue - sValue.doubleValue()) > 0 ){
-    				    		setBackground(lgreenColor);
+    				    		setBackground(lyellowColor);
     				    	} else if( bValue.diff(sValue) > 0 ){
     				    		setBackground(lredColor);
     				    		setForeground(blackColor);

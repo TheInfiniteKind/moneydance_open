@@ -32,7 +32,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
-
 import javax.xml.transform.*;  
 import javax.xml.transform.dom.DOMSource;  
 import javax.xml.transform.stream.StreamResult; 
@@ -44,6 +43,7 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.commons.net.ftp.FTP;
 
+import com.infinitekind.moneydance.model.Account;
 import com.moneydance.awt.AwtUtil;
 
 public class BudgetReportWindow extends JFrame {
@@ -227,7 +227,7 @@ public class BudgetReportWindow extends JFrame {
 
         }
 
-        private String generateTableCell(String cellClass, 
+        private String generateTableCell(String cellClass, Boolean inverse,
         								 BudgetValue cellValueB,
         								 BudgetValue cellValueA,
         								 BudgetValue cellValueD){
@@ -240,8 +240,18 @@ public class BudgetReportWindow extends JFrame {
            	String blackColor = "#000000";
            	
            	String cellColor = blackColor;
-           	if(cellValueD.doubleValue() < 0){
-           		cellColor = redColor;
+           	if(inverse){
+           		if(cellValueD.doubleValue() > 0){
+           			cellColor = redColor;
+           		} else {
+           			cellColor = blackColor;
+           		}
+           	} else {
+           		if(cellValueD.doubleValue() < 0){
+           			cellColor = redColor;
+           		} else {
+           			cellColor = blackColor;
+           		}
            	}
 
            	StringBuffer sb = new StringBuffer();
@@ -280,7 +290,8 @@ public class BudgetReportWindow extends JFrame {
 	  	    BudgetValue totalYearBudget    = new BudgetValue(data, 0);
 	  	    BudgetValue totalYearDiff      = new BudgetValue(data, 0);
 
-
+	  	    Boolean     inverse            = false;
+	  	    
 	  	    sb.append("<H2>"+label+"</H2>");
 
         	Iterator<?> k = sortByValue(accounts).keySet().iterator();
@@ -293,6 +304,13 @@ public class BudgetReportWindow extends JFrame {
     	      } else {
     	    	  topAccountName = acctName;
     	      }
+    	      
+    	      Account thisAccount = data.getAccount(topAccountName);
+  			  if(thisAccount.getAccountType() == Account.AccountType.INCOME){
+  				inverse = true;
+  			  } else {
+  				inverse = false;
+  			  }
 
     	      if(! showSubTotals) topAccountName = label;
     	      
@@ -300,9 +318,9 @@ public class BudgetReportWindow extends JFrame {
     	    	  if(! lastTop.equals("")){
     	    		  sb.append("<TR>");
     	    	      sb.append("<TD class='tl'>Total</TD>");
-    	    	      sb.append(generateTableCell("total", sectionTotalBudget, sectionTotalValue, sectionTotalDiff));
-    	    	      sb.append(generateTableCell("total", sectionYTDBudget, sectionYTDValue, sectionYTDDiff));
-    	    	      sb.append(generateTableCell("total", sectionYearBudget, sectionYearValue, sectionYearDiff));
+    	    	      sb.append(generateTableCell("total", inverse, sectionTotalBudget, sectionTotalValue, sectionTotalDiff));
+    	    	      sb.append(generateTableCell("total", inverse, sectionYTDBudget, sectionYTDValue, sectionYTDDiff));
+    	    	      sb.append(generateTableCell("total", inverse, sectionYearBudget, sectionYearValue, sectionYearDiff));
     	    	      sb.append("</TR>");
 
     	    		  sb.append("</TABLE>");
@@ -403,9 +421,9 @@ public class BudgetReportWindow extends JFrame {
 
     	      sb.append("<TR>");
     	      sb.append("<TD class='label'>" + acctName + "</TD>");
-    	      sb.append(generateTableCell("data", budgetValue, actualValue, diffValue));
-    	      sb.append(generateTableCell("data", ytdBudget, ytdActual, ytdDiff));
-    	      sb.append(generateTableCell("data", budgetYear, actualYear, diffYear));
+    	      sb.append(generateTableCell("data", inverse, budgetValue, actualValue, diffValue));
+    	      sb.append(generateTableCell("data", inverse, ytdBudget, ytdActual, ytdDiff));
+    	      sb.append(generateTableCell("data", inverse, budgetYear, actualYear, diffYear));
     	      sb.append("</TR>");
 
     	      sectionTotalValue.add(actualValue);
@@ -427,9 +445,9 @@ public class BudgetReportWindow extends JFrame {
 
     	    sb.append("<TR>");
     	    sb.append("<TD class='tl'>Total</TD>");
-    	    sb.append(generateTableCell("total", sectionTotalBudget, sectionTotalValue, sectionTotalDiff));
-  	        sb.append(generateTableCell("total", sectionYTDBudget, sectionYTDValue, sectionYTDDiff));
-  	        sb.append(generateTableCell("total", sectionYearBudget, sectionYearValue, sectionYearDiff));
+    	    sb.append(generateTableCell("total", inverse, sectionTotalBudget, sectionTotalValue, sectionTotalDiff));
+  	        sb.append(generateTableCell("total", inverse, sectionYTDBudget, sectionYTDValue, sectionYTDDiff));
+  	        sb.append(generateTableCell("total", inverse, sectionYearBudget, sectionYearValue, sectionYearDiff));
   	        sb.append("</TR>");
 
   	        totalValue.add(sectionTotalValue);
@@ -446,9 +464,9 @@ public class BudgetReportWindow extends JFrame {
 	  	    
   	        sb.append("<TR>");
   	      	sb.append("<TD class='tl'>Grand Total</TD>");
-  	      	sb.append(generateTableCell("total", totalBudget, totalValue, totalDiff));
-  	        sb.append(generateTableCell("total", totalYTDBudget, totalYTDValue, totalYTDDiff));
-  	      	sb.append(generateTableCell("total", totalYearBudget, totalYearValue, totalYearDiff));
+  	      	sb.append(generateTableCell("total", inverse, totalBudget, totalValue, totalDiff));
+  	        sb.append(generateTableCell("total", inverse, totalYTDBudget, totalYTDValue, totalYTDDiff));
+  	      	sb.append(generateTableCell("total", inverse, totalYearBudget, totalYearValue, totalYearDiff));
 	        sb.append("</TR>");
 	        
     	    sb.append("</TABLE>");
