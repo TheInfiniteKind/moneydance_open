@@ -33,12 +33,6 @@ public class BudgetTable extends JTable {
 		this.balloonEdit = new BudgetEditBalloon(this, data);
 	}
 	
-	public void setEditCell(int row, int col){
-		if(balloonEdit == null) return;
-		
-		balloonEdit.setPosition(row, col);
-	}
-	
 	public void setBallonCell(int row, int col){
 		if(balloonTip == null) return;
 		

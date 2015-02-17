@@ -72,7 +72,6 @@ public class BudgetPopupListener extends MouseAdapter {
         	        	
         	if(row == -1 || col == -1) return;
         	
-        	table.setEditCell(row, col);
         	popupMenu.setRowCol(table, row, col);        	        
         	
         	if(e.getButton() == MouseEvent.BUTTON2){
