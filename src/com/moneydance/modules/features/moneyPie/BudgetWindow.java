@@ -585,40 +585,40 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
       TableModel model = (TableModel)e.getSource();
 
       if(row > -1 && column > -1) {
-        BudgetValue dValue = (BudgetValue) model.getValueAt(row, column);
+        BudgetValue userValue = (BudgetValue) model.getValueAt(row, column);
         String categoryName = (String) model.getValueAt(row, 0);
         Account ba = data.getAccount(data.getRoot(), categoryName);
         String  accName = ba.getFullAccountName();
 
-        if(! data.isBudgetNull(accName, column)){
-        	BudgetValue cValue = data.getBudgetValue(accName, column);
+        if(data.isBudgetNull(accName, column)){
+        	if(userValue.isNoEntry() ){
+        		data.budgetDelteItem(categoryName, column);
+        	} else {
+        		data.budgetAddItem(categoryName, column, userValue);
+        	}
+        	displayBudget();
 
-	        if(! dValue.isNoEntry() ){
-		        if(cValue.isEqual(dValue)){
+        } else {
+	        if(userValue.isNoEntry() ){
+	        	data.budgetDelteItem(categoryName, column);
+	        	displayBudget();
+	        } else {
+	        	BudgetValue currentValue = data.getBudgetValue(accName, column);
+	        	if(currentValue.isEqual(userValue)){
 		        	//this.println("No Change: " + columnName + "," + categoryName +":" + amount +"->"+data +"\n");
 		        } else {
-		        	if(! data.budgetUpdateItem(categoryName, column, dValue)){
-			        	data.budgetAddItem(categoryName, column, dValue);
+		        	if(data.budgetUpdateItem(categoryName, column, userValue)){
+		        		//Update worked
+		        		//Nothing to do
+		        	} else {
+			        	data.budgetAddItem(categoryName, column, userValue);
 			        }
 		        	
 		        	displayBudget();
 		        }
-	        } else {
-	        	data.budgetDelteItem(categoryName, column);
-	        	displayBudget();
 	        }
-
-        } else {
-        	if(! dValue.isNoEntry() ){
-        		data.budgetAddItem(categoryName, column, dValue);
-        	} else {
-        		data.budgetDelteItem(categoryName, column);
-        	}
-        	displayBudget();
         }
-
       }
-
   }
 
   public void columnAdded(TableColumnModelEvent e) {
