@@ -1,0 +1,9 @@
+{
+  "desc" = "http://www.ragingcoders.com/moneypie/" 
+  "module_build" = "1007"
+  "minbuild" = "1000"
+  "module_desc" = "<html><body><title>MoneyPie</title><p>http://www.ragingcoders.com/moneypie/</p></body></html>" 
+  "module_name" = "MoneyPie" 
+  "vendor" = "Raging Coders" 
+  "vendor.url" = "http://www.ragingcoders.com" 
+}
