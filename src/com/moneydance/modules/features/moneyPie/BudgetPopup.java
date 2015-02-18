@@ -10,6 +10,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
+
 import java.awt.Component;
 
 import com.infinitekind.moneydance.model.*;
@@ -37,6 +38,7 @@ public class BudgetPopup extends javax.swing.JPopupMenu {
 	  private JMenuItem editDatamenuItem;
 	  private JMenuItem addMenuItem;
 	  private JMenuItem ignoreMenuItem;
+	  private JMenuItem repeatPushItem;
 	  
 	  private String cellType;
 	  
@@ -223,6 +225,24 @@ public class BudgetPopup extends javax.swing.JPopupMenu {
 		  repeatMenuItem.setText("Interval (" + acctName + ")");
 	  }
 	  
+	  private void shiftStartDate(BudgetItem bi) {
+		  String startDate = String.valueOf(bi.getIntervalStartDate());
+		  String start_month  = startDate.substring(4, 6);
+		  String start_day    = startDate.substring(6, 8);
+		  
+		  int month = new Integer(start_month);
+		  if(month < 12){
+			  month++;
+			  
+			  String monthNum = String.valueOf(month);
+	          if(month < 10) monthNum = "0" + monthNum;
+	          
+	          bi.setIntervalStartDate(Integer.parseInt(data.getCurrentBudgetYear() + monthNum + start_day));
+	          
+	          main.displayBudget();
+		  }
+	  }
+	  
 	  protected void setEndDate(int month){
 		  if(bi == null) return;
 		  setEndDate(bi, month);
@@ -245,6 +265,7 @@ public class BudgetPopup extends javax.swing.JPopupMenu {
 		  JMenuItem forecastReportmenuItem = new JMenuItem("Forecast");
 		  JMenuItem refreshDatamenuItem    = new JMenuItem("Refresh");
 		  editDatamenuItem                 = new JMenuItem("Edit");
+		  repeatPushItem                   = new JMenuItem("Shift Start");
 		  
 		  repeatMenuItem = new JMenu("Repeat");
 		  
@@ -259,7 +280,7 @@ public class BudgetPopup extends javax.swing.JPopupMenu {
 		  repeatTriMonthlyItem  = new JRadioButtonMenuItem("Tri-Monthly");
 		  repeatSemiAnnualtem   = new JRadioButtonMenuItem("Semi-Annual");
 		  repeatAnnualItem      = new JRadioButtonMenuItem("Annual");
-		  
+		   
 		  repeatMenuItem.add(repeatNone);
 		  repeatMenuItem.add(repeatDailyItem);
 		  repeatMenuItem.add(repeatWeeklyItem);
@@ -271,6 +292,8 @@ public class BudgetPopup extends javax.swing.JPopupMenu {
 		  repeatMenuItem.add(repeatTriMonthlyItem);
 		  repeatMenuItem.add(repeatSemiAnnualtem);
 		  repeatMenuItem.add(repeatAnnualItem);
+		  repeatMenuItem.add(new JSeparator());
+		  repeatMenuItem.add(repeatPushItem);
 		  
 		  ButtonGroup rg = new ButtonGroup();
 		  rg.add(repeatNone);
@@ -365,6 +388,12 @@ public class BudgetPopup extends javax.swing.JPopupMenu {
 	          public void actionPerformed(ActionEvent evt) {
 	        	  bi.setInterval(BudgetItem.INTERVAL_ANNUALLY);
 	        	  setEndDate(bi, 12);
+	          }
+	      });
+		  
+		  repeatPushItem.addActionListener(new ActionListener() {
+	          public void actionPerformed(ActionEvent evt) {
+	        	  shiftStartDate(bi);
 	          }
 	      });
 		  
