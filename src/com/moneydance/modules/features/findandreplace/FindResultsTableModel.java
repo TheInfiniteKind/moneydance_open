@@ -15,6 +15,8 @@ import com.infinitekind.util.CustomDateFormat;
 
 import javax.swing.table.AbstractTableModel;
 import javax.swing.Icon;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
@@ -48,6 +50,7 @@ public class FindResultsTableModel extends AbstractTableModel
     
     private static final String DEFAULT_DATE_FORMAT = "MM/dd/YYYY";
     private static final char DEFAULT_DECIMAL_CHAR = '.';
+    private static final Comparator<FindResultsTableEntry> InitialResultsSorter = new TableEntryComparator();
 
     private List<String> _userTagSet;
     /** The full set of data, including all splits. */
@@ -135,6 +138,7 @@ public class FindResultsTableModel extends AbstractTableModel
             // the list of splits is exactly what we show
             _data.addAll(_splitData);
         }
+        Collections.sort(_data, InitialResultsSorter);
         fireTableDataChanged();
     }
 
@@ -1047,6 +1051,31 @@ public class FindResultsTableModel extends AbstractTableModel
         _columns.add(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
         // memo (not shown)
         _columns.add(N12EFindAndReplace.EMPTY);
+    }
+
+    /**
+     * When results are returned from Moneydance, they are not initially sorted as they used to be. This comparator
+     * provides an initial sort, which is the sort of the row order (row 1 is the first item, row 2 second, etc.)
+     * The sort is by date in descending order, so that initially the newest transaction is row 1, second newest
+     * row 2, etc. This can be overridden by the user by clicking on the table header.
+     */
+    private static class TableEntryComparator implements Comparator<FindResultsTableEntry>
+    {
+        public int compare(FindResultsTableEntry left, FindResultsTableEntry right) {
+            int leftInt = left.getParentTxn().getDateInt();
+            int rightInt = right.getParentTxn().getDateInt();
+            if (leftInt != rightInt)
+            {
+                return rightInt - leftInt;
+            }
+
+            // same transaction date, so pick by date entered
+            long leftDate = left.getParentTxn().getDateEntered();
+            long rightDate = right.getParentTxn().getDateEntered();
+            if (leftDate < rightDate) return 1;
+            if (leftDate > rightDate) return -1;
+            return 0;
+        }
     }
 
 }
