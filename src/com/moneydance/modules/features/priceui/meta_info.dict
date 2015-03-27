@@ -1,6 +1,6 @@
 {
   "vendor" = "The Infinite Kind"
-  "module_build" = "100"
+  "module_build" = "101"
   "minbuild" = "1000"
   "vendor_url" = "http://infinitekind.com"
   "module_name" = "Security Price Entry"

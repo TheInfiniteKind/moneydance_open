@@ -28,9 +28,7 @@ import com.moneydance.modules.features.priceui.access.CurrencyTableSource;
 import com.moneydance.modules.features.priceui.access.Datastore;
 import com.moneydance.modules.features.priceui.utils.MoneyFormatter;
 
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -191,6 +189,12 @@ public class PriceEntryExec {
                 securitiesOnly.add(unit);
             }
         } // end for
+        Collections.sort(securitiesOnly, new Comparator<CurrencyType>() {
+            @Override
+            public int compare(CurrencyType o1, CurrencyType o2) {
+                return o1.getName().compareTo(o2.getName());
+            }
+        });
         numberOfSecurities = securitiesOnly.size();
         tableModel.allocate(numberOfSecurities);
   
