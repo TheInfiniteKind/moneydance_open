@@ -386,8 +386,8 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="jpython" depends="init">
     <delete file="${dist}/jpython.mxt"/>
-    <javac encoding="utf8" target="1.5" source="1.5" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-      classpathref="classpath" classpath="${lib}/jython-2_1.jar" destdir="${build}"
+    <javac encoding="utf8" target="1.7" source="1.7" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath" classpath="${lib}/jython-2_7.jar" destdir="${build}"
       includes="com/moneydance/modules/features/jpython/**"/>
     <jar destfile="${dist}/jpython.mxt">
       <fileset dir="${src}" includes="
@@ -395,7 +395,7 @@ http://jakarta.apache.org/ant/index.html
              com/moneydance/modules/features/jpython/*.gif" />
       <fileset dir="${build}" 
         includes="com/moneydance/modules/features/jpython/*.class"/>
-      <zipgroupfileset dir="${lib}/" includes="jython-2_1.jar"/>
+      <zipgroupfileset dir="${lib}/" includes="jython-2_7.jar"/>
     </jar>
     <java newenvironment="true" 
       classpathref="classpath"
