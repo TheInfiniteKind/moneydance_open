@@ -1,0 +1,9 @@
+{
+  "vendor" = "Robert Schmid"
+  "module_build" = "9"
+  "minbuild" = "1000"
+  "vendor.url" = ""
+  "module_name" = "Debt Insights"
+  "module_desc" = "<html><body><title>Debt Insights</title><p>Provides new features to provide insights for credit card and loan debt including;</p><ul><li>Credit Limits on applicable accounts<li>An enhanced Credit Card View for the Home Page<li>A new Window showing Debt Accounts in an interactive manner</ul></body></html>"
+  "desc" = "Tools for Analyzing Credit Card and Loan Accounts together as related Debt Accounts"
+}
