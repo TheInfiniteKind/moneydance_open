@@ -22,11 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.Box;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.JLabel;
+import javax.swing.*;
 
 import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 
@@ -52,7 +48,8 @@ public class BudgetHomePageView extends JPanel {
     	boldFont = plainFont.deriveFont(Font.BOLD);
 		
 		setLayout(new GridBagLayout());
-		this.setBackground(ext.getPreferences().getBackground());
+    this.setBackground(null);
+    this.setOpaque(false);
 
 		Image refreshImage = getImage("/com/moneydance/modules/features/moneyPie/images/refresh.gif");
 		if(refreshImage == null){
@@ -61,10 +58,10 @@ public class BudgetHomePageView extends JPanel {
 		ImageIcon refreshIcon = new ImageIcon(refreshImage);
 		refreshButton  = new JButton(refreshIcon);
 		refreshButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-            	refresh();
-            }
-        });
+      public void actionPerformed(ActionEvent e) {
+        refresh();
+      }
+    });
 		
 		Image pieImage = getImage("/com/moneydance/modules/features/moneyPie/images/pie.gif");
         ImageIcon pieIcon = new ImageIcon(pieImage);
@@ -79,25 +76,27 @@ public class BudgetHomePageView extends JPanel {
         ImageIcon reportIcon = new ImageIcon(reportImage);
         reportButton  = new JButton(reportIcon);
         reportButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-            	openReport();
-            }
+          public void actionPerformed(ActionEvent e) {
+            openReport();
+          }
         });
         
         Image castImage = getImage("/com/moneydance/modules/features/moneyPie/images/chart.gif");
         ImageIcon castIcon = new ImageIcon(castImage); 
         castButton  = new JButton(castIcon);
         castButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-            	openForecast();
-            }
+          public void actionPerformed(ActionEvent e) {
+            openForecast();
+          }
         });
         
         
 		JPanel controlPanel = new JPanel(new GridBagLayout());
-		controlPanel.setBackground(ext.getPreferences().getAltBackground());
-		
-		GridBagConstraints gbc = new GridBagConstraints();
+    controlPanel.setBackground(null);
+    controlPanel.setOpaque(false);
+
+
+    GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 1;
         gbc.gridy = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -144,7 +143,8 @@ public class BudgetHomePageView extends JPanel {
 
         
         contentPanel = new JPanel(new GridBagLayout());
-		contentPanel.setBackground(ext.getPreferences().getAltBackground());
+        contentPanel.setBackground(null);
+        contentPanel.setOpaque(false);
         generatePanel();
         
         //Add the panel to the view
@@ -159,9 +159,10 @@ public class BudgetHomePageView extends JPanel {
         
         gbc.gridy = 2;
         add(contentPanel, gbc);
-        
-        setBorder(MoneydanceLAF.homePageBorder);
-	}
+
+    setBorder(BorderFactory.createCompoundBorder(MoneydanceLAF.homePageBorder,
+                                                 BorderFactory.createEmptyBorder(0,12,0,12)));
+  }
 	
 	private void refresh(){
 		contentPanel.removeAll();
