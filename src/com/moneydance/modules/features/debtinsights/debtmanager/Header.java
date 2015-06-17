@@ -21,6 +21,7 @@ import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.BalanceType;
 import com.moneydance.modules.features.debtinsights.Strings;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
+import com.moneydance.modules.features.debtinsights.model.DebtAccount;
 import com.moneydance.modules.features.debtinsights.ui.acctview.HierarchyView;
 import com.moneydance.modules.features.debtinsights.ui.acctview.IconToggle;
 import com.moneydance.modules.features.debtinsights.ui.acctview.SortView;
@@ -125,40 +126,50 @@ public enum Header implements HeaderConstants, Strings
 		return this.listener;
 	}
 
-	public Comparable<?> getComparable(Account a1, Object... params)
-	{
-		try
-		{
-			Method m1 = a1.getClass().getMethod(this.comparatorAccessor, args);	
-			Object[] actualParams = null;
-			if (args != null && args.length > 0)
-			{
-				actualParams = new Object[args.length];
-				for (int i=0; i < args.length; i++)
-				{
-					actualParams[i] = params[i];
-				}
-			}
-			return (Comparable<?>) m1.invoke(a1, actualParams);
-		}
-		catch (NoSuchMethodException e)
-		{
-			System.err.println(this.comparatorAccessor + " not found in " +
-												 a1.getClass().getSimpleName() + ": " + e);
-		}
-		catch (IllegalArgumentException e)
-		{
-			System.err.println("Error: " + e);
-		}
-		catch (IllegalAccessException e)
-		{
-			System.err.println("Error: " + e);
-		}
-		catch (InvocationTargetException e)
-		{
-			System.err.println("Error: " + e);
-		}
-
-		return null;
-	}
+  
+  public int compareAccounts(Account a1, Account a2, BalanceType bType, CreditLimitType cType) {
+    if(bType==null) bType = BalanceType.BALANCE;
+    if(cType==null) cType = CreditLimitType.CREDIT_LIMIT;
+    long tmp = 0;
+    switch(this) {
+      case HIERARCHY: 
+      case NAME:
+        return AccountUtil.compareAccountNames(a1, a2);
+      case ACCT_NUM: // account number 
+        return a1.getBankAccountNumber().compareTo(a2.getBankAccountNumber());
+      case PAYMENT:
+        tmp = DebtAccount.getNextPayment(a1)-DebtAccount.getNextPayment(a2);
+        if(tmp<0) return -1;
+        if(tmp>0) return 1;
+        return 0;
+      case PMT_FLG:
+        return 0;
+      case INTEREST:
+        tmp = DebtAccount.getInterestPayment(a1)-DebtAccount.getInterestPayment(a2);
+        if(tmp<0) return -1;
+        if(tmp>0) return 1;
+        return 0;
+      case BALANCE:
+        tmp = DebtAccount.getDisplayBalance(a1, bType) - DebtAccount.getDisplayBalance(a2, bType);
+        if(tmp<0) return -1;
+        if(tmp>0) return 1;
+        return 0;
+      case BAL_FLG:
+        return 0;
+      case LIMIT:
+        tmp = DebtAccount.getCreditDisplay(a1, bType, cType) - DebtAccount.getCreditDisplay(a2, bType, cType);
+        if(tmp<0) return -1;
+        if(tmp>0) return 1;
+        return 0;
+      case APR:
+        double aprDiff = DebtAccount.getAPR(a1) - DebtAccount.getAPR(a2);
+        if(aprDiff<0) return -1;
+        if(aprDiff>0) return 1;
+        return 0;
+      case APR_FLG:
+        return 0;
+    }
+    return 0;
+  }
+  
 }

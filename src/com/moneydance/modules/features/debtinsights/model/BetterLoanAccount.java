@@ -100,7 +100,7 @@ public class BetterLoanAccount
 		return pmt;
 	}
 	
-
+  
 	public static long getDisplayBalance(Account wrappedAcct, BalanceType bType)
 	{
 		switch (bType)

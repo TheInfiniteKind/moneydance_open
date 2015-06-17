@@ -1,6 +1,6 @@
 {
   "vendor" = "Robert Schmid"
-  "module_build" = "9"
+  "module_build" = "10"
   "minbuild" = "1000"
   "vendor.url" = ""
   "module_name" = "Debt Insights"
