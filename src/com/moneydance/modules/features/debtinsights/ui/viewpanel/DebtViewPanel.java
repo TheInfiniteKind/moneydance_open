@@ -615,7 +615,7 @@ public class DebtViewPanel extends JPanel
 	protected void showBalanceTypePopup()
 	{
 		JPopupMenu btMenu = new JPopupMenu();
-		BalanceType[] balanceTypes =  {BalanceType.CURRENT_BALANCE, BalanceType.CURRENT_BALANCE, BalanceType.CLEARED_BALANCE};
+		BalanceType[] balanceTypes =  {BalanceType.BALANCE, BalanceType.CURRENT_BALANCE, BalanceType.CLEARED_BALANCE};
 		for (BalanceType type: balanceTypes) {
 			final BalanceType balType = type;
 			btMenu.add(new MDAction(this.acctView.getMDGUI(), type.getResourceKey()) {
