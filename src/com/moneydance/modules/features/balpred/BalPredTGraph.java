@@ -62,6 +62,12 @@ public class BalPredTGraph
     if(g==null)
       return;
 
+    if(g instanceof Graphics2D) {
+      Graphics2D g2 = (Graphics2D)g;
+      g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    }
+    
     g.setColor(Color.white);
     g.fillRect(0,0,w,h);
     
@@ -209,13 +215,15 @@ public class BalPredTGraph
     // Draw the axes
     g.setColor(Color.black);
     g.drawLine(leftMargin,topMargin,leftMargin,h-bottomMargin);
-    g.drawLine(leftMargin,h-bottomMargin,
-               w-rightMargin,h-bottomMargin);
-    g.drawString(getResources().getString("starting_balance_is"),
-      leftMargin+20,fm.getMaxDescent()+fm.getMaxAscent());
+    g.drawLine(leftMargin, h - bottomMargin,
+               w - rightMargin, h - bottomMargin);
+    String startBalStr = getResources().getString("starting_balance_is");
+    int balStrWidth = fm.stringWidth(startBalStr);
+    
+    g.drawString(startBalStr, w/2 - balStrWidth/2, fm.getMaxAscent());
     
     XYGraphDataSet currentSet = null;
-    for(int i=0;i<numSets;i++) {
+    for(int i=0; i<numSets; i++) {
       currentSet = (XYGraphDataSet)model.getDataSet(i);
       Color currentColor = currentSet.getColor();
       boolean firstVal=true;

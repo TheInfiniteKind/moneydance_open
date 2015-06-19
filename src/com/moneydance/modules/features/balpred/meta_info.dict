@@ -1,7 +1,7 @@
 {
   "vendor" = "The Infinite Kind"
   "vendor_url" = "http://infinitekind.com/"
-  "module_build" = "100"
+  "module_build" = "101"
   "minbuild" = "1000"
   "id" = "balpred"
   "name" = "Balance Predictor"

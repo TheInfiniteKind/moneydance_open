@@ -22,33 +22,25 @@ public class BalancePredicter
   extends JDialog
   implements ActionListener, MouseMotionListener, Runnable
 {
-  private JPanel mainPanel, gp, bp, bpl, bpr;
-  private JButton btReminders, btDone;
-  private JComboBox cbFutuIntervals = new JComboBox();
-  private JComboBox cbFutuNum = new JComboBox();
-  private JComboBox cbPastIntervals = new JComboBox();
-  private JComboBox cbPastNum = new JComboBox();
-  private JComboBox cbAccounts = new JComboBox();
-  private JDialog manageDlg = null;
-  private BalPredRGraph balRGraph = null;
-  private BalPredTGraph balTGraph = null;
-  private BalPredGraph balGraph = null;
+  private JPanel gp;
+  private JButton btReminders;
+  private JComboBox<String> cbFutuIntervals = new JComboBox<String>();
+  private JComboBox<String> cbFutuNum = new JComboBox<String>();
+  private JComboBox<String> cbPastIntervals = new JComboBox<String>();
+  private JComboBox<String> cbPastNum = new JComboBox<String>();
   private JLabel lbBalance = new JLabel("");
-  private JLabel lbFutu, lbPast;
+  private JLabel lbPast;
   private Resources rr = null;
   private BalPredConf balpredConf = null;
-  private int prDate = DateUtil.getStrippedDateInt();
+  private int forecastFutureDate = DateUtil.getStrippedDateInt();
   private GridBagLayout gbl = new GridBagLayout();
   private HashMap<Reminder,Boolean> remindersStatus = new HashMap<Reminder, Boolean>();
-  private SimpleDateFormat dateFormat;
   private DateLabeler dateLabeler;
-  
-  private AbstractAction rebuildGraphAction;
   
   public BalancePredicter(Resources rr, BalPredConf balpredConf) {
     this.rr = rr;
     this.balpredConf = balpredConf;
-    dateFormat = new SimpleDateFormat(balpredConf.dateFormatStr);
+    SimpleDateFormat dateFormat = new SimpleDateFormat(balpredConf.dateFormatStr);
     dateLabeler = new DateLabeler(dateFormat);
   }
   
@@ -56,48 +48,38 @@ public class BalancePredicter
     setTitle(balpredConf.extensionName);
     List<Reminder> v = getTxnRemindersVect();
     for(Reminder r : getTxnRemindersVect()) {
-      remindersStatus.put(r, new Boolean(true));
+      remindersStatus.put(r, true);
     }
-    mainPanel = new JPanel(gbl);
+    JPanel mainPanel = new JPanel(gbl);
     mainPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
     gp = new JPanel(gbl);
     //gp.setBorder(new CompoundBorder(new EmptyBorder(10,10,10,10), new BevelBorder(BevelBorder.LOWERED)));
-    bp = new JPanel(new GridLayout(1,2));
-    bpl = new JPanel(gbl);
-    bpl.setBorder(new EmptyBorder(0,0,5,5));
-    bpr = new JPanel(gbl);
-    bpr.setBorder(new EmptyBorder(0,5,5,0));
+    JPanel bp = new JPanel(new GridLayout(1, 2));
+    JPanel bpl = new JPanel(gbl);
+    bpl.setBorder(new EmptyBorder(0, 0, 5, 5));
+    JPanel bpr = new JPanel(gbl);
+    bpr.setBorder(new EmptyBorder(0, 5, 5, 0));
     bp.setBorder(new EmptyBorder(0, 10, 10, 10));
-
-    rebuildGraphAction = new AbstractAction(rr.getString("build_graph")) {
-
-      public void actionPerformed(ActionEvent actionEvent) {
-        updateGraph();
-      }
-    };
-
 
     cbFutuIntervals.addItem(rr.getString("days"));
     cbFutuIntervals.addItem(rr.getString("weeks"));
     cbFutuIntervals.addItem(rr.getString("months"));
     cbFutuIntervals.addItem(rr.getString("years"));
     cbFutuIntervals.setSelectedIndex(2);
-    for (int i=1;i<=balpredConf.INTERVALS;i++) cbFutuNum.addItem(String.valueOf(i));
+    for (int i=1;i<= BalPredConf.INTERVALS;i++) cbFutuNum.addItem(String.valueOf(i));
     cbFutuNum.setSelectedIndex(1);
     
     cbPastIntervals.addItem(rr.getString("months"));
     cbPastIntervals.addItem(rr.getString("years"));
     cbPastIntervals.setSelectedIndex(0);
     cbPastIntervals.addActionListener(this);
-    for (int i=1;i<=balpredConf.INTERVALS;i++) cbPastNum.addItem(String.valueOf(i));
+    for (int i=1; i<= BalPredConf.INTERVALS; i++) cbPastNum.addItem(String.valueOf(i));
     cbPastNum.setSelectedIndex(2);
     
     btReminders = new JButton(rr.getString("manage_reminders"));
     btReminders.addActionListener(this);
-    btDone = new JButton(rr.getString("done"));
-    btDone.addActionListener(this);
-    
-    lbFutu = new JLabel(rr.getString("future_period"), JLabel.RIGHT);
+
+    JLabel lbFutu = new JLabel(rr.getString("future_period"), JLabel.RIGHT);
     lbPast = new JLabel(rr.getString("past_period"), JLabel.RIGHT);
 
     balpredConf.cbAccounts.addActionListener(this);
@@ -113,21 +95,21 @@ public class BalancePredicter
     lbBalance.setText(" ");
 
     int yy = 0;
-    bpl.add(new JLabel(rr.getString("account")+"   ", JLabel.RIGHT), 
-      AwtUtil.getConstraints(0,yy,0,0,1,1,true,false));
-    bpl.add(balpredConf.cbAccounts, AwtUtil.getConstraints(1,yy++,1,0,1,1,true,false));
-    bpl.add(balpredConf.rbReminders, AwtUtil.getConstraints(0,yy++,1,0,2,1,true,false));
-    bpl.add(balpredConf.rbTransactions, AwtUtil.getConstraints(0,yy++,1,0,2,1,true,false));
+    bpl.add(new JLabel(rr.getString("account") + "   ", JLabel.RIGHT),
+            AwtUtil.getConstraints(0, yy, 0, 0, 1, 1, true, false));
+    bpl.add(balpredConf.cbAccounts, AwtUtil.getConstraints(1, yy++, 1, 0, 1, 1, true, false));
+    bpl.add(balpredConf.rbReminders, AwtUtil.getConstraints(0, yy++, 1, 0, 2, 1, true, false));
+    bpl.add(balpredConf.rbTransactions, AwtUtil.getConstraints(0, yy++, 1, 0, 2, 1, true, false));
     
     yy = 0;
-    bpr.add(lbFutu, AwtUtil.getConstraints(0,yy,1,0,1,1,true, false));
-    bpr.add(cbFutuNum, AwtUtil.getConstraints(1,yy,0,0,1,1,true,false));
-    bpr.add(cbFutuIntervals, AwtUtil.getConstraints(2,yy++,1,0,1,1,true,false));
-    bpr.add(lbPast, AwtUtil.getConstraints(0,yy,1,0,1,1,true, false));
-    bpr.add(cbPastNum, AwtUtil.getConstraints(1,yy,0,0,1,1,true,false));
-    bpr.add(cbPastIntervals, AwtUtil.getConstraints(2,yy++,1,0,1,1,true,false));
-    bpr.add(btReminders, AwtUtil.getConstraints(0,yy++,1,0,3,1,true,false));
-    bpr.add(new JLabel(" "), AwtUtil.getConstraints(0,yy,1,1,3,1,true,true));
+    bpr.add(lbFutu, AwtUtil.getConstraints(0, yy, 1, 0, 1, 1, true, false));
+    bpr.add(cbFutuNum, AwtUtil.getConstraints(1, yy, 0, 0, 1, 1, true, false));
+    bpr.add(cbFutuIntervals, AwtUtil.getConstraints(2, yy++, 1, 0, 1, 1, true, false));
+    bpr.add(lbPast, AwtUtil.getConstraints(0, yy, 1, 0, 1, 1, true, false));
+    bpr.add(cbPastNum, AwtUtil.getConstraints(1, yy, 0, 0, 1, 1, true, false));
+    bpr.add(cbPastIntervals, AwtUtil.getConstraints(2, yy++, 1, 0, 1, 1, true, false));
+    bpr.add(btReminders, AwtUtil.getConstraints(0, yy++, 1, 0, 3, 1, true, false));
+    bpr.add(new JLabel(" "), AwtUtil.getConstraints(0, yy, 1, 1, 3, 1, true, true));
 
     Calendar tmp = Calendar.getInstance();
     tmp.set(Calendar.HOUR_OF_DAY, 12); 
@@ -139,9 +121,8 @@ public class BalancePredicter
 
     bp.add(bpl);
     bp.add(bpr);
-    mainPanel.add(gp, GridC.getc(0,0).wxy(1,1).fillboth().colspan(2));
-    mainPanel.add(bp, GridC.getc(0,1).wx(1).colspan(2));
-    mainPanel.add(new JButton(rebuildGraphAction), GridC.getc(1,2).wx(1).colspan(2));
+    mainPanel.add(gp, GridC.getc(0, 0).wxy(1, 1).fillboth().colspan(2));
+    mainPanel.add(bp, GridC.getc(0, 1).wx(1).colspan(2));
     getContentPane().add(mainPanel);
     pack();
     
@@ -149,12 +130,27 @@ public class BalancePredicter
 
     updateGraph();
 
+    ActionListener graphUpdater = new ActionListener() {
+      public void actionPerformed(ActionEvent e) {
+//        SwingUtilities.invokeLater(new Runnable() {
+//          public void run() { 
+        updateGraph();
+//        }
+//        });
+      }
+    }; 
+    cbFutuNum.addActionListener(graphUpdater);
+    cbFutuIntervals.addActionListener(graphUpdater);
+    cbPastNum.addActionListener(graphUpdater);
+    cbPastIntervals.addActionListener(graphUpdater);
+
+    
     AwtUtil.centerWindow(this);
     setVisible(true);
     
     validate();
   }
-
+  
   private void updateGraph() {
     if (balpredConf.getBasedOn()==balpredConf.basedonReminders) {
       calcPredictedRBalance();
@@ -190,15 +186,14 @@ public class BalancePredicter
     calcPrDate();
     
     gp.removeAll();
-    balRGraph = new BalPredRGraph(null,rr);
+    BalPredRGraph balRGraph = new BalPredRGraph(null, rr);
     balRGraph.setBackground(Color.white);
     balRGraph.addMouseMotionListener(this);
-    balGraph = balRGraph;
-
+    
     long currentBalance = getAccountBalance(balpredConf.getAccount());
     long changes = 0;
-    Vector dataPoints = new Vector();
-    Vector averagePoints = new Vector();
+    Vector<DataPoint> dataPoints = new Vector<DataPoint>();
+    Vector<DataPoint> averagePoints = new Vector<DataPoint>();
     Account cacct = balpredConf.getAccount();
     
     setWaitCursor();
@@ -212,10 +207,9 @@ public class BalancePredicter
     Calendar pastCal = Calendar.getInstance();
 
     // adjust the starting balance to take into account the un-applied reminders
-    int firstReminderDate = today;
     for(Reminder tr : balpredConf.rs.getAllReminders()) {
       if(tr.getReminderType() != Reminder.Type.TRANSACTION) continue;
-      if( ! remindersStatus.get(tr).booleanValue()) continue;
+      if( ! remindersStatus.get(tr)) continue;
       if(Math.max(tr.getDateAcknowledgedInt(), tr.getInitialDateInt())>=today) continue;
       ParentTxn txn = tr.getTransaction();
       if(txn==null) continue;
@@ -225,12 +219,12 @@ public class BalancePredicter
       }
       for(int splitNum=txn.getSplitCount()-1; splitNum>=0; splitNum--) {
         SplitTxn split = txn.getSplit(splitNum);
-        if(split.getAccount()==cacct) {
+        if(split.getAccount().equals(cacct)) {
           txnValue += split.getValue();
         }
       }
       if(txnValue==0) continue;
-
+      
       // this transaction is overdue, and affects this account with a non-zero value.
       // adjust the starting balance by amount 'txnValue' for every overdue occurance
       DateUtil.setCalendarDate(todayCal, today);
@@ -241,19 +235,18 @@ public class BalancePredicter
 
     curr = today;
     
-    int stop = prDate;
+    int stop = forecastFutureDate;
     if (stop < curr) return;
     ParentTxn ptxn = null;
     SplitTxn  stxn = null;
     Calendar tmp = Calendar.getInstance();
     TxnSet txns = balpredConf.getTxnSet();
     DataPoint lastPoint = null;
-    
     while(curr <= stop) {
       Calendar cal = Calendar.getInstance();
       DateUtil.setCalendarDate(cal, curr);
       for(Reminder r : balpredConf.rs.getRemindersOnDay(cal)) {
-        if ((r.getReminderType() == Reminder.Type.TRANSACTION) && remindersStatus.get(r).booleanValue()) {
+        if ((r.getReminderType() == Reminder.Type.TRANSACTION) && remindersStatus.get(r)) {
           ptxn = r.getTransaction();
           if(ptxn==null) continue;
           if (ptxn.getAccount().equals(cacct)) {
@@ -271,7 +264,7 @@ public class BalancePredicter
           }
         }
       }
-
+      
       long currentTime = DateUtil.convertIntDateToLong(curr).getTime();
 
       // found all txns for this day, except today
@@ -291,7 +284,7 @@ public class BalancePredicter
       lastPoint = new DataPoint(currentTime, currentBalance + changes);
       dataPoints.addElement(lastPoint);
       
-      curr = DateUtil.incrementDate(curr, 0, 1, 0);
+      curr = DateUtil.incrementDate(curr, 0, 0, 1);
     }
     
     long avg;
@@ -343,14 +336,14 @@ public class BalancePredicter
   public void calcPredictedTBalance() {
     calcPrDate();
     gp.removeAll();
-    balTGraph = new BalPredTGraph(null,rr);
+    BalPredTGraph balTGraph = new BalPredTGraph(null, rr);
     balTGraph.setBackground(Color.white);
     balTGraph.addMouseMotionListener(this);
 
-    Vector vDates = new Vector();
-    Vector vBalancesMid = new Vector();
-    Vector vBalancesTop = new Vector();
-    Vector vBalancesBot = new Vector();
+    Vector<Date> vDates = new Vector<Date>();
+    Vector<Long> vBalancesMid = new Vector<Long>();
+    Vector<Long> vBalancesTop = new Vector<Long>();
+    Vector<Long> vBalancesBot = new Vector<Long>();
     long changes = 0;
     Account cacct = balpredConf.getAccount();
     Account.AccountType accType = cacct.getAccountType();
@@ -381,7 +374,7 @@ public class BalancePredicter
         // we accept shorter period to be 3 months
         num = num<3 ? 3 : num;
         pastMonths = num;
-        cbPastNum.setSelectedIndex(num-1);
+        //cbPastNum.setSelectedIndex(num-1);
         curr = DateUtil.incrementDate(curr, 0, -num, 0);
         break;
       case 1:
@@ -395,16 +388,16 @@ public class BalancePredicter
     while(tmpCal > curr) {
       curr = DateUtil.incrementDate(curr, 0, 1, 0);
       pastMonths--;
-      if (pastMonths <= balpredConf.INTERVALS) {
-        cbPastIntervals.setSelectedIndex(0);
-        cbPastNum.setSelectedIndex(pastMonths-1);
+      if (pastMonths <= BalPredConf.INTERVALS) {
+        //cbPastIntervals.setSelectedIndex(0);
+        //cbPastNum.setSelectedIndex(pastMonths-1);
       }
     }
     // curr is now date we can use as starting date for predictions
     
     int days = DateUtil.calculateDaysBetween (today, curr);
     
-    int stop = DateUtil.incrementDate(prDate, 0, 0, 1);
+    int stop = DateUtil.incrementDate(forecastFutureDate, 0, 0, 1);
     
     // calculate average balance for first month in past period (AF)
     tmpCal = DateUtil.incrementDate(curr, 0, 1, 0);
@@ -449,9 +442,9 @@ public class BalancePredicter
 
     while(curr < stop) {
       vDates.addElement(DateUtil.convertIntDateToLong(curr));
-      vBalancesTop.addElement(new Long(currentBalanceTop));
-      vBalancesMid.addElement(new Long(currentBalance));
-      vBalancesBot.addElement(new Long(currentBalanceBot));
+      vBalancesTop.addElement(currentBalanceTop);
+      vBalancesMid.addElement(currentBalance);
+      vBalancesBot.addElement(currentBalanceBot);
       currentBalance += Math.round(1.0*amch/30.44);
       currentBalanceTop = currentBalance + diffBalU;
       currentBalanceBot = currentBalance - diffBalD;
@@ -515,7 +508,6 @@ public class BalancePredicter
     lgm.setXAxisType(DataSetUtilities.TYPE_DATE);
     lgm.setThreeD(false);
     balTGraph.setModel(lgm);
-    balGraph = balTGraph;
     gp.add(balTGraph, AwtUtil.getConstraints(0,0,1,1,1,1,true,true));
     gp.add(lbBalance, AwtUtil.getConstraints(0,1,1,0,1,1,false,false));
     setDefaultCursor();
@@ -614,7 +606,7 @@ public class BalancePredicter
     reminders.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     reminders.setCellSelectionEnabled(true);
     JScrollPane scrollpane = new JScrollPane(reminders);
-    manageDlg = new JDialog((Frame)null, rr.getString("manage_reminders"), true);
+    JDialog manageDlg = new JDialog((Frame) null, rr.getString("manage_reminders"), true);
     JPanel tp = new JPanel(gbl);
     tp.add(scrollpane, GridC.getc(0,0).wxy(1,1).fillboth());
     manageDlg.getContentPane().add(tp);
@@ -641,12 +633,12 @@ public class BalancePredicter
     if (src==btReminders) {
       manageReminders();
     } else if(src==balpredConf.cbAccounts) {
-      Account.AccountType accType = balpredConf.getAccount().getAccountType();
-      if (balpredConf.getAccount().getBalance()>=0 && (accType==Account.AccountType.CREDIT_CARD || accType==Account.AccountType.LIABILITY)) {
-        rebuildGraphAction.setEnabled(false);
-      } else {
-        rebuildGraphAction.setEnabled(true);
-      }
+//      Account.AccountType accType = balpredConf.getAccount().getAccountType();
+//      if (balpredConf.getAccount().getBalance()>=0 && (accType==Account.AccountType.CREDIT_CARD || accType==Account.AccountType.LIABILITY)) {
+//        rebuildGraphAction.setEnabled(false);
+//      } else {
+//        rebuildGraphAction.setEnabled(true);
+//      }
       boolean noRem = balpredConf.getReminderCount()==0;
       balpredConf.rbReminders.setEnabled(!noRem);
       if (noRem) {
@@ -657,9 +649,9 @@ public class BalancePredicter
         lbPast.setVisible(true);
         btReminders.setVisible(false);
       }
-    } else if(src==btDone) {
-      setVisible(false);
     }
+    
+    updateGraph();
   }
 
   private void calcPrDate() {
@@ -679,7 +671,7 @@ public class BalancePredicter
         tmp = DateUtil.incrementDate(tmp, num, 0, 0);
         break;
     }
-    prDate = tmp;
+    forecastFutureDate = tmp;
   }
 
   public long getPastBalance(int d) {

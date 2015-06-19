@@ -13,22 +13,20 @@ import com.infinitekind.util.StreamTable;
 import java.io.*;
 import java.net.*;
 import java.awt.*;
-import javax.swing.JOptionPane;
+import javax.swing.*;
 
 public class Main
   extends FeatureModule
 {
   public String command;
   public String parameters;
-  private BalancePredicter bp = null;
+  private BalancePredicter predicter = null;
   
   public void setParameters(String par) { parameters = par; }
   public void setCommand(String cmd) { command = cmd; }
   public String getCommand() { return command; }
   public String getParameters() { return parameters; }
   private Resources rr = null;;
-
-  private Wizard balpredWizard = null;
 
   public void init() {
     // the first thing we will do is register this module to be invoked
@@ -76,21 +74,17 @@ public class Main
   }
 
   private synchronized void showBalancePredicter() {
-    if(balpredWizard==null || !balpredWizard.isVisible()) {
-      if(balpredWizard!=null) {
-        balpredWizard.setVisible(false);
-      }
+    if(predicter==null) {
       BalPredConf conf = new BalPredConf(getRoot(), rr, getName());
       FeatureModuleContext context = getContext();
       if(context instanceof com.moneydance.apps.md.controller.Main) {
         conf.dateFormatStr = ((com.moneydance.apps.md.controller.Main)context).getPreferences().getShortDateFormat();
       }
-      balpredWizard = new Wizard(null, rr, getName(), new SelectAccount(conf), false);
-      balpredWizard.setVisible(true);
+      SwingUtilities.invokeLater(predicter = new BalancePredicter(rr, conf));
     } else {
-      balpredWizard.setVisible(true);
-      balpredWizard.toFront();
-      balpredWizard.requestFocus();
+      predicter.setVisible(true);
+      predicter.toFront();
+      predicter.requestFocus();
     }
   }
 
