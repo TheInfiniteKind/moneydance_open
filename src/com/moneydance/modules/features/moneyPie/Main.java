@@ -79,10 +79,6 @@ public class Main extends FeatureModule implements Observer {
   public String getName(){
 	  return "MoneyPie";
   }
-  
-  public int getBuild(){
-	  return 1007;
-  }
 
   public void cleanup() {
     closeConsole();
