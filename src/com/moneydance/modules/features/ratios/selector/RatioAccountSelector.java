@@ -27,8 +27,8 @@ import java.util.List;
  */
 public class RatioAccountSelector
     implements IAccountSelector {
-  private final List<Integer> _selectedAccountIds = new ArrayList<Integer>();
-  private final AccountBook _rootAccount;
+  private final List<String> _selectedAccountIds = new ArrayList<String>();
+  private final AccountBook _accountBook;
   private AccountFilter _filter;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ public class RatioAccountSelector
   }
 
   public RatioAccountSelector(final AccountBook root) {
-    _rootAccount = root;
+    _accountBook = root;
     _filter = buildAccountFilter(root);
   }
 
@@ -85,16 +85,17 @@ public class RatioAccountSelector
     // not implemented
   }
 
-  public List<Integer> getSelectedAccountIds() {
+  public List<String> getSelectedAccountIds() {
     return _selectedAccountIds;
   }
 
   public int getSelectedCount() {
     int count = 0;
-    for (Integer value : getSelectedAccountIds()) {
-      if (value.intValue() < 0) {
+    for (String value : getSelectedAccountIds()) {
+      if (value.startsWith("-")) {
         // account type, find the total number of that type
-        count += getAccountTypeCount(-value.intValue());
+        int code = -Integer.parseInt(value);
+        count += getAccountTypeCount(code);
       } else {
         ++count;
       }
@@ -121,7 +122,7 @@ public class RatioAccountSelector
     // we reset each time because the GraphReportUtil code assumes a blank string will mean
     // leave the filter as-is, instead of no accounts selected
     _filter.reset();
-    GraphReportUtil.selectIndices(encoded, this, true);
+    GraphReportUtil.selectIndices(_accountBook, encoded, this, true);
     // return a new instance so subsequent calls won't affect it
     return new AccountFilter(_filter);
   }
@@ -131,7 +132,7 @@ public class RatioAccountSelector
   //////////////////////////////////////////////////////////////////////////////
 
   private int getAccountTypeCount(final int accountType) {
-    AccountIterator iterator = new AccountIterator(_rootAccount);
+    AccountIterator iterator = new AccountIterator(_accountBook);
     int count = 0;
     while (iterator.hasNext()) {
       Account account = iterator.next();

@@ -55,8 +55,11 @@ class RatioCompute {
     final boolean isSourceCategory =
       (sourceAccount.getAccountType() == Account.AccountType.EXPENSE)
       || (sourceAccount.getAccountType() == Account.AccountType.INCOME);
+
+    // if the target is a loan account, treat it as an expense category so that the value has the same sign as the interest expense
     final boolean isTargetCategory = (targetAccount.getAccountType() == Account.AccountType.EXPENSE)
-      || (targetAccount.getAccountType() == Account.AccountType.INCOME);
+      || (targetAccount.getAccountType() == Account.AccountType.INCOME)
+      || (targetAccount.getAccountType() == Account.AccountType.LOAN);
     if (isSourceCategory && !isTargetCategory) return true;
     // if the source is not a Required account but the target is, flip as long as that doesn't
     // violate the first clause where the target is a category.
