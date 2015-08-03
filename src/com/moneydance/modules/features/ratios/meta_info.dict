@@ -6,5 +6,5 @@
   "desc" = "Show a custom list of ratios or percentages on your home page. Examples include savings rate, debt-to-income ratio, or debt to assets. For Moneydance 2011 or later."
   "id" = "mennesoft.ratios"
   "module_build" = "1033"
-  "minbuild" = "1000"
+  "minbuild" = "1206"
 }
