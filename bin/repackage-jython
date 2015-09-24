@@ -4,7 +4,7 @@ set -e
 # Converts a Jython standalone jar into something usable with Java Web Start
 JAR_PATH=$1
 if [ -z $JAR_PATH ]; then
-  JAR_PATH="lib/jython-2_7.jar"
+  JAR_PATH="`ls lib/jython*`"
 fi
 
 # Unix sucks at abspath resolution; ref http://stackoverflow.com/questions/3915040
