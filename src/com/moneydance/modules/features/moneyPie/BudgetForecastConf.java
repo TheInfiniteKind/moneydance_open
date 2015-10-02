@@ -32,9 +32,12 @@ public class BudgetForecastConf implements ActionListener {
     loadAccount(root.getRootAccount());
     ts = root.getTransactionSet();
     rs = root.getReminders();
-    txns = ts.getTransactionsForAccount((Account)cbAccounts.getSelectedItem());
+    if(cbAccounts.getSelectedItem()!= null) {
+      txns = ts.getTransactionsForAccount((Account)cbAccounts.getSelectedItem());
+    }
+    System.err.println("item count: "+cbAccounts.getItemCount());
     if(cbAccounts.getItemCount() > 0){
-    	cbAccounts.setSelectedIndex(1);
+    	cbAccounts.setSelectedIndex(0);
     }
   }
 
