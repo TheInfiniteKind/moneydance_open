@@ -81,7 +81,7 @@ public class Main extends FeatureModule implements Observer {
   }
   
   public int getBuild(){
-	  return 1007;
+	  return 1008;
   }
 
   public void cleanup() {
