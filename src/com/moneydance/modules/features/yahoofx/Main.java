@@ -133,8 +133,9 @@ public class Main
     int today = DateUtil.getStrippedDateInt();
     boolean addSnapshot = DateUtil.incrementDate(lastDate, 0, 0, HISTORY_INTERVAL) < today;
 
-    if(addSnapshot) currType.addSnapshotInt(today, rate);
+    if(addSnapshot) currType.setSnapshotInt(today, rate).syncItem();
     currType.setUserRate(rate);
+    currType.syncItem();
   }
 
   public FeatureModuleContext getExtContext() {

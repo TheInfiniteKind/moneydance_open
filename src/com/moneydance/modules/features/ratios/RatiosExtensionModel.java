@@ -170,20 +170,22 @@ class RatiosExtensionModel
     StringBuilder result = new StringBuilder();
     String[] accountsList = StringUtils.split(encodedAccounts, ',');
     for (String accountId : accountsList) {
+      // first look for an individual account by GUID or integer
       try {
         boolean addThisId = false;
-        final int accountOrTypeId = Integer.parseInt(accountId);
-        if (accountOrTypeId >= 0) {
-          // specific account ID
-          Account account = data.getAccountByNum(accountOrTypeId);
-          addThisId = (account != null);
-        } else {
-          // account type, always valid
+        Account account = data.getAccountByUUIDOrLegacyNumber(accountId);
+        if (account != null) {
           addThisId = true;
+        } else {
+          // account types are negative numbers, always include them
+          final int accountOrTypeId = Integer.parseInt(accountId);
+          addThisId = (accountOrTypeId < 0);
         }
         if (addThisId) {
           if (result.length() > 0) result.append(',');
           result.append(accountId);
+        } else {
+          Logger.log("Removed missing account ID: " + accountId);
         }
       } catch (NumberFormatException nfex) {
         Logger.log("Invalid account ID selecting accounts: " + accountId);

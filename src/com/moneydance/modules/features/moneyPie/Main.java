@@ -24,11 +24,11 @@ public class Main extends FeatureModule implements Observer {
   private BudgetHomePageViewController homeView   = null;
   private BudgetPreferences            prefs;
   private BudgetData                   data;
-  
+
   public Main(){
-	  
+
   }
-  
+
   public void init() {
 	this.setup();
 	this.homeView = new BudgetHomePageViewController(this);
@@ -41,30 +41,30 @@ public class Main extends FeatureModule implements Observer {
       e.printStackTrace(System.err);
     }
   }
-  
+
   protected void setup(){
 	if(this.prefs == null){
 		  this.prefs  = new BudgetPreferences();
 		  this.prefs.setContext(this.getContext());
 	      this.prefs.addObserver(this);
-	} 
+	}
 
 	if(this.getRoot() != null){
 		if(this.data == null){
 			this.data = new BudgetData(this);
 		}
-		
+
 		if(mainWindow == null) {
 	    	mainWindow = new BudgetWindow(this);
 	    } else {
 	    	mainWindow.refresh();
 	    }
-		
+
 		if(castWindow == null){
-			BudgetForecastConf conf = new BudgetForecastConf(this.getBook(), 
-					  "Forecast: " + this.data.getCurrentBudgetName() + 
+			BudgetForecastConf conf = new BudgetForecastConf(this.getBook(),
+					  "Forecast: " + this.data.getCurrentBudgetName() +
 					  " (" + data.getCurrentBudgetYear() + ") ");
-			
+
 			castWindow = new BudgetForecast(this, conf);
 		}
 
@@ -75,28 +75,24 @@ public class Main extends FeatureModule implements Observer {
 		}
 	  }
   }
-  
+
   public String getName(){
 	  return "MoneyPie";
-  }
-  
-  public int getBuild(){
-	  return 1008;
   }
 
   public void cleanup() {
     closeConsole();
   }
-  
+
   protected AccountBook getBook() {
 	    return getContext().getRootAccount().getBook();
   }
-  
+
   protected Account getRoot() {
 	    return getContext().getRootAccount();
   }
 
-  
+
   public BudgetWindow getWindow(){
 	  return this.mainWindow;
   }
@@ -104,19 +100,19 @@ public class Main extends FeatureModule implements Observer {
   public void update(final Observable observable, final Object updateAll) {
       this.prefs.setContext(this.getContext());
   }
-  
+
   protected FeatureModuleContext getUnprotectedContext() {
 	  return this.getContext();
   }
-	  
+
   protected BudgetPreferences getPreferences(){
 	  return this.prefs;
   }
-  
+
   protected BudgetData getBudgetData(){
 	  return this.data;
   }
-  
+
 
   /** Process an invocation of this module with the given URI */
   public void invoke(String uri) {
@@ -135,7 +131,7 @@ public class Main extends FeatureModule implements Observer {
     	showPie();
     }
   }
-  
+
   void println(String message){
 	  java.util.Date date= new java.util.Date();
 	  System.err.println(new Timestamp(date.getTime()) + " : " + message);
@@ -143,24 +139,24 @@ public class Main extends FeatureModule implements Observer {
 
   protected synchronized void showPie() {
 	  this.setup();
-	  
+
 	  mainWindow.setVisible(true);
   	  mainWindow.toFront();
   	  mainWindow.requestFocus();
   }
-  
+
   protected void showForecast(){
 	  this.setup();
 
 	  castWindow.setWaitCursor();
 	  castWindow.refresh();
 	  castWindow.setDefaultCursor();
-	  
+
 	  castWindow.setVisible(true);
 	  castWindow.toFront();
 	  castWindow.requestFocus();
   }
-  
+
   protected void showReport(){
 	  this.setup();
 
@@ -176,7 +172,7 @@ public class Main extends FeatureModule implements Observer {
         System.gc();
     }
   }
-  
+
   private Image getIcon(String action) {
 	    try {
 	      ClassLoader cl = getClass().getClassLoader();
@@ -194,5 +190,3 @@ public class Main extends FeatureModule implements Observer {
 	    return null;
   }
 }
-
-

@@ -170,7 +170,7 @@ public class FarController implements IFindAndReplaceController
     private int filterTransactions(AccountBook book, FilterGroup filter)
     {
         // build the list of transactions that match the criteria
-        Set<Long> uniqueTxnIDs = new HashSet<Long>();
+        Set<String> uniqueTxnIDs = new HashSet<String>();
         final TransactionSet txnSet = book.getTransactionSet();
         for(AbstractTxn txn : txnSet.iterableTxns())
         {
@@ -183,7 +183,7 @@ public class FarController implements IFindAndReplaceController
                     for (int ii = txn.getOtherTxnCount() - 1; ii >= 0; ii--)
                     {
                         final SplitTxn split = (SplitTxn) txn.getOtherTxn(ii);
-                        final Long key = Long.valueOf(split.getOldTxnID());
+                        final String key = split.getUUID();
                         if (uniqueTxnIDs.contains(key)) continue;
                         _model.getFindResults().add(split, false);
                         uniqueTxnIDs.add(key);
@@ -193,7 +193,7 @@ public class FarController implements IFindAndReplaceController
                 {
                     // must be a split transaction, just add it
                     final SplitTxn split = (SplitTxn) txn;
-                    final Long key = Long.valueOf(split.getOldTxnID());
+                    final String key = split.getUUID();
                     if (uniqueTxnIDs.contains(key)) continue;
                     _model.getFindResults().add(split, false);
                     uniqueTxnIDs.add(key);

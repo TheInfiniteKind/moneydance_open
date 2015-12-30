@@ -234,7 +234,7 @@ public class Main
                                                null, null, parentAccount);
         break; 
     }
-    parentAccount.addSubAccount(newAccount);
+    newAccount.syncItem();
     if(restOfAcctName==null) {
       return newAccount;
     } else {

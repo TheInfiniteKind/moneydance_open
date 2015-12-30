@@ -129,9 +129,9 @@ class AccountFilterSelectListController {
       // skip the headers, the child accounts will get collated automatically
       if (entry.isHeader()) continue;
       if (entry.isRequired()) {
-        requiredFilter.includeId(entry.getAccountId());
+        requiredFilter.include(entry.getAccount());
       } else if (entry.isDisallowed()) {
-        disallowedFilter.includeId(entry.getAccountId());
+        disallowedFilter.include(entry.getAccount());
       }
     }
   }

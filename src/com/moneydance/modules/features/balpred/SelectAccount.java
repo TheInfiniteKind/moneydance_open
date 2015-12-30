@@ -4,20 +4,10 @@
 
 package com.moneydance.modules.features.balpred;
 
-import com.infinitekind.moneydance.model.*;
 import com.moneydance.awt.*;
-import com.moneydance.awt.graph.*;
-import com.infinitekind.util.*;
 
 import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.border.*;
-import java.io.*;
-import java.util.*;
-import java.net.*;
-import java.text.*;
 
 public class SelectAccount 
   extends JPanel

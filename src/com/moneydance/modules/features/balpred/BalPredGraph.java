@@ -63,8 +63,7 @@ public abstract class BalPredGraph
     renderGraph();
   }
 
-  /** Redraw the graph onto the buffered image and update the
-    * screen. */
+  /** Redraw the graph onto the buffered image and update the screen. */
   public synchronized final void renderGraph() {
     if(graphSize.width<=0 || graphSize.height<=0)
       return;

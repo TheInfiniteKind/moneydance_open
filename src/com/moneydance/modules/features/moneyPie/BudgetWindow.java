@@ -4,6 +4,7 @@
 
 package com.moneydance.modules.features.moneyPie;
 
+import com.infinitekind.util.StringUtils;
 import com.moneydance.awt.AwtUtil;
 import com.infinitekind.moneydance.model.*;
 
@@ -685,15 +686,11 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 	           });
 		  
 		  //This assumes the budget name is 2013 or 2014, etc...
-		  if(data.getCurrentBudgetName() == null){
-			  repairAction.setEnabled(false);
+      String currentBudgetName = data.getCurrentBudgetName();
+		  if(currentBudgetName!=null && StringUtils.isAllNumber(currentBudgetName) && Integer.parseInt(currentBudgetName)!=data.getCurrentBudgetYear()) {
+			  repairAction.setEnabled(true);
 		  } else {
-			  int budgetYear = Integer.parseInt(data.getCurrentBudgetName());
-			  if( budgetYear == data.getCurrentBudgetYear() ) {
-				  repairAction.setEnabled(false);
-			  } else {
-				  repairAction.setEnabled(true); 
-			  }
+        repairAction.setEnabled(false);
 		  }
 		  
 		  for (int i = 0; i < columnNames.length; i++) {

@@ -1,9 +1,9 @@
 {
   "vendor" = "The Infinite Kind"
   "vendor_url" = "http://infinitekind.com/"
-  "name" = "Python Interactive Interface"
+  "name" = "Python Interface"
   "desc" = "This is an extension that provides a Python interface to Moneydance."
-  "module_build" = "100"
+  "module_build" = "500"
   "minbuild" = "1000"
   "id" = "jpython"
 }
