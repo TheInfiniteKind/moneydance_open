@@ -32,9 +32,9 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
-import javax.xml.transform.*;  
-import javax.xml.transform.dom.DOMSource;  
-import javax.xml.transform.stream.StreamResult; 
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -60,14 +60,14 @@ public class BudgetReportWindow extends JFrame {
         private JComboBox   reportYear;
 
 
-        private String[] periodList;        
+        private String[] periodList;
         // -------------------------------------------
         public BudgetReportWindow(Main ext) {
             super("MoneyPie Report");
             this.extension   = ext;
             this.data        = ext.getBudgetData();
             this.taxIsIncome = ext.getWindow().isTaxIncome();
-            
+
             JPanel p = new JPanel(new GridBagLayout());
             p.setBorder(new EmptyBorder(10,10,10,10));
 
@@ -87,7 +87,7 @@ public class BudgetReportWindow extends JFrame {
                     "December"
              };
             reportPeriod = new JComboBox(periodList);
-            
+
             Calendar cal = Calendar.getInstance();
             reportPeriod.setSelectedIndex(cal.get(Calendar.MONTH));
 
@@ -103,7 +103,7 @@ public class BudgetReportWindow extends JFrame {
             		"Income",
             		"Accounts"
              };
-            
+
             reportYear = new JComboBox(yearList);
             reportYear.setSelectedIndex(0);
             reportYear.addActionListener(new ActionListener() {
@@ -181,7 +181,7 @@ public class BudgetReportWindow extends JFrame {
         public void updateReport(){
         	txtReport.setText(getReportStr());
         }
-        
+
         private String getReportStr() {
         	StringBuffer sb = new StringBuffer();
 
@@ -217,7 +217,7 @@ public class BudgetReportWindow extends JFrame {
         		title = "Accounts";
         		sb.append(generateTables(title, data.getMoneyAccounts(), true));
         	}
-        	
+
         	sb.append("</BODY>");
         	sb.append("</HTML>");
 
@@ -235,10 +235,10 @@ public class BudgetReportWindow extends JFrame {
             nf.setGroupingUsed(true);
             nf.setMinimumFractionDigits(2);
             nf.setMaximumFractionDigits(2);
-            
+
         	String redColor   = "#ff3333";
            	String blackColor = "#000000";
-           	
+
            	String cellColor = blackColor;
            	if(inverse){
            		if(cellValueD.doubleValue() > 0){
@@ -255,14 +255,14 @@ public class BudgetReportWindow extends JFrame {
            	}
 
            	StringBuffer sb = new StringBuffer();
-           	
+
             sb.append("<TD class='"+cellClass+"'><FONT color='"+cellColor+"'>" + cellValueB.toString() + "</FONT></TD>");
             sb.append("<TD class='"+cellClass+"'><FONT color='"+cellColor+"'>" + cellValueA.toString() + "</FONT></TD>");
             sb.append("<TD class='total'><FONT color='"+cellColor+"'>" + cellValueD.toString() + "</FONT></TD>");
-            
+
             return sb.toString();
         }
-        
+
         @SuppressWarnings("rawtypes")
 		private String generateTables(String label, Map accounts, boolean showSubTotals){
         	StringBuffer sb = new StringBuffer();
@@ -279,7 +279,7 @@ public class BudgetReportWindow extends JFrame {
 	  	    BudgetValue sectionYearValue   = new BudgetValue(data, 0);
 	  	    BudgetValue sectionYearBudget  = new BudgetValue(data, 0);
 	  	    BudgetValue sectionYearDiff    = new BudgetValue(data, 0);
-	  	    
+
 	  	    BudgetValue totalValue         = new BudgetValue(data, 0);
 	  	    BudgetValue totalBudget        = new BudgetValue(data, 0);
 	  	    BudgetValue totalDiff          = new BudgetValue(data, 0);
@@ -291,7 +291,7 @@ public class BudgetReportWindow extends JFrame {
 	  	    BudgetValue totalYearDiff      = new BudgetValue(data, 0);
 
 	  	    Boolean     inverse            = false;
-	  	    
+
 	  	    sb.append("<H2>"+label+"</H2>");
 
         	Iterator<?> k = sortByValue(accounts).keySet().iterator();
@@ -304,16 +304,16 @@ public class BudgetReportWindow extends JFrame {
     	      } else {
     	    	  topAccountName = acctName;
     	      }
-    	      
+
     	      Account thisAccount = data.getAccount(topAccountName);
-  			  if(thisAccount.getAccountType() == Account.AccountType.INCOME){
+  			  if(thisAccount != null && thisAccount.getAccountType() == Account.AccountType.INCOME){
   				inverse = true;
   			  } else {
   				inverse = false;
   			  }
 
     	      if(! showSubTotals) topAccountName = label;
-    	      
+
     	      if(! topAccountName.equalsIgnoreCase(lastTop)){
     	    	  if(! lastTop.equals("")){
     	    		  sb.append("<TR>");
@@ -326,31 +326,31 @@ public class BudgetReportWindow extends JFrame {
     	    		  sb.append("</TABLE>");
     	    		  sb.append("<BR/><BR/>");
 
-    	    		  
+
     	  	  	      totalValue.add(sectionTotalValue);
     	  	  	      totalBudget.add(sectionTotalBudget);
     	  	  	      totalDiff.add(sectionTotalDiff);
-    	  	  	      
+
     	  	  	      totalYTDValue.add(sectionYTDValue);
     	  	  	      totalYTDBudget.add(sectionYTDBudget);
     	  	  	      totalYTDDiff.add(sectionYTDDiff);
-    		  	    
+
     	  	  	      totalYearValue.add(sectionYearValue);
     	  	  	      totalYearBudget.add(sectionYearBudget);
     	  	  	      totalYearDiff.add(sectionYearDiff);
-    	  	  	      
+
 	    	  	  	  sectionTotalValue.setValue(0);
 		  	  	      sectionTotalBudget.setValue(0);
 		  	  	      sectionTotalDiff.setValue(0);
-		  	  	      
+
 		  	  	      sectionYTDValue.setValue(0);
 		  	  	      sectionYTDBudget.setValue(0);
 		  	  	      sectionYTDDiff.setValue(0);
-		    	  
+
 		  	  	      sectionYearValue.setValue(0);
 		  	  	      sectionYearBudget.setValue(0);
 		  	  	      sectionYearDiff.setValue(0);
-    	    	  
+
     	    	  }
 
     	    	  sb.append("<TABLE width='90%' border='1'>");
@@ -370,18 +370,15 @@ public class BudgetReportWindow extends JFrame {
     		      sb.append("<TD class='head' width='50'>Budgeted</TD>");
     		      sb.append("<TD class='head' width='50'>Actual</TD>");
     		  	  sb.append("<TD class='head' width='50'>Remaining</TD>");
-    		  	 
+
     		  	  sb.append("<TD class='head' width='50'>Budgeted</TD>");
   		          sb.append("<TD class='head' width='50'>Actual</TD>");
   		  	      sb.append("<TD class='head' width='50'>Remaining</TD>");
-  		  	  
+
     		  	  sb.append("</TR>");
 
     	      }
-    	      
-    	      
-    	      
-    	      
+
     	      //Month
     	      BudgetValue actualValue = new BudgetValue(data, 0);
     	      if(! data.isSpendingNull(acctName, reportIndex)){
@@ -403,17 +400,17 @@ public class BudgetReportWindow extends JFrame {
     	      if(! data.isBudgetNull(acctName, 0)){
     	    	  budgetYear = data.getBudgetValue(acctName, 0);
     	      }
-    	      
+
     	      //YTD
     	      BudgetValue ytdActual = data.getSTDValue(acctName, reportIndex);
     	      BudgetValue ytdBudget = data.getBTDValue(acctName, reportIndex);
-    	      
+
     	      BudgetValue diffValue = new BudgetValue(data, budgetValue);
     	      diffValue.minus(actualValue);
-    	      
+
     	      BudgetValue ytdDiff   = new BudgetValue(data, ytdBudget);
     	      ytdDiff.minus(ytdActual);
-    	      
+
     	      BudgetValue diffYear = new BudgetValue(data, budgetYear);
     	      diffYear.minus(actualYear);
 
@@ -433,7 +430,7 @@ public class BudgetReportWindow extends JFrame {
     	      sectionYTDValue.add(ytdActual);
 	    	  sectionYTDBudget.add(ytdBudget);
 	    	  sectionYTDDiff.add(ytdDiff);
-	    	  
+
 	    	  sectionYearValue.add(actualYear);
 	    	  sectionYearBudget.add(budgetYear);
 	    	  sectionYearDiff.add(diffYear);
@@ -453,33 +450,33 @@ public class BudgetReportWindow extends JFrame {
   	        totalValue.add(sectionTotalValue);
 	  	    totalBudget.add(sectionTotalBudget);
 	  	    totalDiff.add(sectionTotalDiff);
-	  	    
+
 	  	    totalYTDValue.add(sectionYTDValue);
 	  	    totalYTDBudget.add(sectionYTDBudget);
 	  	    totalYTDDiff.add(sectionYTDDiff);
-	  	    
+
 	  	    totalYearValue.add(sectionYearValue);
 	  	    totalYearBudget.add(sectionYearBudget);
 	  	    totalYearDiff.add(sectionYearDiff);
-	  	    
+
   	        sb.append("<TR>");
   	      	sb.append("<TD class='tl'>Grand Total</TD>");
   	      	sb.append(generateTableCell("total", inverse, totalBudget, totalValue, totalDiff));
   	        sb.append(generateTableCell("total", inverse, totalYTDBudget, totalYTDValue, totalYTDDiff));
   	      	sb.append(generateTableCell("total", inverse, totalYearBudget, totalYearValue, totalYearDiff));
 	        sb.append("</TR>");
-	        
+
     	    sb.append("</TABLE>");
     	    sb.append("<BR/><BR/>");
-    	    
+
 
         	return sb.toString();
         }
-        
+
         @SuppressWarnings({ "unchecked", "rawtypes" })
 		private static Map<Object,Object> sortByValue(Map<?,?> map) {
       	  List<?> list = new LinkedList(map.entrySet());
-      	  
+
       	  Collections.sort(list, new Comparator() {
       		  public int compare(Object o1, Object o2) {
       			  return ((Comparable) ((Map.Entry) (o1)).getValue()).compareTo(((Map.Entry) (o2)).getValue());
@@ -543,13 +540,13 @@ public class BudgetReportWindow extends JFrame {
         	}
         	String xmlFileName = tmpPath+"/"+period+".xml";
 
-        	
-        	TransformerFactory tranFactory = TransformerFactory.newInstance();  
-        	Transformer aTransformer = tranFactory.newTransformer();  
-        	Source src = new DOMSource(xmldoc);  
-        	Result dest = new StreamResult(new File(xmlFileName));  
-        	aTransformer.transform(src, dest); 
-        	
+
+        	TransformerFactory tranFactory = TransformerFactory.newInstance();
+        	Transformer aTransformer = tranFactory.newTransformer();
+        	Source src = new DOMSource(xmldoc);
+        	Result dest = new StreamResult(new File(xmlFileName));
+        	aTransformer.transform(src, dest);
+
         	ftpReport(xmlFileName);
 
         }
@@ -624,7 +621,7 @@ public class BudgetReportWindow extends JFrame {
     	    	  budgetValue.negate();
     	    	  budgetYear.negate();
     	      }
-    	      
+
     	      BudgetValue diffValue = new BudgetValue(data, budgetValue);
     	      diffValue.minus(actualValue);
 
@@ -674,7 +671,7 @@ public class BudgetReportWindow extends JFrame {
 
                 //TODO: Append Year to remote Path
                 //TODO: Create remote path if it does not exist
-                
+
                 //Create a Jakarta Commons Net FTP Client object
                 FTPClient ftp = new FTPClient();
 
@@ -759,7 +756,7 @@ public class BudgetReportWindow extends JFrame {
 
             System.err.println("Process Complete.");
         }
-        
+
         /** Close Window */
         protected void close() {
                 this.setVisible(false);
