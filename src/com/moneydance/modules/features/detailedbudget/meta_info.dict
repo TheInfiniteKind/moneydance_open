@@ -1,0 +1,9 @@
+{
+  "minbuild" = "1000"
+  "vendor" = "Rolf Lawrenz, Shawn Willden, and The Infinite Kind"
+  "module_build" = "88"
+  "vendor.url" = ""
+  "module_name" = "Detailed Budget Report"
+  "module_desc" = "<html><body><title>Detailed Budget Report</title><p>Detailed Budget Report produces a report of Actual Expenses compared to Budget Expenses<ul><li>Includes a Budget 'ALL' option which includes all transactions for a given period regardless if it is budgeted</li><li>Can subtotal by week, month, year</li><li>Optionally include subtotalled budgeted and difference amounts</li><li>Budgeted amounts are only given in period it is expected to be paid</li></ul></p></body></html>"
+  "desc" = "Detailed Budget Report produces a report of Actual Expenses compared to Budget Expenses\n* Includes a Budget 'ALL' option which includes all transactions for a given period regardless if it is budgeted\n* Can subtotal by week, month, year\n* Optionally include subtotalled budgeted and difference amounts\n* Budgeted amounts are only given in period it is expected to be paid"
+}
