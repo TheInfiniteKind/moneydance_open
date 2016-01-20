@@ -1,7 +1,3 @@
-/************************************************************\
- *       Copyright (C) 2001 Appgen Personal Software        *
-\************************************************************/
-
 package com.moneydance.modules.features.detailedbudget;
 
 import java.awt.AWTEvent;
