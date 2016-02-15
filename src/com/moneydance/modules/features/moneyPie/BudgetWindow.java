@@ -686,12 +686,16 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 	           });
 		  
 		  //This assumes the budget name is 2013 or 2014, etc...
-      String currentBudgetName = data.getCurrentBudgetName();
-		  if(currentBudgetName!=null && StringUtils.isAllNumber(currentBudgetName) && Integer.parseInt(currentBudgetName)!=data.getCurrentBudgetYear()) {
-			  repairAction.setEnabled(true);
-		  } else {
-        repairAction.setEnabled(false);
-		  }
+          String currentBudgetName = data.getCurrentBudgetName();
+          try {
+        	  if(currentBudgetName!=null && StringUtils.isAllNumber(currentBudgetName) && Integer.parseInt(currentBudgetName)!=data.getCurrentBudgetYear()) {
+    			  repairAction.setEnabled(true);
+    		  } else {
+    			  repairAction.setEnabled(false);
+    		  }
+          } catch (Exception e) {
+        	  repairAction.setEnabled(false);
+          }
 		  
 		  for (int i = 0; i < columnNames.length; i++) {
 			  BudgetCellRenderer renderer = new BudgetCellRenderer(data);

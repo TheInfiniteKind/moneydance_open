@@ -45,7 +45,6 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.axis.AxisLocation;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.ui.RectangleEdge;
 
 public class BudgetForecast extends JDialog implements ActionListener, Runnable {
   private static final long serialVersionUID = 7904680121905462798L;
