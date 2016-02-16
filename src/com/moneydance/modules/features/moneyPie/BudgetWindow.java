@@ -43,6 +43,7 @@ import javax.swing.JSeparator;
 import javax.swing.JOptionPane;
 
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Map;
@@ -210,14 +211,21 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
     List<Budget> budgetList = data.getBudgetList().getAllBudgets();
     
     budgetGroup = new ButtonGroup();
-	Budget b = null;
 
-    boolean defaultFound = false;
+	//Sort Budgets by Name
+	List<String> budgetNames = new ArrayList<String>();
 	for (int i = 0; i < budgetList.size(); i++) {
-		  b = budgetList.get(i);
-		  if(data.getYearOfBudget(b.getName()) > 0){
-			  this.addBudget(b.getName());
-			  if(b.getName().equalsIgnoreCase(defaultBudget)){
+		String thisBudget = budgetList.get(i).getName();
+		budgetNames.add(thisBudget);
+	}
+	Collections.sort(budgetNames);
+	
+    boolean defaultFound = false;
+	for (int i = 0; i < budgetNames.size(); i++) {
+		  String budgetName = budgetNames.get(i);
+		  if(data.getYearOfBudget(budgetName) > 0){
+			  this.addBudget(budgetName);
+			  if(budgetName.equalsIgnoreCase(defaultBudget)){
 				  defaultFound = true;
 			  }
 		  }
