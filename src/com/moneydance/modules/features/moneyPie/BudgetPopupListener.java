@@ -9,9 +9,11 @@ import javax.swing.JTable;
 
 public class BudgetPopupListener extends MouseAdapter {
 	 private BudgetPopup popupMenu;
+	 private BudgetWindow budgetWindow;
 	 
-	 BudgetPopupListener(BudgetPopup popupMenu){
-		 this.popupMenu  = popupMenu;
+	 BudgetPopupListener(BudgetPopup popupMenu, BudgetWindow budgetWindow){
+		 this.popupMenu    = popupMenu;
+		 this.budgetWindow = budgetWindow;
 	 }
 	 
 	 public void mouseClicked(MouseEvent e) {
@@ -25,6 +27,8 @@ public class BudgetPopupListener extends MouseAdapter {
 	 }
 	 
 	 public void mousePressed(MouseEvent e) {
+		 if(budgetWindow.displayActual){return;}
+		 
 		 if (e.isPopupTrigger()) {
 			 showPopup(e);
          } else {
@@ -35,11 +39,7 @@ public class BudgetPopupListener extends MouseAdapter {
         	 int col = table.columnAtPoint( e.getPoint() );
         	
         	 if(table.isBalloonVisible() ){
-        		 //if(row == table.getBalloonRow() && col == table.getBalloonCol()){
-        			 table.hideBalloon();
-        		 //} else {
-        		 //	 showBalloon(table, row, col);
-        		 //}
+        		  table.hideBalloon();
         	 } else {
         		 showBalloon(table, row, col);
         	 }

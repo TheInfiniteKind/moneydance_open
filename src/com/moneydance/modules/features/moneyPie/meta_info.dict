@@ -1,6 +1,6 @@
 {
   "desc" = "MoneyPie provides an envelope budgeting interface built atop Moneydance's budgeting system.  MoneyPie highlights how your actual spending compares to your budget so you can dynamically adjust and balance your budget without flipping between windows."
-  "module_build" = "1014"
+  "module_build" = "1015"
   "minbuild" = "1000"
   "module_desc" = "MoneyPie provides an 'Envelope Budgeting' interface built atop Moneydance's budgeting system.  MoneyPie highlights how your actual spending compares to your budget so you can dynamically adjust and balance your budget without flipping back and forth between interfaces.  We've even baked in an improved balance forecaster that integrates with your budget!"
   "module_name" = "MoneyPie"

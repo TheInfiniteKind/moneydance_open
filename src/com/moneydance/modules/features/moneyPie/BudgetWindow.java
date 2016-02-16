@@ -10,6 +10,7 @@ import com.infinitekind.moneydance.model.*;
 
 import java.util.List;
 import java.awt.EventQueue;
+import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.AWTEvent;
 import java.awt.event.WindowEvent;
@@ -34,9 +35,11 @@ import javax.swing.Box;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JRadioButton;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.ButtonGroup;
 import javax.swing.JSeparator;
@@ -79,6 +82,9 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
   private DefaultTableModel   summaryModel;
 
   private JPanel              mainPanel;
+  protected boolean           displayActual;
+  private JRadioButton        actualButton;
+  private JRadioButton        budgetButton;
   private JTabbedPane         tableTabs;
   private BudgetTable         incomeTable;
   private BudgetTable         moneyTable;
@@ -256,15 +262,42 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
      *   boolean filly) 
      */
 
+	JLabel labelView = new JLabel( "Show values:");
+	actualButton = new JRadioButton("Actual");
+	budgetButton  = new JRadioButton("Budgeted");
+	budgetButton.setSelected(true);
+	
+	actualButton.addActionListener(new ActionListener() {
+		public void actionPerformed(ActionEvent e){
+	        //JRadioButton button = (JRadioButton) e.getSource();
+	        displayActual = actualButton.isSelected();
+	        refresh();
+	    }
+    }); 
+	budgetButton.addActionListener(new ActionListener() {
+		public void actionPerformed(ActionEvent e){
+	        //JRadioButton button = (JRadioButton) e.getSource();
+	        displayActual = actualButton.isSelected();
+	        refresh();
+	    }
+    });
+	
+    ButtonGroup group = new ButtonGroup();
+    group.add(actualButton);
+    group.add(budgetButton);
+    
     tableTabs = new JTabbedPane();
-
     tableTabs.addTab( "Income",   null, new JScrollPane( incomeTable ) );
     tableTabs.addTab( "Accounts", null, new JScrollPane( moneyTable ) );
     tableTabs.addTab( "Expense",  null, new JScrollPane( expenseTable ) );
 
-    mainPanel.add(new JScrollPane(summaryTable), AwtUtil.getConstraints(0,0,1,0.1f,1,1,true,true));
-    mainPanel.add(Box.createVerticalStrut(8),    AwtUtil.getConstraints(0,1,0,0,1,1,false,false));
-    mainPanel.add(new JScrollPane(tableTabs),    AwtUtil.getConstraints(0,2,1,0.9f,1,1,true,true));
+    mainPanel.add(new JScrollPane(summaryTable), AwtUtil.getConstraints(0,0,1,0.1f,3,1,true,true));
+    mainPanel.add(Box.createVerticalStrut(8),    AwtUtil.getConstraints(0,1,0,0,3,1,false,false));
+    
+    mainPanel.add( labelView,     AwtUtil.getConstraints(0,2,0,0,1,1,false,false));
+    mainPanel.add( actualButton,  AwtUtil.getConstraints(1,2,0,0,1,1,false,false));
+    mainPanel.add( budgetButton,  AwtUtil.getConstraints(2,2,1,0,1,1,false,false, GridBagConstraints.WEST));
+    mainPanel.add(new JScrollPane(tableTabs),    AwtUtil.getConstraints(0,3,1,0.9f,3,1,true,true));
 	
     getContentPane().add(mainPanel);
 
@@ -577,7 +610,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 	  }
 
 	  if(popupMenu !=  null){
-		  MouseListener popupListener = new BudgetPopupListener(popupMenu);
+		  MouseListener popupListener = new BudgetPopupListener(popupMenu, this);
 		  table.addMouseListener(popupListener);
 		  table.getTableHeader().addMouseListener(popupListener);
 	  }
@@ -709,7 +742,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 			  BudgetCellRenderer renderer = new BudgetCellRenderer(data);
 			  summaryTable.getColumnModel().getColumn(i).setCellRenderer(renderer);
 			  
-			  BudgetCellEditor editor = new BudgetCellEditor(data);
+			  BudgetCellEditor editor = new BudgetCellEditor(data, this);
 			  summaryTable.getColumnModel().getColumn(i).setCellEditor(editor);
 		  }
 
@@ -770,21 +803,41 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 	          }
 	      }
 		          
-		  dataModel.addRow( new Object[] {acctName,
-				  							data.getBudgetValue(acctName, 1).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 2).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 3).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 4).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 5).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 6).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 7).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 8).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 9).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 10).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 11).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 12).sign(showNegative).toString(),
-				  							data.getBudgetValue(acctName, 0).sign(showNegative).toString()
-				                             });
+	      if(displayActual){
+	    	  //TODO
+	    	  dataModel.addRow( new Object[] {acctName,
+						data.getSpendingValue(acctName, 1).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 2).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 3).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 4).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 5).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 6).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 7).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 8).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 9).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 10).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 11).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 12).sign(showNegative).toString(),
+						data.getSpendingValue(acctName, 0).sign(showNegative).toString()
+                     });
+	      } else {
+	    	  dataModel.addRow( new Object[] {acctName,
+						data.getBudgetValue(acctName, 1).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 2).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 3).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 4).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 5).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 6).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 7).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 8).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 9).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 10).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 11).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 12).sign(showNegative).toString(),
+						data.getBudgetValue(acctName, 0).sign(showNegative).toString()
+                       });
+	      }
+		  
 	    }
 
 	    dataModel.addRow( new Object[] {"Total",
