@@ -33,7 +33,7 @@ public class BudgetEditBalloon extends BudgetBalloon {
 
 	private JPanel      ePanel;
 	private JTextField  bText;
-	private JComboBox   rList;
+	private JComboBox<String> rList;
 	
 	private JButton     sButton;
 	private JButton     eButton;
@@ -155,7 +155,7 @@ public class BudgetEditBalloon extends BudgetBalloon {
 				                   "Semi-Annual",
 				                   "Annual"
 				                   };
-		rList = new JComboBox(repeatStrings);
+		rList = new JComboBox <String> (repeatStrings);
 		rList.setSelectedIndex(0);
 		rList.addActionListener(new ActionListener() {
 	          public void actionPerformed(ActionEvent evt) {

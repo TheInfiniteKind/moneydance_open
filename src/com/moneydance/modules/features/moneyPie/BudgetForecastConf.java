@@ -21,7 +21,7 @@ public class BudgetForecastConf implements ActionListener {
   private TxnSet txns = null;
 
   public String extensionName = null;
-  public JComboBox cbAccounts = new JComboBox();
+  public JComboBox <Account>cbAccounts = new JComboBox <Account>();
   public ReminderSet rs = null;
   public String dateFormatStr = "MM/dd/yy";
 

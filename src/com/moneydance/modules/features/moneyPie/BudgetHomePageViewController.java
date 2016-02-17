@@ -8,7 +8,6 @@ import javax.swing.JViewport;
 
 import com.moneydance.apps.md.view.HomePageView;
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 
 public class BudgetHomePageViewController implements HomePageView, Observer {
   private  Main                extension;

@@ -55,8 +55,8 @@ public class BudgetForecast extends JDialog implements ActionListener, Runnable 
   private JPanel              mp, bigP, smaP, bp, bpl, bpr;
   private JScrollPane         tp;
   private JButton             btRefresh;
-  private JComboBox           cbFutuIntervals   = new JComboBox();
-  private JComboBox           cbFutuNum         = new JComboBox();
+  private JComboBox <String>  cbFutuIntervals   = new JComboBox<String>();
+  private JComboBox <String>  cbFutuNum         = new JComboBox<String>();
   private BudgetForecastConf  predConf          = null;
   private Date                prDate            = new Date();
   private GridBagLayout       gbl               = new GridBagLayout();
