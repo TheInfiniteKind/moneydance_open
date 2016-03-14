@@ -614,7 +614,7 @@ public class YahooDialog
       _model.saveSettings();
       // mark that we made changes to the file
       //_model.getRootAccount().accountModified(_model.getRootAccount());
-      _model.getRootAccount().syncItem();
+      _model.getRootAccount().notifyAccountModified();
     }
   }
 
