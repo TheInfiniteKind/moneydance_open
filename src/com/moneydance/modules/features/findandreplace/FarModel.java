@@ -971,14 +971,14 @@ class FarModel extends BasePropertyChangeReporter
             _includeTransfers = include;
 
             // rebuild the category list
-            final Collection<Integer> includedCats = _categoryFilter.getAllIncluded();
+            final Collection<String> includedCats = _categoryFilter.getAllIncluded();
             setupCategoryFilter();
             loadCategoryFilter();
             if (_data != null)
             {
-                for (Integer accountId : includedCats)
+                for (String accountId : includedCats)
                 {
-                    Account catAccount = _data.getAccountByNum(accountId.intValue());
+                    Account catAccount = _data.getAccountByUUIDOrLegacyNumber(accountId);
                     if (catAccount != null)
                     {
                         // this won't add if the account type isn't allowed - good

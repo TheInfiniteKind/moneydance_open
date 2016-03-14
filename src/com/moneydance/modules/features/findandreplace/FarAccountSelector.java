@@ -27,7 +27,7 @@ import java.util.List;
 public class FarAccountSelector
         implements IAccountSelector
 {
-    private final List<Integer> _selectedAccountIds = new ArrayList<Integer>();
+    private final List<String> _selectedAccountIds = new ArrayList<String>();
     private final AccountBook _book;
     private AccountFilter _filter;
 
@@ -57,23 +57,23 @@ public class FarAccountSelector
         // not implemented
     }
 
-    public List<Integer> getSelectedAccountIds()
+    public List<String> getSelectedAccountIds()
     {
         return _selectedAccountIds;
     }
 
-    public int getSelectedCount()
-    {
+    public int getSelectedCount() {
         int count = 0;
-        for (Integer value : getSelectedAccountIds())
-        {
-            if (value.intValue() < 0)
-            {
+        for (String value : getSelectedAccountIds()) {
+            if (value.startsWith("-")) {
                 // account type, find the total number of that type
-                count += getAccountTypeCount(Account.AccountType.typeForCode(-value.intValue()));
-            }
-            else
-            {
+                try {
+                    int typeCode = -Integer.parseInt(value);
+                    count += getAccountTypeCount(Account.AccountType.typeForCode(typeCode));
+                } catch (NumberFormatException e) {
+                    Logger.log("Failed to get account type: " + value);
+                }
+            } else {
                 ++count;
             }
         }
