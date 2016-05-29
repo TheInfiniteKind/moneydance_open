@@ -30,7 +30,7 @@ import java.util.List;
  */
 public class Main extends FeatureModule
 {
-    private static final int BUILD = 209;
+    private static final int BUILD = 1210;
     
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();

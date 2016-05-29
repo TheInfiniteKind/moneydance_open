@@ -9,12 +9,8 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.MoneydanceLAF;
-import com.moneydance.apps.md.view.gui.SecondaryFrame;
-import com.moneydance.apps.md.view.gui.TagLogic;
+import com.moneydance.apps.md.view.gui.*;
 import com.moneydance.awt.AwtUtil;
-import com.moneydance.apps.md.view.gui.AccountChoice;
 import com.infinitekind.moneydance.model.Account;
 
 import javax.swing.event.ListSelectionEvent;
@@ -2155,59 +2151,70 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private void disableMenus()
     {
+        if (mainMenu == null)
+        {
+            // nothing to do
+            return;
+        }
         try {
             // File
-            mainMenu.fileNewAction.setEnabled(true);
-            //mainMenu.fileOpenAction.setEnabled(true);
-            mainMenu.fileExportAction.setEnabled(true);
-            mainMenu.fileEncryptionAction.setEnabled(false);
-            mainMenu.fileArchiveAction.setEnabled(false);
-            //mainMenu.fileSaveAsAction.setEnabled(true);
-            mainMenu.fileSaveAction.setEnabled(true);
-            mainMenu.printChecksAction.setEnabled(false);
-            mainMenu.printTxnsAction.setEnabled(false);
-            mainMenu.newTxnAction.setEnabled(false);
+            enableMenu(mainMenu.fileNewAction, true);
+            enableMenu(mainMenu.fileExportAction, true);
+            enableMenu(mainMenu.fileEncryptionAction, false);
+            enableMenu(mainMenu.fileArchiveAction, false);
+            enableMenu(mainMenu.fileSaveAction, true);
+            enableMenu(mainMenu.printChecksAction, false);
+            enableMenu(mainMenu.printTxnsAction, false);
+            enableMenu(mainMenu.newTxnAction, false);
+            enableMenu(mainMenu.fileOpenOtherAction, false);
+            enableMenu(mainMenu.fileEncryptionAction, false);
             // Edit
-            mainMenu.editFindAction.setEnabled(false);
-            mainMenu.editAdvancedFindAction.setEnabled(false);
+            enableMenu(mainMenu.undoAction, false);
+            enableMenu(mainMenu.redoAction, false);
+            enableMenu(mainMenu.editFindAction, false);
+            enableMenu(mainMenu.editAdvancedFindAction, false);
             // View
-            mainMenu.viewDBBudget.setEnabled(false);
-            mainMenu.viewDBNothing.setEnabled(false);
-            mainMenu.viewDBNetWorth.setEnabled(false);
-            mainMenu.viewHomeAction.setEnabled(false);
-            //mainMenu.viewShowSourceListAction.setEnabled(false);
+            enableMenu(mainMenu.viewDBBudget, false);
+            enableMenu(mainMenu.viewDBNothing, false);
+            enableMenu(mainMenu.viewDBNetWorth, false);
+            enableMenu(mainMenu.viewHomeAction, false);
             // Account
-            mainMenu.acctNewAction.setEnabled(false);
-            mainMenu.acctEditAction.setEnabled(false);
-            mainMenu.acctDeleteAction.setEnabled(false);
-            mainMenu.reconcileAction.setEnabled(false);
+            enableMenu(mainMenu.acctNewAction, false);
+            enableMenu(mainMenu.acctEditAction, false);
+            enableMenu(mainMenu.acctDeleteAction, false);
+            enableMenu(mainMenu.reconcileAction, false);
             // Online
-            mainMenu.downloadAllAction.setEnabled(false);
-            mainMenu.setupOnlineAction.setEnabled(false);
-            mainMenu.setupOnlineBPAction.setEnabled(false);
-            mainMenu.showOnlineBPAction.setEnabled(false);
-            mainMenu.sendOnlineBPAction.setEnabled(false);
-            mainMenu.confirmSelectedTxnsAction.setEnabled(false);
-            mainMenu.forgetPasswdsAction.setEnabled(false);
-            mainMenu.downloadTxnsAction.setEnabled(false);
+            enableMenu(mainMenu.downloadAllAction, false);
+            enableMenu(mainMenu.setupOnlineAction, false);
+            enableMenu(mainMenu.setupOnlineBPAction, false);
+            enableMenu(mainMenu.showOnlineBPAction, false);
+            enableMenu(mainMenu.sendOnlineBPAction, false);
+            enableMenu(mainMenu.confirmSelectedTxnsAction, false);
+            enableMenu(mainMenu.forgetPasswdsAction, false);
+            enableMenu(mainMenu.downloadTxnsAction, false);
             // Tools
-            mainMenu.toolsLoanCalcAction.setEnabled(true);
-            mainMenu.toolsNormalCalcAction.setEnabled(true);
-            mainMenu.toolsRemindersAction.setEnabled(true);
-            mainMenu.toolsBudgetAction.setEnabled(true);
-            mainMenu.toolsTranslateCurrencyAction.setEnabled(true);
-            mainMenu.toolsCurrencyAction.setEnabled(true);
-            mainMenu.toolsSecuritiesAction.setEnabled(true);
-            mainMenu.toolsCOAAction.setEnabled(true);
-            mainMenu.toolsCategoriesAction.setEnabled(true);
-            mainMenu.toolsAddressBookAction.setEnabled(true);
-            mainMenu.toolsReportsAction.setEnabled(true);
+            enableMenu(mainMenu.toolsLoanCalcAction, true);
+            enableMenu(mainMenu.toolsNormalCalcAction, true);
+            enableMenu(mainMenu.toolsRemindersAction, true);
+            enableMenu(mainMenu.toolsBudgetAction, true);
+            enableMenu(mainMenu.toolsTranslateCurrencyAction, true);
+            enableMenu(mainMenu.toolsCurrencyAction, true);
+            enableMenu(mainMenu.toolsSecuritiesAction, true);
+            enableMenu(mainMenu.toolsCOAAction, true);
+            enableMenu(mainMenu.toolsCategoriesAction, true);
+            enableMenu(mainMenu.toolsAddressBookAction, true);
+            enableMenu(mainMenu.toolsReportsAction, true);
             // Extensions, Windows and Help all stay enabled
         }
         catch (Throwable error)
         {
             Logger.logError("Error while disabling menus", error);
         }
+    }
+    
+    private void enableMenu(MDAction item, boolean enabled)
+    {
+        if (item != null) item.setEnabled(enabled);
     }
 
     private class ColoredFocusAdapter extends FocusAdapter
