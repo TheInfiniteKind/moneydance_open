@@ -65,6 +65,7 @@ public class Main
     loadResources();
     _model.setResources(this);
     context.registerFeature(this, SHOW_DIALOG_COMMAND, getIcon(), getName());
+    context.registerFeature(this, UPDATE_COMMAND, getIcon(), _resources.getString("updateNowMenuTitle"));
     addPreferencesListener();
     MoneydanceGUI mdGUI = (MoneydanceGUI)((com.moneydance.apps.md.controller.Main) context).getUI();
     _model.initialize(mdGUI, this);

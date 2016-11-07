@@ -267,8 +267,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     } // if getting the current price
     
     // update the current price if possible, the last price date is stored as a long
-    final String lastUpdateDate = currType.getParameter("price_date");
-    final long storedCurrentPriceDate = (lastUpdateDate == null) ? 0 : Long.parseLong(lastUpdateDate);
+    final long lastUpdateDate = currType.getLongParameter("price_date", 0);
     // for now we're going to skip the time check because it introduces too many glitches and
     // unexpected behavior, mainly because the Currency/Security History Window will update the
     // time to the local time, often newer than the downloaded time
@@ -286,8 +285,8 @@ public class DownloadQuotesTask implements Callable<Boolean> {
     }
     if (currentPriceUpdated) {
       // the user rate should be stored in terms of the base currency, just like the snapshots
-      currType.setUserRate(CurrencyUtil.convertToBasePrice(latestRate, priceCurrency, DateUtil.convertLongDateToInt(latestPriceDate)));
-      currType.setParameter("price_date", String.valueOf(latestPriceDate));
+      currType.setUserRate(latestRate, priceCurrency);
+      currType.setParameter("price_date", latestPriceDate);
       // see comments above - no longer skipping due to an older time stamp downloaded
 //    } else if (foundPrice) {
 //      // log that we skipped the update and why
