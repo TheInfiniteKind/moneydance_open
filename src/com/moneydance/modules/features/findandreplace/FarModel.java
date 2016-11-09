@@ -919,12 +919,21 @@ class FarModel extends BasePropertyChangeReporter
         {
             findPattern = null;
         }
-        return new ReplaceCommand(category, amount, _replaceAmountCurrency,
-                                  description, allowFoundOnly && _replaceFoundDescriptionOnly,
-                                  memo, allowFoundOnly && _replaceFoundMemoOnly,
-                                  check, allowFoundOnly && _replaceFoundCheckOnly,
-                                  findPattern,
-                                  _replaceTagCommand, tags, TxnUtil.getListOfAllUsedTransactionTags(_data.getTransactionSet().getAllTxns()));
+        return new ReplaceCommand(
+                category,
+                amount,
+                _replaceAmountCurrency,
+                _showParents,
+                description,
+                allowFoundOnly && _replaceFoundDescriptionOnly,
+                memo,
+                allowFoundOnly && _replaceFoundMemoOnly,
+                check,
+                allowFoundOnly && _replaceFoundCheckOnly,
+                findPattern,
+                _replaceTagCommand,
+                tags,
+                TxnUtil.getListOfAllUsedTransactionTags(_data.getTransactionSet().getAllTxns()));
     }
 
     boolean hasFindResults()

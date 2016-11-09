@@ -28,6 +28,7 @@ public class ReplaceCommand implements IFarCommand
     private final Account _replaceCategory;
     private final Long _replaceAmount; // stored as object so we can use null
     private final CurrencyType _replaceCurrency;
+    private final boolean _parentsOnly;
     private final String _replaceDescription;
     private final boolean _replaceFoundDescriptionOnly;
     private final String _replaceMemo;
@@ -43,6 +44,7 @@ public class ReplaceCommand implements IFarCommand
     private FindResultsTableEntry _transaction;
 
     ReplaceCommand(final Account category, final Long amount, final CurrencyType amountCurrency,
+                   final boolean parentsOnly,
                    final String description, final boolean replaceFoundDescriptionOnly,
                    final String memo, final boolean replaceFoundMemoOnly,
                    final String check, final boolean replaceFoundCheckOnly,
@@ -53,6 +55,7 @@ public class ReplaceCommand implements IFarCommand
         _replaceCategory = category;
         _replaceAmount = amount;
         _replaceCurrency = amountCurrency;
+        _parentsOnly = parentsOnly;
         _replaceDescription = description;
         _replaceFoundDescriptionOnly = replaceFoundDescriptionOnly;
         _replaceMemo = memo;
@@ -80,6 +83,12 @@ public class ReplaceCommand implements IFarCommand
             return null;
         }
 
+        if (_parentsOnly && (_transaction.getParentTxn().getSplitCount() > 1))
+        {
+            // this is a parent transaction with more than one split -- no category
+            return null;
+        }
+
         // the default is to make no changes. this check is to see if any category should be
         // returned at all for the transaction type -- if not, then return nothing
         final Account category = FarUtil.getTransactionCategory(_transaction.getSplitTxn());
@@ -96,7 +105,7 @@ public class ReplaceCommand implements IFarCommand
             return _replaceCategory;
         }
 
-        // this is a parent transaction with more than one split -- no category
+        // something else is not right, skip the category
         return null;
     }
 
@@ -105,6 +114,12 @@ public class ReplaceCommand implements IFarCommand
         if (_transaction == null)
         {
             // not applied to a transaction, no preview
+            return null;
+        }
+
+        if (_parentsOnly && (_transaction.getParentTxn().getSplitCount() > 1))
+        {
+            // this is a parent transaction with more than one split -- can't change amount
             return null;
         }
 
@@ -129,7 +144,7 @@ public class ReplaceCommand implements IFarCommand
         }
 
         final String originalText;
-        if (useParent)
+        if (useParent || _parentsOnly)
         {
             originalText = _transaction.getParentTxn().getDescription();
         }
@@ -199,7 +214,11 @@ public class ReplaceCommand implements IFarCommand
 
         boolean changed = false;
         Account previousCategory = null;
-        if (_replaceCategory != null)
+
+        // the amount or category should not be changed if Consolidate Splits is turned on and the parent transaction
+        // has more than one split
+        final boolean skipAmount = _parentsOnly && (_transaction.getParentTxn().getSplitCount() > 1);
+        if (!skipAmount && (_replaceCategory != null))
         {
             // Only apply category replacement to splits. Do not replace if the category is already
             // the same, or if the transaction's other side is the same category (you can't have
@@ -214,7 +233,7 @@ public class ReplaceCommand implements IFarCommand
         }
 
         final boolean newCategory = (previousCategory != null) && (_replaceCategory != null);
-        if (_replaceAmount != null)
+        if (!skipAmount && (_replaceAmount != null))
         {
             // only apply amount changes to splits because it is too complicated to change the
             // amount for a parent transaction with multiple splits
@@ -225,7 +244,8 @@ public class ReplaceCommand implements IFarCommand
             long value = _replaceAmount.longValue();
             // replacing with a negative value flips the sign
             long signFlip = (value < 0) ? -1 : 1;
-            long prevSign = (split.getValue() < 0) ? -1 : 1;
+            long prevSign = (split.getAmount() < 0) ? -1 : 1;
+            long prevParentSign = (split.getParentAmount() < 0) ? -1 : 1;
             CurrencyType targetCurr = split.getAccount().getCurrencyType();
             CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
             changed = true;
@@ -234,8 +254,7 @@ public class ReplaceCommand implements IFarCommand
             }
             // convert the replacement amount into the category's currency, then set the proper sign
             long splitAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt())) * prevSign * signFlip;
-            // the parent amount has the same sign as the split amount under the hood, the sign is negated in the UI only
-            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt())) * prevSign * signFlip;
+            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt())) * prevParentSign * signFlip;
             double rate = CurrencyUtil.getRawRate(parentCurr, targetCurr, split.getDateInt());
             split.setAmount(splitAmount, rate, parentAmount);
         }
@@ -263,28 +282,31 @@ public class ReplaceCommand implements IFarCommand
 
         if (_replaceDescription != null)
         {
-            // independently replace the split and the parent description
-            final String splitDescription = _transaction.getSplitTxn().getDescription();
-            if (splitDescription != null)
+            // independently replace the split and the parent description, ss long as consolidate splits is off
+            if (!_parentsOnly)
             {
-                String newDescription = applyTextReplace(splitDescription, _replaceDescription,
-                                                         _replaceFoundDescriptionOnly);
-                if (!splitDescription.equals(newDescription))
+                final String splitDescription = _transaction.getSplitTxn().getDescription();
+                if (splitDescription != null)
                 {
-                    changed = true;
-                    _transaction.getSplitTxn().setDescription(newDescription);
+                    String newDescription = applyTextReplace(splitDescription, _replaceDescription,
+                            _replaceFoundDescriptionOnly);
+                    if (!splitDescription.equals(newDescription))
+                    {
+                        changed = true;
+                        _transaction.getSplitTxn().setDescription(newDescription);
+                    }
                 }
-            }
-            else if (!_replaceFoundDescriptionOnly)
-            {
-                // blow in the new description since it is blank
-                changed = true;
-                _transaction.getSplitTxn().setDescription(_replaceDescription);
+                else if (!_replaceFoundDescriptionOnly)
+                {
+                    // blow in the new description since it is blank
+                    changed = true;
+                    _transaction.getSplitTxn().setDescription(_replaceDescription);
+                }
             }
 
             // now check the parent
             final ParentTxn parent = _transaction.getParentTxn();
-            if ((parent != null) && (parent.getSplitCount() == 1))
+            if ((parent != null) && (_parentsOnly || (parent.getSplitCount() == 1)))
             {
                 final String parentDescription = _transaction.getParentTxn().getDescription();
                 if (parentDescription != null)
