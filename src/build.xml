@@ -394,32 +394,6 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
 
-  <target name="jpython" depends="init">
-    <delete file="${dist}/jpython.mxt"/>
-    <javac encoding="utf8" target="1.7" source="1.7" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-      classpathref="classpath" classpath="${lib}/jython-standalone-2.7.0.jar" destdir="${build}"
-      includes="com/moneydance/modules/features/jpython/**"/>
-    <jar destfile="${dist}/jpython.mxt">
-      <fileset dir="${src}" includes="
-             com/moneydance/modules/features/jpython/*.dict
-             com/moneydance/modules/features/jpython/*.gif" />
-      <fileset dir="${build}"
-        includes="com/moneydance/modules/features/jpython/*.class"/>
-      <zipgroupfileset dir="${lib}/" includes="jython-standalone-2.7.0.jar"/>
-    </jar>
-    <java newenvironment="true"
-      classpathref="classpath"
-      classname="com.moneydance.admin.KeyAdmin">
-      <arg value="signextjar"/>
-      <arg value="${extprivkeyfile}"/>
-      <arg value="${privkeyid}"/>
-      <arg value="jpython"/>
-      <arg line="${dist}/jpython.mxt"/>
-    </java>
-    <move file="${src}/s-jpython.mxt" tofile="${dist}/jpython.mxt"/>
-  </target>
-
-
   <target name="txtimport" depends="init">
     <javac target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
@@ -448,6 +422,23 @@ http://jakarta.apache.org/ant/index.html
     <delete file="${dist}/txtimport.mxt"/>
     <move file="${src}/s-txtimport.mxt" tofile="${dist}/txtimport.mxt"/>
   </target>
+
+  <target name="pythonsample" depends="init">
+    <jar destfile="${dist}/pythonsample.mxt">
+      <fileset dir="${src}/python_sample_extension" includes="**"/>
+    </jar>
+    <java newenvironment="true"
+          classpathref="classpath"
+          classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${extprivkeyfile}"/>
+      <arg value="${extprivkeyid}"/>
+      <arg value="pythonsample"/>
+      <arg line="${dist}/pythonsample.mxt"/>
+    </java>
+    <move file="${src}/s-pythonsample.mxt" tofile="${dist}/pythonsample.mxt"/>
+  </target>
+
 
   <target name="featureloader" depends="init" description="build the featureloader.mxt">
     <build-mxt feature="featureloader" javac-source="1.5" javac-target="1.5" />
@@ -483,6 +474,6 @@ http://jakarta.apache.org/ant/index.html
     </java>
   </target>
 
-  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport,featureloader,findandreplace,jpython"/>
+  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport,featureloader,findandreplace,pythonsample"/>
 
 </project>

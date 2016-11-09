@@ -1,0 +1,11 @@
+{
+  "extension_type" = "python"
+  "id" = "pythonsample"
+  "name" = "Sample Python Extension"
+  "minbuild" = "1000"
+  "module_build" = "1000"
+  
+  "vendor" = "The Infinite Kind"
+  "vendor_url" = "https://infinitekind.com/"
+  "desc" = "This is an extension intended purely for testing purposes"
+}
