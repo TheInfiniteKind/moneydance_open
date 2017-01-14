@@ -25,9 +25,10 @@ class BalanceHolder {
   private final int _startDate;
   private final int _endDate;
   private final boolean _dailyAverageComputed;
+  private final boolean _useStartBalance;
 
   BalanceHolder(Account account, long startBalance, long endBalance, long averageDailyBalance,
-                int startDate, int endDate, boolean dailyAverageComputed) {
+                int startDate, int endDate, boolean dailyAverageComputed, boolean useStartBalance) {
     _account = account;
     _startBalance = startBalance;
     _endBalance = endBalance;
@@ -35,6 +36,7 @@ class BalanceHolder {
     _startDate = startDate;
     _endDate = endDate;
     _dailyAverageComputed = dailyAverageComputed;
+    _useStartBalance = useStartBalance;
   }
 
   Account getAccount() { return _account; }
@@ -44,4 +46,5 @@ class BalanceHolder {
   int getStartDate() { return _startDate; }
   int getEndDate() { return _endDate; }
   boolean isAverageBalanceComputed() { return _dailyAverageComputed; }
+  boolean isStartBalanceUsed() { return _useStartBalance; }
 }

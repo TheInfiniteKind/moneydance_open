@@ -179,7 +179,7 @@ class RatioCompute {
       if (account.getAccountOrParentIsInactive()) continue;
       final BalanceHolder balance = useDailyAverage ?
                                     calculateBalancesWithDailyAverage(account, _balanceCache, asOfDates, dailyDates) :
-                                    calculateBalances(account, _balanceCache, asOfDates);
+                                    calculateBalances(account, _balanceCache, asOfDates, useStartBalance);
       // convert to the base currency
       final long accountStartBalance = CurrencyUtil.convertValue(balance.getStartBalance(),
                                                                  account.getCurrencyType(),
@@ -198,13 +198,13 @@ class RatioCompute {
       averageDailyBalance += accountAvgBalance;
 
       if (reporting != null) reporting.addAccountResult(account, accountStartBalance, accountEndBalance, accountAvgBalance,
-                                                        useDailyAverage, asOfDates[0], asOfDates[1]);
+                                                        useDailyAverage, asOfDates[0], asOfDates[1], useStartBalance);
     }
     // here you would subtract (endBalance - startBalance) if you wanted balance difference.
     return useDailyAverage ? averageDailyBalance : (useStartBalance ? startBalance : endBalance);
   }
 
-  private BalanceHolder calculateBalances(Account account, Map<Account, BalanceHolder> cache, int[] asOfDates) {
+  private BalanceHolder calculateBalances(Account account, Map<Account, BalanceHolder> cache, int[] asOfDates, boolean useStartBalance) {
     BalanceHolder result = (cache == null) ? null : cache.get(account);
     if (result == null) {
       // this will get balances in the account's currency type
@@ -228,9 +228,9 @@ class RatioCompute {
         }
       }
       if (account.balanceIsNegated()) {
-        result = new BalanceHolder(account, -balances[0], -balances[1], 0, asOfDates[0], asOfDates[1], false);
+        result = new BalanceHolder(account, -balances[0], -balances[1], 0, asOfDates[0], asOfDates[1], false, useStartBalance);
       } else {
-        result = new BalanceHolder(account, balances[0], balances[1], 0, asOfDates[0], asOfDates[1], false);
+        result = new BalanceHolder(account, balances[0], balances[1], 0, asOfDates[0], asOfDates[1], false, useStartBalance);
       }
       if (cache != null) cache.put(account, result);
     }
@@ -264,9 +264,9 @@ class RatioCompute {
       for (int index = 0; index < numDays; index++) average += balances[index];
       long averageDailyBalance = Math.round(average / (double)numDays);
       if (account.balanceIsNegated()) {
-        result = new BalanceHolder(account, -balances[0], -balances[numDays-1], averageDailyBalance, asOfDates[0], asOfDates[1], true);
+        result = new BalanceHolder(account, -balances[0], -balances[numDays-1], averageDailyBalance, asOfDates[0], asOfDates[1], true, false);
       } else {
-        result = new BalanceHolder(account, balances[0], balances[numDays-1], averageDailyBalance, asOfDates[0], asOfDates[1], true);
+        result = new BalanceHolder(account, balances[0], balances[numDays-1], averageDailyBalance, asOfDates[0], asOfDates[1], true, false);
       }
       if (cache != null) cache.put(account, result);
     }

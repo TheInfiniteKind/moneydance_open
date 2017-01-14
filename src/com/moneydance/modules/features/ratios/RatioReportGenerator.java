@@ -385,7 +385,7 @@ class RatioReportGenerator extends ReportGenerator {
     rpt.addRow(row);
   }
 
-  void addAccountTypeRow(Report rpt, Account.AccountType accountType, boolean isAverageBalance, boolean showAmountTitle) {
+  void addAccountTypeRow(Report rpt, Account.AccountType accountType, boolean isAverageBalance, boolean isStartBalance, boolean showAmountTitle) {
     final String[] labels = new String[NUM_COLUMNS];
     final byte[] align = new byte[NUM_COLUMNS];
     final byte[] color = new byte[NUM_COLUMNS];
@@ -397,7 +397,9 @@ class RatioReportGenerator extends ReportGenerator {
     if (showAmountTitle && isAverageBalance) {
       labels[4] = _mainModel.getResources().getString(L10NRatios.AVERAGE_BALANCE);
     } else if (showAmountTitle) {
-      labels[4] = mdGUI.getStr(L10NRatios.ENDING_BALANCE);
+      labels[4] = isStartBalance ?
+                  _mainModel.getResources().getString(L10NRatios.START_BALANCE) :
+                  _mainModel.getResources().getString(L10NRatios.END_BALANCE);
     }
     style[0] = RecordRow.STYLE_PLAIN;
     align[0] = RecordRow.ALIGN_LEFT;
@@ -453,7 +455,11 @@ class RatioReportGenerator extends ReportGenerator {
 
   RecordRow createAccountReportRow(BalanceHolder accountResult, boolean showFullAccountName,
                                    CurrencyType baseCurrency, int[] widths) {
-    final long accountBalance = accountResult.isAverageBalanceComputed() ? accountResult.getAverageBalance() : accountResult.getEndBalance();
+    final long accountBalance =
+      accountResult.isAverageBalanceComputed() ?
+        accountResult.getAverageBalance() :
+      (accountResult.isStartBalanceUsed() ? accountResult.getStartBalance() : accountResult.getEndBalance());
+
     // do not show zero balance accounts - currently only checking the end balance since that is all we use
     if (accountBalance == 0) return null;
 

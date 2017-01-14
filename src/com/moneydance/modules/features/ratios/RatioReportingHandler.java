@@ -77,8 +77,8 @@ class RatioReportingHandler
   }
 
   public void addAccountResult(Account account, long startBalance, long endBalance, long averageBalance, 
-                               boolean useAverage, int startDate, int endDate) {
-    _accountCache.put(account, new BalanceHolder(account, startBalance, endBalance, averageBalance, startDate, endDate, useAverage));
+                               boolean useAverage, int startDate, int endDate, boolean useStartDate) {
+    _accountCache.put(account, new BalanceHolder(account, startBalance, endBalance, averageBalance, startDate, endDate, useAverage, useStartDate));
   }
 
   public void endReportAccountSection() {
@@ -97,7 +97,7 @@ class RatioReportingHandler
                                                               _baseCurrency, _widths);
       // these won't change from account to account
       isAverageBalance = result.isAverageBalanceComputed();
-      endingDate = result.getEndDate();
+      endingDate = result.isStartBalanceUsed() ? result.getStartDate() : result.getEndDate();
       if (row != null) {
         if (account.getAccountType() != accountType) {
           // close up shop on the previous type, skipping -1 and 0 (root account type)
@@ -107,10 +107,12 @@ class RatioReportingHandler
           // change to the new type
           accountType = account.getAccountType();
           // add a header
-          _reportGenerator.addAccountTypeRow(_report, accountType, isAverageBalance, true);
+          _reportGenerator.addAccountTypeRow(_report, accountType, isAverageBalance, result.isStartBalanceUsed(), true);
         }
         _report.addRow(row);
-        typeTotal += isAverageBalance ? result.getAverageBalance() : result.getEndBalance();
+        typeTotal += isAverageBalance ?
+                     result.getAverageBalance() :
+                     (result.isStartBalanceUsed() ? result.getStartBalance() : result.getEndBalance());
       }
     }
     // wrap up last account type if needed
@@ -145,7 +147,7 @@ class RatioReportingHandler
           // change to the new type
           accountType = txn.getAccount().getAccountType();
           // add a header
-          _reportGenerator.addAccountTypeRow(_report, accountType, false, false);
+          _reportGenerator.addAccountTypeRow(_report, accountType, false, false, false);
         }
         _report.addRow(row);
         typeTotal += info.convertedValue;
