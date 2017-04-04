@@ -551,7 +551,6 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
     }
 
     if(src==repairAction){
-    	//TODO user input
     	String s = (String)JOptionPane.showInputDialog(
                 null,
                 "Convert budget values to what year?",
@@ -804,7 +803,6 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 	      }
 		          
 	      if(displayActual){
-	    	  //TODO
 	    	  dataModel.addRow( new Object[] {acctName,
 						data.getSpendingValue(acctName, 1).sign(showNegative).toString(),
 						data.getSpendingValue(acctName, 2).sign(showNegative).toString(),
