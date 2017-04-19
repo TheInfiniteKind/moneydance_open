@@ -25,7 +25,7 @@ import java.net.URLEncoder;
  * @author Sean Reilly - The Infinite Kind, LLC
  */
 public class FXConnection extends BaseConnection {
-  private static final String CURRENT_BASE_URL = "http://download.finance.yahoo.com/d/quotes.csv";
+  private static final String CURRENT_BASE_URL = "https://download.finance.yahoo.com/d/quotes.csv";
   // the rest of it: ?s=USDEUR=X&f=sl1d1t1c1ohgv&e=.csv"
   private final String _displayName;
   static final String PREFS_KEY = "yahooRates";
