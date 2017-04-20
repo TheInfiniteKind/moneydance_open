@@ -1,5 +1,5 @@
 /************************************************************\
- *      Copyright (C) 2008 Reilly Technologies, L.L.C.      *
+ *        Copyright 2017 The Infinite Kind, Limited         *
 \************************************************************/
 
 package com.moneydance.modules.features.paypalas;
