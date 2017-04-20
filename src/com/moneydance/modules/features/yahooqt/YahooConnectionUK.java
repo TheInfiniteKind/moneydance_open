@@ -21,8 +21,8 @@ import java.text.SimpleDateFormat;
  */
 public class YahooConnectionUK extends YahooConnection {
 
-  private static final String HISTORY_URL_BASE =       "http://ichart.yahoo.com/table.csv";
-  private static final String CURRENT_PRICE_URL_BASE = "http://uk.old.finance.yahoo.com/d/quotes.csv";
+  private static final String HISTORY_URL_BASE =       "https://ichart.yahoo.com/table.csv";
+  private static final String CURRENT_PRICE_URL_BASE = "https://uk.old.finance.yahoo.com/d/quotes.csv";
   private final String _displayName;
   static final String PREFS_KEY = "yahooUK";
 

@@ -18,9 +18,9 @@ import java.text.SimpleDateFormat;
  */
 public class YahooConnectionUSA extends YahooConnection {
 
-  private static final String HISTORY_URL_BASE =       "http://ichart.finance.yahoo.com/table.csv";
-//  private static final String CURRENT_PRICE_URL_BASE = "http://finance.yahoo.com/d/quotes.csv";
-  private static final String CURRENT_PRICE_URL_BASE = "http://download.finance.yahoo.com/d/quotes.csv";
+  private static final String HISTORY_URL_BASE =       "https://ichart.finance.yahoo.com/table.csv";
+//  private static final String CURRENT_PRICE_URL_BASE = "https://finance.yahoo.com/d/quotes.csv";
+  private static final String CURRENT_PRICE_URL_BASE = "https://download.finance.yahoo.com/d/quotes.csv";
   private final String _displayName;
   static final String PREFS_KEY = "yahooUSA";
 

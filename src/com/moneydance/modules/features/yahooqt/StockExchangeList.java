@@ -29,8 +29,8 @@ import java.util.TreeMap;
  * <a href="http://en.wikipedia.org/wiki/List_of_stock_exchanges">
  * http://en.wikipedia.org/wiki/List_of_stock_exchanges</a>.
  * <p/>
- * Yahoo exchange list is currently here: <a href="http://finance.yahoo.com/exchanges">
- * http://finance.yahoo.com/exchanges</a>. Some stuff was found for Google here:
+ * Yahoo exchange list is currently here: <a href="https://finance.yahoo.com/exchanges">
+ * https://finance.yahoo.com/exchanges</a>. Some stuff was found for Google here:
  * <a href="http://directory.google.com/Top/Business/Investing/Stocks_and_Bonds/Exchanges/">
  * http://directory.google.com/Top/Business/Investing/Stocks_and_Bonds/Exchanges/</a>, however
  * in general it is hard to find good information from Google Finance currently.
