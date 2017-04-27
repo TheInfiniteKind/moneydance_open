@@ -10,11 +10,13 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.moneydance.apps.md.model.CurrencyType;
 
+import javax.net.ssl.SSLHandshakeException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.cert.CertificateException;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
@@ -57,21 +59,34 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
     return (!SQUtil.isBlank(_urlString));
   }
 
-  @Override
-  protected BufferedReader getInputStream()
-          throws IOException, DownloadException, NumberFormatException
+  
+  
+  private BufferedReader getInputStreamFromURL(String urlString) 
+    throws IOException, DownloadException, NumberFormatException, CertificateException
   {
-    URL url = new URL(_urlString);
+    System.err.println("trying to retrieve URL: "+urlString);
+    URL url = new URL(urlString);
     HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
     int respCode = 0;
     String errorText = null;
     boolean error = true;
+
     try {
       respCode = urlConn.getResponseCode();
       error = false;
+    } catch (SSLHandshakeException e) {
+      System.err.println("caught Exception: "+e);
+      if (_urlString.indexOf("https:") == 0) {
+        // if we tried and failed to load the URL via https, try with regular http
+        return getInputStreamFromURL(urlString.replace("https://", "http://"));
+      } else {
+        throw e;
+      }
     } catch (IOException e) {
+      System.err.println("caught IOException: "+e);
       errorText = _resources.getString(L10NStockQuotes.IMPORT_ERROR_COMM);
     } catch (NumberFormatException e) {
+      System.err.println("caught NFE: "+e);
       errorText = _resources.getString(L10NStockQuotes.IMPORT_ERROR_NUMBER);
     } catch (Exception ex) {
       errorText = ex.getMessage();
@@ -79,17 +94,25 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
     if (error) {
       final String responseMessage = urlConn.getResponseMessage();
       final String message = MessageFormat.format(
-              _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_FMT), errorText, responseMessage);
+        _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_FMT), errorText, responseMessage);
       throw new DownloadException(_currency, message);
     }
     if(respCode<200 || respCode >= 300) {
       final String responseMessage = urlConn.getResponseMessage();
       final String message = MessageFormat.format(
-              _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_CODE_FMT),
-              Integer.valueOf(respCode), responseMessage);
+        _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_CODE_FMT),
+        Integer.valueOf(respCode), responseMessage);
       throw new DownloadException(_currency, message);
     }
-
+    
     return new BufferedReader(new InputStreamReader(url.openStream(), "UTF8"));
+
+  }
+  
+  @Override
+  protected BufferedReader getInputStream()
+          throws IOException, DownloadException, NumberFormatException, CertificateException
+  {
+    return getInputStreamFromURL(_urlString);
   }
 }

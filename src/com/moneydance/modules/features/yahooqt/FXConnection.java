@@ -65,7 +65,23 @@ public class FXConnection extends BaseConnection {
     URL url = new URL(urlStr.toString());
     HttpURLConnection conn = (HttpURLConnection)url.openConnection();
     conn.addRequestProperty("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.73.11 (KHTML, like Gecko) Version/7.0.1 Safari/537.73.11");
-    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF8"));
+    BufferedReader in;
+    
+    try {
+      in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF8"));
+    } catch (Exception certEx) {
+      if(urlStr.indexOf("https:")!=0) {
+        throw certEx;
+      } else {
+        // if we tried and failed to load the URL via https, try with regular http
+        urlStr.replace(0, "https:".length(), "http:");
+        url = new URL(urlStr.toString());
+        conn = (HttpURLConnection) url.openConnection();
+        conn.addRequestProperty("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.73.11 (KHTML, like Gecko) Version/7.0.1 Safari/537.73.11");
+        in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF8"));
+      }
+    }
+    
     // read the message...
     double rate = -1;
     while (true) {

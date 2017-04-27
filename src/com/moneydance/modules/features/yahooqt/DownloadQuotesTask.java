@@ -255,6 +255,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
           latestPriceDate = convertTimeFromGMT(record.dateTimeGMT);
         }
       } catch (DownloadException e) {
+        e.printStackTrace(System.err);
         final CurrencyType currency = (e.getCurrency() != null) ? e.getCurrency() : currType;
         String message = MessageFormat.format(
                 _resources.getString(L10NStockQuotes.ERROR_CURRENT_FMT),

@@ -3,7 +3,7 @@
 <properties>
     <comment>All localizable strings used by the Stock Quotes Synchronizer plugin.</comment>
 
-    <entry key="title.text">Quotes and Exchange Rates</entry>
+    <entry key="title.text">Quotes and Exchange Rates Updater</entry>
 
     <!-- main configuration dialog -->
     <entry key="settings.title">Quotes and Exchange Rates Settings</entry>

@@ -35,7 +35,7 @@ class N12EStockQuotes {
   /**
    * The title of the extension, if unavailable from resources.
    */
-  static final String TITLE = "Stock Quote Synchronizer";
+  static final String TITLE = "Quotes and Exchange Rates Updater";
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //  Settings Keys

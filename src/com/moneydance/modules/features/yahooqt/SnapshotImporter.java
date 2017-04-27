@@ -15,6 +15,7 @@ import com.moneydance.util.StringUtils;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -102,7 +103,7 @@ public abstract class SnapshotImporter
     _defaultTimeFormat = new SimpleDateFormat("h:mma");
     if (timeZone != null) _defaultTimeFormat.setTimeZone(timeZone);
   }
-
+  
   /**
    * Set format auto-detect, which requires that the first line of data be a header line containing
    * {@link #DATE_KEY} and {@link #CLOSE_KEY} at minimum, and optionally any of the other pre-
@@ -372,7 +373,7 @@ public abstract class SnapshotImporter
   protected abstract void onEndImport(int errorCount);
   protected abstract boolean isInputStreamValid();
   protected abstract BufferedReader getInputStream() 
-          throws IOException, DownloadException, NumberFormatException;
+          throws IOException, DownloadException, NumberFormatException, CertificateException;
 
   private static CurrencyType.Snapshot addOrUpdateSnapshot(CurrencyType currency,
                                                            CurrencyType baseCurrency,
