@@ -122,6 +122,11 @@ public abstract class YahooConnection extends BaseConnection {
    *
    * So the selected format (column order of returned data) is:<br/>
    * {Symbol}{Last Trade (Close)}{Last Trade Date}{Last Trade Time}{Change}{Open}{High}{Low}{Volume}
+   *
+   * Updated 7/2017:
+   * Previous URLs no longer work. But https://stackoverflow.com/questions/44044263/yahoo-finance-historical-data-downloader-url-is-not-working
+   * has a workaround that uses the standard Yahoo historical data interface. Used his Python code as a model
+   * for (minor)changes to yahooqt.
    */
   protected static final String CURRENT_PRICE_FORMAT = "sl1d1t1c1ohgv";
 
