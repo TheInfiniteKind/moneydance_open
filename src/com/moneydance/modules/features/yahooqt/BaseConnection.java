@@ -203,6 +203,8 @@ public abstract class BaseConnection {
 
   protected StockQuotesModel getModel() { return _model; }
 
+  protected String getCookie() { return null; }
+
   
   //////////////////////////////////////////////////////////////////////////////////////////////
   //  Private Methods
@@ -244,7 +246,7 @@ public abstract class BaseConnection {
 
     SimpleDateFormat defaultDateFormat = getExpectedDateFormat(getFullHistory);
     char decimal = _model.getPreferences().getDecimalChar();
-    SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, _model.getResources(),
+    SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, getCookie(), _model.getResources(),
             securityCurrency, defaultDateFormat, _timeZone, decimal);
     if (getFullHistory) {
       importer.setAutodetectFormat(true);

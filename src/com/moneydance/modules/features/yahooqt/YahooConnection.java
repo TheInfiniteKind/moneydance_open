@@ -9,12 +9,18 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.DateRange;
-import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.util.StringUtils;
+import com.moneydance.apps.md.controller.Util;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Calendar;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Base class for a download connection to the Yahoo! Finance service.
@@ -119,6 +125,10 @@ public abstract class YahooConnection extends BaseConnection {
    */
   protected static final String CURRENT_PRICE_FORMAT = "sl1d1t1c1ohgv";
 
+  // Codes necessary to retrieve historical data.
+  private String cookie = null;
+  private String crumble = null;
+
   public YahooConnection(StockQuotesModel model) {
     super(model, BaseConnection.HISTORY_SUPPORT | BaseConnection.CURRENT_PRICE_SUPPORT);
   }
@@ -155,16 +165,13 @@ public abstract class YahooConnection extends BaseConnection {
 
   @Override
   public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
+    setCookieAndCrumble(fullTickerSymbol);
     StringBuilder result = new StringBuilder(getHistoryBaseUrl());
     Calendar cal = Calendar.getInstance();
     cal.setTime(Util.convertIntDateToLong(dateRange.getEndDateInt()));
-    int ed = cal.get(Calendar.DAY_OF_MONTH);
-    int em = cal.get(Calendar.MONTH);
-    int ey = cal.get(Calendar.YEAR);
+    long endTimeInEpoch = cal.getTimeInMillis() / 1000;
     cal.add(Calendar.DATE, -dateRange.getNumDays());
-    int sd = cal.get(Calendar.DAY_OF_MONTH);
-    int sm = cal.get(Calendar.MONTH);
-    int sy = cal.get(Calendar.YEAR);
+    long startTimeInEpoch = cal.getTimeInMillis() / 1000;
 
     String encTicker;
     try {
@@ -174,23 +181,17 @@ public abstract class YahooConnection extends BaseConnection {
       // supported by every Java implementation
       encTicker = fullTickerSymbol;
     }
+
     // add the parameters
-    result.append("?s=");           // symbol
-    result.append(encTicker);
-    result.append("&d=");           // ending month
-    result.append(em);
-    result.append("&e=");           // ending day
-    result.append(ed);
-    result.append("&f=");           // ending year
-    result.append(ey);
-    result.append("&g=d");          // interval (d=daily, w=weekly, m=monthly)
-    result.append("&a=");           // starting month
-    result.append(sm);
-    result.append("&b=");           // starting day
-    result.append(sd);
-    result.append("&c=");           // starting year
-    result.append(sy);
-    result.append("&ignore=.csv");  // response format
+    result.append(encTicker);       // symbol
+    result.append("?period1=");     // start date
+    result.append(startTimeInEpoch);
+    result.append("&period2=");     // end date
+    result.append(endTimeInEpoch);
+    result.append("&interval=1d");  // interval
+    result.append("&events=history"); // history
+    result.append("&crumb=");       // crumble
+    result.append(crumble);
     return result.toString();
   }
 
@@ -214,6 +215,50 @@ public abstract class YahooConnection extends BaseConnection {
     result.append("&e=.csv");            // response format
     return result.toString();
   }
+
+  private final String crumbleLink = "https://finance.yahoo.com/quote/%1$s/history?p=%1$s";
+  private final String crumbleRegEx = ".*\"CrumbStore\":[{]\"crumb\":\"(.*?)\"}.*";
+
+  private void setCookieAndCrumble(String fullTickerSymbol) {
+    cookie = null;
+    crumble = null;
+    try {
+      String urlString = String.format(crumbleLink, fullTickerSymbol);
+      URL url = new URL(urlString);
+      HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
+      int respCode = urlConn.getResponseCode();
+      if (respCode < 200 | respCode >= 300) {
+        return;
+      }
+
+      for (int i = 0; ; i++) {
+        String key = urlConn.getHeaderFieldKey(i);
+        String value = urlConn.getHeaderField(i);
+        if (key == null && value == null) {
+          return;
+        }
+        if (key != null && key.equals("Set-Cookie")) {
+          cookie = value.substring(0, value.indexOf(";"));
+          break;
+        }
+      }
+
+      Pattern p = Pattern.compile(crumbleRegEx);
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
+      String line = null;
+      while ((line = bufferedReader.readLine()) != null) {
+        Matcher m = p.matcher(line);
+        if (m.matches()) {
+          crumble = m.group(1);
+          break;
+        }
+      }
+    } catch (Exception e) {
+      return;  // If anything goes wrong, there will be no cookie
+    }
+  }
+
+  protected String getCookie() { return cookie; }
 
   protected String getCurrentPriceFormat() {
     return CURRENT_PRICE_FORMAT;
