@@ -26,20 +26,23 @@ import java.util.TimeZone;
  */
 public class SnapshotImporterFromURL extends SnapshotImporter {
   private final String _urlString;
+  private final String _cookieString;
 
   /**
    * Constructor to allow input fields to be final.
    * @param url          The URL to read the data from.
+   * @param cookie       The name of the cookie, or null if non exists.
    * @param resources    Object to look up localized resources.
    * @param currency     The currency whose history will be updated from the file.
    * @param dateFormat   The user-specified date format.
    * @param timeZone     Time zone to use when parsing downloaded time values.
    * @param userDecimal  The user-specified character to use as a decimal point.
    */
-  public SnapshotImporterFromURL(String url, ResourceProvider resources, CurrencyType currency,
+  public SnapshotImporterFromURL(String url, String cookie, ResourceProvider resources, CurrencyType currency,
                           SimpleDateFormat dateFormat, TimeZone timeZone, char userDecimal) {
     super(resources, currency, dateFormat, timeZone, userDecimal);
     _urlString = url;
+    _cookieString = cookie;
   }
 
   @Override
@@ -63,6 +66,9 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
   {
     URL url = new URL(_urlString);
     HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
+    if (_cookieString != null) {
+      urlConn.setRequestProperty("Cookie", _cookieString);
+    }
     int respCode = 0;
     String errorText = null;
     boolean error = true;
@@ -89,7 +95,6 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
               Integer.valueOf(respCode), responseMessage);
       throw new DownloadException(_currency, message);
     }
-
-    return new BufferedReader(new InputStreamReader(url.openStream(), "UTF8"));
+    return new BufferedReader(new InputStreamReader(urlConn.getInputStream(), "UTF8"));
   }
 }
