@@ -17,8 +17,7 @@ import java.text.SimpleDateFormat;
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public class YahooConnectionUSA extends YahooConnection {
-
-  private static final String HISTORY_URL_BASE =       "https://ichart.finance.yahoo.com/table.csv";
+  private static final String HISTORY_URL_BASE = "https://query1.finance.yahoo.com/v7/finance/download/";
 //  private static final String CURRENT_PRICE_URL_BASE = "http://finance.yahoo.com/d/quotes.csv";
   private static final String CURRENT_PRICE_URL_BASE = "https://download.finance.yahoo.com/d/quotes.csv";
   private final String _displayName;
