@@ -8,6 +8,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Hashtable;
@@ -36,8 +37,8 @@ public class BudgetPreferencesWindow extends JFrame {
 	    private static final long serialVersionUID = 1L;
 	    private Main         extension;
 	    
-	    private JComboBox accountMain;
-	    private JComboBox defaultBudget;
+	    private JComboBox<String> accountMain;
+	    private JComboBox<String> defaultBudget;
 	    private JRadioButton yesButton;
 	    private JRadioButton noButton;
 	    private JTextField textThreshold;
@@ -56,11 +57,11 @@ public class BudgetPreferencesWindow extends JFrame {
             JPanel pPublish = new JPanel(new GridBagLayout());
 
             JLabel labelAcct = new JLabel( "Main Account"  );
-             accountMain = new JComboBox();
+             accountMain = new JComboBox<String>();
             
             
             JLabel labelBudget = new JLabel( "Default Budget"  );
-            defaultBudget = new JComboBox();
+            defaultBudget = new JComboBox<String>();
             
             JLabel labelTax = new JLabel( "Group Tax w/Income"  );
             yesButton = new JRadioButton("Yes");
@@ -179,10 +180,18 @@ public class BudgetPreferencesWindow extends JFrame {
 	  		BudgetData data = this.extension.getBudgetData();
 	  		List<Budget> budgetList = data.getBudgetList().getAllBudgets();
 	  		
+	  		//Sort Budgets by Name
+	  		List<String> budgetNames = new ArrayList<String>();
+	  		for (int i = 0; i < budgetList.size(); i++) {
+	  			String thisBudget = budgetList.get(i).getName();
+	  			budgetNames.add(thisBudget);
+	  		}
+	  		Collections.sort(budgetNames);
+	  		
 	  		String startingBudget = prefs.getDefaults("budget");
 	  		
-	  		for (int i = 0; i < budgetList.size(); i++) {
-	  		  String thisBudget = budgetList.get(i).getName();
+	  		for (int i = 0; i < budgetNames.size(); i++) {
+	  		  String thisBudget = (String)budgetNames.get(i);
 	  			
 	  		  defaultBudget.addItem(thisBudget);
 	  		  if(startingBudget.equalsIgnoreCase(thisBudget)){

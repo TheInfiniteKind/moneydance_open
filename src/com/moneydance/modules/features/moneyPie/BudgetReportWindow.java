@@ -56,8 +56,8 @@ public class BudgetReportWindow extends JFrame {
         private JButton     printButton;
         private JButton     publishButton;
         private JButton     closeButton;
-        private JComboBox   reportPeriod;
-        private JComboBox   reportYear;
+        private JComboBox <String>  reportPeriod;
+        private JComboBox <String>  reportYear;
 
 
         private String[] periodList;
@@ -86,7 +86,7 @@ public class BudgetReportWindow extends JFrame {
                     "November",
                     "December"
              };
-            reportPeriod = new JComboBox(periodList);
+            reportPeriod = new JComboBox<String>(periodList);
 
             Calendar cal = Calendar.getInstance();
             reportPeriod.setSelectedIndex(cal.get(Calendar.MONTH));
@@ -104,7 +104,7 @@ public class BudgetReportWindow extends JFrame {
             		"Accounts"
              };
 
-            reportYear = new JComboBox(yearList);
+            reportYear = new JComboBox<String>(yearList);
             reportYear.setSelectedIndex(0);
             reportYear.addActionListener(new ActionListener() {
             	public void actionPerformed(ActionEvent e) {

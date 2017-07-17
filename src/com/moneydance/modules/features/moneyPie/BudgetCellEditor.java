@@ -14,12 +14,14 @@ import java.awt.event.MouseEvent;
 @SuppressWarnings("serial")
 public class BudgetCellEditor extends AbstractCellEditor implements TableCellEditor,  ActionListener {	
 	private BudgetData  data;
+	private BudgetWindow main;
 	private BudgetValue currentValue;
 	private JTextField  field;
 	
-	public BudgetCellEditor(BudgetData data) {
+	public BudgetCellEditor(BudgetData data, BudgetWindow budgetWindow) {
 		currentValue = new BudgetValue(data, 0);
 		this.data = data;
+		this.main = budgetWindow;
 		
 		field = new JTextField();
 		field.setText(currentValue.toString());
@@ -34,6 +36,10 @@ public class BudgetCellEditor extends AbstractCellEditor implements TableCellEdi
 	}
 	
 	public boolean isCellEditable(EventObject evt) {
+		if(main.displayActual){
+			return false;
+		}
+		
         if (evt instanceof MouseEvent) {
             int clickCount = 2;
 
