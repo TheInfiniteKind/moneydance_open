@@ -231,6 +231,8 @@ public abstract class YahooConnection extends BaseConnection {
       String urlString = String.format(crumbleLink, fullTickerSymbol);
       URL url = new URL(urlString);
       HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
+      urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11");
+
       int respCode = urlConn.getResponseCode();
       if (respCode < 200 | respCode >= 300) {
         return;
