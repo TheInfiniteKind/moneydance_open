@@ -45,7 +45,6 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.axis.AxisLocation;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.ui.RectangleEdge;
 
 public class BudgetForecast extends JDialog implements ActionListener, Runnable {
   private static final long serialVersionUID = 7904680121905462798L;
@@ -56,8 +55,8 @@ public class BudgetForecast extends JDialog implements ActionListener, Runnable 
   private JPanel              mp, bigP, smaP, bp, bpl, bpr;
   private JScrollPane         tp;
   private JButton             btRefresh;
-  private JComboBox           cbFutuIntervals   = new JComboBox();
-  private JComboBox           cbFutuNum         = new JComboBox();
+  private JComboBox <String>  cbFutuIntervals   = new JComboBox<String>();
+  private JComboBox <String>  cbFutuNum         = new JComboBox<String>();
   private BudgetForecastConf  predConf          = null;
   private Date                prDate            = new Date();
   private GridBagLayout       gbl               = new GridBagLayout();
