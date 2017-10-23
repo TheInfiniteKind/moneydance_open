@@ -320,7 +320,7 @@ public class PriceEntryExec {
              int asOfDate, boolean makeCurrent) {
         CurrencyType security = allSecurities [securityIndex];
         double rate = 1 / Util.safeRate(price);
-        security.addSnapshotInt (asOfDate, rate).syncItem();
+        security.setSnapshotInt (asOfDate, rate).syncItem();
         if (makeCurrent) {
             security.setUserRate(rate);
             security.syncItem();

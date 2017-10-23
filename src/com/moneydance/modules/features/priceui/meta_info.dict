@@ -1,24 +1,8 @@
 {
   "vendor" = "The Infinite Kind"
-  "module_build" = "101"
+  "module_build" = "102"
   "minbuild" = "1000"
   "vendor_url" = "http://infinitekind.com"
   "module_name" = "Security Price Entry"
-  "module_desc" = 
-    "<html>
-       <body>
-         <p>
-          This extension is designed for those users who need to, or prefer to, enter
-          prices manually for securities they own (or otherwise follow).  While Moneydance
-          provides a way of doing this, the extension makes the operation faster and easier.
-          This is especially true if you are entering prices for multiple securities,
-          but all of them 'as of' the same date: for example, as of the last day of the
-          previous month, such as when you are entering them from your broker's most recent
-          monthly statement.
-        </p>
-        <!--http://www.songline-software.com/home/security-price-entry/description-->
-      </body>
-    </html>"
-
   "desc" = "Provides a quicker and easier way to enter recent prices for multiple securities."
 }
