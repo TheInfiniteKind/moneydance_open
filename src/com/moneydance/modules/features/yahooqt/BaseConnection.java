@@ -33,7 +33,7 @@ public abstract class BaseConnection {
   private final StockQuotesModel _model;
   private final TimeZone _timeZone;
   private final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-
+  
   public BaseConnection(StockQuotesModel model, final int capabilities) {
     _model = model;
     _capabilities = capabilities;
@@ -123,8 +123,23 @@ public abstract class BaseConnection {
     return history.getRecord(0);
   }
 
-  public abstract String getId();
 
+  /**
+   * Retrieve the current information for the given stock ticker symbol.
+   * @param currencyID      The string identifier of the currency to start with ('from').
+   * @param baseCurrencyID  The string identifier of the currency to end with ('to').
+   * @return The downloaded exchange rate definition.
+   * @throws Exception If an error occurs during download.
+   */
+  public ExchangeRate getCurrentRate(String currencyID, String baseCurrencyID)
+    throws Exception
+  {
+    throw new Exception("Exchange rate retrieval not implemented in "+this);
+  }
+
+
+  public abstract String getId();
+  
   public boolean canGetHistory() {
     return ((_capabilities & HISTORY_SUPPORT) != 0);
   }
@@ -132,7 +147,7 @@ public abstract class BaseConnection {
   public boolean canGetCurrentPrice() {
     return ((_capabilities & CURRENT_PRICE_SUPPORT) != 0);
   }
-
+  
   public boolean canGetRates() {
     return ((_capabilities & EXCHANGE_RATES_SUPPORT) != 0);
   }
@@ -204,7 +219,7 @@ public abstract class BaseConnection {
   protected StockQuotesModel getModel() { return _model; }
 
   protected String getCookie() { return null; }
-
+  
   
   //////////////////////////////////////////////////////////////////////////////////////////////
   //  Private Methods
@@ -321,5 +336,19 @@ public abstract class BaseConnection {
       throw new DownloadException(securityCurrency, message);
     }
   }
+
+
+  public class ExchangeRate {
+    private final double rate;
+
+    ExchangeRate(double rate) {
+      this.rate = rate;
+    }
+
+    public double getRate() {
+      return this.rate;
+    }
+  }
+
 
 }

@@ -46,7 +46,7 @@ public class IntervalChooser extends JComboBox {
   private IntervalChooser(MDResourceProvider resources, TimeInterval[] items, int defaultIndex) {
     for (TimeInterval interval : items) {
       // Graphs show data in intervals, reports subtotal after intervals
-      final String display = resources.getStr(interval.getDivisorResourceKey());
+      final String display = resources.getStr(interval==null ? "" : interval.getDivisorResourceKey());
       addItem(new ListItem(interval, display));
     }
     setSelectedIndex(defaultIndex);
@@ -84,7 +84,7 @@ public class IntervalChooser extends JComboBox {
   private class ListItem {
     private final TimeInterval _interval;
     private final String _displayString;
-
+    
     ListItem(TimeInterval interval, String display) {
       _interval = interval;
       _displayString = display;

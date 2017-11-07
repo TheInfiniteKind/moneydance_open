@@ -68,7 +68,7 @@ public class DownloadRatesTask implements Callable<Boolean> {
         
         System.err.println("updating currency: "+currencyType+" ("+currencyType.getTickerSymbol()+")");
         try {
-          final FXConnection connection = (FXConnection) _model.getSelectedExchangeRatesConnection();
+          BaseConnection connection = _model.getSelectedExchangeRatesConnection();
           double rate = getRate(currencyType, baseCurrency, connection);
           progressPercent += progressIncrement;
           final String message, logMessage;
@@ -115,9 +115,10 @@ public class DownloadRatesTask implements Callable<Boolean> {
   // Private Methods
   ///////////////////////////////////////////////////////////////////////////////////////////////
 
-  private double getRate(CurrencyType currType, CurrencyType baseType, FXConnection connection)
-      throws Exception {
-    FXConnection.ExchangeRate rateInfo =
+  private double getRate(CurrencyType currType, CurrencyType baseType, BaseConnection connection)
+    throws Exception 
+  {
+    BaseConnection.ExchangeRate rateInfo =
         connection.getCurrentRate(currType.getIDString(), baseType.getIDString());
     if (rateInfo == null) {
       return -1.0;

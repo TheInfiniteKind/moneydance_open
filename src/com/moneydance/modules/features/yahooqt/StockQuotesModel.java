@@ -45,7 +45,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private BaseConnection _selectedCurrentPriceConnection = null;
   private BaseConnection _selectedExchangeRatesConnection = null;
   private boolean _saveCurrentInHistorical = false;
-  private Vector<BaseConnection> _connectionList = null;
+  private List<BaseConnection> _connectionList = null;
   private int _historyDays = 5;
   private boolean _dirty = false;
 
@@ -423,7 +423,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
       _currentTask = task;
     }
   }
-
+  
   private void loadSelectedConnections() {
     _selectedHistoryConnection = null;
     _selectedCurrentPriceConnection = null;
@@ -463,7 +463,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     // currency exchange rates
     key = book.getRootAccount().getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
-      key = FXConnection.PREFS_KEY; // default
+      key = AlphavantageConnection.PREFS_KEY; // default
     }
     if (NO_CONNECTION.getId().equals(key)) {
       _selectedExchangeRatesConnection = NO_CONNECTION;
@@ -491,14 +491,8 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   private void buildConnectionList(ResourceProvider resources) {
-    _connectionList = new Vector<BaseConnection>();
-    String displayName = resources.getString(L10NStockQuotes.YAHOO_USA);
-    _connectionList.add(new YahooConnectionUSA(this, displayName));
-    displayName = resources.getString(L10NStockQuotes.YAHOO_UK);
-    _connectionList.add(new YahooConnectionUK(this, displayName));
-    displayName = resources.getString(L10NStockQuotes.GOOGLE);
-    _connectionList.add(new GoogleConnection(this, displayName));
-    displayName = resources.getString(L10NStockQuotes.YAHOO_RATES);
-    _connectionList.add(new FXConnection(this, displayName));
+    _connectionList = new ArrayList<BaseConnection>();
+    _connectionList.add(new AlphavantageConnection(this));
+    _connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));
   }
 }

@@ -135,7 +135,7 @@ public abstract class YahooConnection extends BaseConnection {
   private String crumble = null;
 
   public YahooConnection(StockQuotesModel model) {
-    super(model, BaseConnection.HISTORY_SUPPORT | BaseConnection.CURRENT_PRICE_SUPPORT);
+    super(model, BaseConnection.CURRENT_PRICE_SUPPORT);
   }
 
   public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange)
@@ -195,8 +195,10 @@ public abstract class YahooConnection extends BaseConnection {
     result.append(endTimeInEpoch);
     result.append("&interval=1d");  // interval
     result.append("&events=history"); // history
-    result.append("&crumb=");       // crumble
-    result.append(crumble);
+    if(crumble!=null) {
+      result.append("&crumb=");       // crumble
+      result.append(crumble);
+    }
     return result.toString();
   }
 
