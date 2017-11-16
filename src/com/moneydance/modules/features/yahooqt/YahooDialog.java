@@ -147,9 +147,9 @@ public class YahooDialog
     }
     super.setVisible(visible);
   }
-
+  
   public boolean userAcceptedChanges() { return _okButtonPressed; }
-
+  
   private void initUI(final FeatureModuleContext context) {
     JPanel fieldPanel = new JPanel(new GridBagLayout());
     fieldPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP,
@@ -162,12 +162,9 @@ public class YahooDialog
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.RATES_CONNECTION)),
             GridC.getc(0, 0).label());
     fieldPanel.add(_ratesConnectionSelect,   GridC.getc(1, 0).field());
-    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.HISTORY_CONNECTION)),
+    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.SECURITIES_CONNECTION)),
             GridC.getc(0, 1).label());
     fieldPanel.add(_historyConnectionSelect, GridC.getc(1, 1).field());
-    fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.CURRENT_CONNECTION)),
-            GridC.getc(0, 2).label());
-    fieldPanel.add(_currentConnectionSelect, GridC.getc(1, 2).field());
     // gap in middle
     fieldPanel.add(Box.createHorizontalStrut(UiUtil.DLG_HGAP), GridC.getc(2, 0));
     // second column

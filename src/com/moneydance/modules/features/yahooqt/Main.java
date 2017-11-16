@@ -51,17 +51,14 @@ public class Main
 
   private final PreferencesListener _prefListener = new QuotesPreferencesListener();
   private final PropertyChangeListener _progressListener = new QuotesProgressListener();
-  private final StockQuotesModel _model;
+  private StockQuotesModel _model;
   private ResourceBundle _resources;
-
-  public Main() {
-    _model = new StockQuotesModel();
-  }
   
   public void init() {
     // the first thing we will do is register this module to be invoked
     // via the application toolbar
     FeatureModuleContext context = getContext();
+    _model = new StockQuotesModel(context);
     loadResources();
     _model.setResources(this);
     context.registerFeature(this, SHOW_DIALOG_COMMAND, getIcon(), getName());
@@ -240,7 +237,7 @@ public class Main
     }
     getContext().showURL(sb.toString());
   }
-
+  
   private void addPreferencesListener() {
     if (getContext() != null) {
       ((com.moneydance.apps.md.controller.Main) getContext()).getPreferences()

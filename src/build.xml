@@ -197,18 +197,18 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="yahooqt" depends="init" description="build the yahooqt.mxt">
-    <build-mxt feature="yahooqt" javac-source="1.5" javac-target="1.5" />
+    <build-mxt feature="yahooqt" javac-source="1.7" javac-target="1.7" />
     <!--<copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />-->
   </target>
 
   <target name="txfexport" depends="init" description="build the TXF export extension">
-    <build-mxt feature="txfexport" javac-source="1.6" javac-target="1.6" />
+    <build-mxt feature="txfexport" javac-source="1.8" javac-target="1.8" />
     <!--<copy file="${dist}/txfexport.mxt" tofile="${install}/txfexport.mxt" verbose="true" failonerror="false" />-->
   </target>
 
 
   <target name="miscdebug" depends="init">
-    <javac encoding="utf8" target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="1.8" source="1.8" srcdir="${src}" debug="${debug}" optimize="${optimize}"
            classpathref="classpath"  destdir="${build}"
            includeantruntime="false"
            includes="com/moneydance/modules/features/miscdebug/**"/>

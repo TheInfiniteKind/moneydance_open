@@ -10,6 +10,7 @@
     <entry key="ratesConnection">Currency Exchange Rates</entry>
     <entry key="historyConnection">Historical Security Prices</entry>
     <entry key="currentConnection">Current Security Prices</entry>
+    <entry key="securitiesConnection">Security Prices</entry>
     <entry key="frequency">Update Frequency</entry>
     <entry key="nextDate">Next Update</entry>
     <entry key="saveCurrHistory">Save current price as historical</entry>
@@ -116,5 +117,8 @@
     <entry key="errNameBlank">Please enter a Name that is not blank</entry>
     <entry key="errMultiplier">Please enter a valid Price Multiplier (default is 1)</entry>
     <entry key="errSave">A problem occurred while saving the stock exchange settings.</entry>
-
+    <entry key="alphavantage.apikey_msg">Please register with Alphavantage to receive an API key that can be used to download rates and price information. Please enter that key below to continue.</entry>
+  <entry key="alphavantage.apikey_title">Enter Alphavantage API Key</entry>
+  <entry key="alphavantage.apikey_action">Get Alphavantage API Key</entry>
+  
 </properties>

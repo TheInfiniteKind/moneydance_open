@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.time.*;
 import com.infinitekind.moneydance.model.*;
@@ -48,13 +49,15 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private List<BaseConnection> _connectionList = null;
   private int _historyDays = 5;
   private boolean _dirty = false;
-
+  private FeatureModuleContext extensionContext;
+  
   // runs tasks on a separate thread
   private ConnectionTask _currentTask;
   private final Object _taskSync = new Object();
   private final ExecutorService _executor = Executors.newFixedThreadPool(1);
 
-  StockQuotesModel() {
+  StockQuotesModel(FeatureModuleContext extensionContext) {
+    this.extensionContext = extensionContext;
     _tableModel = new SecuritySymbolTableModel(this);
   }
 
@@ -118,6 +121,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     return _mdGUI;
   }
 
+  void showURL(String url) {
+    extensionContext.showURL(url);
+  }
+  
   UserPreferences getPreferences() {
     return _preferences;
   }

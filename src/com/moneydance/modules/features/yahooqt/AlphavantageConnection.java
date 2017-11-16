@@ -1,23 +1,100 @@
 package com.moneydance.modules.features.yahooqt;
 
+import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.util.*;
+import com.infinitekind.util.*;
+import com.moneydance.awt.*;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.lang.reflect.InvocationTargetException;
 import java.net.*;
 import java.io.*;
+import java.util.Map;
 
 
 /**
  * Created by sreilly -  02/11/2017 21:38
  */
 public class AlphavantageConnection extends BaseConnection {
-
+  
   public static final String PREFS_KEY = "alphavantage";
-  private static final String API_KEY = "O8AQ";
   
   public AlphavantageConnection(StockQuotesModel model) {
     super(model, BaseConnection.HISTORY_SUPPORT | BaseConnection.EXCHANGE_RATES_SUPPORT);
   }
+  
+  private static String cachedAPIKey = null;
+  private static long suppressAPIKeyRequestUntilTime = 0;
+  
+  private static synchronized String getAPIKey(final StockQuotesModel model) {
+    if(cachedAPIKey!=null) return cachedAPIKey;
+    
+    if(model==null) return null;
+    
+    AccountBook book = model.getBook();
+    if(book==null) return null;
+    
+    final Account root = book.getRootAccount();
+    String apiKey = root.getParameter("alphavantage.apikey", null);
+    if( ! com.infinitekind.util.StringUtils.isBlank(apiKey)) {
+      return apiKey;
+    }
+    
+    if(suppressAPIKeyRequestUntilTime > System.currentTimeMillis()) { // further requests for the key have been suppressed
+      return null;
+    }
+    
+    final String inputString = null;
+    Runnable uiActions = new Runnable() {
+      @Override
+      public void run() {
+        JPanel p = new JPanel(new GridBagLayout());
+        AbstractAction signupAction = new AbstractAction() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            model.showURL("https://infinitekind.com/alphavantage");
+          }
+        };
+        signupAction.putValue(Action.NAME, model.getResources().getString("alphavantage.apikey_action"));
+        JLinkLabel linkButton = new JLinkLabel(signupAction);
+        p.add(new JTextPanel(model.getResources().getString("alphavantage.apikey_msg")), 
+              GridC.getc(0,0).wxy(1,1));
+        p.add(linkButton, 
+              GridC.getc(0,1).center().insets(12,16,0,16));
+        while(true) {
+          String inputString = JOptionPane.showInputDialog(null, p, "title", JOptionPane.QUESTION_MESSAGE);
+          if(inputString==null) { // the user canceled the API key request, so let's not ask again for 5 minutes
+            suppressAPIKeyRequestUntilTime = System.currentTimeMillis() + 1000 * 60 * 5;
+            return;
+          }
+          
+          if(!SQUtil.isEmpty(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE)) {
+            root.setParameter("alphavantage.apikey", inputString);
+            root.syncItem();
+            cachedAPIKey = inputString;
+            return;
+          } else {
+            // the user left the field blank or entered an invalid key
+            model.getGUI().beep();
+          }
+        }
+      }
+    };
+    
+    if(SwingUtilities.isEventDispatchThread()) {
+      uiActions.run();
+    } else {
+      try {
+        SwingUtilities.invokeAndWait(uiActions);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    return cachedAPIKey;
+  } 
   
   
   @Override
@@ -67,11 +144,14 @@ public class AlphavantageConnection extends BaseConnection {
     baseCurrencyID = baseCurrencyID.toUpperCase().trim();
     if (currencyID.length() != 3 || baseCurrencyID.length() != 3)
       return null;
-
+    
+    String apiKey = getAPIKey(getModel());
+    if(apiKey==null) return null;
+    
     String urlStr = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"+
                     "&from_currency="+ SQUtil.urlEncode(currencyID) +
                     "&to_currency=" + SQUtil.urlEncode(baseCurrencyID) +
-                    "&apikey="+SQUtil.urlEncode(API_KEY);
+                    "&apikey="+SQUtil.urlEncode(apiKey);
     
     /*
      {
@@ -88,31 +168,26 @@ public class AlphavantageConnection extends BaseConnection {
     */
     
     URL url = new URL(urlStr);
-    Reader rdr = new InputStreamReader(url.openConnection().getInputStream(), "UTF8");
-
-    double rate = -1;
-    JsonReader jsonReader = new JsonReader(rdr);
-    jsonReader.beginObject();
-    if(jsonReader.hasNext()) {
-      String wrapperName = jsonReader.nextName(); // should be Realtime Currency Exchange Rate
-      jsonReader.beginObject();
-      while (jsonReader.hasNext()) {
-        String objName = jsonReader.nextName();
-        String objVal = jsonReader.nextString();
-        if(objName!=null && objName.equals("5. Exchange Rate")) {
-          rate = com.infinitekind.util.StringUtils.parseDouble(objVal, -1.0,'.');
-          if(rate > 0 ) {
-            rate = 1/rate;
-          }
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    IOUtils.copyStream(url.openConnection().getInputStream(), bout);
+    JsonReader jsonReader = new JsonReader(new InputStreamReader(new ByteArrayInputStream(bout.toByteArray()), "UTF8"));
+    Gson gson = new Gson();
+    Map gsonData = gson.fromJson(jsonReader, Map.class);
+    
+    Object rateInfoObj = gsonData.get("Realtime Currency Exchange Rate");
+    if(rateInfoObj != null && rateInfoObj instanceof Map) {
+      Map rateInfo = (Map) rateInfoObj;
+      Object rateObj = rateInfo.get("5. Exchange Rate");
+      if (rateObj != null) {
+        double rate = StringUtils.parseDouble(String.valueOf(rateObj), -1.0, '.');
+        if (rate > 0) {
+          return new ExchangeRate(1 / rate);
         }
       }
-      jsonReader.endObject();
-      jsonReader.endObject();
     }
     
-    return new ExchangeRate(rate);
+    return new ExchangeRate(-1.0);
   }
-
   
   protected String getCurrentPriceHeader() {
     return "date,open,high,low,close,volume";
@@ -128,7 +203,9 @@ public class AlphavantageConnection extends BaseConnection {
 
   @Override
   public String getCurrentPriceURL(String fullTickerSymbol) {
-    return "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(API_KEY)+"&datatype=csv";
+    String apiKey = getAPIKey(getModel());
+    return apiKey==null ? null : 
+           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(apiKey)+"&datatype=csv";
   }
 
   /**
