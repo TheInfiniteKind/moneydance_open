@@ -202,7 +202,9 @@ public abstract class BaseConnection {
     // go with the exchange the user assigned to the security
     return _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
   }
-
+  
+  protected boolean allowAutodetect() {return true;}
+  
   protected abstract String getCurrentPriceHeader();
 
   protected String getTimeZoneID() {
@@ -244,13 +246,9 @@ public abstract class BaseConnection {
       throw new DownloadException(securityCurrency, message);
     }
     double priceMultiplier = exchange.getPriceMultiplier();
-    final String urlStr;
-    if (getFullHistory) {
-      urlStr = getHistoryURL(fullTickerSymbol, dateRange);
-    } else {
-      urlStr = getCurrentPriceURL(fullTickerSymbol);
-    }
-
+    final String urlStr = getFullHistory ? getHistoryURL(fullTickerSymbol, dateRange) : getCurrentPriceURL(fullTickerSymbol);
+    System.err.println("getting "+(getFullHistory?"history":"current price")+" using url: "+ urlStr);
+    
     if (urlStr == null) {
       // mode is not supported by this connection
       String message = getFullHistory ?
@@ -262,8 +260,8 @@ public abstract class BaseConnection {
     SimpleDateFormat defaultDateFormat = getExpectedDateFormat(getFullHistory);
     char decimal = _model.getPreferences().getDecimalChar();
     SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, getCookie(), _model.getResources(),
-            securityCurrency, defaultDateFormat, _timeZone, decimal);
-    if (getFullHistory) {
+                                                                   securityCurrency, defaultDateFormat, _timeZone, decimal);
+    if (getFullHistory && allowAutodetect()) {
       importer.setAutodetectFormat(true);
     } else {
       importer.setColumnsFromHeader(getCurrentPriceHeader());

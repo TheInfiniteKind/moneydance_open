@@ -3,7 +3,7 @@ build file for ant
 http://jakarta.apache.org/ant/index.html
 -->
 
-<project name="moneydance" default="all" basedir=".">
+<project name="moneydance_open" default="all" basedir=".">
   <property name="version"  value="1.0"/>
   <property name="src" value="."/>
   <property file="${src}/user.properties"/>
@@ -12,7 +12,8 @@ http://jakarta.apache.org/ant/index.html
   <property name="extprivkeyfile" value="${src}/priv_key"/>
   <property name="extpubkeyfile" value="${src}/pub_key"/>
   <property name="privkeyid" value="99"/>
-
+  <property name="keypass" value=""/>
+  
   <property name="build.sysclasspath" value="ignore" /> <!-- suppress "includeantruntime not set" messages from ant -->
   <property name="build.compiler"  value="modern"/>
   <property name="build.compiler.fulldepend"  value="true"/>
@@ -449,13 +450,14 @@ http://jakarta.apache.org/ant/index.html
     <delete dir="${dist}" />
     <delete dir="${build}" />
   </target>
-
+  
   <target name="sign" description="sign the mxt" unless="dont_sign">
   	<fail unless="feature" message="Please specify property feature" />
     <java newenvironment="true"
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin"
       fork="true">
+      <sysproperty key="moneydance_key_pass" value="${keypass}"/>
       <arg value="signextjar"/>
       <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
@@ -463,6 +465,7 @@ http://jakarta.apache.org/ant/index.html
       <arg line="${dist}/${feature}.mxt"/>
     </java>
     <move file="./s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
+    <copy file="${dist}/${feature}.mxt" tofile="${install}/${feature}.mxt" verbose="true" failonerror="false" />
   </target>
 
   <target name="genkeys">

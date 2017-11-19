@@ -193,6 +193,8 @@ public class AlphavantageConnection extends BaseConnection {
     return "date,open,high,low,close,volume";
   }
 
+  protected boolean allowAutodetect() {return false;}
+  
   public String getId() { return PREFS_KEY; }
   
 
