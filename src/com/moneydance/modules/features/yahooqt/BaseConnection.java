@@ -144,10 +144,6 @@ public abstract class BaseConnection {
     return ((_capabilities & HISTORY_SUPPORT) != 0);
   }
 
-  public boolean canGetCurrentPrice() {
-    return ((_capabilities & CURRENT_PRICE_SUPPORT) != 0);
-  }
-  
   public boolean canGetRates() {
     return ((_capabilities & EXCHANGE_RATES_SUPPORT) != 0);
   }

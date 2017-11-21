@@ -97,7 +97,6 @@ public class YahooDialog
   private final IExchangeEditor _exchangeEditor = new ExchangeEditor();
 
   private JComboBox _historyConnectionSelect;
-  private JComboBox _currentConnectionSelect;
   private JComboBox _ratesConnectionSelect;
   private IntervalChooser _intervalSelect;
   private JDateField _nextDate;
@@ -311,10 +310,6 @@ public class YahooDialog
     _historyConnectionSelect = new JComboBox(
             _model.getConnectionList(BaseConnection.HISTORY_SUPPORT));
     _historyConnectionSelect.setSelectedItem(_model.getSelectedHistoryConnection());
-    // current stock price
-    _currentConnectionSelect = new JComboBox(
-            _model.getConnectionList(BaseConnection.CURRENT_PRICE_SUPPORT));
-    _currentConnectionSelect.setSelectedItem(_model.getSelectedCurrentPriceConnection());
     // currency exchange rates
     _ratesConnectionSelect = new JComboBox(
             _model.getConnectionList(BaseConnection.EXCHANGE_RATES_SUPPORT));
@@ -642,7 +637,6 @@ public class YahooDialog
 
   private void saveSelectedConnections() {
     _model.setSelectedHistoryConnection((BaseConnection)_historyConnectionSelect.getSelectedItem());
-    _model.setSelectedCurrentPriceConnection((BaseConnection)_currentConnectionSelect.getSelectedItem());
     _model.setSelectedExchangeRatesConnection((BaseConnection)_ratesConnectionSelect.getSelectedItem());
   }
 

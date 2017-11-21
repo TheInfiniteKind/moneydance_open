@@ -202,69 +202,6 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       }
     } // if getting price history and connection is not 'do not update'
     
-    // now get the current price
-    connection = _model.getSelectedCurrentPriceConnection();
-    if ((connection != null) && connection.canGetCurrentPrice() && _model.isCurrentPriceSelected()) {
-      connection.setDefaultCurrency();
-      try {
-        // If we have found a historical price, then we don't save the current price as history.
-        // If historical prices were skipped or unable to update, then save the current price as
-        // a history entry.
-        final boolean autoSaveInHistory = !foundPrice;
-        if (Main.DEBUG_YAHOOQT && autoSaveInHistory) {
-          System.err.println("Automatically saving current price of " + currType.getName());
-        }
-        
-        int numAttempts = 0;
-        StockRecord record = null;
-        while(true) {
-          numAttempts++;
-          record = connection.getCurrentPrice(currType, autoSaveInHistory);
-          if (record == null) {
-            result.skipped = true;
-            result.logMessage = "No current price obtained for security " + currType.getName();
-            return result;
-          }
-          
-          // did the 'current date' for this price come from long ago?  If so, re-download a handful of times.
-          // this hacks around a bug in yahoo finance in which horribly wrong prices are returned with a date 
-          // of around 1/1/1970 seemingly at random.
-          if(record.date >= 20100101) {
-            break;
-          }
-          
-          System.err.println("attempt "+numAttempts+" at updating security "+currType.getName()+" has failed");
-          
-          if(numAttempts>=10) {
-            result.skipped = true;
-            result.logMessage = "Quotes provider is returning old or invalid data for security " + currType.getName();
-            return result;
-          }
-        }
-        
-        result.currentError = (record.closeRate == 0.0);
-        result.currentResult = record.priceDisplay;
-        if (!result.currentError) {
-          foundPrice = true;
-          // current price download overrides the history download current price
-          priceConnection = connection;
-          latestRate = record.closeRate;
-          latestPriceDate = convertTimeFromGMT(record.dateTimeGMT);
-        }
-      } catch (DownloadException e) {
-        final CurrencyType currency = (e.getCurrency() != null) ? e.getCurrency() : currType;
-        String message = MessageFormat.format(
-                _resources.getString(L10NStockQuotes.ERROR_CURRENT_FMT),
-                currency.getName(), e.getLocalizedMessage());
-        _model.showProgress(_progressPercent, message);
-        result.currentError = true;
-        result.currentResult = e.getMessage();
-        if (SQUtil.isBlank(result.logMessage)) {
-          result.logMessage = MessageFormat.format("Error downloading current price for {0}: {1}",
-                  currency.getName(), e.getMessage());
-        }
-      }
-    } // if getting the current price
     
     // update the current price if possible, the last price date is stored as a long
     final long lastUpdateDate = currType.getLongParameter("price_date", 0);

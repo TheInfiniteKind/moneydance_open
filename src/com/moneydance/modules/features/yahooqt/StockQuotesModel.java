@@ -243,17 +243,9 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   boolean isStockPriceSelected() {
-    if (isCurrentPriceSelected()) {
-      return true;
-    }
     return isHistoricalPriceSelected();
   }
-
-  boolean isCurrentPriceSelected() {
-    final BaseConnection connection = getSelectedCurrentPriceConnection();
-    return ((connection != null) && !NO_CONNECTION.equals(connection));
-  }
-
+  
   boolean isHistoricalPriceSelected() {
     final BaseConnection connection = getSelectedHistoryConnection();
     return ((connection != null) && !NO_CONNECTION.equals(connection));
@@ -320,15 +312,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     return _selectedHistoryConnection;
   }
 
-  BaseConnection getSelectedCurrentPriceConnection() {
-    // load the selected connection from preferences if it hasn't been set
-    if (_selectedCurrentPriceConnection == null)
-    {
-      loadSelectedConnections();
-    }
-    return _selectedCurrentPriceConnection;
-  }
-
   BaseConnection getSelectedExchangeRatesConnection() {
     // load the selected connection from preferences if it hasn't been set
     if (_selectedExchangeRatesConnection == null)
@@ -342,12 +325,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     final BaseConnection original = _selectedHistoryConnection;
     _selectedHistoryConnection = baseConnection;
     if (!SQUtil.areEqual(original, _selectedHistoryConnection)) setDirty();
-  }
-
-  void setSelectedCurrentPriceConnection(BaseConnection baseConnection) {
-    final BaseConnection original = _selectedCurrentPriceConnection;
-    _selectedCurrentPriceConnection = baseConnection;
-    if (!SQUtil.areEqual(original, _selectedCurrentPriceConnection)) setDirty();
   }
 
   void setSelectedExchangeRatesConnection(BaseConnection baseConnection) {
@@ -369,13 +346,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     results.add(NO_CONNECTION);
     for (BaseConnection connection : _connectionList) {
       switch (type) {
-        case BaseConnection.HISTORY_SUPPORT :
+        case BaseConnection.HISTORY_SUPPORT:
           if (connection.canGetHistory()) results.add(connection);
           break;
-        case BaseConnection.CURRENT_PRICE_SUPPORT :
-          if (connection.canGetCurrentPrice()) results.add(connection);
-          break;
-        case BaseConnection.EXCHANGE_RATES_SUPPORT :
+        case BaseConnection.EXCHANGE_RATES_SUPPORT:
           if (connection.canGetRates()) results.add(connection);
           break;
       }
