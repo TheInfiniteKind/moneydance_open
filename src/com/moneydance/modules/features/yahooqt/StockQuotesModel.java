@@ -43,9 +43,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private AccountBook book = null;
   private UserPreferences _preferences = null;
   private BaseConnection _selectedHistoryConnection = null;
-  private BaseConnection _selectedCurrentPriceConnection = null;
   private BaseConnection _selectedExchangeRatesConnection = null;
-  private boolean _saveCurrentInHistorical = false;
   private List<BaseConnection> _connectionList = null;
   private int _historyDays = 5;
   private boolean _dirty = false;
@@ -96,7 +94,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     this.book = book;
     if (book != null) {
       _symbolMap.loadFromFile(book);
-      _saveCurrentInHistorical = book.getRootAccount().getBooleanParameter(Main.SAVE_CURRENT_IN_HISTORY_KEY, false);
       _cancelTasks.set(false);
     }
     _dirty = false;
@@ -243,17 +240,9 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   boolean isStockPriceSelected() {
-    if (isCurrentPriceSelected()) {
-      return true;
-    }
     return isHistoricalPriceSelected();
   }
-
-  boolean isCurrentPriceSelected() {
-    final BaseConnection connection = getSelectedCurrentPriceConnection();
-    return ((connection != null) && !NO_CONNECTION.equals(connection));
-  }
-
+  
   boolean isHistoricalPriceSelected() {
     final BaseConnection connection = getSelectedHistoryConnection();
     return ((connection != null) && !NO_CONNECTION.equals(connection));
@@ -292,23 +281,20 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     firePropertyChange(_eventNotify, N12EStockQuotes.STATUS_UPDATE, Float.toString(percent), status);
   }
 
-  void saveSettings() {
-    if (book == null) return;  // do nothing; unexpected
+  void saveSettings(Account root) {
+    if (root == null) return;  // do nothing; unexpected
     if (_selectedHistoryConnection != null) {
-      book.getRootAccount().setParameter(Main.HISTORY_CONNECTION_KEY, _selectedHistoryConnection.getId());
-    }
-    if (_selectedCurrentPriceConnection != null) {
-      book.getRootAccount().setParameter(Main.CURRENT_PRICE_CONNECTION_KEY, _selectedCurrentPriceConnection.getId());
+      root.setParameter(Main.HISTORY_CONNECTION_KEY, _selectedHistoryConnection.getId());
     }
     if (_selectedExchangeRatesConnection != null) {
-      book.getRootAccount().setParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, _selectedExchangeRatesConnection.getId());
+      root.setParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, _selectedExchangeRatesConnection.getId());
     }
-    book.getRootAccount().setParameter(Main.SAVE_CURRENT_IN_HISTORY_KEY, _saveCurrentInHistorical);
     // store the results of the table - this updates the symbol map - must be done before symbol map
-    _tableModel.save();
+    _tableModel.save(root);
     // save the map of security/currency to stock exchanges
-    _symbolMap.saveToFile(book);
+    _symbolMap.saveToFile(root);
     _dirty = false;
+    root.syncItem();
   }
 
   BaseConnection getSelectedHistoryConnection() {
@@ -318,15 +304,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
       loadSelectedConnections();
     }
     return _selectedHistoryConnection;
-  }
-
-  BaseConnection getSelectedCurrentPriceConnection() {
-    // load the selected connection from preferences if it hasn't been set
-    if (_selectedCurrentPriceConnection == null)
-    {
-      loadSelectedConnections();
-    }
-    return _selectedCurrentPriceConnection;
   }
 
   BaseConnection getSelectedExchangeRatesConnection() {
@@ -339,43 +316,26 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
   
   void setSelectedHistoryConnection(BaseConnection baseConnection) {
-    final BaseConnection original = _selectedHistoryConnection;
+    boolean modified = !SQUtil.areEqual(baseConnection, _selectedHistoryConnection);
     _selectedHistoryConnection = baseConnection;
-    if (!SQUtil.areEqual(original, _selectedHistoryConnection)) setDirty();
-  }
-
-  void setSelectedCurrentPriceConnection(BaseConnection baseConnection) {
-    final BaseConnection original = _selectedCurrentPriceConnection;
-    _selectedCurrentPriceConnection = baseConnection;
-    if (!SQUtil.areEqual(original, _selectedCurrentPriceConnection)) setDirty();
+    if(modified) setDirty();
   }
 
   void setSelectedExchangeRatesConnection(BaseConnection baseConnection) {
-    final BaseConnection original = _selectedExchangeRatesConnection;
+    boolean modified = ! SQUtil.areEqual(baseConnection, _selectedExchangeRatesConnection);
     _selectedExchangeRatesConnection = baseConnection;
-    if (!SQUtil.areEqual(original, _selectedExchangeRatesConnection)) setDirty();
+    if(modified) setDirty();
   }
-
-  void setSaveCurrentAsHistory(final boolean saveInHistory) {
-    boolean previous = _saveCurrentInHistorical;
-    _saveCurrentInHistorical = saveInHistory;
-    if (previous != saveInHistory) setDirty();
-  }
-
-  boolean getSaveCurrentAsHistory() { return _saveCurrentInHistorical; }
 
   Vector<BaseConnection> getConnectionList(final int type) {
     final Vector<BaseConnection> results = new Vector<BaseConnection>();
     results.add(NO_CONNECTION);
     for (BaseConnection connection : _connectionList) {
       switch (type) {
-        case BaseConnection.HISTORY_SUPPORT :
+        case BaseConnection.HISTORY_SUPPORT:
           if (connection.canGetHistory()) results.add(connection);
           break;
-        case BaseConnection.CURRENT_PRICE_SUPPORT :
-          if (connection.canGetCurrentPrice()) results.add(connection);
-          break;
-        case BaseConnection.EXCHANGE_RATES_SUPPORT :
+        case BaseConnection.EXCHANGE_RATES_SUPPORT:
           if (connection.canGetRates()) results.add(connection);
           break;
       }
@@ -433,13 +393,13 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   
   private void loadSelectedConnections() {
     _selectedHistoryConnection = null;
-    _selectedCurrentPriceConnection = null;
     _selectedExchangeRatesConnection = null;
-    if (book == null) return;
+    Account root = book==null ? null : book.getRootAccount();
+    if (root == null) return;
     // stock price history
-    String key = book.getRootAccount().getParameter(Main.HISTORY_CONNECTION_KEY, null);
+    String key = root.getParameter(Main.HISTORY_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
-      key = YahooConnectionUSA.PREFS_KEY; // default
+      key = AlphavantageConnection.PREFS_KEY; // default
     }
     if (NO_CONNECTION.getId().equals(key)) {
       _selectedHistoryConnection = NO_CONNECTION;
@@ -452,23 +412,8 @@ public class StockQuotesModel extends BasePropertyChangeReporter
       }
     }
 
-    // current stock price
-    key = book.getRootAccount().getParameter(Main.CURRENT_PRICE_CONNECTION_KEY, null);
-    if (SQUtil.isBlank(key))  {
-      key = YahooConnectionUSA.PREFS_KEY; // default
-    }
-    if (NO_CONNECTION.getId().equals(key)) {
-      _selectedCurrentPriceConnection = NO_CONNECTION;
-    } else {
-      for (BaseConnection connection : _connectionList) {
-        if (key.equals(connection.getId())) {
-          _selectedCurrentPriceConnection = connection;
-          break;
-        }
-      }
-    }
     // currency exchange rates
-    key = book.getRootAccount().getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
+    key = root.getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
       key = AlphavantageConnection.PREFS_KEY; // default
     }

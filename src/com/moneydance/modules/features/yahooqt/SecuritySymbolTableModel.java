@@ -75,9 +75,9 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     fireTableDataChanged();
   }
 
-  void save() {
-    if (_model.getRootAccount() == null) return;
-    Iterator<Account> iter = new AccountIterator(_model.getRootAccount());
+  void save(Account root) {
+    if (root == null) return;
+    Iterator<Account> iter = new AccountIterator(root);
     while (iter.hasNext()) {
       Account account = iter.next();
       if (account.getAccountType() == Account.AccountType.SECURITY) {

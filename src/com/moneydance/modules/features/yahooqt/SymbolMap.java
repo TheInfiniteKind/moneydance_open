@@ -50,10 +50,10 @@ public class SymbolMap {
 
   /**
    * Save the map of currency IDs to the stock exchange in the data file.
-   * @param book The data file
+   * @param root the root account in the data file where the symbol map is stored
    */
-  void saveToFile(AccountBook book) {
-    if (book == null) return;
+  void saveToFile(Account root) {
+    if (root == null) return;
     StreamVector exchangeList = new StreamVector();
     for (Integer currencyId : _symbolMap.keySet()) {
       String exchangeId = _symbolMap.get(currencyId).exchangeId;
@@ -68,7 +68,7 @@ public class SymbolMap {
     }
     StreamTable table = new StreamTable();
     table.put(EXCHANGE_LIST_KEY, exchangeList);
-    book.getRootAccount().setParameter(EXCHANGE_MAP_KEY, table.writeToString());
+    root.setParameter(EXCHANGE_MAP_KEY, table.writeToString());
   }
   
   void clear() { _symbolMap.clear(); }

@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.moneydance.model.Account;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.Util;
@@ -97,11 +98,9 @@ public class YahooDialog
   private final IExchangeEditor _exchangeEditor = new ExchangeEditor();
 
   private JComboBox _historyConnectionSelect;
-  private JComboBox _currentConnectionSelect;
   private JComboBox _ratesConnectionSelect;
   private IntervalChooser _intervalSelect;
   private JDateField _nextDate;
-  private JCheckBox _saveCurrentInHistory = new JCheckBox();
   private JLabel _showTestLabel = new JLabel();
   private TableColumn _testColumn = null;
   private boolean _showingTestInfo = false;
@@ -157,7 +156,6 @@ public class YahooDialog
     // pick which URL schemes to connect to (or no connection to disable the download)
     setupConnectionSelectors();
     setupIntervalSelector();
-    _saveCurrentInHistory.setSelected(_model.getSaveCurrentAsHistory());
     // first column
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.RATES_CONNECTION)),
             GridC.getc(0, 0).label());
@@ -174,9 +172,6 @@ public class YahooDialog
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.NEXT_DATE_LABEL)),
             GridC.getc(3, 1).label());
     fieldPanel.add(_nextDate, GridC.getc(4, 1).field());
-    _saveCurrentInHistory.setText(_resources.getString(L10NStockQuotes.SAVE_CURRENT_OPTION));
-    // this option is now automatically on, it was deemed too confusing
-//    fieldPanel.add(_saveCurrentInHistory, GridC.getc(3, 2).colspan(2).field());
     _showTestLabel.setHorizontalAlignment(JLabel.RIGHT);
     // add the toggle for the testing mode on/off
     final JPanel testPanel = new JPanel(new BorderLayout());
@@ -270,10 +265,13 @@ public class YahooDialog
     });
     _buttonTest.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
+        Account root = _model.getRootAccount();
+        if(root==null) return;
+        
         // save the selected connections into our model
         saveSelectedConnections();
         // store what we have into the symbol map
-        _model.getTableModel().save();
+        _model.getTableModel().save(root);
         // listen for update events
         _model.addPropertyChangeListener(YahooDialog.this);
         _model.runDownloadTest();
@@ -311,10 +309,6 @@ public class YahooDialog
     _historyConnectionSelect = new JComboBox(
             _model.getConnectionList(BaseConnection.HISTORY_SUPPORT));
     _historyConnectionSelect.setSelectedItem(_model.getSelectedHistoryConnection());
-    // current stock price
-    _currentConnectionSelect = new JComboBox(
-            _model.getConnectionList(BaseConnection.CURRENT_PRICE_SUPPORT));
-    _currentConnectionSelect.setSelectedItem(_model.getSelectedCurrentPriceConnection());
     // currency exchange rates
     _ratesConnectionSelect = new JComboBox(
             _model.getConnectionList(BaseConnection.EXCHANGE_RATES_SUPPORT));
@@ -599,30 +593,23 @@ public class YahooDialog
   }
 
   private void saveControlsToSettings() {
+    Account root = _model.getRootAccount();
+    if (root == null) return;
+
     saveSelectedConnections();
-    _model.setSaveCurrentAsHistory(_saveCurrentInHistory.isSelected());
+
     // these are stored in preferences and are not file-specific
     UserPreferences prefs = _model.getPreferences();
     prefs.setSetting(Main.AUTO_UPDATE_KEY, isAnyConnectionSelected());
     prefs.setSetting(Main.UPDATE_INTERVAL_KEY, _intervalSelect.getSelectedInterval().getConfigKey());
-    saveNextUpdateDate();
-    // check if any of the settings that are stored in the specific data file have been changed
-    if (_model.isDirty()) {
-      _model.saveSettings();
-      // mark that we made changes to the file
-      //_model.getRootAccount().accountModified(_model.getRootAccount());
-      _model.getRootAccount().syncItem();
-    }
-  }
 
-  private void saveNextUpdateDate() {
-    if (_model.getRootAccount() == null) return;
+    // save the date of the next update
     int nextDate = _nextDate.getDateInt();
     // work backwards to get the calculated 'last update date'
     TimeInterval frequency = _intervalSelect.getSelectedInterval();
     _model.setHistoryDaysFromFrequency(frequency);
     int lastDate = SQUtil.getPreviousDate(nextDate, frequency);
-    int currentQuoteDate = Main.getQuotesLastUpdateDate(_model.getRootAccount());
+    int currentQuoteDate = Main.getQuotesLastUpdateDate(root);
     if (_model.isStockPriceSelected() && (currentQuoteDate != lastDate)) {
       if(Main.DEBUG_YAHOOQT) {
         System.err.println("Changing last quote update date from " +
@@ -630,7 +617,7 @@ public class YahooDialog
       }
       _model.saveLastQuoteUpdateDate(lastDate);
     }
-    int currentRatesDate = Main.getRatesLastUpdateDate(_model.getRootAccount());
+    int currentRatesDate = Main.getRatesLastUpdateDate(root);
     if (_model.isExchangeRateSelected() && (currentRatesDate != lastDate)) {
       if(Main.DEBUG_YAHOOQT) {
         System.err.println("Changing last exchange rates update date from " +
@@ -638,11 +625,18 @@ public class YahooDialog
       }
       _model.saveLastExchangeRatesUpdateDate(lastDate);
     }
+
+
+
+
+    // check if any of the settings that are stored in the specific data file have been changed
+    if (_model.isDirty()) {
+      _model.saveSettings(root);
+    }
   }
 
   private void saveSelectedConnections() {
     _model.setSelectedHistoryConnection((BaseConnection)_historyConnectionSelect.getSelectedItem());
-    _model.setSelectedCurrentPriceConnection((BaseConnection)_currentConnectionSelect.getSelectedItem());
     _model.setSelectedExchangeRatesConnection((BaseConnection)_ratesConnectionSelect.getSelectedItem());
   }
 
