@@ -41,23 +41,12 @@ public class NoConnection extends BaseConnection {
   }
 
   @Override
-  public String getCurrentPriceURL(String fullTickerSymbol) {
-    return null;  // not used
-  }
-
-  @Override
   public void setDefaultCurrency() {
     // do nothing, no model is defined
   }
 
   @Override
   public StockHistory getHistory(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
-          throws DownloadException {
-    return null;
-  }
-
-  @Override
-  public StockRecord getCurrentPrice(CurrencyType securityCurrency, boolean recordInHistory)
           throws DownloadException {
     return null;
   }

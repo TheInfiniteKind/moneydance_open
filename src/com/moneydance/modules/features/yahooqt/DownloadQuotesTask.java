@@ -132,7 +132,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
 
   private DownloadResult updateSecurity(CurrencyType currType, int numDays) {
     DateRange dateRange = HistoryDateRange.getRangeForSecurity(currType, numDays);
-
+    
     // check if the user is skipping this one but leaving the symbol intact
     DownloadResult result = new DownloadResult();
     result.displayName = currType.getName();

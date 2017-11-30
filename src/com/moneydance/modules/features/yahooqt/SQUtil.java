@@ -8,10 +8,13 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.Legacy;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.moneydance.apps.md.controller.time.TimeInterval;
+import com.moneydance.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -253,6 +256,28 @@ final class SQUtil {
     return new SymbolData(prefix, tickerSymbol, suffix, currencyCode);
   }
 
+  
+  /** Return the currency with the given ID.  This finds a currency based on the best identifier
+   * available for each currency. Tries to locate the currency in the local file using the
+   * MD2015+ UUID-based identifier, then the old integer identifier, followed by the 
+   * text currency ID which is usually based on the currency code or ticker symbol. */
+  public static CurrencyType getCurrencyWithID(AccountBook book, String currencyID) {
+    if(book==null || SQUtil.isEmpty(currencyID)) return null;
+    CurrencyTable table = book.getCurrencies();
+    if(table==null) return null;
+    
+    CurrencyType curr = table.getCurrencyByUUID(currencyID);
+    if(curr!=null) return curr;
+    
+    if(StringUtils.isInteger(currencyID)) {
+      curr = table.getCurrencyByID(Integer.parseInt(currencyID));
+      if(curr!=null) return curr;
+    }
+    
+    return table.getCurrencyByIDString(currencyID);
+  }
+  
+  
   /**
    * Static utilities only - do not instantiate.
    */

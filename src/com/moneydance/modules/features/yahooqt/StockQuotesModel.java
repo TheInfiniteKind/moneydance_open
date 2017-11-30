@@ -108,10 +108,12 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void addSecurity(Account account, CurrencyType securityCurrency) {
     // build a map of securities and the parent investment accounts that own them
     Set<Account> accountSet = _securityMap.get(securityCurrency);
-    if (accountSet == null) accountSet = new HashSet<Account>();
-    // the parent of a security is always an investment account
-    accountSet.add(account.getParentAccount());
-    _securityMap.put(securityCurrency, accountSet);
+    if (accountSet == null) {
+      accountSet = new HashSet<Account>();
+      _securityMap.put(securityCurrency, accountSet);
+    }
+    // if account!=null, then add it's parent investment account
+    if(account!=null) accountSet.add(account.getParentAccount());
   }
 
   MoneydanceGUI getGUI() {

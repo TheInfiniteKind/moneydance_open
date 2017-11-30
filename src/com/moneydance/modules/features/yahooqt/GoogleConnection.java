@@ -127,11 +127,6 @@ public class GoogleConnection extends BaseConnection {
     return result.toString();
   }
 
-  public String getCurrentPriceURL(String fullTickerSymbol) {
-    // current price apparently not supported by Google, historical only
-    return null;
-  }
-
   @Override
   protected String getCurrentPriceHeader() {
     // not supported

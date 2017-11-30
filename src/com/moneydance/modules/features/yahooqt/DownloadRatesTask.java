@@ -73,8 +73,7 @@ public class DownloadRatesTask implements Callable<Boolean> {
           progressPercent += progressIncrement;
           final String message, logMessage;
           if (rate <= 0.0) {
-            message = MessageFormat.format(
-                                            _resources.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT), 
+            message = MessageFormat.format( _resources.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT), 
                                             currencyType.getIDString(),  baseCurrency.getIDString());
             logMessage = MessageFormat.format("Unable to get rate from {0} to {1}",
                                               currencyType.getIDString(),  baseCurrency.getIDString());

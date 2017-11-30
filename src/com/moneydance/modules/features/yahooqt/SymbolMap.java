@@ -30,6 +30,7 @@ public class SymbolMap {
   private static final String EXCHANGE_MAP_KEY = "symbolExchangeMap";
   private static final String EXCHANGE_LIST_KEY = "exchangeList";
   private static final String CURRENCY_ID_KEY = "currId";
+  private static final String CURRENCY_UUID_KEY = "currUUID";
   private static final String EXCHANGE_ID_KEY = "exchId";
   private static final String USE_SYMBOL_KEY = "use";
   private static final boolean DEFAULT_USE = true;
@@ -38,7 +39,8 @@ public class SymbolMap {
   /**
    * The map of CurrencyType.id (kept unique) to a stock exchange ID and whether to download it.
    */
-  private final Map<Integer, CurrencyData> _symbolMap = new HashMap<Integer, CurrencyData>();
+  private final Map<String, CurrencyData> _symbolMap = new HashMap<>();
+  
   /**
    * The catalog of possible stock exchange definitions.
    */
@@ -55,15 +57,16 @@ public class SymbolMap {
   void saveToFile(Account root) {
     if (root == null) return;
     StreamVector exchangeList = new StreamVector();
-    for (Integer currencyId : _symbolMap.keySet()) {
-      String exchangeId = _symbolMap.get(currencyId).exchangeId;
+    for (String currencyID : _symbolMap.keySet()) {
+      CurrencyData data = _symbolMap.get(currencyID);
+      String exchangeId = data.exchangeId;
       if (SQUtil.isBlank(exchangeId) || !_exchangeList.contains(exchangeId)) {
         exchangeId = StockExchange.DEFAULT.getExchangeId();
       }
       StreamTable settings = new StreamTable();
-      settings.put(CURRENCY_ID_KEY, currencyId.intValue());
+      settings.put(CURRENCY_ID_KEY, currencyID);
       settings.put(EXCHANGE_ID_KEY, exchangeId);
-      settings.put(USE_SYMBOL_KEY, _symbolMap.get(currencyId).use);
+      settings.put(USE_SYMBOL_KEY, data.use);
       exchangeList.add(settings);
     }
     StreamTable table = new StreamTable();
@@ -92,11 +95,12 @@ public class SymbolMap {
       for (Object mapPair : settingsList) {
         if (!(mapPair instanceof StreamTable)) continue;
         StreamTable pairTable = (StreamTable)mapPair;
-        int currencyId = pairTable.getInt(CURRENCY_ID_KEY, -1);
-        if (isValidCurrency(book, currencyId)) {
+        String currencyID = pairTable.getStr(CURRENCY_UUID_KEY, pairTable.getStr(CURRENCY_ID_KEY, null));
+        CurrencyType currency = SQUtil.getCurrencyWithID(book, currencyID);
+        if (currency!=null) {
           String exchangeId = pairTable.getStr(EXCHANGE_ID_KEY, DEFAULT_EXCHANGE_ID);
           boolean use = pairTable.getBoolean(USE_SYMBOL_KEY, DEFAULT_USE);
-          _symbolMap.put(Integer.valueOf(currencyId), new CurrencyData(exchangeId, use));
+          _symbolMap.put(currency.getUUID(), new CurrencyData(exchangeId, use));
         }
       }
     } catch (StringEncodingException e) {
@@ -105,7 +109,7 @@ public class SymbolMap {
   }
 
   String getExchangeIdForCurrency(CurrencyType currency) {
-    final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
+    final CurrencyData data = _symbolMap.get(currency.getUUID());
     if (data == null) return StockExchange.DEFAULT.getExchangeId();
     String exchangeId = data.exchangeId;
     if (SQUtil.isBlank(exchangeId)) return StockExchange.DEFAULT.getExchangeId();
@@ -113,7 +117,7 @@ public class SymbolMap {
   }
 
   StockExchange getExchangeForCurrency(CurrencyType currency) {
-    final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
+    final CurrencyData data = _symbolMap.get(currency.getUUID());
     if (data == null) return StockExchange.DEFAULT;
     String exchangeId = data.exchangeId;
     if (SQUtil.isBlank(exchangeId)) return StockExchange.DEFAULT;
@@ -121,40 +125,36 @@ public class SymbolMap {
   }
 
   void setExchangeIdForCurrency(CurrencyType currency, String exchangeId) {
-    final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
+    final CurrencyData data = _symbolMap.get(currency.getUUID());
     if (data == null) return;
     data.exchangeId = exchangeId;
   }
-
+  
   boolean getIsCurrencyUsed(CurrencyType currency) {
-    final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
+    final CurrencyData data = _symbolMap.get(currency.getUUID());
     if (data == null) return false;
     return data.use;
   }
 
   void setIsCurrencyUsed(CurrencyType currency, boolean useForDownload) {
-    final CurrencyData data = _symbolMap.get(Integer.valueOf(currency.getID()));
+    final CurrencyData data = _symbolMap.get(currency.getUUID());
     if (data == null) return;
     data.use = useForDownload;
   }
 
   boolean hasCurrency(CurrencyType currency) {
-    return _symbolMap.containsKey(Integer.valueOf(currency.getID()));
+    return _symbolMap.containsKey(currency.getUUID());
   }
 
   String addCurrency(CurrencyType currency) {
     // assume the currency is valid
-    final Integer currencyId = Integer.valueOf(currency.getID());
-    _symbolMap.put(currencyId, new CurrencyData(DEFAULT_EXCHANGE_ID, DEFAULT_USE));
+    _symbolMap.put(currency.getUUID(), new CurrencyData(DEFAULT_EXCHANGE_ID, DEFAULT_USE));
     return DEFAULT_EXCHANGE_ID;
   }
 
-  private boolean isValidCurrency(AccountBook book, int currencyId) {
-    CurrencyTable currencyTable = book.getCurrencies();
-    if (currencyTable == null) return false;
-    return (currencyTable.getCurrencyByID(currencyId) != null);
+  private boolean isValidCurrency(AccountBook book, String currencyID) {
+    return SQUtil.getCurrencyWithID(book, currencyID) != null;
   }
-
 
   private class CurrencyData {
     private String exchangeId = null;

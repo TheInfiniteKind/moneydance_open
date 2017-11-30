@@ -200,13 +200,8 @@ public class AlphavantageConnection extends BaseConnection {
 
   @Override
   public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
-    return getCurrentPriceURL(fullTickerSymbol);
-  }
-
-  @Override
-  public String getCurrentPriceURL(String fullTickerSymbol) {
     String apiKey = getAPIKey(getModel());
-    return apiKey==null ? null : 
+    return apiKey==null ? null :
            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(apiKey)+"&datatype=csv";
   }
 

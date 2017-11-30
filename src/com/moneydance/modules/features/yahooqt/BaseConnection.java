@@ -14,6 +14,7 @@ import com.infinitekind.util.CustomDateFormat;
 
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.TimeZone;
 import java.util.Vector;
 
@@ -69,13 +70,6 @@ public abstract class BaseConnection {
   public abstract String getHistoryURL(String fullTickerSymbol, DateRange dateRange);
 
   /**
-   * Given a ticker symbol, return the URL to obtain current security price.
-   * @param fullTickerSymbol The ticker symbol to use.
-   * @return The URL to use to obtain a current price quote from.
-   */
-  public abstract String getCurrentPriceURL(String fullTickerSymbol);
-
-  /**
    * Define the default currency, which is the price currency that is to be used for the downloaded
    * quotes when the Default stock exchange is assigned to a security. The default implementation
    * specifies the U.S. Dollar as the default currency. If the default currency is not defined in
@@ -101,29 +95,10 @@ public abstract class BaseConnection {
   public StockHistory getHistory(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
     throws DownloadException
   {
-    return importData(securityCurrency, true, dateRange, apply);
+    return importData(securityCurrency, dateRange, apply);
   }
-
-  /**
-   * Retrieve the current information for the given stock ticker symbol.
-   * @param securityCurrency The currency for the security we're downloading the current price for.
-   * @param recordInHistory True to store the current price in a history record, false otherwise.
-   * @return The current price record for the given currency.
-   * @throws DownloadException if an error occurs.
-   */
-  public StockRecord getCurrentPrice(CurrencyType securityCurrency, boolean recordInHistory)
-    throws DownloadException
-  {
-    int today = Util.getStrippedDateInt();
-    DateRange dateRange = new DateRange(today, today);
-    // the current price does not add a history entry, so we do not 'apply' the download unless the
-    // user indicated they want it to.
-    StockHistory history = importData(securityCurrency, false, dateRange, recordInHistory);
-    if (history == null) return null;
-    return history.getRecord(0);
-  }
-
-
+  
+  
   /**
    * Retrieve the current information for the given stock ticker symbol.
    * @param currencyID      The string identifier of the currency to start with ('from').
@@ -223,8 +198,7 @@ public abstract class BaseConnection {
   //  Private Methods
   //////////////////////////////////////////////////////////////////////////////////////////////
 
-  private StockHistory importData(CurrencyType securityCurrency, boolean getFullHistory,
-                                         DateRange dateRange, boolean apply)
+  private StockHistory importData(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
     throws DownloadException
   {
     SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
@@ -242,28 +216,26 @@ public abstract class BaseConnection {
       throw new DownloadException(securityCurrency, message);
     }
     double priceMultiplier = exchange.getPriceMultiplier();
-    final String urlStr = getFullHistory ? getHistoryURL(fullTickerSymbol, dateRange) : getCurrentPriceURL(fullTickerSymbol);
-    System.err.println("getting "+(getFullHistory?"history":"current price")+" using url: "+ urlStr);
+    final String urlStr = getHistoryURL(fullTickerSymbol, dateRange);
+    System.err.println("getting history using url: "+ urlStr);
     
     if (urlStr == null) {
       // mode is not supported by this connection
-      String message = getFullHistory ?
-              _model.getResources().getString(L10NStockQuotes.ERROR_HISTORY_NOT_SUPPORTED) :
-              _model.getResources().getString(L10NStockQuotes.ERROR_CURRENT_NOT_SUPPORTED);
+      String message = _model.getResources().getString(L10NStockQuotes.ERROR_HISTORY_NOT_SUPPORTED);
       throw new DownloadException(securityCurrency, message);
     }
 
-    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(getFullHistory);
+    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
     char decimal = _model.getPreferences().getDecimalChar();
     SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, getCookie(), _model.getResources(),
                                                                    securityCurrency, defaultDateFormat, _timeZone, decimal);
-    if (getFullHistory && allowAutodetect()) {
+    if (allowAutodetect()) {
       importer.setAutodetectFormat(true);
     } else {
       importer.setColumnsFromHeader(getCurrentPriceHeader());
     }
     importer.setPriceMultiplier(priceMultiplier);
-
+    
     // the return value is negative for general errors, 0 for success with no error, or a positive
     // value for overall success but one or more errors
     int errorResult = importer.importData();
@@ -272,8 +244,24 @@ public abstract class BaseConnection {
       if (error != null) throw new DownloadException(securityCurrency, error.getMessage(), error);
       buildMessageAndThrow(securityCurrency, errorResult);
     }
-    Vector<StockRecord> recordList = importer.getImportedRecords();
+    List<StockRecord> recordList = importer.getImportedRecords();
     if (recordList.isEmpty())  buildMessageAndThrow(securityCurrency, SnapshotImporter.ERROR_NO_DATA);
+    
+    if(this instanceof AlphavantageConnection && fullTickerSymbol.endsWith(".L") && recordList.size() > 1) {
+      // special case when Alphavantage provides the first (aka current date) price in pence instead of GBP for some LSE securities
+      StockRecord first = recordList.get(0);
+      StockRecord second = recordList.get(1);
+      if(first.closeRate > (second.closeRate/100)*0.9 && first.closeRate < (second.closeRate/100)*1.1) {
+        for(int i=recordList.size()-1; i>=1; i--) { // adjust all but the first entry
+          StockRecord record = recordList.get(i);
+          record.closeRate /= 100;
+          record.highRate /= 100;
+          record.lowRate /= 100;
+          record.open /= 100;
+        }
+      }
+    }
+    
     buildPriceDisplayText(recordList, priceCurrency, _model.getPreferences().getDecimalChar());
     if (apply) {
       importer.apply(priceCurrency);
@@ -281,7 +269,7 @@ public abstract class BaseConnection {
     return new StockHistory(priceCurrencyId, recordList, errorResult);
   }
 
-  private void buildPriceDisplayText(Vector<StockRecord> recordList, CurrencyType priceCurrency,
+  private void buildPriceDisplayText(List<StockRecord> recordList, CurrencyType priceCurrency,
                                      char decimal) {
     for (StockRecord record : recordList) {
       long amount = (record.closeRate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / record.closeRate);

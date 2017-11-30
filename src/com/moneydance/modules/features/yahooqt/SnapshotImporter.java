@@ -36,7 +36,7 @@ import java.util.*;
 public abstract class SnapshotImporter
 {
   protected final CurrencyType _currency;
-  protected final Vector<StockRecord> _importRecords = new Vector<StockRecord>();
+  protected final List<StockRecord> _importRecords = new ArrayList<>();
   protected final ResourceProvider _resources;
 
   /**
@@ -319,7 +319,7 @@ public abstract class SnapshotImporter
       errorCount = 0;
       while (lineItem != null) {
         if (isValidItem(lineItem)) {
-          final StockRecord record = addCurrencySnapshot(lineItem);
+          final StockRecord record = parseStockRecordFromCSV(lineItem);
           if (record == null) {
             ++errorCount;
           } else {
@@ -344,6 +344,7 @@ public abstract class SnapshotImporter
         // ignore
       }
     }
+    
     onEndImport(errorCount);
     return errorCount;
   }
@@ -367,7 +368,7 @@ public abstract class SnapshotImporter
     return success;
   }
 
-  public Vector<StockRecord> getImportedRecords() { return _importRecords; }
+  public List<StockRecord> getImportedRecords() { return _importRecords; }
 
   public Exception getLastException() { return _lastException; }
 
@@ -510,7 +511,7 @@ public abstract class SnapshotImporter
    * @param record The line from the import stream.
    * @return The history snapshot, or <code>null</code> if the line contains invalid data.
    */
-  private StockRecord addCurrencySnapshot(String record) {
+  private StockRecord parseStockRecordFromCSV(String record) {
     int date = parseDate(StringUtils.fieldIndex(record, _columnDelim, _dateIndex));
     if(date==0) {
       System.err.println("Import error: discarding currency snapshot with zero date: "+record);
