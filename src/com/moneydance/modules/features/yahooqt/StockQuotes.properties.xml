@@ -10,6 +10,7 @@
     <entry key="ratesConnection">Currency Exchange Rates</entry>
     <entry key="historyConnection">Historical Security Prices</entry>
     <entry key="currentConnection">Current Security Prices</entry>
+    <entry key="setAPIKey">Set API Key</entry>
     <entry key="securitiesConnection">Security Prices</entry>
     <entry key="frequency">Update Frequency</entry>
     <entry key="nextDate">Next Update</entry>

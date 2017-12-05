@@ -29,8 +29,8 @@ public class AlphavantageConnection extends BaseConnection {
   private static String cachedAPIKey = null;
   private static long suppressAPIKeyRequestUntilTime = 0;
   
-  private static synchronized String getAPIKey(final StockQuotesModel model) {
-    if(cachedAPIKey!=null) return cachedAPIKey;
+  static synchronized String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet) {
+    if(!evenIfAlreadySet && cachedAPIKey!=null) return cachedAPIKey;
     
     if(model==null) return null;
     
@@ -39,15 +39,16 @@ public class AlphavantageConnection extends BaseConnection {
     
     final Account root = book.getRootAccount();
     String apiKey = root.getParameter("alphavantage.apikey", null);
-    if( ! com.infinitekind.util.StringUtils.isBlank(apiKey)) {
+    if(!evenIfAlreadySet && !com.infinitekind.util.StringUtils.isBlank(apiKey)) {
       return apiKey;
     }
     
-    if(suppressAPIKeyRequestUntilTime > System.currentTimeMillis()) { // further requests for the key have been suppressed
+    if(!evenIfAlreadySet && suppressAPIKeyRequestUntilTime > System.currentTimeMillis()) { // further requests for the key have been suppressed
       return null;
     }
     
     final String inputString = null;
+    final String existingAPIKey = apiKey;
     Runnable uiActions = new Runnable() {
       @Override
       public void run() {
@@ -58,6 +59,7 @@ public class AlphavantageConnection extends BaseConnection {
             model.showURL("https://infinitekind.com/alphavantage");
           }
         };
+        String defaultAPIKey = existingAPIKey != null ? existingAPIKey : "";
         signupAction.putValue(Action.NAME, model.getResources().getString("alphavantage.apikey_action"));
         JLinkLabel linkButton = new JLinkLabel(signupAction);
         p.add(new JTextPanel(model.getResources().getString("alphavantage.apikey_msg")), 
@@ -65,9 +67,11 @@ public class AlphavantageConnection extends BaseConnection {
         p.add(linkButton, 
               GridC.getc(0,1).center().insets(12,16,0,16));
         while(true) {
-          String inputString = JOptionPane.showInputDialog(null, p, "title", JOptionPane.QUESTION_MESSAGE);
-          if(inputString==null) { // the user canceled the API key request, so let's not ask again for 5 minutes
-            suppressAPIKeyRequestUntilTime = System.currentTimeMillis() + 1000 * 60 * 5;
+          String inputString = JOptionPane.showInputDialog(null, p, defaultAPIKey);
+          if(inputString==null) { // the user canceled the prompt, so let's not ask again for 5 minutes unless this prompt was forced
+            if(!evenIfAlreadySet) {
+              suppressAPIKeyRequestUntilTime = System.currentTimeMillis() + 1000 * 60 * 5;
+            }
             return;
           }
           
@@ -145,7 +149,7 @@ public class AlphavantageConnection extends BaseConnection {
     if (currencyID.length() != 3 || baseCurrencyID.length() != 3)
       return null;
     
-    String apiKey = getAPIKey(getModel());
+    String apiKey = getAPIKey(getModel(), false);
     if(apiKey==null) return null;
     
     String urlStr = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"+
@@ -200,7 +204,7 @@ public class AlphavantageConnection extends BaseConnection {
 
   @Override
   public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
-    String apiKey = getAPIKey(getModel());
+    String apiKey = getAPIKey(getModel(), false);
     return apiKey==null ? null :
            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(apiKey)+"&datatype=csv";
   }

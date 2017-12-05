@@ -14,6 +14,7 @@ import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.moneydance.apps.md.controller.time.TimeInterval;
+import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
@@ -61,8 +62,9 @@ public class YahooDialog
   private final ResourceProvider _resources;
   private final IExchangeEditor _exchangeEditor = new ExchangeEditor();
 
-  private JComboBox _historyConnectionSelect;
-  private JComboBox _ratesConnectionSelect;
+  private JComboBox<BaseConnection> _historyConnectionSelect;
+  private JComboBox<BaseConnection> _ratesConnectionSelect;
+  private Action setAPIKeyAction;
   private IntervalChooser _intervalSelect;
   private JDateField _nextDate;
   private JLabel _showTestLabel = new JLabel();
@@ -118,23 +120,47 @@ public class YahooDialog
     fieldPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP,
                                                          UiUtil.DLG_VGAP, UiUtil.DLG_HGAP));
     // pick which URL schemes to connect to (or no connection to disable the download)
-    setupConnectionSelectors();
-    setupIntervalSelector();
+    // stock historical quotes
+    _historyConnectionSelect = new JComboBox<>(_model.getConnectionList(BaseConnection.HISTORY_SUPPORT));
+    _historyConnectionSelect.setSelectedItem(_model.getSelectedHistoryConnection());
+    // currency exchange rates
+    _ratesConnectionSelect = new JComboBox<>(_model.getConnectionList(BaseConnection.EXCHANGE_RATES_SUPPORT));
+    _ratesConnectionSelect.setSelectedItem(_model.getSelectedExchangeRatesConnection());
+
+    
+    setAPIKeyAction = new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        AlphavantageConnection.getAPIKey(_model, true);
+      }
+    };
+    setAPIKeyAction.putValue(Action.NAME, _resources.getString(L10NStockQuotes.SET_API_KEY));
+    
+    _intervalSelect = new IntervalChooser(_model.getGUI());
+    final String paramStr = _model.getPreferences().getSetting(Main.UPDATE_INTERVAL_KEY, "");
+    _intervalSelect.selectFromParams(paramStr);
+    _nextDate = new JDateField(_model.getPreferences().getShortDateFormatter());
+    loadNextDate();
+    
     // first column
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.RATES_CONNECTION)),
-            GridC.getc(0, 0).label());
+                   GridC.getc(0, 0).label());
     fieldPanel.add(_ratesConnectionSelect,   GridC.getc(1, 0).field());
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.SECURITIES_CONNECTION)),
-            GridC.getc(0, 1).label());
+                   GridC.getc(0, 1).label());
     fieldPanel.add(_historyConnectionSelect, GridC.getc(1, 1).field());
+    fieldPanel.add(new JButton(setAPIKeyAction), GridC.getc(1, 2).field());
+    
     // gap in middle
     fieldPanel.add(Box.createHorizontalStrut(UiUtil.DLG_HGAP), GridC.getc(2, 0));
+    
+    
     // second column
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.FREQUENCY_LABEL)),
-            GridC.getc(3, 0).label());
+                   GridC.getc(3, 0).label());
     fieldPanel.add(_intervalSelect, GridC.getc(4, 0).field());
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.NEXT_DATE_LABEL)),
-            GridC.getc(3, 1).label());
+                   GridC.getc(3, 1).label());
     fieldPanel.add(_nextDate, GridC.getc(4, 1).field());
     _showTestLabel.setHorizontalAlignment(JLabel.RIGHT);
     // add the toggle for the testing mode on/off
@@ -154,7 +180,7 @@ public class YahooDialog
     _testStatus.setText(" ");
     fieldPanel.add(_testStatus, GridC.getc(0, 6).colspan(5).field());
     fieldPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP,
-            0, UiUtil.DLG_HGAP));
+                                                         0, UiUtil.DLG_HGAP));
     contentPane.add(fieldPanel, BorderLayout.CENTER);
     // buttons at bottom
     _buttonNow = new JButton(_resources.getString(L10NStockQuotes.UPDATE_NOW));
@@ -190,6 +216,7 @@ public class YahooDialog
       _table.getColumnModel().removeColumn(_testColumn);
     }
   }
+  
 
   private void showLastUpdateDate() {
     if (_model.getRootAccount() != null) {
@@ -266,25 +293,6 @@ public class YahooDialog
     };
     _showTestLabel.addMouseListener(mouseInputListener);
     _showTestLabel.addMouseMotionListener(mouseInputListener);
-  }
-
-  private void setupConnectionSelectors() {
-    // stock historical quotes
-    _historyConnectionSelect = new JComboBox(
-            _model.getConnectionList(BaseConnection.HISTORY_SUPPORT));
-    _historyConnectionSelect.setSelectedItem(_model.getSelectedHistoryConnection());
-    // currency exchange rates
-    _ratesConnectionSelect = new JComboBox(
-            _model.getConnectionList(BaseConnection.EXCHANGE_RATES_SUPPORT));
-    _ratesConnectionSelect.setSelectedItem(_model.getSelectedExchangeRatesConnection());
-  }
-
-  private void setupIntervalSelector() {
-    _intervalSelect = new IntervalChooser(_model.getGUI());
-    final String paramStr = _model.getPreferences().getSetting(Main.UPDATE_INTERVAL_KEY, "");
-    _intervalSelect.selectFromParams(paramStr);
-    _nextDate = new JDateField(_model.getPreferences().getShortDateFormatter());
-    loadNextDate();
   }
 
   private void loadNextDate() {

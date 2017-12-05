@@ -22,6 +22,7 @@ class L10NStockQuotes
   // main configuration dialog
   static final String SETTINGS_TITLE = "settings.title";
   static final String RATES_CONNECTION = "ratesConnection";
+  static final String SET_API_KEY = "setAPIKey";
   static final String SECURITIES_CONNECTION = "securitiesConnection";
   static final String FREQUENCY_LABEL = "frequency";
   static final String NEXT_DATE_LABEL = "nextDate";
