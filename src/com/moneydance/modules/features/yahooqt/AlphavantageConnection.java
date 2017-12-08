@@ -38,7 +38,8 @@ public class AlphavantageConnection extends BaseConnection {
     if(book==null) return null;
     
     final Account root = book.getRootAccount();
-    String apiKey = root.getParameter("alphavantage.apikey", null);
+    String apiKey = root.getParameter("alphavantage.apikey", 
+                                      model.getPreferences().getSetting("alphavantage_apikey", null));
     if(!evenIfAlreadySet && !com.infinitekind.util.StringUtils.isBlank(apiKey)) {
       return apiKey;
     }
@@ -77,6 +78,7 @@ public class AlphavantageConnection extends BaseConnection {
           
           if(!SQUtil.isEmpty(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE)) {
             root.setParameter("alphavantage.apikey", inputString);
+            model.getPreferences().setSetting("alphavantage_apikey", inputString);
             root.syncItem();
             cachedAPIKey = inputString;
             return;

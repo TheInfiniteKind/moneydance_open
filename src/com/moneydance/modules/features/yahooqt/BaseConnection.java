@@ -9,14 +9,12 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.util.CustomDateFormat;
 
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.Vector;
 
 /**
  * Base class for importing stock and currency prices. Derived classes provide specific
@@ -26,9 +24,8 @@ import java.util.Vector;
  */
 public abstract class BaseConnection {
   static final int HISTORY_SUPPORT = 1;
-  static final int CURRENT_PRICE_SUPPORT = 2;
   static final int EXCHANGE_RATES_SUPPORT = 4;
-  static final int ALL_SUPPORT = HISTORY_SUPPORT | CURRENT_PRICE_SUPPORT | EXCHANGE_RATES_SUPPORT;
+  static final int ALL_SUPPORT = HISTORY_SUPPORT | EXCHANGE_RATES_SUPPORT;
   
   private final int _capabilities;
   private final StockQuotesModel _model;

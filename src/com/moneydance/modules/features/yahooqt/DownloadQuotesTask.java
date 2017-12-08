@@ -98,7 +98,9 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       success = false;
     } finally {
       _progressPercent = 0f;
-      ctable.fireCurrencyTableModified();
+      // no longer need to fire this event as calling syncItem on a modified object (like the currency) 
+      // will automatically sync it
+      //ctable.fireCurrencyTableModified();  
     }
 
     if (success) {
@@ -224,6 +226,7 @@ public class DownloadQuotesTask implements Callable<Boolean> {
       // the user rate should be stored in terms of the base currency, just like the snapshots
       currType.setUserRate(latestRate, priceCurrency);
       currType.setParameter("price_date", latestPriceDate);
+      currType.syncItem();
       // see comments above - no longer skipping due to an older time stamp downloaded
 //    } else if (foundPrice) {
 //      // log that we skipped the update and why
