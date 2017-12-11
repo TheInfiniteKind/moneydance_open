@@ -92,7 +92,72 @@ public abstract class BaseConnection {
   public StockHistory getHistory(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
     throws DownloadException
   {
-    return importData(securityCurrency, dateRange, apply);
+    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
+    if (parsedSymbol == null) return null;
+    StockExchange exchange = getExchangeForSecurity(parsedSymbol, securityCurrency);
+    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
+    if (fullTickerSymbol == null) return null;
+    String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
+    // get the currency that the prices are specified in
+    CurrencyType priceCurrency = getPriceCurrency(securityCurrency);
+    if (priceCurrency == null) {
+      String message = MessageFormat.format(
+        _model.getResources().getString(L10NStockQuotes.ERROR_PRICE_CURRENCY_FMT),
+        priceCurrencyId);
+      throw new DownloadException(securityCurrency, message);
+    }
+    double priceMultiplier = exchange.getPriceMultiplier();
+    final String urlStr = getHistoryURL(fullTickerSymbol, dateRange);
+    System.err.println("getting history using url: "+ urlStr);
+
+    if (urlStr == null) {
+      // mode is not supported by this connection
+      String message = _model.getResources().getString(L10NStockQuotes.ERROR_HISTORY_NOT_SUPPORTED);
+      throw new DownloadException(securityCurrency, message);
+    }
+
+    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
+    char decimal = _model.getPreferences().getDecimalChar();
+    SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, getCookie(), _model.getResources(),
+                                                                   securityCurrency, defaultDateFormat, _timeZone, decimal);
+    if (allowAutodetect()) {
+      importer.setAutodetectFormat(true);
+    } else {
+      importer.setColumnsFromHeader(getCurrentPriceHeader());
+    }
+    importer.setPriceMultiplier(priceMultiplier);
+
+    // the return value is negative for general errors, 0 for success with no error, or a positive
+    // value for overall success but one or more errors
+    int errorResult = importer.importData();
+    if (errorResult < 0) {
+      Exception error = importer.getLastException();
+      if (error != null) throw new DownloadException(securityCurrency, error.getMessage(), error);
+      buildMessageAndThrow(securityCurrency, errorResult);
+    }
+    List<StockRecord> recordList = importer.getImportedRecords();
+    if (recordList.isEmpty())  buildMessageAndThrow(securityCurrency, SnapshotImporter.ERROR_NO_DATA);
+    
+    if(this instanceof AlphavantageConnection && fullTickerSymbol.endsWith(".L") && recordList.size() > 1) {
+      // special case when Alphavantage provides the first (aka current date) price in pence instead of GBP for some LSE securities
+      StockRecord first = recordList.get(0);
+      StockRecord second = recordList.get(1);
+      if(first.closeRate > (second.closeRate/100)*0.9 && first.closeRate < (second.closeRate/100)*1.1) {
+        for(int i=recordList.size()-1; i>=1; i--) { // adjust all but the first entry
+          StockRecord record = recordList.get(i);
+          record.closeRate /= 100;
+          record.highRate /= 100;
+          record.lowRate /= 100;
+          record.open /= 100;
+        }
+      }
+    }
+    
+    buildPriceDisplayText(recordList, priceCurrency, _model.getPreferences().getDecimalChar());
+    if (apply) {
+      importer.apply(priceCurrency);
+    }
+    return new StockHistory(priceCurrencyId, recordList, errorResult);
   }
   
   
@@ -192,80 +257,6 @@ public abstract class BaseConnection {
   
   
   //////////////////////////////////////////////////////////////////////////////////////////////
-  //  Private Methods
-  //////////////////////////////////////////////////////////////////////////////////////////////
-
-  private StockHistory importData(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
-    throws DownloadException
-  {
-    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
-    if (parsedSymbol == null) return null;
-    StockExchange exchange = getExchangeForSecurity(parsedSymbol, securityCurrency);
-    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
-    if (fullTickerSymbol == null) return null;
-    String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
-    // get the currency that the prices are specified in
-    CurrencyType priceCurrency = getPriceCurrency(securityCurrency);
-    if (priceCurrency == null) {
-      String message = MessageFormat.format(
-              _model.getResources().getString(L10NStockQuotes.ERROR_PRICE_CURRENCY_FMT),
-              priceCurrencyId);
-      throw new DownloadException(securityCurrency, message);
-    }
-    double priceMultiplier = exchange.getPriceMultiplier();
-    final String urlStr = getHistoryURL(fullTickerSymbol, dateRange);
-    System.err.println("getting history using url: "+ urlStr);
-    
-    if (urlStr == null) {
-      // mode is not supported by this connection
-      String message = _model.getResources().getString(L10NStockQuotes.ERROR_HISTORY_NOT_SUPPORTED);
-      throw new DownloadException(securityCurrency, message);
-    }
-
-    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
-    char decimal = _model.getPreferences().getDecimalChar();
-    SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, getCookie(), _model.getResources(),
-                                                                   securityCurrency, defaultDateFormat, _timeZone, decimal);
-    if (allowAutodetect()) {
-      importer.setAutodetectFormat(true);
-    } else {
-      importer.setColumnsFromHeader(getCurrentPriceHeader());
-    }
-    importer.setPriceMultiplier(priceMultiplier);
-    
-    // the return value is negative for general errors, 0 for success with no error, or a positive
-    // value for overall success but one or more errors
-    int errorResult = importer.importData();
-    if (errorResult < 0) {
-      Exception error = importer.getLastException();
-      if (error != null) throw new DownloadException(securityCurrency, error.getMessage(), error);
-      buildMessageAndThrow(securityCurrency, errorResult);
-    }
-    List<StockRecord> recordList = importer.getImportedRecords();
-    if (recordList.isEmpty())  buildMessageAndThrow(securityCurrency, SnapshotImporter.ERROR_NO_DATA);
-    
-    if(this instanceof AlphavantageConnection && fullTickerSymbol.endsWith(".L") && recordList.size() > 1) {
-      // special case when Alphavantage provides the first (aka current date) price in pence instead of GBP for some LSE securities
-      StockRecord first = recordList.get(0);
-      StockRecord second = recordList.get(1);
-      if(first.closeRate > (second.closeRate/100)*0.9 && first.closeRate < (second.closeRate/100)*1.1) {
-        for(int i=recordList.size()-1; i>=1; i--) { // adjust all but the first entry
-          StockRecord record = recordList.get(i);
-          record.closeRate /= 100;
-          record.highRate /= 100;
-          record.lowRate /= 100;
-          record.open /= 100;
-        }
-      }
-    }
-    
-    buildPriceDisplayText(recordList, priceCurrency, _model.getPreferences().getDecimalChar());
-    if (apply) {
-      importer.apply(priceCurrency);
-    }
-    return new StockHistory(priceCurrencyId, recordList, errorResult);
-  }
-
   private void buildPriceDisplayText(List<StockRecord> recordList, CurrencyType priceCurrency,
                                      char decimal) {
     for (StockRecord record : recordList) {
