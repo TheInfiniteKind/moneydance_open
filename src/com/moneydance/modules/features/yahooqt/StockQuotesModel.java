@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.time.*;
@@ -152,65 +153,42 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     return _dirty;
   }
 
-  void runStockPriceDownload(final PropertyChangeListener listener) {
+  void downloadRatesAndPricesInBackground(final PropertyChangeListener listener) {
     // make sure we don't submit this task on the Event Data Thread, which will block while waiting
     // for the previous task to complete
     final StockQuotesModel model = this;
     Thread tempThread = new Thread(new Runnable() {
       public void run() {
-        final ConnectionTask task = new ConnectionTask(
-                new DownloadQuotesTask(model, _resources), model, _resources);
-        setCurrentTask(task, false);
-        addPropertyChangeListener(listener);
-        _executor.execute(task);
-        // all notifications are set to the Swing EDT
         firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
-        waitForCurrentTaskToFinish();
-        removePropertyChangeListener(listener);
-      }
-    }, "Download Security Prices");
-    tempThread.start();
-  }
-
-  void runRatesDownload(final PropertyChangeListener listener) {
-    // make sure we don't submit this task on the Event Data Thread, which will block while waiting
-    // for the previous task to complete
-    final StockQuotesModel model = this;
-    Thread tempThread = new Thread(new Runnable() {
-      public void run() {
-        final ConnectionTask task = new ConnectionTask(
-                new DownloadRatesTask(model, _resources), model, _resources);
+        
+        final ConnectionTask task = new ConnectionTask(new DownloadTask(model, _resources), model, _resources);
         setCurrentTask(task, false);
         addPropertyChangeListener(listener);
         _executor.execute(_currentTask);
-        // all notifications are set to the Swing EDT
-        firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
         waitForCurrentTaskToFinish();
         removePropertyChangeListener(listener);
       }
-    }, "Download Exchange Rates");
+    }, "Download Exchange Rates and Prices");
     tempThread.start();
   }
 
   void runDownloadTest() {
     // the test is interactive (and on the EDT) so don't wait for the current task to finish
-    final ConnectionTask task = new ConnectionTask(
-            new DownloadQuotesTest(this, _resources), this, _resources);
+    final ConnectionTask task = new ConnectionTask(new DownloadTask(this, _resources), this, _resources);
     setCurrentTask(task, true);
     _executor.execute(_currentTask);
     // all notifications are set to the Swing EDT
     firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
   }
-
-  public void runUpdateIfNeeded(final boolean delayStart, final PropertyChangeListener listener)
-  {
+  
+  public void runUpdateIfNeeded(final boolean delayStart, final PropertyChangeListener listener) {
     // make sure we don't submit this task on the Event Data Thread, which will block while waiting
     // for the previous task to complete
     final StockQuotesModel model = this;
     Thread tempThread = new Thread(new Runnable() {
       public void run() {
-        final ConnectionTask task = new ConnectionTask(
-                new UpdateIfNeededTask(model, _resources, listener, delayStart), model, _resources);
+        final ConnectionTask task = new ConnectionTask(new UpdateIfNeededTask(model, _resources, listener, delayStart), 
+                                                       model, _resources);
         setCurrentTask(task, false);
         addPropertyChangeListener(listener);
         if (_cancelTasks.get()) return;
@@ -351,17 +329,26 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   void saveLastQuoteUpdateDate(final int lastDate) {
     if (book == null) return;
-    CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
-    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful price quotes date of: "+dateFormat.format(lastDate));
+    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful price quotes date of: "+lastDate);
     book.getRootAccount().setParameter(Main.QUOTE_LAST_UPDATE_KEY, lastDate);
   }
 
   void saveLastExchangeRatesUpdateDate(final int lastDate) {
     if (book == null) return;
-    CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
-    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful exchange rates date of: "+dateFormat.format(lastDate));
+    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful exchange rates date of: "+lastDate);
     book.getRootAccount().setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate);
   }
+  
+  int getQuotesLastUpdateDate() {
+    if (book == null) return 0;
+    return book.getRootAccount().getIntParameter(Main.QUOTE_LAST_UPDATE_KEY, 0);
+  }
+
+  int getRatesLastUpdateDate() {
+    if (book == null) return 0;
+    return book.getRootAccount().getIntParameter(Main.RATE_LAST_UPDATE_KEY, 0);
+  }
+  
 
   private void waitForCurrentTaskToFinish() {
     synchronized (_taskSync) {
@@ -378,7 +365,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   private void fireDownloadEnd(String taskName, Boolean success) {
-    // all notifications are set to the Swing EDT already (see constructor)
     firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_END, taskName, success);
   }
 
@@ -430,7 +416,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
       }
     }
   }
-
+  
   private static void firePropertyChange(final PropertyChangeSupport notifier, final String name,
                                          final Object oldValue, final Object newValue) {
     // notify on the event data thread (Swing thread)

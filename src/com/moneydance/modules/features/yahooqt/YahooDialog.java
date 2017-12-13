@@ -54,17 +54,20 @@ public class YahooDialog
   implements PropertyChangeListener
 {
   private final JPanel contentPane = new JPanel(new BorderLayout(5, 5));
-  private JButton _buttonNow;
-  private JButton _buttonTest;
   private final JTable _table = new JTable();
   /** This contains the table model as well as other data that is edited in this dialog. */
   private final StockQuotesModel _model;
   private final ResourceProvider _resources;
   private final IExchangeEditor _exchangeEditor = new ExchangeEditor();
-
+  private FeatureModuleContext context;
+  
   private JComboBox<BaseConnection> _historyConnectionSelect;
   private JComboBox<BaseConnection> _ratesConnectionSelect;
   private Action setAPIKeyAction;
+  private Action downloadAction;
+  private Action testAction;
+  private JButton testButton;
+  
   private IntervalChooser _intervalSelect;
   private JDateField _nextDate;
   private JLabel _showTestLabel = new JLabel();
@@ -78,6 +81,8 @@ public class YahooDialog
   public YahooDialog(final FeatureModuleContext context, final ResourceProvider resources,
                      final StockQuotesModel model) {
     super();
+    this.context = context;
+    
     _model = model;
     _model.addPropertyChangeListener(this);
     _resources = resources;
@@ -135,6 +140,38 @@ public class YahooDialog
       }
     };
     setAPIKeyAction.putValue(Action.NAME, _resources.getString(L10NStockQuotes.SET_API_KEY));
+
+    downloadAction = new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        // Store what we have in the dialog - same as OK. We need to do this because the main app
+        // update is called, which reads these settings from preferences or the data file.
+        saveControlsToSettings();
+        // listen for events so our status updates just like the main application's
+        _model.addPropertyChangeListener(YahooDialog.this);
+        // call the main update method
+        context.showURL("moneydance:fmodule:yahooqt:update");
+      }
+    };
+    
+    testAction = new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        Account root = _model.getRootAccount();
+        if(root==null) return;
+
+        // save the selected connections into our model
+        saveSelectedConnections();
+        // store what we have into the symbol map
+        _model.getTableModel().save(root);
+        // listen for update events
+        _model.addPropertyChangeListener(YahooDialog.this);
+        _model.runDownloadTest();
+      }
+    };
+    testAction.putValue(Action.NAME, _resources.getString(L10NStockQuotes.TEST));
+    
+    downloadAction.putValue(Action.NAME,_resources.getString(L10NStockQuotes.UPDATE_NOW));
     
     _intervalSelect = new IntervalChooser(_model.getGUI());
     final String paramStr = _model.getPreferences().getSetting(Main.UPDATE_INTERVAL_KEY, "");
@@ -183,12 +220,12 @@ public class YahooDialog
                                                          0, UiUtil.DLG_HGAP));
     contentPane.add(fieldPanel, BorderLayout.CENTER);
     // buttons at bottom
-    _buttonNow = new JButton(_resources.getString(L10NStockQuotes.UPDATE_NOW));
-    _buttonTest = new JButton(_resources.getString(L10NStockQuotes.TEST));
-    _buttonTest.setVisible(_showingTestInfo);
+    testButton = new JButton(testAction);
+    testButton.setVisible(_showingTestInfo);
     JPanel extraButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UiUtil.HGAP, UiUtil.VGAP));
-    extraButtonPanel.add(_buttonTest);
-    extraButtonPanel.add(_buttonNow);
+    extraButtonPanel.add(testButton);
+    extraButtonPanel.add(new JButton(downloadAction));
+    
     // the built-in OK/Cancel buttons
     OKButtonPanel okButtons = new OKButtonPanel(_model.getGUI(), new DialogOKButtonListener(),
                                                 OKButtonPanel.QUESTION_OK_CANCEL);
@@ -207,12 +244,12 @@ public class YahooDialog
     if (_showingTestInfo) {
       _showTestLabel.setText(_resources.getString(L10NStockQuotes.BASIC));
       _showTestLabel.setToolTipText(_resources.getString(L10NStockQuotes.HIDE_TEST));
-      _buttonTest.setVisible(true);
+      testButton.setVisible(true);
       _table.getColumnModel().addColumn(_testColumn);
     } else {
       _showTestLabel.setText(_resources.getString(L10NStockQuotes.ADVANCED));
       _showTestLabel.setToolTipText(_resources.getString(L10NStockQuotes.SHOW_TEST));
-      _buttonTest.setVisible(false);
+      testButton.setVisible(false);
       _table.getColumnModel().removeColumn(_testColumn);
     }
   }
@@ -221,9 +258,9 @@ public class YahooDialog
   private void showLastUpdateDate() {
     if (_model.getRootAccount() != null) {
       String messageFormat = _resources.getString(L10NStockQuotes.LAST_UPDATE_FMT);
-      int lastRateDate = Main.getRatesLastUpdateDate(_model.getRootAccount());
+      int lastRateDate = _model.getRatesLastUpdateDate();
       String rateText = getDateText(lastRateDate);
-      int lastQuoteDate = Main.getQuotesLastUpdateDate(_model.getRootAccount());
+      int lastQuoteDate = _model.getQuotesLastUpdateDate();
       String quoteText = getDateText(lastQuoteDate);
       _testStatus.setText(MessageFormat.format(messageFormat, rateText, quoteText));
     }
@@ -241,31 +278,6 @@ public class YahooDialog
       public void itemStateChanged(ItemEvent e) {
         // show zero balance only if 'show only that I own' is deselected
         _model.getTableModel().setShowZeroBalance(e.getStateChange() == ItemEvent.DESELECTED);
-      }
-    });
-    _buttonNow.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        // Store what we have in the dialog - same as OK. We need to do this because the main app
-        // update is called, which reads these settings from preferences or the data file.
-        saveControlsToSettings();
-        // listen for events so our status updates just like the main application's
-        _model.addPropertyChangeListener(YahooDialog.this);
-        // call the main update method
-        context.showURL("moneydance:fmodule:yahooqt:update");
-      }
-    });
-    _buttonTest.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        Account root = _model.getRootAccount();
-        if(root==null) return;
-        
-        // save the selected connections into our model
-        saveSelectedConnections();
-        // store what we have into the symbol map
-        _model.getTableModel().save(root);
-        // listen for update events
-        _model.addPropertyChangeListener(YahooDialog.this);
-        _model.runDownloadTest();
       }
     });
     final MouseInputAdapter mouseInputListener = new MouseInputAdapter() {
@@ -559,29 +571,33 @@ public class YahooDialog
 
   private void onOK() {
     saveControlsToSettings();
-
+    
     _okButtonPressed = true;
     setVisible(false);
+    
+    context.showURL("moneydance:fmodule:yahooqt:update"); // kick off an update, if needed
   }
-
+  
   private void saveControlsToSettings() {
     Account root = _model.getRootAccount();
     if (root == null) return;
-
+    
     saveSelectedConnections();
-
+    
     // these are stored in preferences and are not file-specific
     UserPreferences prefs = _model.getPreferences();
     prefs.setSetting(Main.AUTO_UPDATE_KEY, isAnyConnectionSelected());
     prefs.setSetting(Main.UPDATE_INTERVAL_KEY, _intervalSelect.getSelectedInterval().getConfigKey());
-
+    
     // save the date of the next update
     int nextDate = _nextDate.getDateInt();
+    
     // work backwards to get the calculated 'last update date'
     TimeInterval frequency = _intervalSelect.getSelectedInterval();
     _model.setHistoryDaysFromFrequency(frequency);
     int lastDate = SQUtil.getPreviousDate(nextDate, frequency);
-    int currentQuoteDate = Main.getQuotesLastUpdateDate(root);
+    int currentQuoteDate = _model.getQuotesLastUpdateDate();
+    
     if (_model.isStockPriceSelected() && (currentQuoteDate != lastDate)) {
       if(Main.DEBUG_YAHOOQT) {
         System.err.println("Changing last quote update date from " +
@@ -589,7 +605,7 @@ public class YahooDialog
       }
       _model.saveLastQuoteUpdateDate(lastDate);
     }
-    int currentRatesDate = Main.getRatesLastUpdateDate(root);
+    int currentRatesDate = _model.getRatesLastUpdateDate();
     if (_model.isExchangeRateSelected() && (currentRatesDate != lastDate)) {
       if(Main.DEBUG_YAHOOQT) {
         System.err.println("Changing last exchange rates update date from " +
@@ -632,14 +648,14 @@ public class YahooDialog
       final String text = _model.getGUI().getStr("cancel");
       UiUtil.runOnUIThread(new Runnable() {
         public void run() {
-          _buttonTest.setText(text);
+          testAction.putValue(Action.NAME, text);
         }
       });
     } else if (N12EStockQuotes.DOWNLOAD_END.equals(name)) {
       final String text = _resources.getString(L10NStockQuotes.TEST);
       UiUtil.runOnUIThread(new Runnable() {
         public void run() {
-          _buttonTest.setText(text);
+          testAction.putValue(Action.NAME, text);
           // the next update date may have changed now
           loadNextDate();
         }

@@ -45,10 +45,8 @@ public class Main
   static final String QUOTE_LAST_UPDATE_KEY = "yahooqt.quoteLastUpdate";
   /** Parameters saved to the data file for which connections to use. */
   static final String HISTORY_CONNECTION_KEY = "yahooqt.historyConnection";
-  static final String CURRENT_PRICE_CONNECTION_KEY = "yahooqt.currentPriceConnection";
   static final String EXCHANGE_RATES_CONNECTION_KEY = "yahooqt.exchangeRatesConnection";
-  static final String SAVE_CURRENT_IN_HISTORY_KEY = "yahooqt.saveCurrInHistory";
-
+  
   private final PreferencesListener _prefListener = new QuotesPreferencesListener();
   private final PropertyChangeListener _progressListener = new QuotesProgressListener();
   private StockQuotesModel _model;
@@ -66,13 +64,13 @@ public class Main
     addPreferencesListener();
     MoneydanceGUI mdGUI = (MoneydanceGUI)((com.moneydance.apps.md.controller.Main) context).getUI();
     _model.initialize(mdGUI, this);
-    final AccountBook book = getContext().getCurrentAccountBook();
+    
     // If root is null, then we'll just wait for the MD_OPEN_EVENT_ID event. When the plugin
     // is first installed, the root should be non-null. When MD starts up, it is likely to be null
     // until the file is opened.
-    if (book != null) _model.setData(book);
+    _model.setData(getContext().getCurrentAccountBook());
   }
-
+  
   public void cleanup() {
     removePreferencesListener();
     _model.cleanUp();
@@ -117,23 +115,6 @@ public class Main
     return _resources.getString(key);
   }
 
-  /**
-   * Update prices and exchange rates if today's date is on or after the next update date.
-   * @param delayStart True if the download should be delayed for a bit, because a new file is
-   * being loaded and all the startup stuff needs to be done first.
-   */
-  private void updateIfNeeded(boolean delayStart) {
-    _model.runUpdateIfNeeded(delayStart, _progressListener);
-  }
-
-  static int getQuotesLastUpdateDate(Account rootAccount) {
-    return rootAccount.getIntParameter(QUOTE_LAST_UPDATE_KEY, 0);
-  }
-  
-  static int getRatesLastUpdateDate(Account rootAccount) {
-    return rootAccount.getIntParameter(RATE_LAST_UPDATE_KEY, 0);
-  }
-
   static TimeInterval getUpdateFrequency(UserPreferences preferences) {
     String paramStr = preferences.getSetting(UPDATE_INTERVAL_KEY, "");
     if (SQUtil.isBlank(paramStr)) return TimeInterval.MONTH;
@@ -144,12 +125,8 @@ public class Main
     Account rootAccount = _model.getRootAccount();
     if (rootAccount == null) return; // nothing to do
     // exchange rates first so that the proper exchange rates are used for security price conversions
-    if (_model.isExchangeRateSelected()) {
-      getRates();
-    }
-    if (_model.isStockPriceSelected()) {
-      getQuotes();
-    }
+    
+    _model.downloadRatesAndPricesInBackground(_progressListener);
   }
 
   static Image getIcon() {
@@ -177,9 +154,9 @@ public class Main
       // cancel any running update
       _model.cancelCurrentTask();
       _model.setData(getContext().getCurrentAccountBook());
-      updateIfNeeded(true); // delay the start of downloading a bit to allow MD to finish up loading
+      _model.runUpdateIfNeeded(true, _progressListener);// delay the start of downloading a bit to allow MD to finish up loading
     } else if (N12EStockQuotes.MD_CLOSING_EVENT_ID.equals(s) ||
-            N12EStockQuotes.MD_EXITING_EVENT_ID.equals(s)) {
+               N12EStockQuotes.MD_EXITING_EVENT_ID.equals(s)) {
       // cancel any running update
       _model.cancelCurrentTask();
       _model.setData(null);
@@ -203,9 +180,7 @@ public class Main
         // should invoke later so this can be returned to its thread
         SwingUtilities.invokeLater(new Runnable() {
           public void run() {
-            YahooDialog dialog = new YahooDialog(getContext(), Main.this, _model);
-            dialog.setVisible(true);
-            if (dialog.userAcceptedChanges()) updateIfNeeded(false);
+            new YahooDialog(getContext(), Main.this, _model).setVisible(true);
           }
         });
       }
@@ -218,14 +193,6 @@ public class Main
       name = N12EStockQuotes.TITLE;
     }
     return name;
-  }
-
-  private void getQuotes() {
-    _model.runStockPriceDownload(_progressListener);
-  }
-
-  private void getRates() {
-    _model.runRatesDownload(_progressListener);
   }
 
   private void showProgress(float progress, String label) {
@@ -244,7 +211,7 @@ public class Main
               .addListener(_prefListener);
     }
   }
-
+  
   private void removePreferencesListener() {
     if (getContext() != null) {
       ((com.moneydance.apps.md.controller.Main) getContext()).getPreferences()
@@ -273,18 +240,6 @@ public class Main
         final float progress = Float.valueOf((String)event.getOldValue()).floatValue();
         final String status = (String) event.getNewValue();
         showProgress(progress, status);
-      } else if (N12EStockQuotes.DOWNLOAD_END.equals(name)) {
-        Boolean result = (Boolean)event.getNewValue();
-        String taskName = (String)event.getOldValue();
-        if (result.booleanValue()) {
-          // the download was successful, update last success date
-          int today = DateUtil.getStrippedDateInt();
-          if (DownloadRatesTask.NAME.equals(taskName)) {
-            _model.saveLastExchangeRatesUpdateDate(today);
-          } else if (DownloadQuotesTask.NAME.equals(taskName)) {
-            _model.saveLastQuoteUpdateDate(today);
-          }
-        }
       } // download ended
     } // propertyChange
   } // QuotesProgressListener

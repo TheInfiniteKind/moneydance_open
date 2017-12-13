@@ -19,13 +19,14 @@ import java.util.concurrent.Callable;
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
-public class DownloadQuotesTest implements Callable<Boolean> {
-  static final String NAME = DownloadQuotesTask.NAME;
+public class DownloadTest implements Callable<Boolean> {
+  
+  static final String NAME = DownloadTask.NAME;
   private final StockQuotesModel _model;
   private final ResourceProvider _resources;
   private final CustomDateFormat _dateFormat;
 
-  DownloadQuotesTest(final StockQuotesModel model, final ResourceProvider resources) {
+  DownloadTest(final StockQuotesModel model, final ResourceProvider resources) {
     _model = model;
     _resources = resources;
     _dateFormat = _model.getPreferences().getShortDateFormatter();

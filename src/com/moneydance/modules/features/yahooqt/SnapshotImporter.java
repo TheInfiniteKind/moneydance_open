@@ -9,6 +9,7 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.CurrencySnapshot;
+import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.StringUtils;
@@ -363,6 +364,7 @@ public abstract class SnapshotImporter
     boolean success = false;
     for (StockRecord record : _importRecords) {
       CurrencySnapshot snap = addOrUpdateSnapshot(_currency, priceCurrency, record);
+      System.err.println("security updated snapshot: "+snap);
       success |= (snap.getUserRate() > 0.0);
     }
     return success;
@@ -545,7 +547,7 @@ public abstract class SnapshotImporter
     } else {
       // this will set the time to midnight so that it will generally be less than the current price
       // update time
-      result.dateTimeGMT = getMidnightDateTime(date);
+      result.dateTimeGMT = DateUtil.lastMinuteInDay(DateUtil.convertIntDateToLong(date)).getTime();
     }
     return result;
   }
