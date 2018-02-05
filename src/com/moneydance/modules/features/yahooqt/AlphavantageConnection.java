@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.*;
+import com.moneydance.apps.md.controller.AccountBookWrapper;
+import com.moneydance.apps.md.controller.io.AccountBookUtil;
 import com.moneydance.awt.*;
 
 import javax.swing.*;
@@ -196,7 +198,8 @@ public class AlphavantageConnection extends BaseConnection {
   }
   
   protected String getCurrentPriceHeader() {
-    return "date,open,high,low,close,volume";
+    return "date,open,high,low,unadjustedclose,volume,close,splitdividendevents";
+    //return "date,open,high,low,close,volume";
   }
 
   protected boolean allowAutodetect() {return false;}
@@ -208,7 +211,7 @@ public class AlphavantageConnection extends BaseConnection {
   public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
     String apiKey = getAPIKey(getModel(), false);
     return apiKey==null ? null :
-           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(apiKey)+"&datatype=csv";
+           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(apiKey)+"&datatype=csv";
   }
 
   /**
@@ -217,9 +220,61 @@ public class AlphavantageConnection extends BaseConnection {
    * @throws Exception If an error occurs.
    */
   public static void main(String[] args) throws Exception {
-    AlphavantageConnection conn = new AlphavantageConnection(null);
-    BaseConnection.ExchangeRate currentRate = conn.getCurrentRate("USD", "EUR");
-    System.out.println("rate is " + currentRate.getRate());
+    if(args.length < 2) {
+      System.err.println("usage: <thiscommand> <alphavantage-apikey> [-x] <symbol>...");
+      System.err.println(" -x : symbols are three digit currency codes instead of security/ticker symbols");
+      System.exit(-1);
+    }
+    int argIdx = 0;
+    cachedAPIKey = args[argIdx++];
+    
+    StockQuotesModel model = new StockQuotesModel(null);
+    AccountBook book = AccountBook.fakeAccountBook();
+    book.performPostLoadVerification();
+    // setup a basic account structure
+    Account rootAcct = book.getRootAccount();
+    Account bankAcct = Account.makeAccount(book, Account.AccountType.BANK, rootAcct);
+    bankAcct.setAccountName("Banking");
+    bankAcct.syncItem();
+    Account incAcct = Account.makeAccount(book, Account.AccountType.INCOME, rootAcct);
+    incAcct.setAccountName("Misc Income");
+    incAcct.syncItem();
+    Account expAcct = Account.makeAccount(book, Account.AccountType.EXPENSE, rootAcct);
+    expAcct.setAccountName("Misc Expense");
+    expAcct.syncItem();
+    
+    CurrencyTable currencies = book.getCurrencies();
+    model.setData(book);
+    AlphavantageConnection conn = new AlphavantageConnection(model);
+    if(args[argIdx].equals("-x")) {
+      argIdx++;
+      for(; argIdx < args.length; argIdx++) {
+        String symbol = args[argIdx];
+        BaseConnection.ExchangeRate currentRate = conn.getCurrentRate(symbol, currencies.getBaseType().getIDString());
+        System.out.println(" retrieved rate is for " + symbol + " is " + currentRate.getRate());
+      }
+    } else {
+      DateRange dateRange = new DateRange(DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, -2, 0),
+                                          DateUtil.getStrippedDateInt());
+      for(; argIdx < args.length; argIdx++) {
+        String symbol = args[argIdx];
+        CurrencyType security = currencies.getCurrencyByTickerSymbol(symbol);
+        if(security==null) {
+          security = new CurrencyType(currencies);
+          security.setTickerSymbol(symbol);
+          security.setName(symbol);
+          security.setIDString("^"+symbol);
+          security.setCurrencyType(CurrencyType.Type.SECURITY);
+          security.setDecimalPlaces(4);
+          currencies.addCurrencyType(security);
+        }
+        StockHistory history = conn.getHistory(security, dateRange, true);
+        System.err.println(" retrieved history for ticker '"+symbol+"' with "+history.getRecordCount()+" records and "+history.getErrorCount()+" errors");
+        for(int i=0; i<history.getRecordCount(); i++) {
+          System.err.println(String.valueOf(history.getRecord(i)));
+        }
+      }
+    }
   }
 
 }

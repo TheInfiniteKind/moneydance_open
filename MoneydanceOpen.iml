@@ -37,15 +37,6 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jfreechart-1.0.9.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jfreechart-1.0.13.jar!/" />
         </CLASSES>
         <JAVADOC />
@@ -72,6 +63,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" scope="PROVIDED" name="moneydance" level="project" />
     <orderEntry type="module" module-name="MoneydanceDesktop" />
     <orderEntry type="library" name="Python 2.7.10 (/usr/bin/python) interpreter library" level="application" />
   </component>

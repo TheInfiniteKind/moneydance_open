@@ -40,7 +40,7 @@ http://jakarta.apache.org/ant/index.html
     Generic macro for building a specific feature.
     -->
     <macrodef name="build-mxt">
-      <attribute name="feature" description="name of the mxt file"/>
+      <attribute name="feature"/> <!-- name of the mxt file -->
       <attribute name="javac-target" />
       <attribute name="javac-source" />
       <sequential>

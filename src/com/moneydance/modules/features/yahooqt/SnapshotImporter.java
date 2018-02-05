@@ -364,7 +364,7 @@ public abstract class SnapshotImporter
     boolean success = false;
     for (StockRecord record : _importRecords) {
       CurrencySnapshot snap = addOrUpdateSnapshot(_currency, priceCurrency, record);
-      System.err.println("security updated snapshot: "+snap);
+      //System.err.println("security updated snapshot: "+snap);
       success |= (snap.getUserRate() > 0.0);
     }
     return success;
