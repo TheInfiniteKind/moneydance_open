@@ -86,14 +86,20 @@ public class DownloadTask implements Callable<Boolean> {
       float progressPercent = 0.0f;
       final float progressIncrement = currenciesToCheck.isEmpty() ? 1.0f :
                                       100.0f / (float)currenciesToCheck.size();
+      Exception downloadException = null;
       for (int i = currenciesToCheck.size() - 1; i >= 0; i--) {
+        downloadException = null;
+        
         final CurrencyType currencyType = currenciesToCheck.elementAt(i);
-        // skip if no conversion necessary
+        // skip if no conversion necessaryw
         if (baseCurrency.equals(currencyType)) continue;
-
+        
         System.err.println("updating currency: "+currencyType+" ("+currencyType.getTickerSymbol()+")");
+        
+        BaseConnection connection = null;
         try {
-          BaseConnection connection = _model.getSelectedExchangeRatesConnection();
+          connection = _model.getSelectedExchangeRatesConnection();
+          
           double rate = getRate(currencyType, baseCurrency, connection);
           progressPercent += progressIncrement;
           final String message, logMessage;
@@ -109,6 +115,7 @@ public class DownloadTask implements Callable<Boolean> {
           _model.showProgress(progressPercent, message);
           if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
         } catch (Exception error) {
+          downloadException = error;
           String message = MessageFormat.format(
             _resources.getString(L10NStockQuotes.ERROR_DOWNLOADING_FMT),
             _resources.getString(L10NStockQuotes.RATES),
@@ -119,10 +126,12 @@ public class DownloadTask implements Callable<Boolean> {
           error.printStackTrace();
           success = false;
         }
+        connection.didUpdateItem(currencyType, downloadException);
       }
     } finally {
       ctable.fireCurrencyTableModified();
     }
+    
     if (success) {
       SQUtil.pauseTwoSeconds(); // wait a bit so user can read the last rate update
       String message = MessageFormat.format(
@@ -162,6 +171,7 @@ public class DownloadTask implements Callable<Boolean> {
         if (currencyType.getCurrencyType() == CurrencyType.Type.SECURITY) {
           DownloadResult result = updateSecurity(currencyType, numDays);
           if (result.skipped) {
+            
             ++skippedCount;
           } else {
             if (result.currentError || (result.historyErrorCount > 0)) {
@@ -253,6 +263,7 @@ public class DownloadTask implements Callable<Boolean> {
     
     // check if the user is skipping this one but leaving the symbol intact
     DownloadResult result = new DownloadResult();
+    Exception downloadException = null;
     result.displayName = currType.getName();
     if (!_model.getSymbolMap().getIsCurrencyUsed(currType)) {
       result.skipped = true;
@@ -272,7 +283,7 @@ public class DownloadTask implements Callable<Boolean> {
       result.logMessage = "No connection established";
       return result;
     }
-
+    
     boolean foundPrice = false;
     double latestRate = 0.0;   // the raw downloaded price in terms of the price currency
     long latestPriceDate = 0;
@@ -287,6 +298,7 @@ public class DownloadTask implements Callable<Boolean> {
           result.logMessage = "No history obtained for security " + currType.getName();
           return result;
         }
+        
         // we're just counting the number of successful symbols
         if (history.getErrorCount() > 0) result.historyErrorCount = 1;
         if (history.getRecordCount() > 0) {
@@ -306,6 +318,7 @@ public class DownloadTask implements Callable<Boolean> {
           result.logMessage = "No history records returned for security " + currType.getName();
         }
       } catch (DownloadException e) {
+        downloadException = e;
         final CurrencyType currency = (e.getCurrency() != null) ? e.getCurrency() : currType;
         String message = MessageFormat.format(
                 _resources.getString(L10NStockQuotes.ERROR_HISTORY_FMT),
@@ -318,6 +331,8 @@ public class DownloadTask implements Callable<Boolean> {
                   currency.getName(), e.getMessage());
         }
       }
+      
+      connection.didUpdateItem(currType, downloadException);
     } // if getting price history and connection is not 'do not update'
     
     

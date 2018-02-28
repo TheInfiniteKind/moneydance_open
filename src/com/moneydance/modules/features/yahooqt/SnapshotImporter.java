@@ -64,7 +64,7 @@ public abstract class SnapshotImporter
   private int _highIndex = 2;
   private int _lowIndex = 3;
   private int _closeIndex = 4;
-  private int _volumeIndex = 5;
+  private int _volumeIndex = 6;
 
   private char _columnDelim = ',';
   private char _dateDelim = '-';
@@ -648,10 +648,10 @@ public abstract class SnapshotImporter
     String value = stripQuotes(longStr);
     if (SQUtil.isBlank(value)) return defaultValue;
     if (isNA(value)) return 0;
+
     try {
-      return Long.valueOf(value).longValue();
-    }
-    catch (NumberFormatException e) {
+      return Long.valueOf(value);
+    } catch (NumberFormatException e) {
       System.err.println("encountered bad integer value: " + defaultValue);
       return defaultValue;
     }

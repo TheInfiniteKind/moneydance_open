@@ -185,6 +185,37 @@ public abstract class BaseConnection {
     return ((_capabilities & EXCHANGE_RATES_SUPPORT) != 0);
   }
 
+
+  /**
+   * Return the number of milliseconds by which the connection should be throttled.
+   * The default is zero.
+   */
+  public long getPerConnectionThrottleTime() {
+    return 0;
+  }
+
+
+
+  /** 
+   * This is called after an item is updated.  If the error parameter is non-null then it
+   * means there was a problem performing the update.  The default implementation checks
+   * for a per-connection/item throttling time and if it is a positive number will
+   * sleep/wait for the appropriate number of milliseconds.
+   */
+  public void didUpdateItem(CurrencyType updatedCurrency, Exception error) {
+    long delay = getPerConnectionThrottleTime();
+    if (delay > 0) {
+      try {
+        Thread.sleep(delay);
+      } catch (InterruptedException e) {
+        System.err.println(
+          "Unexpected error while sleeping throttled connection: " + e);
+      }
+    }
+  }
+
+
+
   /**
    * Return the currency appropriate for the price quotes for the given security. For example a
    * U.S. stock is quoted in U.S. Dollars but a Brazilian stock could be quoted in Brazilian reals.

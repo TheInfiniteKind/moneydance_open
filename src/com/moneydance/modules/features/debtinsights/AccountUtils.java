@@ -103,10 +103,14 @@ public final class AccountUtils
 	}
 
 
-	public static CurrencyType getRelCurrency(CurrencyType currency, Account parentAcct)
-	{
-		return currency.getCurrencyParameter(CurrencyType.TAG_RELATIVE_TO_CURR, null, 
-																				 parentAcct.getCurrencyType());
+	public static CurrencyType getRelCurrency(CurrencyType currency, Account parentAcct) {
+    String relCurrID = currency.getParameter(CurrencyType.TAG_RELATIVE_TO_CURR);
+    if(relCurrID!=null) {
+      CurrencyType relCurr = currency.getBook().getCurrencies().getCurrencyByIDString(relCurrID);
+      if(relCurr!=null) return relCurr;
+    }
+    
+    return parentAcct.getCurrencyType();
 	}
 
 	

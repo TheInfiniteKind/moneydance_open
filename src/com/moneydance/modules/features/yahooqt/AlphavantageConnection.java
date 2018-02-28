@@ -31,6 +31,14 @@ public class AlphavantageConnection extends BaseConnection {
   private static String cachedAPIKey = null;
   private static long suppressAPIKeyRequestUntilTime = 0;
   
+  /**
+   * Alphavantage connections should be throttled to approximately one every 1.1 seconds
+   */
+  public long getPerConnectionThrottleTime() {
+    return 1100;
+  }
+  
+  
   static synchronized String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet) {
     if(!evenIfAlreadySet && cachedAPIKey!=null) return cachedAPIKey;
     
@@ -105,6 +113,9 @@ public class AlphavantageConnection extends BaseConnection {
   } 
   
   
+  
+  
+  
   @Override
   public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange) {
     if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) return null;
@@ -139,7 +150,7 @@ public class AlphavantageConnection extends BaseConnection {
   }
   
   /**
-   * Retrieve the current information for the given stock ticker symbol.
+   * Retrieve the current exchange rates for the given currency and base
    * @param currencyID      The string identifier of the currency to start with ('from').
    * @param baseCurrencyID  The string identifier of the currency to end with ('to').
    * @return The downloaded exchange rate definition.
@@ -198,7 +209,7 @@ public class AlphavantageConnection extends BaseConnection {
   }
   
   protected String getCurrentPriceHeader() {
-    return "date,open,high,low,unadjustedclose,volume,close,splitdividendevents";
+    return "date,open,high,low,unadjustedclose,close,volume,dividend_amount,splitdividendevents";
     //return "date,open,high,low,close,volume";
   }
 
