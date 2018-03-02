@@ -11,14 +11,15 @@ package com.moneydance.modules.features.yahooqt;
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.CustomDateFormat;
 import com.infinitekind.util.DateUtil;
+import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.Util;
 
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.Callable;
+
+import static com.moneydance.modules.features.yahooqt.BaseConnection.*;
 
 /**
  * Downloads exchange rates and security prices
@@ -34,6 +35,7 @@ public class DownloadTask implements Callable<Boolean> {
   private final SimpleDateFormat _dateTimeFormat;
   private boolean downloadRates = true;
   private boolean downloadPrices = true;
+  private boolean includeTestInfo = false;
 
   private float _progressPercent = 0.0f;
 
@@ -46,7 +48,50 @@ public class DownloadTask implements Callable<Boolean> {
     downloadPrices = model.isHistoricalPriceSelected();
   }
 
+
+  public boolean getIncludeTestInfo() {
+    return includeTestInfo;
+  }
+
+  public void setIncludeTestInfo(boolean includeTestInfo) {
+    this.includeTestInfo = includeTestInfo;
+  }
+
   public Boolean call() throws Exception {
+    if(getIncludeTestInfo()) {
+      final String taskDisplayName = _resources.getString(L10NStockQuotes.QUOTES);
+      // this is a Moneydance string that says 'Downloading {acctname}'
+      String format = _model.getGUI().getStr("downloading_acct_x");
+      _model.showProgress(0.0f, SQUtil.replaceAll(format, "{acctname}", taskDisplayName));
+
+      final SecuritySymbolTableModel tableModel = _model.getTableModel();
+      final int rowCount = tableModel.getRowCount();
+
+      // initial setup
+      for (int index = 0; index < rowCount; index++) {
+        final SecuritySymbolTableModel.SecurityEntry entry = tableModel.getEntry(index);
+        boolean isExcluded = !entry.use;
+        if(!isExcluded) {
+          switch(entry.currency.getCurrencyType()) {
+            case SECURITY:
+              isExcluded = !downloadPrices;
+              break;
+            case CURRENCY:
+              isExcluded = !downloadRates;
+              break;
+            default:
+              isExcluded = true;
+          }
+        }
+        if (isExcluded) {
+          entry.testResult = _resources.getString(L10NStockQuotes.TEST_EXCLUDED);
+        } else {
+          entry.testResult = _resources.getString(L10NStockQuotes.TEST_NOTSTARTED);
+        }
+      }
+      tableModel.refreshRow(-1);
+    }
+    
     boolean ratesResult = true;
     if(downloadRates) {
       ratesResult = downloadExchangeRates();
@@ -68,21 +113,44 @@ public class DownloadTask implements Callable<Boolean> {
     _model.showProgress(0.0f, MessageFormat.format(
       _resources.getString(L10NStockQuotes.EXCHANGE_RATES_BEGIN),
       _model.getSelectedExchangeRatesConnection().toString()));
-    AccountBook book =  _model.getBook();
+    AccountBook book = _model.getBook();
     if (book == null) return Boolean.FALSE;
     CurrencyTable ctable = book.getCurrencies();
     // figure out the last date of an update...
     final CurrencyType baseCurrency = ctable.getBaseType();
     final int today = Util.getStrippedDateInt();
     boolean success = true;
+    
     try {
-      Vector<CurrencyType> currenciesToCheck = new Vector<>();
-      ctable.dumpCurrencies();
+      ArrayList<CurrencyType> currenciesToCheck = new ArrayList<>();
       for (CurrencyType ctype : ctable.getAllCurrencies()) {
-        if (ctype.getCurrencyType() == CurrencyType.Type.CURRENCY) {
-          currenciesToCheck.addElement(ctype);
+        if (ctype.getCurrencyType() == CurrencyType.Type.CURRENCY && !baseCurrency.equals(ctype)) {
+          currenciesToCheck.add(ctype);
         }
       }
+
+      ArrayList<CurrencyType> sortedCurrencies = new ArrayList<>();
+      // sort the currency list to ensure we get the most important ones at the beginning,
+      // and randomize the rest to get the best coverage over time
+      Map<CurrencyType, Account> currencyMap = new HashMap<>();
+      for(Account acct : AccountUtil.allMatchesForSearch(_model.getBook(), AcctFilter.ALL_ACCOUNTS_FILTER)) {
+        CurrencyType curr = acct.getCurrencyType();
+        if(curr.getCurrencyType() != CurrencyType.Type.CURRENCY) continue;
+        if(!currencyMap.containsKey(curr)) { // it's not already in the list
+          sortedCurrencies.add(curr);
+          currencyMap.put(curr, acct);
+        }
+      }
+      Collections.shuffle(sortedCurrencies); // randomize the order of the used currencies
+      Collections.shuffle(currenciesToCheck); // randomize the order of the unused currencies that will come last
+      for(CurrencyType curr : currenciesToCheck) {
+        if(!currencyMap.containsKey(curr)) sortedCurrencies.add(curr);
+      }
+      
+      currenciesToCheck = sortedCurrencies;
+      
+      BaseConnection connection = _model.getSelectedExchangeRatesConnection();
+      
       float progressPercent = 0.0f;
       final float progressIncrement = currenciesToCheck.isEmpty() ? 1.0f :
                                       100.0f / (float)currenciesToCheck.size();
@@ -90,17 +158,13 @@ public class DownloadTask implements Callable<Boolean> {
       for (int i = currenciesToCheck.size() - 1; i >= 0; i--) {
         downloadException = null;
         
-        final CurrencyType currencyType = currenciesToCheck.elementAt(i);
-        // skip if no conversion necessaryw
-        if (baseCurrency.equals(currencyType)) continue;
+        final CurrencyType currencyType = currenciesToCheck.get(i);
         
         System.err.println("updating currency: "+currencyType+" ("+currencyType.getTickerSymbol()+")");
         
-        BaseConnection connection = null;
         try {
-          connection = _model.getSelectedExchangeRatesConnection();
-          
-          double rate = getRate(currencyType, baseCurrency, connection);
+          BaseConnection.ExchangeRate rateInfo = getRate(currencyType, baseCurrency, connection);
+          double rate = rateInfo.getRate();
           progressPercent += progressIncrement;
           final String message, logMessage;
           if (rate <= 0.0) {
@@ -164,25 +228,26 @@ public class DownloadTask implements Callable<Boolean> {
       int currIdx = 0;
       for (CurrencyType currencyType : ctable) {
         _progressPercent = currIdx / (float) totalValues;
-        if (_progressPercent == 0.0f) {
-          _progressPercent = 0.01f;
+        if (_progressPercent == 0.0f) _progressPercent = 0.01f;
+        if (currencyType.getCurrencyType() != CurrencyType.Type.SECURITY) continue;
+        
+        DownloadResult result = updateSecurity(currencyType, numDays);
+        
+        if(getIncludeTestInfo()) {
+          _model.getTableModel().registerTestResults(currencyType, new TestResult(result));
         }
-
-        if (currencyType.getCurrencyType() == CurrencyType.Type.SECURITY) {
-          DownloadResult result = updateSecurity(currencyType, numDays);
-          if (result.skipped) {
-            
-            ++skippedCount;
-          } else {
-            if (result.currentError || (result.historyErrorCount > 0)) {
-              ++errorCount;
-            }
-            if (!result.currentError || (result.historyRecordCount > 0)) {
-              ++successCount;
-            }
-            // log any messages for those that weren't skipped
-            if(Main.DEBUG_YAHOOQT && !SQUtil.isBlank(result.logMessage)) System.err.println(result.logMessage);
+        
+        if (result.skipped) {
+          ++skippedCount;
+        } else {
+          if (result.currentError || (result.historyErrorCount > 0)) {
+            ++errorCount;
           }
+          if (!result.currentError || (result.historyRecordCount > 0)) {
+            ++successCount;
+          }
+          // log any messages for those that weren't skipped
+          if(Main.DEBUG_YAHOOQT && !SQUtil.isBlank(result.logMessage)) System.err.println(result.logMessage);
         }
         currIdx++;
       }
@@ -227,35 +292,33 @@ public class DownloadTask implements Callable<Boolean> {
     }
     return Boolean.TRUE;
   }
-
-
-  private double getRate(CurrencyType currType, CurrencyType baseType, BaseConnection connection)
+  
+  
+  private BaseConnection.ExchangeRate getRate(CurrencyType currType, CurrencyType baseType, BaseConnection connection)
     throws Exception
   {
-    BaseConnection.ExchangeRate rateInfo =
-      connection.getCurrentRate(currType.getIDString(), baseType.getIDString());
-    if (rateInfo == null) {
-      return -1.0;
+    BaseConnection.ExchangeRate rateInfo = connection.getCurrentRate(currType.getIDString(), baseType.getIDString());
+    if (rateInfo == null) return null;
+    
+    if(getIncludeTestInfo()) {
+      _model.getTableModel().registerTestResults(currType, new TestResult(rateInfo));
     }
-
-    double rate = rateInfo.getRate();
-    if (rate <= 0.0)
-      return rate;
-
-    int lastDate = 0;
-    for (CurrencySnapshot snap : currType.getSnapshots()) {
-      lastDate = Math.max(lastDate, snap.getDateInt());
+    
+    if (rateInfo.getRate() > 0 ) { // apply the rate, if it is valid
+      
+      // add a new snapshot if we don't have one within the last FOREX_HISTORY_INTERVAL days
+      int lastDate = 0;
+      for (CurrencySnapshot snap : currType.getSnapshots()) {
+        lastDate = Math.max(lastDate, snap.getDateInt());
+      }
+      
+      int today = Util.getStrippedDateInt();
+      if (Util.incrementDate(lastDate, 0, 0, FOREX_HISTORY_INTERVAL) < today) {
+        CurrencySnapshot snap = currType.setSnapshotInt(today, rateInfo.getRate());
+      }
+      currType.setUserRate(rateInfo.getRate());
     }
-
-    int today = Util.getStrippedDateInt();
-    boolean addSnapshot = Util.incrementDate(lastDate, 0, 0, FOREX_HISTORY_INTERVAL) < today;
-    if (addSnapshot) {
-      CurrencySnapshot snap = currType.setSnapshotInt(today, rate);
-      System.err.println("forex updated snapshot: "+snap);
-    }
-    currType.setUserRate(rate);
-    System.err.println("forex updated current: "+currType);
-    return rate;
+    return rateInfo;
   }
 
   private DownloadResult updateSecurity(CurrencyType currType, int numDays) {
@@ -269,7 +332,7 @@ public class DownloadTask implements Callable<Boolean> {
       result.skipped = true;
       return result;
     }
-
+    
     // not skipping, log what we're downloading
     if(Main.DEBUG_YAHOOQT) System.err.println("Downloading price of "+currType.getName()+" for dates "+dateRange.format(_dateFormat));
     BaseConnection connection = _model.getSelectedHistoryConnection();
@@ -281,6 +344,7 @@ public class DownloadTask implements Callable<Boolean> {
       result.currentError = true;
       result.currentResult = message;
       result.logMessage = "No connection established";
+      result.skipped = true;
       return result;
     }
     
@@ -439,4 +503,64 @@ public class DownloadTask implements Callable<Boolean> {
     return MessageFormat.format(format, name, asofDate, priceDisplay);
   }
 
+
+  public class TestResult {
+    boolean success;
+    String toolTip;
+    String resultText;
+    String price;
+    
+    /** Constructor for the detailed (test) results when a security price/history is downloaded */
+    public TestResult(DownloadResult downloadResult) {
+      success = (downloadResult.historyErrorCount == 0);
+      price = downloadResult.currentResult;
+      
+      if(downloadResult.skipped) {
+        toolTip = "";
+        resultText = _resources.getString(L10NStockQuotes.TEST_EXCLUDED);
+      } else {
+        StringBuilder sb = new StringBuilder("<html><p>");
+        sb.append(SQUtil.getLabelText(_resources, L10NStockQuotes.HISTORY));
+        sb.append(downloadResult.logMessage);
+        sb.append("</p></html>");
+        toolTip = sb.toString();
+        
+        sb = new StringBuilder();
+        sb.append("<html>");
+        sb.append(getSuccessIcon(success));
+        sb.append(" ");
+        sb.append(downloadResult.historyResult);
+        if(downloadResult.historyRecordCount > 0) {
+          sb.append("(");
+          sb.append(downloadResult.historyRecordCount);
+          sb.append(")");
+        }
+        sb.append("</html>");
+        resultText = sb.toString();
+      }
+    }
+    
+    public TestResult(BaseConnection.ExchangeRate downloadResult) {
+      final char decimal = _model.getPreferences().getDecimalChar();
+      success = downloadResult!=null && downloadResult.getRate() > 0;
+      price = downloadResult==null ? "?" : StringUtils.formatRate(downloadResult.getRate(), decimal);
+      toolTip = downloadResult==null ? "Error" : "<html><pre>"+downloadResult.getTestMessage()+"</pre></html>";
+      StringBuilder sb = new StringBuilder("<html>");
+      sb.append(getSuccessIcon(success)).append(' ');
+      sb.append(_resources.getString(L10NStockQuotes.HISTORY));
+      sb.append("</html>");
+      resultText = sb.toString();
+    }
+
+
+    private String getSuccessIcon(boolean success) {
+      if (success) {
+        return N12EStockQuotes.GREEN_FONT_BEGIN + "&#x2714;" + N12EStockQuotes.FONT_END;
+      } else {
+        return N12EStockQuotes.RED_FONT_BEGIN + "&#x2716;" + N12EStockQuotes.FONT_END;
+      }
+    }
+
+  }
+  
 }

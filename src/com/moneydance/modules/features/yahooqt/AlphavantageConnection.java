@@ -35,7 +35,7 @@ public class AlphavantageConnection extends BaseConnection {
    * Alphavantage connections should be throttled to approximately one every 1.1 seconds
    */
   public long getPerConnectionThrottleTime() {
-    return 1100;
+    return 1550;
   }
   
   
@@ -192,6 +192,7 @@ public class AlphavantageConnection extends BaseConnection {
     JsonReader jsonReader = new JsonReader(new InputStreamReader(new ByteArrayInputStream(bout.toByteArray()), "UTF8"));
     Gson gson = new Gson();
     Map gsonData = gson.fromJson(jsonReader, Map.class);
+    ExchangeRate downloadedRate = null;
     
     Object rateInfoObj = gsonData.get("Realtime Currency Exchange Rate");
     if(rateInfoObj != null && rateInfoObj instanceof Map) {
@@ -200,12 +201,19 @@ public class AlphavantageConnection extends BaseConnection {
       if (rateObj != null) {
         double rate = StringUtils.parseDouble(String.valueOf(rateObj), -1.0, '.');
         if (rate > 0) {
-          return new ExchangeRate(1 / rate);
+          downloadedRate = new ExchangeRate(1 / rate);
         }
       }
     }
     
-    return new ExchangeRate(-1.0);
+    if(downloadedRate==null) {
+      downloadedRate = new ExchangeRate(-1.0);
+    }
+    try {
+      downloadedRate.setTestMessage(new String(bout.toByteArray(), "UTF8"));
+    } catch (Throwable t){} 
+    
+    return downloadedRate;
   }
   
   protected String getCurrentPriceHeader() {

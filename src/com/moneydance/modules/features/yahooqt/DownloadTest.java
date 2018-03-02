@@ -154,7 +154,7 @@ public class DownloadTest implements Callable<Boolean> {
       return new DownloadResult(downEx.getMessage(), 1);
     }
   }
-
+  
   private class TestResult {
     boolean _historySuccess = false;
     String _historyResult;
@@ -162,10 +162,19 @@ public class DownloadTest implements Callable<Boolean> {
     String _toolTip;
     String _price;
 
-    public TestResult(DownloadResult historyResult) {
-      _historySuccess = (historyResult.historyErrorCount == 0);
-      _historyResult = historyResult.displayMessage;
-      _price = historyResult.currentResult;
+    public TestResult(DownloadResult downloadResult) {
+      _historySuccess = (downloadResult.historyErrorCount == 0 && !downloadResult.currentError);
+      _historyResult = downloadResult.displayMessage;
+      _price = downloadResult.currentResult;
+
+      StringBuilder sb = new StringBuilder(N12EStockQuotes.HTML_BEGIN);
+      // here we add information about history download even if the user chose not to update history
+      sb.append(N12EStockQuotes.PARA_BEGIN);
+      sb.append(SQUtil.getLabelText(_resources, L10NStockQuotes.HISTORY));
+      sb.append(downloadResult.historyResult);
+      
+      sb.append(N12EStockQuotes.HTML_END);
+      _toolTip = sb.toString();
     }
   }
 

@@ -174,7 +174,9 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   void runDownloadTest() {
     // the test is interactive (and on the EDT) so don't wait for the current task to finish
-    final ConnectionTask task = new ConnectionTask(new DownloadTask(this, _resources), this, _resources);
+    DownloadTask downloadTask = new DownloadTask(this, _resources);
+    downloadTask.setIncludeTestInfo(true);
+    final ConnectionTask task = new ConnectionTask(downloadTask, this, _resources);
     setCurrentTask(task, true);
     _executor.execute(_currentTask);
     // all notifications are set to the Swing EDT

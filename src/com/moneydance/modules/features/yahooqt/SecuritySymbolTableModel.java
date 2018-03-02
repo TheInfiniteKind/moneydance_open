@@ -257,7 +257,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       default: // no other columns editable
     }
   }
-
+  
   String getToolTip(int rowIndex, int columnIndex) {
     if ((rowIndex < 0) || (rowIndex >= _data.size())) return null;
     if (_model.getRootAccount() == null) return null;
@@ -591,6 +591,18 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       entry.testResult = _model.getResources().getString(L10NStockQuotes.MODIFIED);
     }
     return changed;
+  }
+
+  public void registerTestResults(CurrencyType currencyType, DownloadTask.TestResult testResult) {
+    for (int index = _data.size()-1; index >= 0; index-- ) {
+      SecurityEntry entry = _data.get(index);
+      if(entry.currency==currencyType) {
+        entry.testResult = testResult.resultText;
+        entry.toolTip = testResult.toolTip;
+        refreshRow(index);
+        break;
+      }
+    }
   }
 
   class SecurityEntry implements Comparable<SecurityEntry> {

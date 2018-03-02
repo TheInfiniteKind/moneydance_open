@@ -168,7 +168,7 @@ public abstract class BaseConnection {
    * @return The downloaded exchange rate definition.
    * @throws Exception If an error occurs during download.
    */
-  public ExchangeRate getCurrentRate(String currencyID, String baseCurrencyID)
+  public BaseConnection.ExchangeRate getCurrentRate(String currencyID, String baseCurrencyID)
     throws Exception
   {
     throw new Exception("Exchange rate retrieval not implemented in "+this);
@@ -341,13 +341,22 @@ public abstract class BaseConnection {
 
   public class ExchangeRate {
     private final double rate;
-
+    private String testMessage = "";
+    
     ExchangeRate(double rate) {
       this.rate = rate;
     }
 
     public double getRate() {
       return this.rate;
+    }
+
+    public String getTestMessage() {
+      return testMessage;
+    }
+
+    public void setTestMessage(String testMessage) {
+      this.testMessage = testMessage;
     }
   }
 
