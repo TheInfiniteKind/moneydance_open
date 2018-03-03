@@ -520,7 +520,6 @@ public class DownloadTask implements Callable<Boolean> {
         resultText = _resources.getString(L10NStockQuotes.TEST_EXCLUDED);
       } else {
         StringBuilder sb = new StringBuilder("<html><p>");
-        sb.append(SQUtil.getLabelText(_resources, L10NStockQuotes.HISTORY));
         sb.append(downloadResult.logMessage);
         sb.append("</p></html>");
         toolTip = sb.toString();
