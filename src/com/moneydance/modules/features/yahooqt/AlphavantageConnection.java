@@ -217,7 +217,7 @@ public class AlphavantageConnection extends BaseConnection {
   }
   
   protected String getCurrentPriceHeader() {
-    return "date,open,high,low,unadjustedclose,close,volume,dividend_amount,splitdividendevents";
+    return "date,open,high,low,close,adjusted_close,volume,dividend_amount,splitdividendevents";
     //return "date,open,high,low,close,volume";
   }
 
