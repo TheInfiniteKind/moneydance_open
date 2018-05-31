@@ -267,16 +267,9 @@ public class ReplaceCommand implements IFarCommand
             {
                 final SplitTxn split = _transaction.getSplitTxn();
                 CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
-                // parent amount should stay the same (or flip sign), split amount will change
-                // the sign is flipped in the getParentAmount() method, so flip it again - must stay the same
-                // unless we're switching from an expense category to an income one
-                long parentAmount = -split.getParentAmount();
-                // the rate is always a positive number, raw rate refers to actual number used to convert two longs to each other
-                // whereas user rate is a display and/or editable value
-                double rate = CurrencyUtil.getRawRate(parentCurr, targetCurr, split.getDateInt());
-                // the parent amount has the same sign under the hood, the sign is negated in the UI only
-                long splitAmount = Math.round(parentAmount * rate);
-                split.setAmount(splitAmount, rate, parentAmount);
+                long parentAmount = split.getParentAmount();
+                long newSplitAmount = CurrencyUtil.convertValue(parentAmount, parentCurr, targetCurr, _transaction.getParentTxn().getDateInt());
+                split.setAmount(newSplitAmount, parentAmount);
             }
         }
 
