@@ -1,6 +1,6 @@
 {
   "vendor" = "Mennē Software Solutions"
-  "module_build" = "1212"
+  "module_build" = "1213"
   "minbuild" = "1000"
   "vendor_url" = "https://infinitekind.com"
   "name" = "Find and Replace"

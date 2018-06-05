@@ -242,21 +242,16 @@ public class ReplaceCommand implements IFarCommand
             final SplitTxn split = _transaction.getSplitTxn();
             //  check if the target category has changed to == new rate
             long value = _replaceAmount.longValue();
-            // replacing with a negative value flips the sign
-            long signFlip = (value < 0) ? -1 : 1;
-            long prevSign = (split.getAmount() < 0) ? -1 : 1;
-            long prevParentSign = (split.getParentAmount() < 0) ? -1 : 1;
             CurrencyType targetCurr = split.getAccount().getCurrencyType();
             CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
             changed = true;
             if (newCategory) {
                 targetCurr = _replaceCategory.getCurrencyType();
             }
-            // convert the replacement amount into the category's currency, then set the proper sign
-            long splitAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt())) * prevSign * signFlip;
-            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt())) * prevParentSign * signFlip;
-            double rate = CurrencyUtil.getRawRate(parentCurr, targetCurr, split.getDateInt());
-            split.setAmount(splitAmount, rate, parentAmount);
+            // convert the replacement amount into the category's currency
+            long splitAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt()));
+            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt()));
+            split.setAmount(-splitAmount, -parentAmount);
         }
         else if (newCategory)
         {
@@ -267,7 +262,7 @@ public class ReplaceCommand implements IFarCommand
             {
                 final SplitTxn split = _transaction.getSplitTxn();
                 CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
-                long parentAmount = split.getParentAmount();
+                long parentAmount = -split.getParentAmount();
                 long newSplitAmount = CurrencyUtil.convertValue(parentAmount, parentCurr, targetCurr, _transaction.getParentTxn().getDateInt());
                 split.setAmount(newSplitAmount, parentAmount);
             }
