@@ -30,12 +30,19 @@ public class AlphavantageConnection extends BaseConnection {
   
   private static String cachedAPIKey = null;
   private static long suppressAPIKeyRequestUntilTime = 0;
+  private int connectionThrottleCounter = 0;
+  
   
   /**
    * Alphavantage connections should be throttled to approximately one every 1.1 seconds
    */
   public long getPerConnectionThrottleTime() {
-    return 1550;
+    connectionThrottleCounter++;
+    if(connectionThrottleCounter%6 == 0) {
+      return 15000; // every Nth connection, delay for 15 seconds
+    } else {
+      return 1550; // pause for 1.5 seconds after each connection
+    }
   }
   
   
