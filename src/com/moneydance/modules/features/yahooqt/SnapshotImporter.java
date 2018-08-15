@@ -391,6 +391,7 @@ public abstract class SnapshotImporter
     result.setUserDailyHigh(convertToBasePrice(record.highRate, baseCurrency, record.date));
     result.setUserDailyLow(convertToBasePrice(record.lowRate, baseCurrency, record.date));
     result.setDailyVolume(record.volume);
+    result.syncItem();
     return result;
   }
 
