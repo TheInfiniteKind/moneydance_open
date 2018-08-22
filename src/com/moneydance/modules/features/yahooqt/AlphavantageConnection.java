@@ -4,16 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.*;
-import com.moneydance.apps.md.controller.AccountBookWrapper;
-import com.moneydance.apps.md.controller.io.AccountBookUtil;
 import com.moneydance.awt.*;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.lang.reflect.InvocationTargetException;
 import java.net.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 
@@ -38,11 +36,12 @@ public class AlphavantageConnection extends BaseConnection {
    */
   public long getPerConnectionThrottleTime() {
     connectionThrottleCounter++;
-    if(connectionThrottleCounter%5 == 0) {
-      return 15000; // every Nth connection, delay for 15 seconds
-    } else {
-      return 1550; // pause for 1.5 seconds after each connection
-    }
+    return 30000;
+//    if(connectionThrottleCounter%4 == 0) {
+//      return 20000; // every Nth connection, delay for 15 seconds
+//    } else {
+//      return 10000; // pause for 1.5 seconds after each connection
+//    }
   }
   
   
@@ -65,7 +64,6 @@ public class AlphavantageConnection extends BaseConnection {
       return null;
     }
     
-    final String inputString = null;
     final String existingAPIKey = apiKey;
     Runnable uiActions = new Runnable() {
       @Override
@@ -143,7 +141,7 @@ public class AlphavantageConnection extends BaseConnection {
     int periodIdx = rawTickerSymbol.lastIndexOf('.');
     if(periodIdx>0) {
       String marketID = rawTickerSymbol.substring(periodIdx+1);
-      if(marketID.indexOf("-")>=0) {
+      if(marketID.contains("-")) {
         // the currency ID was encoded along with the market ID
         return StringUtils.fieldIndex(marketID, '-', 1);
       }
@@ -196,7 +194,7 @@ public class AlphavantageConnection extends BaseConnection {
     URL url = new URL(urlStr);
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     IOUtils.copyStream(url.openConnection().getInputStream(), bout);
-    JsonReader jsonReader = new JsonReader(new InputStreamReader(new ByteArrayInputStream(bout.toByteArray()), "UTF8"));
+    JsonReader jsonReader = new JsonReader(new InputStreamReader(new ByteArrayInputStream(bout.toByteArray()), StandardCharsets.UTF_8));
     Gson gson = new Gson();
     Map gsonData = gson.fromJson(jsonReader, Map.class);
     ExchangeRate downloadedRate = null;

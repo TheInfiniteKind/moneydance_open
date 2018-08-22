@@ -5,5 +5,5 @@
   "desc" = "This is an extension that downloads security price quotes and exchange rates from various sources"
   "id" = "yahooqt"
   "minbuild" = "1000"
-  "module_build" = "1019"
+  "module_build" = "1020"
 }
