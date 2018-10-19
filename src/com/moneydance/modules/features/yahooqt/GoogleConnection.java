@@ -8,15 +8,12 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.infinitekind.moneydance.model.DateRange;
-import com.moneydance.apps.md.controller.Util;
+import com.infinitekind.util.DateUtil;
 import com.infinitekind.util.StringUtils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * q = symbol
@@ -39,12 +36,12 @@ public class GoogleConnection extends BaseConnection {
   private final DateFormat _dateFormat;
 
   public GoogleConnection(StockQuotesModel model, String displayName) {
-    super(model, BaseConnection.HISTORY_SUPPORT);
+    super(PREFS_KEY, model, BaseConnection.HISTORY_SUPPORT);
     _displayName = displayName;
     // example for 6/19/2010 = Jun+19%2C+2010
     _dateFormat = new SimpleDateFormat("MMM+d,+yyyy", Locale.US);
   }
-
+  
   final String getHistoryBaseUrl() { return HISTORY_URL_BASE; }
 
   @Override
@@ -52,8 +49,6 @@ public class GoogleConnection extends BaseConnection {
     // This is the format returned for June 17, 2010: 17-Jun-10; and June 7, 2010: 7-Jun-10
     return new SimpleDateFormat("d-MMM-yy");
   }
-
-  public String getId() { return PREFS_KEY; }
 
   @Override
   public String toString() {
@@ -89,34 +84,62 @@ public class GoogleConnection extends BaseConnection {
   }
 
   @Override
-  public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
-    StringBuilder result = new StringBuilder(getHistoryBaseUrl());
-    Calendar cal = Calendar.getInstance();
-    cal.setTime(Util.convertIntDateToLong(dateRange.getEndDateInt()));
-    final Date endDate = cal.getTime();
-    cal.add(Calendar.DATE, -dateRange.getNumDays());
-    final Date startDate = cal.getTime();
+  public void updateExchangeRate(DownloadInfo downloadInfo) {
+    downloadInfo.recordError(model, "Implementation error: Connection to Google Finance doesn't support exchange rates");
+  }
 
+  /**
+   * Retrieve the current exchange rate for the given currency and base
+   * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
+   */
+  @Override
+  public void updateSecurity(DownloadInfo downloadInfo) {
+    System.err.println("google finance: getting history for "+downloadInfo.fullTickerSymbol);
+    String urlStr = getHistoryURL(downloadInfo.fullTickerSymbol);
+    
+    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
+    char decimal = model.getPreferences().getDecimalChar();
+    SnapshotImporterFromURL importer =
+      new SnapshotImporterFromURL(urlStr, getCookie(), model.getResources(),
+                                  downloadInfo, defaultDateFormat,
+                                  TimeZone.getTimeZone(getTimeZoneID()), decimal);
+    importer.setColumnsFromHeader(getCurrentPriceHeader());
+    importer.setPriceMultiplier(downloadInfo.priceMultiplier);
+
+    // the return value is negative for general errors, 0 for success with no error, or a positive
+    // value for overall success but one or more errors
+    int errorResult = importer.importData();
+    if (errorResult < 0) {
+      Exception error = importer.getLastException();
+      downloadInfo.errors.add(new DownloadException(downloadInfo, error.getMessage(), error));
+      return;
+    }
+    List<StockRecord> recordList = importer.getImportedRecords();
+    if (recordList.isEmpty()) {
+      DownloadException de = buildDownloadException(downloadInfo, SnapshotImporter.ERROR_NO_DATA);
+      downloadInfo.errors.add(de);
+      return;
+    }
+    
+    downloadInfo.addHistoryRecords(recordList);
+  }
+
+  public String getHistoryURL(String fullTickerSymbol) {
+    int endDate = DateUtil.getStrippedDateInt();
+    int startDate = DateUtil.incrementDate(endDate, 0, -4, 0);
+    
     // encoding the dates appears to break Google, so just leave the commas and plus signs in there
     // (Note: their encoder leaves the + signs, but encodes the commas as %2C, but the built-in
     // encoder will do both which is perhaps the problem)
-    final String encEndDate = _dateFormat.format(endDate);
-    final String encStartDate = _dateFormat.format(startDate);
-//    String encTicker;
-//    try {
-//      encTicker = URLEncoder.encode(fullTickerSymbol, N12EStockQuotes.URL_ENC);
-//    } catch (UnsupportedEncodingException ignore) {
-//      // should never happen, as the US-ASCII character set is one that is required to be
-//      // supported by every Java implementation
-//      encTicker = fullTickerSymbol;
-//    }
-    // add the parameters
+    final String encEndDate = _dateFormat.format(DateUtil.convertIntDateToLong(endDate));
+    final String encStartDate = _dateFormat.format(DateUtil.convertIntDateToLong(startDate));
+    
+    StringBuilder result = new StringBuilder(getHistoryBaseUrl());
     result.append("?");
     if (fullTickerSymbol.startsWith("cid=") || fullTickerSymbol.startsWith("CID=")) {
       result.append(fullTickerSymbol);
     } else {
       result.append("q=");           // symbol
-//    result.append(encTicker);
       result.append(fullTickerSymbol);
     }
     result.append("&startdate=");   // start date
@@ -127,7 +150,6 @@ public class GoogleConnection extends BaseConnection {
     return result.toString();
   }
 
-  @Override
   protected String getCurrentPriceHeader() {
     // not supported
     return null;

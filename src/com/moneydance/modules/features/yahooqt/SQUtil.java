@@ -207,14 +207,13 @@ final class SQUtil {
     String prefix = null;
     String suffix = null;
     String currencyCode = null;
-
+    
     // break off a currency code if and only if the last 4 characters is -XXX where X is a letter,
     // OR if the user put in a carat delimiter
     final int len = tickerSymbol.length();
     int caratIndex = tickerSymbol.lastIndexOf('^');
     final boolean hasDashOverride = ((len > 4) && (tickerSymbol.charAt(len - 4) == '-'));
-    if ((len > 4) && (hasDashOverride || (caratIndex >= 0)))
-    {
+    if ((len > 4) && (hasDashOverride || (caratIndex >= 0))) {
       boolean currencyFound = true;
       if (caratIndex >= 0) {
         // include the period as the first character
@@ -235,7 +234,7 @@ final class SQUtil {
         }
       }
     }
-
+    
     // check if a Google exchange prefix exists
     int colonIndex = tickerSymbol.indexOf(':');
     if (colonIndex >= 0) {

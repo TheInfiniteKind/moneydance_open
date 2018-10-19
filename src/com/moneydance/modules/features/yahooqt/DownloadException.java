@@ -8,27 +8,25 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.infinitekind.moneydance.model.CurrencyType;
-
 /**
  * An exception encountered while downloading data.
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
 public class DownloadException extends Exception {
-  private final CurrencyType _currency;
+  private final DownloadInfo downloadInfo;
 
-  DownloadException(final CurrencyType currency, final String reason) {
+  DownloadException(final DownloadInfo downloadInfo, final String reason) {
     super(reason);
-    _currency = currency;
+    this.downloadInfo = downloadInfo;
   }
 
-  DownloadException(final CurrencyType currency, final String reason, final Throwable cause) {
+  DownloadException(final DownloadInfo downloadInfo, final String reason, final Throwable cause) {
     super(reason, cause);
-    _currency = currency;
+    this.downloadInfo = downloadInfo;
   }
 
-  public CurrencyType getCurrency() {
-    return _currency;
+  public DownloadInfo getDownloadInfo() {
+    return downloadInfo;
   }
 }

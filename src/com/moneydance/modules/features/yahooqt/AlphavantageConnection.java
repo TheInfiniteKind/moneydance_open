@@ -12,7 +12,11 @@ import java.awt.event.ActionEvent;
 import java.net.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 
 /**
@@ -23,7 +27,7 @@ public class AlphavantageConnection extends BaseConnection {
   public static final String PREFS_KEY = "alphavantage";
   
   public AlphavantageConnection(StockQuotesModel model) {
-    super(model, BaseConnection.HISTORY_SUPPORT | BaseConnection.EXCHANGE_RATES_SUPPORT);
+    super(PREFS_KEY, model, BaseConnection.HISTORY_SUPPORT | BaseConnection.EXCHANGE_RATES_SUPPORT);
   }
   
   private static String cachedAPIKey = null;
@@ -153,27 +157,24 @@ public class AlphavantageConnection extends BaseConnection {
     StockQuotesModel model = getModel();
     return model==null ? "" : model.getResources().getString("alphavantage");
   }
-  
+
   /**
-   * Retrieve the current exchange rates for the given currency and base
-   * @param currencyID      The string identifier of the currency to start with ('from').
-   * @param baseCurrencyID  The string identifier of the currency to end with ('to').
-   * @return The downloaded exchange rate definition.
-   * @throws Exception If an error occurs during download.
+   * Retrieve the current exchange rate for the given currency relative to the base
+   * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
    */
-  public ExchangeRate getCurrentRate(String currencyID, String baseCurrencyID)
-    throws Exception
-  {
-    currencyID = currencyID.toUpperCase().trim();
-    baseCurrencyID = baseCurrencyID.toUpperCase().trim();
-    if (currencyID.length() != 3 || baseCurrencyID.length() != 3)
-      return null;
+  @Override
+  public void updateExchangeRate(DownloadInfo downloadInfo) {
+    String baseCurrencyID = downloadInfo.relativeCurrency.getIDString().toUpperCase();
+    if(!downloadInfo.isValidForDownload) return;
     
     String apiKey = getAPIKey(getModel(), false);
-    if(apiKey==null) return null;
+    if(apiKey==null) {
+      downloadInfo.recordError(getModel(), "No Alphavantage API Key Provided");
+      return;
+    }
     
     String urlStr = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"+
-                    "&from_currency="+ SQUtil.urlEncode(currencyID) +
+                    "&from_currency="+ SQUtil.urlEncode(downloadInfo.fullTickerSymbol) +
                     "&to_currency=" + SQUtil.urlEncode(baseCurrencyID) +
                     "&apikey="+SQUtil.urlEncode(apiKey);
     
@@ -191,34 +192,31 @@ public class AlphavantageConnection extends BaseConnection {
     }
     */
     
-    URL url = new URL(urlStr);
-    ByteArrayOutputStream bout = new ByteArrayOutputStream();
-    IOUtils.copyStream(url.openConnection().getInputStream(), bout);
-    JsonReader jsonReader = new JsonReader(new InputStreamReader(new ByteArrayInputStream(bout.toByteArray()), StandardCharsets.UTF_8));
-    Gson gson = new Gson();
-    Map gsonData = gson.fromJson(jsonReader, Map.class);
-    ExchangeRate downloadedRate = null;
-    
-    Object rateInfoObj = gsonData.get("Realtime Currency Exchange Rate");
-    if(rateInfoObj != null && rateInfoObj instanceof Map) {
-      Map rateInfo = (Map) rateInfoObj;
-      Object rateObj = rateInfo.get("5. Exchange Rate");
-      if (rateObj != null) {
-        double rate = StringUtils.parseDouble(String.valueOf(rateObj), -1.0, '.');
-        if (rate > 0) {
-          downloadedRate = new ExchangeRate(1 / rate);
+    try {
+      URL url = new URL(urlStr);
+      ByteArrayOutputStream bout = new ByteArrayOutputStream();
+      IOUtils.copyStream(url.openConnection().getInputStream(), bout);
+      JsonReader jsonReader = new JsonReader(new InputStreamReader(new ByteArrayInputStream(bout.toByteArray()), StandardCharsets.UTF_8));
+      Gson gson = new Gson();
+      Map gsonData = gson.fromJson(jsonReader, Map.class);
+      
+      Object rateInfoObj = gsonData.get("Realtime Currency Exchange Rate");
+      if (rateInfoObj instanceof Map) {
+        Map rateInfo = (Map) rateInfoObj;
+        Object rateObj = rateInfo.get("5. Exchange Rate");
+        if (rateObj != null) {
+          double rate = StringUtils.parseDouble(String.valueOf(rateObj), -1.0, '.');
+          if (rate > 0) {
+            downloadInfo.setRate(1 / rate);
+          }
         }
       }
+      try {
+        downloadInfo.setTestMessage(new String(bout.toByteArray(), "UTF8"));
+      } catch (Throwable t){}
+    } catch (Exception connEx) {
+      downloadInfo.recordError(getModel(), "Connection Error: "+connEx);
     }
-    
-    if(downloadedRate==null) {
-      downloadedRate = new ExchangeRate(-1.0);
-    }
-    try {
-      downloadedRate.setTestMessage(new String(bout.toByteArray(), "UTF8"));
-    } catch (Throwable t){} 
-    
-    return downloadedRate;
   }
   
   protected String getCurrentPriceHeader() {
@@ -226,16 +224,67 @@ public class AlphavantageConnection extends BaseConnection {
     //return "date,open,high,low,close,volume";
   }
 
-  protected boolean allowAutodetect() {return false;}
-  
-  public String getId() { return PREFS_KEY; }
-  
-
-  @Override
-  public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
+  public String getHistoryURL(String fullTickerSymbol) {
     String apiKey = getAPIKey(getModel(), false);
     return apiKey==null ? null :
            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(apiKey)+"&datatype=csv";
+  }
+
+
+
+  /**
+   * Retrieve the current exchange rate for the given currency and base
+   * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
+   */
+  @Override
+  public void updateSecurity(DownloadInfo downloadInfo) {
+    System.err.println("alphavantage: getting history for "+downloadInfo.fullTickerSymbol);
+    String urlStr = getHistoryURL(downloadInfo.fullTickerSymbol);
+    if (urlStr == null) {
+      // this basically means that an API key wasn't available
+      downloadInfo.recordError(model, "No API Key Available");
+      return;
+    }
+    
+    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
+    char decimal = model.getPreferences().getDecimalChar();
+    SnapshotImporterFromURL importer = 
+      new SnapshotImporterFromURL(urlStr, getCookie(), model.getResources(),
+                                  downloadInfo, defaultDateFormat, 
+                                  TimeZone.getTimeZone(getTimeZoneID()), decimal);
+    importer.setColumnsFromHeader(getCurrentPriceHeader());
+    importer.setPriceMultiplier(downloadInfo.priceMultiplier);
+    
+    // the return value is negative for general errors, 0 for success with no error, or a positive
+    // value for overall success but one or more errors
+    int errorResult = importer.importData();
+    if (errorResult < 0) {
+      Exception error = importer.getLastException();
+      downloadInfo.errors.add(new DownloadException(downloadInfo, error.getMessage(), error));
+      return;
+    }
+    List<StockRecord> recordList = importer.getImportedRecords();
+    if (recordList.isEmpty()) {
+      DownloadException de = buildDownloadException(downloadInfo, SnapshotImporter.ERROR_NO_DATA);
+      downloadInfo.errors.add(de);
+      return;
+    }
+    
+    if(downloadInfo.fullTickerSymbol.endsWith(".L") && recordList.size() > 1) {
+      // special case when Alphavantage provides the first (aka current date) price in pence instead of GBP for some LSE securities
+      StockRecord first = recordList.get(0);
+      StockRecord second = recordList.get(1);
+      if(first.closeRate > (second.closeRate/100)*0.9 && first.closeRate < (second.closeRate/100)*1.1) {
+        for(int i=recordList.size()-1; i>=1; i--) { // adjust all but the first entry
+          StockRecord record = recordList.get(i);
+          record.closeRate /= 100;
+          record.highRate /= 100;
+          record.lowRate /= 100;
+          record.open /= 100;
+        }
+      }
+    }
+    downloadInfo.addHistoryRecords(recordList);
   }
 
   /**
@@ -252,6 +301,7 @@ public class AlphavantageConnection extends BaseConnection {
     int argIdx = 0;
     cachedAPIKey = args[argIdx++];
     
+    
     StockQuotesModel model = new StockQuotesModel(null);
     AccountBook book = AccountBook.fakeAccountBook();
     book.performPostLoadVerification();
@@ -267,38 +317,50 @@ public class AlphavantageConnection extends BaseConnection {
     expAcct.setAccountName("Misc Expense");
     expAcct.syncItem();
     
-    CurrencyTable currencies = book.getCurrencies();
+    CurrencyTable ctable = book.getCurrencies();
+    CurrencyType usd = new CurrencyType(ctable);
+    usd.setCurrencyType(CurrencyType.Type.CURRENCY);
+    usd.setIDString("USD");
+    ctable.setBaseType(usd);
+    
     model.setData(book);
     AlphavantageConnection conn = new AlphavantageConnection(model);
+
+    List<DownloadInfo> currencies = new ArrayList<>();
+    List<DownloadInfo> securities = new ArrayList<>();
+    
     if(args[argIdx].equals("-x")) {
       argIdx++;
       for(; argIdx < args.length; argIdx++) {
         String symbol = args[argIdx];
-        BaseConnection.ExchangeRate currentRate = conn.getCurrentRate(symbol, currencies.getBaseType().getIDString());
-        System.out.println(" retrieved rate is for " + symbol + " is " + currentRate.getRate());
+        CurrencyType currency = ctable.getCurrencyByIDString(symbol);
+        if(currency==null) {
+          currency = new CurrencyType(ctable);
+          currency.setCurrencyType(CurrencyType.Type.CURRENCY);
+          currency.setIDString(symbol);
+          ctable.addCurrencyType(currency);
+        }
+        currencies.add(new DownloadInfo(currency, conn));
       }
     } else {
-      DateRange dateRange = new DateRange(DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, -2, 0),
-                                          DateUtil.getStrippedDateInt());
       for(; argIdx < args.length; argIdx++) {
         String symbol = args[argIdx];
-        CurrencyType security = currencies.getCurrencyByTickerSymbol(symbol);
+        CurrencyType security = ctable.getCurrencyByTickerSymbol(symbol);
         if(security==null) {
-          security = new CurrencyType(currencies);
+          security = new CurrencyType(ctable);
+          security.setCurrencyType(CurrencyType.Type.SECURITY);
           security.setTickerSymbol(symbol);
           security.setName(symbol);
           security.setIDString("^"+symbol);
-          security.setCurrencyType(CurrencyType.Type.SECURITY);
           security.setDecimalPlaces(4);
-          currencies.addCurrencyType(security);
+          ctable.addCurrencyType(security);
         }
-        StockHistory history = conn.getHistory(security, dateRange, true);
-        System.err.println(" retrieved history for ticker '"+symbol+"' with "+history.getRecordCount()+" records and "+history.getErrorCount()+" errors");
-        for(int i=0; i<history.getRecordCount(); i++) {
-          System.err.println(String.valueOf(history.getRecord(i)));
-        }
+        securities.add(new DownloadInfo(security, conn));
       }
     }
+    
+    conn.updateExchangeRates(currencies);
+    conn.updateSecurities(securities);
   }
 
 }

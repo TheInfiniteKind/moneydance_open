@@ -32,6 +32,7 @@
     <!-- other strings -->
     <entry key="labelColon">: </entry>
     <entry key="alphavantage">Alphavantage</entry>
+    <entry key="iextrading">IEX Trading</entry>
     <entry key="yahooUSA">Yahoo!® Finance - USA</entry>
     <entry key="yahooUK">Yahoo!® Finance - UK</entry>
     <entry key="yahooUSAexchangeRates">Yahoo!® Currency Exchange Rates</entry>

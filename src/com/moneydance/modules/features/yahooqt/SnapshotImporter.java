@@ -36,7 +36,7 @@ import java.util.*;
  */
 public abstract class SnapshotImporter
 {
-  protected final CurrencyType _currency;
+  protected final DownloadInfo downloadInfo;
   protected final List<StockRecord> _importRecords = new ArrayList<>();
   protected final ResourceProvider _resources;
 
@@ -82,14 +82,14 @@ public abstract class SnapshotImporter
   /**
    * Constructor to allow input fields to be final.
    * @param resources          Object to look up localized resources.
-   * @param currency           The currency whose history will be updated from the input stream.
+   * @param downloadInfo       The currency/security download information whose history will be updated from the input stream.
    * @param expectedDateFormat The user-specified date format.
    * @param timeZone           Time zone to use when parsing downloaded time values.
    * @param userDecimal        The user-specified character to use as a decimal point.
    */
-  public SnapshotImporter(ResourceProvider resources, CurrencyType currency,
+  public SnapshotImporter(ResourceProvider resources, DownloadInfo downloadInfo,
                           SimpleDateFormat expectedDateFormat, TimeZone timeZone, char userDecimal) {
-    _currency = currency;
+    this.downloadInfo = downloadInfo;
     _expectedDateFormat = expectedDateFormat;
     _userDecimal = userDecimal;
     _resources = resources;
@@ -355,15 +355,13 @@ public abstract class SnapshotImporter
    * price here because it must be decided at a higher level whether to update current price. Even
    * if the full history download successfully gets a more recent price than is stored with the
    * security, it may be overridden by the current price download (which can have intra-day pricing).
-   * @param priceCurrency The currency that the downloaded quote is in. This will get converted to
-   *                      the base currency.
    * @return True if successful, false if there was nothing applied.
    */
-  public boolean apply(CurrencyType priceCurrency) {
+  public boolean apply() {
     if (_importRecords.isEmpty()) return false;
     boolean success = false;
     for (StockRecord record : _importRecords) {
-      CurrencySnapshot snap = addOrUpdateSnapshot(_currency, priceCurrency, record);
+      CurrencySnapshot snap = addOrUpdateSnapshot(downloadInfo, record);
       //System.err.println("security updated snapshot: "+snap);
       success |= (snap.getUserRate() > 0.0);
     }
@@ -380,22 +378,21 @@ public abstract class SnapshotImporter
   protected abstract BufferedReader getInputStream() 
           throws IOException, DownloadException, NumberFormatException;
 
-  private static CurrencySnapshot addOrUpdateSnapshot(CurrencyType currency,
-                                                      CurrencyType baseCurrency,
+  private static CurrencySnapshot addOrUpdateSnapshot(DownloadInfo downloadInfo,
                                                       StockRecord record)
   {
     // all snapshots are recorded in terms of the base currency.
-    final double newRate = convertToBasePrice(record.closeRate, baseCurrency, record.date);
-    CurrencySnapshot result = currency.setSnapshotInt(record.date, newRate);
+    final double newRate = convertToBasePrice(record.closeRate, downloadInfo.relativeCurrency, record.date);
+    CurrencySnapshot result = downloadInfo.security.setSnapshotInt(record.date, newRate);
     // downloaded values are prices in a certain currency, change to rates for the stock history
-    result.setUserDailyHigh(convertToBasePrice(record.highRate, baseCurrency, record.date));
-    result.setUserDailyLow(convertToBasePrice(record.lowRate, baseCurrency, record.date));
+    result.setUserDailyHigh(convertToBasePrice(record.highRate, downloadInfo.relativeCurrency, record.date));
+    result.setUserDailyLow(convertToBasePrice(record.lowRate, downloadInfo.relativeCurrency, record.date));
     result.setDailyVolume(record.volume);
     result.syncItem();
     return result;
   }
-
-
+  
+  
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // Private Methods
   ///////////////////////////////////////////////////////////////////////////////////////////////

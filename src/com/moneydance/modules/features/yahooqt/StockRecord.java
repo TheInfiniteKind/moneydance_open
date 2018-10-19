@@ -8,6 +8,9 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.moneydance.model.CurrencySnapshot;
+import com.infinitekind.moneydance.model.CurrencyType;
+
 /**
  * Stores a single entry for a historical price entry (snapshot) for a security.
  *
@@ -28,15 +31,34 @@ class StockRecord implements Comparable<StockRecord> {
   double open = -1.0;
   /** The close price in terms of the price currency (gets converted to base currency). */
   double closeRate = -1.0;
+  
   String priceDisplay = "";
-
+  
   @Override
   public String toString() {
     return "close="+ closeRate +"; volume="+volume+"; high="+ highRate +"; low="+ lowRate +"; date="+date;
   }
-
+  
   public int compareTo(StockRecord o) {
     // sort by date
     return date - o.date;
   }
+
+  public void updatePriceDisplay(CurrencyType priceCurrency, char decimal) {
+    long amount = (closeRate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / closeRate);
+    priceDisplay = priceCurrency.formatFancy(amount, decimal);
+  }
+  
+  CurrencySnapshot apply(CurrencyType security, CurrencyType priceCurrency) {
+    // all snapshots are recorded in terms of the base currency.
+    double newRate = priceCurrency.getUserRateByDateInt(date)*closeRate;
+    CurrencySnapshot result = security.setSnapshotInt(date, newRate);
+    // downloaded values are prices in a certain currency, change to rates for the stock history
+    result.setUserDailyHigh(priceCurrency.getUserRateByDateInt(date)*highRate);
+    result.setUserDailyLow(priceCurrency.getUserRateByDateInt(date)*lowRate);
+    result.setDailyVolume(volume);
+    result.syncItem();
+    return result;
+  }
+  
 }
