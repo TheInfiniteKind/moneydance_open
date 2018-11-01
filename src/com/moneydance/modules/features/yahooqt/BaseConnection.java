@@ -11,6 +11,9 @@ package com.moneydance.modules.features.yahooqt;
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.CustomDateFormat;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -28,7 +31,6 @@ public abstract class BaseConnection {
   private final String connectionID;
   private final int _capabilities;
   protected final StockQuotesModel model;
-  private final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
   
   private BaseConnection() {
     model = null;
@@ -122,7 +124,7 @@ public abstract class BaseConnection {
                                     100.0f / (float)securitiesToUpdate.size();
     boolean success = true;
     for (DownloadInfo downloadInfo : securitiesToUpdate) {
-      System.err.println("updating currency: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
+      System.err.println("updating security: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
       updateSecurity(downloadInfo);
       double rate = downloadInfo.getRate();
       progressPercent += progressIncrement;
@@ -140,19 +142,7 @@ public abstract class BaseConnection {
       }
       model.showProgress(progressPercent, message);
       if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
-      //        } catch (Exception error) {
-      //          downloadException = error;
-      //          String message = MessageFormat.format(
-      //            resources.getString(L10NStockQuotes.ERROR_DOWNLOADING_FMT),
-      //            resources.getString(L10NStockQuotes.RATES),
-      //            error.getLocalizedMessage());
-      //          model.showProgress(0f, message);
-      //          if(Main.DEBUG_YAHOOQT) System.err.println(MessageFormat.format("Error while downloading Currency Exchange Rates: {0}",
-      //                                                                         error.getMessage()));
-      //          error.printStackTrace();
-      //          success = false;
-      //        }
-
+      
       didUpdateItem(downloadInfo);
     }
     return Boolean.TRUE;
@@ -267,12 +257,6 @@ public abstract class BaseConnection {
     return "America/New_York";  // could possibly also use 'US/Eastern'
   }
 
-  protected SimpleDateFormat getExpectedDateFormat(boolean getFullHistory) {
-    CustomDateFormat userDateFormat = model.getPreferences().getShortDateFormatter();
-    if (userDateFormat == null) return DEFAULT_DATE_FORMAT;
-    return new SimpleDateFormat(userDateFormat.getPattern());
-  }
-
   protected StockQuotesModel getModel() { return model; }
 
   protected String getCookie() { return null; }
@@ -332,8 +316,162 @@ public abstract class BaseConnection {
   }
   
 
+  static StockQuotesModel createEmptyTestModel() {
+    StockQuotesModel model = new StockQuotesModel(null);
+    AccountBook book = AccountBook.fakeAccountBook();
+    CurrencyUtil.createDefaultTable(book, "USD");
+    for(CurrencyType curr : book.getCurrencies()) {
+      curr.setCurrencyType(CurrencyType.Type.CURRENCY);
+      curr.setDecimalPlaces(2);
+      curr.setTickerSymbol("");
+    }
+    book.performPostLoadVerification();
+    // setup a basic account structure
+    Account rootAcct = book.getRootAccount();
+    Account bankAcct = Account.makeAccount(book, Account.AccountType.BANK, rootAcct);
+    bankAcct.setAccountName("Banking");
+    bankAcct.syncItem();
+    Account incAcct = Account.makeAccount(book, Account.AccountType.INCOME, rootAcct);
+    incAcct.setAccountName("Misc Income");
+    incAcct.syncItem();
+    Account expAcct = Account.makeAccount(book, Account.AccountType.EXPENSE, rootAcct);
+    expAcct.setAccountName("Misc Expense");
+    expAcct.syncItem();
+    
+    model.setData(book);
 
+    InputStream englishInputStream = BaseConnection.class.getResourceAsStream(N12EStockQuotes.ENGLISH_PROPERTIES_FILE);
+    try {
+      final XmlResourceBundle englishBundle = new XmlResourceBundle(englishInputStream);
+      model.setResources(new ResourceProvider() {
+        @Override
+        public String getString(String key) {
+          return englishBundle.getString(key);
+        }
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+      model.setResources(new ResourceProvider() {
+        @Override
+        public String getString(String key) {
+          return "<<"+key+">>";
+        }
+      });
+    }
+    
+    return model;
+  }
   
-  
+  public static void runTests(BaseConnection currencyConnection, 
+                              BaseConnection securityConnection,
+                              String args[])
+  {
+    
+    List<String> currencySymbols = new ArrayList<>();
+    List<String> securitySymbols = new ArrayList<>();
+    
+    boolean exchangeRatesMode = false;
+    for (String arg : args) {
+      if (arg.equals("-x")) {
+        exchangeRatesMode = true;
+      } else {
+        if(exchangeRatesMode) {
+          currencySymbols.add(arg);
+        } else {
+          securitySymbols.add(arg);
+        }
+      }
+    }
 
+    if(currencySymbols.size()<=0 && securitySymbols.size()<=0) {
+      currencySymbols.addAll(
+        Arrays.asList("ADP","AED","AFA","ALL","ANG","AOK","ARA","ATS","AUD","AWG","BBD","BDT",
+                      "BEF","BGL","BHD","BIF","BMD","BND","BOB","BRC","BSD","BTN","BUK","BWP",
+                      "BZD","CAD","CHF","CLF","CLP","CNY","COP","CRC","CSK","CUP","CVE","CYP",
+                      "DDM","DEM","DJF","DKK","DOP","DZD","ECS","EGP","ESP","ETB","FIM","FJD",
+                      "FKP","FRF","GBP","GHC","GIP","GMD","GNF","GRD","GTQ","GWP","GYD","HKD",
+                      "HNL","HTG","HUF","IDR","IEP","ILS","INR","IQD","IRR","ISK","ITL","JMD",
+                      "JOD","JPY","KES","KHR","KMF","KPW","KRW","KWD","KYD","LAK","LBP","LKR",
+                      "LRD","LSL","LUF","LYD","MAD","MGF","MNT","MOP","MRO","MTL","MUR","MVR",
+                      "MWK","MXP","MYR","MZM","NGN","NIC","NLG","NOK","NPR","NZD","OMR","PAB",
+                      "PEI","PGK","PHP","PKR","PLZ","PTE","PYG","QAR","ROL","RWF","SAR","SBD",
+                      "SCR","SDP","SEK","SGD","SHP","SLL","SOS","SRG","STD","SUR","SVC","SYP",
+                      "SZL","THB","TND","TOP","TPE","TRL","TTD","TWD","TZS","UGS","USD","UYP",
+                      "VEB","VND","VUV","WST","YDD","YER","YUD","ZAR","ZMK","ZRZ","ZWD"));
+      
+      securitySymbols.addAll(
+        Arrays.asList("DPL", "DTE", "DAI", "DCX", "DAN", "DHR", "DAC", "DRI", "DAR", "DVA", "DPM", "DCT",
+                      "DF", "DE", "DLM", "DK", "DFY", "DFG", "DFP", "DAL", "DEL", "DLX", "DNR", "DFS", "HXM",
+                      "DB", "DTK", "DT", "WMW", "DDR", "DVN", "DV", "DEX", "DEO", "DL", "DO", "DRH", "DSX",
+                      "DHX", "DKS", "DBD", "DLR", "DDS", "DIN", "DYS", "DBX", "DLB", "DTG", "DM", "D", "DCP",
+                      "DOM", "DPZ", "UFS", "DCI", "DRL", "DHT", "DEI", "DOV", "DDE", "DVD", "DPO", "DOW",
+                      "DHI", "DPS", "RDY", "DWA", "DRC", "DW", "DRQ", "DST", "DSW", "DD", "DMH", "DCO",
+                      "DUF", "DUK", "DRE", "DEP", "DFT", "DHG", "DRP", "DY", "DYN", "DX", "EME", "EJ", "UBC",
+                      "UBG", "FUD", "UBM", "USV", "UBN", "PTD", "EXP", "NGT", "EGP", "EMN", "EK", "EV",
+                      "ETJ", "ECL", "EIX", "EDR", "EW", "EFD", "EP", "EE", "EPB", "ELN", "ELU", "EQ", "AKO.A",
+                      "AKO.B", "ERJ", "EMC", "EMS", "EBS", "ESC", "EMR", "EDE", "EIG", "EOC", "EDN", "ICA",
+                      "ERI", "ELX", "ENB", "EEQ", "EEP", "ECA", "EAC", "ENP", "ENH", "EGN", "ENR", "EPL",
+                      "ETP", "ETE", "ES", "ENI", "ENS", "EC", "E", "EBF", "NPO", "ESV", "ETM", "ETR", "EHB",
+                      "EHA", "EHL", "EMQ", "EMO", "EPE", "EPD", "EPR", "EVC", "ENZ", "EOG", "EPC", "ENT",
+                      "EFX", "EQT", "ELS", "EQY", "EQR", "RET", "ESE", "ESS", "EL", "ESL", "DEG", "ETH",
+                      "EVR", "RE", "EBI", "EEE", "XCO", "EXM", "EXC", "XJT", "EXH", "EXR", "XOM", "FMC",
+                      "FNB", "FPL", "HCE", "FDS", "FIC", "FA", "FCS", "FFH", "FRP", "FDO", "FNM", "FFG",
+                      "AGM.A", "AGM", "FNA", "FRT", "FSS", "FII", "FDX", "FCH", "FMX", "FGP", "FOE", "FNF",
+                      "FSC", "FIF", "FSF", "FSE", "FAC", "FAF", "FBP", "FCF", "FHN", "FR", "FMD", "FMR",
+                      "FPO", "FEO", "FE", "FED", "FBC", "FSR", "FLE", "FTK", "FLO", "FLS", "FLR", "FTI",
+                      "FL", "F", "FCJ", "FCZ", "FCE.B", "FCE.A", "FCY", "FRX", "FST", "FOR", "FIG", "FO",
+                      "FCL", "FGC", "FTE", "BEN", "FC", "FT", "FRE", "FCX", "FMS", "FDP", "FBR", "FTR",
+                      "FTO", "FRO", "FCN", "FUL", "FRM", "FBN", "GMT", "GFA", "AJG", "GBL", "GME", "GRS",
+                      "GCI", "GPS", "GDI", "IT", "GET", "GEP", "BGC", "GD", "GE", "GIS", "GOM", "GNK", "GY",
+                      "DNA", "GEC", "GEJ", "GGP", "GMR", "XGM", "RGM", "HGM", "GMS", "GRM", "GXM", "GBM",
+                      "GPM", "GMA", "GSI", "GCO", "GWR", "GLS", "GED", "GEA", "GKM", "BGM", "G", "GPC", "GNW",
+                      "GEO", "GGC", "GAR", "GAT", "GPW", "GPU", "GAH", "GPD", "GPJ", "GRB", "GGB", "GNA",
+                      "GTY", "GA", "GIL", "GLG", "GLT", "GSK", "GLG.U", "GLG.UN", "GRT", "GCA", "GLP", "GPN",
+                      "GEG", "GSL.UN", "GSL.U", "GSL", "GM", "GMW", "GJM", "GFI", "GG", "GOL", "GR", "GDP",
+                      "GT", "IRE", "GPX", "GGG", "GTI", "GKK", "GVA", "GPK", "GTN.A", "GTN", "GAJ", "GAP",
+                      "GNI", "GXP", "GB", "GBX", "GHL", "GEF.B", "GEF", "GFF", "GPI", "GBE", "GMK", "ASR",
+                      "SAB", "CEL", "RC", "TMM", "GS", "GSC", "GNV", "GSH", "GFG", "GES", "GUQ", "GUL", "GUI",
+                      "GLF", "GU"));
+    }
+    
+    List<DownloadInfo> currencies = new ArrayList<>();
+    List<DownloadInfo> securities = new ArrayList<>();
+
+    if(securityConnection!=null) {
+      CurrencyTable ctable = securityConnection.getModel().getBook().getCurrencies();
+      for(String symbol : securitySymbols) {
+        CurrencyType security = ctable.getCurrencyByTickerSymbol(symbol);
+        if (security == null) {
+          security = new CurrencyType(ctable);
+          security.setCurrencyType(CurrencyType.Type.SECURITY);
+          security.setTickerSymbol(symbol);
+          security.setName(symbol);
+          security.setIDString("^" + symbol);
+          security.setDecimalPlaces(4);
+          ctable.addCurrencyType(security);
+        }
+        securities.add(new DownloadInfo(security, securityConnection));
+      }
+    }
+
+    if(currencyConnection!=null) {
+      CurrencyTable ctable = currencyConnection.getModel().getBook().getCurrencies();
+      for (String symbol : currencySymbols) {
+        CurrencyType currency = ctable.getCurrencyByIDString(symbol);
+        if (currency == null) {
+          currency = new CurrencyType(ctable);
+          currency.setCurrencyType(CurrencyType.Type.CURRENCY);
+          currency.setName(symbol);
+          currency.setIDString(symbol);
+          currency.setDecimalPlaces(2);
+          ctable.addCurrencyType(currency);
+        }
+        currencies.add(new DownloadInfo(currency, currencyConnection));
+      }
+    }
+    
+    if(currencyConnection!=null) currencyConnection.updateExchangeRates(currencies);
+    if(securityConnection!=null) securityConnection.updateSecurities(securities);
+  }
+  
 }

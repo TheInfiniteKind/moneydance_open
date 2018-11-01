@@ -100,7 +100,19 @@ public class IEXConnection extends BaseConnection {
    */
   @Override 
   public boolean updateSecurities(List<DownloadInfo> securityCurrencies) {
-    char decimal = model.getPreferences().getDecimalChar();
+    // if we have more than 200 securities in the list, split this into multiple updates...
+    boolean success = false;
+    int startIdx = 0;
+    while (startIdx < securityCurrencies.size()) {
+      success = updateLimitedSecurities(securityCurrencies.subList(startIdx, Math.min(startIdx+100, securityCurrencies.size())));
+      startIdx += 100;
+    }
+    return success;
+  }
+  
+    
+  private boolean updateLimitedSecurities(List<DownloadInfo> securityCurrencies) {  
+    char decimal = model.getDecimalDisplayChar();
     StringBuilder symbolList = new StringBuilder();
     
     Map<String, DownloadInfo> results = new HashMap<>();
@@ -207,74 +219,9 @@ public class IEXConnection extends BaseConnection {
   }
   
   
-  /**
-   * Test method.
-   * @param args Program arguments.
-   * @throws Exception If an error occurs.
-   */
   public static void main(String[] args) throws Exception {
-    if(args.length < 2) {
-      System.err.println("usage: <thiscommand> [-x] <symbol>...");
-      System.err.println(" -x : symbols are three digit currency codes instead of security/ticker symbols");
-      System.exit(-1);
-    }
-    int argIdx = 0;
-    
-    StockQuotesModel model = new StockQuotesModel(null);
-    AccountBook book = AccountBook.fakeAccountBook();
-    book.performPostLoadVerification();
-    // setup a basic account structure
-    Account rootAcct = book.getRootAccount();
-    Account bankAcct = Account.makeAccount(book, Account.AccountType.BANK, rootAcct);
-    bankAcct.setAccountName("Banking");
-    bankAcct.syncItem();
-    Account incAcct = Account.makeAccount(book, Account.AccountType.INCOME, rootAcct);
-    incAcct.setAccountName("Misc Income");
-    incAcct.syncItem();
-    Account expAcct = Account.makeAccount(book, Account.AccountType.EXPENSE, rootAcct);
-    expAcct.setAccountName("Misc Expense");
-    expAcct.syncItem();
-
-    int today = DateUtil.getStrippedDateInt();
-    int historyBeginning = DateUtil.incrementDate(today, 0, -4, 0);
-    CurrencyTable currencies = book.getCurrencies();
-    model.setData(book);
-    IEXConnection conn = new IEXConnection(model);
-    List<DownloadInfo> currencyDownloads = new ArrayList<>();
-    List<DownloadInfo> securityDownloads = new ArrayList<>();
-    
-    argIdx++;
-    for(; argIdx < args.length; argIdx++) {
-      String symbol = args[argIdx].trim();
-      CurrencyType currency = currencies.getCurrencyByIDString(symbol);
-      if(currency==null) {
-        boolean isSecurity = symbol.length() != 3;
-        currency =
-          CurrencyType.currencyFromFields(-1, (isSecurity ? "^" : "") + symbol,
-                                          (isSecurity ? "Security " : "Currency ") +
-                                          symbol,
-                                          1.0,
-                                          (isSecurity ? 5 : 2),
-                                          "",
-                                          "",
-                                          symbol,
-                                          20000101,
-                                          isSecurity ? CurrencyType.CURRTYPE_SECURITY : CurrencyType.CURRTYPE_CURRENCY,
-                                          currencies);
-      }
-
-      if(currency.getCurrencyType() == CurrencyType.Type.SECURITY) {
-        securityDownloads.add(new DownloadInfo(currency, conn));
-      } else {
-        currencyDownloads.add(new DownloadInfo(currency, conn));
-      }
-    }
-    
-    conn.updateExchangeRates(currencyDownloads);
-    conn.updateSecurities(currencyDownloads);
-    
-    System.out.println("currencies downloaded: "+currencyDownloads);
-    System.out.println("securities downloaded: "+securityDownloads);
+    IEXConnection iexConn = new IEXConnection(createEmptyTestModel());
+    BaseConnection.runTests(null, iexConn, args);
   }
-
+  
 }

@@ -27,25 +27,21 @@ class DownloadInfo {
   String fullTickerSymbol;
   StockExchange exchange;
   double priceMultiplier = 1;
-  DateRange historyRange = null;
   boolean isValidForDownload = false;
   
   boolean skipped = false;
-  boolean currentError = false;
   
   private double rate = 0.0;
+  private long dateTimeStamp = 0;
   
   private String testMessage = "";
-  String displayMessage;
   String logMessage;
   
   String toolTip;
   String resultText;
   
   List<DownloadException> errors = new ArrayList<>();
-  String debugString = null;
   private List<StockRecord> history = new ArrayList<>();
-  
   
   DownloadInfo(CurrencyType security, BaseConnection connection) {
     this.security = security;
@@ -124,14 +120,14 @@ class DownloadInfo {
     for (StockRecord record : history) {
       record.apply(security, relativeCurrency);
     }
-
+    
     StockRecord mostRecentRecord = findMostRecentValidRecord();
     long lastUpdateDate = security.getLongParameter("price_date", 0);
     boolean currentPriceUpdated = false;
     // apply the current rate, or pull it from the most recent historical price:
     if(rate > 0) {
       security.setUserRate(rate, relativeCurrency);
-      security.setParameter("price_date", System.currentTimeMillis());
+      security.setParameter("price_date", dateTimeStamp);
       security.syncItem();
       currentPriceUpdated = true;
     } else {
@@ -154,11 +150,17 @@ class DownloadInfo {
     }
     
   }
-
   
-  public String getDisplayName() { return security.getName(); }
+  public String toString() { return security.getName(); }
   
-  public void setRate(double rate) { this.rate = rate; }
+  public void setRate(double rate, long dateTimeStamp) { 
+    this.rate = rate;
+    if(dateTimeStamp<=0) {
+      this.dateTimeStamp = DateUtil.firstMinuteInDay(new Date()).getTime();
+    } else {
+      this.dateTimeStamp = dateTimeStamp;
+    }
+  }
   
   public double getRate() {
     return this.rate;
@@ -203,7 +205,7 @@ class DownloadInfo {
     String format = model.getResources().getString(L10NStockQuotes.EXCHANGE_RATE_DISPLAY_FMT);
     // get the currency that the prices are specified in
     long amount = (rate == 0.0) ? 0 : security.getLongValue(1.0 / rate);
-    final char decimal = model.getPreferences().getDecimalChar();
+    final char decimal = model.getDecimalDisplayChar();
     String priceDisplay = security.formatFancy(amount, decimal);
     String asofDate = model.getUIDateFormat().format(DateUtil.getStrippedDateInt());
     return MessageFormat.format(format, security.getIDString(), relativeCurrency.getIDString(),
@@ -211,7 +213,7 @@ class DownloadInfo {
   }
 
 
-
+  
   public String buildRateLogText(StockQuotesModel model) {
     long amount = (rate == 0.0) ? 0 : security.getLongValue(1.0 / rate);
     String priceDisplay = security.formatFancy(amount, '.');

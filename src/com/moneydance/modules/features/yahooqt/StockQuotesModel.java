@@ -50,6 +50,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private BaseConnection _selectedExchangeRatesConnection = null;
   private List<BaseConnection> _connectionList = null;
   private int _historyDays = 5;
+  private char decimalDisplayChar = '.';
   private boolean _dirty = false;
   private FeatureModuleContext extensionContext;
   
@@ -60,6 +61,8 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   StockQuotesModel(FeatureModuleContext extensionContext) {
     this.extensionContext = extensionContext;
+    dateFormat = new CustomDateFormat("ymd");
+    
     _tableModel = new SecuritySymbolTableModel(this);
   }
 
@@ -81,6 +84,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     _preferences = mdGUI.getPreferences();
     dateFormat = _preferences.getShortDateFormatter();
     dateTimeFormat = new SimpleDateFormat(dateFormat.getPattern() + " h:mm a");
+    decimalDisplayChar = _preferences.getDecimalChar();
     _tableModel.initialize(_preferences);
     _exchangeList.load();
     buildConnectionList(resources);
@@ -413,11 +417,11 @@ public class StockQuotesModel extends BasePropertyChangeReporter
         }
       }
     }
-
+    
     // currency exchange rates
     key = root.getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
-      key = AlphavantageConnection.PREFS_KEY; // default
+      key = ECBConnection.PREFS_KEY; // default
     }
     if (NO_CONNECTION.getConnectionID().equals(key)) {
       _selectedExchangeRatesConnection = NO_CONNECTION;
@@ -448,6 +452,11 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     _connectionList = new ArrayList<BaseConnection>();
     _connectionList.add(new IEXConnection(this));
     _connectionList.add(new AlphavantageConnection(this));
-    _connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));
+    //_connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));
+    _connectionList.add(new ECBConnection(this));
+  }
+
+  public char getDecimalDisplayChar() {
+    return decimalDisplayChar;
   }
 }

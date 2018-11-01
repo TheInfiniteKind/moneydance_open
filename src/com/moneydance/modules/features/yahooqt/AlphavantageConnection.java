@@ -13,21 +13,31 @@ import java.net.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
 
+
+// TODO: Implement batch quote retrieval as in https://www.alpha-vantage.community/post/example-batchstockquotes-code-9629661?highlight=batch&pid=1302984266
 
 /**
- * Created by sreilly -  02/11/2017 21:38
+ * 
+ * Download quotes and exchange rates from alphavantage.co
+ * This requires an API key which customers can register for at runtime and enter in the
+ * prompt shown by this connection.
+ * 
+ * Note: connections are *heavily* throttled to avoid Alphavantage's low threshold for
+ * rejecting frequent connections.
  */
 public class AlphavantageConnection extends BaseConnection {
+  private static final SimpleDateFormat SNAPSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
   
   public static final String PREFS_KEY = "alphavantage";
+  private SimpleDateFormat refreshDateFmt;
   
   public AlphavantageConnection(StockQuotesModel model) {
     super(PREFS_KEY, model, BaseConnection.HISTORY_SUPPORT | BaseConnection.EXCHANGE_RATES_SUPPORT);
+    refreshDateFmt = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss"); // 2017-11-07 11:46:52
+    refreshDateFmt.setLenient(true);
   }
   
   private static String cachedAPIKey = null;
@@ -169,14 +179,15 @@ public class AlphavantageConnection extends BaseConnection {
     
     String apiKey = getAPIKey(getModel(), false);
     if(apiKey==null) {
-      downloadInfo.recordError(getModel(), "No Alphavantage API Key Provided");
+      downloadInfo.recordError("No Alphavantage API Key Provided");
       return;
     }
     
     String urlStr = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"+
                     "&from_currency="+ SQUtil.urlEncode(downloadInfo.fullTickerSymbol) +
                     "&to_currency=" + SQUtil.urlEncode(baseCurrencyID) +
-                    "&apikey="+SQUtil.urlEncode(apiKey);
+                    "&apikey="+SQUtil.urlEncode(apiKey)+
+                    "&outputsize=compact";
     
     /*
      {
@@ -204,10 +215,16 @@ public class AlphavantageConnection extends BaseConnection {
       if (rateInfoObj instanceof Map) {
         Map rateInfo = (Map) rateInfoObj;
         Object rateObj = rateInfo.get("5. Exchange Rate");
+        Object rateDateObj = rateInfo.get("6. Last Refreshed");
+        long rateDate = DateUtil.firstMinuteInDay(new Date()).getTime();
+        if(rateDateObj!=null) {
+          rateDate = refreshDateFmt.parse(String.valueOf(rateDateObj)).getTime();
+        }
+        
         if (rateObj != null) {
           double rate = StringUtils.parseDouble(String.valueOf(rateObj), -1.0, '.');
           if (rate > 0) {
-            downloadInfo.setRate(1 / rate);
+            downloadInfo.setRate(1 / rate, rateDate);
           }
         }
       }
@@ -215,7 +232,7 @@ public class AlphavantageConnection extends BaseConnection {
         downloadInfo.setTestMessage(new String(bout.toByteArray(), "UTF8"));
       } catch (Throwable t){}
     } catch (Exception connEx) {
-      downloadInfo.recordError(getModel(), "Connection Error: "+connEx);
+      downloadInfo.recordError("Connection Error: "+connEx);
     }
   }
   
@@ -223,11 +240,15 @@ public class AlphavantageConnection extends BaseConnection {
     return "date,open,high,low,close,adjusted_close,volume,dividend_amount,splitdividendevents";
     //return "date,open,high,low,close,volume";
   }
-
+  
   public String getHistoryURL(String fullTickerSymbol) {
     String apiKey = getAPIKey(getModel(), false);
     return apiKey==null ? null :
-           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol="+SQUtil.urlEncode(fullTickerSymbol)+"&apikey="+SQUtil.urlEncode(apiKey)+"&datatype=csv";
+           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED"+
+           "&symbol="+SQUtil.urlEncode(fullTickerSymbol)+
+           "&apikey="+SQUtil.urlEncode(apiKey)+
+           "&datatype=csv"+
+           "&outputsize=compact";
   }
 
 
@@ -242,15 +263,14 @@ public class AlphavantageConnection extends BaseConnection {
     String urlStr = getHistoryURL(downloadInfo.fullTickerSymbol);
     if (urlStr == null) {
       // this basically means that an API key wasn't available
-      downloadInfo.recordError(model, "No API Key Available");
+      downloadInfo.recordError("No API Key Available");
       return;
     }
     
-    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
     char decimal = model.getPreferences().getDecimalChar();
     SnapshotImporterFromURL importer = 
       new SnapshotImporterFromURL(urlStr, getCookie(), model.getResources(),
-                                  downloadInfo, defaultDateFormat, 
+                                  downloadInfo, SNAPSHOT_DATE_FORMAT, 
                                   TimeZone.getTimeZone(getTimeZoneID()), decimal);
     importer.setColumnsFromHeader(getCurrentPriceHeader());
     importer.setPriceMultiplier(downloadInfo.priceMultiplier);
@@ -287,80 +307,17 @@ public class AlphavantageConnection extends BaseConnection {
     downloadInfo.addHistoryRecords(recordList);
   }
 
-  /**
-   * Test method.
-   * @param args Program arguments.
-   * @throws Exception If an error occurs.
-   */
   public static void main(String[] args) throws Exception {
-    if(args.length < 2) {
-      System.err.println("usage: <thiscommand> <alphavantage-apikey> [-x] <symbol>...");
-      System.err.println(" -x : symbols are three digit currency codes instead of security/ticker symbols");
+    if(args.length < 1) {
+      System.err.println("usage: <thiscommand> <alphavantage-apikey> <symbols>...");
+      System.err.println(" -x: parameters after -x in the parameter list are symbols are three digit currency codes instead of security/ticker symbols");
       System.exit(-1);
     }
-    int argIdx = 0;
-    cachedAPIKey = args[argIdx++];
     
+    cachedAPIKey = args[0].trim();
     
-    StockQuotesModel model = new StockQuotesModel(null);
-    AccountBook book = AccountBook.fakeAccountBook();
-    book.performPostLoadVerification();
-    // setup a basic account structure
-    Account rootAcct = book.getRootAccount();
-    Account bankAcct = Account.makeAccount(book, Account.AccountType.BANK, rootAcct);
-    bankAcct.setAccountName("Banking");
-    bankAcct.syncItem();
-    Account incAcct = Account.makeAccount(book, Account.AccountType.INCOME, rootAcct);
-    incAcct.setAccountName("Misc Income");
-    incAcct.syncItem();
-    Account expAcct = Account.makeAccount(book, Account.AccountType.EXPENSE, rootAcct);
-    expAcct.setAccountName("Misc Expense");
-    expAcct.syncItem();
-    
-    CurrencyTable ctable = book.getCurrencies();
-    CurrencyType usd = new CurrencyType(ctable);
-    usd.setCurrencyType(CurrencyType.Type.CURRENCY);
-    usd.setIDString("USD");
-    ctable.setBaseType(usd);
-    
-    model.setData(book);
-    AlphavantageConnection conn = new AlphavantageConnection(model);
-
-    List<DownloadInfo> currencies = new ArrayList<>();
-    List<DownloadInfo> securities = new ArrayList<>();
-    
-    if(args[argIdx].equals("-x")) {
-      argIdx++;
-      for(; argIdx < args.length; argIdx++) {
-        String symbol = args[argIdx];
-        CurrencyType currency = ctable.getCurrencyByIDString(symbol);
-        if(currency==null) {
-          currency = new CurrencyType(ctable);
-          currency.setCurrencyType(CurrencyType.Type.CURRENCY);
-          currency.setIDString(symbol);
-          ctable.addCurrencyType(currency);
-        }
-        currencies.add(new DownloadInfo(currency, conn));
-      }
-    } else {
-      for(; argIdx < args.length; argIdx++) {
-        String symbol = args[argIdx];
-        CurrencyType security = ctable.getCurrencyByTickerSymbol(symbol);
-        if(security==null) {
-          security = new CurrencyType(ctable);
-          security.setCurrencyType(CurrencyType.Type.SECURITY);
-          security.setTickerSymbol(symbol);
-          security.setName(symbol);
-          security.setIDString("^"+symbol);
-          security.setDecimalPlaces(4);
-          ctable.addCurrencyType(security);
-        }
-        securities.add(new DownloadInfo(security, conn));
-      }
-    }
-    
-    conn.updateExchangeRates(currencies);
-    conn.updateSecurities(securities);
+    AlphavantageConnection conn = new AlphavantageConnection(createEmptyTestModel());
+    runTests(conn, conn, Arrays.copyOfRange(args, 1, args.length));
   }
 
 }

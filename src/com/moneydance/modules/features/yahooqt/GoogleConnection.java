@@ -34,7 +34,8 @@ public class GoogleConnection extends BaseConnection {
   private final String _displayName;
   private static final String PREFS_KEY = "google";
   private final DateFormat _dateFormat;
-
+  private static final SimpleDateFormat API_DATE_FORMAT = new SimpleDateFormat("d-MMM-yy");
+  
   public GoogleConnection(StockQuotesModel model, String displayName) {
     super(PREFS_KEY, model, BaseConnection.HISTORY_SUPPORT);
     _displayName = displayName;
@@ -43,12 +44,6 @@ public class GoogleConnection extends BaseConnection {
   }
   
   final String getHistoryBaseUrl() { return HISTORY_URL_BASE; }
-
-  @Override
-  protected SimpleDateFormat getExpectedDateFormat(boolean getFullHistory) {
-    // This is the format returned for June 17, 2010: 17-Jun-10; and June 7, 2010: 7-Jun-10
-    return new SimpleDateFormat("d-MMM-yy");
-  }
 
   @Override
   public String toString() {
@@ -82,10 +77,10 @@ public class GoogleConnection extends BaseConnection {
     }
     return exchange.getCurrencyCode();
   }
-
+  
   @Override
   public void updateExchangeRate(DownloadInfo downloadInfo) {
-    downloadInfo.recordError(model, "Implementation error: Connection to Google Finance doesn't support exchange rates");
+    downloadInfo.recordError("Implementation error: Connection to Google Finance doesn't support exchange rates");
   }
 
   /**
@@ -97,11 +92,10 @@ public class GoogleConnection extends BaseConnection {
     System.err.println("google finance: getting history for "+downloadInfo.fullTickerSymbol);
     String urlStr = getHistoryURL(downloadInfo.fullTickerSymbol);
     
-    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
     char decimal = model.getPreferences().getDecimalChar();
     SnapshotImporterFromURL importer =
       new SnapshotImporterFromURL(urlStr, getCookie(), model.getResources(),
-                                  downloadInfo, defaultDateFormat,
+                                  downloadInfo, API_DATE_FORMAT,
                                   TimeZone.getTimeZone(getTimeZoneID()), decimal);
     importer.setColumnsFromHeader(getCurrentPriceHeader());
     importer.setPriceMultiplier(downloadInfo.priceMultiplier);
@@ -154,5 +148,13 @@ public class GoogleConnection extends BaseConnection {
     // not supported
     return null;
   }
+
+
+  public static void main(String[] args) throws Exception {
+    GoogleConnection conn = new GoogleConnection(createEmptyTestModel(), "Google Finance");
+    runTests(conn, conn, args);
+  }
+
+
 
 }

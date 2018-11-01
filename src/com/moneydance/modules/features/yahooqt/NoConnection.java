@@ -35,12 +35,12 @@ public class NoConnection extends BaseConnection {
 
   @Override
   public void updateExchangeRate(DownloadInfo downloadInfo) {
-    downloadInfo.recordError(model, "Implementation error: No exchange rate connection specified");
+    downloadInfo.recordError("Implementation error: No exchange rate connection specified");
   }
 
   @Override
   protected void updateSecurity(DownloadInfo downloadInfo) {
-    downloadInfo.recordError(model, "Implementation error: No stock price connection specified");
+    downloadInfo.recordError("Implementation error: No stock price connection specified");
   }
 
   @Override
