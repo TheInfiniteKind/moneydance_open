@@ -8,18 +8,19 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.infinitekind.util.DateUtil;
+import com.infinitekind.util.CustomDateFormat;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.time.*;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.util.BasePropertyChangeReporter;
-import com.infinitekind.util.CustomDateFormat;
 
 import javax.swing.SwingUtilities;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,10 +44,13 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private MoneydanceGUI _mdGUI = null;
   private AccountBook book = null;
   private UserPreferences _preferences = null;
+  private CustomDateFormat dateFormat;
+  private SimpleDateFormat dateTimeFormat;
   private BaseConnection _selectedHistoryConnection = null;
   private BaseConnection _selectedExchangeRatesConnection = null;
   private List<BaseConnection> _connectionList = null;
   private int _historyDays = 5;
+  private char decimalDisplayChar = '.';
   private boolean _dirty = false;
   private FeatureModuleContext extensionContext;
   
@@ -57,6 +61,8 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   StockQuotesModel(FeatureModuleContext extensionContext) {
     this.extensionContext = extensionContext;
+    dateFormat = new CustomDateFormat("ymd");
+    
     _tableModel = new SecuritySymbolTableModel(this);
   }
 
@@ -76,6 +82,9 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void initialize(MoneydanceGUI mdGUI, ResourceProvider resources) {
     _mdGUI = mdGUI;
     _preferences = mdGUI.getPreferences();
+    dateFormat = _preferences.getShortDateFormatter();
+    dateTimeFormat = new SimpleDateFormat(dateFormat.getPattern() + " h:mm a");
+    decimalDisplayChar = _preferences.getDecimalChar();
     _tableModel.initialize(_preferences);
     _exchangeList.load();
     buildConnectionList(resources);
@@ -127,6 +136,14 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   
   UserPreferences getPreferences() {
     return _preferences;
+  }
+
+  CustomDateFormat getUIDateFormat() {
+    return dateFormat;
+  }
+
+  DateFormat getUIDateTimeFormat() {
+    return dateTimeFormat;
   }
 
   SymbolMap getSymbolMap() {
@@ -234,7 +251,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     final BaseConnection connection = getSelectedExchangeRatesConnection();
     return ((connection != null) && !NO_CONNECTION.equals(connection));
   }
-
+  
   void setHistoryDaysFromFrequency(TimeInterval frequency) {
     switch(frequency) {
       case DAY : _historyDays = 5; break;
@@ -266,10 +283,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void saveSettings(Account root) {
     if (root == null) return;  // do nothing; unexpected
     if (_selectedHistoryConnection != null) {
-      root.setParameter(Main.HISTORY_CONNECTION_KEY, _selectedHistoryConnection.getId());
+      root.setParameter(Main.HISTORY_CONNECTION_KEY, _selectedHistoryConnection.getConnectionID());
     }
     if (_selectedExchangeRatesConnection != null) {
-      root.setParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, _selectedExchangeRatesConnection.getId());
+      root.setParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, _selectedExchangeRatesConnection.getConnectionID());
     }
     // store the results of the table - this updates the symbol map - must be done before symbol map
     _tableModel.save(root);
@@ -290,8 +307,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   BaseConnection getSelectedExchangeRatesConnection() {
     // load the selected connection from preferences if it hasn't been set
-    if (_selectedExchangeRatesConnection == null)
-    {
+    if (_selectedExchangeRatesConnection == null) {
       loadSelectedConnections();
     }
     return _selectedExchangeRatesConnection;
@@ -389,29 +405,29 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     // stock price history
     String key = root.getParameter(Main.HISTORY_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
-      key = AlphavantageConnection.PREFS_KEY; // default
+      key = IEXConnection.PREFS_KEY; // default
     }
-    if (NO_CONNECTION.getId().equals(key)) {
+    if (NO_CONNECTION.getConnectionID().equals(key)) {
       _selectedHistoryConnection = NO_CONNECTION;
     } else {
       for (BaseConnection connection : _connectionList) {
-        if (key.equals(connection.getId())) {
+        if (key.equals(connection.getConnectionID())) {
           _selectedHistoryConnection = connection;
           break;
         }
       }
     }
-
+    
     // currency exchange rates
     key = root.getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
-      key = AlphavantageConnection.PREFS_KEY; // default
+      key = ECBConnection.PREFS_KEY; // default
     }
-    if (NO_CONNECTION.getId().equals(key)) {
+    if (NO_CONNECTION.getConnectionID().equals(key)) {
       _selectedExchangeRatesConnection = NO_CONNECTION;
     } else {
       for (BaseConnection connection : _connectionList) {
-        if (key.equals(connection.getId())) {
+        if (key.equals(connection.getConnectionID())) {
           _selectedExchangeRatesConnection = connection;
           break;
         }
@@ -434,7 +450,13 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   private void buildConnectionList(ResourceProvider resources) {
     _connectionList = new ArrayList<BaseConnection>();
+    _connectionList.add(new IEXConnection(this));
     _connectionList.add(new AlphavantageConnection(this));
-    _connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));
+    //_connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));
+    _connectionList.add(new ECBConnection(this));
+  }
+
+  public char getDecimalDisplayChar() {
+    return decimalDisplayChar;
   }
 }

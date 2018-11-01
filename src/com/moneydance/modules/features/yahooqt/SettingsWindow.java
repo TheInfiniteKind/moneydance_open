@@ -14,7 +14,6 @@ import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.moneydance.apps.md.controller.time.TimeInterval;
-import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
@@ -25,6 +24,8 @@ import com.moneydance.util.UiUtil;
 
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.table.*;
 import java.awt.BorderLayout;
@@ -45,11 +46,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Main settings configuration dialog for the extension.
- *
- * @author Kevin Menningen - Mennē Software Solutions, LLC
+ * Main settings configuration dialog for the quotes and rates updater extension
  */
-public class YahooDialog
+public class SettingsWindow
   extends JDialog
   implements PropertyChangeListener
 {
@@ -75,11 +74,11 @@ public class YahooDialog
   private boolean _showingTestInfo = false;
   private ItemListCellRenderer _tableRenderer;
   private final JCheckBox _showOwnedOnly = new JCheckBox();
-  private final JLabel _testStatus = new JLabel();
+  private final JEditorPane statusSummaryPanel = new JEditorPane();
   private boolean _okButtonPressed = false;
 
-  public YahooDialog(final FeatureModuleContext context, final ResourceProvider resources,
-                     final StockQuotesModel model) {
+  public SettingsWindow(final FeatureModuleContext context, final ResourceProvider resources,
+                        final StockQuotesModel model) {
     super();
     this.context = context;
     
@@ -112,7 +111,7 @@ public class YahooDialog
       _model.buildSecurityMap();
       setSecurityTableColumnSizes();
       // display the last update date in the test status area
-      showLastUpdateDate();
+      updateStatusBlurb();
       validate();
     }
     super.setVisible(visible);
@@ -148,12 +147,30 @@ public class YahooDialog
         // update is called, which reads these settings from preferences or the data file.
         saveControlsToSettings();
         // listen for events so our status updates just like the main application's
-        _model.addPropertyChangeListener(YahooDialog.this);
+        _model.addPropertyChangeListener(SettingsWindow.this);
         // call the main update method
         context.showURL("moneydance:fmodule:yahooqt:update");
       }
     };
-    
+
+    statusSummaryPanel.setEditable(false);
+    statusSummaryPanel.addHyperlinkListener(new HyperlinkListener() {
+      @Override
+      public void hyperlinkUpdate(HyperlinkEvent event) {
+        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED &&
+            event.getURL() != null) {
+          if (java.awt.Desktop.isDesktopSupported()) {
+            try {
+              java.awt.Desktop.getDesktop().browse(event.getURL().toURI());
+            } catch (Exception ex) {
+              System.err.println("Error opening URL " + ex);
+            }
+          }
+        }
+      }
+    });
+
+
     testAction = new AbstractAction() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -165,7 +182,7 @@ public class YahooDialog
         // store what we have into the symbol map
         _model.getTableModel().save(root);
         // listen for update events
-        _model.addPropertyChangeListener(YahooDialog.this);
+        _model.addPropertyChangeListener(SettingsWindow.this);
         _model.runDownloadTest();
       }
     };
@@ -213,9 +230,8 @@ public class YahooDialog
     _showOwnedOnly.setText(_resources.getString(L10NStockQuotes.SHOW_OWNED));
     _showOwnedOnly.setSelected(!_model.getTableModel().getShowZeroBalance());
     fieldPanel.add(_showOwnedOnly, GridC.getc(0, 5).colspan(5).field());
-    _testStatus.setHorizontalAlignment(JLabel.CENTER);
-    _testStatus.setText(" ");
-    fieldPanel.add(_testStatus, GridC.getc(0, 6).colspan(5).field());
+    statusSummaryPanel.setText(" ");
+    fieldPanel.add(statusSummaryPanel, GridC.getc(0, 6).colspan(5).field());
     fieldPanel.setBorder(BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP,
                                                          0, UiUtil.DLG_HGAP));
     contentPane.add(fieldPanel, BorderLayout.CENTER);
@@ -255,15 +271,24 @@ public class YahooDialog
   }
   
 
-  private void showLastUpdateDate() {
+  private void updateStatusBlurb() {
+    StringBuilder msg = new StringBuilder("<html><body style=\"text-align:center; font: sans;\">");
     if (_model.getRootAccount() != null) {
       String messageFormat = _resources.getString(L10NStockQuotes.LAST_UPDATE_FMT);
       int lastRateDate = _model.getRatesLastUpdateDate();
       String rateText = getDateText(lastRateDate);
       int lastQuoteDate = _model.getQuotesLastUpdateDate();
       String quoteText = getDateText(lastQuoteDate);
-      _testStatus.setText(MessageFormat.format(messageFormat, rateText, quoteText));
+      msg.append("<p>").append(MessageFormat.format(messageFormat, rateText, quoteText)).append("</p>");
     }
+    BaseConnection securityConn = _model.getSelectedHistoryConnection();
+    if(securityConn!=null && securityConn instanceof IEXConnection) {
+      msg.append("<p>Data provided for free by IEX. View IEX’s <a href=\"https://iextrading.com/api-exhibit-a\">Terms of Use.</a></p>");
+    }
+    msg.append("</body></html>");
+    
+    statusSummaryPanel.setContentType("text/html");
+    statusSummaryPanel.setText(msg.toString());
   }
 
   private String getDateText(final int date) {
@@ -374,7 +399,7 @@ public class YahooDialog
             p.add(new JLabel(symbolTip), GridC.getc(0, 0));
             p.add(Box.createVerticalStrut(UiUtil.VGAP),  GridC.getc(0, 1));
             p.add(new JLabel(message), GridC.getc(0, 2));
-            JOptionPane.showMessageDialog(YahooDialog.this, p);
+            JOptionPane.showMessageDialog(SettingsWindow.this, p);
           }
         } else if ((column == SecuritySymbolTableModel.EXCHANGE_COL) &&
                 SwingUtilities.isRightMouseButton(event)) {
@@ -643,7 +668,7 @@ public class YahooDialog
     final String name = event.getPropertyName();
     if (N12EStockQuotes.STATUS_UPDATE.equals(name)) {
       final String status = (String) event.getNewValue();
-      _testStatus.setText(status == null ? " " : status);
+      statusSummaryPanel.setText(status == null ? " " : status);
     } else if (N12EStockQuotes.DOWNLOAD_BEGIN.equals(name)) {
       final String text = _model.getGUI().getStr("cancel");
       UiUtil.runOnUIThread(new Runnable() {
@@ -903,7 +928,7 @@ public class YahooDialog
         return false;
       }
       final StockExchangeList exchangeList = _model.getExchangeList();
-      final JDialog owner = YahooDialog.this;
+      final JDialog owner = SettingsWindow.this;
       SwingUtilities.invokeLater(new Runnable() {
         public void run() {
           ExchangeDialog dialog = new ExchangeDialog(owner, mdGui, _resources, exchange,

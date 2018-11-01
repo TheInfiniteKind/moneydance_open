@@ -12,7 +12,6 @@ import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.PreferencesListener;
 import com.moneydance.apps.md.controller.UserPreferences;
-import com.infinitekind.util.DateUtil;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.time.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
@@ -180,7 +179,7 @@ public class Main
         // should invoke later so this can be returned to its thread
         SwingUtilities.invokeLater(new Runnable() {
           public void run() {
-            new YahooDialog(getContext(), Main.this, _model).setVisible(true);
+            new SettingsWindow(getContext(), Main.this, _model).setVisible(true);
           }
         });
       }

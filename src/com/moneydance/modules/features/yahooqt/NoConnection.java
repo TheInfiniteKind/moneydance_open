@@ -8,8 +8,6 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.infinitekind.moneydance.model.*;
-
 /**
  * A stock connection that means the user doesn't want to use any connection at all, which disables
  * use of that particular download type.
@@ -22,50 +20,34 @@ public class NoConnection extends BaseConnection {
   private String _displayName = "None"; // the default used if one is not set by resources
 
   public NoConnection() {
-    super(null, BaseConnection.ALL_SUPPORT);
+    super(PREFS_KEY, null, BaseConnection.ALL_SUPPORT);
   }
 
   @Override
   public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange) {
-    return null;  // not used
+    return parsedSymbol.symbol;  // not used
   }
 
   @Override
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange) {
-    return null;  // not used
+    return exchange.getCurrencyCode();
   }
 
   @Override
-  public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
-    return null;  // not used
+  public void updateExchangeRate(DownloadInfo downloadInfo) {
+    downloadInfo.recordError("Implementation error: No exchange rate connection specified");
+  }
+
+  @Override
+  protected void updateSecurity(DownloadInfo downloadInfo) {
+    downloadInfo.recordError("Implementation error: No stock price connection specified");
   }
 
   @Override
   public void setDefaultCurrency() {
     // do nothing, no model is defined
   }
-
-  @Override
-  public StockHistory getHistory(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
-          throws DownloadException {
-    return null;
-  }
-
-  @Override
-  protected String getCurrentPriceHeader() {
-    return null;  // not used
-  }
-
-  @Override
-  public String getId() {
-    return PREFS_KEY;
-  }
-
-  @Override
-  public CurrencyType getPriceCurrency(CurrencyType securityCurrency) {
-    return null; // do nothing
-  }
-
+  
   void setDisplayName(final String displayName) { _displayName = displayName; }
 
   @Override

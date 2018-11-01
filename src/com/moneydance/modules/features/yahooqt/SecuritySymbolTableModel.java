@@ -30,7 +30,8 @@ import java.util.List;
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
-public class SecuritySymbolTableModel extends AbstractTableModel
+public class SecuritySymbolTableModel 
+  extends AbstractTableModel
 {
   static final int USE_COL = 0;
   static final int NAME_COL = 1;
@@ -93,7 +94,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         // downloading of this account. This will do nothing if not in symbol map.
         _model.getSymbolMap().setIsCurrencyUsed(currency, false);
       } else {
-        _model.getSymbolMap().setIsCurrencyUsed(currency, entry.use);
+        _model.getSymbolMap().setIsCurrencyUsed(currency, entry.updatesEnabled);
         _model.getSymbolMap().setExchangeIdForCurrency(currency, entry.exchangeId);
         // if not the default exchange, store the stock exchange currency as the display currency
         updatePriceDisplayCurrency(currency, entry);
@@ -186,7 +187,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (tableEntry == null) return "?";
     String result;
     switch(columnIndex) {
-      case USE_COL: return tableEntry.use;
+      case USE_COL: return tableEntry.updatesEnabled;
       case NAME_COL: {
         result = tableEntry.currency.getName();
         break;
@@ -222,13 +223,13 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (tableEntry == null) return;
     switch(columnIndex) {
       case USE_COL: {
-        final boolean original = tableEntry.use;
+        final boolean original = tableEntry.updatesEnabled;
         if (aValue instanceof Boolean) {
-          tableEntry.use = (Boolean) aValue;
+          tableEntry.updatesEnabled = (Boolean) aValue;
         } else if (aValue instanceof String) {
-          tableEntry.use = Boolean.valueOf((String) aValue);
+          tableEntry.updatesEnabled = Boolean.valueOf((String) aValue);
         }
-        if (original != tableEntry.use) {
+        if (original != tableEntry.updatesEnabled) {
           _model.setDirty();
           // force a repaint of the header
           _model.fireUpdateHeaderEvent();
@@ -476,7 +477,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     return currencyType.getIDString();
   }
 
-  private SecurityEntry getEntryByCurrency(final CurrencyType currency) {
+  public SecurityEntry getEntryByCurrency(final CurrencyType currency) {
     for (SecurityEntry entry : _data) {
       if (currency.equals(entry.currency)) return entry;
     }
@@ -503,11 +504,11 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       // build or rebuild the symbol map if there is no match
       if (_model.getSymbolMap().hasCurrency(currency)) {
         entry.exchangeId = _model.getSymbolMap().getExchangeIdForCurrency(currency);
-        entry.use = _model.getSymbolMap().getIsCurrencyUsed(currency);
+        entry.updatesEnabled = _model.getSymbolMap().getIsCurrencyUsed(currency);
       } else {
         // add a new security to the map, clearing the 'use' flag if it is zero balance
         entry.exchangeId = _model.getSymbolMap().addCurrency(currency);
-        entry.use = (balance != 0) && _model.getSymbolMap().getIsCurrencyUsed(currency);
+        entry.updatesEnabled = (balance != 0) && _model.getSymbolMap().getIsCurrencyUsed(currency);
       }
       _data.add(entry);
     }
@@ -541,22 +542,22 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 
   boolean allSymbolsEnabled() {
     for (final SecurityEntry entry : _data) {
-      if (!entry.use) return false;
+      if (!entry.updatesEnabled) return false;
     }
     return true;
   }
 
   boolean anySymbolEnabled() {
     for (final SecurityEntry entry : _data) {
-      if (entry.use) return true;
+      if (entry.updatesEnabled) return true;
     }
     return false;
   }
 
   void enableAllSymbols(final boolean use) {
     for (final SecurityEntry entry : _data) {
-      if (entry.use != use) _model.setDirty();
-      entry.use = use;
+      if (entry.updatesEnabled != use) _model.setDirty();
+      entry.updatesEnabled = use;
     }
     fireTableDataChanged();
   }
@@ -593,12 +594,12 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     return changed;
   }
 
-  public void registerTestResults(CurrencyType currencyType, DownloadTask.TestResult testResult) {
+  public void registerTestResults(DownloadInfo downloadInfo) {
     for (int index = _data.size()-1; index >= 0; index-- ) {
       SecurityEntry entry = _data.get(index);
-      if(entry.currency==currencyType) {
-        entry.testResult = testResult.resultText;
-        entry.toolTip = testResult.toolTip;
+      if(entry.currency == downloadInfo.security) {
+        entry.testResult = downloadInfo.resultText;
+        entry.toolTip = downloadInfo.toolTip;
         refreshRow(index);
         break;
       }
@@ -608,7 +609,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
   class SecurityEntry implements Comparable<SecurityEntry> {
     CurrencyType currency;
     long shares = 0;
-    boolean use = true;
+    boolean updatesEnabled = true;
     String editSymbol;
     String exchangeId;
     String testResult;

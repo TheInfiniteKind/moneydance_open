@@ -11,33 +11,43 @@ package com.moneydance.modules.features.yahooqt;
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.CustomDateFormat;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 
 /**
  * Base class for importing stock and currency prices. Derived classes provide specific
- * implementation.
- *
- * @author Kevin Menningen - Mennē Software Solutions, LLC
+ * exchange rate and/or security price implementations.
  */
 public abstract class BaseConnection {
   static final int HISTORY_SUPPORT = 1;
   static final int EXCHANGE_RATES_SUPPORT = 4;
   static final int ALL_SUPPORT = HISTORY_SUPPORT | EXCHANGE_RATES_SUPPORT;
-  
+  static final int FOREX_HISTORY_INTERVAL = 7; // snapshot minimum frequency, in days
+
+  private final String connectionID;
   private final int _capabilities;
-  private final StockQuotesModel _model;
-  private final TimeZone _timeZone;
-  private final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+  protected final StockQuotesModel model;
   
-  public BaseConnection(StockQuotesModel model, final int capabilities) {
-    _model = model;
-    _capabilities = capabilities;
-    _timeZone = TimeZone.getTimeZone(getTimeZoneID());
+  private BaseConnection() {
+    model = null;
+    _capabilities = 0;
+    this.connectionID = "test";
+  }
+  
+  public BaseConnection(String connectionID, StockQuotesModel model, final int capabilities) {
+    this.connectionID = connectionID;
+    this.model = model;
+    this._capabilities = capabilities;
   }
 
+  public final String getConnectionID() {
+    return this.connectionID;
+  }
+  
   /**
    * Given a raw ticker symbol, convert it to a full symbol by adding prefix or suffix appropriate
    * for the stock exchange.
@@ -58,14 +68,90 @@ public abstract class BaseConnection {
    */
   public abstract String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange);
 
-  /**
-   * Given a ticker symbol, return the URL to obtain historical prices for a security.
-   * @param fullTickerSymbol The ticker symbol to use.
-   * @param dateRange        The date range to obtain history for.
-   * @return The URL to use to obtain historical quotes from.
-   */
-  public abstract String getHistoryURL(String fullTickerSymbol, DateRange dateRange);
 
+  /**
+   * Retrieve the current exchange rate for the given currency and base
+   * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
+   */
+  public abstract void updateExchangeRate(DownloadInfo downloadInfo);
+  
+  
+//  /**
+//   * Download price history for a security.
+//   * @param securityInfo The information about the security to download, including symbol, date range, status, results, etc
+//   * applying (for testing).
+//   * @return The security price history that was downloaded.
+//   * @throws DownloadException if an error occurs.
+//   */
+//  public abstract DownloadResult getHistory(DownloadResult securityInfo);
+  
+  
+  /** Update the currencies in the given list */
+  public boolean updateExchangeRates(List<DownloadInfo> currenciesToUpdate) {
+    ResourceProvider res = model.getResources();
+    float progressPercent = 0.0f;
+    final float progressIncrement = currenciesToUpdate.isEmpty() ? 1.0f :
+                                    100.0f / (float)currenciesToUpdate.size();
+    for (DownloadInfo downloadInfo : currenciesToUpdate) {
+      System.err.println("updating currency: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
+      updateExchangeRate(downloadInfo);
+      double rate = downloadInfo.getRate();
+      progressPercent += progressIncrement;
+      final String message, logMessage;
+      if (rate <= 0.0) {
+        message = MessageFormat.format( res.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT),
+                                        downloadInfo.security.getIDString(),
+                                        downloadInfo.relativeCurrency.getIDString());
+        logMessage = MessageFormat.format("Unable to get rate from {0} to {1}",
+                                          downloadInfo.security.getIDString(),
+                                          downloadInfo.relativeCurrency.getIDString());
+      } else {
+        message = downloadInfo.buildRateDisplayText(model);
+        logMessage = downloadInfo.buildRateLogText(model);
+      }
+      model.showProgress(progressPercent, message);
+      if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
+      didUpdateItem(downloadInfo);
+    }
+    
+    return true;
+  }
+  
+  public boolean updateSecurities(List<DownloadInfo> securitiesToUpdate) {
+    ResourceProvider res = model.getResources();
+    float progressPercent = 0.0f;
+    final float progressIncrement = securitiesToUpdate.isEmpty() ? 1.0f :
+                                    100.0f / (float)securitiesToUpdate.size();
+    boolean success = true;
+    for (DownloadInfo downloadInfo : securitiesToUpdate) {
+      System.err.println("updating security: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
+      updateSecurity(downloadInfo);
+      double rate = downloadInfo.getRate();
+      progressPercent += progressIncrement;
+      final String message, logMessage;
+      if (rate <= 0.0) {
+        message = MessageFormat.format( res.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT),
+                                        downloadInfo.security.getIDString(),
+                                        downloadInfo.relativeCurrency.getIDString());
+        logMessage = MessageFormat.format("Unable to get rate from {0} to {1}",
+                                          downloadInfo.security.getIDString(),
+                                          downloadInfo.relativeCurrency.getIDString());
+      } else {
+        message = downloadInfo.buildRateDisplayText(model);
+        logMessage = downloadInfo.buildRateLogText(model);
+      }
+      model.showProgress(progressPercent, message);
+      if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
+      
+      didUpdateItem(downloadInfo);
+    }
+    return Boolean.TRUE;
+  }
+
+
+  protected abstract void updateSecurity(DownloadInfo downloadInfo);
+  
+  
   /**
    * Define the default currency, which is the price currency that is to be used for the downloaded
    * quotes when the Default stock exchange is assigned to a security. The default implementation
@@ -73,109 +159,12 @@ public abstract class BaseConnection {
    * the current data file, the method does nothing.
    */
   public void setDefaultCurrency() {
-    final Account root = _model.getRootAccount();
+    final Account root = model.getRootAccount();
     if (root == null) return;
     CurrencyType currency = root.getBook().getCurrencies().getCurrencyByIDString("USD");
     if (currency == null) return;
     StockExchange.DEFAULT.setCurrency(currency);
   }
-
-  /**
-   * Download price history for a security.
-   * @param securityCurrency The currency of the security to be updated.
-   * @param dateRange The date range to obtain history for.
-   * @param apply True to apply the downloaded history to the currency, false to download without
-   * applying (for testing).
-   * @return The security price history that was downloaded.
-   * @throws DownloadException if an error occurs.
-   */
-  public StockHistory getHistory(CurrencyType securityCurrency, DateRange dateRange, boolean apply)
-    throws DownloadException
-  {
-    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
-    if (parsedSymbol == null) return null;
-    StockExchange exchange = getExchangeForSecurity(parsedSymbol, securityCurrency);
-    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
-    if (fullTickerSymbol == null) return null;
-    String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
-    // get the currency that the prices are specified in
-    CurrencyType priceCurrency = getPriceCurrency(securityCurrency);
-    if (priceCurrency == null) {
-      String message = MessageFormat.format(
-        _model.getResources().getString(L10NStockQuotes.ERROR_PRICE_CURRENCY_FMT),
-        priceCurrencyId);
-      throw new DownloadException(securityCurrency, message);
-    }
-    double priceMultiplier = exchange.getPriceMultiplier();
-    final String urlStr = getHistoryURL(fullTickerSymbol, dateRange);
-    System.err.println("getting history using url: "+ urlStr);
-
-    if (urlStr == null) {
-      // mode is not supported by this connection
-      String message = _model.getResources().getString(L10NStockQuotes.ERROR_HISTORY_NOT_SUPPORTED);
-      throw new DownloadException(securityCurrency, message);
-    }
-
-    SimpleDateFormat defaultDateFormat = getExpectedDateFormat(true);
-    char decimal = _model.getPreferences().getDecimalChar();
-    SnapshotImporterFromURL importer = new SnapshotImporterFromURL(urlStr, getCookie(), _model.getResources(),
-                                                                   securityCurrency, defaultDateFormat, _timeZone, decimal);
-    if (allowAutodetect()) {
-      importer.setAutodetectFormat(true);
-    } else {
-      importer.setColumnsFromHeader(getCurrentPriceHeader());
-    }
-    importer.setPriceMultiplier(priceMultiplier);
-
-    // the return value is negative for general errors, 0 for success with no error, or a positive
-    // value for overall success but one or more errors
-    int errorResult = importer.importData();
-    if (errorResult < 0) {
-      Exception error = importer.getLastException();
-      if (error != null) throw new DownloadException(securityCurrency, error.getMessage(), error);
-      buildMessageAndThrow(securityCurrency, errorResult);
-    }
-    List<StockRecord> recordList = importer.getImportedRecords();
-    if (recordList.isEmpty())  buildMessageAndThrow(securityCurrency, SnapshotImporter.ERROR_NO_DATA);
-    
-    if(this instanceof AlphavantageConnection && fullTickerSymbol.endsWith(".L") && recordList.size() > 1) {
-      // special case when Alphavantage provides the first (aka current date) price in pence instead of GBP for some LSE securities
-      StockRecord first = recordList.get(0);
-      StockRecord second = recordList.get(1);
-      if(first.closeRate > (second.closeRate/100)*0.9 && first.closeRate < (second.closeRate/100)*1.1) {
-        for(int i=recordList.size()-1; i>=1; i--) { // adjust all but the first entry
-          StockRecord record = recordList.get(i);
-          record.closeRate /= 100;
-          record.highRate /= 100;
-          record.lowRate /= 100;
-          record.open /= 100;
-        }
-      }
-    }
-    
-    buildPriceDisplayText(recordList, priceCurrency, _model.getPreferences().getDecimalChar());
-    if (apply) {
-      importer.apply(priceCurrency);
-    }
-    return new StockHistory(priceCurrencyId, recordList, errorResult);
-  }
-  
-  
-  /**
-   * Retrieve the current information for the given stock ticker symbol.
-   * @param currencyID      The string identifier of the currency to start with ('from').
-   * @param baseCurrencyID  The string identifier of the currency to end with ('to').
-   * @return The downloaded exchange rate definition.
-   * @throws Exception If an error occurs during download.
-   */
-  public BaseConnection.ExchangeRate getCurrentRate(String currencyID, String baseCurrencyID)
-    throws Exception
-  {
-    throw new Exception("Exchange rate retrieval not implemented in "+this);
-  }
-
-
-  public abstract String getId();
   
   public boolean canGetHistory() {
     return ((_capabilities & HISTORY_SUPPORT) != 0);
@@ -184,8 +173,7 @@ public abstract class BaseConnection {
   public boolean canGetRates() {
     return ((_capabilities & EXCHANGE_RATES_SUPPORT) != 0);
   }
-
-
+  
   /**
    * Return the number of milliseconds by which the connection should be throttled.
    * The default is zero.
@@ -193,16 +181,15 @@ public abstract class BaseConnection {
   public long getPerConnectionThrottleTime() {
     return 0;
   }
-
-
-
+  
+  
   /** 
    * This is called after an item is updated.  If the error parameter is non-null then it
    * means there was a problem performing the update.  The default implementation checks
    * for a per-connection/item throttling time and if it is a positive number will
    * sleep/wait for the appropriate number of milliseconds.
    */
-  public void didUpdateItem(CurrencyType updatedCurrency, Exception error) {
+  public void didUpdateItem(DownloadInfo downloadInfo) {
     long delay = getPerConnectionThrottleTime();
     if (delay > 0) {
       try {
@@ -213,8 +200,6 @@ public abstract class BaseConnection {
       }
     }
   }
-
-
 
   /**
    * Return the currency appropriate for the price quotes for the given security. For example a
@@ -227,7 +212,7 @@ public abstract class BaseConnection {
     // first check for a currency override in the symbol
     SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
     if (parsedSymbol == null) return null;
-    CurrencyTable cTable = _model.getRootAccount() == null ? null : _model.getRootAccount().getBook().getCurrencies();
+    CurrencyTable cTable = model.getRootAccount() == null ? null : model.getRootAccount().getBook().getCurrencies();
     if (cTable == null) return null;
     if (!SQUtil.isBlank(parsedSymbol.currencyCode)) {
       // see if the override currency exists in the file
@@ -252,55 +237,37 @@ public abstract class BaseConnection {
    * @param securityCurrency The security currency.
    * @return The appropriate stock exchange definition to use for the given security.
    */
-  private StockExchange getExchangeForSecurity(SymbolData symbol, CurrencyType securityCurrency) {
+  protected StockExchange getExchangeForSecurity(SymbolData symbol, CurrencyType securityCurrency) {
     if (!SQUtil.isBlank(symbol.prefix)) {
       // check for a Google prefix override
-      StockExchange result = _model.getExchangeList().findByGooglePrefix(symbol.prefix);
+      StockExchange result = model.getExchangeList().findByGooglePrefix(symbol.prefix);
       if (result != null) return result;
     }
     if (!SQUtil.isBlank(symbol.suffix)) {
       // check for a Yahoo exchange suffix override
-      StockExchange result = _model.getExchangeList().findByYahooSuffix(symbol.suffix);
+      StockExchange result = model.getExchangeList().findByYahooSuffix(symbol.suffix);
       if (result != null) return result;
     }
     // go with the exchange the user assigned to the security
-    return _model.getSymbolMap().getExchangeForCurrency(securityCurrency);
+    return model.getSymbolMap().getExchangeForCurrency(securityCurrency);
   }
   
-  protected boolean allowAutodetect() {return true;}
-  
-  protected abstract String getCurrentPriceHeader();
-
   protected String getTimeZoneID() {
     // the default time zone is EDT in the U.S.
     return "America/New_York";  // could possibly also use 'US/Eastern'
   }
 
-  protected SimpleDateFormat getExpectedDateFormat(boolean getFullHistory) {
-    CustomDateFormat userDateFormat = _model.getPreferences().getShortDateFormatter();
-    if (userDateFormat == null) return DEFAULT_DATE_FORMAT;
-    return new SimpleDateFormat(userDateFormat.getPattern());
-  }
-
-  protected StockQuotesModel getModel() { return _model; }
+  protected StockQuotesModel getModel() { return model; }
 
   protected String getCookie() { return null; }
   
   
   //////////////////////////////////////////////////////////////////////////////////////////////
-  private void buildPriceDisplayText(List<StockRecord> recordList, CurrencyType priceCurrency,
-                                     char decimal) {
-    for (StockRecord record : recordList) {
-      long amount = (record.closeRate == 0.0) ? 0 : priceCurrency.getLongValue(1.0 / record.closeRate);
-      record.priceDisplay = priceCurrency.formatFancy(amount, decimal);
-    }
-  }
 
-  private void buildMessageAndThrow(CurrencyType securityCurrency, int result)
-      throws DownloadException
-  {
-    String message = null;
-    final ResourceProvider resources = _model.getResources();
+
+  protected DownloadException buildDownloadException(DownloadInfo securityCurrency, int result) {
+    String message;
+    final ResourceProvider resources = model.getResources();
     switch (result) {
       case SnapshotImporter.ERROR_NO_INPUT_STREAM:
         message = resources.getString(L10NStockQuotes.IMPORT_ERROR_NO_INPUT_STREAM);
@@ -330,35 +297,181 @@ public abstract class BaseConnection {
         message = resources.getString(L10NStockQuotes.IMPORT_ERROR_NO_HEADER);
         break;
       case SnapshotImporter.ERROR_OTHER:
+      default:
         message = resources.getString(L10NStockQuotes.IMPORT_ERROR_OTHER);
         break;
     }
-    if (message != null) {
-      throw new DownloadException(securityCurrency, message);
-    }
-  }
-
-
-  public class ExchangeRate {
-    private final double rate;
-    private String testMessage = "";
     
-    ExchangeRate(double rate) {
-      this.rate = rate;
-    }
+    return new DownloadException(securityCurrency, message);
+  }
+  
 
-    public double getRate() {
-      return this.rate;
-    }
-
-    public String getTestMessage() {
-      return testMessage;
-    }
-
-    public void setTestMessage(String testMessage) {
-      this.testMessage = testMessage;
+  protected void buildMessageAndThrow(DownloadInfo securityCurrency, int result)
+    throws DownloadException
+  {
+    DownloadException exception = buildDownloadException(securityCurrency, result);
+    if(exception!=null) {
+      throw exception;
     }
   }
+  
 
+  static StockQuotesModel createEmptyTestModel() {
+    StockQuotesModel model = new StockQuotesModel(null);
+    AccountBook book = AccountBook.fakeAccountBook();
+    CurrencyUtil.createDefaultTable(book, "USD");
+    for(CurrencyType curr : book.getCurrencies()) {
+      curr.setCurrencyType(CurrencyType.Type.CURRENCY);
+      curr.setDecimalPlaces(2);
+      curr.setTickerSymbol("");
+    }
+    book.performPostLoadVerification();
+    // setup a basic account structure
+    Account rootAcct = book.getRootAccount();
+    Account bankAcct = Account.makeAccount(book, Account.AccountType.BANK, rootAcct);
+    bankAcct.setAccountName("Banking");
+    bankAcct.syncItem();
+    Account incAcct = Account.makeAccount(book, Account.AccountType.INCOME, rootAcct);
+    incAcct.setAccountName("Misc Income");
+    incAcct.syncItem();
+    Account expAcct = Account.makeAccount(book, Account.AccountType.EXPENSE, rootAcct);
+    expAcct.setAccountName("Misc Expense");
+    expAcct.syncItem();
+    
+    model.setData(book);
 
+    InputStream englishInputStream = BaseConnection.class.getResourceAsStream(N12EStockQuotes.ENGLISH_PROPERTIES_FILE);
+    try {
+      final XmlResourceBundle englishBundle = new XmlResourceBundle(englishInputStream);
+      model.setResources(new ResourceProvider() {
+        @Override
+        public String getString(String key) {
+          return englishBundle.getString(key);
+        }
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+      model.setResources(new ResourceProvider() {
+        @Override
+        public String getString(String key) {
+          return "<<"+key+">>";
+        }
+      });
+    }
+    
+    return model;
+  }
+  
+  public static void runTests(BaseConnection currencyConnection, 
+                              BaseConnection securityConnection,
+                              String args[])
+  {
+    
+    List<String> currencySymbols = new ArrayList<>();
+    List<String> securitySymbols = new ArrayList<>();
+    
+    boolean exchangeRatesMode = false;
+    for (String arg : args) {
+      if (arg.equals("-x")) {
+        exchangeRatesMode = true;
+      } else {
+        if(exchangeRatesMode) {
+          currencySymbols.add(arg);
+        } else {
+          securitySymbols.add(arg);
+        }
+      }
+    }
+
+    if(currencySymbols.size()<=0 && securitySymbols.size()<=0) {
+      currencySymbols.addAll(
+        Arrays.asList("ADP","AED","AFA","ALL","ANG","AOK","ARA","ATS","AUD","AWG","BBD","BDT",
+                      "BEF","BGL","BHD","BIF","BMD","BND","BOB","BRC","BSD","BTN","BUK","BWP",
+                      "BZD","CAD","CHF","CLF","CLP","CNY","COP","CRC","CSK","CUP","CVE","CYP",
+                      "DDM","DEM","DJF","DKK","DOP","DZD","ECS","EGP","ESP","ETB","FIM","FJD",
+                      "FKP","FRF","GBP","GHC","GIP","GMD","GNF","GRD","GTQ","GWP","GYD","HKD",
+                      "HNL","HTG","HUF","IDR","IEP","ILS","INR","IQD","IRR","ISK","ITL","JMD",
+                      "JOD","JPY","KES","KHR","KMF","KPW","KRW","KWD","KYD","LAK","LBP","LKR",
+                      "LRD","LSL","LUF","LYD","MAD","MGF","MNT","MOP","MRO","MTL","MUR","MVR",
+                      "MWK","MXP","MYR","MZM","NGN","NIC","NLG","NOK","NPR","NZD","OMR","PAB",
+                      "PEI","PGK","PHP","PKR","PLZ","PTE","PYG","QAR","ROL","RWF","SAR","SBD",
+                      "SCR","SDP","SEK","SGD","SHP","SLL","SOS","SRG","STD","SUR","SVC","SYP",
+                      "SZL","THB","TND","TOP","TPE","TRL","TTD","TWD","TZS","UGS","USD","UYP",
+                      "VEB","VND","VUV","WST","YDD","YER","YUD","ZAR","ZMK","ZRZ","ZWD"));
+      
+      securitySymbols.addAll(
+        Arrays.asList("DPL", "DTE", "DAI", "DCX", "DAN", "DHR", "DAC", "DRI", "DAR", "DVA", "DPM", "DCT",
+                      "DF", "DE", "DLM", "DK", "DFY", "DFG", "DFP", "DAL", "DEL", "DLX", "DNR", "DFS", "HXM",
+                      "DB", "DTK", "DT", "WMW", "DDR", "DVN", "DV", "DEX", "DEO", "DL", "DO", "DRH", "DSX",
+                      "DHX", "DKS", "DBD", "DLR", "DDS", "DIN", "DYS", "DBX", "DLB", "DTG", "DM", "D", "DCP",
+                      "DOM", "DPZ", "UFS", "DCI", "DRL", "DHT", "DEI", "DOV", "DDE", "DVD", "DPO", "DOW",
+                      "DHI", "DPS", "RDY", "DWA", "DRC", "DW", "DRQ", "DST", "DSW", "DD", "DMH", "DCO",
+                      "DUF", "DUK", "DRE", "DEP", "DFT", "DHG", "DRP", "DY", "DYN", "DX", "EME", "EJ", "UBC",
+                      "UBG", "FUD", "UBM", "USV", "UBN", "PTD", "EXP", "NGT", "EGP", "EMN", "EK", "EV",
+                      "ETJ", "ECL", "EIX", "EDR", "EW", "EFD", "EP", "EE", "EPB", "ELN", "ELU", "EQ", "AKO.A",
+                      "AKO.B", "ERJ", "EMC", "EMS", "EBS", "ESC", "EMR", "EDE", "EIG", "EOC", "EDN", "ICA",
+                      "ERI", "ELX", "ENB", "EEQ", "EEP", "ECA", "EAC", "ENP", "ENH", "EGN", "ENR", "EPL",
+                      "ETP", "ETE", "ES", "ENI", "ENS", "EC", "E", "EBF", "NPO", "ESV", "ETM", "ETR", "EHB",
+                      "EHA", "EHL", "EMQ", "EMO", "EPE", "EPD", "EPR", "EVC", "ENZ", "EOG", "EPC", "ENT",
+                      "EFX", "EQT", "ELS", "EQY", "EQR", "RET", "ESE", "ESS", "EL", "ESL", "DEG", "ETH",
+                      "EVR", "RE", "EBI", "EEE", "XCO", "EXM", "EXC", "XJT", "EXH", "EXR", "XOM", "FMC",
+                      "FNB", "FPL", "HCE", "FDS", "FIC", "FA", "FCS", "FFH", "FRP", "FDO", "FNM", "FFG",
+                      "AGM.A", "AGM", "FNA", "FRT", "FSS", "FII", "FDX", "FCH", "FMX", "FGP", "FOE", "FNF",
+                      "FSC", "FIF", "FSF", "FSE", "FAC", "FAF", "FBP", "FCF", "FHN", "FR", "FMD", "FMR",
+                      "FPO", "FEO", "FE", "FED", "FBC", "FSR", "FLE", "FTK", "FLO", "FLS", "FLR", "FTI",
+                      "FL", "F", "FCJ", "FCZ", "FCE.B", "FCE.A", "FCY", "FRX", "FST", "FOR", "FIG", "FO",
+                      "FCL", "FGC", "FTE", "BEN", "FC", "FT", "FRE", "FCX", "FMS", "FDP", "FBR", "FTR",
+                      "FTO", "FRO", "FCN", "FUL", "FRM", "FBN", "GMT", "GFA", "AJG", "GBL", "GME", "GRS",
+                      "GCI", "GPS", "GDI", "IT", "GET", "GEP", "BGC", "GD", "GE", "GIS", "GOM", "GNK", "GY",
+                      "DNA", "GEC", "GEJ", "GGP", "GMR", "XGM", "RGM", "HGM", "GMS", "GRM", "GXM", "GBM",
+                      "GPM", "GMA", "GSI", "GCO", "GWR", "GLS", "GED", "GEA", "GKM", "BGM", "G", "GPC", "GNW",
+                      "GEO", "GGC", "GAR", "GAT", "GPW", "GPU", "GAH", "GPD", "GPJ", "GRB", "GGB", "GNA",
+                      "GTY", "GA", "GIL", "GLG", "GLT", "GSK", "GLG.U", "GLG.UN", "GRT", "GCA", "GLP", "GPN",
+                      "GEG", "GSL.UN", "GSL.U", "GSL", "GM", "GMW", "GJM", "GFI", "GG", "GOL", "GR", "GDP",
+                      "GT", "IRE", "GPX", "GGG", "GTI", "GKK", "GVA", "GPK", "GTN.A", "GTN", "GAJ", "GAP",
+                      "GNI", "GXP", "GB", "GBX", "GHL", "GEF.B", "GEF", "GFF", "GPI", "GBE", "GMK", "ASR",
+                      "SAB", "CEL", "RC", "TMM", "GS", "GSC", "GNV", "GSH", "GFG", "GES", "GUQ", "GUL", "GUI",
+                      "GLF", "GU"));
+    }
+    
+    List<DownloadInfo> currencies = new ArrayList<>();
+    List<DownloadInfo> securities = new ArrayList<>();
+
+    if(securityConnection!=null) {
+      CurrencyTable ctable = securityConnection.getModel().getBook().getCurrencies();
+      for(String symbol : securitySymbols) {
+        CurrencyType security = ctable.getCurrencyByTickerSymbol(symbol);
+        if (security == null) {
+          security = new CurrencyType(ctable);
+          security.setCurrencyType(CurrencyType.Type.SECURITY);
+          security.setTickerSymbol(symbol);
+          security.setName(symbol);
+          security.setIDString("^" + symbol);
+          security.setDecimalPlaces(4);
+          ctable.addCurrencyType(security);
+        }
+        securities.add(new DownloadInfo(security, securityConnection));
+      }
+    }
+
+    if(currencyConnection!=null) {
+      CurrencyTable ctable = currencyConnection.getModel().getBook().getCurrencies();
+      for (String symbol : currencySymbols) {
+        CurrencyType currency = ctable.getCurrencyByIDString(symbol);
+        if (currency == null) {
+          currency = new CurrencyType(ctable);
+          currency.setCurrencyType(CurrencyType.Type.CURRENCY);
+          currency.setName(symbol);
+          currency.setIDString(symbol);
+          currency.setDecimalPlaces(2);
+          ctable.addCurrencyType(currency);
+        }
+        currencies.add(new DownloadInfo(currency, currencyConnection));
+      }
+    }
+    
+    if(currencyConnection!=null) currencyConnection.updateExchangeRates(currencies);
+    if(securityConnection!=null) securityConnection.updateSecurities(securities);
+  }
+  
 }

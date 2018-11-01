@@ -8,8 +8,6 @@
 
 package com.moneydance.modules.features.yahooqt;
 
-import com.infinitekind.moneydance.model.CurrencyType;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -33,14 +31,15 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
    * @param url          The URL to read the data from.
    * @param cookie       The name of the cookie, or null if non exists.
    * @param resources    Object to look up localized resources.
-   * @param currency     The currency whose history will be updated from the file.
+   * @param downloadInfo Information about the currency or security to be updated
    * @param dateFormat   The user-specified date format.
    * @param timeZone     Time zone to use when parsing downloaded time values.
    * @param userDecimal  The user-specified character to use as a decimal point.
    */
-  public SnapshotImporterFromURL(String url, String cookie, ResourceProvider resources, CurrencyType currency,
+  public SnapshotImporterFromURL(String url, String cookie, ResourceProvider resources, 
+                                 DownloadInfo downloadInfo,
                           SimpleDateFormat dateFormat, TimeZone timeZone, char userDecimal) {
-    super(resources, currency, dateFormat, timeZone, userDecimal);
+    super(resources, downloadInfo, dateFormat, timeZone, userDecimal);
     _urlString = url;
     _cookieString = cookie;
   }
@@ -62,10 +61,10 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
 
   @Override
   protected BufferedReader getInputStream()
-          throws IOException, DownloadException, NumberFormatException
+    throws IOException, DownloadException, NumberFormatException
   {
     URL url = new URL(_urlString);
-    HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
+    HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
     if (_cookieString != null) {
       urlConn.setRequestProperty("Cookie", _cookieString);
     }
@@ -85,15 +84,15 @@ public class SnapshotImporterFromURL extends SnapshotImporter {
     if (error) {
       final String responseMessage = urlConn.getResponseMessage();
       final String message = MessageFormat.format(
-              _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_FMT), errorText, responseMessage);
-      throw new DownloadException(_currency, message);
+        _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_FMT), errorText, responseMessage);
+      throw new DownloadException(downloadInfo, message);
     }
-    if(respCode<200 || respCode >= 300) {
+    if (respCode < 200 || respCode >= 300) {
       final String responseMessage = urlConn.getResponseMessage();
       final String message = MessageFormat.format(
-              _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_CODE_FMT),
-              Integer.valueOf(respCode), responseMessage);
-      throw new DownloadException(_currency, message);
+        _resources.getString(L10NStockQuotes.IMPORT_ERROR_URL_CODE_FMT),
+        Integer.valueOf(respCode), responseMessage);
+      throw new DownloadException(downloadInfo, message);
     }
     return new BufferedReader(new InputStreamReader(urlConn.getInputStream(), "UTF8"));
   }
