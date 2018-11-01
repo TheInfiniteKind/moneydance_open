@@ -145,7 +145,7 @@ class DownloadInfo {
       // the historical price has a log message already, so just dump the current price update
       // log message now
       if(Main.DEBUG_YAHOOQT) {
-        System.err.println(buildPriceLogText(null, currentPriceUpdated));
+        System.err.println("applied updates to "+security);
       }
     }
     
@@ -218,7 +218,10 @@ class DownloadInfo {
     long amount = (rate == 0.0) ? 0 : security.getLongValue(1.0 / rate);
     String priceDisplay = security.formatFancy(amount, '.');
     String asofDate = model.getUIDateFormat().format(DateUtil.getStrippedDateInt());
-    return MessageFormat.format("Exchange Rate from {0} to {1} as of {2}: {3}",
+    String messageKey = security.getCurrencyType() == CurrencyType.Type.CURRENCY ? 
+                        L10NStockQuotes.EXCHANGE_RATE_DISPLAY_FMT :
+                        L10NStockQuotes.SECURITY_PRICE_DISPLAY_FMT;
+    return MessageFormat.format(model.getResources().getString(messageKey),
                                 security.getIDString(),
                                 relativeCurrency.getIDString(),
                                 asofDate,
@@ -280,34 +283,43 @@ class DownloadInfo {
   }
 
 
-  void buildPriceDisplayText(StockQuotesModel model, char decimal) {
+  String buildPriceDisplayText(StockQuotesModel model) {
     for (StockRecord record : history) {
       long amount = (record.closeRate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / record.closeRate);
-      record.priceDisplay = relativeCurrency.formatFancy(amount, decimal);
+      record.priceDisplay = relativeCurrency.formatFancy(amount, model.getDecimalDisplayChar());
     }
-  }
-
-
-  String buildPriceDisplayText(StockQuotesModel model, ResourceProvider resources) {
+    
     long amount = (rate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / rate);
     final char decimal = model.getPreferences().getDecimalChar();
-    return MessageFormat.format(resources.getString(L10NStockQuotes.SECURITY_PRICE_DISPLAY_FMT),
+    return MessageFormat.format(model.getResources().getString(L10NStockQuotes.SECURITY_PRICE_DISPLAY_FMT),
                                 security.getName(),
                                 model.getUIDateFormat().format(DateUtil.getStrippedDateInt()),
                                 relativeCurrency.formatFancy(amount, decimal));
   }
-
-  String buildPriceLogText(StockQuotesModel model, boolean updated) {
-    String format = updated ? "Current price for {0} as of {1}: {2}" : "Latest historical price for {0} as of {1}: {2}";
-    long amount = (rate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / rate);
-    String priceDisplay = relativeCurrency.formatFancy(amount, '.');
-    final String asofDate;
-    if (updated) {
+  
+  String buildPriceLogText(StockQuotesModel model) {
+    boolean haveCurrent = getRate() > 0;
+    String asofDate;
+    String format;
+    double displayRate;
+    if (haveCurrent) {
       // the current price can be intra-day, so log the date and time of the price update.
-      asofDate = model.getUIDateTimeFormat().format(new Date(DateUtil.getStrippedDate()));
+      asofDate = model.getUIDateTimeFormat().format(new Date(dateTimeStamp));
+      format = "Current price for {0} as of {1}: {2}";
+      displayRate = rate;
     } else {
-      asofDate = model.getUIDateFormat().format(DateUtil.getStrippedDateInt());
+      asofDate = "?";
+      format = "Latest historical price for {0} as of {1}: {2}";
+      displayRate = 0.0;
+      StockRecord snap = findMostRecentValidRecord();
+      if(snap!=null) {
+        displayRate = snap.closeRate;
+        asofDate = model.getUIDateFormat().format(new Date(snap.dateTimeGMT));
+      }
     }
+    long amount = (displayRate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / displayRate);
+    String priceDisplay = relativeCurrency.formatFancy(amount, '.');
+
     return MessageFormat.format(format, security.getName(), asofDate, priceDisplay);
   }
   

@@ -126,10 +126,9 @@ public abstract class BaseConnection {
     for (DownloadInfo downloadInfo : securitiesToUpdate) {
       System.err.println("updating security: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
       updateSecurity(downloadInfo);
-      double rate = downloadInfo.getRate();
       progressPercent += progressIncrement;
       final String message, logMessage;
-      if (rate <= 0.0) {
+      if (!downloadInfo.wasSuccess()) {
         message = MessageFormat.format( res.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT),
                                         downloadInfo.security.getIDString(),
                                         downloadInfo.relativeCurrency.getIDString());
@@ -137,8 +136,8 @@ public abstract class BaseConnection {
                                           downloadInfo.security.getIDString(),
                                           downloadInfo.relativeCurrency.getIDString());
       } else {
-        message = downloadInfo.buildRateDisplayText(model);
-        logMessage = downloadInfo.buildRateLogText(model);
+        message = downloadInfo.buildPriceDisplayText(model);
+        logMessage = downloadInfo.buildPriceLogText(model);
       }
       model.showProgress(progressPercent, message);
       if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
@@ -453,7 +452,7 @@ public abstract class BaseConnection {
         securities.add(new DownloadInfo(security, securityConnection));
       }
     }
-
+    
     if(currencyConnection!=null) {
       CurrencyTable ctable = currencyConnection.getModel().getBook().getCurrencies();
       for (String symbol : currencySymbols) {

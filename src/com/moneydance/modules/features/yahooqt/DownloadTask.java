@@ -76,13 +76,12 @@ public class DownloadTask implements Callable<Boolean> {
       BaseConnection downloader = isSecurity ? pricesDownloader : ratesDownloader;
       DownloadInfo currInfo = new DownloadInfo(curr, downloader);
       SecuritySymbolTableModel.SecurityEntry tableEntry = tableModel.getEntryByCurrency(curr);
-      if(!currInfo.isValidForDownload || (tableEntry!=null && !tableEntry.updatesEnabled)) { // skip disabled or invalid securities and currencies
+      if(!_model.getSymbolMap().getIsCurrencyUsed(curr) || !currInfo.isValidForDownload || (tableEntry!=null && !tableEntry.updatesEnabled)) { // skip disabled or invalid securities and currencies
         skippedList.add(currInfo);
         currInfo.skipped = true;
         currInfo.updateResultSummary(_model);
       } else if(curr.getCurrencyType() == CurrencyType.Type.SECURITY) {
         securityList.add(currInfo);
-        boolean isUsed = _model.getSymbolMap().getIsCurrencyUsed(curr);
         if(tableEntry!=null) {
           if (pricesDownloader == null) {
             tableEntry.testResult = _resources.getString(L10NStockQuotes.TEST_EXCLUDED);
@@ -179,7 +178,7 @@ public class DownloadTask implements Callable<Boolean> {
 
     for(DownloadInfo result : currencyList) {
       result.updateResultSummary(model);
-      result.buildPriceDisplay(result.relativeCurrency, model.getPreferences().getDecimalChar());
+      result.buildPriceDisplay(result.relativeCurrency, model.getDecimalDisplayChar());
 
       model.getTableModel().registerTestResults(result);
       if(!testingMode) { // if we're not in testing mode, record the results
@@ -204,13 +203,12 @@ public class DownloadTask implements Callable<Boolean> {
 
   private boolean downloadPrices(StockQuotesModel model, List<DownloadInfo> securityList, BaseConnection pricesDownloader) {
     AccountBook book = model.getBook();
-    CurrencyTable ctable = book.getCurrencies();
     
     boolean successFlag = pricesDownloader.updateSecurities(securityList);
     
     for (DownloadInfo downloadInfo : securityList) {
       downloadInfo.updateResultSummary(model);
-      downloadInfo.buildPriceDisplay(downloadInfo.relativeCurrency, model.getPreferences().getDecimalChar());
+      downloadInfo.buildPriceDisplay(downloadInfo.relativeCurrency, model.getDecimalDisplayChar());
       if(getIncludeTestInfo()) {
         model.getTableModel().registerTestResults(downloadInfo);
       } else {
