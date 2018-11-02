@@ -76,7 +76,10 @@ public class DownloadTask implements Callable<Boolean> {
       BaseConnection downloader = isSecurity ? pricesDownloader : ratesDownloader;
       DownloadInfo currInfo = new DownloadInfo(curr, downloader);
       SecuritySymbolTableModel.SecurityEntry tableEntry = tableModel.getEntryByCurrency(curr);
-      if(!_model.getSymbolMap().getIsCurrencyUsed(curr) || !currInfo.isValidForDownload || (tableEntry!=null && !tableEntry.updatesEnabled)) { // skip disabled or invalid securities and currencies
+      if((isSecurity && !_model.getSymbolMap().getIsCurrencyUsed(curr)) 
+         || !currInfo.isValidForDownload 
+         || (tableEntry!=null && !tableEntry.updatesEnabled)) 
+      { // skip disabled or invalid securities and currencies
         skippedList.add(currInfo);
         currInfo.skipped = true;
         currInfo.updateResultSummary(_model);

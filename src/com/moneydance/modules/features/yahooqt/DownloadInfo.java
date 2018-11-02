@@ -8,6 +8,7 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.moneydance.model.DateRange;
 import com.infinitekind.util.DateUtil;
@@ -45,7 +46,10 @@ class DownloadInfo {
   
   DownloadInfo(CurrencyType security, BaseConnection connection) {
     this.security = security;
-    
+    if(connection==null) {
+      this.skipped = true;
+      return;
+    }
     if (security.getCurrencyType() == CurrencyType.Type.SECURITY) {
       initFromSecurity(connection);
     } else {
@@ -121,15 +125,23 @@ class DownloadInfo {
       record.apply(security, relativeCurrency);
     }
     
+    int dateStampInt = DateUtil.convertLongDateToInt(dateTimeStamp);
     StockRecord mostRecentRecord = findMostRecentValidRecord();
-    long lastUpdateDate = security.getLongParameter("price_date", 0);
-    boolean currentPriceUpdated = false;
+    long localUpdateDate = security.getLongParameter("price_date", 0);
     // apply the current rate, or pull it from the most recent historical price:
     if(rate > 0) {
       security.setUserRate(rate, relativeCurrency);
       security.setParameter("price_date", dateTimeStamp);
       security.syncItem();
-      currentPriceUpdated = true;
+      
+      if(history.size()<=0) { // if there isn't a history, add one entry with the date of this rate
+        double newRate = relativeCurrency.getUserRateByDateInt(dateStampInt)*rate;
+        CurrencySnapshot result = security.setSnapshotInt(dateStampInt, newRate);
+        //result.setUserDailyHigh(relativeCurrency.getUserRateByDateInt(dateStampInt)*newRate);
+        //result.setUserDailyLow(relativeCurrency.getUserRateByDateInt(dateStampInt)*newRate);
+        //result.setDailyVolume(volume);
+        result.syncItem();
+      }
     } else {
       // update the current price if possible and if there are no more recent prices/rates
       if(mostRecentRecord!=null) { // && mostRecentRecord.dateTimeGMT > lastUpdateDate) {
@@ -137,7 +149,6 @@ class DownloadInfo {
         security.setUserRate(mostRecentRecord.closeRate, relativeCurrency);
         security.setParameter("price_date", mostRecentRecord.dateTimeGMT);
         security.syncItem();
-        currentPriceUpdated = true;
       }
     }
     

@@ -8,15 +8,13 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -77,9 +75,7 @@ public class ECBConnection extends BaseConnection {
       }
     }
     
-    System.err.println("Got rates doc: "+ratesDoc);
-    int rateDate = DateUtil.getStrippedDateInt();
-    long rateDateTime = DateUtil.firstMinuteInDay(DateUtil.convertIntDateToLong(rateDate)).getTime();
+    long rateDateTime = DateUtil.firstMinuteInDay(DateUtil.convertIntDateToLong(DateUtil.getStrippedDateInt())).getTime();
     HashMap<String, Double> rateMap = new HashMap<>();
     
     try {
@@ -90,7 +86,8 @@ public class ECBConnection extends BaseConnection {
         if(dateAttNode!=null) {
           String dateValue = dateAttNode.getNodeValue();
           if(!StringUtils.isBlank(dateValue)) {
-            rateDate = DateUtil.convertDateToInt(dateFormat.parse(dateValue));
+            rateDateTime = DateUtil.firstMinuteInDay(dateFormat.parse(dateValue)).getTime();
+            System.err.println("ECB rates date stamp: '"+dateValue+"' parsed to "+(new Date(rateDateTime)));
           }
         }
       }
@@ -137,6 +134,7 @@ public class ECBConnection extends BaseConnection {
       }
       double rateToBase = rateToEuroD / baseToEuroRate;
       System.err.println("new fx rate: "+currencyID+" to "+baseCurrency.getIDString()+
+                         " as of "+(new Date(rateDateTime))+"; " +
                          " was "+downloadInfo.security.getUserRate()+" -> "+
                          rateToBase);
       downloadInfo.relativeCurrency = baseCurrency;
