@@ -22,7 +22,6 @@ package com.moneydance.modules.features.priceui.priceEntry;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.moneydance.model.CurrencyUtil;
-import com.infinitekind.util.DateUtil;
 import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.Util;
 

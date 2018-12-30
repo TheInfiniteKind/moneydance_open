@@ -14,6 +14,7 @@ import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.moneydance.apps.md.controller.time.TimeInterval;
+import com.moneydance.apps.md.view.gui.MDColors;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
@@ -788,16 +789,16 @@ public class SettingsWindow
                                                    int row, int column) {
       JComponent result = (JComponent) super.getTableCellRendererComponent(table, value,
               isSelected, hasFocus, row, column);
-
+      MDColors colors = _mdGui.getColors();
       // the unselected background alternates color for ease of distinction
       if (!isSelected) {
         if (row % 2 == 0) {
-          setBackground(_mdGui.getColors().homePageBG);
+          setBackground(colors.homePageBG);
         } else {
-          setBackground(_mdGui.getColors().homePageAltBG);
+          setBackground(colors.homePageAltBG);
         }
       }
-
+      
       // in case the text is cut off, show complete text in a tool tip
       if ((column == SecuritySymbolTableModel.SYMBOL_COL) ||
               (column == SecuritySymbolTableModel.TEST_COL)) {
@@ -838,17 +839,18 @@ public class SettingsWindow
                                                    int row, int column) {
       super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
       final String shares = (String) table.getModel().getValueAt(row, SecuritySymbolTableModel.SHARES_COL);
+      MDColors colors = _mdGui.getColors();
       _shareDisplay.setText(shares + N12EStockQuotes.SPACE);
       // the unselected background alternates color for ease of distinction
       if (!isSelected) {
         if (row % 2 == 0) {
-          setForeground(Color.BLACK);
-          setBackground(_mdGui.getColors().homePageBG);
-          _shareDisplay.setBackground(_mdGui.getColors().homePageBG);
+          setForeground(colors.defaultTextForeground);
+          setBackground(colors.homePageBG);
+          _shareDisplay.setBackground(colors.homePageBG);
         } else {
-          setForeground(Color.BLACK);
-          setBackground(_mdGui.getColors().homePageAltBG);
-          _shareDisplay.setBackground(_mdGui.getColors().homePageAltBG);
+          setForeground(colors.defaultTextForeground);
+          setBackground(colors.homePageAltBG);
+          _shareDisplay.setBackground(colors.homePageAltBG);
         }
       } else {
         setForeground(table.getSelectionForeground());

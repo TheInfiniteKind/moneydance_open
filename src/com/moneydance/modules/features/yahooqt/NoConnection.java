@@ -25,14 +25,14 @@ public class NoConnection extends BaseConnection {
 
   @Override
   public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange) {
-    return parsedSymbol.symbol;  // not used
+    return parsedSymbol==null ? "<none>" : parsedSymbol.symbol;  // not used
   }
-
+  
   @Override
   public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange) {
     return exchange.getCurrencyCode();
   }
-
+  
   @Override
   public void updateExchangeRate(DownloadInfo downloadInfo) {
     downloadInfo.recordError("Implementation error: No exchange rate connection specified");
