@@ -52,11 +52,6 @@ public abstract class BalPredGraph
     renderGraph();
   }
 
-  /** Save this graph as a GIF image to the specified output stream */
-  public synchronized void writeGIF(OutputStream out) throws AWTException, IOException {
-    (new GIFEncoder(bufferImage)).Write(out);
-  }
-
   public void setBounds(int x, int y, int w, int h) {
     super.setBounds(x,y,w,h);
     this.graphSize = getSize();
