@@ -452,9 +452,8 @@ public class TXFExport
       if ((ptxn.getDateInt()<sd)||(ptxn.getDateInt()>ed)) continue;
       for (int i=0;i<ptxn.getSplitCount();i++) {
         stxn = ptxn.getSplit(i);
-        String type = stxn.getParentTxn().getTransferType();
-        if(type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELL)||
-           type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELLXFR)) {
+        InvestTxnType type = stxn.getParentTxn().getInvestTxnType();
+        if(type.isBuy() || type.isSell()) {
           taxc = "673";
         } else {
           taxc = stxn.getAccount().getTaxCategory();
@@ -600,9 +599,8 @@ public class TXFExport
    * returns zero.
    */
   public static long getPerShareSalesNet(AbstractTxn atxn){
-    String type = atxn.getParentTxn().getTransferType();
-    if (AbstractTxn.TRANSFER_TYPE_BUYSELL.equals(type) ||
-        AbstractTxn.TRANSFER_TYPE_BUYSELLXFR.equals(type)) {
+    InvestTxnType type = atxn.getParentTxn().getInvestTxnType();
+    if (type.isBuy() || type.isSell()) {
       SplitTxn split = TxnUtil.getSecurityPart(atxn.getParentTxn());
       // for sale transactions, the security amount will be negative
       // and thus the parent amount (cash) will be positive
@@ -626,9 +624,8 @@ public class TXFExport
     int sellDate = atxn.getDateInt();
     int cutOffDate = DateUtil.incrementDate(sellDate, -1, 0, -1);
     
-    String type = atxn.getParentTxn().getTransferType();
-    if(type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELL)||
-       type.equals(AbstractTxn.TRANSFER_TYPE_BUYSELLXFR)){
+    InvestTxnType type = atxn.getParentTxn().getInvestTxnType();
+    if(type.isBuy() || type.isSell()) {
       SplitTxn split = TxnUtil.getSecurityPart(atxn.getParentTxn());
       if(split.getAmount() > 0){
         Account account = split.getAccount();
@@ -641,10 +638,8 @@ public class TXFExport
           TxnSet sellSet = new TxnSet();
           for(int i = 0; i < txnSet.getSize(); i++){
             AbstractTxn absTxn = txnSet.getTxn(i);
-            String type1 = absTxn.getParentTxn().getTransferType();
-            if((type1.equals(AbstractTxn.TRANSFER_TYPE_BUYSELL))||
-               (type1.equals(AbstractTxn.TRANSFER_TYPE_BUYSELLXFR))||
-               (type1.equals(AbstractTxn.TRANSFER_TYPE_DIVIDEND))){
+            InvestTxnType type1 = absTxn.getParentTxn().getInvestTxnType();
+            if(type1.isSell() || type1.isBuy() || type1.isDividend()) {
               if((absTxn.getDateInt() <= atxn.getDateInt()) && ( ! absTxn.getUUID().equals(atxn.getUUID()))) {
                 validTxns.addTxn(absTxn);
               }

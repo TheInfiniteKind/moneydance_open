@@ -127,7 +127,6 @@ public class Main
   private void dumpCurrencyInfo() {
     AccountBook book = getContext().getCurrentAccountBook();
     if(book==null) return;
-    Account root = book.getRootAccount();
     System.err.println("printing info for all currencies and securities.");
     System.err.println("types: "+CurrencyType.CURRTYPE_CURRENCY+"=currency, "+CurrencyType.CURRTYPE_SECURITY+"=security");
     for(CurrencyType curr : book.getCurrencies()) {
@@ -224,8 +223,8 @@ public class Main
   private void installDummyTrustManager() {
     SSLContext sslContext = null;
     try {
-      sslContext = SSLContext.getInstance("SSL");
-
+      sslContext = SSLContext.getInstance("TLS");
+      
       // Retrieve certificates and use them to configure a trust manager factory
       TrustManager managers[] = { new CustomX509TrustManager() };
       sslContext.init(null, managers, new SecureRandom());
@@ -338,25 +337,6 @@ public class Main
     public boolean isServerTrusted(X509Certificate certChain[]) {
       System.err.println("TRUSTMGR: checking cert chain, starting with: "+certChain[0]);
       return true;
-    }
-
-    private void saveCert(X509Certificate c, int certNum) {
-      try {
-        String filename = "unknown_cert_"+certNum+".der";
-        System.err.println("Saving certificate: "+certNum);
-        System.err.println("    subject: "+c.getSubjectDN());
-        System.err.println("     issuer: "+c.getIssuerDN());
-        System.err.println("  not after: "+c.getNotAfter());
-        System.err.println(" not before: "+c.getNotBefore());
-        System.err.println("   filename: "+filename);
-
-
-        java.io.FileOutputStream out = new FileOutputStream(filename);
-        out.write(c.getEncoded());
-        out.close();
-      } catch (Exception e) {
-        System.err.println("Error writing unknown cert to file: "+e);
-      }
     }
 
   }

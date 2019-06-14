@@ -170,7 +170,7 @@ class RatioReportGenerator extends ReportGenerator {
       labels[3] = dateRange.format(_dateFormat);
       widths[3] = Math.max(widths[3], measureStringWidth(labels[3], _graphics, fontMetrics));
     } else {
-      isError = RatiosUtil.getConstantError(constant, _dec, allowZero);
+      isError = RatiosUtil.getConstantError(constant, dec, allowZero);
       final String display;
       if (isError) {
         display = RatiosUtil.getLabelText(_mainModel.getResources(), L10NRatios.INVALID_CONSTANT) + ' ' + constant;
@@ -185,11 +185,11 @@ class RatioReportGenerator extends ReportGenerator {
     // Amount - ending balance
     final double value;
     if (isConstant) {
-      value = isError ? defaultConstant : RatiosUtil.getConstantValue(constant, _dec, allowZero, defaultConstant);
+      value = isError ? defaultConstant : RatiosUtil.getConstantValue(constant, dec, allowZero, defaultConstant);
     } else {
       value = RatioCompute.getDaysInPeriod(dateRange);
     }
-    labels[4] = StringUtils.formatRate(value, _dec);
+    labels[4] = StringUtils.formatRate(value, dec);
     widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
     style[4] = RecordRow.STYLE_PLAIN;
     align[4] = RecordRow.ALIGN_RIGHT;
@@ -233,7 +233,7 @@ class RatioReportGenerator extends ReportGenerator {
     totals[3] = RecordRow.TOTAL_SUBTOTAL;
 
     // Amount
-    labels[4] = formatRatioPartValue(baseCurrency, value, _dec, nanString, isConstant);
+    labels[4] = formatRatioPartValue(baseCurrency, value, dec, nanString, isConstant);
     widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
     style[4] = RecordRow.STYLE_BOLD;
     align[4] = RecordRow.ALIGN_RIGHT;
@@ -295,9 +295,9 @@ class RatioReportGenerator extends ReportGenerator {
 
     // Description
     StringBuilder sb = new StringBuilder();
-    sb.append(formatRatioPartValue(baseCurrency, _ratio.getNumeratorValue(), _dec, nanString, _ratio.isNumeratorConstant()));
+    sb.append(formatRatioPartValue(baseCurrency, _ratio.getNumeratorValue(), dec, nanString, _ratio.isNumeratorConstant()));
     sb.append(" / ");
-    sb.append(formatRatioPartValue(baseCurrency, _ratio.getDenominatorValue(), _dec, nanString, _ratio.isDenominatorConstant()));
+    sb.append(formatRatioPartValue(baseCurrency, _ratio.getDenominatorValue(), dec, nanString, _ratio.isDenominatorConstant()));
     labels[3] = sb.toString();
     widths[3] = Math.max(widths[3], measureStringWidth(labels[3], _graphics, fontMetrics));
     style[3] = RecordRow.STYLE_BOLD;
@@ -306,7 +306,7 @@ class RatioReportGenerator extends ReportGenerator {
 
     // Amount
     final double value = _ratio.getValue();
-    labels[4] = RatiosUtil.formatRatioValue(value, _dec, _mainModel.getDecimalPlaces(), nanString, _ratio.getShowPercent());
+    labels[4] = RatiosUtil.formatRatioValue(value, dec, _mainModel.getDecimalPlaces(), nanString, _ratio.getShowPercent());
     widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
     style[4] = RecordRow.STYLE_BOLD;
     align[4] = RecordRow.ALIGN_RIGHT;
@@ -444,7 +444,7 @@ class RatioReportGenerator extends ReportGenerator {
     totals[3] = RecordRow.TOTAL_SUBTOTAL;
 
     // Amount
-    labels[4] = baseCurrency.formatFancy(subtotal, _dec);
+    labels[4] = baseCurrency.formatFancy(subtotal, dec);
     style[4] = RecordRow.STYLE_PLAIN;
     align[4] = RecordRow.ALIGN_RIGHT;
     color[4] = (subtotal < 0) ? RecordRow.COLOR_RED : RecordRow.COLOR_BLACK;
@@ -495,7 +495,7 @@ class RatioReportGenerator extends ReportGenerator {
       long displayBalance = CurrencyUtil.convertValue(accountBalance,
                                                       baseCurrency, accountCurrency,
                                                       accountResult.getEndDate());
-      labels[3] = accountCurrency.formatFancy(displayBalance, _dec);
+      labels[3] = accountCurrency.formatFancy(displayBalance, dec);
       widths[3] = Math.max(widths[3], measureStringWidth(labels[3], _graphics, fontMetrics));
     } else {
       labels[3] = N12ERatios.EMPTY;
@@ -504,7 +504,7 @@ class RatioReportGenerator extends ReportGenerator {
     align[3] = RecordRow.ALIGN_LEFT;
 
     // Amount - ending balance
-    labels[4] = baseCurrency.formatFancy(accountBalance, _dec);
+    labels[4] = baseCurrency.formatFancy(accountBalance, dec);
     widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
     style[4] = RecordRow.STYLE_PLAIN;
     align[4] = RecordRow.ALIGN_RIGHT;
@@ -559,7 +559,7 @@ class RatioReportGenerator extends ReportGenerator {
 
     // Amount
     final long result = info.convertedValue;
-    labels[4] = baseCurrency.formatFancy(result, _dec);
+    labels[4] = baseCurrency.formatFancy(result, dec);
     widths[4] = Math.max(widths[4], measureStringWidth(labels[4], _graphics, fontMetrics));
     style[4] = RecordRow.STYLE_PLAIN;
     align[4] = RecordRow.ALIGN_RIGHT;
