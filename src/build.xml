@@ -87,7 +87,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="findandreplace-compile" depends="init">
-    <javac  target="1.6" source="1.6" compiler="modern" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac  target="1.8" source="1.8" compiler="modern" srcdir="${src}" debug="${debug}" optimize="${optimize}"
             classpathref="classpath"  destdir="${build}"  classpath="${lib}/TableLayout-bin-jdk1.5-2009-08-26.jar"
             includeantruntime="false"
             bootclasspath="${java.home}/lib/rt.jar"

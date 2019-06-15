@@ -8,6 +8,8 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.moneydance.apps.md.view.gui.MDColors;
+
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -41,22 +43,15 @@ class ClickLabelWithDisabledHtml extends JLabel
     }
 
     @Override
-    public void setEnabled(boolean enabled)
-    {
+    public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-        if (enabled)
-        {
-            if (_hasAction)
-            {
-                setForeground(Color.BLUE);
-            }
-            else
-            {
+        if (enabled) {
+            if (_hasAction) {
+                setForeground(MDColors.getSingleton().defaultTextForeground);
+            } else {
                 setForeground(UIManager.getColor("Label.foreground"));
             }
-        }
-        else
-        {
+        } else {
             setForeground(UIManager.getColor("Label.disabledForeground"));
         }
     }
@@ -75,7 +70,7 @@ class ClickLabelWithDisabledHtml extends JLabel
         }
 
         // by default it is enabled
-        setForeground(Color.BLUE);
+        setForeground(MDColors.getSingleton().defaultTextForeground);
 
         final Font normFont = getFont();
         final Font boldFont = normFont.deriveFont(Font.BOLD);

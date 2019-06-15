@@ -45,7 +45,6 @@ import java.awt.Toolkit;
 import java.awt.Font;
 import java.awt.Cursor;
 import java.awt.GridLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -150,8 +149,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private JButton _gotoButton;
     private JButton _copyButton;
 
-    private Color _focusColor;
-
     // don't automatically check the 'use' boxes when updating programmatically
     private boolean _suppressAutoCheckUse = false;
     private JLabel _statusLabel;
@@ -197,7 +194,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         // press Tab once to get focus.
 //        setFocusable(false);
 
-        _focusColor = new Color(255, 255, 180); // light yellow
         this.setIconImage(_controller.getImage(L10NFindAndReplace.FAR_IMAGE));
         
         setupButtons();
@@ -717,7 +713,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _findResults.setFillsViewportHeight(true);
         _findResults.setShowGrid(false);
         _findResults.setTableHeader(new JTableHeader(columnModel));
-        _findResults.setDefaultRenderer(TableColumn.class, new FindResultsTableCellRenderer());
+        _findResults.setDefaultRenderer(TableColumn.class, new FindResultsTableCellRenderer(mdGUI));
         columnModel.setTableSelectionModel(_findResults.getSelectionModel());
         _findResults.addMouseListener(new MouseAdapter()
         {
@@ -1359,7 +1355,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private void showTagsPopup(final TxnTagsPicker picker)
     {
-        final JDialog popup = new TagSelectPopup(this, picker, _focusColor);
+        final JDialog popup = new TagSelectPopup(this, picker, mdGUI);
         popup.setVisible(true);
     }
 
