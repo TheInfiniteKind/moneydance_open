@@ -50,7 +50,7 @@ public class AlphavantageConnection extends BaseConnection {
    */
   public long getPerConnectionThrottleTime() {
     connectionThrottleCounter++;
-    return 30000;
+    return 1500;
 //    if(connectionThrottleCounter%4 == 0) {
 //      return 20000; // every Nth connection, delay for 15 seconds
 //    } else {
