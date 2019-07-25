@@ -2,7 +2,6 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.DateUtil;
 import com.infinitekind.util.StringUtils;
 
@@ -12,7 +11,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -24,6 +26,8 @@ public class IEXConnection extends BaseConnection {
 
   private DateFormat dateFormat;
   
+  //Get API token from - https://iexcloud.io/cloud-login#/register/
+  public static final String API_TOKEN = "Tpk_************************";
   
   public IEXConnection(StockQuotesModel model) {
     super(PREFS_KEY, model, HISTORY_SUPPORT);
@@ -123,9 +127,10 @@ public class IEXConnection extends BaseConnection {
       results.put(secInfo.fullTickerSymbol.toLowerCase(), secInfo);
     }
     
-    String urlStr = "https://api.iextrading.com/1.0/stock/market/batch?symbols="
+    String urlStr = "https://cloud.iexapis.com/stable/stock/market/batch?symbols="
                     + symbolList.toString()
-                    + "&types=chart&range=1m&chartLast=5";
+                    + "&types=chart&range=1m"
+                    + "&token=" + API_TOKEN;
     System.err.println("getting history using url: "+ urlStr);
 
     Map<String,Map<String,List<Map<String,Object>>>> info;
