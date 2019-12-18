@@ -6,6 +6,7 @@ http://jakarta.apache.org/ant/index.html
 <project name="moneydance_open" default="all" basedir=".">
   <property name="version"  value="1.0"/>
   <property name="src" value="."/>
+  <property name="javac-target" value="1.8"/>
   <property file="${src}/user.properties"/>
   <property name="build" value="./build"/>
   <property name="lib" value="../lib"/>
@@ -24,8 +25,10 @@ http://jakarta.apache.org/ant/index.html
   <property name="optimize"  value="off"/>
 
   <path id="classpath">
-    <pathelement path="../lib/moneydance.jar"/>
-    <pathelement path="../lib/moneydance-private.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
+    <pathelement path="../lib/extadmin.jar"/>
+    <pathelement path="../lib/moneydance-dev.jar"/>
+    <pathelement path="../../moneydance.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
+
     <pathelement path="../lib/mdadmin.jar"/> <!-- Since mdadmin has a StringUtils, it needs to come after moneydance.jar -->
     <pathelement path="../lib/jfreechart-1.0.13.jar"/>
     <pathelement path="../lib/jcommon-1.0.12.jar"/>
@@ -128,7 +131,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="mikebalpred" depends="init">
-    <javac target="1.6"  source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
            classpathref="classpath"  destdir="${build}"
            includes="com/moneydance/modules/features/mikebalpred/**"/>
 
@@ -155,7 +158,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="autorates" depends="init">
-    <javac target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/autorates/**"/>
 
@@ -198,7 +201,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="yahooqt" depends="init" description="build the yahooqt.mxt">
-    <build-mxt feature="yahooqt" javac-source="1.7" javac-target="1.7" />
+    <build-mxt feature="yahooqt" javac-source="1.8" javac-target="1.8" />
     <!--<copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />-->
   </target>
 
@@ -209,7 +212,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="miscdebug" depends="init">
-    <javac encoding="utf8" target="1.8" source="1.8" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
            classpathref="classpath"  destdir="${build}"
            includeantruntime="false"
            includes="com/moneydance/modules/features/miscdebug/**"/>
@@ -233,7 +236,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="ratios-compile" depends="init">
-    <javac target="1.8" source="1.8" compiler="modern" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
               classpathref="classpath"  destdir="${build}"
       includes="
         com/moneydance/modules/features/ratios/**/*.java
@@ -271,7 +274,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="yahoofx" depends="init">
-    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/yahoofx/**"/>
     <jar destfile="${dist}/yahoofx.mxt">
@@ -295,7 +298,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="balpred" depends="init">
-    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/balpred/**"/>
     <jar destfile="${dist}/balpred.mxt">
@@ -319,7 +322,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="cmdline" depends="init">
-    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/cmdline/**"/>
     <jar destfile="${dist}/cmdline.mxt">
@@ -342,7 +345,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="console" depends="init">
-    <javac encoding="utf8" target="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/console/**"/>
     <jar destfile="${dist}/console.mxt">
@@ -397,7 +400,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="txtimport" depends="init">
-    <javac target="1.6" source="1.6" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
       includes="com/moneydance/modules/features/txtimport/**"/>
 
@@ -443,7 +446,7 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="featureloader" depends="init" description="build the featureloader.mxt">
-    <build-mxt feature="featureloader" javac-source="1.5" javac-target="1.5" />
+    <build-mxt feature="featureloader" javac-source="1.8" javac-target="1.8" />
   </target>
 
   <target name="clean" depends="init" description="remove built artifacts">
