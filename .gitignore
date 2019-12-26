@@ -6,3 +6,4 @@ src/pub_key
 *.iml
 lib/extadmin.jar
 lib/moneydance-dev.jar
+bin
