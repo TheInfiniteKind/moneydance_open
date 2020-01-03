@@ -83,7 +83,7 @@ public class DownloadTask implements Callable<Boolean> {
         skippedList.add(currInfo);
         currInfo.skipped = true;
         currInfo.updateResultSummary(_model);
-      } else if(curr.getCurrencyType() == CurrencyType.Type.SECURITY) {
+      } else if(isSecurity) {
         securityList.add(currInfo);
         if(tableEntry!=null) {
           if (pricesDownloader == null) {

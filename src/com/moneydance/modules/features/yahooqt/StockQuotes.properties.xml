@@ -36,7 +36,7 @@
     <entry key="ecb">European Central Bank</entry>
     <entry key="yahooUSA">Yahoo!® Finance - USA</entry>
     <entry key="yahooUK">Yahoo!® Finance - UK</entry>
-    <entry key="yahooUSAexchangeRates">Yahoo!® Currency Exchange Rates</entry>
+    <entry key="yahooRates">Yahoo!® Currency Exchange Rates</entry>
     <entry key="google">Google™ Finance - History Only</entry>
     <entry key="downloading">Downloading...</entry>
     <entry key="skipped">Skipped</entry>

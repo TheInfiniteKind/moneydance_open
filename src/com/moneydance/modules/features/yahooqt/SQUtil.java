@@ -207,6 +207,8 @@ final class SQUtil {
     String prefix = null;
     String suffix = null;
     String currencyCode = null;
+
+    if(tickerSymbol.startsWith("^")) tickerSymbol = tickerSymbol.substring(1).trim();
     
     // break off a currency code if and only if the last 4 characters is -XXX where X is a letter,
     // OR if the user put in a carat delimiter
