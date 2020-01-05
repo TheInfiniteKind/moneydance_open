@@ -12,8 +12,6 @@ import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.DateRange;
 import com.infinitekind.util.DateUtil;
 import com.infinitekind.util.StringUtils;
-import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.controller.olb.*;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -266,7 +264,7 @@ public class YahooConnection extends BaseConnection {
           break;
         line = line.trim();
 
-        String rateStr = com.moneydance.util.StringUtils.fieldIndex(line, ',', 1).trim();
+        String rateStr = StringUtils.fieldIndex(line, ',', 1).trim();
 
         if (rateStr.length() > 0) {
           double parsedRate = StringUtils.parseRate(rateStr, 0.0, '.');
@@ -314,13 +312,10 @@ public class YahooConnection extends BaseConnection {
     if(history!=null && history.size()>0) {
       firstDate = Math.max(history.get(history.size()-1).getDateInt(), firstDate);
     }
-    
-    // only update the cookie and crumble if we don't already have them
-    if(cookie==null || crumble==null) {
-      if(!setCookieAndCrumble(downloadInfo.fullTickerSymbol)) {
-        downloadInfo.recordError("Unable to get cookie or crumbs from Yahoo");
-        return;
-      }
+
+    if (!setCookieAndCrumble(downloadInfo.fullTickerSymbol)) {
+      downloadInfo.recordError("Unable to get cookie or crumbs from Yahoo");
+      return;
     }
     
     String urlStr = getHistoryURL(downloadInfo.fullTickerSymbol, new DateRange(firstDate, today));
@@ -352,15 +347,13 @@ public class YahooConnection extends BaseConnection {
   }
 
   public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
-//    String baseURL = usLocale ? HISTORY_URL_BASE_USA : HISTORY_URL_BASE_UK;
     //  private static final String CURRENT_PRICE_URL_BASE_UK = "https://uk.old.finance.yahoo.com/d/quotes.csv";
     //  private static final String HISTORY_URL_BASE_UK =       "https://ichart.yahoo.com/table.csv";
-    //  private static final String HISTORY_URL_BASE_USA =       "https://query1.finance.yahoo.com/v7/finance/download/";
-
+    
     String baseURL = connectionType.isUK() ? "https://ichart.yahoo.com/table.csv" : "https://query1.finance.yahoo.com/v7/finance/download/";
     StringBuilder result = new StringBuilder(baseURL);
     Calendar cal = Calendar.getInstance();
-    cal.setTime(Util.convertIntDateToLong(dateRange.getEndDateInt()));
+    cal.setTime(DateUtil.convertIntDateToLong(dateRange.getEndDateInt()));
     long endTimeInEpoch = cal.getTimeInMillis() / 1000;
     cal.add(Calendar.DATE, -dateRange.getNumDays());
     long startTimeInEpoch = cal.getTimeInMillis() / 1000;
@@ -396,6 +389,7 @@ public class YahooConnection extends BaseConnection {
   
   
   private boolean setCookieAndCrumble(String fullTickerSymbol) {
+    long startTime = System.currentTimeMillis();
     try {
       String urlString = String.format(crumbleLink, fullTickerSymbol);
       URL url = new URL(urlString);
@@ -414,7 +408,7 @@ public class YahooConnection extends BaseConnection {
         cookie = endIdx >= 0 ? cookieValue.substring(0, endIdx) : cookieValue.trim();
       }
       Pattern p = Pattern.compile(crumbleRegEx);
-      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new EchoInputStream(urlConn.getInputStream())));
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
       String line = null;
       while ((line = bufferedReader.readLine()) != null) {
         Matcher m = p.matcher(line);
@@ -425,10 +419,10 @@ public class YahooConnection extends BaseConnection {
       }
     } catch (Throwable e) {
       e.printStackTrace();
+    } finally {
+      System.err.println("yahoo: set/updated cookie and/or crumble in " + ((System.currentTimeMillis()-startTime)/1000.0) + " seconds");
     }
-
-//    System.err.println("cookie: "+cookie);
-//    System.err.println("crumble: "+crumble);
+    
     return cookie!=null && crumble!=null;
   }
 
