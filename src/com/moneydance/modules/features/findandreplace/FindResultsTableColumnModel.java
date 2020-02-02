@@ -92,6 +92,8 @@ class FindResultsTableColumnModel extends DefaultTableColumnModel
     //////////////////////////////////////////////////////////////////////////////////////////////
     private void buildColumns(final IResourceProvider resources)
     {
+        MoneydanceGUI mdGUI = ((FarController)resources).getMDGUI();
+        FindResultsTableCellRenderer defaultRenderer = new FindResultsTableCellRenderer(mdGUI);
         TableColumn column = new TableColumn(FindResultsTableModel.SEL_INDEX);
         column.setCellRenderer(new TableButtonRenderer());
         column.setCellEditor(_selectionEditor);
@@ -102,27 +104,27 @@ class FindResultsTableColumnModel extends DefaultTableColumnModel
         addColumn(column);
 
         column = new TableColumn(FindResultsTableModel.ACCOUNT_INDEX);
-        column.setCellRenderer(new FindResultsTableCellRenderer());
+        column.setCellRenderer(defaultRenderer);
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_ACCOUNT));
         addColumn(column);
 
         column = new TableColumn(FindResultsTableModel.DATE_INDEX);
-        column.setCellRenderer(new FindResultsTableCellRenderer());
+        column.setCellRenderer(defaultRenderer);
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_DATE));
         addColumn(column);
 
         column = new TableColumn(FindResultsTableModel.DESCRIPTION_INDEX);
-        column.setCellRenderer(new FindResultsTableCellRenderer());
+        column.setCellRenderer(defaultRenderer);
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_DESCRIPTION));
         addColumn(column);
 
         column = new TableColumn(FindResultsTableModel.TAG_INDEX);
-        column.setCellRenderer(new FindResultsTableCellRenderer());
+        column.setCellRenderer(defaultRenderer);
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_TAG));
         addColumn(column);
 
         column = new TableColumn(FindResultsTableModel.CATEGORY_INDEX);
-        column.setCellRenderer(new FindResultsTableCellRenderer());
+        column.setCellRenderer(defaultRenderer);
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_CATEGORY));
         addColumn(column);
 
@@ -133,14 +135,10 @@ class FindResultsTableColumnModel extends DefaultTableColumnModel
         addColumn(column);
 
         column = new TableColumn(FindResultsTableModel.AMOUNT_INDEX);
-        if (resources instanceof FarController)
-        {
-            final MoneydanceGUI mdGui = ((FarController)resources).getMDGUI();
-            column.setCellRenderer(new AmountCellRenderer(mdGui));
-        }
-        else
-        {
-            column.setCellRenderer(new FindResultsTableCellRenderer());
+        if (resources instanceof FarController) {
+            column.setCellRenderer(new AmountCellRenderer(mdGUI));
+        } else {
+            column.setCellRenderer(defaultRenderer);
         }
         column.setHeaderValue(resources.getString(L10NFindAndReplace.RESULTS_COLUMN_AMOUNT));
         addColumn(column);
@@ -178,23 +176,18 @@ class FindResultsTableColumnModel extends DefaultTableColumnModel
         }
     }
 
-    private class AmountCellRenderer extends FindResultsTableCellRenderer
-    {
-        private final MoneydanceGUI _mdGui;
-
-        AmountCellRenderer(final MoneydanceGUI mdGui)
-        {
-            _mdGui = mdGui;
+    private class AmountCellRenderer extends FindResultsTableCellRenderer {
+      
+        AmountCellRenderer(final MoneydanceGUI mdGUI) {
+          super(mdGUI);
         }
 
         @Override
-        protected Color getNormalForeground(FindResultsTableModel tableModel, int modelIndex)
-        {
-            if (tableModel.isNegative(modelIndex))
-            {
-                return _mdGui.getColors().negativeBalFG;
-            }
-            return super.getNormalForeground(tableModel, modelIndex);
+        protected Color getNormalForeground(FindResultsTableModel tableModel, int index) {
+          if (tableModel.isNegative(index)) {
+            return colors.negativeBalFG;
+          }
+          return super.getNormalForeground(tableModel, index);
         }
 
         @Override

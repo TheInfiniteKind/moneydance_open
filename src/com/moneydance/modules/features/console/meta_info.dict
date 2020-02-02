@@ -1,6 +1,6 @@
 {
   "vendor" = "The Infinite Kind"
-  "vendor_url" = "http://moneydance.com/"
+  "vendor_url" = "https://infinitekind.com/"
   "minbuild" = "1000"
   "name" = "Console Tool"
   "desc" = "This is an extension that prints a message every time something in Moneydance is modified."

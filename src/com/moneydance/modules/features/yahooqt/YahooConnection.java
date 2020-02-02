@@ -8,9 +8,10 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.DateRange;
+import com.infinitekind.util.DateUtil;
 import com.infinitekind.util.StringUtils;
-import com.moneydance.apps.md.controller.Util;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -18,16 +19,55 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Base class for a download connection to the Yahoo! Finance service.
- *
- * @author Kevin Menningen - Mennē Software Solutions, LLC
+ * Class for downloading security prices from Yahoo
  */
-public abstract class YahooConnection extends BaseConnection {
+public class YahooConnection extends BaseConnection {
+  
+  private static final SimpleDateFormat SNAPSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+  private static final String crumbleLink = "https://finance.yahoo.com/quote/%1$s/history?p=%1$s";
+  private static final String crumbleRegEx = ".*\"CrumbStore\":[{]\"crumb\":\"(.*?)\"}.*";
+  
+  private static enum YahooConnectionType {
+    DEFAULT, UK, CURRENCIES;
+
+    public String preferencesKey() {
+      switch (this) {
+        case UK: return "yahooUK";
+        case CURRENCIES: return "yahooRates";
+        case DEFAULT: 
+        default: return "yahooUSA";
+      }
+    }
+
+    public boolean isUK() {
+      return this==UK;
+    }
+    
+    public int updateTypes() {
+      switch(this) {
+        case CURRENCIES:
+          return BaseConnection.EXCHANGE_RATES_SUPPORT;
+        case UK:
+        case DEFAULT:
+        default:
+          return BaseConnection.HISTORY_SUPPORT;
+      }
+    }
+  }
+  
+//  private static final String HISTORY_URL_BASE_UK =       "https://ichart.yahoo.com/table.csv";
+//  private static final String CURRENT_PRICE_URL_BASE_UK = "https://uk.old.finance.yahoo.com/d/quotes.csv";
+//  private static final String HISTORY_URL_BASE_USA =       "https://query1.finance.yahoo.com/v7/finance/download/";
+//  private static final String CURRENT_PRICE_URL_BASE_USA = "https://download.finance.yahoo.com/d/quotes.csv";
+  
   /**
    * The format to be returned. These are the complete format symbols, which seem to work but are
    * not documented on the Yahoo website. These meanings come from here on May 17, 2010:
@@ -128,16 +168,31 @@ public abstract class YahooConnection extends BaseConnection {
    * has a workaround that uses the standard Yahoo historical data interface. Used his Python code as a model
    * for (minor)changes to yahooqt.
    */
-  protected static final String CURRENT_PRICE_FORMAT = "sl1d1t1c1ohgv";
+  private static final String CURRENT_PRICE_FORMAT = "sl1d1t1c1ohgv";
 
   // Codes necessary to retrieve historical data.
   private String cookie = null;
   private String crumble = null;
-
-  public YahooConnection(StockQuotesModel model) {
-    super(model, BaseConnection.HISTORY_SUPPORT | BaseConnection.CURRENT_PRICE_SUPPORT);
+  private final YahooConnectionType connectionType;
+  
+  private YahooConnection(StockQuotesModel model, YahooConnectionType connectionType) {
+    super(connectionType.preferencesKey(), model, connectionType.updateTypes());
+    this.connectionType = connectionType;
   }
-
+  
+  public static YahooConnection getDefaultConnection(StockQuotesModel model) {
+    return new YahooConnection(model, YahooConnectionType.DEFAULT);
+  }
+  
+  public static YahooConnection getUKConnection(StockQuotesModel model) {
+    return new YahooConnection(model, YahooConnectionType.UK);
+  }
+  
+  public static YahooConnection getCurrenciesConnection(StockQuotesModel model) {
+    return new YahooConnection(model, YahooConnectionType.CURRENCIES);
+  }
+  
+  
   public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange)
   {
     if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) return null;
@@ -165,19 +220,144 @@ public abstract class YahooConnection extends BaseConnection {
     }
     return exchange.getCurrencyCode();
   }
-  
-  protected abstract String getHistoryBaseUrl();
 
+
+  /**
+   * Update the exchange rate for the given currency using Yahoo's CURR1CURR2=X ticker symbol lookup
+   * 
+   * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
+   */
   @Override
+  public void updateExchangeRate(DownloadInfo downloadInfo) {
+    String baseCurrencyID = downloadInfo.relativeCurrency.getIDString().toUpperCase();
+    if(!downloadInfo.isValidForDownload) return;
+
+    // only update the cookie and crumble if we don't already have them
+    if(cookie==null || crumble==null) {
+      if(!setCookieAndCrumble(downloadInfo.fullTickerSymbol)) {
+        downloadInfo.recordError("Unable to get cookie or crumbs from Yahoo");
+        return;
+      }
+    }
+    
+    StringBuilder urlStr = new StringBuilder("https://download.finance.yahoo.com/d/quotes.csv");
+    urlStr.append('?');
+    urlStr.append("s=");
+    urlStr.append(SQUtil.urlEncode(baseCurrencyID + downloadInfo.fullTickerSymbol)); // symbol
+    urlStr.append("=X");
+    urlStr.append("&f=sl1d1t1c1ohgv"); // format of each line
+    urlStr.append("&e=.csv");          // response format
+    urlStr.append("&crumb=");       // crumble
+    urlStr.append(crumble);
+    
+    boolean foundRate = false;
+    Exception error = null;
+    try {
+      URL url = new URL(urlStr.toString());
+      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+      //conn.addRequestProperty("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.73.11 (KHTML, like Gecko) Version/7.0.1 Safari/537.73.11");
+      BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF8"));
+      // read the message...
+      while (true) {
+        String line = in.readLine();
+        if (line == null)
+          break;
+        line = line.trim();
+
+        String rateStr = StringUtils.fieldIndex(line, ',', 1).trim();
+
+        if (rateStr.length() > 0) {
+          double parsedRate = StringUtils.parseRate(rateStr, 0.0, '.');
+          if (parsedRate != 0) {
+            downloadInfo.setRate(parsedRate, System.currentTimeMillis());
+            foundRate = true;
+          }
+        }
+      }
+    } catch (Exception e) {
+      error = e;
+      System.err.println("exchange rate update error for "+downloadInfo);
+      e.printStackTrace();
+    }
+    
+    if(!foundRate) {
+      if(error!=null) {
+        downloadInfo.recordError("No rate information was retrieved");
+      } else {
+        
+      }
+    }
+  }
+  
+  
+  @Override
+  public boolean updateSecurities(List<DownloadInfo> securitiesToUpdate) {
+    
+    // TODO: if there's any initialisation step, that goes here before updateSecurity() is invoked for each individual security
+    
+    return super.updateSecurities(securitiesToUpdate);
+  }
+  
+  
+  /**
+   * Retrieve the current exchange rate for the given currency and base
+   * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
+   */
+  @Override
+  public void updateSecurity(DownloadInfo downloadInfo) {
+    System.err.println("yahoo: updating security: "+downloadInfo.fullTickerSymbol);
+    int today = DateUtil.getStrippedDateInt();
+    List<CurrencySnapshot> history = downloadInfo.security.getSnapshots();
+    int firstDate = DateUtil.incrementDate(today, 0, -6, -0);
+    if(history!=null && history.size()>0) {
+      firstDate = Math.max(history.get(history.size()-1).getDateInt(), firstDate);
+    }
+
+    if (!setCookieAndCrumble(downloadInfo.fullTickerSymbol)) {
+      downloadInfo.recordError("Unable to get cookie or crumbs from Yahoo");
+      return;
+    }
+    
+    String urlStr = getHistoryURL(downloadInfo.fullTickerSymbol, new DateRange(firstDate, today));
+
+    char decimal = model.getPreferences().getDecimalChar();
+    SnapshotImporterFromURL importer =
+      new SnapshotImporterFromURL(urlStr, cookie, model.getResources(),
+                                  downloadInfo, SNAPSHOT_DATE_FORMAT,
+                                  TimeZone.getTimeZone(getTimeZoneID()), decimal);
+    importer.setColumnsFromHeader("Date,Open,High,Low,Close,Adj Close,Volume");
+    importer.setPriceMultiplier(downloadInfo.priceMultiplier);
+    
+    // the return value is negative for general errors, 0 for success with no error, or a positive
+    // value for overall success but one or more errors
+    int errorResult = importer.importData();
+    if (errorResult < 0) {
+      Exception error = importer.getLastException();
+      downloadInfo.errors.add(new DownloadException(downloadInfo, error.getMessage(), error));
+      return;
+    }
+    List<StockRecord> recordList = importer.getImportedRecords();
+    if (recordList.isEmpty()) {
+      DownloadException de = buildDownloadException(downloadInfo, SnapshotImporter.ERROR_NO_DATA);
+      downloadInfo.errors.add(de);
+      return;
+    }
+    
+    downloadInfo.addHistoryRecords(recordList);
+  }
+
   public String getHistoryURL(String fullTickerSymbol, DateRange dateRange) {
-    setCookieAndCrumble(fullTickerSymbol);
-    StringBuilder result = new StringBuilder(getHistoryBaseUrl());
+    //  private static final String CURRENT_PRICE_URL_BASE_UK = "https://uk.old.finance.yahoo.com/d/quotes.csv";
+    //  private static final String HISTORY_URL_BASE_UK =       "https://ichart.yahoo.com/table.csv";
+    
+    String baseURL = connectionType.isUK() ? "https://ichart.yahoo.com/table.csv" : "https://query1.finance.yahoo.com/v7/finance/download/";
+    StringBuilder result = new StringBuilder(baseURL);
     Calendar cal = Calendar.getInstance();
-    cal.setTime(Util.convertIntDateToLong(dateRange.getEndDateInt()));
+    cal.setTime(DateUtil.convertIntDateToLong(dateRange.getEndDateInt()));
     long endTimeInEpoch = cal.getTimeInMillis() / 1000;
     cal.add(Calendar.DATE, -dateRange.getNumDays());
     long startTimeInEpoch = cal.getTimeInMillis() / 1000;
-
+    
     String encTicker;
     try {
       encTicker = URLEncoder.encode(fullTickerSymbol, N12EStockQuotes.URL_ENC);
@@ -186,7 +366,7 @@ public abstract class YahooConnection extends BaseConnection {
       // supported by every Java implementation
       encTicker = fullTickerSymbol;
     }
-
+    
     // add the parameters
     result.append(encTicker);       // symbol
     result.append("?period1=");     // start date
@@ -197,36 +377,19 @@ public abstract class YahooConnection extends BaseConnection {
     result.append("&events=history"); // history
     result.append("&crumb=");       // crumble
     result.append(crumble);
+    
     return result.toString();
   }
-
-  protected abstract String getCurrentPriceBaseUrl();
-
-  public String getCurrentPriceURL(String fullTickerSymbol) {
-    StringBuilder result = new StringBuilder(getCurrentPriceBaseUrl());
-    String encTicker;
-    try {
-      encTicker = URLEncoder.encode(fullTickerSymbol, N12EStockQuotes.URL_ENC);
-    } catch (UnsupportedEncodingException ignore) {
-      // should never happen, as the US-ASCII character set is one that is required to be
-      // supported by every Java implementation
-      encTicker = fullTickerSymbol;
-    }
-    // add the parameters
-    result.append("?s=");                // symbol
-    result.append(encTicker);
-    result.append("&f=");                // format of each line
-    result.append(getCurrentPriceFormat());
-    result.append("&e=.csv");            // response format
-    return result.toString();
+  
+  
+  public String toString() {
+    StockQuotesModel model = getModel();
+    return model==null ? "??" : model.getResources().getString(getConnectionID());
   }
-
-  private final String crumbleLink = "https://finance.yahoo.com/quote/%1$s/history?p=%1$s";
-  private final String crumbleRegEx = ".*\"CrumbStore\":[{]\"crumb\":\"(.*?)\"}.*";
-
-  private void setCookieAndCrumble(String fullTickerSymbol) {
-    cookie = null;
-    crumble = null;
+  
+  
+  private boolean setCookieAndCrumble(String fullTickerSymbol) {
+    long startTime = System.currentTimeMillis();
     try {
       String urlString = String.format(crumbleLink, fullTickerSymbol);
       URL url = new URL(urlString);
@@ -235,21 +398,15 @@ public abstract class YahooConnection extends BaseConnection {
 
       int respCode = urlConn.getResponseCode();
       if (respCode < 200 | respCode >= 300) {
-        return;
+        System.err.println("non-success response for cookie/crumble request; code="+respCode+" msg="+urlConn.getResponseMessage());
+        return false;
       }
-
-      for (int i = 0; ; i++) {
-        String key = urlConn.getHeaderFieldKey(i);
-        String value = urlConn.getHeaderField(i);
-        if (key == null && value == null) {
-          return;
-        }
-        if (key != null && key.equals("Set-Cookie")) {
-          cookie = value.substring(0, value.indexOf(";"));
-          break;
-        }
+      
+      String cookieValue = urlConn.getHeaderField("set-cookie");
+      if(cookieValue!=null) {
+        int endIdx = cookieValue.indexOf(";");
+        cookie = endIdx >= 0 ? cookieValue.substring(0, endIdx) : cookieValue.trim();
       }
-
       Pattern p = Pattern.compile(crumbleRegEx);
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
       String line = null;
@@ -260,20 +417,13 @@ public abstract class YahooConnection extends BaseConnection {
           break;
         }
       }
-    } catch (Exception e) {
-      return;  // If anything goes wrong, there will be no cookie
+    } catch (Throwable e) {
+      e.printStackTrace();
+    } finally {
+      System.err.println("yahoo: set/updated cookie and/or crumble in " + ((System.currentTimeMillis()-startTime)/1000.0) + " seconds");
     }
+    
+    return cookie!=null && crumble!=null;
   }
 
-  protected String getCookie() { return cookie; }
-
-  protected String getCurrentPriceFormat() {
-    return CURRENT_PRICE_FORMAT;
-  }
-
-  @Override
-  protected String getCurrentPriceHeader() {
-    // this is the format it is *supposed* to return, see CURRENT_PRICE_FORMAT
-    return "Symbol,Close,Date,Time,Change,Open,High,Low,Volume";
-  }
 }

@@ -242,21 +242,16 @@ public class ReplaceCommand implements IFarCommand
             final SplitTxn split = _transaction.getSplitTxn();
             //  check if the target category has changed to == new rate
             long value = _replaceAmount.longValue();
-            // replacing with a negative value flips the sign
-            long signFlip = (value < 0) ? -1 : 1;
-            long prevSign = (split.getAmount() < 0) ? -1 : 1;
-            long prevParentSign = (split.getParentAmount() < 0) ? -1 : 1;
             CurrencyType targetCurr = split.getAccount().getCurrencyType();
             CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
             changed = true;
             if (newCategory) {
                 targetCurr = _replaceCategory.getCurrencyType();
             }
-            // convert the replacement amount into the category's currency, then set the proper sign
-            long splitAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt())) * prevSign * signFlip;
-            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt())) * prevParentSign * signFlip;
-            double rate = CurrencyUtil.getRawRate(parentCurr, targetCurr, split.getDateInt());
-            split.setAmount(splitAmount, rate, parentAmount);
+            // convert the replacement amount into the category's currency
+            long splitAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt()));
+            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt()));
+            split.setAmount(-splitAmount, -parentAmount);
         }
         else if (newCategory)
         {
@@ -267,16 +262,9 @@ public class ReplaceCommand implements IFarCommand
             {
                 final SplitTxn split = _transaction.getSplitTxn();
                 CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
-                // parent amount should stay the same (or flip sign), split amount will change
-                // the sign is flipped in the getParentAmount() method, so flip it again - must stay the same
-                // unless we're switching from an expense category to an income one
                 long parentAmount = -split.getParentAmount();
-                // the rate is always a positive number, raw rate refers to actual number used to convert two longs to each other
-                // whereas user rate is a display and/or editable value
-                double rate = CurrencyUtil.getRawRate(parentCurr, targetCurr, split.getDateInt());
-                // the parent amount has the same sign under the hood, the sign is negated in the UI only
-                long splitAmount = Math.round(parentAmount * rate);
-                split.setAmount(splitAmount, rate, parentAmount);
+                long newSplitAmount = CurrencyUtil.convertValue(parentAmount, parentCurr, targetCurr, _transaction.getParentTxn().getDateInt());
+                split.setAmount(newSplitAmount, parentAmount);
             }
         }
 

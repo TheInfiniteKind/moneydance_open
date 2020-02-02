@@ -9,6 +9,7 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.CurrencySnapshot;
+import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.StringUtils;
@@ -18,9 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.TimeZone;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * Imports price history / exchange rate history from a text stream into a list of
@@ -37,8 +36,8 @@ import java.util.Vector;
  */
 public abstract class SnapshotImporter
 {
-  protected final CurrencyType _currency;
-  protected final Vector<StockRecord> _importRecords = new Vector<StockRecord>();
+  protected final DownloadInfo downloadInfo;
+  protected final List<StockRecord> _importRecords = new ArrayList<>();
   protected final ResourceProvider _resources;
 
   /**
@@ -49,12 +48,6 @@ public abstract class SnapshotImporter
   private final SimpleDateFormat _expectedDateFormat;
   private SimpleDateFormat _defaultDateFormat;
   private SimpleDateFormat _defaultTimeFormat;
-  static final String DATE_KEY = "DATE";
-  static final String TIME_KEY = "TIME";
-  static final String HIGH_KEY = "HIGH";
-  static final String LOW_KEY = "LOW";
-  static final String CLOSE_KEY = "CLOSE";
-  static final String VOLUME_KEY = "VOLUME";
   static final int ERROR_NO_INPUT_STREAM = -2;
   static final int ERROR_READ_INPUT = -3;
   static final int ERROR_NO_DATA = -4;
@@ -71,7 +64,7 @@ public abstract class SnapshotImporter
   private int _highIndex = 2;
   private int _lowIndex = 3;
   private int _closeIndex = 4;
-  private int _volumeIndex = 5;
+  private int _volumeIndex = 6;
 
   private char _columnDelim = ',';
   private char _dateDelim = '-';
@@ -89,14 +82,14 @@ public abstract class SnapshotImporter
   /**
    * Constructor to allow input fields to be final.
    * @param resources          Object to look up localized resources.
-   * @param currency           The currency whose history will be updated from the input stream.
+   * @param downloadInfo       The currency/security download information whose history will be updated from the input stream.
    * @param expectedDateFormat The user-specified date format.
    * @param timeZone           Time zone to use when parsing downloaded time values.
    * @param userDecimal        The user-specified character to use as a decimal point.
    */
-  public SnapshotImporter(ResourceProvider resources, CurrencyType currency,
+  public SnapshotImporter(ResourceProvider resources, DownloadInfo downloadInfo,
                           SimpleDateFormat expectedDateFormat, TimeZone timeZone, char userDecimal) {
-    _currency = currency;
+    this.downloadInfo = downloadInfo;
     _expectedDateFormat = expectedDateFormat;
     _userDecimal = userDecimal;
     _resources = resources;
@@ -106,7 +99,7 @@ public abstract class SnapshotImporter
 
   /**
    * Set format auto-detect, which requires that the first line of data be a header line containing
-   * {@link #DATE_KEY} and {@link #CLOSE_KEY} at minimum, and optionally any of the other pre-
+   * {@link #DATE_HEADERS} and {@link #CLOSE_HEADERS} at minimum, and optionally any of the other pre-
    * defined headers. If turned off, then either
    * {@link SnapshotImporter#setColumnsFromHeader(String)}
    * or
@@ -196,6 +189,15 @@ public abstract class SnapshotImporter
     return validItemCount;
   }
 
+
+  private static final List<String> DATE_HEADERS = Arrays.asList("date","timestamp");
+  private static final List<String> TIME_HEADERS = Arrays.asList("time");
+  private static final List<String> CLOSE_HEADERS = Arrays.asList("close");
+  private static final List<String> HIGH_HEADERS = Arrays.asList("high");
+  private static final List<String> LOW_HEADERS = Arrays.asList("low");
+  private static final List<String> VOLUME_HEADERS = Arrays.asList("volume","vol");
+
+
   /**
    * Determine the column indices of the data using the column delimiter.
    * @param header The header text.
@@ -215,33 +217,34 @@ public abstract class SnapshotImporter
     int offset = findUnicodeBOM(header);
     final String parseInput = header.substring(offset);
     for (int column = 0; column < columnCount; column++) {
-      String columnName = stripQuotes(StringUtils.fieldIndex(parseInput, _columnDelim, column));
-      if (DATE_KEY.equalsIgnoreCase(columnName)) {
+      String columnName = stripQuotes(StringUtils.fieldIndex(parseInput, _columnDelim, column)).toLowerCase();
+      if (DATE_HEADERS.contains(columnName)) {
         hasAnyHeader = true;
         hasDate = true;
         _dateIndex = column;
-      } else if (TIME_KEY.equalsIgnoreCase(columnName)) {
+      } else if (TIME_HEADERS.contains(columnName)) {
         hasAnyHeader = true;
         hasTime = true;
         _timeIndex = column;
-      } else if (CLOSE_KEY.equalsIgnoreCase(columnName)) {
+      } else if (CLOSE_HEADERS.contains(columnName)) {
         hasAnyHeader = true;
         hasClose = true;
         _closeIndex = column;
-      } else if (HIGH_KEY.equalsIgnoreCase(columnName)) {
+      } else if (HIGH_HEADERS.contains(columnName)) {
         hasAnyHeader = true;
         hasHigh = true;
         _highIndex = column;
-      } else if (LOW_KEY.equalsIgnoreCase(columnName)) {
+      } else if (LOW_HEADERS.contains(columnName)) {
         hasAnyHeader = true;
         hasLow = true;
         _lowIndex = column;
-      } else if (VOLUME_KEY.equalsIgnoreCase(columnName)) {
+      } else if (VOLUME_HEADERS.contains(columnName)) {
         hasAnyHeader = true;
         hasVolume = true;
         _volumeIndex = column;
       }
     }
+
     if (!hasAnyHeader) return false; // first line is data, not a header, use default column indices
     if (!hasDate) return false; // the date field needs to be defined
     if (!hasClose) {
@@ -317,7 +320,7 @@ public abstract class SnapshotImporter
       errorCount = 0;
       while (lineItem != null) {
         if (isValidItem(lineItem)) {
-          final StockRecord record = addCurrencySnapshot(lineItem);
+          final StockRecord record = parseStockRecordFromCSV(lineItem);
           if (record == null) {
             ++errorCount;
           } else {
@@ -342,6 +345,7 @@ public abstract class SnapshotImporter
         // ignore
       }
     }
+    
     onEndImport(errorCount);
     return errorCount;
   }
@@ -351,21 +355,20 @@ public abstract class SnapshotImporter
    * price here because it must be decided at a higher level whether to update current price. Even
    * if the full history download successfully gets a more recent price than is stored with the
    * security, it may be overridden by the current price download (which can have intra-day pricing).
-   * @param priceCurrency The currency that the downloaded quote is in. This will get converted to
-   *                      the base currency.
    * @return True if successful, false if there was nothing applied.
    */
-  public boolean apply(CurrencyType priceCurrency) {
+  public boolean apply() {
     if (_importRecords.isEmpty()) return false;
     boolean success = false;
     for (StockRecord record : _importRecords) {
-      CurrencySnapshot snap = addOrUpdateSnapshot(_currency, priceCurrency, record);
+      CurrencySnapshot snap = addOrUpdateSnapshot(downloadInfo, record);
+      //System.err.println("security updated snapshot: "+snap);
       success |= (snap.getUserRate() > 0.0);
     }
     return success;
   }
 
-  public Vector<StockRecord> getImportedRecords() { return _importRecords; }
+  public List<StockRecord> getImportedRecords() { return _importRecords; }
 
   public Exception getLastException() { return _lastException; }
 
@@ -375,21 +378,21 @@ public abstract class SnapshotImporter
   protected abstract BufferedReader getInputStream() 
           throws IOException, DownloadException, NumberFormatException;
 
-  private static CurrencySnapshot addOrUpdateSnapshot(CurrencyType currency,
-                                                      CurrencyType baseCurrency,
+  private static CurrencySnapshot addOrUpdateSnapshot(DownloadInfo downloadInfo,
                                                       StockRecord record)
   {
     // all snapshots are recorded in terms of the base currency.
-    final double newRate = convertToBasePrice(record.closeRate, baseCurrency, record.date);
-    CurrencySnapshot result = currency.setSnapshotInt(record.date, newRate);
+    final double newRate = convertToBasePrice(record.closeRate, downloadInfo.relativeCurrency, record.date);
+    CurrencySnapshot result = downloadInfo.security.setSnapshotInt(record.date, newRate);
     // downloaded values are prices in a certain currency, change to rates for the stock history
-    result.setUserDailyHigh(convertToBasePrice(record.highRate, baseCurrency, record.date));
-    result.setUserDailyLow(convertToBasePrice(record.lowRate, baseCurrency, record.date));
+    result.setUserDailyHigh(convertToBasePrice(record.highRate, downloadInfo.relativeCurrency, record.date));
+    result.setUserDailyLow(convertToBasePrice(record.lowRate, downloadInfo.relativeCurrency, record.date));
     result.setDailyVolume(record.volume);
+    result.syncItem();
     return result;
   }
-
-
+  
+  
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // Private Methods
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -508,7 +511,7 @@ public abstract class SnapshotImporter
    * @param record The line from the import stream.
    * @return The history snapshot, or <code>null</code> if the line contains invalid data.
    */
-  private StockRecord addCurrencySnapshot(String record) {
+  private StockRecord parseStockRecordFromCSV(String record) {
     int date = parseDate(StringUtils.fieldIndex(record, _columnDelim, _dateIndex));
     if(date==0) {
       System.err.println("Import error: discarding currency snapshot with zero date: "+record);
@@ -542,7 +545,7 @@ public abstract class SnapshotImporter
     } else {
       // this will set the time to midnight so that it will generally be less than the current price
       // update time
-      result.dateTimeGMT = getMidnightDateTime(date);
+      result.dateTimeGMT = DateUtil.lastMinuteInDay(DateUtil.convertIntDateToLong(date)).getTime();
     }
     return result;
   }
@@ -643,10 +646,10 @@ public abstract class SnapshotImporter
     String value = stripQuotes(longStr);
     if (SQUtil.isBlank(value)) return defaultValue;
     if (isNA(value)) return 0;
+
     try {
-      return Long.valueOf(value).longValue();
-    }
-    catch (NumberFormatException e) {
+      return Long.valueOf(value);
+    } catch (NumberFormatException e) {
       System.err.println("encountered bad integer value: " + defaultValue);
       return defaultValue;
     }

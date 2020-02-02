@@ -2,8 +2,8 @@
   "vendor" = "The Infinite Kind"
   "vendor_url" = "https://infinitekind.com/"
   "name" = "Quotes and Exchange Rates"
-  "desc" = "This is an extension that downloads security price quotes and exchange rates from Yahoo and Google"
+  "desc" = "This is an extension that downloads security price quotes and exchange rates from various sources"
   "id" = "yahooqt"
   "minbuild" = "1000"
-  "module_build" = "1002"
+  "module_build" = "1025"
 }

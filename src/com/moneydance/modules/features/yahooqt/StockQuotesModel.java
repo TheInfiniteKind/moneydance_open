@@ -8,16 +8,19 @@
 
 package com.moneydance.modules.features.yahooqt;
 
+import com.infinitekind.util.CustomDateFormat;
+import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.time.*;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.util.BasePropertyChangeReporter;
-import com.infinitekind.util.CustomDateFormat;
 
 import javax.swing.SwingUtilities;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,20 +44,25 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private MoneydanceGUI _mdGUI = null;
   private AccountBook book = null;
   private UserPreferences _preferences = null;
+  private CustomDateFormat dateFormat;
+  private SimpleDateFormat dateTimeFormat;
   private BaseConnection _selectedHistoryConnection = null;
-  private BaseConnection _selectedCurrentPriceConnection = null;
   private BaseConnection _selectedExchangeRatesConnection = null;
-  private boolean _saveCurrentInHistorical = false;
-  private Vector<BaseConnection> _connectionList = null;
+  private List<BaseConnection> _connectionList = null;
   private int _historyDays = 5;
+  private char decimalDisplayChar = '.';
   private boolean _dirty = false;
-
+  private FeatureModuleContext extensionContext;
+  
   // runs tasks on a separate thread
   private ConnectionTask _currentTask;
   private final Object _taskSync = new Object();
   private final ExecutorService _executor = Executors.newFixedThreadPool(1);
 
-  StockQuotesModel() {
+  StockQuotesModel(FeatureModuleContext extensionContext) {
+    this.extensionContext = extensionContext;
+    dateFormat = new CustomDateFormat("ymd");
+    
     _tableModel = new SecuritySymbolTableModel(this);
   }
 
@@ -74,6 +82,9 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void initialize(MoneydanceGUI mdGUI, ResourceProvider resources) {
     _mdGUI = mdGUI;
     _preferences = mdGUI.getPreferences();
+    dateFormat = _preferences.getShortDateFormatter();
+    dateTimeFormat = new SimpleDateFormat(dateFormat.getPattern() + " h:mm a");
+    decimalDisplayChar = _preferences.getDecimalChar();
     _tableModel.initialize(_preferences);
     _exchangeList.load();
     buildConnectionList(resources);
@@ -93,7 +104,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     this.book = book;
     if (book != null) {
       _symbolMap.loadFromFile(book);
-      _saveCurrentInHistorical = book.getRootAccount().getBooleanParameter(Main.SAVE_CURRENT_IN_HISTORY_KEY, false);
       _cancelTasks.set(false);
     }
     _dirty = false;
@@ -108,18 +118,32 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   void addSecurity(Account account, CurrencyType securityCurrency) {
     // build a map of securities and the parent investment accounts that own them
     Set<Account> accountSet = _securityMap.get(securityCurrency);
-    if (accountSet == null) accountSet = new HashSet<Account>();
-    // the parent of a security is always an investment account
-    accountSet.add(account.getParentAccount());
-    _securityMap.put(securityCurrency, accountSet);
+    if (accountSet == null) {
+      accountSet = new HashSet<Account>();
+      _securityMap.put(securityCurrency, accountSet);
+    }
+    // if account!=null, then add it's parent investment account
+    if(account!=null) accountSet.add(account.getParentAccount());
   }
 
   MoneydanceGUI getGUI() {
     return _mdGUI;
   }
 
+  void showURL(String url) {
+    extensionContext.showURL(url);
+  }
+  
   UserPreferences getPreferences() {
     return _preferences;
+  }
+
+  CustomDateFormat getUIDateFormat() {
+    return dateFormat;
+  }
+
+  DateFormat getUIDateTimeFormat() {
+    return dateTimeFormat;
   }
 
   SymbolMap getSymbolMap() {
@@ -146,65 +170,44 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     return _dirty;
   }
 
-  void runStockPriceDownload(final PropertyChangeListener listener) {
+  void downloadRatesAndPricesInBackground(final PropertyChangeListener listener) {
     // make sure we don't submit this task on the Event Data Thread, which will block while waiting
     // for the previous task to complete
     final StockQuotesModel model = this;
     Thread tempThread = new Thread(new Runnable() {
       public void run() {
-        final ConnectionTask task = new ConnectionTask(
-                new DownloadQuotesTask(model, _resources), model, _resources);
-        setCurrentTask(task, false);
-        addPropertyChangeListener(listener);
-        _executor.execute(task);
-        // all notifications are set to the Swing EDT
         firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
-        waitForCurrentTaskToFinish();
-        removePropertyChangeListener(listener);
-      }
-    }, "Download Security Prices");
-    tempThread.start();
-  }
-
-  void runRatesDownload(final PropertyChangeListener listener) {
-    // make sure we don't submit this task on the Event Data Thread, which will block while waiting
-    // for the previous task to complete
-    final StockQuotesModel model = this;
-    Thread tempThread = new Thread(new Runnable() {
-      public void run() {
-        final ConnectionTask task = new ConnectionTask(
-                new DownloadRatesTask(model, _resources), model, _resources);
+        
+        final ConnectionTask task = new ConnectionTask(new DownloadTask(model, _resources), model, _resources);
         setCurrentTask(task, false);
         addPropertyChangeListener(listener);
         _executor.execute(_currentTask);
-        // all notifications are set to the Swing EDT
-        firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
         waitForCurrentTaskToFinish();
         removePropertyChangeListener(listener);
       }
-    }, "Download Exchange Rates");
+    }, "Download Exchange Rates and Prices");
     tempThread.start();
   }
 
   void runDownloadTest() {
     // the test is interactive (and on the EDT) so don't wait for the current task to finish
-    final ConnectionTask task = new ConnectionTask(
-            new DownloadQuotesTest(this, _resources), this, _resources);
+    DownloadTask downloadTask = new DownloadTask(this, _resources);
+    downloadTask.setIncludeTestInfo(true);
+    final ConnectionTask task = new ConnectionTask(downloadTask, this, _resources);
     setCurrentTask(task, true);
     _executor.execute(_currentTask);
     // all notifications are set to the Swing EDT
     firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
   }
-
-  public void runUpdateIfNeeded(final boolean delayStart, final PropertyChangeListener listener)
-  {
+  
+  public void runUpdateIfNeeded(final boolean delayStart, final PropertyChangeListener listener) {
     // make sure we don't submit this task on the Event Data Thread, which will block while waiting
     // for the previous task to complete
     final StockQuotesModel model = this;
     Thread tempThread = new Thread(new Runnable() {
       public void run() {
-        final ConnectionTask task = new ConnectionTask(
-                new UpdateIfNeededTask(model, _resources, listener, delayStart), model, _resources);
+        final ConnectionTask task = new ConnectionTask(new UpdateIfNeededTask(model, _resources, listener, delayStart), 
+                                                       model, _resources);
         setCurrentTask(task, false);
         addPropertyChangeListener(listener);
         if (_cancelTasks.get()) return;
@@ -236,17 +239,9 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   boolean isStockPriceSelected() {
-    if (isCurrentPriceSelected()) {
-      return true;
-    }
     return isHistoricalPriceSelected();
   }
-
-  boolean isCurrentPriceSelected() {
-    final BaseConnection connection = getSelectedCurrentPriceConnection();
-    return ((connection != null) && !NO_CONNECTION.equals(connection));
-  }
-
+  
   boolean isHistoricalPriceSelected() {
     final BaseConnection connection = getSelectedHistoryConnection();
     return ((connection != null) && !NO_CONNECTION.equals(connection));
@@ -256,7 +251,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     final BaseConnection connection = getSelectedExchangeRatesConnection();
     return ((connection != null) && !NO_CONNECTION.equals(connection));
   }
-
+  
   void setHistoryDaysFromFrequency(TimeInterval frequency) {
     switch(frequency) {
       case DAY : _historyDays = 5; break;
@@ -285,23 +280,20 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     firePropertyChange(_eventNotify, N12EStockQuotes.STATUS_UPDATE, Float.toString(percent), status);
   }
 
-  void saveSettings() {
-    if (book == null) return;  // do nothing; unexpected
+  void saveSettings(Account root) {
+    if (root == null) return;  // do nothing; unexpected
     if (_selectedHistoryConnection != null) {
-      book.getRootAccount().setParameter(Main.HISTORY_CONNECTION_KEY, _selectedHistoryConnection.getId());
-    }
-    if (_selectedCurrentPriceConnection != null) {
-      book.getRootAccount().setParameter(Main.CURRENT_PRICE_CONNECTION_KEY, _selectedCurrentPriceConnection.getId());
+      root.setParameter(Main.HISTORY_CONNECTION_KEY, _selectedHistoryConnection.getConnectionID());
     }
     if (_selectedExchangeRatesConnection != null) {
-      book.getRootAccount().setParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, _selectedExchangeRatesConnection.getId());
+      root.setParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, _selectedExchangeRatesConnection.getConnectionID());
     }
-    book.getRootAccount().setParameter(Main.SAVE_CURRENT_IN_HISTORY_KEY, _saveCurrentInHistorical);
     // store the results of the table - this updates the symbol map - must be done before symbol map
-    _tableModel.save();
+    _tableModel.save(root);
     // save the map of security/currency to stock exchanges
-    _symbolMap.saveToFile(book);
+    _symbolMap.saveToFile(root);
     _dirty = false;
+    root.syncItem();
   }
 
   BaseConnection getSelectedHistoryConnection() {
@@ -313,62 +305,35 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     return _selectedHistoryConnection;
   }
 
-  BaseConnection getSelectedCurrentPriceConnection() {
-    // load the selected connection from preferences if it hasn't been set
-    if (_selectedCurrentPriceConnection == null)
-    {
-      loadSelectedConnections();
-    }
-    return _selectedCurrentPriceConnection;
-  }
-
   BaseConnection getSelectedExchangeRatesConnection() {
     // load the selected connection from preferences if it hasn't been set
-    if (_selectedExchangeRatesConnection == null)
-    {
+    if (_selectedExchangeRatesConnection == null) {
       loadSelectedConnections();
     }
     return _selectedExchangeRatesConnection;
   }
   
   void setSelectedHistoryConnection(BaseConnection baseConnection) {
-    final BaseConnection original = _selectedHistoryConnection;
+    boolean modified = !SQUtil.areEqual(baseConnection, _selectedHistoryConnection);
     _selectedHistoryConnection = baseConnection;
-    if (!SQUtil.areEqual(original, _selectedHistoryConnection)) setDirty();
-  }
-
-  void setSelectedCurrentPriceConnection(BaseConnection baseConnection) {
-    final BaseConnection original = _selectedCurrentPriceConnection;
-    _selectedCurrentPriceConnection = baseConnection;
-    if (!SQUtil.areEqual(original, _selectedCurrentPriceConnection)) setDirty();
+    if(modified) setDirty();
   }
 
   void setSelectedExchangeRatesConnection(BaseConnection baseConnection) {
-    final BaseConnection original = _selectedExchangeRatesConnection;
+    boolean modified = ! SQUtil.areEqual(baseConnection, _selectedExchangeRatesConnection);
     _selectedExchangeRatesConnection = baseConnection;
-    if (!SQUtil.areEqual(original, _selectedExchangeRatesConnection)) setDirty();
+    if(modified) setDirty();
   }
-
-  void setSaveCurrentAsHistory(final boolean saveInHistory) {
-    boolean previous = _saveCurrentInHistorical;
-    _saveCurrentInHistorical = saveInHistory;
-    if (previous != saveInHistory) setDirty();
-  }
-
-  boolean getSaveCurrentAsHistory() { return _saveCurrentInHistorical; }
 
   Vector<BaseConnection> getConnectionList(final int type) {
     final Vector<BaseConnection> results = new Vector<BaseConnection>();
     results.add(NO_CONNECTION);
     for (BaseConnection connection : _connectionList) {
       switch (type) {
-        case BaseConnection.HISTORY_SUPPORT :
+        case BaseConnection.HISTORY_SUPPORT:
           if (connection.canGetHistory()) results.add(connection);
           break;
-        case BaseConnection.CURRENT_PRICE_SUPPORT :
-          if (connection.canGetCurrentPrice()) results.add(connection);
-          break;
-        case BaseConnection.EXCHANGE_RATES_SUPPORT :
+        case BaseConnection.EXCHANGE_RATES_SUPPORT:
           if (connection.canGetRates()) results.add(connection);
           break;
       }
@@ -382,17 +347,26 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   void saveLastQuoteUpdateDate(final int lastDate) {
     if (book == null) return;
-    CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
-    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful price quotes date of: "+dateFormat.format(lastDate));
+    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful price quotes date of: "+lastDate);
     book.getRootAccount().setParameter(Main.QUOTE_LAST_UPDATE_KEY, lastDate);
   }
 
   void saveLastExchangeRatesUpdateDate(final int lastDate) {
     if (book == null) return;
-    CustomDateFormat dateFormat = _preferences.getShortDateFormatter();
-    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful exchange rates date of: "+dateFormat.format(lastDate));
+    if(Main.DEBUG_YAHOOQT) System.err.println("Saving last successful exchange rates date of: "+lastDate);
     book.getRootAccount().setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate);
   }
+  
+  int getQuotesLastUpdateDate() {
+    if (book == null) return 0;
+    return book.getRootAccount().getIntParameter(Main.QUOTE_LAST_UPDATE_KEY, 0);
+  }
+
+  int getRatesLastUpdateDate() {
+    if (book == null) return 0;
+    return book.getRootAccount().getIntParameter(Main.RATE_LAST_UPDATE_KEY, 0);
+  }
+  
 
   private void waitForCurrentTaskToFinish() {
     synchronized (_taskSync) {
@@ -409,7 +383,6 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   private void fireDownloadEnd(String taskName, Boolean success) {
-    // all notifications are set to the Swing EDT already (see constructor)
     firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_END, taskName, success);
   }
 
@@ -423,60 +396,45 @@ public class StockQuotesModel extends BasePropertyChangeReporter
       _currentTask = task;
     }
   }
-
+  
   private void loadSelectedConnections() {
     _selectedHistoryConnection = null;
-    _selectedCurrentPriceConnection = null;
     _selectedExchangeRatesConnection = null;
-    if (book == null) return;
+    Account root = book==null ? null : book.getRootAccount();
+    if (root == null) return;
     // stock price history
-    String key = book.getRootAccount().getParameter(Main.HISTORY_CONNECTION_KEY, null);
+    String key = root.getParameter(Main.HISTORY_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
-      key = YahooConnectionUSA.PREFS_KEY; // default
+      key = IEXConnection.PREFS_KEY; // default
     }
-    if (NO_CONNECTION.getId().equals(key)) {
+    if (NO_CONNECTION.getConnectionID().equals(key)) {
       _selectedHistoryConnection = NO_CONNECTION;
     } else {
       for (BaseConnection connection : _connectionList) {
-        if (key.equals(connection.getId())) {
+        if (key.equals(connection.getConnectionID())) {
           _selectedHistoryConnection = connection;
           break;
         }
       }
     }
-
-    // current stock price
-    key = book.getRootAccount().getParameter(Main.CURRENT_PRICE_CONNECTION_KEY, null);
-    if (SQUtil.isBlank(key))  {
-      key = YahooConnectionUSA.PREFS_KEY; // default
-    }
-    if (NO_CONNECTION.getId().equals(key)) {
-      _selectedCurrentPriceConnection = NO_CONNECTION;
-    } else {
-      for (BaseConnection connection : _connectionList) {
-        if (key.equals(connection.getId())) {
-          _selectedCurrentPriceConnection = connection;
-          break;
-        }
-      }
-    }
+    
     // currency exchange rates
-    key = book.getRootAccount().getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
+    key = root.getParameter(Main.EXCHANGE_RATES_CONNECTION_KEY, null);
     if (SQUtil.isBlank(key))  {
-      key = FXConnection.PREFS_KEY; // default
+      key = ECBConnection.PREFS_KEY; // default
     }
-    if (NO_CONNECTION.getId().equals(key)) {
+    if (NO_CONNECTION.getConnectionID().equals(key)) {
       _selectedExchangeRatesConnection = NO_CONNECTION;
     } else {
       for (BaseConnection connection : _connectionList) {
-        if (key.equals(connection.getId())) {
+        if (key.equals(connection.getConnectionID())) {
           _selectedExchangeRatesConnection = connection;
           break;
         }
       }
     }
   }
-
+  
   private static void firePropertyChange(final PropertyChangeSupport notifier, final String name,
                                          final Object oldValue, final Object newValue) {
     // notify on the event data thread (Swing thread)
@@ -491,14 +449,18 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   private void buildConnectionList(ResourceProvider resources) {
-    _connectionList = new Vector<BaseConnection>();
-    String displayName = resources.getString(L10NStockQuotes.YAHOO_USA);
-    _connectionList.add(new YahooConnectionUSA(this, displayName));
-    displayName = resources.getString(L10NStockQuotes.YAHOO_UK);
-    _connectionList.add(new YahooConnectionUK(this, displayName));
-    displayName = resources.getString(L10NStockQuotes.GOOGLE);
-    _connectionList.add(new GoogleConnection(this, displayName));
-    displayName = resources.getString(L10NStockQuotes.YAHOO_RATES);
-    _connectionList.add(new FXConnection(this, displayName));
+    _connectionList = new ArrayList<BaseConnection>();
+    _connectionList.add(new IEXConnection(this));
+    _connectionList.add(new AlphavantageConnection(this));
+    //_connectionList.add(YahooConnection.getCurrenciesConnection(this)); // omitting yahoo rates since ECB bas much faster results
+    _connectionList.add(YahooConnection.getDefaultConnection(this));
+    //_connectionList.add(YahooConnection.getUKConnection(this)); // omitting because https://ichart.yahoo.com/table.csv no longer resolves
+    
+    //_connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));
+    _connectionList.add(new ECBConnection(this));
+  }
+
+  public char getDecimalDisplayChar() {
+    return decimalDisplayChar;
   }
 }

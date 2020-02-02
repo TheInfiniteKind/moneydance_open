@@ -30,7 +30,8 @@ import java.util.List;
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
-public class SecuritySymbolTableModel extends AbstractTableModel
+public class SecuritySymbolTableModel 
+  extends AbstractTableModel
 {
   static final int USE_COL = 0;
   static final int NAME_COL = 1;
@@ -64,6 +65,12 @@ public class SecuritySymbolTableModel extends AbstractTableModel
         addAccount(account);
       }
     }
+    
+    for(CurrencyType currency : _model.getBook().getCurrencies()) {
+      if(currency.getCurrencyType() != CurrencyType.Type.SECURITY) continue;
+      addSecurity(null, currency);
+    }
+
     // sort the list alphabetically
     Collections.sort(_data);
     // reset the test results
@@ -75,33 +82,58 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     fireTableDataChanged();
   }
 
-  void save() {
-    if (_model.getRootAccount() == null) return;
-    Iterator<Account> iter = new AccountIterator(_model.getRootAccount());
-    while (iter.hasNext()) {
-      Account account = iter.next();
-      if (account.getAccountType() == Account.AccountType.SECURITY) {
-        final CurrencyType currency = account.getCurrencyType();
-        if (currency == null) continue; // nothing to do, unlikely
-        SecurityEntry entry = getEntryByCurrency(currency);
-        if (entry == null) {
-          // The account probably has a zero balance and is not currently shown, turn off the
-          // downloading of this account. This will do nothing if not in symbol map.
-          _model.getSymbolMap().setIsCurrencyUsed(currency, false);
-        } else {
-          _model.getSymbolMap().setIsCurrencyUsed(currency, entry.use);
-          _model.getSymbolMap().setExchangeIdForCurrency(currency, entry.exchangeId);
-          // if not the default exchange, store the stock exchange currency as the display currency
-          updatePriceDisplayCurrency(currency, entry);
-          // update the currency symbol if the user edited it
-          String newSymbol = entry.editSymbol == null ? "" : entry.editSymbol.trim();
-          String currentSymbol = currency.getTickerSymbol();
-          if (!SQUtil.areEqual(newSymbol, currentSymbol)) {
-            currency.setTickerSymbol(newSymbol);
-          }
-        } // if a corresponding entry
-      } // if a security account
-    } // while iter.hasNext()
+  void save(Account root) {
+    if (root == null) return;
+    
+    for(CurrencyType currency : root.getBook().getCurrencies()) {
+      if(currency.getCurrencyType() != CurrencyType.Type.SECURITY) continue;
+      
+      SecurityEntry entry = getEntryByCurrency(currency);
+      if (entry == null) {
+        // The account probably has a zero balance and is not currently shown, turn off the
+        // downloading of this account. This will do nothing if not in symbol map.
+        _model.getSymbolMap().setIsCurrencyUsed(currency, false);
+      } else {
+        _model.getSymbolMap().setIsCurrencyUsed(currency, entry.updatesEnabled);
+        _model.getSymbolMap().setExchangeIdForCurrency(currency, entry.exchangeId);
+        // if not the default exchange, store the stock exchange currency as the display currency
+        updatePriceDisplayCurrency(currency, entry);
+        // update the currency symbol if the user edited it
+        String newSymbol = entry.editSymbol == null ? "" : entry.editSymbol.trim();
+        String currentSymbol = currency.getTickerSymbol();
+        if (!SQUtil.areEqual(newSymbol, currentSymbol)) {
+          currency.setTickerSymbol(newSymbol);
+        }
+      } // if a corresponding entry
+    }
+
+
+
+//    Iterator<Account> iter = new AccountIterator(root);
+//    while (iter.hasNext()) {
+//      Account account = iter.next();
+//      if (account.getAccountType() == Account.AccountType.SECURITY) {
+//        final CurrencyType currency = account.getCurrencyType();
+//        if (currency == null) continue; // nothing to do, unlikely
+//        SecurityEntry entry = getEntryByCurrency(currency);
+//        if (entry == null) {
+//          // The account probably has a zero balance and is not currently shown, turn off the
+//          // downloading of this account. This will do nothing if not in symbol map.
+//          _model.getSymbolMap().setIsCurrencyUsed(currency, false);
+//        } else {
+//          _model.getSymbolMap().setIsCurrencyUsed(currency, entry.use);
+//          _model.getSymbolMap().setExchangeIdForCurrency(currency, entry.exchangeId);
+//          // if not the default exchange, store the stock exchange currency as the display currency
+//          updatePriceDisplayCurrency(currency, entry);
+//          // update the currency symbol if the user edited it
+//          String newSymbol = entry.editSymbol == null ? "" : entry.editSymbol.trim();
+//          String currentSymbol = currency.getTickerSymbol();
+//          if (!SQUtil.areEqual(newSymbol, currentSymbol)) {
+//            currency.setTickerSymbol(newSymbol);
+//          }
+//        } // if a corresponding entry
+//      } // if a security account
+//    } // while iter.hasNext()
   }
 
   /**
@@ -155,7 +187,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (tableEntry == null) return "?";
     String result;
     switch(columnIndex) {
-      case USE_COL: return Boolean.valueOf(tableEntry.use);
+      case USE_COL: return tableEntry.updatesEnabled;
       case NAME_COL: {
         result = tableEntry.currency.getName();
         break;
@@ -191,13 +223,13 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     if (tableEntry == null) return;
     switch(columnIndex) {
       case USE_COL: {
-        final boolean original = tableEntry.use;
+        final boolean original = tableEntry.updatesEnabled;
         if (aValue instanceof Boolean) {
-          tableEntry.use = ((Boolean)aValue).booleanValue();
+          tableEntry.updatesEnabled = (Boolean) aValue;
         } else if (aValue instanceof String) {
-          tableEntry.use = Boolean.valueOf((String)aValue).booleanValue();
+          tableEntry.updatesEnabled = Boolean.valueOf((String) aValue);
         }
-        if (original != tableEntry.use) {
+        if (original != tableEntry.updatesEnabled) {
           _model.setDirty();
           // force a repaint of the header
           _model.fireUpdateHeaderEvent();
@@ -226,7 +258,7 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       default: // no other columns editable
     }
   }
-
+  
   String getToolTip(int rowIndex, int columnIndex) {
     if ((rowIndex < 0) || (rowIndex >= _data.size())) return null;
     if (_model.getRootAccount() == null) return null;
@@ -445,19 +477,25 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     return currencyType.getIDString();
   }
 
-  private SecurityEntry getEntryByCurrency(final CurrencyType currency) {
+  public SecurityEntry getEntryByCurrency(final CurrencyType currency) {
     for (SecurityEntry entry : _data) {
       if (currency.equals(entry.currency)) return entry;
     }
     return null;
   }
 
+  
   private void addAccount(Account account) {
     final CurrencyType currency = account.getCurrencyType();
-    if (currency == null) return; // nothing to do
+    if (currency == null) return; // should never happen
+    addSecurity(account, currency);
+  }
+  
+  private void addSecurity(Account account, CurrencyType currency) {
     _model.addSecurity(account, currency);
     SecurityEntry entry = getEntryByCurrency(currency);
-    long balance = account.getBalance();
+    
+    long balance = account==null ? 0 : account.getBalance();
     if ((balance == 0) && !_showZeroBalance) return; // nothing to do
     if (entry == null) {
       entry = new SecurityEntry();
@@ -466,11 +504,11 @@ public class SecuritySymbolTableModel extends AbstractTableModel
       // build or rebuild the symbol map if there is no match
       if (_model.getSymbolMap().hasCurrency(currency)) {
         entry.exchangeId = _model.getSymbolMap().getExchangeIdForCurrency(currency);
-        entry.use = _model.getSymbolMap().getIsCurrencyUsed(currency);
+        entry.updatesEnabled = _model.getSymbolMap().getIsCurrencyUsed(currency);
       } else {
         // add a new security to the map, clearing the 'use' flag if it is zero balance
         entry.exchangeId = _model.getSymbolMap().addCurrency(currency);
-        entry.use = (balance != 0) && _model.getSymbolMap().getIsCurrencyUsed(currency);
+        entry.updatesEnabled = (balance != 0) && _model.getSymbolMap().getIsCurrencyUsed(currency);
       }
       _data.add(entry);
     }
@@ -504,22 +542,22 @@ public class SecuritySymbolTableModel extends AbstractTableModel
 
   boolean allSymbolsEnabled() {
     for (final SecurityEntry entry : _data) {
-      if (!entry.use) return false;
+      if (!entry.updatesEnabled) return false;
     }
     return true;
   }
 
   boolean anySymbolEnabled() {
     for (final SecurityEntry entry : _data) {
-      if (entry.use) return true;
+      if (entry.updatesEnabled) return true;
     }
     return false;
   }
 
   void enableAllSymbols(final boolean use) {
     for (final SecurityEntry entry : _data) {
-      if (entry.use != use) _model.setDirty();
-      entry.use = use;
+      if (entry.updatesEnabled != use) _model.setDirty();
+      entry.updatesEnabled = use;
     }
     fireTableDataChanged();
   }
@@ -556,10 +594,22 @@ public class SecuritySymbolTableModel extends AbstractTableModel
     return changed;
   }
 
+  public void registerTestResults(DownloadInfo downloadInfo) {
+    for (int index = _data.size()-1; index >= 0; index-- ) {
+      SecurityEntry entry = _data.get(index);
+      if(entry.currency == downloadInfo.security) {
+        entry.testResult = downloadInfo.resultText;
+        entry.toolTip = downloadInfo.toolTip;
+        refreshRow(index);
+        break;
+      }
+    }
+  }
+
   class SecurityEntry implements Comparable<SecurityEntry> {
     CurrencyType currency;
     long shares = 0;
-    boolean use = true;
+    boolean updatesEnabled = true;
     String editSymbol;
     String exchangeId;
     String testResult;

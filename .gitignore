@@ -1,0 +1,11 @@
+dist
+build
+src/priv_key
+src/pub_key
+.idea
+*.iml
+lib/extadmin.jar
+lib/moneydance-dev.jar
+bin
+lib/moneydance-private.jar
+src/user.properties

@@ -20,7 +20,6 @@ package com.moneydance.modules.features.priceui.priceEntry;
 
 import com.infinitekind.moneydance.model.*;
 
-import com.infinitekind.util.CustomDateFormat;
 import com.moneydance.apps.md.controller.Util;
 import com.moneydance.modules.features.priceui.Main;
 
@@ -80,19 +79,8 @@ public class PriceEntryExec {
  */
     
     private CurrencyTableSource mdData;
-    
-    private CurrencyType[] allSecurities;
-    
-    private CurrencyType baseCurrency;
-    
     private boolean debugFlag;
-    
-    private MoneyFormatter formatter;
-    
-    private int numberOfSecurities;
-    
     private PriceEntryScreen screen;
-    
     private PriceTableModel tableModel;
     
     
@@ -120,7 +108,6 @@ public class PriceEntryExec {
         screen.setVisible(false);
         screen.dispose();
         screen = null;
-        formatter = null;
         mdData = null;
         tableModel = null;
     } // end method cleanup
@@ -142,13 +129,7 @@ public class PriceEntryExec {
             mdData = md;
         }
         
-        CurrencyTable valueTypeList = mdData.getUnitsOfValue();
-   
-        baseCurrency = valueTypeList.getBaseType();
-        formatter = new MoneyFormatter(baseCurrency);
-       
-        tableModel = new PriceTableModel();
-        initializeData (valueTypeList);
+        tableModel = new PriceTableModel(mdData.getUnitsOfValue());
         
         initializeWindow();
         
@@ -162,80 +143,6 @@ public class PriceEntryExec {
      */
     
   
-    /*
-     * initializeData
-     * 
-     * Gets list of securities (stocks, bonds, mutual funds, etc.) known in this
-     * Moneydance store.
-     * 
-     * Gets the names of those securities into the PriceTableModel object,
-     * from whence they are displayed.
-     * 
-     * Then calls initializePrices, which will do the same for the current
-     * prices of those securities.  ("Current" prices, here, means those most
-     * recently recorded as such in the Moneydance data store.)
-     * 
-     */
-    
-    private void initializeData 
-            (CurrencyTable allUnits) {
-    
-        tableModel.init();
-        
-        List<CurrencyType> allTypes = allUnits.getAllCurrencies();
-        List<CurrencyType> securitiesOnly = new LinkedList<CurrencyType>();
-        for (CurrencyType unit: allTypes) {
-            if (unit.getCurrencyType() == CurrencyType.Type.SECURITY) {
-                securitiesOnly.add(unit);
-            }
-        } // end for
-        Collections.sort(securitiesOnly, new Comparator<CurrencyType>() {
-            @Override
-            public int compare(CurrencyType o1, CurrencyType o2) {
-                return o1.getName().compareTo(o2.getName());
-            }
-        });
-        numberOfSecurities = securitiesOnly.size();
-        tableModel.allocate(numberOfSecurities);
-  
-        allSecurities = new CurrencyType [numberOfSecurities];
-        for (int index = 0; index < numberOfSecurities; index++) {
-            allSecurities [index] = securitiesOnly.get(index);
-        }
-       
-        String [] securityNames = new String [numberOfSecurities];
-        for (int index = 0; index < numberOfSecurities; index++) {
-             securityNames[index] = allSecurities[index].getName();
-        }
-        tableModel.populateNames (securityNames);
-        
-        initializePrices();
-    
-    } // end method initializeData
-    
-    
-    /* 
-     * initializePrices
-     *
-     * This is a separate method because, unlike the other things done in
-     * initializeData, these may need to be done again.  Namely, after
-     * the user has entered new prices and applied them to the data store,
-     * we want those new prices to be shown in the "current price" column
-     * of our window.
-     * 
-     */
-    
-    private void initializePrices() {
-        String [] currentPrices = new String [numberOfSecurities];
-        for (int index = 0; index < numberOfSecurities; index++) {
-            CurrencyType sec = allSecurities[index];
-            double price = 1 / sec.getUserRate();
-            currentPrices[index] = formatter.formatDouble(price);
-        } // end for
-        tableModel.populatePrices (currentPrices);
-    } // end method initializePrices
-   
-    
     /*
      * initializeWindow
      * 
@@ -259,73 +166,6 @@ public class PriceEntryExec {
      * indirectly, feom PriceEntryScreen):
      * 
      */
-    
-    
-    /*
-     * applyPrices
-     * 
-     * Called by: applyButtonActionPerformed, in PriceEntryScreen
-     * 
-     */
-    
-    /**
-     * Takes the prices (and other information) entered by the user, and 
-     * applies them to (enters them into) the Moneydance data store.
-     * 
-     */
-    
-    public void applyPrices() {
-        
-        int effectiveDate = screen.getAsOfDate();
-        
-        boolean makeCurrentFlag = screen.getMakeCurrentFlag();
-        
-        Double [] newPrices = tableModel.getNewPrices();
-        
-        if (debugFlag) {
-            dumpData (effectiveDate, makeCurrentFlag, newPrices);
-        }
-        
-        int count = 0; // How many new prices were entered?
-        
-        for (int index = 0; index < numberOfSecurities; index++) {
-            Double price = newPrices [index];
-            if (price != null && price.doubleValue()!=0) {
-                applyPrice (price, index, effectiveDate, makeCurrentFlag);
-                count++;
-            }
-        }
-        
-        /*
-         * If any new prices were entered, and we marked them as "current",
-         * then refresh the "Current price" column on the screen.  And if new
-         * prices were entered, we want to clear them now from the "New price"
-         * column of the form, whether they were designated "current" or not.
-         * 
-         */
-        
-        if (count > 0) {
-            tableModel.clearNewPrices();
-            if (makeCurrentFlag) {
-                initializePrices();
-            }
-            tableModel.refreshView();
-        }
-
-    } // end method applyPrices
-
-    
-    private void applyPrice 
-            (double price, int securityIndex, 
-             int asOfDate, boolean makeCurrent) {
-        CurrencyType security = allSecurities [securityIndex];
-        double rate = 1 / Util.safeRate(price);
-        security.addSnapshotInt (asOfDate, rate).syncItem();
-        if (makeCurrent) {
-            security.setUserRate(rate);
-            security.syncItem();
-        }
-    }
     
     
     // Used only for debugging:
@@ -353,6 +193,15 @@ public class PriceEntryExec {
         System.out.println();
 
     } // end method dumpData
-    
-    
+
+
+  /**
+   * Takes the prices (and other information) entered by the user, and 
+   * applies them to (enters them into) the Moneydance data store.
+   */
+  public void applyPrices() {
+    tableModel.applyPrices(screen.getAsOfDate(), screen.getMakeCurrentFlag());
+
+  }
+  
 } // end class PriceEntryExec

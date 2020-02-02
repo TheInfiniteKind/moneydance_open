@@ -245,23 +245,7 @@ final class FarUtil
         }
     }
 
-
-    static void recurseAddFocusListener(final Container root, final FocusListener listener)
-    {
-        for (Component child : root.getComponents())
-        {
-            if (child instanceof JPanel)
-            {
-                recurseAddFocusListener((Container)child, listener);
-            }
-            if (child.isFocusable())
-            {
-                // setup a focus traversal policy
-                child.addFocusListener(listener);
-            }
-        }
-    }
-
+    
     static String stripHtmlPrefixSuffix(final String source)
     {
         String stripped = source;
@@ -372,26 +356,26 @@ final class FarUtil
      */
     static String getMacKeyModifiersText(int modifiers) {
         StringBuilder buf = new StringBuilder();
-        if ((modifiers & InputEvent.ALT_GRAPH_MASK) != 0) {
+        if ((modifiers & InputEvent.ALT_DOWN_MASK) != 0) {
             buf.append(Toolkit.getProperty("AWT.altGraph", "Alt Graph"));
         }
         // Control key
-        if ((modifiers & InputEvent.CTRL_MASK) != 0) {
+        if ((modifiers & InputEvent.CTRL_DOWN_MASK) != 0) {
             buf.append(Toolkit.getProperty("AWT.control", "Ctrl"));
         }
         // Option key
-        if ((modifiers & InputEvent.ALT_MASK) != 0) {
+        if ((modifiers & InputEvent.ALT_DOWN_MASK) != 0) {
             buf.append(Toolkit.getProperty("AWT.alt", "Alt"));
         }
         // Shift key
-        if ((modifiers & InputEvent.SHIFT_MASK) != 0) {
+        if ((modifiers & InputEvent.SHIFT_DOWN_MASK) != 0) {
             buf.append(Toolkit.getProperty("AWT.shift", "Shift"));
         }
         // Command key
-        if ((modifiers & InputEvent.META_MASK) != 0) {
+        if ((modifiers & InputEvent.META_DOWN_MASK) != 0) {
             buf.append(Toolkit.getProperty("AWT.meta", "Meta"));
         }
-        if ((modifiers & InputEvent.BUTTON1_MASK) != 0) {
+        if ((modifiers & InputEvent.BUTTON1_DOWN_MASK) != 0) {
             buf.append(Toolkit.getProperty("AWT.button1", "Button1"));
         }
         return buf.toString();

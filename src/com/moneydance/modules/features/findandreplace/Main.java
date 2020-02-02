@@ -30,8 +30,6 @@ import java.util.List;
  */
 public class Main extends FeatureModule
 {
-    private static final int BUILD = 1211;
-    
     private final PreferencesListener _prefListener = new FarPreferencesListener();
     private final List<IFindAndReplaceController> _controllerList = new ArrayList<IFindAndReplaceController>();
     private final Object _listSync = new Object();
@@ -41,9 +39,8 @@ public class Main extends FeatureModule
     private boolean _testMode;
     private AccountBook _testBook;
 
-    public String getBuildString()
-    {
-        return Integer.toString(BUILD);
+    public String getBuildString() {
+        return Integer.toString(getBuild());
     }
 
     public void init()

@@ -57,50 +57,19 @@ public class UpdateIfNeededTask implements Callable<Boolean> {
     AccountBook book = _model.getBook();
     if (book == null) return Boolean.FALSE; // nothing to do
     UserPreferences preferences = _model.getPreferences();
-    boolean success = false;
     if (preferences.getBoolSetting(Main.AUTO_UPDATE_KEY, false)) {
       TimeInterval frequency = Main.getUpdateFrequency(_model.getPreferences());
-      final int today = Util.getStrippedDateInt();
-      // exchange rates first so that the proper exchange rates are used for security price
-      // conversions
-      if (_model.isExchangeRateSelected()) {
-        success = updateExchangeRates(book, frequency, today);
-      }
-      if (_model.isStockPriceSelected()) {
-        success |= updateSecurityPrices(book, frequency, today);
-      }
+      // exchange rates first so that the proper exchange rates are used for security price conversions
+      return updateRatesAndPrices(book, frequency, Util.getStrippedDateInt());
     }
-    return Boolean.valueOf(success);
+    return false;
   }
-
-  private boolean updateSecurityPrices(AccountBook book, TimeInterval frequency, int today)
-  {
-    int lastUpdateDate = Main.getQuotesLastUpdateDate(book.getRootAccount());
+  
+  private boolean updateRatesAndPrices(AccountBook book, TimeInterval frequency, int today) {
+    int lastUpdateDate = _model.getRatesLastUpdateDate();
     int nextUpdateDate = SQUtil.getNextDate(lastUpdateDate, frequency);
     if (today >= nextUpdateDate) {
-      DownloadQuotesTask task = new DownloadQuotesTask(_model, _resources);
-      Boolean success;
-      _model.addPropertyChangeListener(_progressListener);
-      try {
-        success = task.call();
-        if (success.booleanValue()) _model.saveLastQuoteUpdateDate(today);
-      } catch (Exception e) {
-        System.err.println("Error updating security prices: ");
-        e.printStackTrace();
-        success = Boolean.FALSE;
-      }
-      _model.removePropertyChangeListener(_progressListener);
-      return success.booleanValue();
-    }
-    return true; // no update needed, so success
-  }
-
-  private boolean updateExchangeRates(AccountBook book, TimeInterval frequency, int today)
-  {
-    int lastUpdateDate = Main.getRatesLastUpdateDate(book.getRootAccount());
-    int nextUpdateDate = SQUtil.getNextDate(lastUpdateDate, frequency);
-    if (today >= nextUpdateDate) {
-      DownloadRatesTask task = new DownloadRatesTask(_model, _resources);
+      DownloadTask task = new DownloadTask(_model, _resources);
       Boolean success;
       _model.addPropertyChangeListener(_progressListener);
       try {

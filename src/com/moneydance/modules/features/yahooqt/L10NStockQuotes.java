@@ -22,8 +22,8 @@ class L10NStockQuotes
   // main configuration dialog
   static final String SETTINGS_TITLE = "settings.title";
   static final String RATES_CONNECTION = "ratesConnection";
-  static final String HISTORY_CONNECTION = "historyConnection";
-  static final String CURRENT_CONNECTION = "currentConnection";
+  static final String SET_API_KEY = "setAPIKey";
+  static final String SECURITIES_CONNECTION = "securitiesConnection";
   static final String FREQUENCY_LABEL = "frequency";
   static final String NEXT_DATE_LABEL = "nextDate";
   static final String SAVE_CURRENT_OPTION = "saveCurrHistory";
@@ -44,7 +44,8 @@ class L10NStockQuotes
   static final String LABEL_COLON = "labelColon";
   static final String YAHOO_USA = "yahooUSA";
   static final String YAHOO_UK = "yahooUK";
-  static final String YAHOO_RATES = "yahooUSAexchangeRates";
+  static final String YAHOO_RATES = "yahooRates";
+  static final String ALPHAVANTAGE = "alphavantage";
   static final String GOOGLE = "google";
   static final String TEST_NOTSTARTED = "downloading";
   static final String TEST_EXCLUDED = "skipped";

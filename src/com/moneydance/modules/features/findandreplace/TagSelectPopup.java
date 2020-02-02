@@ -24,7 +24,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.Window;
@@ -36,15 +35,17 @@ import java.awt.event.KeyEvent;
  * selected tags a different background color. Clicking on an uncolored tag will select it, clicking
  * on a colored tag will deselect it.
  */
-public class TagSelectPopup extends JDialog
-{
-    public TagSelectPopup(Window owner, final TxnTagsPicker picker, final Color selectedTagColor)
-    {
+public class TagSelectPopup extends JDialog {
+  
+  private MoneydanceGUI mdGUI;
+  
+    public TagSelectPopup(Window owner, final TxnTagsPicker picker, MoneydanceGUI mdGUI) {
         super(owner, Dialog.ModalityType.APPLICATION_MODAL);
+        this.mdGUI = mdGUI;
         setUndecorated(true);
-
+        
         JPanel mainPanel = new JPanel(new BorderLayout());
-        final JList<String> tagsList = createList(picker, selectedTagColor);
+        final JList<String> tagsList = createList(picker);
         JScrollPane scrollPane = new JScrollPane(tagsList,
                                                  JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                                                  JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -59,15 +60,14 @@ public class TagSelectPopup extends JDialog
         setupKeyboard();
     }
 
-    private JList<String> createList(TxnTagsPicker picker, Color selectedTagColor)
+    private JList<String> createList(TxnTagsPicker picker)
     {
-        JList<String> tagsList = new JList<String>(picker.getFullTagsList());
+        JList<String> tagsList = new JList<>(picker.getFullTagsList());
 
         // make sure a click will pick the tag and add it to the list in the picker (if not there)
         tagsList.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tagsList.addListSelectionListener(new TagsListSelectionListener(tagsList, picker));
-        tagsList.setCellRenderer(
-                new TagListCellRenderer(picker, tagsList.getBackground(), selectedTagColor));
+        tagsList.setCellRenderer(new TagListCellRenderer(picker));
         return tagsList;
     }
 
@@ -93,14 +93,10 @@ public class TagSelectPopup extends JDialog
     private class TagListCellRenderer extends DefaultListCellRenderer
     {
         final TxnTagsPicker _picker;
-        final Color _normalBackground;
-        final Color _selectedBackground;
 
-        private TagListCellRenderer(final TxnTagsPicker picker, Color normalBackground, Color selectedBackground)
+        private TagListCellRenderer(final TxnTagsPicker picker)
         {
             _picker = picker;
-            _normalBackground = normalBackground;
-            _selectedBackground = selectedBackground;
         }
 
         @Override
@@ -108,13 +104,10 @@ public class TagSelectPopup extends JDialog
         {
             JLabel result = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             String tag = (String) value;
-            if (_picker.isTagSelected(tag))
-            {
-                result.setBackground(_selectedBackground);
-            }
-            else
-            {
-                result.setBackground(_normalBackground);
+            if (_picker.isTagSelected(tag)) {
+              result.setBackground(mdGUI.getColors().listSelectionBG);
+            } else {
+              result.setBackground(mdGUI.getColors().listBackground);
             }
             return result;
         }

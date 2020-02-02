@@ -1,6 +1,6 @@
 {
-  "vendor" = "The Infinite Kind, LLC"
-  "vendor_url" = "http://moneydance.com/"
+  "vendor" = "The Infinite Kind"
+  "vendor_url" = "https://infinitekind.com/"
   "name" = "Yahoo! Exchange Rate Retriever"
   "desc" = "This is an extension that retrieves the latest currency exchange rates from finance.yahoo.com"
   "id" = yahoofx

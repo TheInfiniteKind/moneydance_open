@@ -8,8 +8,10 @@
 
 package com.moneydance.modules.features.findandreplace;
 
+import com.infinitekind.moneydance.model.AcctFilter;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.moneydance.apps.md.view.gui.*;
+import com.moneydance.apps.md.view.gui.txnreg.AccountSelector;
 import com.moneydance.awt.AwtUtil;
 import com.infinitekind.moneydance.model.Account;
 
@@ -43,7 +45,6 @@ import java.awt.Toolkit;
 import java.awt.Font;
 import java.awt.Cursor;
 import java.awt.GridLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -107,7 +108,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     // we replace the category chooser on-the-fly so we need to track its parent and constraints
     private JPanel _replacePanel;
     private JCheckBox _replaceCategoryCheck;
-    private JComboBox _replaceCategory;
+    private AccountSelector _replaceCategory;
     private TableLayoutConstraints _replaceCategoryConstraints;
 
     private JCheckBox _replaceAmountCheck;
@@ -147,8 +148,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     private JButton _markNoneButton;
     private JButton _gotoButton;
     private JButton _copyButton;
-
-    private Color _focusColor;
 
     // don't automatically check the 'use' boxes when updating programmatically
     private boolean _suppressAutoCheckUse = false;
@@ -195,7 +194,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         // press Tab once to get focus.
 //        setFocusable(false);
 
-        _focusColor = new Color(255, 255, 180); // light yellow
         this.setIconImage(_controller.getImage(L10NFindAndReplace.FAR_IMAGE));
         
         setupButtons();
@@ -715,7 +713,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _findResults.setFillsViewportHeight(true);
         _findResults.setShowGrid(false);
         _findResults.setTableHeader(new JTableHeader(columnModel));
-        _findResults.setDefaultRenderer(TableColumn.class, new FindResultsTableCellRenderer());
+        _findResults.setDefaultRenderer(TableColumn.class, new FindResultsTableCellRenderer(mdGUI));
         columnModel.setTableSelectionModel(_findResults.getSelectionModel());
         _findResults.addMouseListener(new MouseAdapter()
         {
@@ -998,8 +996,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 L10NFindAndReplace.FIND_AMOUNT_MNC, _findAmountUseCheck, false);
 
         _findAmountPickers = new AmountPickerGroup(_controller, true, true);
-        _findAmountPickers.addFocusListener(new ColoredFocusAdapter(
-                _findAmountPickers.getFromAmountPicker(), _focusColor) );
         row = addRowField1(findPanel, row, startCol, _findAmountPickers );
 
         // date row
@@ -1009,8 +1005,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                 L10NFindAndReplace.FIND_DATE_MNC, _findDateUseCheck, false);
 
         _findDatePickers = new DatePickerGroup(_controller.getMDGUI());
-        _findDatePickers.addFocusListener(new ColoredFocusAdapter(
-                _findDatePickers.getFromDatePicker(), _focusColor) );
         _useTaxDate = setupControl( new JCheckBox(_controller.getString(L10NFindAndReplace.USE_TAX_DATE)) );
         addKeystrokeToButton(_useTaxDate, L10NFindAndReplace.USE_TAX_DATE_MNC, false);
         row = addRowField2(findPanel, row, startCol, _findDatePickers, _useTaxDate);
@@ -1021,7 +1015,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_FREETEXT_LABEL,
                 L10NFindAndReplace.FIND_FREETEXT_MNC, _findFreeTextUseCheck, false);
         _findFreeText = new JTextField();
-        _findFreeText.addFocusListener(new ColoredFocusAdapter( _findFreeText, _focusColor) );
         row = addRowField1(findPanel, row, startCol, _findFreeText);
 
         _findFreeTextUseDescriptionCheck = setupControl( new JCheckBox(
@@ -1108,7 +1101,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
         findPanel.setBorder(MoneydanceLAF.homePageBorder);
         buildFindPanelActions();
-        addPanelFocusListeners(findPanel);
         return findPanel;
     } // createFindPanel()
 
@@ -1116,12 +1108,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     {
         component.setOpaque(false);
         return component;
-    }
-
-    private void addPanelFocusListeners(final JPanel parent)
-    {
-        final FocusListener listener = new ColoredParentFocusAdapter(parent);
-        FarUtil.recurseAddFocusListener(parent, listener);
     }
 
     private void buildFindPanelActions()
@@ -1369,7 +1355,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private void showTagsPopup(final TxnTagsPicker picker)
     {
-        final JDialog popup = new TagSelectPopup(this, picker, _focusColor);
+        final JDialog popup = new TagSelectPopup(this, picker, mdGUI);
         popup.setVisible(true);
     }
 
@@ -1522,16 +1508,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
         // here we copy the functionality of addRowField1 so we can store the constraints
         _replaceCategoryConstraints = new TableLayoutConstraints(startCol, row, startCol + 3, row);
-        if (_controller.getMDGUI() != null)
-        {
-            buildReplaceCategoryChooser();
-        }
-        else
-        {
-            // should never happen, defensive programming (or for testbeds)
-            _replaceCategory = setupControl(new JComboBox());
-            _replacePanel.add(_replaceCategory, _replaceCategoryConstraints);
-        }
+        buildReplaceCategoryChooser();
         row = row + 2;
 
         // amount row
@@ -1540,7 +1517,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
                           L10NFindAndReplace.REPLACE_AMOUNT_MNC, _replaceAmountCheck, true);
 
         _replaceAmount = new AmountPickerGroup(_controller, false, false);
-        _replaceAmount.addFocusListener(new ColoredFocusAdapter( _replaceAmount.getToAmountPicker(), _focusColor) );
         row = addRowField1(_replacePanel, row, startCol, _replaceAmount);
 
         // description
@@ -1548,8 +1524,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_DESCRIPTION_LABEL,
                           L10NFindAndReplace.REPLACE_DESCRIPTION_MNC, _replaceDescriptionCheck, true);
         _replaceDescription = new JTextField();
-        _replaceDescription.addFocusListener(new ColoredFocusAdapter(_replaceDescription,
-                                                                     _focusColor));
         _replaceFoundDescriptionOnly = new JCheckBox(
                 _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
         setupControl(_replaceFoundDescriptionOnly);
@@ -1586,7 +1560,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_MEMO_LABEL,
                           L10NFindAndReplace.REPLACE_MEMO_MNC, _replaceMemoCheck, true);
         _replaceMemo = new JTextField();
-        _replaceMemo.addFocusListener(new ColoredFocusAdapter(_replaceMemo, _focusColor));
         _replaceFoundMemoOnly = new JCheckBox(
                 _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
         setupControl(_replaceFoundMemoOnly);
@@ -1597,7 +1570,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         row = addRowLabel(_replacePanel, row, L10NFindAndReplace.REPLACE_CHECK_LABEL,
                           L10NFindAndReplace.REPLACE_CHECK_MNC, _replaceCheckCheck, true);
         _replaceCheck = new JTextField();
-        _replaceCheck.addFocusListener(new ColoredFocusAdapter(_replaceCheck, _focusColor));
         _replaceFoundCheckOnly = new JCheckBox(
                 _controller.getString(L10NFindAndReplace.REPLACE_FOUND_TEXT_ONLY));
         setupControl(_replaceFoundCheckOnly);
@@ -1619,7 +1591,6 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
         _replacePanel.setBorder(MoneydanceLAF.homePageBorder);
         buildReplacePanelActions();
-        addPanelFocusListeners(_replacePanel);
         return _replacePanel;
     } // createReplacePanel()
 
@@ -1661,18 +1632,9 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     private void buildReplacePanelActions()
     {
-        _replaceCategory.addItemListener(new ItemListener()
-        {
-            public void itemStateChanged(ItemEvent e)
-            {
-                if (_replaceCategory instanceof AccountChoice)
-                {
-                    _controller.setReplaceCategory(true);
-                }
-                else
-                {
-                    _controller.setReplaceCategory(true);
-                }
+        _replaceCategory.addItemListener(new ItemListener() {
+            public void itemStateChanged(ItemEvent e) {
+              _controller.setReplaceCategory(true);
             }
         });
         _replaceCategoryCheck.addItemListener(new ItemListener()
@@ -1889,11 +1851,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
     void saveReplaceEdits()
     {
-        Account selectedAccount = null;
-        if (_replaceCategory instanceof AccountChoice)
-        {
-            selectedAccount = ((AccountChoice)_replaceCategory).getSelectedAccount();
-        }
+        Account selectedAccount = _replaceCategory.getSelectedAccount();
         _controller.setReplacementCategory(selectedAccount);
 
         _controller.setReplacementAmount(_replaceAmount.getToAmountPicker().getValue(), _replaceAmount.getCurrencyType());
@@ -2108,38 +2066,51 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         {
             _replacePanel.remove(_replaceCategory);
         }
-        if (_controller.getMDGUI() != null)
-        {
-            AccountChoice chooser = setupControl( new AccountChoice(_model.getData(), _controller.getMDGUI()) );
-            chooser.setContainerAccount(_model.getData().getRootAccount());
+        if (_controller.getMDGUI() != null) {
+          final boolean normalAccounts = _controller.getIncludeTransfers();
+          
+          AcctFilter filter = new AcctFilter() {
+            public boolean matches(Account account) {
+              Account replacementCategory = _controller.getReplacementCategory();
+              if (_controller.getReplaceCategory() && replacementCategory != null && account==replacementCategory) {
+                return true;
+              }
+              
+                switch(account.getAccountType()) {
+                case INCOME:
+                case EXPENSE:
+                  return true;
+                case ROOT:
+                  return false;
+                case ASSET:
+                case BANK:
+                case CREDIT_CARD:
+                case INVESTMENT:
+                case LIABILITY:
+                case LOAN:
+                case SECURITY:
+                  return normalAccounts;
+                default:
+                  return false;
+              }
+            }
             
-            final boolean normalAccounts = _controller.getIncludeTransfers();
-            chooser.setShowAssetAccounts(normalAccounts);
-            chooser.setShowBankAccounts(normalAccounts);
-            chooser.setShowCreditCardAccounts(normalAccounts);
-            chooser.setShowInvestAccounts(normalAccounts);
-            chooser.setShowLiabilityAccounts(normalAccounts);
-            chooser.setShowLoanAccounts(normalAccounts);
-            chooser.setShowSecurityAccounts(normalAccounts);
-
-            // never show other accounts
-            chooser.setShowOtherAccounts(false);
-
-            // always show categories
-            chooser.setShowIncomeAccounts(true);
-            chooser.setShowExpenseAccounts(true);
-
-            final Account account = _controller.getReplacementCategory();
-            if (_controller.getReplaceCategory() && (account != null))
-            {
-                chooser.setShowAccount(account, true);
-                chooser.setSelectedAccount(account);
+            @Override
+            public String format(Account acct) {
+              return acct.getFullAccountName();
             }
-            else
-            {
-                chooser.setSelectedAccountIndex(0);
-            }
-            _replaceCategory = chooser;
+          };
+            
+          AccountSelector chooser = setupControl(new AccountSelector(_controller.getMDGUI(), _model.getData(), 
+                                                                     filter));
+          chooser.setTypeable(true);
+          final Account replacementCategory = _controller.getReplacementCategory();
+          if (_controller.getReplaceCategory() && (replacementCategory != null)) {
+            chooser.setSelectedAccount(replacementCategory);
+          } else {
+            chooser.selectFirstAccount();
+          }
+          _replaceCategory = chooser;
         }
         if ((_replacePanel != null) && (_replaceCategory != null))
         {
@@ -2216,31 +2187,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
     {
         if (item != null) item.setEnabled(enabled);
     }
-
-    private class ColoredFocusAdapter extends FocusAdapter
-    {
-        private final Color _normalBackground;
-        private final Color _focusedBackground;
-
-        ColoredFocusAdapter(final Component source, final Color focused)
-        {
-            _normalBackground = source.getBackground();
-            _focusedBackground = focused;
-        }
-
-        @Override
-        public void focusGained(FocusEvent event)
-        {
-            event.getComponent().setBackground(_focusedBackground);
-        }
-
-        @Override
-        public void focusLost(FocusEvent event)
-        {
-            event.getComponent().setBackground(_normalBackground);
-        }
-    }
-
+    
     private class FarFocusTraversalPolicy extends LayoutFocusTraversalPolicy
     {
         @Override
