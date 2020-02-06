@@ -44,7 +44,7 @@ class L10NStockQuotes
   static final String LABEL_COLON = "labelColon";
   static final String YAHOO_USA = "yahooUSA";
   static final String YAHOO_UK = "yahooUK";
-  static final String YAHOO_RATES = "yahooUSAexchangeRates";
+  static final String YAHOO_RATES = "yahooRates";
   static final String ALPHAVANTAGE = "alphavantage";
   static final String GOOGLE = "google";
   static final String TEST_NOTSTARTED = "downloading";

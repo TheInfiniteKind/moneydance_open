@@ -211,12 +211,11 @@ public class RatioReportWindow
   }
 
   private void showReport(final Report report) {
-    final ReportGenerator reportGenerator = _generator;
     setTitle(report.getTitle());
 
     // transfer the initial setting to the viewer too to keep in sync
-    _reportViewer.setLandscape(reportGenerator.isLandscape());
-    _reportViewer.setReport(report, reportGenerator.getColumnWidths(), reportGenerator.getColumnOrder());
+    _reportViewer.setReport(report, _generator.getColumnWidths(), _generator.getColumnOrder());
+    _reportViewer.setLandscape(_generator.isLandscape());
     _cardLayout.show(_mainDetailView, CARD_REPORT);
 
     if (report.getSettings() != null) {
@@ -251,16 +250,10 @@ public class RatioReportWindow
             }
           });
         }
-      }
-      catch (InterruptedException ignore) {
+      } catch (InterruptedException | CancellationException ignore) {
         // if multiple transaction changes come in, the task may be canceled with normal
         // program flow, therefore ignore
-      }
-      catch (CancellationException ignore) {
-        // if multiple transaction changes come in, the task may be canceled with normal
-        // program flow, therefore ignore
-      }
-      catch (ExecutionException exex) {
+      } catch (ExecutionException exex) {
         exex.printStackTrace(System.err);
         setCalculationError(mdGUI.getStr("gen_report_error"));
       }
@@ -269,7 +262,7 @@ public class RatioReportWindow
     }
   }
 
-  private class ReportCalculateTask implements Callable<Report> {
+  private static class ReportCalculateTask implements Callable<Report> {
     private final GraphReportGenerator _generator;
 
     ReportCalculateTask(final GraphReportGenerator generator) {

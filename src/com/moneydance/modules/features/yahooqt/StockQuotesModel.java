@@ -452,6 +452,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     _connectionList = new ArrayList<BaseConnection>();
     _connectionList.add(new IEXConnection(this));
     _connectionList.add(new AlphavantageConnection(this));
+    //_connectionList.add(YahooConnection.getCurrenciesConnection(this)); // omitting yahoo rates since ECB bas much faster results
+    _connectionList.add(YahooConnection.getDefaultConnection(this));
+    //_connectionList.add(YahooConnection.getUKConnection(this)); // omitting because https://ichart.yahoo.com/table.csv no longer resolves
+    
     //_connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));
     _connectionList.add(new ECBConnection(this));
   }

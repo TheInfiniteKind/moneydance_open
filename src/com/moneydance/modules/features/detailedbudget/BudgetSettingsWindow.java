@@ -25,10 +25,6 @@ import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.JDateField;
 import com.infinitekind.util.CustomDateFormat;
 
-/** Window used for Account List interface
-  ------------------------------------------------------------------------
-*/
-
 public class BudgetSettingsWindow 
   extends JFrame
 {
