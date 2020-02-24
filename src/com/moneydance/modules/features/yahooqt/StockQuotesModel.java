@@ -64,6 +64,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     dateFormat = new CustomDateFormat("ymd");
     
     _tableModel = new SecuritySymbolTableModel(this);
+    if (_preferences == null)
+    {
+      _preferences = UserPreferences.getInstance();
+    }
   }
 
   void setResources(final ResourceProvider resources) {
