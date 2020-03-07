@@ -98,7 +98,7 @@ public class TDAmeritradeConnection extends APIKeyConnection
 					@Override
 					public void actionPerformed(ActionEvent e)
 					{
-						model.showURL("https://infinitekind.com/tdameritrade");
+						model.showURL("https://developer.tdameritrade.com/content/getting-started");
 					}
 				};
 				String defaultAPIKey = existingAPIKey != null ? existingAPIKey : "";
