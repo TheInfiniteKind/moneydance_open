@@ -28,7 +28,8 @@ import java.util.List;
  * Note: connections are *heavily* throttled to avoid Alphavantage's low threshold for
  * rejecting frequent connections.
  */
-public class AlphavantageConnection extends BaseConnection {
+public class AlphavantageConnection extends APIKeyConnection
+{
   private static final SimpleDateFormat SNAPSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
   
   public static final String PREFS_KEY = "alphavantage";
@@ -59,7 +60,7 @@ public class AlphavantageConnection extends BaseConnection {
   }
   
   
-  static synchronized String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet) {
+  public String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet) {
     if(!evenIfAlreadySet && cachedAPIKey!=null) return cachedAPIKey;
     
     if(model==null) return null;
@@ -131,38 +132,7 @@ public class AlphavantageConnection extends BaseConnection {
     return cachedAPIKey;
   } 
   
-  
-  
-  
-  
-  @Override
-  public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange) {
-    if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) return null;
-    // check if the exchange was already added on, which will override the selected exchange
-    if (!SQUtil.isBlank(parsedSymbol.suffix)) {
-      return parsedSymbol.symbol + parsedSymbol.suffix;
-    }
-    // Check if the selected exchange has a Yahoo suffix or not. If it does, add it.
-    String suffix = exchange.getSymbolYahoo();
-    if (SQUtil.isBlank(suffix)) return parsedSymbol.symbol;
-    return parsedSymbol.symbol + suffix;
-  }
-
-  @Override
-  public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange) {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
-    // check if this symbol overrides the exchange and the currency code
-    int periodIdx = rawTickerSymbol.lastIndexOf('.');
-    if(periodIdx>0) {
-      String marketID = rawTickerSymbol.substring(periodIdx+1);
-      if(marketID.contains("-")) {
-        // the currency ID was encoded along with the market ID
-        return StringUtils.fieldIndex(marketID, '-', 1);
-      }
-    }
-    return exchange.getCurrencyCode();
-  }
-  
+	
   public String toString() {
     StockQuotesModel model = getModel();
     return model==null ? "" : model.getResources().getString("alphavantage");

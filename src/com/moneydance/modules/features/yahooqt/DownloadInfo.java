@@ -11,6 +11,8 @@ package com.moneydance.modules.features.yahooqt;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.DateUtil;
+import com.moneydance.modules.features.yahooqt.tdameritrade.Candle;
+import com.moneydance.modules.features.yahooqt.tdameritrade.History;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -21,7 +23,7 @@ import java.util.List;
 /**
  * Stores the result of an attempt to retrieve information for a security or currency
  */
-class DownloadInfo {
+public class DownloadInfo {
   CurrencyType security;
   CurrencyType relativeCurrency; // the currency in which prices are specified by the source
   String fullTickerSymbol;
@@ -342,4 +344,16 @@ class DownloadInfo {
     }
   }
   
+  public void addHistory(History history)
+  {
+  	if (history.candles != null)
+	{
+		history.candles.stream().forEach(candle -> addDayOfData(candle));
+	}
+  }
+  
+  private void addDayOfData(Candle candle)
+  {
+  	history.add(new StockRecord(candle, priceMultiplier));
+  }
 }
