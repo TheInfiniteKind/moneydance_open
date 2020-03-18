@@ -10,8 +10,9 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.DateRange;
 import com.infinitekind.util.DateUtil;
+import com.moneydance.modules.features.yahooqt.tdameritrade.Candle;
+import com.moneydance.modules.features.yahooqt.tdameritrade.History;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ import java.util.List;
 /**
  * Stores the result of an attempt to retrieve information for a security or currency
  */
-class DownloadInfo {
+public class DownloadInfo {
   CurrencyType security;
   CurrencyType relativeCurrency; // the currency in which prices are specified by the source
   String fullTickerSymbol;
@@ -112,6 +113,7 @@ class DownloadInfo {
     
     if(fullTickerSymbol.equals(relativeCurrency.getIDString())) { // the base currency is always 1.0
       isValidForDownload = false;
+      this.rate = 1.0;
       recordError("Base currency rate is a constant 1.0");
     } else if(!isValidForDownload) {
       recordError("Invalid currency symbol: '"+fullTickerSymbol
@@ -299,13 +301,11 @@ class DownloadInfo {
       long amount = (record.closeRate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / record.closeRate);
       record.priceDisplay = relativeCurrency.formatFancy(amount, model.getDecimalDisplayChar());
     }
-    
-    long amount = (rate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / rate);
-    final char decimal = model.getPreferences().getDecimalChar();
+    StockRecord latest = findMostRecentValidRecord();
     return MessageFormat.format(model.getResources().getString(L10NStockQuotes.SECURITY_PRICE_DISPLAY_FMT),
                                 security.getName(),
                                 model.getUIDateFormat().format(DateUtil.getStrippedDateInt()),
-                                relativeCurrency.formatFancy(amount, decimal));
+                                latest.priceDisplay);
   }
   
   String buildPriceLogText(StockQuotesModel model) {
@@ -344,4 +344,16 @@ class DownloadInfo {
     }
   }
   
+  public void addHistory(History history)
+  {
+  	if (history.candles != null)
+	{
+		history.candles.stream().forEach(candle -> addDayOfData(candle));
+	}
+  }
+  
+  private void addDayOfData(Candle candle)
+  {
+  	history.add(new StockRecord(candle, priceMultiplier));
+  }
 }

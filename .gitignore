@@ -9,3 +9,4 @@ lib/moneydance-dev.jar
 bin
 lib/moneydance-private.jar
 src/user.properties
+.DS_Store
