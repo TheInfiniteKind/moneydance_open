@@ -16,6 +16,7 @@ import java.util.Vector;
 import javax.swing.JOptionPane;
 
 import com.infinitekind.moneydance.model.*;
+import com.infinitekind.util.DateUtil;
 
 public class BudgetData  {
 	protected Main              extension;
@@ -358,30 +359,15 @@ public class BudgetData  {
 	}
 	
 	protected int getTxnMonth(AbstractTxn t) {
-		GregorianCalendar gc = getDate((new Integer(t.getDateInt())).toString());
-		
-		return gc.get(Calendar.MONTH)+1;
+		return (t.getDateInt()/100) % 100;
 	}
 	
 	protected Date getTxnDate(AbstractTxn t) {
-		return getDate((new Integer(t.getDateInt())).toString()).getTime();
+		return DateUtil.convertIntDateToLong(t.getDateInt());
 	}
 	
-	protected Date getDate(int dt){
-		return  getDate((new Integer(dt)).toString()).getTime();
-	}
-	
-	protected GregorianCalendar getDate(String dt){
-        GregorianCalendar gc = new GregorianCalendar();
-        gc.set(Calendar.YEAR, new Integer(dt.substring(0,4)).intValue() );
-        gc.set(Calendar.MONTH, new Integer(dt.substring(4,6)).intValue() - 1 );
-        gc.set(Calendar.DAY_OF_MONTH, new Integer(dt.substring(6,8)).intValue() );  // TODO: BUG??
-        gc.set(Calendar.HOUR_OF_DAY,0);
-        gc.set(Calendar.MINUTE,0);
-        gc.set(Calendar.SECOND,0);
-        gc.set(Calendar.MILLISECOND,0);
-        
-        return gc;
+	protected Date getDate(int dt) {
+		return DateUtil.convertIntDateToLong(dt);
 	}
 	
 	public boolean budgetDelteItem(String categoryName, int month){
