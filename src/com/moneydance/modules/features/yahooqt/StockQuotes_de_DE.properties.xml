@@ -29,7 +29,8 @@
     <!-- other strings -->
     <entry key="labelColon">: </entry>
 
-    <entry key="alphavantage">Alphavantage</entry>
+	<entry key="alphavantage">Alphavantage</entry>
+	<entry key="tdameritrade">TD Ameritrade</entry>
     <entry key="yahooUSA">Yahoo!® Finance - USA</entry>
     <entry key="yahooUK">Yahoo!® Finance - UK</entry>
     <entry key="yahooRates">Yahoo!® Currency Exchange Rates</entry>

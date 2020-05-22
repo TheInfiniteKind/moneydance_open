@@ -64,6 +64,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     dateFormat = new CustomDateFormat("ymd");
     
     _tableModel = new SecuritySymbolTableModel(this);
+    if (_preferences == null)
+    {
+      _preferences = UserPreferences.getInstance();
+    }
   }
 
   void setResources(final ResourceProvider resources) {
@@ -451,7 +455,8 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   private void buildConnectionList(ResourceProvider resources) {
     _connectionList = new ArrayList<BaseConnection>();
     _connectionList.add(new IEXConnection(this));
-    _connectionList.add(new AlphavantageConnection(this));
+	_connectionList.add(new AlphavantageConnection(this));
+	_connectionList.add(new TDAmeritradeConnection(this));
     //_connectionList.add(YahooConnection.getCurrenciesConnection(this)); // omitting yahoo rates since ECB bas much faster results
     _connectionList.add(YahooConnection.getDefaultConnection(this));
     //_connectionList.add(YahooConnection.getUKConnection(this)); // omitting because https://ichart.yahoo.com/table.csv no longer resolves
