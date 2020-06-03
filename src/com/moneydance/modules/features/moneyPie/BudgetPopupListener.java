@@ -33,17 +33,19 @@ public class BudgetPopupListener extends MouseAdapter {
 			 showPopup(e);
          } else {
         	 Object source = e.getSource();
-        	 
-        	 BudgetTable table = (BudgetTable) source;
-    		 int row = table.rowAtPoint( e.getPoint() );
-        	 int col = table.columnAtPoint( e.getPoint() );
-        	
-        	 if(table.isBalloonVisible() ){
-        		  table.hideBalloon();
-        	 } else {
-        		 showBalloon(table, row, col);
-        	 }
-        	 table.hideEditBalloon();
+			 
+			 if (source instanceof BudgetTable) {
+				BudgetTable table = (BudgetTable) source;
+				int row = table.rowAtPoint( e.getPoint() );
+				int col = table.columnAtPoint( e.getPoint() );
+				
+				if(table.isBalloonVisible() ){
+					table.hideBalloon();
+				} else {
+					showBalloon(table, row, col);
+				}
+				table.hideEditBalloon();
+			 }
          }
      }
 
