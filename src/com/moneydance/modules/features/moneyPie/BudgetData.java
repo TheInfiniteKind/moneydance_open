@@ -610,6 +610,9 @@ public class BudgetData  {
 	}
 	
 	 public void fetchBudgetData(String budgetName, Map<String, BudgetValue>[] dataMap){
+		  if(budgetName == null){
+			  return;
+		  }
 
 		  for(int i = 0; i <= 12; i++){
 			  dataMap[i]       = new HashMap<String, BudgetValue>();
@@ -624,13 +627,20 @@ public class BudgetData  {
 	        	  budgetCurrent = b;
 
 		          for (int j = 0; j < b.getItemList().getItemCount(); j++) {
-		        	  BudgetItem bi = b.getItemList().getItem(j);
+					  BudgetItem bi = b.getItemList().getItem(j);
+					  if(bi == null){
+						  continue;
+					  }
+
 			          Account a = bi.getTransferAccount();
+					  if(a == null){
+						continue;
+					  }
 
 			          if(bi.getIntervalStartDate() > 0 && 
 			        		  a.getComment().indexOf("IGNORE") == -1 &&
 			        		  a.getComment().indexOf("MAIN") == -1  ){
-			        	  Integer accNum = new Integer(a.getAccountNum());
+			        	  Integer accNum = Integer.valueOf(a.getAccountNum());
 			              String  accName = a.getFullAccountName();
 			              
 			        	  for(int month = 1; month <= 12; month++){
@@ -639,8 +649,9 @@ public class BudgetData  {
 
 				              BudgetValue bAmount = (getBudgetedAmount(bi, startDay, endDay, month));
 
-				              //Yes this is a hack, but I did not want to change the return object to deal with with
-				              //No budget entry exists, different than a "0" value budget entry
+				              //Yes this is a hack, but I did not want to change the return object to deal with
+							  //No budget entry exists, different than a "0" value budget entry
+							  if (bAmount == null) continue;
 				              if (bAmount.isNoEntry()) continue;
 
 				              //Value was in cents, convert to dollars
@@ -684,15 +695,10 @@ public class BudgetData  {
 			                  moneyAccounts.put(accNum,accName);
 			                }
 			              }
-
 			          }
-			          
-			          
-			          
 			      }
 	          }
 	      }
-
 	  }
 	 
 	 private BudgetValue getBudgetedAmount(BudgetItem bi, Date startDay, Date endDay, int month) {
