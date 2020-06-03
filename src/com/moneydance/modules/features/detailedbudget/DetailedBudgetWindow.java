@@ -333,7 +333,7 @@ public class DetailedBudgetWindow extends JFrame {
 				}
 			}
 
-			Integer accNum = new Integer(account.getAccountNum());
+			Integer accNum = Integer.valueOf(account.getAccountNum());
 			// Account Name
 			sb.append("<tr><td"+getIndentStyle(indent)+">");
 			sb.append(getAccountName(account));
@@ -546,7 +546,7 @@ public class DetailedBudgetWindow extends JFrame {
 					e2 = DateUtil.getEndOfYear(sd);
 				} 
 				else {
-					// Shouldnt get here
+					// Should not get here
 					break;
 				}
 				// Have we reached the end
@@ -887,22 +887,22 @@ public class DetailedBudgetWindow extends JFrame {
 
 	}
 
-	/** Add an account to the list if it isnt there already */
+	/** Add an account to the list if it is not there already */
 	private void addCategoryAndSubcategories(List<Account> categoryList, Account account) {
 		if (account == null) return;
-    
-    // If it's a category and not in the list, add it
-    switch(account.getAccountType()) {
-      case INCOME:
-      case EXPENSE:
-        if (!categoryList.contains(account)) {
-          categoryList.add(account);
-        }
-        break;
-    }
-    
-    for (Account suba : account.getSubAccounts()) {
-      addCategoryAndSubcategories(categoryList, suba);
+		
+		// If it's a category and not in the list, add it
+		switch(account.getAccountType()) {
+		case INCOME:
+		case EXPENSE:
+			if (!categoryList.contains(account)) {
+			categoryList.add(account);
+			}
+			break;
+		}
+		
+		for (Account subAccount : account.getSubAccounts()) {
+			addCategoryAndSubcategories(categoryList, subAccount);
 		}
 		
 	}

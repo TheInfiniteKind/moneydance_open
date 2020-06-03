@@ -47,13 +47,13 @@ public class BudgetData  {
 	  
     BudgetData(Main extension){
     	this.extension = extension;
-    	this.refreshPrefs();
+    	this.refreshPreferences();
     	root = extension.getUnprotectedContext().getRootAccount();
 	}
     
-    private void refreshPrefs(){
-    	BudgetPreferences prefs = this.extension.getPreferences();
-        if(prefs.getDefaults("taxIsIncome").indexOf("y") > -1){
+    private void refreshPreferences(){
+    	BudgetPreferences preferences = this.extension.getPreferences();
+        if(preferences.getDefaults("taxIsIncome").indexOf("y") > -1){
         	taxIsIncome = true;
         } else {
         	taxIsIncome = false;
@@ -192,7 +192,7 @@ public class BudgetData  {
     }
     
 	protected void refresh(){
-		refreshPrefs();
+		refreshPreferences();
 		fetchSpendingData();
 		fetchBudgetData(budgetName, budgetData);
 	}
@@ -220,7 +220,7 @@ public class BudgetData  {
 	    			  BudgetItem bi = b.getItemList().getItem(0);
 	    			  String startDate = String.valueOf(bi.getIntervalStartDate()); 
 	    			  String startYear = startDate.substring(0, 4);
-	    			  year = (new Integer(startYear)).intValue();
+	    			  year =  Integer.valueOf(startYear).intValue();
 	    		  }
 	          }
 		  }
@@ -241,8 +241,8 @@ public class BudgetData  {
 		          for (int j = 0; j < b.getItemList().getItemCount(); j++) {
 		        	  BudgetItem bi = b.getItemList().getItem(j);
 			          if(bi.getIntervalStartDate() > 0){
-			        	  String startDate = String.valueOf(bi.getIntervalStartDate()); //YYYYMMDD
-			        	  String endDate   = String.valueOf(bi.getIntervalEndDate()); //YYYYMMDD
+			        	  String startDate = String.valueOf(bi.getIntervalStartDate());
+			        	  String endDate   = String.valueOf(bi.getIntervalEndDate());
 
 			        	  String start_month  = startDate.substring(4, 6);
 			        	  String start_day    = startDate.substring(6, 8);
@@ -252,8 +252,8 @@ public class BudgetData  {
 			        	  String end_day    = endDate.substring(6, 8);
 			        	  String newEndDate = budgetName + end_month + end_day;
 
-			        	  bi.setIntervalStartDate(new Integer(newStartDate));
-			        	  bi.setIntervalEndDate(new Integer(newEndDate));
+			        	  bi.setIntervalStartDate(Integer.valueOf(newStartDate));
+			        	  bi.setIntervalEndDate(Integer.valueOf(newEndDate));
 
 			          }
 			      }
@@ -322,7 +322,7 @@ public class BudgetData  {
 		          }
 		          if(othAccount.getComment().indexOf("MAIN") > -1 && othAccount.getAccountType() == Account.AccountType.EXPENSE) continue;
 
-		          Integer accNum = new Integer(txnAccount.getAccountNum());
+		          Integer accNum = Integer.valueOf(txnAccount.getAccountNum());
 		          String  accName = txnAccount.getFullAccountName();
 		          
 		          if (BudgetDateUtil.isInRange(getTxnDate(t),
@@ -370,7 +370,7 @@ public class BudgetData  {
 		return DateUtil.convertIntDateToLong(dt);
 	}
 	
-	public boolean budgetDelteItem(String categoryName, int month){
+	public boolean budgetDeleteItem(String categoryName, int month){
 		  Budget b = this.getCurrentBudget();
 		  if(b == null) return false;
 
@@ -381,7 +381,7 @@ public class BudgetData  {
 	    		  Account a = bi.getTransferAccount();
 
 	              if(a.getFullAccountName().equalsIgnoreCase(categoryName)){
-	                  String startDate = String.valueOf(bi.getIntervalStartDate()); //YYYYMMDD
+	                  String startDate = String.valueOf(bi.getIntervalStartDate());
 	                  int biMonth = Integer.parseInt(startDate.substring(4, 6));
 
 	                  if(month == biMonth){
@@ -461,7 +461,7 @@ public class BudgetData  {
 	    		  Account a = bi.getTransferAccount();
 
 	              if(a.getFullAccountName().equalsIgnoreCase(categoryName)){
-	                  String startDate = String.valueOf(bi.getIntervalStartDate()); //YYYYMMDD
+	                  String startDate = String.valueOf(bi.getIntervalStartDate());
 	                  int biMonth = Integer.parseInt(startDate.substring(4, 6));
 
 	                  if(month == biMonth){
@@ -773,8 +773,8 @@ public class BudgetData  {
 	      //Repair Budget Items, set as No Repeat
 	      if(bi.getInterval() != BudgetItem.INTERVAL_NO_REPEAT && count == 1){
 	    	  if(bi.getInterval() == BudgetItem.INTERVAL_MONTHLY){
-	    		  long MILLSECS_PER_DAY = 1000 * 60 * 60 * 24;
-	    		  long deltaDays = ( budEndDate.getTime() - budStartDate.getTime() )/ MILLSECS_PER_DAY;
+	    		  long MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+	    		  long deltaDays = ( budEndDate.getTime() - budStartDate.getTime() )/ MILLISECONDS_PER_DAY;
 	    		  if(deltaDays <= 31){
 	    			  bi.setInterval(BudgetItem.INTERVAL_NO_REPEAT); 
 	    		  }

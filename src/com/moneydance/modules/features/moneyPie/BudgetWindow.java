@@ -129,7 +129,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
     super(extension.getName() + " Console");
     this.extension = extension;
     this.data      = extension.getBudgetData();
-    this.updatePrefs();
+    this.updatePreferences();
     
     popupMenu = new BudgetPopup(this);
     
@@ -258,8 +258,8 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
      *   float weighty, 
      *   int width, 
      *   int height, 
-     *   boolean fillx, 
-     *   boolean filly) 
+     *   boolean fill-x, 
+     *   boolean fill-y) 
      */
 
 	JLabel labelView = new JLabel( "Show values:");
@@ -323,15 +323,15 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
   
   protected void refresh(){
 	data.refresh();
-	this.updatePrefs();
+	this.updatePreferences();
 	tablePaint();
   }
   
-  private void updatePrefs(){
-		BudgetPreferences prefs = extension.getPreferences();
-	    defaultBudget    = prefs.getDefaults("budget");
+  private void updatePreferences(){
+		BudgetPreferences preferences = extension.getPreferences();
+	    defaultBudget    = preferences.getDefaults("budget");
 
-	    if(prefs.getDefaults("taxIsIncome").indexOf("y") > -1){
+	    if(preferences.getDefaults("taxIsIncome").indexOf("y") > -1){
 	    	taxIsIncome = true;
 	    } else {
 	    	taxIsIncome = false;
@@ -633,7 +633,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 
         if(data.isBudgetNull(accName, column)){
         	if(userValue.isNoEntry() ){
-        		data.budgetDelteItem(categoryName, column);
+        		data.budgetDeleteItem(categoryName, column);
         	} else {
         		data.budgetAddItem(categoryName, column, userValue);
         	}
@@ -641,7 +641,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 
         } else {
 	        if(userValue.isNoEntry() ){
-	        	data.budgetDelteItem(categoryName, column);
+	        	data.budgetDeleteItem(categoryName, column);
 	        	displayBudget();
 	        } else {
 	        	BudgetValue currentValue = data.getBudgetValue(accName, column);
@@ -753,7 +753,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 		  //BIG FUCKING HACK
 		  //for some unknown reason, balloons will not display after
 		  //refreshing the table. But by some magic, selecting another
-		  //tab and reselecting the the original tab and it all works as
+		  //tab and re-selecting the the original tab and it all works as
 		  //it should?? I've tried forcing everything under the sun to repaint
 		  //with no success, giving up for now 
 		  int index = tableTabs.getSelectedIndex();

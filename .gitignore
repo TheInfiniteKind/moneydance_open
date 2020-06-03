@@ -5,6 +5,7 @@ src/priv_key
 src/pub_key
 .idea
 *.iml
+*.mxt
 lib/extadmin.jar
 lib/moneydance-dev.jar
 bin
