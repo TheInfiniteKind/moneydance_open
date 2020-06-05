@@ -3,35 +3,41 @@
 \************************************************************/
 package com.moneydance.modules.features.moneyPie;
 
-import com.infinitekind.moneydance.model.*;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 
 import java.sql.Timestamp;
-import java.util.Observable;
-import java.util.Observer;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.awt.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** Module used to give users access to a Account List
     interface to Moneydance.
 */
 
-public class Main extends FeatureModule implements Observer {
+public class Main extends FeatureModule implements PropertyChangeListener {
   private BudgetWindow                 mainWindow = null;
   private BudgetForecast               castWindow = null;
-  private BudgetReportWindow           rprtWindow = null;
+  private BudgetReportWindow           reportWindow = null;
   private BudgetHomePageViewController homeView   = null;
-  private BudgetPreferences            prefs;
+  private BudgetPreferences            preferences;
   private BudgetData                   data;
 
-  public Main(){
+  private List<PropertyChangeListener> listener = new ArrayList<PropertyChangeListener>();
+
+  public Main() {
 
   }
 
   public void init() {
-	this.setup();
-	this.homeView = new BudgetHomePageViewController(this);
+	  this.setup();
+	  this.homeView = new BudgetHomePageViewController(this);
 
     try {
       this.getContext().registerHomePageView(this, this.homeView);
@@ -42,11 +48,25 @@ public class Main extends FeatureModule implements Observer {
     }
   }
 
+  public void addChangeListener(PropertyChangeListener newListener) {
+    listener.add(newListener);
+  }
+
+  public void notifyListeners(Object object, String property, Boolean oldValue, Boolean newValue) {
+      for (PropertyChangeListener name : listener) {
+          name.propertyChange(new PropertyChangeEvent(this, property, oldValue, newValue));
+      }
+  }
+
+  public void propertyChange(PropertyChangeEvent event) {
+    this.preferences.setContext(this.getContext());
+  }
+
   protected void setup(){
-	if(this.prefs == null){
-		  this.prefs  = new BudgetPreferences();
-		  this.prefs.setContext(this.getContext());
-	      this.prefs.addObserver(this);
+	if(this.preferences == null){
+		  this.preferences  = new BudgetPreferences();
+      this.preferences.setContext(this.getContext());
+      this.addChangeListener(this);
 	}
 
 	if(this.getRoot() != null){
@@ -68,10 +88,10 @@ public class Main extends FeatureModule implements Observer {
 			castWindow = new BudgetForecast(this, conf);
 		}
 
-		if(rprtWindow == null){
-			rprtWindow = new BudgetReportWindow(this);
+		if(reportWindow == null){
+			reportWindow = new BudgetReportWindow(this);
 		} else {
-			rprtWindow.updateReport();
+			reportWindow.updateReport();
 		}
 	  }
   }
@@ -97,16 +117,12 @@ public class Main extends FeatureModule implements Observer {
 	  return this.mainWindow;
   }
 
-  public void update(final Observable observable, final Object updateAll) {
-      this.prefs.setContext(this.getContext());
-  }
-
   protected FeatureModuleContext getUnprotectedContext() {
 	  return this.getContext();
   }
 
   protected BudgetPreferences getPreferences(){
-	  return this.prefs;
+	  return this.preferences;
   }
 
   protected BudgetData getBudgetData(){
@@ -160,9 +176,9 @@ public class Main extends FeatureModule implements Observer {
   protected void showReport(){
 	  this.setup();
 
-	  rprtWindow.setVisible(true);
-	  rprtWindow.toFront();
-	  rprtWindow.requestFocus();
+	  reportWindow.setVisible(true);
+	  reportWindow.toFront();
+	  reportWindow.requestFocus();
   }
 
   synchronized void closeConsole() {

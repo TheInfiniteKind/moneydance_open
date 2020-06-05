@@ -224,14 +224,23 @@ public class BudgetPreferencesWindow extends JFrame {
         	BudgetData data = this.extension.getBudgetData();
         	if(data.getMainAccount() != null){
         		if(! data.getMainAccount().getAccountName().equalsIgnoreCase(newAccountName)){
-            		data.getMainAccount().setComment("");
-            		data.getAccount(newAccountName).setComment("MAIN");
+					Account m = data.getMainAccount();
+					if(m != null){
+						m.setComment("");
+					}
+
+					Account a = data.getAccount(newAccountName);
+					if(a != null){
+						a.setComment("MAIN");
+					}
             	}
         	} else {
-        		data.getAccount(newAccountName).setComment("MAIN");
+				Account a = data.getAccount(newAccountName);
+				if(a != null){
+					a.setComment("MAIN");
+				}
         	}
         	
-
         	String defaultBudgetName = (String)defaultBudget.getSelectedItem();
         	String taxIsIncome       = "n";
         	if(yesButton.isSelected()){

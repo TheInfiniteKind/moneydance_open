@@ -4,7 +4,6 @@
 package com.moneydance.modules.features.moneyPie;
 
 import java.util.Hashtable;
-import java.util.Observable;
 
 import com.moneydance.apps.md.controller.Main;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
@@ -18,7 +17,8 @@ import java.awt.Color;
  * <code>UserPreferences</code> (received from the
  * <code>FeatureModuleContext</code>).
  */
-public final class BudgetPreferences extends Observable {
+public final class BudgetPreferences {
+    private         com.moneydance.modules.features.moneyPie.Main main;
 	private         Main            mainContext;
     private         UserPreferences userPreferences;
 
@@ -45,7 +45,11 @@ public final class BudgetPreferences extends Observable {
     }
 
     public void reload() {
-        this.notifyObservers(Boolean.TRUE);
+        main.notifyListeners(
+                    this,
+                    "PREFERENCES",
+                    Boolean.FALSE,
+                    Boolean.TRUE);
     }
 
     public void setContext(final FeatureModuleContext context) {
@@ -68,7 +72,11 @@ public final class BudgetPreferences extends Observable {
     
     private UserPreferences getUserPreferences() {
         if (this.userPreferences == null) {
-            this.notifyObservers(Boolean.FALSE);
+            main.notifyListeners(
+                    this,
+                    "PREFERENCES",
+                    Boolean.TRUE,
+                    Boolean.FALSE);
         }
         return this.userPreferences;
     }
@@ -82,12 +90,6 @@ public final class BudgetPreferences extends Observable {
         int backgroundValue = this.getUserPreferences().getIntSetting(UserPreferences.GUI_HOMEPGALT_BG, -657931);
         return new Color(backgroundValue);
     }
-    
-    /*
-    public void setAllWritablePreferencesToNull() {
-        this.savePublishDetails((Hashtable<String, String>) null);
-    }
-    */
     
     protected String getDefaults(final String key) {
         return this.defaults.getStr(key, null);
@@ -107,7 +109,6 @@ public final class BudgetPreferences extends Observable {
     
     protected void saveDefaults(final Hashtable<String, String> hashtable) {
         if (hashtable != null) {
-        	//thisTable = new StreamTable();
         	this.defaults.merge(hashtable);
         }
 

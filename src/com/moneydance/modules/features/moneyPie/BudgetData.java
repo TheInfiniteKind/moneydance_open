@@ -788,7 +788,7 @@ public class BudgetData  {
 	      }
 	      
 	      if(bi.getInterval() != BudgetItem.INTERVAL_NO_REPEAT){
-	    	  int bMonth = (new Integer(String.valueOf(bi.getIntervalStartDate()).substring(4, 6))).intValue();
+	    	  int bMonth = (Integer.valueOf(String.valueOf(bi.getIntervalStartDate()).substring(4, 6))).intValue();
 		      if(month > bMonth){
 		    	  cellTypeData[month].put(bi.getTransferAccount().getFullAccountName(), "repeat"); 
 		      } else {

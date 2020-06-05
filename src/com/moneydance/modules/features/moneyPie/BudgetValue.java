@@ -58,6 +58,14 @@ public class BudgetValue extends Object {
 			return false;
 		}
 	}
+
+	public boolean isZero(){
+		if(this.value == 0){
+			return true;
+		} else {
+			return false;
+		}
+	}
 	
 	public boolean isEqual(double cValue){
 		if(this.value == cValue){

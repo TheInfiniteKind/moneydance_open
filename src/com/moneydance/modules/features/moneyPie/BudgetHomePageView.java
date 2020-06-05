@@ -48,8 +48,8 @@ public class BudgetHomePageView extends JPanel {
     	boldFont = plainFont.deriveFont(Font.BOLD);
 		
 		setLayout(new GridBagLayout());
-    this.setBackground(null);
-    this.setOpaque(false);
+        this.setBackground(null);
+        this.setOpaque(false);
 
 		Image refreshImage = getImage("/com/moneydance/modules/features/moneyPie/images/refresh.gif");
 		if(refreshImage == null){
@@ -58,10 +58,10 @@ public class BudgetHomePageView extends JPanel {
 		ImageIcon refreshIcon = new ImageIcon(refreshImage);
 		refreshButton  = new JButton(refreshIcon);
 		refreshButton.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        refresh();
-      }
-    });
+			public void actionPerformed(ActionEvent e) {
+				refresh();
+			}
+		});
 		
 		Image pieImage = getImage("/com/moneydance/modules/features/moneyPie/images/pie.gif");
         ImageIcon pieIcon = new ImageIcon(pieImage);
@@ -92,11 +92,11 @@ public class BudgetHomePageView extends JPanel {
         
         
 		JPanel controlPanel = new JPanel(new GridBagLayout());
-    controlPanel.setBackground(null);
-    controlPanel.setOpaque(false);
+		controlPanel.setBackground(null);
+		controlPanel.setOpaque(false);
 
 
-    GridBagConstraints gbc = new GridBagConstraints();
+    	GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 1;
         gbc.gridy = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -140,8 +140,6 @@ public class BudgetHomePageView extends JPanel {
         gbc.insets = new Insets(0, 0, 0, 0);
         controlPanel.add(reportButton, gbc);
         
-
-        
         contentPanel = new JPanel(new GridBagLayout());
         contentPanel.setBackground(null);
         contentPanel.setOpaque(false);
@@ -160,9 +158,9 @@ public class BudgetHomePageView extends JPanel {
         gbc.gridy = 2;
         add(contentPanel, gbc);
 
-    setBorder(BorderFactory.createCompoundBorder(MoneydanceLAF.homePageBorder,
-                                                 BorderFactory.createEmptyBorder(0,12,0,12)));
-  }
+    	setBorder(BorderFactory.createCompoundBorder(MoneydanceLAF.homePageBorder,
+                                                 	BorderFactory.createEmptyBorder(0,12,0,12)));
+  	}
 	
 	private void refresh(){
 		contentPanel.removeAll();
@@ -172,38 +170,38 @@ public class BudgetHomePageView extends JPanel {
 	
 	private void refreshRefs(){
 		this.extension.setup();
-		this.data        = this.extension.getBudgetData();
+		this.data = this.extension.getBudgetData();
 	}
 	
 	private void generatePanel(){
         if(this.data != null){
     	    
         	int rowNumber = 1;
-        	this.addToTable(rowNumber, data.getCurrentBudgetName() + " - Year to Date", "", "", "",boldFont);
+        	this.addToTable(rowNumber, data.getCurrentBudgetName() + " - Year to Date", "", "", "", null, boldFont, false);
     		rowNumber++;
     		this.addBlankRow(rowNumber);
     		rowNumber++;
     		
-        	this.addToTable(rowNumber, "Income", "Budgeted", "Actual", "Remaining", boldFont);
+        	this.addToTable(rowNumber, "Income", "Budgeted", "Actual", "Remaining", null, boldFont, false);
     		rowNumber++;
     		
     		Object[] rValues = new Object[4];
-    		rValues = generateTable(rowNumber, "", data.getIncomeAccounts(), true);
+    		rValues = generateTable(rowNumber, "", data.getIncomeAccounts(), true, true);
     		rowNumber = ((Integer)rValues[0]).intValue();
     		
-    		BudgetValue netBudgetd  = (BudgetValue) rValues[1];
+    		BudgetValue netBudgeted  = (BudgetValue) rValues[1];
     		BudgetValue netActual    = (BudgetValue) rValues[2];
     		BudgetValue netRemaining = (BudgetValue) rValues[3];
     		
         	this.addBlankRow(rowNumber);
     		rowNumber++;
     		
-        	this.addToTable(rowNumber, "Expenses", "Budgeted", "Actual", "Remaining", boldFont);
+        	this.addToTable(rowNumber, "Expenses", "Budgeted", "Actual", "Remaining", null, boldFont, false);
     		rowNumber++;
-    		rValues = generateTable(rowNumber, "", data.getExpenseAccounts(), true);
+    		rValues = generateTable(rowNumber, "", data.getExpenseAccounts(), true, false);
     		rowNumber = ((Integer)rValues[0]).intValue();
    
-    		netBudgetd.minus((BudgetValue) rValues[1]);
+    		netBudgeted.minus((BudgetValue) rValues[1]);
     		netActual.minus((BudgetValue) rValues[2]);
     		netRemaining.minus((BudgetValue) rValues[3]);
     		
@@ -211,9 +209,7 @@ public class BudgetHomePageView extends JPanel {
     		rowNumber++;
 
     		
-    		this.addToTable(rowNumber, "Net", netBudgetd.toString(), 
-    				netActual.toString(), 
-    				"", boldFont);
+    		this.addToTable(rowNumber, "Net", netBudgeted.toString(), netActual.toString(), "", null, boldFont, false);
     		
     		/*
         	this.addToTable(rowNumber, "Account Transfers", "Budgeted", "Actual", "Remaining", boldFont);
@@ -252,18 +248,27 @@ public class BudgetHomePageView extends JPanel {
 			                String accountName,
 			                String cellValueB,
 			                String cellValueA,
-			                String cellValueD, Font customFont){
+							String cellValueD, 
+							BudgetValue value,
+							Font customFont,
+							Boolean inverseColors){
 		
 		NumberFormat nf = NumberFormat.getNumberInstance();
 		nf.setGroupingUsed(true);
 		nf.setMinimumFractionDigits(2);
 		nf.setMaximumFractionDigits(2);
 
-		Color thisColor;
-		if(cellValueD.indexOf("-") > -1){
-			thisColor = new Color(250, 60, 60);
-		} else {
-			thisColor = new Color(0, 0, 0);
+		Color thisColor = new Color(0, 0, 0);
+		if(value != null){
+			if(inverseColors){
+				if(! value.isNegative() && ! value.isZero()){
+					thisColor = new Color(250, 60, 60);
+				}
+			} else {
+				if(value.isNegative()){
+					thisColor = new Color(250, 60, 60);
+				}
+			}
 		}
 		
 		JLabel l1 = new JLabel(accountName);
@@ -307,7 +312,7 @@ public class BudgetHomePageView extends JPanel {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private Object[] generateTable(int rowNumber, String label, Map accounts, boolean showSubTotals){
+	private Object[] generateTable(int rowNumber, String label, Map accounts, boolean showSubTotals, boolean inverseColors){
 		Calendar cal = Calendar.getInstance();
 		int currentMonth = cal.get(Calendar.MONTH) + 1;
 
@@ -336,111 +341,115 @@ public class BudgetHomePageView extends JPanel {
 		
 		Iterator<?> k = sortByValue(accounts).keySet().iterator();
 		while (k.hasNext()) {
-		Integer acctNum = (Integer) k.next();
-		String acctName = (String) accounts.get(acctNum);
-		
-		if(acctName.indexOf(":") > -1){
-			topAccountName = acctName.substring(0, acctName.indexOf(":"));
-		} else {
-			topAccountName = acctName;
-		}
-		
-		if(! showSubTotals) topAccountName = label;
-		
-		if(! topAccountName.equalsIgnoreCase(lastTop)){
-			if(! lastTop.equals("")){
-	
-			this.addToTable(rowNumber, lastTop, sectionYTDBudget.toString(), 
-													   sectionYTDValue.toString(), 
-													   sectionYTDDiff.toString(), null);
-			rowNumber++;
+			Integer acctNum = (Integer) k.next();
+			String acctName = (String) accounts.get(acctNum);
 			
-			totalValue.add(sectionTotalValue);
-			totalBudget.add(sectionTotalBudget);
-			totalDiff.add(sectionTotalDiff);
-			
-			totalYTDValue.add(sectionYTDValue);
-			totalYTDBudget.add(sectionYTDBudget);
-			totalYTDDiff.add(sectionYTDDiff);
-			
-			totalYearValue.add(sectionYearValue);
-			totalYearBudget.add(sectionYearBudget);
-			totalYearDiff.add(sectionYearDiff);
-			
-			sectionTotalValue.setValue(0);
-			sectionTotalBudget.setValue(0);
-			sectionTotalDiff.setValue(0);
-			
-			sectionYTDValue.setValue(0);
-			sectionYTDBudget.setValue(0);
-			sectionYTDDiff.setValue(0);
-			
-			sectionYearValue.setValue(0);
-			sectionYearBudget.setValue(0);
-			sectionYearDiff.setValue(0);
-			
+			if(acctName.indexOf(":") > -1){
+				topAccountName = acctName.substring(0, acctName.indexOf(":"));
+			} else {
+				topAccountName = acctName;
 			}
-		}
+			
+			if(! showSubTotals) topAccountName = label;
+			
+			if(! topAccountName.equalsIgnoreCase(lastTop)){
+				if(! lastTop.equals("")){
+					this.addToTable(rowNumber, lastTop, sectionYTDBudget.toString(), 
+														sectionYTDValue.toString(), 
+														sectionYTDDiff.toString(), 
+														sectionYTDDiff,
+														null,
+														inverseColors);
+					rowNumber++;
+					
+					totalValue.add(sectionTotalValue);
+					totalBudget.add(sectionTotalBudget);
+					totalDiff.add(sectionTotalDiff);
+					
+					totalYTDValue.add(sectionYTDValue);
+					totalYTDBudget.add(sectionYTDBudget);
+					totalYTDDiff.add(sectionYTDDiff);
+					
+					totalYearValue.add(sectionYearValue);
+					totalYearBudget.add(sectionYearBudget);
+					totalYearDiff.add(sectionYearDiff);
+					
+					sectionTotalValue.setValue(0);
+					sectionTotalBudget.setValue(0);
+					sectionTotalDiff.setValue(0);
+					
+					sectionYTDValue.setValue(0);
+					sectionYTDBudget.setValue(0);
+					sectionYTDDiff.setValue(0);
+					
+					sectionYearValue.setValue(0);
+					sectionYearBudget.setValue(0);
+					sectionYearDiff.setValue(0);
+				
+				}
+			}
 
 		
-		//Month
-		BudgetValue actualValue = new BudgetValue(data, 0);
-		if(! data.isSpendingNull(acctName, currentMonth)){
-			actualValue = data.getSpendingValue(acctName, currentMonth);
-		}
+			//Month
+			BudgetValue actualValue = new BudgetValue(data, 0);
+			if(! data.isSpendingNull(acctName, currentMonth)){
+				actualValue = data.getSpendingValue(acctName, currentMonth);
+			}
+			
+			BudgetValue budgetValue = new BudgetValue(data, 0);
+			if(! data.isBudgetNull(acctName, currentMonth)){
+				budgetValue = data.getBudgetValue(acctName, currentMonth);
+			}
+			
+			//Year
+			BudgetValue actualYear = new BudgetValue(data, 0);
+			if(! data.isBudgetNull(acctName, 0)){
+				actualYear = data.getSpendingValue(acctName, 0);
+			}
+			
+			BudgetValue budgetYear = new BudgetValue(data, 0);
+			if(! data.isBudgetNull(acctName, 0)){
+				budgetYear = data.getBudgetValue(acctName, 0);
+			}
 		
-		BudgetValue budgetValue = new BudgetValue(data, 0);
-		if(! data.isBudgetNull(acctName, currentMonth)){
-			budgetValue = data.getBudgetValue(acctName, currentMonth);
-		}
-		
-		//Year
-		BudgetValue actualYear = new BudgetValue(data, 0);
-		if(! data.isBudgetNull(acctName, 0)){
-		actualYear = data.getSpendingValue(acctName, 0);
-		}
-		
-		BudgetValue budgetYear = new BudgetValue(data, 0);
-		if(! data.isBudgetNull(acctName, 0)){
-		budgetYear = data.getBudgetValue(acctName, 0);
-		}
-		
-		//YTD		
-		BudgetValue ytdActual = data.getSTDValue(acctName, currentMonth);
-		BudgetValue ytdBudget = data.getBTDValue(acctName, currentMonth);
-		
-		BudgetValue diffValue = new BudgetValue(data, budgetValue);
-		diffValue.minus(actualValue);
-		
-		BudgetValue ytdDiff   = new BudgetValue(data, ytdBudget);
-		ytdDiff.minus(ytdActual);
-		
-		BudgetValue diffYear = new BudgetValue(data, budgetYear);
-		diffYear.minus(actualYear);
-		
-		acctName = acctName.substring(acctName.indexOf(":")+1);
-		
-		sectionTotalValue.add(actualValue);
-		sectionTotalBudget.add(budgetValue);
-		sectionTotalDiff.add(diffValue);
-		
-		sectionYTDValue.add(ytdActual);
-		sectionYTDBudget.add(ytdBudget);
-		sectionYTDDiff.add(ytdDiff);
-		
-		sectionYearValue.add(actualYear);
-		sectionYearBudget.add(budgetYear);
-		sectionYearDiff.add(diffYear);
-		
-		if(showSubTotals) lastTop = topAccountName;
-		if(! showSubTotals) lastTop = label;
-		
+			//YTD		
+			BudgetValue ytdActual = data.getSTDValue(acctName, currentMonth);
+			BudgetValue ytdBudget = data.getBTDValue(acctName, currentMonth);
+			
+			BudgetValue diffValue = new BudgetValue(data, budgetValue);
+			diffValue.minus(actualValue);
+			
+			BudgetValue ytdDiff   = new BudgetValue(data, ytdBudget);
+			ytdDiff.minus(ytdActual);
+			
+			BudgetValue diffYear = new BudgetValue(data, budgetYear);
+			diffYear.minus(actualYear);
+			
+			acctName = acctName.substring(acctName.indexOf(":")+1);
+			
+			sectionTotalValue.add(actualValue);
+			sectionTotalBudget.add(budgetValue);
+			sectionTotalDiff.add(diffValue);
+			
+			sectionYTDValue.add(ytdActual);
+			sectionYTDBudget.add(ytdBudget);
+			sectionYTDDiff.add(ytdDiff);
+			
+			sectionYearValue.add(actualYear);
+			sectionYearBudget.add(budgetYear);
+			sectionYearDiff.add(diffYear);
+			
+			if(showSubTotals) lastTop = topAccountName;
+			if(! showSubTotals) lastTop = label;
 		}
 		
 		
 		this.addToTable(rowNumber, lastTop, sectionYTDBudget.toString(), 
 				                            sectionYTDValue.toString(), 
-				                            sectionYTDDiff.toString(), null);
+											sectionYTDDiff.toString(), 
+											sectionYTDDiff,
+											null,
+											inverseColors);
 		rowNumber++;
 		
 		totalValue.add(sectionTotalValue);
@@ -457,11 +466,14 @@ public class BudgetHomePageView extends JPanel {
 		
 		this.addToTable(rowNumber, "", totalYTDBudget.toString(), 
 				                       totalYTDValue.toString(), 
-				                       totalYTDDiff.toString(), boldFont);
+									   totalYTDDiff.toString(), 
+									   totalYTDDiff,
+									   boldFont,
+									   inverseColors);
 		rowNumber++;
 		
 		Object rValues[] = new Object[4];
-		rValues[0] = (Object) new Integer(rowNumber);
+		rValues[0] = (Object) Integer.valueOf(rowNumber);
 		rValues[1] = (Object)totalYTDBudget;
 		rValues[2] = (Object)totalYTDValue;
 		rValues[3] = (Object)totalYTDDiff;
