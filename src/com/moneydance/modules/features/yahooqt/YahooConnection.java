@@ -205,23 +205,7 @@ public class YahooConnection extends BaseConnection {
     if (SQUtil.isBlank(suffix)) return parsedSymbol.symbol;
     return parsedSymbol.symbol + suffix;
   }
-
-  public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)
-  {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
-    // check if this symbol overrides the exchange and the currency code
-    int periodIdx = rawTickerSymbol.lastIndexOf('.');
-    if(periodIdx>0) {
-      String marketID = rawTickerSymbol.substring(periodIdx+1);
-      if(marketID.indexOf("-")>=0) {
-        // the currency ID was encoded along with the market ID
-        return StringUtils.fieldIndex(marketID, '-', 1);
-      }
-    }
-    return exchange.getCurrencyCode();
-  }
-
-
+  
   /**
    * Update the exchange rate for the given currency using Yahoo's CURR1CURR2=X ticker symbol lookup
    * 
@@ -383,7 +367,7 @@ public class YahooConnection extends BaseConnection {
   
   
   public String toString() {
-    StockQuotesModel model = getModel();
+    DownloadModel model = getModel();
     return model==null ? "??" : model.getResources().getString(getConnectionID());
   }
   
@@ -394,7 +378,7 @@ public class YahooConnection extends BaseConnection {
       String urlString = String.format(crumbleLink, fullTickerSymbol);
       URL url = new URL(urlString);
       HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
-      urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11");
+      //urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11");
 
       int respCode = urlConn.getResponseCode();
       if (respCode < 200 | respCode >= 300) {

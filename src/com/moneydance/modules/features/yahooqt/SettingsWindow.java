@@ -152,7 +152,7 @@ public class SettingsWindow
 	  	BaseConnection bc = (BaseConnection) _historyConnectionSelect.getModel().getSelectedItem();
 	  	if (bc instanceof  APIKeyConnection)
 		{
-			((APIKeyConnection) bc).getAPIKey(_model, true);
+			((APIKeyConnection) bc).getAPIKey(true);
 		}
       }
     };
@@ -327,7 +327,7 @@ public class SettingsWindow
     });
     final MouseInputAdapter mouseInputListener = new MouseInputAdapter() {
       @Override
-      public void mouseClicked(MouseEvent e) {
+      public void mouseReleased(MouseEvent e) {
         if (SwingUtilities.isLeftMouseButton(e)) {
           _showingTestInfo = !_showingTestInfo;
           if (_showingTestInfo) {
@@ -386,7 +386,7 @@ public class SettingsWindow
     // the only way to get mouse clicks is to attach a listener to the header
     tableHeader.addMouseListener(new MouseAdapter() {
       @Override
-      public void mouseClicked(MouseEvent event) {
+      public void mouseReleased(MouseEvent event) {
         final JTableHeader header = (JTableHeader) event.getSource();
         TableColumnModel columnModel = header.getColumnModel();
         int viewColumn = header.columnAtPoint(event.getPoint());
@@ -404,7 +404,7 @@ public class SettingsWindow
     _table.setDefaultRenderer(TableColumn.class, _tableRenderer);
     _table.addMouseListener(new MouseAdapter() {
       @Override
-      public void mouseClicked(MouseEvent event) {
+      public void mouseReleased(MouseEvent event) {
         // if the user clicks on a test result cell and there's a tooltip to show, put the tooltip
         // in a message dialog.
         TableColumnModel columnModel = _table.getColumnModel();

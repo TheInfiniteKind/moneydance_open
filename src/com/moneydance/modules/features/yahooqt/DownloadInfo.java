@@ -42,23 +42,23 @@ public class DownloadInfo {
   String toolTip;
   String resultText;
   
-  List<DownloadException> errors = new ArrayList<>();
-  private List<StockRecord> history = new ArrayList<>();
+  final List<DownloadException> errors = new ArrayList<>();
+  private final List<StockRecord> history = new ArrayList<>();
   
-  DownloadInfo(CurrencyType security, BaseConnection connection) {
+  DownloadInfo(CurrencyType security, DownloadModel model) {
     this.security = security;
-    if(connection==null) {
+    if(model==null) {
       this.skipped = true;
       return;
     }
     if (security.getCurrencyType() == CurrencyType.Type.SECURITY) {
-      initFromSecurity(connection);
+      initFromSecurity(model);
     } else {
-      initFromCurrency(connection);
+      initFromCurrency();
     }
   }
   
-  private void initFromSecurity(BaseConnection connection) {
+  private void initFromSecurity(DownloadModel model) {
     SymbolData symbolData = SQUtil.parseTickerSymbol(security);
     if(symbolData==null) {
       isValidForDownload = false;
@@ -66,12 +66,12 @@ public class DownloadInfo {
       return;
     }
     
-    exchange = connection.getExchangeForSecurity(symbolData, security);
+    exchange = model.getExchangeForSecurity(symbolData, security);
     if (exchange != null) {
       priceMultiplier = exchange.getPriceMultiplier();
     }
     
-    fullTickerSymbol = connection.getFullTickerSymbol(symbolData, exchange);
+    fullTickerSymbol = model.getFullTickerSymbol(symbolData, exchange);
     if(fullTickerSymbol==null) {
       isValidForDownload = false;
       recordError("No ticker symbol for: '" + security);
@@ -83,7 +83,7 @@ public class DownloadInfo {
     
     // check for a relative currency that is specific to the provider/exchange
     if (relativeCurrency == null) {
-      String currID = connection.getCurrencyCodeForQuote(security.getTickerSymbol(), exchange);
+      String currID = model.getCurrencyCodeForQuote(security.getTickerSymbol(), exchange);
       if (!SQUtil.isBlank(currID)) {
         relativeCurrency = security.getBook().getCurrencies().getCurrencyByIDString(currID);
       }
@@ -106,7 +106,7 @@ public class DownloadInfo {
   }
 
   
-  private void initFromCurrency(BaseConnection connection) {
+  private void initFromCurrency() {
     fullTickerSymbol = security.getIDString();
     relativeCurrency = security.getBook().getCurrencies().getBaseType();
     isValidForDownload = fullTickerSymbol.length()==3 && relativeCurrency.getIDString().length()==3;
@@ -207,10 +207,8 @@ public class DownloadInfo {
   }
   
   public void buildPriceDisplay(CurrencyType priceCurrency, char decimal) {
-    if (history != null) {
-      for (StockRecord record : history) {
-        record.updatePriceDisplay(priceCurrency, decimal);
-      }
+    for (StockRecord record : history) {
+      record.updatePriceDisplay(priceCurrency, decimal);
     }
   }
   

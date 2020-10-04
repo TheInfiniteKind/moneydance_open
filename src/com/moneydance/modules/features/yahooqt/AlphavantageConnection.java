@@ -60,7 +60,7 @@ public class AlphavantageConnection extends APIKeyConnection
   }
   
   
-  public String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet) {
+  public String getAPIKey(final boolean evenIfAlreadySet) {
     if(!evenIfAlreadySet && cachedAPIKey!=null) return cachedAPIKey;
     
     if(model==null) return null;
@@ -106,7 +106,7 @@ public class AlphavantageConnection extends APIKeyConnection
             return;
           }
           
-          if(!SQUtil.isEmpty(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE)) {
+          if(!SQUtil.isBlank(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE)) {
             root.setParameter("alphavantage.apikey", inputString);
             model.getPreferences().setSetting("alphavantage_apikey", inputString);
             root.syncItem();
@@ -114,7 +114,7 @@ public class AlphavantageConnection extends APIKeyConnection
             return;
           } else {
             // the user left the field blank or entered an invalid key
-            model.getGUI().beep();
+            model.beep();
           }
         }
       }
@@ -134,7 +134,7 @@ public class AlphavantageConnection extends APIKeyConnection
   
 	
   public String toString() {
-    StockQuotesModel model = getModel();
+    DownloadModel model = getModel();
     return model==null ? "" : model.getResources().getString("alphavantage");
   }
 
@@ -147,7 +147,7 @@ public class AlphavantageConnection extends APIKeyConnection
     String baseCurrencyID = downloadInfo.relativeCurrency.getIDString().toUpperCase();
     if(!downloadInfo.isValidForDownload) return;
     
-    String apiKey = getAPIKey(getModel(), false);
+    String apiKey = getAPIKey(false);
     if(apiKey==null) {
       downloadInfo.recordError("No Alphavantage API Key Provided");
       return;
@@ -212,7 +212,7 @@ public class AlphavantageConnection extends APIKeyConnection
   }
   
   public String getHistoryURL(String fullTickerSymbol) {
-    String apiKey = getAPIKey(getModel(), false);
+    String apiKey = getAPIKey(false);
     return apiKey==null ? null :
            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED"+
            "&symbol="+SQUtil.urlEncode(fullTickerSymbol)+

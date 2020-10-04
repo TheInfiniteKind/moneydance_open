@@ -201,15 +201,48 @@ http://jakarta.apache.org/ant/index.html
     <!--<copy file="${dist}/debtinsights.mxt" tofile="${install}/debtinsights.mxt" verbose="true" failonerror="false" />-->
   </target>
 
-  <target name="yahooqt" depends="init" description="build the yahooqt.mxt">
-    <build-mxt feature="yahooqt" javac-source="${javac-source}" javac-target="${javac-source}" />
-    <!--<copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />-->
-  </target>
-
   <target name="txfexport" depends="init" description="build the TXF export extension">
     <build-mxt feature="txfexport" javac-source="${javac-source}" javac-target="${javac-source}" />
     <!--<copy file="${dist}/txfexport.mxt" tofile="${install}/txfexport.mxt" verbose="true" failonerror="false" />-->
   </target>
+
+  <target name="yahooqt" depends="init">
+    <delete file="${dist}/yahooqt.mxt" failonerror="false"/>
+    <javac encoding="utf8" target="11" source="11" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+           classpathref="classpath" destdir="${build}"
+           classpath="${lib}/jsoup-1.11.3.jar"
+           includes="com/moneydance/modules/features/yahooqt/**"/>
+
+
+    <jar destfile="${dist}/yahooqt.mxt">
+      <fileset dir="${src}" includes="
+          com/moneydance/modules/features/yahooqt/meta_info.dict
+          com/moneydance/modules/features/yahooqt/*.properties
+          com/moneydance/modules/features/yahooqt/*.xml
+          com/moneydance/modules/features/yahooqt/*.properties.xml
+          com/moneydance/modules/features/yahooqt/images/*.gif
+          com/moneydance/modules/features/yahooqt/images/*.jpg
+          com/moneydance/modules/features/yahooqt/images/*.jpeg
+          com/moneydance/modules/features/yahooqt/images/*.png
+          net/java/balloontip/images/*.png"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/yahooqt/**"/>
+      <zipgroupfileset dir="${lib}" includes="jsoup-1.11.3.jar" />
+    </jar>
+    <java newenvironment="true"
+          classpathref="classpath"
+          classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${extprivkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="yahooqt"/>
+      <arg line="${dist}/yahooqt.mxt"/>
+    </java>
+    <move file="${src}/s-yahooqt.mxt" tofile="${dist}/yahooqt.mxt"/>
+    <copy file="${dist}/yahooqt.mxt" tofile="${install}/yahooqt.mxt" verbose="true" failonerror="false" />
+  </target>
+
+
+
 
 
   <target name="miscdebug" depends="init">

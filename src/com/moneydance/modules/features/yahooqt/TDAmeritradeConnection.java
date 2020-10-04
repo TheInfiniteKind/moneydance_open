@@ -64,8 +64,7 @@ public class TDAmeritradeConnection extends APIKeyConnection
 	
 	private List<DownloadInfo> remainingToUpdate;
 	
-	public String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet)
-	{
+	public String getAPIKey(final boolean evenIfAlreadySet)	{
 		if (!evenIfAlreadySet && cachedAPIKey != null) return cachedAPIKey;
 		
 		if (model == null) return null;
@@ -120,7 +119,7 @@ public class TDAmeritradeConnection extends APIKeyConnection
 						return;
 					}
 					
-					if (!SQUtil.isEmpty(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE))
+					if (!SQUtil.isBlank(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE))
 					{
 						root.setParameter("tdameritrade.apikey", inputString);
 						model.getPreferences().setSetting("tdameritrade_apikey", inputString);
@@ -131,7 +130,7 @@ public class TDAmeritradeConnection extends APIKeyConnection
 					else
 					{
 						// the user left the field blank or entered an invalid key
-						model.getGUI().beep();
+						model.beep();
 					}
 				}
 			}
@@ -158,7 +157,7 @@ public class TDAmeritradeConnection extends APIKeyConnection
 	
 	public String toString()
 	{
-		StockQuotesModel model = getModel();
+		DownloadModel model = getModel();
 		return model == null ? "" : model.getResources().getString("tdameritrade");
 	}
 	
@@ -174,7 +173,7 @@ public class TDAmeritradeConnection extends APIKeyConnection
 	
 	private URI getHistoryURI(String fullTickerSymbol) throws URISyntaxException
 	{
-		String apiKey = getAPIKey(getModel(), false);
+		String apiKey = getAPIKey(false);
 		String uriStr = String.format(HISTORY_URL, SQUtil.urlEncode(fullTickerSymbol), SQUtil.urlEncode(apiKey));
 
 		System.out.println(uriStr);
@@ -228,8 +227,8 @@ public class TDAmeritradeConnection extends APIKeyConnection
 					}
 					else
 					{
-						message = downloadInfo.buildPriceDisplayText(model);
-						logMessage = downloadInfo.buildPriceLogText(model);
+						message = downloadInfo.buildPriceDisplayText(model.getQuotesModel());
+						logMessage = downloadInfo.buildPriceLogText(model.getQuotesModel());
 					}
 					model.showProgress(progressPercent, message);
 					didUpdateItem(downloadInfo);

@@ -148,7 +148,7 @@ final class SQUtil {
    * @param candidate the String to evaluate.
    * @return true if candidate is null or "" (empty string)
    */
-  static boolean isEmpty(String candidate) {
+  private static boolean isEmpty(String candidate) {
     return candidate == null || candidate.length() == 0;
   }
 
@@ -263,7 +263,7 @@ final class SQUtil {
    * MD2015+ UUID-based identifier, then the old integer identifier, followed by the 
    * text currency ID which is usually based on the currency code or ticker symbol. */
   public static CurrencyType getCurrencyWithID(AccountBook book, String currencyID) {
-    if(book==null || SQUtil.isEmpty(currencyID)) return null;
+    if(book==null || isBlank(currencyID)) return null;
     CurrencyTable table = book.getCurrencies();
     if(table==null) return null;
     

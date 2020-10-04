@@ -9,7 +9,7 @@ public abstract class APIKeyConnection extends BaseConnection
 		super(connectionID, model, capabilities);
 	}
 	
-	public abstract String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet);
+	public abstract String getAPIKey(final boolean evenIfAlreadySet);
 	
 	@Override
 	public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange)
