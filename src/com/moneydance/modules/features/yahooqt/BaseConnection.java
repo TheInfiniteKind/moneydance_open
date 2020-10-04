@@ -91,7 +91,7 @@ public abstract class BaseConnection {
     ResourceProvider res = model.getResources();
     float progressPercent = 0.0f;
     final float progressIncrement = currenciesToUpdate.isEmpty() ? 1.0f :
-                                    100.0f / (float)currenciesToUpdate.size();
+                                    1.0f / (float)currenciesToUpdate.size();
     for (DownloadInfo downloadInfo : currenciesToUpdate) {
       System.err.println("updating currency: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
       updateExchangeRate(downloadInfo);
@@ -121,7 +121,7 @@ public abstract class BaseConnection {
     ResourceProvider res = model.getResources();
     float progressPercent = 0.0f;
     final float progressIncrement = securitiesToUpdate.isEmpty() ? 1.0f :
-                                    100.0f / (float)securitiesToUpdate.size();
+                                    1.0f / (float)securitiesToUpdate.size();
     boolean success = true;
     for (DownloadInfo downloadInfo : securitiesToUpdate) {
       System.err.println("updating security: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
