@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 v5a - October 2020 - Stuart Beesley
+# StockGlance2020 v5b - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -76,6 +76,7 @@
 # -- V5a - Some users report a problem saving files to some folders on Windows 10. It seems that Anti-malware or Windows Access Control is restrictiing access
 # --       So, changed to FileDialog (from JFileChooser) for Windows as this seems to tell Windows to allow access.
 # --       Added some console messages; fixed crash when no investment accounts exist.
+# -- V5b - Removed the now redundant lUseMacFileChooser variable; enhanced some console messages...
 
 import sys
 
@@ -138,7 +139,7 @@ import pickle
 # StuWareSoftSystems common Globals
 global debug  # Set to True if you want verbose messages, else set to False....
 global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency, lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter
-global lUseMacFileChooser, lIamAMac
+global lIamAMac
 global csvfilename, version, scriptpath, lDisplayOnly, myScriptName
 global decimalCharSep, groupingCharSep, myParameters, _resetParameters
 
@@ -149,7 +150,7 @@ global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATT
 global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
 global lSplitSecuritiesByAccount, acctSeperator, lExcludeTotalsFromCSV
 
-version = "5a"
+version = "5b"
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
 # NOTE: You  can override in the pop-up screen
@@ -168,7 +169,6 @@ lExcludeTotalsFromCSV = False
 lStripASCII = True
 csvDelimiter = ","
 debug = False
-lUseMacFileChooser = True  # This will be ignored if you don't choose option to export to  a file
 _resetParameters = False  # set this to True to prevent loading parameters from disk and use the defaults above...
 
 lIamAMac = False
@@ -200,7 +200,7 @@ def getParameters():
     global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency
     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter, scriptpath
     global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV
-    global lUseMacFileChooser, myParameters
+    global myParameters
 
     if debug: print "In ", inspect.currentframe().f_code.co_name, "()"
 
@@ -220,10 +220,10 @@ def getParameters():
             myParameters = pickle.load(load_file)
             load_file.close()
         except FileNotFoundException as e:
-            print "Error: failed to find parameter file..."
+            myPrint("B", "Error: failed to find parameter file...")
             myParameters = None
         except EOFError as e:
-            print "Error: reached EOF on parameter file...."
+            myPrint("B", "Error: reached EOF on parameter file....")
             myParameters = None
 
         if myParameters is None:
@@ -261,7 +261,10 @@ def getParameters():
     if myParameters.get("lStripASCII") is not None: lStripASCII = myParameters.get("lStripASCII")
     if myParameters.get("csvDelimiter") is not None: csvDelimiter = myParameters.get("csvDelimiter")
     if myParameters.get("debug") is not None: debug = myParameters.get("debug")
-    if myParameters.get("lUseMacFileChooser") is not None: lUseMacFileChooser = myParameters.get("lUseMacFileChooser")
+
+    if myParameters.get("lUseMacFileChooser") is not None:
+        myPrint("B","Detected old lUseMacFileChooser parameter/variable... Will delete it...")
+        myParameters.pop("lUseMacFileChooser", None)    # Old variable - not used - delete from parameter file
 
     if myParameters.get("scriptpath") is not None:
         scriptpath = myParameters.get("scriptpath")
@@ -314,8 +317,8 @@ def checkVersions():
         print "\n\nError: Script was  designed on version 2.7. By all means bypass this test and see what happens....."
 
     if lError:
+        myPrint("J","Platform version issue - will terminate script!")
         print "\n@@@ TERMINATING PROGRAM @@@\n"
-        # raise
 
     return not lError
 
@@ -359,8 +362,6 @@ if checkVersions():
     # enddef
 
     lIamAMac = amIaMac()
-    if not lIamAMac: lUseMacFileChooser = False
-
 
     def myDir():
         global lIamAMac
@@ -540,13 +541,6 @@ if checkVersions():
     if debug:  user_selectDEBUG.setText("Y")
     else:           user_selectDEBUG.setText("N")
 
-    if lIamAMac:
-        label11 = JLabel("Use Mac-like GUI for export filename selection? (Y/N)")
-        user_selectMacFileChooser = JTextField(2)
-        user_selectMacFileChooser.setDocument(JTextFieldLimitYN(1, True, "YN"))
-        if lUseMacFileChooser:  user_selectMacFileChooser.setText("Y")
-        else:                        user_selectMacFileChooser.setText("N")
-
     userFilters = JPanel(GridLayout(14, 2))
     userFilters.add(label1)
     userFilters.add(user_hideHiddenSecurities)
@@ -572,9 +566,6 @@ if checkVersions():
     userFilters.add(user_selectDELIMITER)
     userFilters.add(label10)
     userFilters.add(user_selectDEBUG)
-    if lIamAMac:
-        userFilters.add(label11)
-        userFilters.add(user_selectMacFileChooser)
 
     lExit = False
     lDisplayOnly = False
@@ -610,7 +601,6 @@ if checkVersions():
                 "Strip ASCII:", user_selectStripASCII.getText(), \
                 "Verbose Debug Messages: ", user_selectDEBUG.getText(), \
                 "CSV File Delimiter:", user_selectDELIMITER.getText()
-            if lIamAMac: print "Use Mac-like Filename GUI:", user_selectMacFileChooser.getText()
         # endif
 
         hideHiddenSecurities = False
@@ -669,10 +659,6 @@ if checkVersions():
             debug = False
         if debug: print "DEBUG turned on"
 
-        if lIamAMac:
-            if user_selectMacFileChooser.getText() == "Y":   lUseMacFileChooser = True
-            else:                                            lUseMacFileChooser = False
-
         print "User Parameters..."
         if hideHiddenSecurities:
             print "Hiding Hidden Securities..."
@@ -716,12 +702,6 @@ if checkVersions():
 
         if not lDisplayOnly:  # i.e. we have asked for a file export - so get the filename
 
-            if lIamAMac:
-                if lUseMacFileChooser:
-                    if debug: print "I am a Mac. FileDialog Mac-like filename GUI choosen"
-                else:
-                    print "I am a Mac, but you requested to use older non-Mac GUI JFileChooser.."
-
             if lStripASCII:
                 print "Will strip non-ASCII characters - e.g. Currency symbols from output file...", " Using Delimiter:", csvDelimiter
             else:
@@ -747,7 +727,7 @@ if checkVersions():
             # ENDCLASS
 
             def grabTheFile():
-                global debug, lDisplayOnly, csvfilename, lIamAMac, lUseMacFileChooser, scriptpath, myScriptName
+                global debug, lDisplayOnly, csvfilename, lIamAMac, scriptpath, myScriptName
                 if debug: print "In ", inspect.currentframe().f_code.co_name, "()"
 
                 if scriptpath == "" or scriptpath is None:  # No parameter saved / loaded from disk
@@ -756,111 +736,51 @@ if checkVersions():
                 if debug: print "Default file export output path is....:", scriptpath
 
                 csvfilename = ""
-                if True or lIamAMac and lUseMacFileChooser:
-                    if lIamAMac:
-                        if debug: print "MacOS X detected: Therefore I will run FileDialog with no extension filters to get filename...."
-                        # jFileChooser hangs on Mac when using file extension filters, also looks rubbish. So using Mac(ish)GUI
+                if lIamAMac:
+                    if debug: print "MacOS X detected: Therefore I will run FileDialog with no extension filters to get filename...."
+                    # jFileChooser hangs on Mac when using file extension filters, also looks rubbish. So using Mac(ish)GUI
 
-                        System.setProperty("com.apple.macos.use-file-dialog-packages",
-                                           "true")  # In theory prevents access to app file structure (but doesnt seem to work)
-                        System.setProperty("apple.awt.fileDialogForDirectories", "false")
+                    System.setProperty("com.apple.macos.use-file-dialog-packages",
+                                       "true")  # In theory prevents access to app file structure (but doesnt seem to work)
+                    System.setProperty("apple.awt.fileDialogForDirectories", "false")
 
-                    filename = FileDialog(None, "Select/Create CSV file for Stock Balances extract (CANCEL=NO EXPORT)")
-                    filename.setMultipleMode(False)
-                    filename.setMode(FileDialog.SAVE)
-                    filename.setFile('extract_stock_balances.csv')
-                    if (scriptpath is not None and scriptpath != ""): filename.setDirectory(scriptpath)
+                filename = FileDialog(None, "Select/Create CSV file for Stock Balances extract (CANCEL=NO EXPORT)")
+                filename.setMultipleMode(False)
+                filename.setMode(FileDialog.SAVE)
+                filename.setFile('extract_stock_balances.csv')
+                if (scriptpath is not None and scriptpath != ""): filename.setDirectory(scriptpath)
 
-                    # Copied from MD code... File filters only work on non Macs (or Macs below certain versions)
-                    if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
-                        extfilter = ExtFilenameFilter("csv")
-                        filename.setFilenameFilter(extfilter)  # I'm not actually sure this works...?
+                # Copied from MD code... File filters only work on non Macs (or Macs below certain versions)
+                if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+                    extfilter = ExtFilenameFilter("csv")
+                    filename.setFilenameFilter(extfilter)  # I'm not actually sure this works...?
 
-                    filename.setVisible(True)
+                filename.setVisible(True)
 
-                    csvfilename = filename.getFile()
+                csvfilename = filename.getFile()
 
-                    if (csvfilename is None) or csvfilename == "":
-                        lDisplayOnly = True
-                        csvfilename = None
-                        print "User chose to cancel or no file selected >>  So no Extract will be performed... "
-                    elif str(csvfilename).endswith(".moneydance"):
-                        print "User selected file:", csvfilename
-                        print "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed..."
-                        lDisplayOnly = True
-                        csvfilename = None
-                    elif ".moneydance" in filename.getDirectory():
-                        print "User selected file:", filename.getDirectory(), csvfilename
-                        print "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed..."
-                        lDisplayOnly = True
-                        csvfilename = None
-                    else:
-                        csvfilename = str(java.io.File(
-                                filename.getDirectory() + os.path.sep + filename.getFile()))  # NOTE: FileDialog checks for file overwrite and seeks confirmation....
-                        scriptpath = str(filename.getDirectory())
-
-                    if not lDisplayOnly:
-                        if os.path.exists(csvfilename) and os.path.isfile(
-                                csvfilename): print "WARNING: file exists,but assuming user said OK to overwrite.."
+                if (csvfilename is None) or csvfilename == "":
+                    lDisplayOnly = True
+                    csvfilename = None
+                    print "User chose to cancel or no file selected >>  So no Extract will be performed... "
+                elif str(csvfilename).endswith(".moneydance"):
+                    print "User selected file:", csvfilename
+                    print "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed..."
+                    lDisplayOnly = True
+                    csvfilename = None
+                elif ".moneydance" in filename.getDirectory():
+                    print "User selected file:", filename.getDirectory(), csvfilename
+                    print "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed..."
+                    lDisplayOnly = True
+                    csvfilename = None
                 else:
-                    if debug:
-                        if lIamAMac:
-                            print "Mac platform detected, but user specified to run JFileChooser()  to get filename...."
-                        else:
-                            print "Non Mac platform detected: Therefore I will run JFileChooser()  to get filename...."
-                    filename = JFileChooser(scriptpath)
+                    csvfilename = str(java.io.File(
+                            filename.getDirectory() + os.path.sep + filename.getFile()))  # NOTE: FileDialog checks for file overwrite and seeks confirmation....
+                    scriptpath = str(filename.getDirectory())
 
-                    filename.setSelectedFile(java.io.File(scriptpath + os.path.sep + 'extract_stock_balances.csv'))
-                    extfilter = javax.swing.filechooser.FileNameExtensionFilter("CSV file (CSV,TXT)", ["csv", "TXT"])
-
-                    filename.setMultiSelectionEnabled(False)
-
-                    if not lIamAMac:
-                        # this locks up Macs
-                        filename.setFileFilter(extfilter)
-
-                    filename.setDialogTitle("Select/Create CSV file for Stock Balances extract (CANCEL=NO EXPORT)")
-                    filename.setPreferredSize(Dimension(800, 800))
-                    returnvalue = filename.showDialog(None, "Extract")
-
-                    if returnvalue == JFileChooser.CANCEL_OPTION:
-                        lDisplayOnly = True
-                        csvfilename = None
-                        print "User chose to cancel = So no Extract will be performed... "
-                    elif filename.selectedFile == None:
-                        lDisplayOnly = True
-                        csvfilename = None
-                        print "User chose no filename... So no Extract will be performed..."
-                    elif str(filename.selectedFile).endswith(".moneydance"):
-                        lDisplayOnly = True
-                        csvfilename = None
-                        print "User selected file:", str(filename.selectedFile)
-                        print "Sorry - JFileChooser() User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed..."
-                    elif ".moneydance" in str(filename.selectedFile):
-                        lDisplayOnly = True
-                        csvfilename = None
-                        print "User selected file:", str(filename.selectedFile)
-                        print "Sorry - User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed..."
-                    else:
-                        csvfilename = str(filename.selectedFile)
-
-                        if os.path.exists(csvfilename) and os.path.isfile(csvfilename):
-                            # Uh-oh file exists - overwrite?
-                            print "File already exists... Confirm..."
-                            if (JOptionPane.showConfirmDialog(None, "File '" + os.path.basename(
-                                    csvfilename) + "' exists... Press YES to overwrite and proceed, NO to continue with no Extract?",
-                                                              "WARNING", JOptionPane.YES_NO_OPTION,
-                                                              JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION):
-                                print "User agreed to overwrite file..."
-                            else:
-                                lDisplayOnly = True
-                                csvfilename = None
-                                print "User does not want to overwrite file... Proceeding without Extract..."
-                            # endif
-                        # endif
-                    # endif
-
-                # endif
+                if not lDisplayOnly:
+                    if os.path.exists(csvfilename) and os.path.isfile(
+                            csvfilename): print "WARNING: file exists,but assuming user said OK to overwrite.."
 
                 if not lDisplayOnly:
                     if check_file_writable(csvfilename):
@@ -1021,8 +941,8 @@ if checkVersions():
                                     split_acct_array = self.AccountsTable.get(curr)
 
                                     if len(split_acct_array) < 1:
-                                        print "Major logic error... Aborting"
-                                        ABORT
+                                        myPrint("B", "Major logic error... Aborting", curr.getName())
+                                        raise Exception("Split Security logic...Array len <1")
 
                                     for iSplitAcctArray in range(0, len(split_acct_array)):
                                         qtySplit = split_acct_array[iSplitAcctArray][1]
@@ -2291,11 +2211,11 @@ if checkVersions():
                         myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
                     except IOError, e:
-                        print "Oh no - File IO Error!"
-                        print e
-                        print sys.exc_type
-                        print "Path:", csvfilename
-                        print "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper()
+                        myPrint("B","Oh no - File IO Error!")
+                        myPrint("B", e)
+                        myPrint("B", sys.exc_type)
+                        myPrint("B", "Path:", csvfilename)
+                        myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper() )
                         lFileError = True
 
                     # Do it all again!?
@@ -2341,7 +2261,7 @@ if checkVersions():
                             print 'STDOUT: records displayed on console..'
 
                         except:
-                            print "Oh no - Another error on stdout! (giving up)....."
+                            myPrint("B", "Oh no - Another error on stdout! (giving up).....")
                             lFileError = True
 
 
@@ -2384,7 +2304,7 @@ if checkVersions():
             global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency
             global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter, scriptpath
             global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV
-            global lUseMacFileChooser, lDisplayOnly, version, myParameters
+            global lDisplayOnly, version, myParameters
 
             if debug: print "In ", inspect.currentframe().f_code.co_name, "()"
 
@@ -2410,7 +2330,6 @@ if checkVersions():
             myParameters["lStripASCII"] = lStripASCII
             myParameters["csvDelimiter"] = csvDelimiter
             myParameters["debug"] = debug
-            myParameters["lUseMacFileChooser"] = lUseMacFileChooser
 
             if not lDisplayOnly and scriptpath != "" and os.path.isdir(scriptpath):
                 myParameters["scriptpath"] = scriptpath
@@ -2434,7 +2353,7 @@ if checkVersions():
                         print "...variable:", key, myParameters[key]
 
             except:
-                print "Error - failed to create/write parameter file.. Ignoring and continuing....."
+                myPrint("B", "Error - failed to create/write parameter file.. Ignoring and continuing.....")
                 return
 
             if debug: print "Parameter file written and parameters saved to disk....."
