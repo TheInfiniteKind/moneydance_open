@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# DIAG-can_i_delete_security.py v1 - October 2020 - Stuart Beesley StuWareSoftSystems
+# DIAG-can_i_delete_security.py v2 - October 2020 - Stuart Beesley StuWareSoftSystems
 # Analyses selected Security and tells you whether you can delete it, or where it's used..
 # This script does not change any data!
 ###############################################################################
@@ -27,6 +27,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
+# V1 - Initial release
+# V2 - Cosmetic changes....
+
+import sys
+reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
+sys.setdefaultencoding('utf8')  # Dirty hack to eliminate UTF-8 coding errors. Without this str() fails on unicode strings...
 
 from com.infinitekind.moneydance.model import *
 from com.infinitekind.moneydance.model import AccountUtil
@@ -36,8 +42,41 @@ from com.infinitekind.moneydance.model.Account import AccountType
 
 from javax.swing import JOptionPane
 
-print "\nDIAG-can_i_delete_security.py running to analyse whether you can delete a Security, or show where it's used...."
+import os.path
+from java.lang import System
+
+global debug  # Set to True if you want verbose messages, else set to False....
+global version
+
+version = "2"
+debug = True
+
+myScriptName = os.path.basename(__file__)
+if myScriptName.endswith(".py"):
+    myScriptName = myScriptName[:-3]
+
+def myPrint(where, *args):  # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both
+    global myScriptName
+    printString = ""
+    for what in args:
+        printString += str(what)
+    if where == "P" or where == "B": print printString
+    if where == "J" or where == "B": System.err.write(myScriptName + ": " + printString + "\n")
+
+myPrint("B", "StuWareSoftSystems...")
+myPrint("B", os.path.basename(__file__), ": Python Script Initialising.......", "Version:", version)
+
+def MDDiag():
+    global debug
+    if debug: print "MoneyDance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild()
+
+MDDiag()
+
+print "\nScript running to analyse whether you can delete a Security, or show where it's used...."
 print "-------------------------------------------------------------------"
+if moneydance_data is None:
+    print "no data to scan - aborting"
+    raise Exception("MD Data file is empty - no data to scan - aborting...")
 
 usageCount = 0
 countPriceHistory = 0
@@ -113,6 +152,7 @@ while True:
     if usageCount:
         print "\nUSAGE FOUND: You are using security: %s in %s accounts!\n... with a share balance of: %s. These would need to be removed before security deletion" \
             % (selectedSecurity, usageCount, sumShares)
+        myPrint("J", "StuWareSoftSystems - ", os.path.basename(__file__), ">> NO - Security cannot be deleted as it's being used:"+str(selectedSecurity))
 
     if countPriceHistory:
         print "\nPRICE HISTORY FOUND: You have %s price records - If you delete Security then these will be lost. Is that OK with you?  " \
@@ -125,5 +165,6 @@ while True:
     break
 # ENDWHILE
 
-
-print "\n\n---------------------------------------------- End of StuWareSoftSystems script --------\n\n"
+print
+myPrint("B", "StuWareSoftSystems - ", os.path.basename(__file__), " script ending......")
+print
