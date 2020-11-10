@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 v5c - October 2020 - Stuart Beesley
+# StockGlance2020 v5d - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -78,6 +78,8 @@
 # --       Added some console messages; fixed crash when no investment accounts exist.
 # -- V5b - Removed the now redundant lUseMacFileChooser variable; enhanced some console messages...
 # -- V5c - Code cleanup only - cosmetic only; Added parameter to allow User to select no rounding of price (useful if their settings on the security are set wrongly); switched to use MD's decimal setting
+# -- v5d - Small tweak to parameter field (cosmetic only); Added a File BOM marker to help Excel open UTF-8 files (and changed open() to 'w' instead of 'wb')
+# todo add date first purchased? What about Dark Mode Theme?
 
 import sys
 
@@ -118,6 +120,8 @@ from java.lang import System, Double, Math
 
 import time
 
+import codecs
+
 import os
 import os.path
 
@@ -144,7 +148,7 @@ global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATT
 global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
 global lSplitSecuritiesByAccount, acctSeperator, lExcludeTotalsFromCSV, lRoundPrice
 
-version = "5c"
+version = "5d"
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
 # NOTE: You  can override in the pop-up screen
@@ -161,7 +165,7 @@ lIncludeCashBalances = False
 lSplitSecuritiesByAccount = False
 lExcludeTotalsFromCSV = False
 lRoundPrice = True
-lStripASCII = True
+lStripASCII = False
 csvDelimiter = ","
 debug = False
 _resetParameters = False  # set this to True to prevent loading parameters from disk and use the defaults above...
@@ -537,7 +541,7 @@ if checkVersions():
     else:                 user_roundPrice.setText("N")
 
     label8 = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
-    user_selectStripASCII = JTextField(12)
+    user_selectStripASCII = JTextField(2)
     user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
     if lStripASCII: user_selectStripASCII.setText("Y")
     else:               user_selectStripASCII.setText("N")
@@ -2197,17 +2201,17 @@ if checkVersions():
 
                     try:
                         # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
-                        with open(csvfilename,
-                                  "wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
-                            writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL,
-                                                delimiter=csvDelimiter)
+                        # with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+                        with open(csvfilename,"w") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+
+                            csvfile.write(codecs.BOM_UTF8) # This 'helps' Excel open file with double-click as UTF-8
+
+                            writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=csvDelimiter)
 
                             if csvDelimiter != ",":
-                                writer.writerow(["sep=",
-                                                 ""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
+                                writer.writerow(["sep=",""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
 
-                            writer.writerow(
-                                    rawDataTable[0][:_SHRS_RAW])  # Print the header, but not the extra _field headings
+                            writer.writerow(rawDataTable[0][:_SHRS_RAW])  # Print the header, but not the extra _field headings
 
                             for i in range(1, len(rawDataTable)):
                                 if not rawDataTable[i][_EXCLUDECSV]:
@@ -2306,8 +2310,7 @@ if checkVersions():
 
                     theString = theString.strip()  # remove leading and trailing spaces
 
-                    if theString[
-                       :3] == "===": theString = " " + theString  # Small fix as Libre Office doesn't like "=======" (it thinks it's a formula)
+                    if theString[:3] == "===": theString = " " + theString  # Small fix as Libre Office doesn't like "=======" (it thinks it's a formula)
 
                     theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
                     theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
