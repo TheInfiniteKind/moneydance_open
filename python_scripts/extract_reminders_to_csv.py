@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_to_csv.py (version 4a)
+# extract_reminders_to_csv.py (version 4b)
 
 ###############################################################################
 # MIT License
@@ -34,18 +34,21 @@
 # v3 upgraded script to ask for extract filename and extract date formats in pop up windows; also fix amounts less than 1
 # v4 major upgrade to display results first and allow CSV creation.. Functions upgraded with latest learnings....
 # v4a - small tweak to change default dateformat if parameter invalid; also switched to  use MD's decimal point setting
+# v4b - small tweak to parameter field (cosmetic); added BOM to csv file to help Excel open UTF8 file with double-click (changed open() to 'w' from 'wb')
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
 # Use in MoneyDance Menu Window->Show Moneybot Console >> Open Script >> RUN
 
 import sys
-
 reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
 sys.setdefaultencoding('utf8')  # Dirty hack to eliminate UTF-8 coding errors
+
 import platform
 
 import datetime
+
+import codecs
 
 from com.infinitekind.moneydance.model import *
 from com.infinitekind.moneydance.model import Reminder
@@ -103,12 +106,12 @@ global sdf, userdateformat, csvlines, csvheaderline, headerFormats
 
 global table, focus, row, debug, frame_, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 
-version = "4a"
+version = "4b"
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
 # NOTE: You  can override in the pop-up screen
 userdateformat = "%Y/%m/%d"
-lStripASCII = True
+lStripASCII = False
 csvDelimiter = ","
 debug = False
 _resetParameters = False  # set this to True to prevent loading parameters from disk and use the defaults above...
@@ -121,7 +124,6 @@ scriptpath = ""
 myScriptName = os.path.basename(__file__)
 if myScriptName.endswith(".py"):
 	myScriptName = myScriptName[:-3]
-
 
 def myPrint(where, *args):  # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both
 	global myScriptName
@@ -416,7 +418,7 @@ if checkVersions():
 	else: user_dateformat.setText("3")
 
 	label2 = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
-	user_selectStripASCII = JTextField(12)
+	user_selectStripASCII = JTextField(2)
 	user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
 	if lStripASCII: user_selectStripASCII.setText("Y")
 	else:               user_selectStripASCII.setText("N")
@@ -1476,8 +1478,11 @@ if checkVersions():
 
 				try:
 					# CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
-					with open(csvfilename,
-							  "wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+					# with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+					with open(csvfilename,"w") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+
+						csvfile.write(codecs.BOM_UTF8) # This 'helps' Excel open file with double-click as UTF-8
+
 						writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=csvDelimiter)
 
 						if csvDelimiter != ",":
