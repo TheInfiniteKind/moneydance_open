@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# DIAG-diagnose_currencies.py v2 - October 2020 - Stuart Beesley StuWareSoftSystems (based on Moneydance support script)
+# DIAG-diagnose_currencies.py v2a - October 2020 - Stuart Beesley StuWareSoftSystems (based on Moneydance support script)
 # Diagnoses your Moneydance currencies. This script does not change any data!
 # -- especially where base rate is not 1, or base relative rate is not 1, and/or has price history
 # -- a script fix is available, but should be requested via support (any fix can of course damage your data - so backup first)
@@ -29,8 +29,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-# V1 - Initial release
-# V2 - Replaced getSyncInfo().toMultilineHumanReadableString() with print of relevant details (cosmetic)....
+# v1 - Initial release
+# v2 - Replaced getSyncInfo().toMultilineHumanReadableString() with print of relevant details (cosmetic)....
+# v2a - Changed warning as currencies should only have a relative rate of None or Base (nothing else)
 
 
 import sys
@@ -132,7 +133,7 @@ def reset_relative_currencies():
         if curr.getParameter("relative_to_currid") is not None and curr.getParameter("relative_to_currid") != baseCurr.getParameter("currid"):
             lWarning = True
             iWarnings += 1
-            myPrint("B", "WARNING: relative_to_currid should be set to None or your base currency (perhaps)?")
+            myPrint("B", "WARNING: relative_to_currid should be set to None or your base currency!")
         print "Rate: %s (inversed: %s)" % (curr.getParameter("rate", "null"), 1/float(curr.getParameter("rate", "null")))
         if curr.getParameter("rrate", None) is not None:
             print "Relative Rate: %s (inversed: %s)" % (curr.getParameter("rrate", None), 1/float(curr.getParameter("rrate", None)))
@@ -177,8 +178,8 @@ if lNeedFixScript:
     print "DISCLAIMER: Always backup your data before running change scripts. I can take no responsibility for the execution of said script"
 elif lWarning:
     myPrint("B","You have %s Warning(s).." % iWarnings)
-    print "These are where your currency records show a relative currency that's not None or the base currency...; This might be OK - depends on your setup"
-    print "Only if you are seeing currency problems, then discuss with support and potentially request script: reset_relative_currencies.py from support "
+    print "These are where your currency records show a relative currency that's not None or the base currency...; I believe this to be a data error!"
+    print "If you are seeing currency problems, then discuss with support and potentially request script: reset_relative_currencies.py from support "
     print "This would reset your relative currency back to None..."
     print "DISCLAIMER: Always backup your data before running change scripts. I can take no responsibility for the execution of said script"
 else:
