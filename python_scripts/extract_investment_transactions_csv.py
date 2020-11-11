@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - v1b - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - v1d - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -37,6 +37,8 @@
 # v1a - Fix small data issue on Memo fields with Opening Balances; also added Bal to Amount field (user request).
 # v1b - Small tweak to input parameter field (cosmetic only)
 # v1b - Add BOM mark to CSV file so Excel opens CSV with double-click (and changed open() to 'w' from 'wb'). Strip ASCII when requested.
+# v1c - Cosmetic change to display; catch pickle.load() error (when from restored file)
+# v1d - Reverting to open() 'wb' - fix Excel CRLF double line on Windows issue
 
 import sys
 reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
@@ -95,7 +97,7 @@ global baseCurrency, sdf, lIncludeOpeningBalances, lAdjustForSplits, userdatefor
 
 global transactionTable, dataKeys
 
-version = "1b"
+version = "1d"
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
 # NOTE: You  can override in the pop-up screen
@@ -166,6 +168,11 @@ def getParameters():
             myParameters = None
         except EOFError as e:
             myPrint("B", "Error: reached EOF on parameter file....")
+            myParameters = None
+        except:
+            print "Unexpected error ", sys.exc_info()[0]
+            print "Unexpected error ", sys.exc_info()[1]
+            myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
             myParameters = None
 
         if myParameters is None:
@@ -716,7 +723,10 @@ if checkVersions():
 
                 if not lDisplayOnly:
                     if check_file_writable(csvfilename):
-                        print 'Will extract investment transactions to file: ', csvfilename, "(NOTE: Should drop non utf8 characters...)"
+                        if lStripASCII:
+                            print 'Will extract investment transactions to file: ', csvfilename, "(NOTE: Should drop non utf8 characters...)"
+                        else:
+                            print 'Will extract investment transactions to file: ', csvfilename, "..."
                         scriptpath = os.path.dirname(csvfilename)
                     else:
                         print "Sorry - I just checked and you do not have permissions to create this file:", csvfilename
@@ -1257,8 +1267,7 @@ if checkVersions():
 
                 try:
                     # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
-                    # with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
-                    with open(csvfilename,"w") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+                    with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
 
                         csvfile.write(codecs.BOM_UTF8) # This 'helps' Excel open file with double-click as UTF-8
 

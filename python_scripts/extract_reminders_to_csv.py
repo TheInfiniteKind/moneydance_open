@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_to_csv.py (version 4b)
+# extract_reminders_to_csv.py (version 4d)
 
 ###############################################################################
 # MIT License
@@ -35,6 +35,8 @@
 # v4 major upgrade to display results first and allow CSV creation.. Functions upgraded with latest learnings....
 # v4a - small tweak to change default dateformat if parameter invalid; also switched to  use MD's decimal point setting
 # v4b - small tweak to parameter field (cosmetic); added BOM to csv file to help Excel open UTF8 file with double-click (changed open() to 'w' from 'wb')
+# v4c - Cosmetic tweak to display message; catch pickle.load() error (when restored dataset).
+# v4d - Reverting to open() 'wb' - fix Excel CRLF double line on Windows issue
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -106,7 +108,7 @@ global sdf, userdateformat, csvlines, csvheaderline, headerFormats
 
 global table, focus, row, debug, frame_, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 
-version = "4b"
+version = "4d"
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
 # NOTE: You  can override in the pop-up screen
@@ -166,6 +168,11 @@ def getParameters():
 			myParameters = None
 		except EOFError as e:
 			myPrint("B", "Error: reached EOF on parameter file....")
+			myParameters = None
+		except:
+			print "Unexpected error ", sys.exc_info()[0]
+			print "Unexpected error ", sys.exc_info()[1]
+			myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
 			myParameters = None
 
 		if myParameters is None:
@@ -580,7 +587,10 @@ if checkVersions():
 
 				if not lDisplayOnly:
 					if check_file_writable(csvfilename):
-						print 'Will display Reminders and then extract to file: ', csvfilename, "(NOTE: Should drop non utf8 characters...)"
+						if lStripASCII:
+							print 'Will display Reminders and then extract to file: ', csvfilename, "(NOTE: Should drop non utf8 characters...)"
+						else:
+							print 'Will display Reminders and then extract to file: ', csvfilename, "..."
 						scriptpath = os.path.dirname(csvfilename)
 					else:
 						print "Sorry - I just checked and you do not have permissions to create this file:", csvfilename
@@ -1478,8 +1488,7 @@ if checkVersions():
 
 				try:
 					# CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
-					# with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
-					with open(csvfilename,"w") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+					with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
 
 						csvfile.write(codecs.BOM_UTF8) # This 'helps' Excel open file with double-click as UTF-8
 

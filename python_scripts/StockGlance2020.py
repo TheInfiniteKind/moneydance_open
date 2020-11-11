@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 v5d - October 2020 - Stuart Beesley
+# StockGlance2020 v5e - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -79,6 +79,8 @@
 # -- V5b - Removed the now redundant lUseMacFileChooser variable; enhanced some console messages...
 # -- V5c - Code cleanup only - cosmetic only; Added parameter to allow User to select no rounding of price (useful if their settings on the security are set wrongly); switched to use MD's decimal setting
 # -- v5d - Small tweak to parameter field (cosmetic only); Added a File BOM marker to help Excel open UTF-8 files (and changed open() to 'w' instead of 'wb')
+# -- v5e - Cosmetic change to display; catch pickle.load() error (when restored dataset); Reverting to open() 'wb' - fix Excel CRLF double line on Windows issue
+
 # todo add date first purchased? What about Dark Mode Theme?
 
 import sys
@@ -148,7 +150,7 @@ global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATT
 global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
 global lSplitSecuritiesByAccount, acctSeperator, lExcludeTotalsFromCSV, lRoundPrice
 
-version = "5d"
+version = "5e"
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
 # NOTE: You  can override in the pop-up screen
@@ -224,6 +226,11 @@ def getParameters():
             myParameters = None
         except EOFError as e:
             myPrint("B", "Error: reached EOF on parameter file....")
+            myParameters = None
+        except:
+            print "Unexpected error ", sys.exc_info()[0]
+            print "Unexpected error ", sys.exc_info()[1]
+            myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
             myParameters = None
 
         if myParameters is None:
@@ -807,7 +814,10 @@ if checkVersions():
 
                 if not lDisplayOnly:
                     if check_file_writable(csvfilename):
-                        print 'Will display Stock balances and then extract to file: ', csvfilename, "(NOTE: Should drop non utf8 characters...)"
+                        if lStripASCII:
+                            print 'Will display Stock balances and then extract to file: ', csvfilename, "(NOTE: Should drop non utf8 characters...)"
+                        else:
+                            print 'Will display Stock balances and then extract to file: ', csvfilename, "..."
                         scriptpath = os.path.dirname(csvfilename)
                     else:
                         print "Sorry - I just checked and you do not have permissions to create this file:", csvfilename
@@ -2201,8 +2211,7 @@ if checkVersions():
 
                     try:
                         # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
-                        # with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
-                        with open(csvfilename,"w") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+                        with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
 
                             csvfile.write(codecs.BOM_UTF8) # This 'helps' Excel open file with double-click as UTF-8
 
