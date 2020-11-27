@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 v5e - October 2020 - Stuart Beesley
+# StockGlance2020 v5f - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -80,6 +80,7 @@
 # -- V5c - Code cleanup only - cosmetic only; Added parameter to allow User to select no rounding of price (useful if their settings on the security are set wrongly); switched to use MD's decimal setting
 # -- v5d - Small tweak to parameter field (cosmetic only); Added a File BOM marker to help Excel open UTF-8 files (and changed open() to 'w' instead of 'wb')
 # -- v5e - Cosmetic change to display; catch pickle.load() error (when restored dataset); Reverting to open() 'wb' - fix Excel CRLF double line on Windows issue
+# -- v5f - Changed pickle file to be unencrypted.
 
 # todo add date first purchased? What about Dark Mode Theme?
 
@@ -118,6 +119,8 @@ from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, Table
 from javax.swing.text import PlainDocument
 from javax.swing.event import TableColumnModelListener
 
+from java.io import FileInputStream, FileOutputStream, IOException, StringReader
+
 from java.lang import System, Double, Math
 
 import time
@@ -150,7 +153,7 @@ global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATT
 global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
 global lSplitSecuritiesByAccount, acctSeperator, lExcludeTotalsFromCSV, lRoundPrice
 
-version = "5e"
+version = "5f"
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
 # NOTE: You  can override in the pop-up screen
@@ -197,7 +200,7 @@ myPrint("B", "StuWareSoftSystems...")
 myPrint("B", os.path.basename(__file__), ": Python Script Initialising.......", "Version:", version)
 
 
-def getParameters():
+def get_StuWareSoftSystems_parameters_from_file():
     global debug  # Set to True if you want verbose messages, else set to False....
     global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency
     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter, scriptpath
@@ -206,18 +209,21 @@ def getParameters():
 
     if debug: print "In ", inspect.currentframe().f_code.co_name, "()"
 
-    dict_filename = os.path.join("..", "StuWareSoftSystems.dict")
-    if debug: print "Now checking for parameter file:", dict_filename
+    myFile = "StuWareSoftSystems.dict"
+    old_dict_filename = os.path.join("..", myFile)
 
-    local_storage = moneydance.getCurrentAccountBook().getLocalStorage()
-    if local_storage.exists(dict_filename):
-        __StockGlance2020 = None
+    # Pickle was originally encrypted, no need, migrating to unencrypted
+    migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
 
-        myPrint("J", "loading parameters from Pickle file:", dict_filename)
-        if debug: print "Parameter file", dict_filename, "exists.."
+    if debug: print "Now checking for parameter file:", migratedFilename
+
+    if os.path.exists( migratedFilename ):
+
+        myPrint("J", "loading parameters from non-encrypted Pickle file:", migratedFilename)
+        if debug: print "Parameter file", migratedFilename, "exists.."
         # Open the file
         try:
-            istr = local_storage.openFileForReading(dict_filename)
+            istr = FileInputStream(migratedFilename)
             load_file = FileUtil.wrap(istr)
             myParameters = pickle.load(load_file)
             load_file.close()
@@ -228,19 +234,33 @@ def getParameters():
             myPrint("B", "Error: reached EOF on parameter file....")
             myParameters = None
         except:
-            print "Unexpected error ", sys.exc_info()[0]
-            print "Unexpected error ", sys.exc_info()[1]
-            myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-            myParameters = None
+            myPrint("B","Error opening Pickle File (will try  encrypted version) - Unexpected error ", sys.exc_info()[0])
+            myPrint("B","Error opening Pickle File (will try  encrypted version) - Unexpected error ", sys.exc_info()[1])
+
+            # OK, so perhaps from older version - encrypted, try to read
+            try:
+                local_storage = moneydance.getCurrentAccountBook().getLocalStorage()
+                istr = local_storage.openFileForReading(old_dict_filename)
+                load_file = FileUtil.wrap(istr)
+                myParameters = pickle.load(load_file)
+                load_file.close()
+                myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
+            except:
+                myPrint("B","Opening Encrypted Pickle File (will try  encrypted version) - Unexpected error ", sys.exc_info()[0])
+                myPrint("B","Opening Encrypted Pickle File (will try  encrypted version) - Unexpected error ", sys.exc_info()[1])
+                myParameters = None
+                myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
 
         if myParameters is None:
             if debug: print "Parameters did not load, will keep defaults.."
-            return
         else:
             if debug: print "Parameters successfully loaded from file..."
     else:
-        if debug: print "Parameter file does not exist.. Will use defaults.."
-        return
+        myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
+        if debug: myPrint("P", "Parameter Pickle file does not exist - will use default and create new file..")
+        myParameters = None
+
+    if not myParameters: return
 
     if debug:
         print "myParameters read from file contains...:"
@@ -248,10 +268,8 @@ def getParameters():
             print "...variable:", key, myParameters[key]
 
     if myParameters.get("__StockGlance2020") is not None: __StockGlance2020 = myParameters.get("__StockGlance2020")
-    if myParameters.get("hideHiddenSecurities") is not None: hideHiddenSecurities = myParameters.get(
-            "hideHiddenSecurities")
-    if myParameters.get("hideInactiveAccounts") is not None: hideInactiveAccounts = myParameters.get(
-            "hideInactiveAccounts")
+    if myParameters.get("hideHiddenSecurities") is not None: hideHiddenSecurities = myParameters.get("hideHiddenSecurities")
+    if myParameters.get("hideInactiveAccounts") is not None: hideInactiveAccounts = myParameters.get("hideInactiveAccounts")
     if myParameters.get("hideHiddenAccounts") is not None: hideHiddenAccounts = myParameters.get("hideHiddenAccounts")
     if myParameters.get("lAllCurrency") is not None: lAllCurrency = myParameters.get("lAllCurrency")
     if myParameters.get("filterForCurrency") is not None: filterForCurrency = myParameters.get("filterForCurrency")
@@ -283,7 +301,7 @@ def getParameters():
 # ENDDEF
 
 if not _resetParameters:
-    getParameters()
+    get_StuWareSoftSystems_parameters_from_file()
 else:
     print "User has specified to reset parameters... keeping defaults and skipping pickle()"
 
@@ -2337,7 +2355,7 @@ if checkVersions():
                 ExportDataToFile()
 
 
-        def saveParameters():
+        def save_StuWareSoftSystems_parameters_to_file():
             global debug  # Set to True if you want verbose messages, else set to False....
             global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency
             global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter, scriptpath
@@ -2373,13 +2391,15 @@ if checkVersions():
             if not lDisplayOnly and scriptpath != "" and os.path.isdir(scriptpath):
                 myParameters["scriptpath"] = scriptpath
 
-            dict_filename = os.path.join("..", "StuWareSoftSystems.dict")
-            if debug: print "Will try to save parameter file:", dict_filename
+            myFile = "StuWareSoftSystems.dict"
+            # Pickle was originally encrypted, no need, migrating to unencrypted
+            migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
 
-            local_storage = moneydance.getCurrentAccountBook().getLocalStorage()
-            ostr = local_storage.openFileForWriting(dict_filename)
+            if debug: print "Will try to save parameter file:", migratedFilename
 
-            myPrint("J", "about to Pickle.dump and save parameters to file:", dict_filename)
+            ostr = FileOutputStream(migratedFilename)
+
+            myPrint("J", "about to Pickle.dump and save parameters to unencrypted file:", migratedFilename)
 
             try:
                 save_file = FileUtil.wrap(ostr)
@@ -2397,10 +2417,10 @@ if checkVersions():
 
             if debug: print "Parameter file written and parameters saved to disk....."
 
-
+            return
         # ENDDEF
 
-        saveParameters()
+        save_StuWareSoftSystems_parameters_to_file()
 
     else:
         pass
