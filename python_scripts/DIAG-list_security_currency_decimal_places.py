@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# DIAG-list_security_currency_decimal_places.py v1 - November 2020 - Stuart Beesley StuWareSoftSystems
+# DIAG-list_security_currency_decimal_places.py v1b - November 2020 - Stuart Beesley StuWareSoftSystems
 # Lists the  decimal places configured in your Moneydance securities. This script does not change any data!
 # -- NOTE - This setting is hidden in Moneydance and fixed once set (as data is stored scaled * 10*dpc)
 ###############################################################################
@@ -27,6 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
+# v1b - minor tweak to change max rounding to 8dpc (I think this mirror's MD)
 
 import sys
 reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
@@ -40,7 +41,7 @@ from com.infinitekind.moneydance.model import CurrencyUtil
 global debug  # Set to True if you want verbose messages, else set to False....
 global version
 
-version = "1"
+version = "1b"
 debug = True
 
 myScriptName = os.path.basename(__file__)
@@ -85,15 +86,16 @@ def analyse_curr( theCurr, theType ):
 	for sec_curr in theCurr:
 		if str(sec_curr.getCurrencyType()) != theType: continue
 
-		foo = str(CurrencyUtil.getUserRate(sec_curr, sec_curr.getRelativeCurrency()))
-		priceDecimals = max(sec_curr.getDecimalPlaces(), min(6, len(foo.split(decimalPoint_MD)[-1])))
+		foo = str(round(CurrencyUtil.getUserRate(sec_curr, sec_curr.getRelativeCurrency()),8))
+		priceDecimals = max(sec_curr.getDecimalPlaces(), min(8, len(foo.split(decimalPoint_MD)[-1])))
 		print str(sec_curr).ljust(mylen)[:mylen], "\tDPC:",\
 			sec_curr.getDecimalPlaces(),\
 			"\t", \
 			"Relative to:", sec_curr.getRelativeCurrency(), "\t",\
 			"Current rate:", foo,\
 			"\tRate dpc:", priceDecimals,
-		if sec_curr.getDecimalPlaces() < priceDecimals and theType == "SECURITY":
+		if (sec_curr.getDecimalPlaces() < priceDecimals and theType == "SECURITY") and \
+				not foo.endswith(".0"):
 			iWarn += 1
 			print " ***"
 		else:
