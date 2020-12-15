@@ -1,0 +1,10 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "extract_reminders_csv.py"
+      "name" = "extract_reminders_csv"
+    }
+  
+  ) 
+}
