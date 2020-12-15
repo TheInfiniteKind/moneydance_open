@@ -1,0 +1,12 @@
+{
+  "id" = "extract_investment_transactions_csv"
+  "extension_type" = "python"
+  "vendor" = "Stuart Beesley - StuWareSoftSystems"
+  "module_build" = "1001"
+  "minbuild" = "2012"
+  "vendor_url" = "https://yogi1967.github.io/MoneyDancePythonScripts/"
+  "vendor.url" = "https://yogi1967.github.io/MoneyDancePythonScripts/"
+  "module_name" = "extract_investment_transactions_csv"
+  "module_desc" = "<html><body><title>extract_investment_transactions_csv</title><p>Export your investment register to csv</p></body></html>"
+  "desc" = "extract_investment_transactions_csv: Extract your investment register to csv with lots of filters and options...\nMINIMUM BUILD REQUIREMENTS: 2021.2012....\nhttps://yogi1967.github.io/MoneyDancePythonScripts/"
+}
