@@ -1,0 +1,10 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "extract_currency_history_csv.py"
+      "name" = "extract_currency_history_csv"
+    }
+  
+  ) 
+}
