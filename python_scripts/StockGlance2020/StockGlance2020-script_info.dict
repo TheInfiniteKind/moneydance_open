@@ -1,0 +1,10 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "StockGlance2020.py"
+      "name" = "StockGlance2020"
+    }
+  
+  ) 
+}
