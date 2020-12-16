@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1002)
+# extract_reminders_csv.py (build: 1003)
 
 ###############################################################################
 # MIT License
@@ -46,7 +46,8 @@
 # Build: 1000 - column widths now save; optional parameter whether to write BOM to export file; added datetime to console log
 # Build: 1001 - Added About menu (cosmetic only)
 # Build: 1002 - Cosmetic change to put main window in centre of screen
-# Build: 1002 Enhanced MyPrint to catch unicode utf-8 encode/decode errors
+# Build: 1002 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
+# Build: 1003 - fixed raise(Exception) clauses ;->
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -109,7 +110,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1002"           																					# noqa
+version_build = "1003"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -543,7 +544,7 @@ def checkVersions():
 	if lError:
 		myPrint("J", "Platform version issue - will terminate script!")
 		myPrint("P", "\n@@@ TERMINATING PROGRAM @@@\n")
-		raise("Platform version issue - will terminate script!")
+		raise(Exception("Platform version issue - will terminate script!"))
 
 	return not lError
 
