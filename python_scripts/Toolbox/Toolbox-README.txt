@@ -80,6 +80,7 @@ ALT-B - Basic Mode
     - VIEW - OFX Related Data
 
 ALT-M - Advanced Mode
+    - FIX - Change Moneydance Fonts
     - FIX - Delete Custom Theme file
     - FIX - Fix relative currencies
     - FIX - Inactivate all Categories with Zero Balance

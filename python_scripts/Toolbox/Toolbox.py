@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Toolbox.py build: 1001 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# Toolbox.py build: 1002 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -56,6 +56,8 @@
 # Build: 999a Now finds the application directory for MacOS too....
 # Build: 1000 INITIAL PUBLIC RELEASE
 # Build: 1001 Enhanced MyPrint to catch unicode utf-8 encode/decode errors
+# Build: 1002 - fixed raise(Exception) clauses ;->
+# Build: 1002 - Now leveraging the Default font set in Moneydance; added change Fonts Button
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -121,7 +123,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1001"                                                                                      # noqa
+version_build = "1002"                                                                                              # noqa
 myScriptName = "Toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -145,6 +147,7 @@ from com.moneydance.apps.md.controller import Common
 from com.moneydance.apps.md.controller import BalanceType
 from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
 from com.moneydance.apps.md.controller import ModuleLoader
+from java.awt import GraphicsEnvironment
 
 from com.infinitekind.util import StreamTable, StreamVector, IOUtils, StringUtils, CustomDateFormat
 from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService
@@ -558,7 +561,7 @@ def checkVersions():
     if lError:
         myPrint("J", "Platform version issue - will terminate script!")
         myPrint("P", "\n@@@ TERMINATING PROGRAM @@@\n")
-        raise("Platform version issue - will terminate script!")
+        raise(Exception("Platform version issue - will terminate script!"))
 
     return not lError
 
@@ -2101,6 +2104,7 @@ ALT-B - Basic Mode
     - VIEW - OFX Related Data
 
 ALT-M - Advanced Mode
+    - FIX - Change Moneydance Fonts
     - FIX - Delete Custom Theme file
     - FIX - Fix relative currencies
     - FIX - Inactivate all Categories with Zero Balance
@@ -3493,7 +3497,7 @@ class DiagnosticDisplay():
                     ls_keys = LS.keys()
                     prefs=sorted(ls_keys)
                 else:
-                    raise("ERROR - Unknown type!")
+                    raise(Exception("ERROR - Unknown type!"))
 
                 text = ""
                 if lChg: text = "CHANGE"
@@ -3814,7 +3818,7 @@ class DiagnosticDisplay():
                 if selectedSearch == "Keys": lKeys = True
                 elif selectedSearch == "Key Data": lKeyData = True
                 else:
-                    raise("ERROR: Unknown Geekout Search Key type selected!?")
+                    raise(Exception("ERROR: Unknown Geekout Search Key type selected!?"))
 
                 searchWhat = myPopupAskForInput(Toolbox_frame_, "GEEK OUT: SEARCH", "%s:" % selectedSearch, "Enter the (partial) string to search for within %s..." % selectedSearch, "", False)
                 if not searchWhat or searchWhat == "":
@@ -5106,7 +5110,7 @@ class DiagnosticDisplay():
                         if not check_for_just_initial_view_filters_window_display_data(theKey, None): continue
                     else:
                         myPrint("B", "@@@ ERROR in get_set_config(): unexpected parameter!?")
-                        raise("@@@ ERROR in get_set_config(): unexpected parameter!?")
+                        raise(Exception("@@@ ERROR in get_set_config(): unexpected parameter!?"))
 
                     test = "col_widths."
                     if theKey.startswith(test):
@@ -5165,7 +5169,7 @@ class DiagnosticDisplay():
                         continue
 
                     myPrint("B","@@ RESET WINDOW DATA - ERROR >> What is this key: %s ? @@" %theKey)
-                    raise Exception("ERROR - caught an un-coded key: " + str(theKey))
+                    raise(Exception("ERROR - caught an un-coded key: " + str(theKey)))
 
                 # END OF config.dict search
                 ########################################################################################################
@@ -5332,7 +5336,7 @@ class DiagnosticDisplay():
                                     continue
                             else:
                                 myPrint("B", "@@ ERROR: RESET WINDOW DISPLAY SETTINGS - Unexpected filter!?")
-                                raise("@@ ERROR: RESET WINDOW DISPLAY SETTINGS - Unexpected filter!?")
+                                raise(Exception("@@ ERROR: RESET WINDOW DISPLAY SETTINGS - Unexpected filter!?"))
 
                             if lReset:
                                 LS.put(theKey, None)
@@ -5437,6 +5441,203 @@ class DiagnosticDisplay():
             self.statusLabel.setText(("OK - %s settings forgotten.... I SUGGEST YOU RESTART MONEYDANCE!" %resetWhat).ljust(800, " "))
             self.statusLabel.setForeground(Color.RED)
 
+            return
+
+
+    class ChangeFontsButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            if moneydance.getBuild() < 3030:
+                myPrint("B", "Error - must be on Moneydance build 3030+ to change fonts!")
+                self.statusLabel.setText(("Error - must be on Moneydance build 3030+ to change fonts!").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                return
+
+            myPrint("DB", "User requested to change Moneydance Default Fonts!")
+
+            if not backup_config_dict():
+                self.statusLabel.setText("Error backing up config.dict preferences file before deletion - no changes made....".ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                return
+
+            prefs=moneydance_ui.getPreferences()
+
+            systemFonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()
+            for installedFont in systemFonts:
+                myPrint("D","System OS Font %s is installed in your system..:" %installedFont)
+
+            # These are taken from MD Code - build 3030 - watch out they may change...!
+            Mac_fonts_main =     ["SF Pro Display", "SF Display", "Helvetica Neue", "Helvetica", "Lucida Grande", "Dialog"]
+            Mac_fonts_mono =     ["Gill Sans", "Menlo", "Monaco", "Monospaced"]
+
+            Windows_fonts_main = ["Dialog"]
+            Windows_fonts_mono = ["Calibri","Monospaced"]
+
+            Linux_fonts_main =   ["DejaVu Sans","Dialog"]
+            Linux_fonts_mono =   ["Monospaced"]
+
+            lExit=False
+            lAnyFontChanges=False
+
+            while True:
+                if lExit: break
+
+                mainF = prefs.getSetting("main_font", None)
+                monoF = prefs.getSetting("mono_font", None)
+
+                myPrint("DB",'@@ MONEYDANCE: Config.dict: "main_font" currently set to %s' %mainF)
+                myPrint("DB",'@@ MONEYDANCE: Config.dict: "mono_font" currently set to %s' %monoF)
+
+                display_main="None(Moneydance defaults)"
+                display_mono="None(Moneydance defaults)"
+                if mainF: display_main = mainF
+                if monoF: display_mono = monoF
+
+                myPopupInformationBox(Toolbox_frame_,
+                                      'Config.dict:\n"main_font" currently set to %s\n...and...\n"mono_font" currently set to %s\n.' %(display_main,display_mono),
+                                      "FONTS", JOptionPane.INFORMATION_MESSAGE)
+
+                _options=["MAIN: CHANGE SETTING", "MAIN: DELETE SETTING", "MONO: CHANGE SETTING", "MONO: DELETE SETTING"]
+                selectedOption = JOptionPane.showInputDialog(Toolbox_frame_,
+                                                             "What type of change do you want to make?",
+                                                             "ALTER FONTS",
+                                                             JOptionPane.WARNING_MESSAGE,
+                                                             None,
+                                                             _options,
+                                                             None)
+
+                if not selectedOption:
+                    break
+
+                lMain = (_options.index(selectedOption) == 0 or _options.index(selectedOption) == 1)
+                lMono = (_options.index(selectedOption) == 2 or _options.index(selectedOption) == 3)
+
+                lDelete = (_options.index(selectedOption) == 1 or _options.index(selectedOption) == 3)
+                lChange = (_options.index(selectedOption) == 0 or _options.index(selectedOption) == 2)
+
+                if lMain:
+                    theKey = "main_font"
+                elif lMono:
+                    theKey = "mono_font"
+                else:
+                    raise(Exception("error"))
+
+                if lDelete:
+                    if myPopupAskQuestion(Toolbox_frame_,"DELETE FONT KEY","Are you sure you want to delete key: %s?" %theKey,JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE):
+                        prefs.setSetting(theKey,None)
+                        moneydance.savePreferences()
+                        lAnyFontChanges=True
+                        myPrint("B", "Config.dict: key: %s DELETED - RESTART MD" %theKey)
+                        myPopupInformationBox(None, "Config.dict: key: %s DELETED - RESTART MD" %theKey, "FONTS", JOptionPane.WARNING_MESSAGE)
+                        continue
+                    else:
+                        continue
+
+                elif lChange:
+
+                    theFonts = None                                                                                 # noqa
+                    if Platform.isOSX():
+                        if lMain:
+                            theFonts = Mac_fonts_main
+                        elif lMono:
+                            theFonts = Mac_fonts_mono
+                        else: raise(Exception("error"))
+                    elif Platform.isWindows():
+                        if lMain:
+                            theFonts = Windows_fonts_main
+                        elif lMono:
+                            theFonts = Windows_fonts_mono
+                        else: raise(Exception("error"))
+                    else:
+                        if lMain:
+                            theFonts = Linux_fonts_main
+                        elif lMono:
+                            theFonts = Linux_fonts_mono
+                        else: raise(Exception("error"))
+
+                    for x in theFonts:
+                        myPrint("D","Possible internal default fonts for your Platform...: %s" %x)
+
+                    # _options=["EXIT", "CHOOSE FROM MD INTERNAL LIST", "CAREFULLY ENTER YOUR OWN", "CHOOSE FROM SYSTEM INSTALLED"]
+                    _options=["CHOOSE FROM MD INTERNAL LIST", "CHOOSE FROM YOUR OS' SYSTEM INSTALLED"]
+                    selectedOption = JOptionPane.showInputDialog(Toolbox_frame_,
+                                                                 "New Font Selection options for: %s?" %theKey,
+                                                                 "ALTER FONTS",
+                                                                 JOptionPane.WARNING_MESSAGE,
+                                                                 None,
+                                                                 _options,
+                                                                 None)
+
+                    if not selectedOption:
+                        continue
+
+                    if _options.index(selectedOption) == 0 or _options.index(selectedOption) == 1:
+
+                        if _options.index(selectedOption) == 1: theFonts = systemFonts
+                        selectedFont = JOptionPane.showInputDialog(Toolbox_frame_,
+                                                                   "Select new Font to set for %s" %theKey,
+                                                                   "ALTER FONTS",
+                                                                   JOptionPane.WARNING_MESSAGE,
+                                                                   None,
+                                                                   theFonts,
+                                                                   None)
+                        if not selectedFont:
+                            continue
+                        else:
+                            prefs.setSetting(theKey,selectedFont)
+                            moneydance.savePreferences()
+                            lAnyFontChanges=True
+                            myPrint("B", 'Config.dict: key: %s CHANGED to "%s" - RESTART MD' %(theKey,selectedFont))
+                            myPopupInformationBox(Toolbox_frame_, 'Config.dict: key: %s CHANGED to "%s"\nRESTART MD' %(theKey,selectedFont), "FONTS", JOptionPane.WARNING_MESSAGE)
+                            continue
+
+                    # elif _options.index(selectedOption) == 2:
+                    #
+                    #     if lMain: currentFont = mainF
+                    #     elif lMono: currentFont = monoF
+                    #     else: raise(Exception("error"))
+                    #
+                    #     newFont = myPopupAskForInput(None,
+                    #                        "CHANGE FONT",
+                    #                        "New Font",
+                    #                        "Carefully type the name of the new Font",
+                    #                        currentFont,
+                    #                        False,
+                    #                        JOptionPane.WARNING_MESSAGE)
+                    #
+                    #     if newFont == "" or newFont == currentFont:
+                    #         lExit = True
+                    #         myPrint("P", "NO FONT ACTION TAKEN")
+                    #         myPopupInformationBox(None, "NO FONT ACTION TAKEN!", "FONTS", JOptionPane.WARNING_MESSAGE)
+                    #         continue
+                    #     else:
+                    #         prefs.setSetting(theKey,newFont)
+                    #         moneydance.savePreferences()
+                    #         myPrint("B", 'Config.dict: key: %s CHANGED to "%s" - RESTART MD' %(theKey,newFont))
+                    #         myPopupInformationBox(None, 'Config.dict: key: %s CHANGED to "%s"\nRESTART MD' %(theKey,newFont), "FONTS", JOptionPane.WARNING_MESSAGE)
+                    #         continue
+                    else:
+                        raise(Exception("error"))
+
+                continue
+
+            if lAnyFontChanges:
+                self.statusLabel.setText("Moneydance Font Changes made as requested - PLEASE RESTART MONEYDANCE (PS - config.dict was backed up too)....".ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+            else:
+                myPrint("D", "NO FONT ACTIONS TAKEN")
+                self.statusLabel.setText("NO FONT ACTIONS TAKEN! - no changes made....".ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_, "NO FONT ACTIONS TAKEN!", "FONTS", JOptionPane.WARNING_MESSAGE)
+
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
 
     class DeleteConfigFileButtonAction(AbstractAction):
@@ -6715,6 +6916,7 @@ The limit is set deliberately low to enable it to work with computers having ver
                             buttonText = theComponent.getLabel().strip().upper()
 
                             if ("FIX" in buttonText
+                                  or "FONTS" in buttonText
                                   or "RESET" in buttonText
                                   or "DELETE" in buttonText
                                   or "FORGET" in buttonText):
@@ -6743,6 +6945,7 @@ The limit is set deliberately low to enable it to work with computers having ver
                         if "DIAG" in buttonText:
                             pass
                         elif ("FIX" in buttonText
+                              or "FONTS" in buttonText
                               or "RESET" in buttonText
                               or "DELETE" in buttonText
                               or "FORGET" in buttonText):
@@ -6829,6 +7032,14 @@ The limit is set deliberately low to enable it to work with computers having ver
             convertSecondary_button.addActionListener(self.ConvertSecondaryButtonAction(displayString, statusLabel))
             convertSecondary_button.setVisible(False)
             displayPanel.add(convertSecondary_button)
+
+        if moneydance.getBuild() >= 3030:
+            changeTheFont_button = JButton("<html><center>Set/Change Default<BR>Moneydance FONTS</center></html>")
+            changeTheFont_button.setToolTipText("This will allow you to Set/Change the Default Moneydance Fonts. THIS CHANGES DATA!")
+            changeTheFont_button.setForeground(Color.RED)
+            changeTheFont_button.addActionListener(self.ChangeFontsButtonAction(statusLabel))
+            changeTheFont_button.setVisible(False)
+            displayPanel.add(changeTheFont_button)
 
         copy_button = JButton("<html><center>Copy Diagnostics<BR>below to Clipboard</center></html>")
         copy_button.setToolTipText("This will copy the contents in the diagnostic report below to your Clipboard")
@@ -7174,6 +7385,70 @@ The limit is set deliberately low to enable it to work with computers having ver
         check_for_old_StuWareSoftSystems_scripts(statusLabel)
 
         check_for_updatable_extensions_on_startup(statusLabel)
+
+
+def setDefaultFonts():
+
+    myFont = moneydance_ui.getFonts().defaultText
+
+    myPrint("DB", "Attempting to set default font to %s" %myFont)
+
+    try:
+        UIManager.getLookAndFeelDefaults().put("defaultFont", myFont )
+
+        # https://thebadprogrammer.com/swing-uimanager-keys/
+        UIManager.put("CheckBoxMenuItem.acceleratorFont", myFont)
+        UIManager.put("Button.font", myFont)
+        UIManager.put("ToggleButton.font", myFont)
+        UIManager.put("RadioButton.font", myFont)
+        UIManager.put("CheckBox.font", myFont)
+        UIManager.put("ColorChooser.font", myFont)
+        UIManager.put("ComboBox.font", myFont)
+        UIManager.put("Label.font", myFont)
+        UIManager.put("List.font", myFont)
+        UIManager.put("MenuBar.font", myFont)
+        UIManager.put("Menu.acceleratorFont", myFont)
+        UIManager.put("RadioButtonMenuItem.acceleratorFont", myFont)
+        UIManager.put("MenuItem.acceleratorFont", myFont)
+        UIManager.put("MenuItem.font", myFont)
+        UIManager.put("RadioButtonMenuItem.font", myFont)
+        UIManager.put("CheckBoxMenuItem.font", myFont)
+        UIManager.put("OptionPane.buttonFont", myFont)
+        UIManager.put("OptionPane.messageFont", myFont)
+        UIManager.put("Menu.font", myFont)
+        UIManager.put("PopupMenu.font", myFont)
+        UIManager.put("OptionPane.font", myFont)
+        UIManager.put("Panel.font", myFont)
+        UIManager.put("ProgressBar.font", myFont)
+        UIManager.put("ScrollPane.font", myFont)
+        UIManager.put("Viewport.font", myFont)
+        UIManager.put("TabbedPane.font", myFont)
+        UIManager.put("Slider.font", myFont)
+        UIManager.put("Table.font", myFont)
+        UIManager.put("TableHeader.font", myFont)
+        UIManager.put("TextField.font", myFont)
+        UIManager.put("Spinner.font", myFont)
+        UIManager.put("PasswordField.font", myFont)
+        UIManager.put("TextArea.font", myFont)
+        UIManager.put("TextPane.font", myFont)
+        UIManager.put("EditorPane.font", myFont)
+        UIManager.put("TabbedPane.smallFont", myFont)
+        UIManager.put("TitledBorder.font", myFont)
+        UIManager.put("ToolBar.font", myFont)
+        UIManager.put("ToolTip.font", myFont)
+        UIManager.put("Tree.font", myFont)
+        UIManager.put("FormattedTextField.font", myFont)
+        UIManager.put("IconButton.font", myFont)
+        UIManager.put("InternalFrame.optionDialogTitleFont", myFont)
+        UIManager.put("InternalFrame.paletteTitleFont", myFont)
+        UIManager.put("InternalFrame.titleFont", myFont)
+    except:
+        myPrint("B","Failed to set Swing default fonts to use Moneydance defaults... sorry")
+
+    return
+
+
+setDefaultFonts()
 
 
 if not i_am_an_extension_so_run_headless: print("""
