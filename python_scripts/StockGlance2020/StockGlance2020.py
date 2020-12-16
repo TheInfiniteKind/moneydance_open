@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 build:1002 - October 2020 - Stuart Beesley
+# StockGlance2020 build:1003 - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -86,7 +86,8 @@
 # Build: 1000 - Column widths now save....; optional parameter whether to write BOM to export file; added date/time to console log
 # Build: 1001 - Cosmetic change to console to state when not splitting accounts; Added About menu (cosmetic)
 # Build: 1002 - Cosmetic change to put main window in centre of screen; bug fix for text double-decimal point corrupting display in MyGainsRenderer()
-# Build: 1002 Enhanced MyPrint to catch unicode utf-8 encode/decode errors
+# Build: 1002 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
+# Build: 1003 - fixed raise(Exception) clauses ;->
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -147,7 +148,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1002"                                                                                              # noqa
+version_build = "1003"                                                                                              # noqa
 myScriptName = "StockGlance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -602,7 +603,7 @@ def checkVersions():
     if lError:
         myPrint("J", "Platform version issue - will terminate script!")
         myPrint("P", "\n@@@ TERMINATING PROGRAM @@@\n")
-        raise("Platform version issue - will terminate script!")
+        raise(Exception("Platform version issue - will terminate script!"))
 
     return not lError
 
@@ -1536,7 +1537,7 @@ if not lExit:
 
                                 if len(split_acct_array) < 1:
                                     myPrint("B", "Major logic error... Aborting", curr.getName())
-                                    raise Exception("Split Security logic...Array len <1")
+                                    raise(Exception("Split Security logic...Array len <1"))
 
                                 for iSplitAcctArray in range(0, len(split_acct_array)):
                                     qtySplit = split_acct_array[iSplitAcctArray][1]
