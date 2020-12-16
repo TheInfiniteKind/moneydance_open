@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - build: 1001 - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - build: 1002 - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -47,6 +47,7 @@
 # Build: 1000 - all print functions changed to work headless; added some popup warnings...; streamlined common code
 # Build: 1000 - optional parameter whether to write BOM to export file; added date/time to console log
 # Build: 1001 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
+# Build: 1002 - fixed raise(Exception) clauses ;->
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -107,7 +108,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1001"                                                                                              # noqa
+version_build = "1002"                                                                                              # noqa
 myScriptName = "extract_investment_transactions_csv.py(Extension)"                                                  # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -549,7 +550,7 @@ def checkVersions():
     if lError:
         myPrint("J", "Platform version issue - will terminate script!")
         myPrint("P", "\n@@@ TERMINATING PROGRAM @@@\n")
-        raise("Platform version issue - will terminate script!")
+        raise(Exception("Platform version issue - will terminate script!"))
 
     return not lError
 
@@ -1343,11 +1344,11 @@ if not lExit:
                             # noinspection PyUnresolvedReferences
                             myPopupInformationBox(None, "LOGIC ERROR: I can't see how the Security's currency is different to the Account's currency? ","LOGIC ERROR")
                             # noinspection PyUnresolvedReferences
-                            raise Exception("LOGIC Error - Security's currency: "
+                            raise(Exception("LOGIC Error - Security's currency: "
                                     + securityCurr.getRelativeCurrency().getIDString().upper().strip()
                                     + " is different to txn currency: "
                                     + txnCurr.getIDString().upper().strip()
-                                    + " Aborting")
+                                    + " Aborting"))
 
 
                     # All accounts and security records can have currencies
