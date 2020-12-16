@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_currency_history_csv build 1001 - November 2020 - Stuart Beesley StuWareSoftSystems
+# extract_currency_history_csv build 1002 - November 2020 - Stuart Beesley StuWareSoftSystems
 # Extracts your Currency rate history to CSV file (as MD doesn't do this)
 # This script does not change any data!
 # Thanks to DerekKent23 for his testing....
@@ -43,6 +43,7 @@
 # Build: 1000 - all print functions changed to work headless; added some popup warnings...; streamlined common code
 # Build: 1000 - optional parameter whether to write BOM to export file; added date/time to console log
 # Build: 1001 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
+# Build: 1002 - fixed raise(Exception) clauses ;->
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -103,7 +104,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1001"                                                                                              # noqa
+version_build = "1002"                                                                                              # noqa
 myScriptName = "extract_currency_history_csv.py(Extension)"                                                         # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -534,7 +535,7 @@ def checkVersions():
     if lError:
         myPrint("J", "Platform version issue - will terminate script!")
         myPrint("P", "\n@@@ TERMINATING PROGRAM @@@\n")
-        raise("Platform version issue - will terminate script!")
+        raise(Exception("Platform version issue - will terminate script!"))
 
     return not lError
 
@@ -1102,7 +1103,7 @@ if not lExit:
     if moneydance_data is None:
         myPrint("B", "MD Data file is empty - no data to scan - aborting...")
         myPopupInformationBox(None,"MD Data file is empty - no data to scan - aborting...","EMPTY DATASET")
-        raise Exception("MD Data file is empty - no data to scan - aborting...")
+        raise(Exception("MD Data file is empty - no data to scan - aborting..."))
 
     header = ["CurrencyName",
               "CurrencyID",
