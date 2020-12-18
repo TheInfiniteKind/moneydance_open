@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - build: 1002 - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - build: 1003 - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -48,6 +48,7 @@
 # Build: 1000 - optional parameter whether to write BOM to export file; added date/time to console log
 # Build: 1001 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
 # Build: 1002 - fixed raise(Exception) clauses ;->
+# Build: 1003 - fixed last column which was getting *s replacing ,s in error; moved save of parameters earlier...
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -108,7 +109,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1002"                                                                                              # noqa
+version_build = "1003"                                                                                              # noqa
 myScriptName = "extract_investment_transactions_csv.py(Extension)"                                                  # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1217,6 +1218,8 @@ if not lExit:
         lDisplayOnly = True
         myPrint("P", "No Export will be performed")
 
+    save_StuWareSoftSystems_parameters_to_file()
+
     if not lDisplayOnly:
 
         # noinspection PyArgumentList
@@ -1725,7 +1728,7 @@ if not lExit:
                 headings.append(i[1][_HEADING])
             print
 
-            myPrint("P", "Nor pre-processing the file to convert integer dates and strip non-ASCII if requested....")
+            myPrint("P", "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
             for _row in transactionTable:
                 dateasdate = datetime.datetime.strptime(str(_row[dataKeys["_DATE"][_COLUMN]]), "%Y%m%d")  # Convert to Date field
                 dateoutput = dateasdate.strftime(userdateformat)
@@ -1736,7 +1739,7 @@ if not lExit:
                     dateoutput = dateasdate.strftime(userdateformat)
                     _row[dataKeys["_TAXDATE"][_COLUMN]] = dateoutput
 
-                for col in range(0, len(_row)):
+                for col in range(0, dataKeys["_SECSHRHOLDING"][_COLUMN]):
                     _row[col] = fixFormatsStr(_row[col])
 
             # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
@@ -1825,8 +1828,6 @@ if not lExit:
                 helper.openDirectory(File(csvfilename))
             except:
                 pass
-
-save_StuWareSoftSystems_parameters_to_file()
 
 myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
 
