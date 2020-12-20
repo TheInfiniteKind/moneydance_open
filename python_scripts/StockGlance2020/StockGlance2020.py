@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 build:1004 - October 2020 - Stuart Beesley
+# StockGlance2020 build:1005 - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -89,6 +89,8 @@
 # Build: 1002 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
 # Build: 1003 - fixed raise(Exception) clauses ;->
 # Build: 1004 - Updated common codeset; utilise Moneydance fonts
+# Build: 1005 - User request to add option to extract future balance, rather than current balance; added fake JFrame() for icons
+# Build: 1005 - Moved parameter save earlier...; added parameters to writer csv output
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -150,7 +152,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1004"                                                                                              # noqa
+version_build = "1005"                                                                                              # noqa
 myScriptName = "StockGlance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -178,7 +180,7 @@ global __StockGlance2020
 global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency, lAllSecurity
 global filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter, _column_widths_SG2020
 global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, lRoundPrice, scriptpath
-global lWriteBOMToExportFile_SWSS
+global lWriteBOMToExportFile_SWSS, lIncludeFutureBalances_SG2020
 
 # Other used by program
 global csvfilename, lDisplayOnly
@@ -186,7 +188,7 @@ global baseCurrency, sdf, StockGlance2020_frame_, rawDataTable, rawFooterTable, 
 global StockGlanceInstance  # holds the instance of StockGlance2020()
 global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW
 global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
-global acctSeparator
+global acctSeparator, StockGlance2020_fake_frame_
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
@@ -203,6 +205,7 @@ filterForAccounts = "ALL"                                                       
 lIncludeCashBalances = False                                                                                        # noqa
 lSplitSecuritiesByAccount = False                                                                                   # noqa
 lExcludeTotalsFromCSV = False                                                                                       # noqa
+lIncludeFutureBalances_SG2020 = False                                                                               # noqa
 lRoundPrice = True                                                                                                  # noqa
 lStripASCII = False                                                                                                 # noqa
 csvDelimiter = ","                                                                                                  # noqa
@@ -212,6 +215,7 @@ headingNames = ""                                                               
 acctSeparator = ' : '                                                                                               # noqa
 scriptpath = ""                                                                                                     # noqa
 lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
+StockGlance2020_fake_frame_ = None                                                                                  # noqa
 extract_filename='StockGlance2020_extract_stock_balances.csv'
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
@@ -1102,7 +1106,7 @@ def load_StuWareSoftSystems_parameters_into_memory():
     global __StockGlance2020, hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency
     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter, scriptpath
     global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, lRoundPrice, _column_widths_SG2020
-    global lWriteBOMToExportFile_SWSS                                                                                  # noqa
+    global lWriteBOMToExportFile_SWSS, lIncludeFutureBalances_SG2020
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
     myPrint("DB", "Loading variables into memory...")
@@ -1122,6 +1126,7 @@ def load_StuWareSoftSystems_parameters_into_memory():
     if myParameters.get("lIncludeCashBalances") is not None: lIncludeCashBalances = myParameters.get("lIncludeCashBalances")
     if myParameters.get("lSplitSecuritiesByAccount") is not None: lSplitSecuritiesByAccount = myParameters.get("lSplitSecuritiesByAccount")
     if myParameters.get("lExcludeTotalsFromCSV") is not None: lExcludeTotalsFromCSV = myParameters.get("lExcludeTotalsFromCSV")
+    if myParameters.get("lIncludeFutureBalances_SG2020") is not None: lIncludeFutureBalances_SG2020 = myParameters.get("lIncludeFutureBalances_SG2020")
     if myParameters.get("lDontRoundPrice") is not None: lRoundPrice = myParameters.get("lDontRoundPrice")
     if myParameters.get("lStripASCII") is not None: lStripASCII = myParameters.get("lStripASCII")
     if myParameters.get("csvDelimiter") is not None: csvDelimiter = myParameters.get("csvDelimiter")
@@ -1147,8 +1152,8 @@ def dump_StuWareSoftSystems_parameters_from_memory():
     global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurrency, filterForCurrency
     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lIncludeCashBalances, lStripASCII, csvDelimiter, scriptpath
     global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, lRoundPrice
-    global lDisplayOnly, _column_widths_SG2020
-    global lWriteBOMToExportFile_SWSS                                                                                  # noqa
+    global lDisplayOnly, _column_widths_SG2020, lIncludeFutureBalances_SG2020
+    global lWriteBOMToExportFile_SWSS
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
@@ -1170,6 +1175,7 @@ def dump_StuWareSoftSystems_parameters_from_memory():
     myParameters["lIncludeCashBalances"] = lIncludeCashBalances
     myParameters["lSplitSecuritiesByAccount"] = lSplitSecuritiesByAccount
     myParameters["lExcludeTotalsFromCSV"] = lExcludeTotalsFromCSV
+    myParameters["lIncludeFutureBalances_SG2020"] = lIncludeFutureBalances_SG2020
     myParameters["lDontRoundPrice"] = lRoundPrice
     myParameters["lStripASCII"] = lStripASCII
     myParameters["csvDelimiter"] = csvDelimiter
@@ -1187,6 +1193,15 @@ def dump_StuWareSoftSystems_parameters_from_memory():
 get_StuWareSoftSystems_parameters_from_file()
 myPrint("DB", "DEBUG IS ON..")
 # END ALL CODE COPY HERE ###############################################################################################
+
+# Create fake JFrame() so that all popups have correct Moneydance Icons etc
+StockGlance2020_fake_frame_ = JFrame()
+if (not Platform.isMac()):
+    moneydance_ui.getImages()
+    StockGlance2020_fake_frame_.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+StockGlance2020_fake_frame_.setUndecorated(True)
+StockGlance2020_fake_frame_.setVisible(False)
+StockGlance2020_fake_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 
 
 class CloseAboutAction(AbstractAction):
@@ -1276,24 +1291,12 @@ def terminate_script():
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-    # Parameters already written.....
-    # try:
-    #     save_StuWareSoftSystems_parameters_to_file()
-    # except:
-    #     myPrint("B", "Error - failed to save parameters to pickle file...!")
-    #     dump_sys_error_to_md_console_and_errorlog()
-
     if not lDisplayOnly and not lGlobalErrorDetected:
         try:
             helper = moneydance.getPlatformHelper()
             helper.openDirectory(File(csvfilename))
         except:
             dump_sys_error_to_md_console_and_errorlog()
-
-    try:
-        save_StuWareSoftSystems_parameters_to_file()
-    except:
-        dump_sys_error_to_md_console_and_errorlog()
 
     if not i_am_an_extension_so_run_headless: print(scriptExit)
 
@@ -1360,6 +1363,13 @@ user_splitSecurities.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if lSplitSecuritiesByAccount:   user_splitSecurities.setText("Y")
 else:                           user_splitSecurities.setText("N")
 
+labelFutureBalances = JLabel("Include Future Balances (rather than current)? (Y/N):")
+user_includeFutureBalances = JTextField(2)
+user_includeFutureBalances.setDocument(JTextFieldLimitYN(1, True, "YN"))
+if lIncludeFutureBalances_SG2020:   user_includeFutureBalances.setText("Y")
+else:                               user_includeFutureBalances.setText("N")
+
+
 label7c = JLabel("Exclude Totals from CSV extract (helps pivots)? (Y/N):")
 user_excludeTotalsFromCSV = JTextField(2)
 user_excludeTotalsFromCSV.setDocument(JTextFieldLimitYN(1, True, "YN"))
@@ -1395,7 +1405,7 @@ user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if debug:  user_selectDEBUG.setText("Y")
 else:           user_selectDEBUG.setText("N")
 
-userFilters = JPanel(GridLayout(15, 2))
+userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(label1)
 userFilters.add(user_hideHiddenSecurities)
 userFilters.add(label2)
@@ -1412,6 +1422,8 @@ userFilters.add(label7)
 userFilters.add(user_selectCashBalances)
 userFilters.add(label7b)
 userFilters.add(user_splitSecurities)
+userFilters.add(labelFutureBalances)
+userFilters.add(user_includeFutureBalances)
 userFilters.add(label7c)
 userFilters.add(user_excludeTotalsFromCSV)
 userFilters.add(label7d)
@@ -1429,7 +1441,7 @@ lExit = False
 lDisplayOnly = False
 
 options = ["Abort", "Display & CSV Export", "Display Only"]
-userAction = (JOptionPane.showOptionDialog(None,
+userAction = (JOptionPane.showOptionDialog(StockGlance2020_fake_frame_,
                                      userFilters,
                                      "%s(build: %s) Set Script Parameters...." %(myScriptName,version_build),
                                      JOptionPane.OK_CANCEL_OPTION,
@@ -1460,6 +1472,7 @@ if not lExit:
             "Filter Accts:", user_selectAccounts.getText(),
             "Include Cash Balances:", user_selectCashBalances.getText(),
             "Split Securities:", user_splitSecurities.getText(),
+            "Include Future Balances:", user_includeFutureBalances.getText(),
             "Exclude Totals from CSV:", user_excludeTotalsFromCSV.getText(),
             "Round Calc Price:", user_roundPrice.getText(),
             "Strip ASCII:", user_selectStripASCII.getText(),
@@ -1468,15 +1481,9 @@ if not lExit:
             "CSV File Delimiter:", user_selectDELIMITER.getText())
     # endif
 
-    hideHiddenSecurities = False
-    hideInactiveAccounts = False
-    hideHiddenAccounts = False
-    if user_hideHiddenSecurities.getText() == "Y":  hideHiddenSecurities = True
-    else:                                           hideHiddenSecurities = False
-    if user_hideInactiveAccounts.getText() == "Y":  hideInactiveAccounts = True
-    else:                                           hideInactiveAccounts = False
-    if user_hideHiddenAccounts.getText() == "Y":    hideHiddenAccounts = True
-    else:                                           hideHiddenAccounts = False
+    hideHiddenSecurities = user_hideHiddenSecurities.getText() == "Y"
+    hideInactiveAccounts = user_hideInactiveAccounts.getText() == "Y"
+    hideHiddenAccounts = user_hideHiddenAccounts.getText() == "Y"
 
     if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
         lAllCurrency = True
@@ -1499,20 +1506,12 @@ if not lExit:
         lAllAccounts = False
         filterForAccounts = user_selectAccounts.getText()
 
-    if user_selectCashBalances.getText() == "Y":    lIncludeCashBalances = True
-    else:                                           lIncludeCashBalances = False
-
-    if user_splitSecurities.getText() == "Y":       lSplitSecuritiesByAccount = True
-    else:                                           lSplitSecuritiesByAccount = False
-
-    if user_excludeTotalsFromCSV.getText() == "Y":  lExcludeTotalsFromCSV = True
-    else:                                           lExcludeTotalsFromCSV = False
-
-    if user_roundPrice.getText() == "Y":  lRoundPrice = True
-    else:                                 lRoundPrice = False
-
-    if user_selectStripASCII.getText() == "Y":      lStripASCII = True
-    else:                                           lStripASCII = False
+    lIncludeCashBalances = user_selectCashBalances.getText() == "Y"
+    lSplitSecuritiesByAccount = user_splitSecurities.getText() == "Y"
+    lExcludeTotalsFromCSV = user_excludeTotalsFromCSV.getText() == "Y"
+    lIncludeFutureBalances_SG2020 = user_includeFutureBalances.getText() == "Y"
+    lRoundPrice = user_roundPrice.getText() == "Y"
+    lStripASCII = user_selectStripASCII.getText() == "Y"
 
     csvDelimiter = user_selectDELIMITER.getText()
     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
@@ -1562,6 +1561,11 @@ if not lExit:
     else:
         myPrint("B", "Excluding Cash Balances")
 
+    if lIncludeFutureBalances_SG2020:
+        myPrint("B", "Including Future Balances...")
+    else:
+        myPrint("B", "Including Current Balances Only....")
+
     if lRoundPrice:
         myPrint("B", "Will round the calculated price to the security's decimal precision setting...")
     else:
@@ -1607,7 +1611,7 @@ if not lExit:
                 System.setProperty("com.apple.macos.use-file-dialog-packages", "true")  # In theory prevents access to app file structure (but doesnt seem to work)
                 System.setProperty("apple.awt.fileDialogForDirectories", "false")
 
-            filename = FileDialog(None, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
+            filename = FileDialog(StockGlance2020_fake_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
             filename.setMultipleMode(False)
             filename.setMode(FileDialog.SAVE)
             filename.setFile(extract_filename)
@@ -1627,17 +1631,17 @@ if not lExit:
                 lDisplayOnly = True
                 csvfilename = None
                 myPrint("B", "User chose to cancel or no file selected >>  So no Extract will be performed... ")
-                myPopupInformationBox(None,"User chose to cancel or no file selected >>  So no Extract will be performed... ","FILE SELECTION")
+                myPopupInformationBox(StockGlance2020_fake_frame_,"User chose to cancel or no file selected >>  So no Extract will be performed... ","FILE SELECTION")
             elif str(csvfilename).endswith(".moneydance"):
                 myPrint("B", "User selected file:", csvfilename)
                 myPrint("B", "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(None,"Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...","FILE SELECTION")
+                myPopupInformationBox(StockGlance2020_fake_frame_,"Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...","FILE SELECTION")
                 lDisplayOnly = True
                 csvfilename = None
             elif ".moneydance" in filename.getDirectory():
                 myPrint("B", "User selected file:", filename.getDirectory(), csvfilename)
                 myPrint("B", "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(None,"Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...","FILE SELECTION")
+                myPopupInformationBox(StockGlance2020_fake_frame_,"Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...","FILE SELECTION")
                 lDisplayOnly = True
                 csvfilename = None
             else:
@@ -1657,7 +1661,7 @@ if not lExit:
                     scriptpath = os.path.dirname(csvfilename)
                 else:
                     myPrint("B", "Sorry - I just checked and you do not have permissions to create this file:", csvfilename)
-                    myPopupInformationBox(None,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
+                    myPopupInformationBox(StockGlance2020_fake_frame_,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
                     # csvfilename=""
                     # lDisplayOnly = True
 
@@ -1675,12 +1679,14 @@ if not lExit:
         lDisplayOnly = True
         myPrint("B", "No Export will be performed")
 
+    # save here in case script crashes....
+    save_StuWareSoftSystems_parameters_to_file()
 
     class StockGlance2020():  # MAIN program....
         def __init__(self):
             pass
 
-        global debug, hideHiddenSecurities, hideInactiveAccounts, lSplitSecuritiesByAccount, acctSeparator, lRoundPrice
+        global debug, hideHiddenSecurities, hideInactiveAccounts, lSplitSecuritiesByAccount, acctSeparator, lRoundPrice, lIncludeFutureBalances_SG2020
         global rawDataTable, rawFooterTable, headingNames
         global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW, _SORT
         global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _EXCLUDECSV, _GAINPCT
@@ -2323,7 +2329,7 @@ if not lExit:
 
         def sumInfoBySecurity(self, book):
             global debug, hideInactiveAccounts, hideHiddenAccounts, lAllAccounts, filterForAccounts, lIncludeCashBalances
-            global lSplitSecuritiesByAccount, acctSeparator, i_am_an_extension_so_run_headless
+            global lSplitSecuritiesByAccount, acctSeparator, i_am_an_extension_so_run_headless, lIncludeFutureBalances_SG2020
 
             myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -2350,11 +2356,17 @@ if not lExit:
                 account = accounts.get(curr)  # this returns None if curr doesn't exist yet
                 total = totals.get(curr)  # this returns None if security/curr doesn't exist yet
                 costbasis = cbbasistotals.get(curr)
-                if acct.getCurrentBalance() != 0:  # we only want Securities with holdings
-                    if debug and not i_am_an_extension_so_run_headless: print("Processing Acct:", acct.getParentAccount(), "Share/Fund Qty Balances for Security: ", curr, curr.formatSemiFancy(
-                            acct.getCurrentBalance(), decimalCharSep), " Shares/Units")
 
-                    total = (0L if (total is None) else total) + acct.getCurrentBalance()
+                if lIncludeFutureBalances_SG2020:
+                    _getBalance = acct.getBalance()
+                else:
+                    _getBalance = acct.getCurrentBalance()
+
+                if _getBalance != 0:  # we only want Securities with holdings
+                    if debug and not i_am_an_extension_so_run_headless: print("Processing Acct:", acct.getParentAccount(), "Share/Fund Qty Balances for Security: ", curr, curr.formatSemiFancy(
+                            _getBalance, decimalCharSep), " Shares/Units")
+
+                    total = (0L if (total is None) else total) + _getBalance
                     totals[curr] = total
 
                     getTheCostBasis = InvestUtil.getCostBasis(acct)
@@ -2366,10 +2378,10 @@ if not lExit:
                     if lSplitSecuritiesByAccount:  # Build a mini table if split, else 1 row table...
                         if account is None:
                             accounts[curr] = [
-                                    [str(acct.getParentAccount()) + acctSeparator, acct.getCurrentBalance(),
+                                    [str(acct.getParentAccount()) + acctSeparator, _getBalance,
                                      getTheCostBasis]]
                         else:
-                            account.append([str(acct.getParentAccount()) + acctSeparator, acct.getCurrentBalance(),
+                            account.append([str(acct.getParentAccount()) + acctSeparator, _getBalance,
                                             getTheCostBasis])
                             accounts[curr] = account
                     else:
@@ -2379,16 +2391,21 @@ if not lExit:
                         else:
                             account = account[0][0] + str(
                                     acct.getParentAccount()) + acctSeparator  # concatenate two strings here
-                        accounts[curr] = [[account, acct.getCurrentBalance(), getTheCostBasis]]
+                        accounts[curr] = [[account, _getBalance, getTheCostBasis]]
 
                     if lIncludeCashBalances:
                         # Now get the Currency  for the Security Parent Account - to get Cash  Balance
                         curr = acct.getParentAccount().getCurrencyType()
 
                         # WARNING Cash balances are by Account and not by Security!
-                        cashTotal = curr.getDoubleValue(
-                                (acct.getParentAccount().getCurrentBalance())) / curr.getRate(
+                        if lIncludeFutureBalances_SG2020:
+                            cashTotal = curr.getDoubleValue(
+                                (acct.getParentAccount().getBalance())) / curr.getRate(
                                 None)  # Will be the same Cash balance per account for all Securities..
+                        else:
+                            cashTotal = curr.getDoubleValue(
+                                    (acct.getParentAccount().getCurrentBalance())) / curr.getRate(
+                                    None)  # Will be the same Cash balance per account for all Securities..
                         myPrint("D","Cash balance for account:", cashTotal)
                         cashTotals[acct.getParentAccount()] = round(cashTotal, 2)
                         # endfor
@@ -2667,6 +2684,7 @@ if not lExit:
 
         def createAndShowGUI(self):
             global debug, StockGlance2020_frame_, rawDataTable, rawFooterTable, lDisplayOnly, version_build, lSplitSecuritiesByAccount, _column_widths_SG2020
+            global lIncludeFutureBalances_SG2020
 
             global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW, _SORT
             global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _EXCLUDECSV, _GAINPCT
@@ -3002,8 +3020,6 @@ if not lExit:
         # enddef
 
 
-    # endclass
-
     StockGlanceInstance = StockGlance2020()
 
     if StockGlance2020.createAndShowGUI(StockGlanceInstance):
@@ -3011,7 +3027,7 @@ if not lExit:
         if not lDisplayOnly:
             def ExportDataToFile():
                 global debug, StockGlance2020_frame_, rawDataTable, rawFooterTable, headingNames, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build
-                global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, myScriptName, lRoundPrice, lGlobalErrorDetected
+                global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, myScriptName, lRoundPrice, lGlobalErrorDetected, lIncludeFutureBalances_SG2020
                 global lWriteBOMToExportFile_SWSS
 
                 global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW, _SORT
@@ -3069,6 +3085,22 @@ if not lExit:
                                          + version_build
                                          + ")  MoneyDance Python Script - Date of Extract: "
                                          + str(sdf.format(today.getTime()))])
+
+                        writer.writerow([""])
+                        writer.writerow(["User Parameters..."])
+
+                        writer.writerow(["Hiding Hidden Securities...: %s" %(hideHiddenSecurities)])
+                        writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
+                        writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
+                        writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
+                        writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
+                        writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+                        writer.writerow(["Include Cash Balances......: %s" %(lIncludeCashBalances)])
+                        writer.writerow(["Include Future Balances....: %s" %(lIncludeFutureBalances_SG2020)])
+                        writer.writerow(["Default Price Rounding.....: %s" %(lRoundPrice)])
+                        writer.writerow(["Split Securities by Account: %s" %(lSplitSecuritiesByAccount)])
+                        writer.writerow(["Extract Totals from CSV....: %s" %(lExcludeTotalsFromCSV)])
+
                     myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
                 except IOError, e:
@@ -3113,5 +3145,9 @@ if not lExit:
 
 else:
     pass
+
+if StockGlance2020_fake_frame_:
+    StockGlance2020_fake_frame_.dispose()
+    del StockGlance2020_fake_frame_
 
 myPrint("B", "StuWareSoftSystems - %s script ending......" %myScriptName)
