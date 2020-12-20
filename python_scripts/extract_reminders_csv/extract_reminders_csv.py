@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1003)
+# extract_reminders_csv.py (build: 1004)
 
 ###############################################################################
 # MIT License
@@ -48,6 +48,7 @@
 # Build: 1002 - Cosmetic change to put main window in centre of screen
 # Build: 1002 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
 # Build: 1003 - fixed raise(Exception) clauses ;->
+# Build: 1004 - Updated common codeset, leverage Moneydance fonts
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -80,6 +81,7 @@ from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, J
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
 from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
 from javax.swing.text import PlainDocument
+from javax.swing.border import EmptyBorder
 
 from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
 from java.awt import BorderLayout, Dialog, Insets
@@ -110,7 +112,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1003"           																					# noqa
+version_build = "1004"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -126,7 +128,7 @@ from java.awt.event import MouseAdapter
 from java.util import Comparator
 from javax.swing import SortOrder, ListSelectionModel
 from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, TableRowSorter
-from javax.swing.border import CompoundBorder, EmptyBorder, MatteBorder
+from javax.swing.border import CompoundBorder, MatteBorder
 from javax.swing.event import TableColumnModelListener
 from java.lang import String, Number
 # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
@@ -457,6 +459,215 @@ def myPopupAskForInput(theParent,
 		return field.getText()
 	return None
 
+# APPLICATION_MODAL, DOCUMENT_MODAL, MODELESS, TOOLKIT_MODAL
+class MyPopUpDialogBox():
+
+	def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK"):
+		self.theParent = theParent
+		self.theStatus = theStatus
+		self.theMessage = theMessage
+		self.theWidth = max(80,theWidth)
+		self.theTitle = theTitle
+		self.lModal = lModal
+		self.lCancelButton = lCancelButton
+		self.OKButtonText = OKButtonText
+		self.fakeJFrame = None
+		self._popup_d = None
+		self.lResult = [None]
+		if not self.theMessage.endswith("\n"): self.theMessage+="\n"
+		if self.OKButtonText == "": self.OKButtonText="OK"
+
+	class WindowListener(WindowAdapter):
+
+		def __init__(self, theDialog, theFakeFrame, lResult):
+			self.theDialog = theDialog
+			self.theFakeFrame = theFakeFrame
+			self.lResult = lResult
+
+		def windowClosing(self, WindowEvent):                                                                       # noqa
+			global debug
+			myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
+
+			myPrint("DB", "JDialog Frame shutting down....")
+
+			self.lResult[0] = False
+
+			if self.theFakeFrame is not None:
+				self.theDialog.dispose()
+				self.theFakeFrame.dispose()
+			else:
+				self.theDialog.dispose()
+
+			myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+			return
+
+	class OKButtonAction(AbstractAction):
+		# noinspection PyMethodMayBeStatic
+
+		def __init__(self, theDialog, theFakeFrame, lResult):
+			self.theDialog = theDialog
+			self.theFakeFrame = theFakeFrame
+			self.lResult = lResult
+
+		def actionPerformed(self, event):
+			global debug
+			myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+
+			self.lResult[0] = True
+
+			if self.theFakeFrame is not None:
+				self.theDialog.dispose()
+				self.theFakeFrame.dispose()
+			else:
+				self.theDialog.dispose()
+
+			myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+			return
+
+	class CancelButtonAction(AbstractAction):
+		# noinspection PyMethodMayBeStatic
+
+		def __init__(self, theDialog, theFakeFrame, lResult):
+			self.theDialog = theDialog
+			self.theFakeFrame = theFakeFrame
+			self.lResult = lResult
+
+		def actionPerformed(self, event):
+			global debug
+			myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+
+			self.lResult[0] = False
+
+			if self.theFakeFrame is not None:
+				self.theDialog.dispose()
+				self.theFakeFrame.dispose()
+			else:
+				self.theDialog.dispose()
+
+			myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+			return
+
+	def kill(self):
+
+		global debug
+		myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+		self._popup_d.setVisible(False)
+		if self.fakeJFrame is not None:
+			self._popup_d.dispose()
+			self.fakeJFrame.dispose()
+		else:
+			self._popup_d.dispose()
+
+		myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+		return
+
+	def result(self):
+
+		global debug
+		return self.lResult[0]
+
+	def go(self):
+		global debug
+
+		myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+		# Create a fake JFrame so we can set the Icons...
+		if self.theParent is None:
+			self.fakeJFrame = JFrame()
+			self.fakeJFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
+			self.fakeJFrame.setUndecorated(True)
+			self.fakeJFrame.setVisible( False )
+			if not Platform.isOSX():
+				self.fakeJFrame.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+
+		if self.lModal:
+			# noinspection PyUnresolvedReferences
+			self._popup_d = JDialog(self.theParent, self.theTitle, Dialog.ModalityType.APPLICATION_MODAL)
+		else:
+			# noinspection PyUnresolvedReferences
+			self._popup_d = JDialog(self.theParent, self.theTitle, Dialog.ModalityType.MODELESS)
+
+		self._popup_d.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
+
+		shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+
+		# Add standard CMD-W keystrokes etc to close window
+		self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
+		self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+		self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
+		self._popup_d.addWindowListener(self.WindowListener(self._popup_d, self.fakeJFrame,self.lResult))
+
+		if (not Platform.isMac()):
+			# moneydance_ui.getImages()
+			self._popup_d.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+
+		displayJText = JTextArea(self.theMessage)
+		# displayJText.setFont( getMonoFont() )
+		displayJText.setEditable(False)
+		displayJText.setLineWrap(False)
+		displayJText.setWrapStyleWord(False)
+
+		_popupPanel=JPanel()
+
+		# maxHeight = 500
+		_popupPanel.setLayout(GridLayout(0,1))
+		_popupPanel.setBorder(EmptyBorder(8, 8, 8, 8))
+		# _popupPanel.setMinimumSize(Dimension(self.theWidth, 0))
+		# _popupPanel.setMaximumSize(Dimension(self.theWidth, maxHeight))
+
+		if self.theStatus:
+			_label1 = JLabel(pad(self.theStatus,self.theWidth-20))
+			_label1.setForeground(Color.BLUE)
+			_popupPanel.add(_label1)
+
+		if displayJText.getLineCount()>5:
+			myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+			# myScrollPane.setMinimumSize(Dimension(self.theWidth-20, 10))
+			# myScrollPane.setMaximumSize(Dimension(self.theWidth-20, maxHeight-100))
+			myScrollPane.setWheelScrollingEnabled(True)
+			_popupPanel.add(myScrollPane)
+		else:
+			_popupPanel.add(displayJText)
+
+		if self.lModal or self.lCancelButton:
+			buttonPanel = JPanel()
+			buttonPanel.setLayout(FlowLayout(FlowLayout.CENTER))
+
+			if self.lCancelButton:
+				cancel_button = JButton("CANCEL")
+				cancel_button.setPreferredSize(Dimension(100,40))
+				cancel_button.setBackground(Color.LIGHT_GRAY)
+				cancel_button.setBorderPainted(False)
+				cancel_button.setOpaque(True)
+				cancel_button.addActionListener( self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult) )
+				buttonPanel.add(cancel_button)
+
+			if self.lModal:
+				ok_button = JButton(self.OKButtonText)
+				if len(self.OKButtonText) <= 2:
+					ok_button.setPreferredSize(Dimension(100,40))
+				else:
+					ok_button.setPreferredSize(Dimension(200,40))
+
+				ok_button.setBackground(Color.LIGHT_GRAY)
+				ok_button.setBorderPainted(False)
+				ok_button.setOpaque(True)
+				ok_button.addActionListener( self.OKButtonAction(self._popup_d, self.fakeJFrame, self.lResult) )
+				buttonPanel.add(ok_button)
+
+			_popupPanel.add(buttonPanel)
+
+		self._popup_d.add(_popupPanel)
+
+		self._popup_d.pack()
+		self._popup_d.setLocationRelativeTo(None)
+		self._popup_d.setVisible(True)
+
+		myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+		return self.lResult[0]
+
 def play_the_money_sound():
 
 	# Seems to cause a crash on Virtual Machine with no Audio - so just in case....
@@ -550,6 +761,69 @@ def checkVersions():
 
 
 checkVersions()
+
+def setDefaultFonts():
+
+	myFont = moneydance_ui.getFonts().defaultText
+
+	myPrint("DB", "Attempting to set default font to %s" %myFont)
+
+	try:
+		UIManager.getLookAndFeelDefaults().put("defaultFont", myFont )
+
+		# https://thebadprogrammer.com/swing-uimanager-keys/
+		UIManager.put("CheckBoxMenuItem.acceleratorFont", myFont)
+		UIManager.put("Button.font", myFont)
+		UIManager.put("ToggleButton.font", myFont)
+		UIManager.put("RadioButton.font", myFont)
+		UIManager.put("CheckBox.font", myFont)
+		UIManager.put("ColorChooser.font", myFont)
+		UIManager.put("ComboBox.font", myFont)
+		UIManager.put("Label.font", myFont)
+		UIManager.put("List.font", myFont)
+		UIManager.put("MenuBar.font", myFont)
+		UIManager.put("Menu.acceleratorFont", myFont)
+		UIManager.put("RadioButtonMenuItem.acceleratorFont", myFont)
+		UIManager.put("MenuItem.acceleratorFont", myFont)
+		UIManager.put("MenuItem.font", myFont)
+		UIManager.put("RadioButtonMenuItem.font", myFont)
+		UIManager.put("CheckBoxMenuItem.font", myFont)
+		UIManager.put("OptionPane.buttonFont", myFont)
+		UIManager.put("OptionPane.messageFont", myFont)
+		UIManager.put("Menu.font", myFont)
+		UIManager.put("PopupMenu.font", myFont)
+		UIManager.put("OptionPane.font", myFont)
+		UIManager.put("Panel.font", myFont)
+		UIManager.put("ProgressBar.font", myFont)
+		UIManager.put("ScrollPane.font", myFont)
+		UIManager.put("Viewport.font", myFont)
+		UIManager.put("TabbedPane.font", myFont)
+		UIManager.put("Slider.font", myFont)
+		UIManager.put("Table.font", myFont)
+		UIManager.put("TableHeader.font", myFont)
+		UIManager.put("TextField.font", myFont)
+		UIManager.put("Spinner.font", myFont)
+		UIManager.put("PasswordField.font", myFont)
+		UIManager.put("TextArea.font", myFont)
+		UIManager.put("TextPane.font", myFont)
+		UIManager.put("EditorPane.font", myFont)
+		UIManager.put("TabbedPane.smallFont", myFont)
+		UIManager.put("TitledBorder.font", myFont)
+		UIManager.put("ToolBar.font", myFont)
+		UIManager.put("ToolTip.font", myFont)
+		UIManager.put("Tree.font", myFont)
+		UIManager.put("FormattedTextField.font", myFont)
+		UIManager.put("IconButton.font", myFont)
+		UIManager.put("InternalFrame.optionDialogTitleFont", myFont)
+		UIManager.put("InternalFrame.paletteTitleFont", myFont)
+		UIManager.put("InternalFrame.titleFont", myFont)
+	except:
+		myPrint("B","Failed to set Swing default fonts to use Moneydance defaults... sorry")
+
+	return
+
+
+setDefaultFonts()
 
 def who_am_i():
 	try:
