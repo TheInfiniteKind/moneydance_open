@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_currency_history_csv build 1003 - November 2020 - Stuart Beesley StuWareSoftSystems
+# extract_currency_history_csv build 1004 - November 2020 - Stuart Beesley StuWareSoftSystems
 # Extracts your Currency rate history to CSV file (as MD doesn't do this)
 # This script does not change any data!
 # Thanks to DerekKent23 for his testing....
@@ -45,6 +45,11 @@
 # Build: 1001 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
 # Build: 1002 - fixed raise(Exception) clauses ;->
 # Build: 1003 - Updated common codeset; leverage moneydance fonts
+# Build: 1004 - Removed TxnSortOrder from common code
+# Build: 1004 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
+# Build: 1004 - Write parameters out to csv file; added the fake JFrame() for icons...; moved parameter  save earlier
+# Build: 1004 - Moved the currency table scan to only run if extract file selected...
+# Build: 1004 - Fix for Jython 2.7.1 non handling of Unicode on csv.writerow on currency symbols
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -68,10 +73,10 @@ from com.moneydance.apps.md.view.gui import MDImages
 
 from com.infinitekind.util import DateUtil, CustomDateFormat
 from com.infinitekind.moneydance.model import *
-from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil, TxnSortOrder
+from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
 from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
-from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog
+from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
 from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
 from javax.swing.text import PlainDocument
@@ -86,7 +91,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,TxnSortOrder,Reminder,ParentTxn,SplitTxn,TxnSearch,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                      InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -106,7 +111,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1003"                                                                                              # noqa
+version_build = "1004"                                                                                              # noqa
 myScriptName = "extract_currency_history_csv.py(Extension)"                                                         # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -129,7 +134,7 @@ global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_E
 global lWriteBOMToExportFile_SWSS
 
 # Other used by program
-global baseCurrency, sdf, csvlines
+global baseCurrency, sdf, csvlines, extract_currency_history_csv_fake_frame_
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
@@ -144,6 +149,7 @@ hideHiddenCurrencies_ECH = True                                                 
 
 scriptpath = ""                                                                                                     # noqa
 lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
+extract_currency_history_csv_fake_frame_ = None                                                                     # noqa
 extract_filename="extract_currency_history.csv"
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
@@ -894,6 +900,21 @@ class JTextFieldLimitYN(PlainDocument):
             if ((self.getLength() + len(myString)) <= self.limit):
                 super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
 
+def fix_delimiter( theDelimiter ):
+
+    try:
+        if sys.version_info.major >= 3: return theDelimiter
+        if sys.version_info.major <  2: return str(theDelimiter)
+
+        if sys.version_info.minor >  7: return theDelimiter
+        if sys.version_info.minor <  7: return str(theDelimiter)
+
+        if sys.version_info.micro >= 2: return theDelimiter
+    except:
+        pass
+
+    return str( theDelimiter )
+
 def get_StuWareSoftSystems_parameters_from_file():
     global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
@@ -1103,6 +1124,15 @@ get_StuWareSoftSystems_parameters_from_file()
 myPrint("DB", "DEBUG IS ON..")
 # END ALL CODE COPY HERE ###############################################################################################
 
+# Create fake JFrame() so that all popups have correct Moneydance Icons etc
+extract_currency_history_csv_fake_frame_ = JFrame()
+if (not Platform.isMac()):
+    moneydance_ui.getImages()
+    extract_currency_history_csv_fake_frame_.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+extract_currency_history_csv_fake_frame_.setUndecorated(True)
+extract_currency_history_csv_fake_frame_.setVisible(False)
+extract_currency_history_csv_fake_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
+
 csvfilename = None
 
 if decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ";"  # Override for EU countries or where decimal point is actually a comma...
@@ -1196,14 +1226,14 @@ options = ["Abort", "CSV Export"]
 
 while True:
 
-    userAction = (JOptionPane.showOptionDialog(None, userFilters, "%s(build: %s) Set Script Parameters...."%(myScriptName,version_build),
+    userAction = (JOptionPane.showOptionDialog(extract_currency_history_csv_fake_frame_, userFilters, "%s(build: %s) Set Script Parameters...."%(myScriptName,version_build),
                                          JOptionPane.OK_CANCEL_OPTION,
                                          JOptionPane.QUESTION_MESSAGE,
                                          moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
                                          options, options[1]))
     if userAction != 1:
         myPrint("B", "User Cancelled Parameter selection.. Will abort..")
-        myPopupInformationBox(None, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+        myPopupInformationBox(extract_currency_history_csv_fake_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
         lDisplayOnly = False
         lExit = True
         break
@@ -1261,7 +1291,7 @@ if not lExit:
 
     myPrint("B","User Parameters...")
 
-    if labelSimplify:
+    if lSimplify_ECH:
         myPrint("B","Simplifying extract")
     else:
         myPrint("B","Providing a detailed extract")
@@ -1272,7 +1302,7 @@ if not lExit:
     myPrint("B", "Selected end date:", userdateEnd_ECH)
 
     if hideHiddenCurrencies_ECH:
-        myPrint("B", "Hiding hidden securities...")
+        myPrint("B", "Hiding hidden currencies...")
 
     # Now get the export filename
     csvfilename = None
@@ -1306,7 +1336,7 @@ if not lExit:
                 System.setProperty("com.apple.macos.use-file-dialog-packages", "true")  # In theory prevents access to app file structure (but doesnt seem to work)
                 System.setProperty("apple.awt.fileDialogForDirectories", "false")
 
-            filename = FileDialog(None, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
+            filename = FileDialog(extract_currency_history_csv_fake_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
             filename.setMultipleMode(False)
             filename.setMode(FileDialog.SAVE)
             filename.setFile(extract_filename)
@@ -1325,17 +1355,17 @@ if not lExit:
                 lDisplayOnly = True
                 csvfilename = None
                 myPrint("B", "User chose to cancel or no file selected >>  So no Extract will be performed... ")
-                myPopupInformationBox(None,"User chose to cancel or no file selected >>  So no Extract will be performed... ","FILE SELECTION")
+                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"User chose to cancel or no file selected >>  So no Extract will be performed... ","FILE SELECTION")
             elif str(csvfilename).endswith(".moneydance"):
                 myPrint("B", "User selected file:", csvfilename)
                 myPrint("B", "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(None,"Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...","FILE SELECTION")
+                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...","FILE SELECTION")
                 lDisplayOnly = True
                 csvfilename = None
             elif ".moneydance" in filename.getDirectory():
                 myPrint("B", "User selected file:", filename.getDirectory(), csvfilename)
                 myPrint("B", "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(None,"Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...","FILE SELECTION")
+                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...","FILE SELECTION")
                 lDisplayOnly = True
                 csvfilename = None
             else:
@@ -1355,9 +1385,9 @@ if not lExit:
                     scriptpath = os.path.dirname(csvfilename)
                 else:
                     myPrint("B", "Sorry - I just checked and you do not have permissions to create this file:", csvfilename)
-                    myPopupInformationBox(None,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
-                    # csvfilename=""
-                    # lDisplayOnly = True
+                    myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
+                    csvfilename=""
+                    lDisplayOnly = True
 
             return
 
@@ -1372,96 +1402,98 @@ if not lExit:
         lDisplayOnly = True
         myPrint("B", "No Export will be performed")
 
-    myPrint("P", "\nScript running to extract your currency rate history....")
-    myPrint("P", "-------------------------------------------------------------------")
-    if moneydance_data is None:
-        myPrint("B", "MD Data file is empty - no data to scan - aborting...")
-        myPopupInformationBox(None,"MD Data file is empty - no data to scan - aborting...","EMPTY DATASET")
-        raise(Exception("MD Data file is empty - no data to scan - aborting..."))
-
-    header = ["CurrencyName",
-              "CurrencyID",
-              "isBase",
-              "DecimalPlaces",
-              "Prefix",
-              "Suffix",
-              "CurrentRateR2B",
-              "CurrentRateB2R",
-              "Snap_Date",
-              "Snap_DailyRateR2B",
-              "Snap_DailyRateB2R"]
-
-    def list_currency_rate_history():
-        global hideHiddenCurrencies_ECH, lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH
-
-        curr_table=[]
-
-        currencies = moneydance.getCurrentAccountBook().getCurrencies()
-        baseCurr = currencies.getBaseType()
-
-        myPrint("P","\nIterating the currency table...")
-        for curr in currencies:
-
-            # noinspection PyUnresolvedReferences
-            if curr.getCurrencyType() != CurrencyType.Type.CURRENCY: continue   # Skip if not on a Currency record (i.e. a Security)
-
-            if hideHiddenCurrencies_ECH and curr.getHideInUI(): continue   # Skip if hidden in MD
-
-            myPrint("P","Currency: %s %s" %(curr, curr.getPrefix()) )
-
-            currSnapshots = curr.getSnapshots()
-
-            if not lSimplify_ECH and not len(currSnapshots) and curr == baseCurr:
-
-                row = []
-
-                row.append((curr.getName()))
-                row.append((curr.getIDString()))
-                row.append(curr == baseCurr)
-                row.append(curr.getDecimalPlaces())
-                row.append((curr.getPrefix()))
-                row.append((curr.getSuffix()))
-                row.append(1)
-                row.append(1)
-                row.append(None)
-                row.append(None)
-                row.append(None)
-                curr_table.append(row)
-
-            # noinspection PyUnusedLocal
-            dpc = curr.getDecimalPlaces()
-            dpc = 8   # Override to 8dpc
-
-            for currSnapshot in currSnapshots:
-                if currSnapshot.getDateInt() < userdateStart_ECH \
-                        or currSnapshot.getDateInt() > userdateEnd_ECH:
-                    continue   # Skip if out of date range
-
-                row = []
-
-                row.append((curr.getName()))
-                row.append((curr.getIDString()))
-                row.append(curr == baseCurr)
-                row.append(curr.getDecimalPlaces())
-                row.append((curr.getPrefix()))
-                row.append((curr.getSuffix()))
-                row.append(round(float(curr.getParameter("rate", None)),dpc))
-                row.append(round(1/float(curr.getParameter("rate", None)),dpc))
-
-                # I don't print relative currency as it's supposed to always be None or = Base..
-
-                row.append(currSnapshot.getDateInt())
-                row.append(round(float(currSnapshot.getRate()),dpc))
-                row.append(round(1/float(currSnapshot.getRate()),dpc))
-
-                curr_table.append(row)
-
-        return curr_table
-
-
-    currencyTable = list_currency_rate_history()
-
     if not lDisplayOnly:
+        save_StuWareSoftSystems_parameters_to_file()
+
+        myPrint("P", "\nScript running to extract your currency rate history....")
+        myPrint("P", "-------------------------------------------------------------------")
+        if moneydance_data is None:
+            myPrint("B", "MD Data file is empty - no data to scan - aborting...")
+            myPopupInformationBox(extract_currency_history_csv_fake_frame_,"MD Data file is empty - no data to scan - aborting...","EMPTY DATASET")
+            extract_currency_history_csv_fake_frame_.dispose()
+            raise(Exception("MD Data file is empty - no data to scan - aborting..."))
+
+        header = ["CurrencyName",
+                  "CurrencyID",
+                  "isBase",
+                  "DecimalPlaces",
+                  "Prefix",
+                  "Suffix",
+                  "CurrentRateR2B",
+                  "CurrentRateB2R",
+                  "Snap_Date",
+                  "Snap_DailyRateR2B",
+                  "Snap_DailyRateB2R"]
+
+        def list_currency_rate_history():
+            global hideHiddenCurrencies_ECH, lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH
+
+            curr_table=[]
+
+            currencies = moneydance.getCurrentAccountBook().getCurrencies()
+            baseCurr = currencies.getBaseType()
+
+            myPrint("P","\nIterating the currency table...")
+            for curr in currencies:
+
+                # noinspection PyUnresolvedReferences
+                if curr.getCurrencyType() != CurrencyType.Type.CURRENCY: continue   # Skip if not on a Currency record (i.e. a Security)
+
+                if hideHiddenCurrencies_ECH and curr.getHideInUI(): continue   # Skip if hidden in MD
+
+                myPrint("P","Currency: %s %s" %(curr, curr.getPrefix()) )
+
+                currSnapshots = curr.getSnapshots()
+
+                if not lSimplify_ECH and not len(currSnapshots) and curr == baseCurr:
+
+                    row = []
+
+                    row.append((curr.getName()))
+                    row.append((curr.getIDString()))
+                    row.append(curr == baseCurr)
+                    row.append(curr.getDecimalPlaces())
+                    row.append((curr.getPrefix()))
+                    row.append((curr.getSuffix()))
+                    row.append(1)
+                    row.append(1)
+                    row.append(None)
+                    row.append(None)
+                    row.append(None)
+                    curr_table.append(row)
+
+                # noinspection PyUnusedLocal
+                dpc = curr.getDecimalPlaces()
+                dpc = 8   # Override to 8dpc
+
+                for currSnapshot in currSnapshots:
+                    if currSnapshot.getDateInt() < userdateStart_ECH \
+                            or currSnapshot.getDateInt() > userdateEnd_ECH:
+                        continue   # Skip if out of date range
+
+                    row = []
+
+                    row.append((curr.getName()))
+                    row.append((curr.getIDString()))
+                    row.append(curr == baseCurr)
+                    row.append(curr.getDecimalPlaces())
+                    row.append((curr.getPrefix()))
+                    row.append((curr.getSuffix()))
+                    row.append(round(float(curr.getParameter("rate", None)),dpc))
+                    row.append(round(1/float(curr.getParameter("rate", None)),dpc))
+
+                    # I don't print relative currency as it's supposed to always be None or = Base..
+
+                    row.append(currSnapshot.getDateInt())
+                    row.append(round(float(currSnapshot.getRate()),dpc))
+                    row.append(round(1/float(currSnapshot.getRate()),dpc))
+
+                    curr_table.append(row)
+
+            return curr_table
+
+        currencyTable = list_currency_rate_history()
+
         def ExportDataToFile(theTable, header):                                                                 # noqa
             global debug, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build, myScriptName
             global sdf, userdateformat, lGlobalErrorDetected
@@ -1509,16 +1541,22 @@ if not lExit:
                     if lWriteBOMToExportFile_SWSS:
                         csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
 
-                    writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=csvDelimiter)
-
+                    writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(csvDelimiter))
 
                     if csvDelimiter != ",":
                         writer.writerow(["sep=",""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
 
                     if not lSimplify_ECH:
                         for i in range(0, len(theTable)):
-                            # Write the table, but swap in the raw numbers (rather than formatted number strings)
-                            writer.writerow( theTable[i] )
+                            try:
+                                writer.writerow( theTable[i] )
+                            except:
+                                myPrint("B","Error writing row %s to file... Older Jython version?" %i)
+                                myPrint("B","Row: ",theTable[i])
+                                myPrint("B","Will attempt coding back to str()..... Let's see if this fails?!")
+                                for _col in range(0, len(theTable[i])):
+                                    theTable[i][_col] = fix_delimiter(theTable[i][_col])
+                                writer.writerow( theTable[i] )
                         # NEXT
                         today = Calendar.getInstance()
                         writer.writerow([""])
@@ -1526,7 +1564,14 @@ if not lExit:
                                          + version_build
                                          + ")  MoneyDance Python Script - Date of Extract: "
                                          + str(sdf.format(today.getTime()))])
-                        writer.writerow(["Date Range Selected: "+str(userdateStart_ECH) + " to " +str(userdateEnd_ECH)])
+
+                        writer.writerow([""])
+                        writer.writerow(["User Parameters..."])
+                        writer.writerow(["Simplify Extract...........: %s" %(lSimplify_ECH)])
+                        writer.writerow(["Hiding Hidden Currencies...: %s" %(hideHiddenCurrencies_ECH)])
+                        writer.writerow(["Date format................: %s" %(userdateformat)])
+                        writer.writerow(["Date Range Selected........: "+str(userdateStart_ECH) + " to " +str(userdateEnd_ECH)])
+
                     else:
                         # Simplify is for my tester 'buddy' DerekKent23 - it's actually an MS Money Import format
                         lCurr = None
@@ -1535,7 +1580,10 @@ if not lExit:
                             if row[_CURRNAME] != lCurr:
                                 if lCurr: writer.writerow("")
                                 lCurr = row[_CURRNAME]
-                                writer.writerow( [row[ _CURRNAME]+" - "+row[_CURRID]+" - "+row[_SYMB]+row[_SYMB+1]] )
+                                writer.writerow( [fix_delimiter(row[ _CURRNAME])
+                                                  +" - "+fix_delimiter(row[_CURRID])
+                                                  +" - "+fix_delimiter(row[_SYMB])
+                                                  +fix_delimiter(row[_SYMB+1])] )
                                 writer.writerow(["Date","Base to Rate","Rate to Base"])
 
                             writer.writerow([row[_SNAPDATE],
@@ -1550,7 +1598,7 @@ if not lExit:
                 myPrint("B", "Path:", csvfilename)
                 myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
                 dump_sys_error_to_md_console_and_errorlog()
-                myPopupInformationBox(None,"Sorry - error writing to export file!", "FILE EXTRACT")
+                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - error writing to export file!", "FILE EXTRACT")
         # enddef
 
         def fixFormatsStr(theString, lNumber=False, sFormat=""):
@@ -1583,14 +1631,17 @@ if not lExit:
 
         ExportDataToFile(currencyTable, header)
         if not lGlobalErrorDetected:
-            myPopupInformationBox(None,"Your extract has been created as requested",myScriptName)
+            myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Your extract has been created as requested",myScriptName)
             try:
                 helper = moneydance.getPlatformHelper()
                 helper.openDirectory(File(csvfilename))
             except:
                 pass
 
-    save_StuWareSoftSystems_parameters_to_file()
+
+if extract_currency_history_csv_fake_frame_ is not None:
+    extract_currency_history_csv_fake_frame_.dispose()
+    del extract_currency_history_csv_fake_frame_
 
 myPrint("P", "-----------------------------------------------------------------")
 myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
