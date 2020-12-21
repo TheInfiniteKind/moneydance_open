@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 build:1005 - October 2020 - Stuart Beesley
+# StockGlance2020 build:1006 - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -91,6 +91,8 @@
 # Build: 1004 - Updated common codeset; utilise Moneydance fonts
 # Build: 1005 - User request to add option to extract future balance, rather than current balance; added fake JFrame() for icons
 # Build: 1005 - Moved parameter save earlier...; added parameters to writer csv output
+# Build: 1006 - Removed TxnSortOrder from common code
+# Build: 1006 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -114,10 +116,10 @@ from com.moneydance.apps.md.view.gui import MDImages
 
 from com.infinitekind.util import DateUtil, CustomDateFormat
 from com.infinitekind.moneydance.model import *
-from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil, TxnSortOrder
+from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
 from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
-from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog
+from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
 from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
 from javax.swing.text import PlainDocument
@@ -132,7 +134,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,TxnSortOrder,Reminder,ParentTxn,SplitTxn,TxnSearch,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                      InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -152,7 +154,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1005"                                                                                              # noqa
+version_build = "1006"                                                                                              # noqa
 myScriptName = "StockGlance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -966,6 +968,21 @@ class JTextFieldLimitYN(PlainDocument):
             if ((self.getLength() + len(myString)) <= self.limit):
                 super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
 
+def fix_delimiter( theDelimiter ):
+
+    try:
+        if sys.version_info.major >= 3: return theDelimiter
+        if sys.version_info.major <  2: return str(theDelimiter)
+
+        if sys.version_info.minor >  7: return theDelimiter
+        if sys.version_info.minor <  7: return str(theDelimiter)
+
+        if sys.version_info.micro >= 2: return theDelimiter
+    except:
+        pass
+
+    return str( theDelimiter )
+
 def get_StuWareSoftSystems_parameters_from_file():
     global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
@@ -1458,7 +1475,7 @@ elif userAction == 2:  # Display Only
 else:
     # Abort
     myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
-    myPopupInformationBox(None,"User Cancelled Parameter selection.. Will abort..","PARAMETERS")
+    myPopupInformationBox(StockGlance2020_fake_frame_,"User Cancelled Parameter selection.. Will abort..","PARAMETERS")
     lDisplayOnly = False
     lExit = True
 
@@ -1662,8 +1679,8 @@ if not lExit:
                 else:
                     myPrint("B", "Sorry - I just checked and you do not have permissions to create this file:", csvfilename)
                     myPopupInformationBox(StockGlance2020_fake_frame_,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
-                    # csvfilename=""
-                    # lDisplayOnly = True
+                    csvfilename=""
+                    lDisplayOnly = True
 
             return
 
@@ -3054,7 +3071,7 @@ if not lExit:
                         if lWriteBOMToExportFile_SWSS:
                             csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
 
-                        writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=csvDelimiter)
+                        writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(csvDelimiter))
 
                         if csvDelimiter != ",":
                             writer.writerow(["sep=",""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
