@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 5 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 6 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -38,6 +38,8 @@
 # Build: 3 PREVIEW - added foreign currency support
 # Build: 4 PREVIEW - updated common codeset; leverage moneydance fonts
 # Build: 5 PREVIEW - Bug fix. Don't break after failing filter check in splits; continue instead...!! Thus don't always blank total on first split!
+# Build: 6 PREVIEW - Removed TxnSortOrder from common code....
+# Build: 6 PREVIEW - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 
 # todo dropdown date selection....
 
@@ -63,7 +65,7 @@ from com.moneydance.apps.md.view.gui import MDImages
 
 from com.infinitekind.util import DateUtil, CustomDateFormat
 from com.infinitekind.moneydance.model import *
-from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil, TxnSortOrder
+from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
 from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
@@ -81,7 +83,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,TxnSortOrder,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                      InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -101,7 +103,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "5"                                                                                                 # noqa
+version_build = "6"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -131,7 +133,7 @@ global lAllText_EAR, textFilter_EAR
 # Other used by program
 global csvfilename, lDisplayOnly
 global baseCurrency, sdf
-global transactionTable, dataKeys, attachmentDir, relativePath, lDidIUseAttachmentDir, extract_account_registers_frame_
+global transactionTable, dataKeys, attachmentDir, relativePath, lDidIUseAttachmentDir, extract_account_registers_fake_frame_
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
@@ -159,7 +161,7 @@ lWriteBOMToExportFile_SWSS = True                                               
 saveDropDownAccountUUID_EAR = ""                                                                                    # noqa
 lIncludeInternalTransfers_EAR = True                                                                                # noqa
 
-extract_account_registers_frame_ = None                                                                             # noqa
+extract_account_registers_fake_frame_ = None                                                                             # noqa
 attachmentDir = ""                                                                                                  # noqa
 lDidIUseAttachmentDir = False                                                                                       # noqa
 extract_filename="extract_account_registers.csv"
@@ -912,6 +914,21 @@ class JTextFieldLimitYN(PlainDocument):
             if ((self.getLength() + len(myString)) <= self.limit):
                 super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
 
+def fix_delimiter( theDelimiter ):
+
+    try:
+        if sys.version_info.major >= 3: return theDelimiter
+        if sys.version_info.major <  2: return str(theDelimiter)
+
+        if sys.version_info.minor >  7: return theDelimiter
+        if sys.version_info.minor <  7: return str(theDelimiter)
+
+        if sys.version_info.micro >= 2: return theDelimiter
+    except:
+        pass
+
+    return str( theDelimiter )
+
 def get_StuWareSoftSystems_parameters_from_file():
     global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
@@ -1157,13 +1174,13 @@ myPrint("DB", "DEBUG IS ON..")
 
 
 # Create fake JFrame() so that all popups have correct Moneydance Icons etc
-extract_account_registers_frame_ = JFrame()
+extract_account_registers_fake_frame_ = JFrame()
 if (not Platform.isMac()):
     moneydance_ui.getImages()
-    extract_account_registers_frame_.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
-extract_account_registers_frame_.setUndecorated(True)
-extract_account_registers_frame_.setVisible(False)
-extract_account_registers_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
+    extract_account_registers_fake_frame_.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+extract_account_registers_fake_frame_.setUndecorated(True)
+extract_account_registers_fake_frame_.setVisible(False)
+extract_account_registers_fake_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 
 csvfilename = None
 
@@ -1374,15 +1391,15 @@ options = ["ABORT", "CSV Export"]
 
 while True:
 
-    userAction = (JOptionPane.showOptionDialog(extract_account_registers_frame_,
-                                         userFilters, "%s(build: %s) Set Script Parameters...."%(myScriptName,version_build),
-                                         JOptionPane.OK_CANCEL_OPTION,
-                                         JOptionPane.QUESTION_MESSAGE,
-                                         moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
-                                         options, options[1]))
+    userAction = (JOptionPane.showOptionDialog(extract_account_registers_fake_frame_,
+                                               userFilters, "%s(build: %s) Set Script Parameters...." % (myScriptName,version_build),
+                                               JOptionPane.OK_CANCEL_OPTION,
+                                               JOptionPane.QUESTION_MESSAGE,
+                                               moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                               options, options[1]))
     if userAction != 1:
         myPrint("B", "User Cancelled Parameter selection.. Will abort..")
-        myPopupInformationBox(extract_account_registers_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+        myPopupInformationBox(extract_account_registers_fake_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
         lDisplayOnly = False
         lExit = True
         break
@@ -1598,9 +1615,9 @@ if not lExit:
                 System.setProperty("apple.awt.fileDialogForDirectories", "false")
 
             if lExtractAttachments_EAR:
-                filename = FileDialog(extract_account_registers_frame_, "Select/Create CSV file for extract - MUST BE A UNIQUE NAME -(CANCEL=NO EXPORT)")
+                filename = FileDialog(extract_account_registers_fake_frame_, "Select/Create CSV file for extract - MUST BE A UNIQUE NAME -(CANCEL=NO EXPORT)")
             else:
-                filename = FileDialog(extract_account_registers_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
+                filename = FileDialog(extract_account_registers_fake_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
 
             filename.setMultipleMode(False)
             filename.setMode(FileDialog.SAVE)
@@ -1625,17 +1642,17 @@ if not lExit:
                 lDisplayOnly = True
                 csvfilename = None
                 myPrint("B", "User chose to cancel or no file selected >>  So no Extract will be performed... ")
-                myPopupInformationBox(extract_account_registers_frame_, "User chose to cancel or no file selected >>  So no Extract will be performed... ", "FILE EXPORT")
+                myPopupInformationBox(extract_account_registers_fake_frame_, "User chose to cancel or no file selected >>  So no Extract will be performed... ", "FILE EXPORT")
             elif str(csvfilename).endswith(".moneydance"):
                 myPrint("B", "User selected file:", csvfilename)
                 myPrint("B", "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(extract_account_registers_frame_, "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...", "FILE EXPORT")
+                myPopupInformationBox(extract_account_registers_fake_frame_, "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...", "FILE EXPORT")
                 lDisplayOnly = True
                 csvfilename = None
             elif ".moneydance" in filename.getDirectory():
                 myPrint("B", "User selected file:", filename.getDirectory(), csvfilename)
                 myPrint("B", "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(extract_account_registers_frame_, "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...", "FILE EXPORT")
+                myPopupInformationBox(extract_account_registers_fake_frame_, "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...", "FILE EXPORT")
                 lDisplayOnly = True
                 csvfilename = None
             else:
@@ -1658,7 +1675,7 @@ if not lExit:
                     scriptpath = os.path.dirname(csvfilename)
                 else:
                     myPrint("B", "Sorry - I just checked and you do not have permissions to create this file:", csvfilename)
-                    myPopupInformationBox(extract_account_registers_frame_, "Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename, "FILE EXPORT")
+                    myPopupInformationBox(extract_account_registers_fake_frame_, "Sorry - I just checked and you do not have permissions to create this file: %s" % csvfilename, "FILE EXPORT")
                     csvfilename=""
                     lDisplayOnly = True
                     return
@@ -1668,7 +1685,7 @@ if not lExit:
                     attachmentDir = os.path.splitext( csvfilename )[0]
                     if os.path.exists(attachmentDir):
                         myPrint("B", "Sorry - Attachment Directory already exists... I need to create it: %s" %attachmentDir)
-                        myPopupInformationBox(extract_account_registers_frame_, "Sorry - Attachment Directory already exists... I need to create it: %s" %attachmentDir, "ATTACHMENT DIRECTORY")
+                        myPopupInformationBox(extract_account_registers_fake_frame_, "Sorry - Attachment Directory already exists... I need to create it: %s" % attachmentDir, "ATTACHMENT DIRECTORY")
                         csvfilename=""
                         lDisplayOnly = True
                         return
@@ -1676,11 +1693,11 @@ if not lExit:
                     try:
                         os.mkdir(attachmentDir)
                         myPrint("B", "Successfully created Attachment Directory: %s" %attachmentDir)
-                        MyPopUpDialogBox(extract_account_registers_frame_, theStatus="I have created Attachment Directory:", theMessage=attachmentDir, theWidth=200, theTitle="Info",lModal=True).go()
+                        MyPopUpDialogBox(extract_account_registers_fake_frame_, theStatus="I have created Attachment Directory:", theMessage=attachmentDir, theWidth=200, theTitle="Info", lModal=True).go()
 
                     except:
                         myPrint("B", "Sorry - Failed to create Attachment Directory: %s",attachmentDir)
-                        myPopupInformationBox(extract_account_registers_frame_, "Sorry - Failed to create Attachment Directory: %s" %attachmentDir, "ATTACHMENT DIRECTORY")
+                        myPopupInformationBox(extract_account_registers_fake_frame_, "Sorry - Failed to create Attachment Directory: %s" % attachmentDir, "ATTACHMENT DIRECTORY")
                         csvfilename=""
                         lDisplayOnly = True
                         return
@@ -1782,7 +1799,7 @@ if not lExit:
             myPrint("DB","%s Accounts selected in filters" %len(validAccountList))
             for element in validAccountList: myPrint("D","...selected acct: %s" %element)
 
-        _msg = MyPopUpDialogBox(extract_account_registers_frame_, "PLEASE WAIT....", "", 100, "Building Database",False)
+        _msg = MyPopUpDialogBox(extract_account_registers_fake_frame_, "PLEASE WAIT....", "", 100, "Building Database", False)
         _msg.go()
 
         _COLUMN = 0
@@ -2202,7 +2219,7 @@ if not lExit:
                     if lWriteBOMToExportFile_SWSS:
                         csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
 
-                    writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=csvDelimiter)
+                    writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(csvDelimiter))
 
                     if csvDelimiter != ",":
                         writer.writerow(["sep=", ""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
@@ -2265,7 +2282,7 @@ if not lExit:
                 myPrint("B", "Path:", csvfilename)
                 myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
                 dump_sys_error_to_md_console_and_errorlog()
-                myPopupInformationBox(extract_account_registers_frame_,"Sorry - error writing to export file!", "FILE EXTRACT")
+                myPopupInformationBox(extract_account_registers_fake_frame_, "Sorry - error writing to export file!", "FILE EXTRACT")
 
         def fixFormatsStr(theString, lNumber=False, sFormat=""):
 
@@ -2306,11 +2323,11 @@ if not lExit:
             ExportDataToFile()
             _msg.kill()
             if not lGlobalErrorDetected:
-                MyPopUpDialogBox(extract_account_registers_frame_,
+                MyPopUpDialogBox(extract_account_registers_fake_frame_,
                                  "Your extract has been created as requested:",
-                                 "With %s rows and %s attachments downloaded"%(iBal+iCount,iCountAttachmentsDownloaded),
+                                 "With %s rows and %s attachments downloaded" % (iBal+iCount,iCountAttachmentsDownloaded),
                                  200,
-                                 myScriptName,lModal=True).go()
+                                 myScriptName, lModal=True).go()
 
                 try:
                     helper = moneydance.getPlatformHelper()
@@ -2319,7 +2336,7 @@ if not lExit:
                     pass
         else:
             _msg.kill()
-            myPopupInformationBox(extract_account_registers_frame_,"No records selected and no extract file created....",myScriptName)
+            myPopupInformationBox(extract_account_registers_fake_frame_, "No records selected and no extract file created....", myScriptName)
 
         # Clean up...
         if not lDidIUseAttachmentDir:
@@ -2334,8 +2351,9 @@ if not lExit:
         del transactionTable
         del accountBalances
 
-if extract_account_registers_frame_ is not None:
-    extract_account_registers_frame_.dispose()
+if extract_account_registers_fake_frame_ is not None:
+    extract_account_registers_fake_frame_.dispose()
+    del extract_account_registers_fake_frame_
 
 myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
 
