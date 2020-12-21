@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Toolbox.py build: 1003 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# Toolbox.py build: 1004 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -59,6 +59,8 @@
 # Build: 1002 - fixed raise(Exception) clauses ;->
 # Build: 1002 - Now leveraging the Default font set in Moneydance; added change Fonts Button
 # Build: 1003 - Updated common codeset
+# Build: 1004 - Removed TxnSortOrder from common code, and catch error on import for earlier versions of MD
+# Build: 1004 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -87,10 +89,10 @@ from com.moneydance.apps.md.view.gui import MDImages
 
 from com.infinitekind.util import DateUtil, CustomDateFormat
 from com.infinitekind.moneydance.model import *
-from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil, TxnSortOrder
+from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
 from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
-from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog
+from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
 from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
 from javax.swing.text import PlainDocument
@@ -105,7 +107,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,TxnSortOrder,Reminder,ParentTxn,SplitTxn,TxnSearch,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                      InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -125,7 +127,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1003"                                                                                              # noqa
+version_build = "1004"                                                                                              # noqa
 myScriptName = "Toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -158,6 +160,13 @@ from com.infinitekind.tiksync import SyncRecord
 from java.awt.datatransfer import StringSelection
 from java.net import URL
 from java.nio.charset import Charset
+
+try:
+    from com.infinitekind.moneydance.model import TxnSortOrder
+    lImportOK = True
+except:
+    lImportOK = False
+
 # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
 # >>> THIS SCRIPT'S GLOBALS ############################################################################################
@@ -919,6 +928,21 @@ class JTextFieldLimitYN(PlainDocument):
                 or (self.what == "CURR"):
             if ((self.getLength() + len(myString)) <= self.limit):
                 super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
+
+def fix_delimiter( theDelimiter ):
+
+    try:
+        if sys.version_info.major >= 3: return theDelimiter
+        if sys.version_info.major <  2: return str(theDelimiter)
+
+        if sys.version_info.minor >  7: return theDelimiter
+        if sys.version_info.minor <  7: return str(theDelimiter)
+
+        if sys.version_info.micro >= 2: return theDelimiter
+    except:
+        pass
+
+    return str( theDelimiter )
 
 def get_StuWareSoftSystems_parameters_from_file():
     global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
@@ -7672,7 +7696,7 @@ Script is analysing your moneydance & system settings....
 ------------------------------------------------------------------------------
 """)
 
-if moneydance.getVersion() < 2020:
+if moneydance.getVersion() < 2020 or not lImportOK:
     myPrint("B", "Sorry, this Toolbox has only been tested on Moneydance version 2020 upwards... Existing.....")
     myPopupInformationBox(None,
                           "Sorry, this Toolbox has only been tested on Moneydance version 2020 upwards... Exiting.....",
