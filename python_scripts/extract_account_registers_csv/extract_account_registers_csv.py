@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 4 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 5 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -37,6 +37,7 @@
 # Build: 3 PREVIEW - Added a better status popup, a few tweaks to code...; removed key from csv; preserve original attachment names...
 # Build: 3 PREVIEW - added foreign currency support
 # Build: 4 PREVIEW - updated common codeset; leverage moneydance fonts
+# Build: 5 PREVIEW - Bug fix. Don't break after failing filter check in splits; continue instead...!! Thus don't always blank total on first split!
 
 # todo dropdown date selection....
 
@@ -100,7 +101,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "4"                                                                                                 # noqa
+version_build = "5"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1954,6 +1955,9 @@ if not lExit:
             if str(parent_Txn.getKeywords()) != "[]": row[dataKeys["_PARENTTAGS"][_COLUMN]] = str(parent_Txn.getKeywords())
 
             uniqueFileNumber = 0
+
+            lNeedToPrintTotalAmount = True
+
             for _ii in range(0, int(parent_Txn.getOtherTxnCount())):        # If a split, then it will always make it here...
 
                 if not lParent and _ii > 0: break
@@ -1965,13 +1969,13 @@ if not lExit:
                     if (not lAllTags_EAR
                             and not tag_search(tagFilter_EAR, txn.getKeywords())
                             and not tag_search(tagFilter_EAR, parent_Txn.getOtherTxn(_ii).getKeywords())):
-                        break
+                        continue
 
                     if (not lAllText_EAR
                             and textFilter_EAR not in (parent_Txn.getDescription().upper().strip()
                                                        +txn.getMemo().upper().strip()
                                                        +parent_Txn.getOtherTxn(_ii).getDescription().upper()).strip()):
-                        break
+                        continue
 
                     splitMemo = parent_Txn.getOtherTxn(_ii).getDescription()
                     splitTags = str(parent_Txn.getOtherTxn(_ii).getKeywords())
@@ -2039,7 +2043,9 @@ if not lExit:
 
                     if splitTags == "[]": splitTags = ""
 
-                if _ii > 0:
+                if lNeedToPrintTotalAmount:
+                    lNeedToPrintTotalAmount = False
+                else:
                     splitRowCopy[dataKeys["_TOTALAMOUNT"][_COLUMN]] = None  # Don't repeat this on subsequent rows
                     splitRowCopy[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = None  # Don't repeat this on subsequent rows
 
