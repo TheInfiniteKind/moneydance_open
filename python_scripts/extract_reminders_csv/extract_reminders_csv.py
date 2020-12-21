@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1004)
+# extract_reminders_csv.py (build: 1005)
 
 ###############################################################################
 # MIT License
@@ -49,6 +49,9 @@
 # Build: 1002 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
 # Build: 1003 - fixed raise(Exception) clauses ;->
 # Build: 1004 - Updated common codeset, leverage Moneydance fonts
+# Build: 1005 - Removed TxnSortOrder from common code
+# Build: 1005 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
+# Build: 1005 - Write parameters to csv extract; added fake JFrame() for icons...;moved parameter save earlier
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -74,10 +77,10 @@ from com.moneydance.apps.md.view.gui import MDImages
 
 from com.infinitekind.util import DateUtil, CustomDateFormat
 from com.infinitekind.moneydance.model import *
-from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil, TxnSortOrder
+from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
 from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
-from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog
+from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
 from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
 from javax.swing.text import PlainDocument
@@ -92,7 +95,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,TxnSortOrder,Reminder,ParentTxn,SplitTxn,TxnSearch,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
 						JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
 						JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
 						InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -112,7 +115,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1004"           																					# noqa
+version_build = "1005"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -141,7 +144,7 @@ global lWriteBOMToExportFile_SWSS
 
 # Other used by this program
 global csvfilename, lDisplayOnly
-global baseCurrency, sdf, csvlines, csvheaderline, headerFormats
+global baseCurrency, sdf, csvlines, csvheaderline, headerFormats, extract_reminders_csv_fake_frame_
 global table, focus, row, extract_reminders_csv_frame_, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
@@ -153,6 +156,7 @@ csvDelimiter = ","																									# noqa
 scriptpath = ""																										# noqa
 _column_widths_ERTC = []                                                                                          	# noqa
 lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
+extract_reminders_csv_fake_frame_ = None																			# noqa
 extract_filename="extract_reminders.csv"
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
@@ -903,6 +907,21 @@ class JTextFieldLimitYN(PlainDocument):
 			if ((self.getLength() + len(myString)) <= self.limit):
 				super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
 
+def fix_delimiter( theDelimiter ):
+
+	try:
+		if sys.version_info.major >= 3: return theDelimiter
+		if sys.version_info.major <  2: return str(theDelimiter)
+
+		if sys.version_info.minor >  7: return theDelimiter
+		if sys.version_info.minor <  7: return str(theDelimiter)
+
+		if sys.version_info.micro >= 2: return theDelimiter
+	except:
+		pass
+
+	return str( theDelimiter )
+
 def get_StuWareSoftSystems_parameters_from_file():
 	global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
@@ -1106,6 +1125,15 @@ get_StuWareSoftSystems_parameters_from_file()
 myPrint("DB", "DEBUG IS ON..")
 # END ALL CODE COPY HERE ###############################################################################################
 
+# Create fake JFrame() so that all popups have correct Moneydance Icons etc
+extract_reminders_csv_fake_frame_ = JFrame()
+if (not Platform.isMac()):
+	moneydance_ui.getImages()
+	extract_reminders_csv_fake_frame_.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+extract_reminders_csv_fake_frame_.setUndecorated(True)
+extract_reminders_csv_fake_frame_.setVisible(False)
+extract_reminders_csv_fake_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
+
 class CloseAboutAction(AbstractAction):
 	# noinspection PyMethodMayBeStatic
 	# noinspection PyUnusedLocal
@@ -1210,13 +1238,6 @@ def terminate_script():
 			myPopupInformationBox(extract_reminders_csv_frame_, "ERROR WHILST CREATING EXPORT! Review Console Log", myScriptName)
 			dump_sys_error_to_md_console_and_errorlog()
 
-	# Parameters already written.....
-	try:
-		save_StuWareSoftSystems_parameters_to_file()
-	except:
-		myPrint("B", "Error - failed to save parameters to pickle file...!")
-		dump_sys_error_to_md_console_and_errorlog()
-
 	if not i_am_an_extension_so_run_headless: print(scriptExit)
 
 	extract_reminders_csv_frame_.dispose()
@@ -1279,7 +1300,7 @@ lExit = False
 lDisplayOnly = False
 
 options = ["Abort", "Display & CSV Export", "Display Only"]
-userAction = (JOptionPane.showOptionDialog( None,
+userAction = (JOptionPane.showOptionDialog( extract_reminders_csv_fake_frame_,
 											userFilters,
 											"%s(build: %s) Set Script Parameters...." %(myScriptName, version_build),
 											JOptionPane.OK_CANCEL_OPTION,
@@ -1297,7 +1318,7 @@ elif userAction == 2:  # Display Only
 else:
 	# Abort
 	myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
-	myPopupInformationBox(None, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+	myPopupInformationBox(extract_reminders_csv_fake_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
 	lDisplayOnly = False
 	lExit = True
 
@@ -1338,12 +1359,6 @@ if not lExit:
 	myPrint("B", "User Parameters...")
 	myPrint("B", "user date format....:", userdateformat)
 
-	if lWriteBOMToExportFile_SWSS:
-		myPrint("B", "Script will add a BOM (Byte Order Mark) to front of the extracted file...")
-	else:
-		myPrint("B", "No BOM (Byte Order Mark) will be added to the extracted file...")
-
-
 	# Now get the export filename
 	csvfilename = None
 
@@ -1377,7 +1392,7 @@ if not lExit:
 				System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
 				System.setProperty("apple.awt.fileDialogForDirectories", "false")
 
-			filename = FileDialog(None, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
+			filename = FileDialog(extract_reminders_csv_fake_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
 			filename.setMultipleMode(False)
 			filename.setMode(FileDialog.SAVE)
 			filename.setFile(extract_filename)
@@ -1396,17 +1411,17 @@ if not lExit:
 				lDisplayOnly = True
 				csvfilename = None
 				myPrint("B", "User chose to cancel or no file selected >>  So no Extract will be performed... ")
-				myPopupInformationBox(None, "User chose to cancel or no file selected >>  So no Extract will be performed... ","FILE SELECTION")
+				myPopupInformationBox(extract_reminders_csv_fake_frame_, "User chose to cancel or no file selected >>  So no Extract will be performed... ","FILE SELECTION")
 			elif str(csvfilename).endswith(".moneydance"):
 				myPrint("B", "User selected file:", csvfilename)
 				myPrint("B", "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...")
-				myPopupInformationBox(None, "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...","FILE SELECTION")
+				myPopupInformationBox(extract_reminders_csv_fake_frame_, "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...","FILE SELECTION")
 				lDisplayOnly = True
 				csvfilename = None
 			elif ".moneydance" in filename.getDirectory():
 				myPrint("B", "User selected file:", filename.getDirectory(), csvfilename)
 				myPrint("B", "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...")
-				myPopupInformationBox(None, "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...","FILE SELECTION")
+				myPopupInformationBox(extract_reminders_csv_fake_frame_, "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...","FILE SELECTION")
 				lDisplayOnly = True
 				csvfilename = None
 			else:
@@ -1426,9 +1441,9 @@ if not lExit:
 					scriptpath = os.path.dirname(csvfilename)
 				else:
 					myPrint("B", "Sorry - I just checked and you do not have permissions to create this file:", csvfilename)
-					myPopupInformationBox(None,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
-					# csvfilename=""
-					# lDisplayOnly = True
+					myPopupInformationBox(extract_reminders_csv_fake_frame_,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
+					csvfilename=""
+					lDisplayOnly = True
 
 			return
 
@@ -1444,10 +1459,10 @@ if not lExit:
 		lDisplayOnly = True
 		myPrint("B","No Export will be performed")
 
+	# save here in case script crashes....
+	save_StuWareSoftSystems_parameters_to_file()
 
 	# Moneydance dates  are int yyyymmddd - convert to locale date string for CSV format
-
-
 	def dateoutput(dateinput, theformat):
 
 		if dateinput == "EXPIRED": _dateoutput = dateinput
@@ -2309,7 +2324,6 @@ if not lExit:
 
 		return
 
-
 	def FormatAmount(oldamount):
 		# Amount is held as an integer in pence
 		# Remove - sign if present
@@ -2353,7 +2367,6 @@ if not lExit:
 		newamount = newwhole + "." + decimal
 		return newamount
 
-
 	def FormatDate(olddate):
 		# Date is held as an integer in format YYYYMMDD
 		olddate = str(olddate)
@@ -2369,7 +2382,6 @@ if not lExit:
 
 		return newdate
 
-
 	def ShowEditForm(item):
 		global debug, EditedReminderCheck
 		myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -2380,7 +2392,6 @@ if not lExit:
 		EditedReminderCheck = True
 		myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 		return
-
 
 	def getKey(item): return item[2]
 
@@ -2417,7 +2428,7 @@ if not lExit:
 						if lWriteBOMToExportFile_SWSS:
 							csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
 
-						writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=csvDelimiter)
+						writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(csvDelimiter))
 
 						if csvDelimiter != ",":
 							writer.writerow(["sep=",""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
@@ -2451,6 +2462,11 @@ if not lExit:
 										+ version_build
 										+ ")  MoneyDance Python Script - Date of Extract: "
 										+ str(sdf.format(today.getTime()))])
+
+						writer.writerow([""])
+						writer.writerow(["User Parameters..."])
+						writer.writerow(["Date format................: %s" %(userdateformat)])
+
 					myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
 				except IOError, e:
@@ -2489,8 +2505,12 @@ if not lExit:
 				return all_ASCII
 
 	else:
-		myPopupInformationBox(None,"You have no reminders to display or extract!",myScriptName)
+		myPopupInformationBox(extract_reminders_csv_fake_frame_,"You have no reminders to display or extract!",myScriptName)
 
 	# ENDDEF
+
+if extract_reminders_csv_fake_frame_:
+	extract_reminders_csv_fake_frame_.dispose()
+	del extract_reminders_csv_fake_frame_
 
 myPrint("B", "StuWareSoftSystems - %s script ending......" %myScriptName)
