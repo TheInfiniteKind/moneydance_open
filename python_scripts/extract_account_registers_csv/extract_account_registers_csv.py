@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 6 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1000 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -33,15 +33,15 @@
 
 # Stuart Beesley Created 2020-12-11 tested on MacOS - MD2021 onwards - StuWareSoftSystems....
 # Build: 1 beta - Initial release
-# Build: 2 beta - Only include opening balances if not filtering records; Added Text filter for Memo and Description
-# Build: 3 PREVIEW - Added a better status popup, a few tweaks to code...; removed key from csv; preserve original attachment names...
+# Build: 2 beta - Only include opening balances if not filtering records Added Text filter for Memo and Description
+# Build: 3 PREVIEW - Added a better status popup, a few tweaks to code... removed key from csv preserve original attachment names...
 # Build: 3 PREVIEW - added foreign currency support
-# Build: 4 PREVIEW - updated common codeset; leverage moneydance fonts
-# Build: 5 PREVIEW - Bug fix. Don't break after failing filter check in splits; continue instead...!! Thus don't always blank total on first split!
+# Build: 4 PREVIEW - updated common codeset leverage moneydance fonts
+# Build: 5 PREVIEW - Bug fix. Don't break after failing filter check in splits continue instead...!! Thus don't always blank total on first split!
 # Build: 6 PREVIEW - Removed TxnSortOrder from common code....
 # Build: 6 PREVIEW - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
-
-# todo dropdown date selection....
+# Build: 7 PREVIEW - added dropdown date range selector(s)' changed mac csv message to file:///
+# Build: 1000 - PUBLIC RELEASE
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -103,7 +103,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "6"                                                                                                 # noqa
+version_build = "1000"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -115,6 +115,8 @@ lGlobalErrorDetected = False																						# noqa
 
 # >>> THIS SCRIPT'S IMPORTS ############################################################################################
 from copy import deepcopy
+from com.moneydance.apps.md.controller import Util
+# from com.infinitekind.moneydance.model import DateRange
 # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
 # >>> THIS SCRIPT'S GLOBALS ############################################################################################
@@ -127,7 +129,7 @@ global lIncludeOpeningBalances_EAR, userdateformat
 global userdateStart_EAR, userdateEnd_EAR
 global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
 global lStripASCII, scriptpath, csvDelimiter
-global lWriteBOMToExportFile_SWSS, saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR
+global lWriteBOMToExportFile_SWSS, saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
 global lAllText_EAR, textFilter_EAR
 
 # Other used by program
@@ -147,8 +149,8 @@ filterForAccounts = "ALL"                                                       
 lIncludeSubAccounts_EAR = False                                                                                     # noqa
 lIncludeOpeningBalances_EAR = True                                                                                  # noqa
 userdateformat = "%Y/%m/%d"                                                                                         # noqa
-userdateStart_EAR = 19700101                                                                                        # noqa
-userdateEnd_EAR = 20201231                                                                                          # noqa
+userdateStart_EAR = 19600101                                                                                        # noqa
+userdateEnd_EAR = 20251231                                                                                          # noqa
 lAllTags_EAR = True                                                                                                 # noqa
 tagFilter_EAR = "ALL"                                                                                               # noqa
 lAllText_EAR = True                                                                                                 # noqa
@@ -159,9 +161,10 @@ csvDelimiter = ","                                                              
 scriptpath = ""                                                                                                     # noqa
 lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
 saveDropDownAccountUUID_EAR = ""                                                                                    # noqa
+saveDropDownDateRange_EAR = ""                                                                                      # noqa
 lIncludeInternalTransfers_EAR = True                                                                                # noqa
 
-extract_account_registers_fake_frame_ = None                                                                             # noqa
+extract_account_registers_fake_frame_ = None                                                                        # noqa
 attachmentDir = ""                                                                                                  # noqa
 lDidIUseAttachmentDir = False                                                                                       # noqa
 extract_filename="extract_account_registers.csv"
@@ -281,8 +284,8 @@ def is_moneydance_loaded_properly():
     # to cope with being run as Extension.... temporary
     if moneydance is not None and moneydance_data is None and moneydance_ui is None:                                # noqa
         myPrint("B", "@@@ Moneydance variables not set (run as extension?) - attempting to manually set @@@")
-        exec "global moneydance_ui;" + "moneydance_ui=moneydance.getUI();"
-        exec "global moneydance_data;" + "moneydance_data=moneydance.getCurrentAccount().getBook();"
+        exec "global moneydance_ui" + "moneydance_ui=moneydance.getUI()"
+        exec "global moneydance_data" + "moneydance_data=moneydance.getCurrentAccount().getBook()"
 
         for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
             myPrint("B","Moneydance Objects after manual setting....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
@@ -908,7 +911,7 @@ class JTextFieldLimitYN(PlainDocument):
         if (myString is None): return
         if self.toUpper: myString = myString.upper()
         if (self.what == "YN" and (myString in "YN")) \
-                or (self.what == "DELIM" and (myString in ";|,")) \
+                or (self.what == "DELIM" and (myString in "|,")) \
                 or (self.what == "1234" and (myString in "1234")) \
                 or (self.what == "CURR"):
             if ((self.getLength() + len(myString)) <= self.limit):
@@ -1021,7 +1024,7 @@ def save_StuWareSoftSystems_parameters_to_file():
 
     if myParameters is None: myParameters = {}
 
-    # Don't forget, any parameters loaded earlier will be preserved; just add changed variables....
+    # Don't forget, any parameters loaded earlier will be preserved just add changed variables....
     myParameters["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
     myParameters["debug"] = debug
 
@@ -1074,7 +1077,7 @@ def load_StuWareSoftSystems_parameters_into_memory():
     global userdateStart_EAR, userdateEnd_EAR
     global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
     global lStripASCII, scriptpath, csvDelimiter
-    global lWriteBOMToExportFile_SWSS, saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR
+    global lWriteBOMToExportFile_SWSS, saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
     global lAllText_EAR, textFilter_EAR
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -1103,6 +1106,7 @@ def load_StuWareSoftSystems_parameters_into_memory():
     if myParameters.get("userdateformat") is not None: userdateformat = myParameters.get("userdateformat")
     if myParameters.get("lWriteBOMToExportFile_SWSS") is not None: lWriteBOMToExportFile_SWSS = myParameters.get("lWriteBOMToExportFile_SWSS")                                                                                  # noqa
     if myParameters.get("saveDropDownAccountUUID_EAR") is not None: saveDropDownAccountUUID_EAR = myParameters.get("saveDropDownAccountUUID_EAR")                                                                                  # noqa
+    if myParameters.get("saveDropDownDateRange_EAR") is not None: saveDropDownDateRange_EAR = myParameters.get("saveDropDownDateRange_EAR")                                                                                  # noqa
     if myParameters.get("lIncludeInternalTransfers_EAR") is not None: lIncludeInternalTransfers_EAR = myParameters.get("lIncludeInternalTransfers_EAR")                                                                                  # noqa
 
     if myParameters.get("scriptpath") is not None:
@@ -1128,7 +1132,7 @@ def dump_StuWareSoftSystems_parameters_from_memory():
     global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
     global lAllText_EAR, textFilter_EAR
     global lStripASCII, scriptpath, csvDelimiter
-    global lWriteBOMToExportFile_SWSS, saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR
+    global lWriteBOMToExportFile_SWSS, saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
@@ -1159,6 +1163,7 @@ def dump_StuWareSoftSystems_parameters_from_memory():
     myParameters["lWriteBOMToExportFile_SWSS"] = lWriteBOMToExportFile_SWSS
     myParameters["lIncludeInternalTransfers_EAR"] = lIncludeInternalTransfers_EAR
     myParameters["saveDropDownAccountUUID_EAR"] = saveDropDownAccountUUID_EAR
+    myParameters["saveDropDownDateRange_EAR"] = saveDropDownDateRange_EAR
 
     if not lDisplayOnly and scriptpath != "" and os.path.isdir(scriptpath):
         myParameters["scriptpath"] = scriptpath
@@ -1184,27 +1189,110 @@ extract_account_registers_fake_frame_.setDefaultCloseOperation(WindowConstants.D
 
 csvfilename = None
 
-if decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ";"  # Override for EU countries or where decimal point is actually a comma...
+if decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ""  # Override for EU countries or where decimal point is actually a comma...
 myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCharSep, "CSV Delimiter set to:", csvDelimiter)
 
 sdf = SimpleDateFormat("dd/MM/yyyy")
 
 saveColor = JLabel("TEST").getForeground()
 
+userFilters = JPanel(GridLayout(0, 2))
+
+class PanelAction(AbstractAction):
+
+    def __init__(self, thePanel):
+        self.thePanel=thePanel
+
+    def actionPerformed(self, event):
+        global extract_account_registers_fake_frame_, debug
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+
+        theDateRangeDropDown = None
+        theAccountDropdown = None
+        theStartDate = None
+        theEndDate = None
+
+        theSubAccounts = None
+        theHideInactiveAccounts = None
+        theHideHiddenAccounts = None
+        theFilterAccounts = None
+        theFilterCurrency = None
+
+        _components = self.thePanel.getComponents()
+        for _theComponent in _components:
+            if isinstance(_theComponent, (JComboBox, JTextField)):
+                if event.getSource().getName() == _theComponent.getName():
+                    if _theComponent.getName() == "dateDropdown": theDateRangeDropDown  = _theComponent
+                    if _theComponent.getName() == "accountDropdown": theAccountDropdown  = _theComponent
+
+                if _theComponent.getName() == "user_selectDateStart": theStartDate  = _theComponent
+                elif _theComponent.getName() == "user_selectDateEnd": theEndDate  = _theComponent
+                elif _theComponent.getName() == "user_includeSubAccounts": theSubAccounts  = _theComponent
+                elif _theComponent.getName() == "user_hideInactiveAccounts": theHideInactiveAccounts  = _theComponent
+                elif _theComponent.getName() == "user_hideHiddenAccounts": theHideHiddenAccounts  = _theComponent
+                elif _theComponent.getName() == "user_selectAccounts": theFilterAccounts  = _theComponent
+                elif _theComponent.getName() == "user_selectCurrency": theFilterCurrency  = _theComponent
+
+        if not theDateRangeDropDown and not theAccountDropdown: return
+
+        if theDateRangeDropDown:
+            _start, _end = getDateRange(theDateRangeDropDown.getSelectedItem())
+            if theDateRangeDropDown.getSelectedItem() == "custom_date":
+                theStartDate.setEnabled(True)
+                theEndDate.setEnabled(True)
+            else:
+                theStartDate.setEnabled(False)
+                theEndDate.setEnabled(False)
+
+            # noinspection PyUnresolvedReferences
+            theStartDate.setDateInt(_start)
+            # noinspection PyUnresolvedReferences
+            theEndDate.setDateInt(_end)
+
+        if theAccountDropdown:
+
+            if isinstance(theAccountDropdown.getSelectedItem(),(str,unicode)):
+                theSubAccounts.setEnabled(False)
+                theHideInactiveAccounts.setEnabled(True)
+                theHideHiddenAccounts.setEnabled(True)
+                theFilterAccounts.setEnabled(True)
+                theFilterCurrency.setEnabled(True)
+
+                theSubAccounts.setText("N")
+
+            else:
+                theSubAccounts.setEnabled(True)
+                theHideInactiveAccounts.setEnabled(False)
+                theHideHiddenAccounts.setEnabled(False)
+                theFilterAccounts.setEnabled(False)
+                theFilterCurrency.setEnabled(False)
+
+                theHideInactiveAccounts.setText("Y")
+                theHideHiddenAccounts.setText("Y")
+                theFilterAccounts.setText("ALL")
+                theFilterCurrency.setText("ALL")
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+        return
+
+
 labelHideInactiveAccounts = JLabel("Hide Inactive Accounts (Y/N)?:")
 user_hideInactiveAccounts = JTextField(2)
+user_hideInactiveAccounts.setName("user_hideInactiveAccounts")
 user_hideInactiveAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if hideInactiveAccounts: user_hideInactiveAccounts.setText("Y")
 else:                    user_hideInactiveAccounts.setText("N")
 
 labelHideHiddenAccounts = JLabel("Hide Hidden Accounts (Y/N):")
 user_hideHiddenAccounts = JTextField(2)
+user_hideHiddenAccounts.setName("user_hideHiddenAccounts")
 user_hideHiddenAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if hideHiddenAccounts: user_hideHiddenAccounts.setText("Y")
 else:                  user_hideHiddenAccounts.setText("N")
 
 labelFilterCurrency = JLabel("Filter for Currency containing text '...' or ALL:")
 user_selectCurrency = JTextField(12)
+user_selectCurrency.setName("user_selectCurrency")
 user_selectCurrency.setDocument(JTextFieldLimitYN(30, True, "CURR"))
 if lAllCurrency: user_selectCurrency.setText("ALL")
 else:            user_selectCurrency.setText(filterForCurrency)
@@ -1235,20 +1323,26 @@ acctList = AccountUtil.allMatchesForSearch(moneydance_data,MyAcctFilterForDropdo
 textToUse = "<NONE SELECTED - USE FILTERS BELOW>"
 acctList.add(0,textToUse)
 accountDropdown = JComboBox(acctList.toArray())
+accountDropdown.setName("accountDropdown")
 
 if saveDropDownAccountUUID_EAR != "":
     findAccount = AccountUtil.findAccountWithID(moneydance.getRootAccount(), saveDropDownAccountUUID_EAR)
     if findAccount:
-        accountDropdown.setSelectedItem(findAccount)
+        try:
+            accountDropdown.setSelectedItem(findAccount)
+        except:
+            pass
 
 labelFilterAccounts = JLabel("Filter for Accounts containing text '...' (or ALL):")
 user_selectAccounts = JTextField(12)
+user_selectAccounts.setName("user_selectAccounts")
 user_selectAccounts.setDocument(JTextFieldLimitYN(30, True, "CURR"))
 if lAllAccounts: user_selectAccounts.setText("ALL")
 else:            user_selectAccounts.setText(filterForAccounts)
 
 labelIncludeSubAccounts = JLabel("Include Sub Accounts (Y/N)?:")
 user_includeSubAccounts = JTextField(2)
+user_includeSubAccounts.setName("user_includeSubAccounts")
 user_includeSubAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if lIncludeSubAccounts_EAR: user_includeSubAccounts.setText("Y")
 else:                       user_includeSubAccounts.setText("N")
@@ -1266,45 +1360,184 @@ labelSeparator8 = JLabel("------------------------------------------------------
 
 labelOpeningBalances = JLabel("Include Opening Balances (Y/N):")
 user_selectOpeningBalances = JTextField(2)
+user_selectOpeningBalances.setName("user_selectOpeningBalances")
 user_selectOpeningBalances.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if lIncludeOpeningBalances_EAR: user_selectOpeningBalances.setText("Y")
 else:                           user_selectOpeningBalances.setText("N")
 
+
+if isinstance(accountDropdown.getSelectedItem(),(str,unicode)):
+    user_includeSubAccounts.setEnabled(False)
+    user_hideInactiveAccounts.setEnabled(True)
+    user_hideHiddenAccounts.setEnabled(True)
+    user_selectAccounts.setEnabled(True)
+    user_selectCurrency.setEnabled(True)
+
+    user_includeSubAccounts.setText("N")
+
+else:
+    user_includeSubAccounts.setEnabled(True)
+    user_hideInactiveAccounts.setEnabled(False)
+    user_hideHiddenAccounts.setEnabled(False)
+    user_selectAccounts.setEnabled(False)
+    user_selectCurrency.setEnabled(False)
+
+    user_hideInactiveAccounts.setText("Y")
+    user_hideHiddenAccounts.setText("Y")
+    user_selectAccounts.setText("ALL")
+    user_selectCurrency.setText("ALL")
+
 labelIncludeTransfers = JLabel("Include Transfers between Accounts Selected in this Extract (Y/N):")
 user_selectIncludeTransfers = JTextField(2)
+user_selectIncludeTransfers.setName("user_selectIncludeTransfers")
 user_selectIncludeTransfers.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if lIncludeInternalTransfers_EAR: user_selectIncludeTransfers.setText("Y")
 else:                    user_selectIncludeTransfers.setText("N")
 
+dateOptions = [ "year_to_date",
+                "fiscal_year_to_date",
+                "last_fiscal_quarter",
+                "quarter_to_date",
+                "month_to_date",
+                "this_year",
+                "this_fiscal_year",
+                "this_quarter",
+                "this_month",
+                "this_week",
+                "last_year",
+                "last_fiscal_year",
+                "last_quarter",
+                "last_month",
+                "last_12_months",
+                "last_365_days",
+                "last_30_days",
+                "last_1_day",
+                "all_dates",
+                "custom_date",
+                "last_week",]
+
+def getDateRange( selectedOption ):         # DateRange
+
+    todayInt = Util.getStrippedDateInt()
+
+    if selectedOption == "year_to_date":
+        return (DateUtil.firstDayInYear(todayInt), todayInt)
+    elif selectedOption ==  "quarter_to_date":
+        return (DateUtil.firstDayInQuarter(todayInt), todayInt)
+    elif selectedOption ==  "month_to_date":
+        return (DateUtil.firstDayInMonth(todayInt), todayInt)
+    elif selectedOption ==  "this_year":
+        return (DateUtil.firstDayInYear(todayInt), DateUtil.lastDayInYear(todayInt))
+    elif selectedOption ==  "this_fiscal_year":
+        return (DateUtil.firstDayInFiscalYear(todayInt), DateUtil.lastDayInFiscalYear(todayInt))
+    elif selectedOption ==  "fiscal_year_to_date":
+        return (DateUtil.firstDayInFiscalYear(todayInt), todayInt)
+    elif selectedOption ==  "last_fiscal_year":
+        return (DateUtil.decrementYear(DateUtil.firstDayInFiscalYear(todayInt)),
+                         DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(todayInt)))
+    elif selectedOption ==  "last_fiscal_quarter":
+        baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
+        return (DateUtil.firstDayInFiscalQuarter(baseDate), DateUtil.lastDayInFiscalQuarter(baseDate))
+    elif selectedOption ==  "this_quarter":
+        return (Util.firstDayInQuarter(todayInt), Util.lastDayInQuarter(todayInt))
+    elif selectedOption ==  "this_month":
+        return (Util.firstDayInMonth(todayInt), Util.lastDayInMonth(todayInt))
+    elif selectedOption ==  "this_week":
+        return (Util.firstDayInWeek(todayInt), Util.lastDayInWeek(todayInt))
+    elif selectedOption ==  "last_year":
+        return (Util.firstDayInYear(Util.decrementYear(todayInt)),
+                         Util.lastDayInYear(Util.decrementYear(todayInt)))
+    elif selectedOption ==  "last_quarter":
+        baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
+        return (DateUtil.firstDayInQuarter(baseDate), DateUtil.lastDayInQuarter(baseDate))
+    elif selectedOption ==  "last_month":
+        i = Util.firstDayInMonth(todayInt)
+        return (Util.incrementDate(i, 0, -1, 0), Util.incrementDate(i, 0, 0, -1))
+    elif selectedOption ==  "last_week":
+        firstDayInWeek = Util.firstDayInWeek(todayInt)
+        return (Util.incrementDate(firstDayInWeek, 0, 0, -7), Util.incrementDate(firstDayInWeek, 0, 0, -1))
+    elif selectedOption ==  "last_12_months":
+        firstDayInMonth = Util.firstDayInMonth(todayInt)
+        return (Util.incrementDate(firstDayInMonth, 0, -12, 0), Util.incrementDate(firstDayInMonth, 0, 0, -1))
+    elif selectedOption ==  "last_1_day":
+        return (Util.incrementDate(todayInt, 0, 0, -1), Util.incrementDate(todayInt, 0, 0, 0))
+    elif selectedOption == "last_30_days":
+        return (Util.incrementDate(todayInt, 0, 0, -30), todayInt)
+    elif selectedOption ==  "last_365_days":
+        return (Util.incrementDate(todayInt, 0, 0, -365), todayInt)
+    elif selectedOption ==  "custom_date":
+        pass
+    elif selectedOption ==  "all_dates":
+        pass
+    else:
+        raise(Exception("Error - date range incorrect"))
+
+    # cal = Calendar.getInstance()
+    # cal.add(1, 1)
+    return 19600101,20251231
+
+
+dateDropdown = JComboBox(dateOptions)
+dateDropdown.setName("dateDropdown")
+if saveDropDownDateRange_EAR != "":
+    try:
+        dateDropdown.setSelectedItem(saveDropDownDateRange_EAR)
+    except:
+        pass
+
+
+labelDateDropDown = JLabel("Select Date Range:")
+
+
 labelDateStart = JLabel("Date range start (enter as yyyy/mm/dd):")
 user_selectDateStart = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
+user_selectDateStart.setName("user_selectDateStart")
+user_selectDateStart.setEnabled(False)
+user_selectDateStart.setDisabledTextColor(Color.gray)
 user_selectDateStart.setDateInt(userdateStart_EAR)
 
 labelDateEnd = JLabel("Date range end (enter as yyyy/mm/dd):")
 user_selectDateEnd = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
+user_selectDateEnd.setName("user_selectDateEnd")
+user_selectDateEnd.setEnabled(False)
+user_selectDateEnd.setDisabledTextColor(Color.gray)
 user_selectDateEnd.setDateInt(userdateEnd_EAR)
-# user_selectDateEnd.gotoToday()
+
+if saveDropDownDateRange_EAR == "custom_date":
+    user_selectDateStart.setEnabled(True)
+    user_selectDateEnd.setEnabled(True)
+else:
+    # Refresh the date range
+    user_selectDateStart.setEnabled(False)
+    user_selectDateEnd.setEnabled(False)
+    _s, _e = getDateRange(saveDropDownDateRange_EAR)
+    user_selectDateStart.setDateInt(_s)
+    user_selectDateEnd.setDateInt(_e)
 
 labelTags = JLabel("Filter for Tags (separate with commas) or ALL:")
 user_selectTags = JTextField(12)
+user_selectTags.setName("user_selectTags")
 user_selectTags.setDocument(JTextFieldLimitYN(30, True, "CURR"))
 if lAllTags_EAR: user_selectTags.setText("ALL")
 else:            user_selectTags.setText(tagFilter_EAR)
 
 labelText = JLabel("Filter for Text in Description or Memo fields or ALL:")
 user_selectText = JTextField(12)
+user_selectText.setName("user_selectText")
 user_selectText.setDocument(JTextFieldLimitYN(30, True, "CURR"))
 if lAllText_EAR: user_selectText.setText("ALL")
 else:            user_selectText.setText(textFilter_EAR)
 
 labelAttachments = JLabel("Extract & Download Attachments (Y/N):")
 user_selectExtractAttachments = JTextField(2)
+user_selectExtractAttachments.setName("user_selectExtractAttachments")
 user_selectExtractAttachments.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if lExtractAttachments_EAR: user_selectExtractAttachments.setText("Y")
 else:                       user_selectExtractAttachments.setText("N")
 
 labelDateFomat = JLabel("Output Date Format 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd:")
 user_dateformat = JTextField(2)
+user_dateformat.setName("user_dateformat")
 user_dateformat.setDocument(JTextFieldLimitYN(1, True, "1234"))
 
 if userdateformat == "%d/%m/%Y": user_dateformat.setText("1")
@@ -1315,30 +1548,34 @@ else: user_dateformat.setText("3")
 
 labelStripASCII = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
 user_selectStripASCII = JTextField(2)
+user_selectStripASCII.setName("user_selectStripASCII")
 user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if lStripASCII: user_selectStripASCII.setText("Y")
 else:               user_selectStripASCII.setText("N")
 
-labelDelimiter = JLabel("Change CSV Export Delimiter from default to: ';|,'")
+labelDelimiter = JLabel("Change CSV Export Delimiter from default to: '|,'")
 user_selectDELIMITER = JTextField(2)
+user_selectDELIMITER.setName("user_selectDELIMITER")
 user_selectDELIMITER.setDocument(JTextFieldLimitYN(1, True, "DELIM"))
 user_selectDELIMITER.setText(csvDelimiter)
 
 labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files) (Y/N):")
 user_selectBOM = JTextField(2)
+user_selectBOM.setName("user_selectBOM")
 user_selectBOM.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if lWriteBOMToExportFile_SWSS:  user_selectBOM.setText("Y")
 else:                           user_selectBOM.setText("N")
 
 labelDEBUG = JLabel("Turn DEBUG Verbose messages on? (Y/N)")
 user_selectDEBUG = JTextField(2)
+user_selectDEBUG.setName("user_selectDEBUG")
 user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if debug:  user_selectDEBUG.setText("Y")
 else:           user_selectDEBUG.setText("N")
 
 labelSTATUSbar = JLabel("")
+labelSTATUSbar.setName("labelSTATUSbar")
 
-userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(labelSelectOneAccount)
 userFilters.add(accountDropdown)
 userFilters.add(labelIncludeSubAccounts)
@@ -1355,6 +1592,10 @@ userFilters.add(labelFilterCurrency)
 userFilters.add(user_selectCurrency)
 userFilters.add(labelSeparator5)
 userFilters.add(labelSeparator6)
+
+userFilters.add(labelDateDropDown)
+userFilters.add(dateDropdown)
+
 userFilters.add(labelDateStart)
 userFilters.add(user_selectDateStart)
 userFilters.add(labelDateEnd)
@@ -1383,6 +1624,12 @@ userFilters.add(labelDEBUG)
 userFilters.add(user_selectDEBUG)
 
 userFilters.add(labelSTATUSbar)
+
+components = userFilters.getComponents()
+for theComponent in components:
+    if isinstance(theComponent, (JComboBox,JTextField)):
+        theComponent.addActionListener(PanelAction( userFilters ))
+
 
 lExit = False
 lDisplayOnly = False
@@ -1477,6 +1724,7 @@ if not lExit:
         "Filter Curr:", user_selectCurrency.getText(),
         "Incl Open Bals:", user_selectOpeningBalances.getText(),
         # "Incl Transfers:", user_selectIncludeTransfers.getText(),
+        "Date Range:", dateDropdown.getSelectedItem(),
         "StartDate:", user_selectDateStart.getText(),
         "EndDate:", user_selectDateEnd.getText(),
         "DwnldAttchments:", user_selectExtractAttachments.getText(),
@@ -1525,13 +1773,15 @@ if not lExit:
         userdateformat = "%Y/%m/%d"
 
     csvDelimiter = user_selectDELIMITER.getText()
-    if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
+    if csvDelimiter == "" or (not (csvDelimiter in "|,")):
         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
         csvDelimiter = ","
     if decimalCharSep == csvDelimiter:
         myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
             decimalCharSep, " - Proceeding without file export!!")
         lDisplayOnly = True
+
+    saveDropDownDateRange_EAR = dateDropdown.getSelectedItem()
 
     if isinstance(accountDropdown.getSelectedItem(), Account):
         dropDownAccount_EAR = accountDropdown.getSelectedItem()
@@ -1582,6 +1832,7 @@ if not lExit:
     myPrint("B","Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR))
     myPrint("B","Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR))
     myPrint("B","Download Attachments.......: %s" %(lExtractAttachments_EAR))
+    myPrint("B","Date range.................: %s" %(saveDropDownDateRange_EAR))
     myPrint("B","Selected Start Date........: %s" %(userdateStart_EAR))
     myPrint("B","Selected End Date..........: %s" %(userdateEnd_EAR))
     myPrint("B", "user date format..........: %s" %(userdateformat))
@@ -2206,7 +2457,7 @@ if not lExit:
                 for col in range(0, dataKeys["_ATTACHMENTLINK"][_COLUMN]):  # DO NOT MESS WITH ATTACHMENT LINK NAMES!!
                     _row[col] = fixFormatsStr(_row[col])
 
-            # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
+            # NOTE - You can add sep= to beginning of file to tell Excel what delimiter you are using
 
             # Write the csvlines to a file
             myPrint("B", "Opening file and writing ", len(transactionTable), "records")
@@ -2214,7 +2465,7 @@ if not lExit:
 
             try:
                 # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
-                with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+                with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary juse "w" and newline='' in PY3.0
 
                     if lWriteBOMToExportFile_SWSS:
                         csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
@@ -2231,7 +2482,8 @@ if not lExit:
                         writer.writerow(["** Click it, then Open, and then GRANT access to the folder.... (the links below will then work)"])
                         writer.writerow([""])
                         # writer.writerow(["FILE://" + os.path.join(".",relativePath)])
-                        writer.writerow(["FILE://" + scriptpath])
+                        # writer.writerow(["FILE://" + scriptpath])
+                        writer.writerow(["FILE:///"])  # This attempts to allow access to whole folder subsystem....
                         writer.writerow([""])
 
                     if lExtractAttachments_EAR:
@@ -2270,9 +2522,10 @@ if not lExit:
                     writer.writerow(["Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR)])
                     writer.writerow(["Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR)])
                     writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EAR)])
+                    writer.writerow(["Date range.................: %s" %(saveDropDownDateRange_EAR)])
                     writer.writerow(["Selected Start Date........: %s" %(userdateStart_EAR)])
                     writer.writerow(["Selected End Date..........: %s" %(userdateEnd_EAR)])
-                    writer.writerow(["user date format..........: %s" %(userdateformat)])
+                    writer.writerow(["user date format...........: %s" %(userdateformat)])
 
                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
@@ -2309,7 +2562,7 @@ if not lExit:
 
             theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
             theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
-            # theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
+            # theString = theString.replace("", "*")  # remove tabs within fields to keep csv format happy
             # theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
             # theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
 
