@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 1000 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1001 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -42,6 +42,8 @@
 # Build: 6 PREVIEW - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 # Build: 7 PREVIEW - added dropdown date range selector(s)' changed mac csv message to file:///
 # Build: 1000 - PUBLIC RELEASE
+# Build: 1001 - Added zip of the file on Mac; changed file attachement key to be 5 digits key always unique number
+# Build: 1001 - bugfix on first usage....; added zip/windows 10 bsdtar and linux tar too.....
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -103,7 +105,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1000"                                                                                                 # noqa
+version_build = "1001"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -115,6 +117,7 @@ lGlobalErrorDetected = False																						# noqa
 
 # >>> THIS SCRIPT'S IMPORTS ############################################################################################
 from copy import deepcopy
+import subprocess
 from com.moneydance.apps.md.controller import Util
 # from com.infinitekind.moneydance.model import DateRange
 # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
@@ -1470,7 +1473,8 @@ def getDateRange( selectedOption ):         # DateRange
     elif selectedOption ==  "all_dates":
         pass
     else:
-        raise(Exception("Error - date range incorrect"))
+        pass
+        # raise(Exception("Error - date range incorrect"))
 
     # cal = Calendar.getInstance()
     # cal.add(1, 1)
@@ -2122,6 +2126,7 @@ if not lExit:
 
         iCount = 0
         iCountAttachmentsDownloaded = 0
+        uniqueFileNumber = 1
 
         def tag_search( searchForTags, theTagListToSearch ):
 
@@ -2221,8 +2226,6 @@ if not lExit:
 
             row[dataKeys["_PARENTHASATTACHMENTS"][_COLUMN]] = parent_Txn.hasAttachments()
             if str(parent_Txn.getKeywords()) != "[]": row[dataKeys["_PARENTTAGS"][_COLUMN]] = str(parent_Txn.getKeywords())
-
-            uniqueFileNumber = 0
 
             lNeedToPrintTotalAmount = True
 
@@ -2358,9 +2361,9 @@ if not lExit:
                 attachmentFileList=[]
                 attachmentKeys = holdTheKeys
                 attachmentLocations = holdTheLocations
-                uniqueFileString=" "*3
+                uniqueFileString=" "*5
                 for attachmentLocation in attachmentLocations:
-                    uniqueFileString = str(uniqueFileNumber).strip().zfill(3)
+                    uniqueFileString = str(uniqueFileNumber).strip().zfill(5)
                     # attachmentLocation = txn.getAttachmentTag(attachmentKey)
                     # outputFile = os.path.join(attachmentDir,str(uniqueFileString)+ os.path.splitext(attachmentLocation)[1] )
                     outputFile = os.path.join(attachmentDir,str(uniqueFileString)+"-"+os.path.basename(attachmentLocation) )
@@ -2482,8 +2485,8 @@ if not lExit:
                         writer.writerow(["** Click it, then Open, and then GRANT access to the folder.... (the links below will then work)"])
                         writer.writerow([""])
                         # writer.writerow(["FILE://" + os.path.join(".",relativePath)])
-                        # writer.writerow(["FILE://" + scriptpath])
-                        writer.writerow(["FILE:///"])  # This attempts to allow access to whole folder subsystem....
+                        writer.writerow(["FILE://" + scriptpath])
+                        # writer.writerow(["FILE:///"])  # This attempts to allow access to whole folder subsystem....
                         writer.writerow([""])
 
                     if lExtractAttachments_EAR:
@@ -2575,10 +2578,45 @@ if not lExit:
         if iBal+iCount > 0:
             ExportDataToFile()
             _msg.kill()
+
             if not lGlobalErrorDetected:
+                xtra_msg=""
+                if lDidIUseAttachmentDir:
+
+                    baseName = os.path.basename(csvfilename)
+                    lShell = None
+                    theCommand = None
+
+                    if not Platform.isWindows():
+                        theCommand = 'zip -v -r "%s" "%s" "%s"' %(os.path.splitext(baseName)[0]+".zip",
+                                                                  baseName,
+                                                                  os.path.join(os.path.splitext(baseName)[0],""))
+
+                        lShell = True
+                    else:
+                        try:
+                            if float(System.getProperty("os.version")) >= 10:
+                                theCommand = 'tar -a -cvf "%s" "%s" "%s"' %(os.path.splitext(baseName)[0]+".zip",
+                                                                          baseName,
+                                                                          os.path.join(os.path.splitext(baseName)[0],"*.*"))
+
+                                lShell = False
+                        except:
+                            pass
+                    try:
+                        if theCommand:
+                            os.chdir(scriptpath)
+                            x=subprocess.check_output( theCommand, shell=lShell)
+                            myPrint("B","Created zip using command: %s (output follows)" %theCommand)
+                            myPrint("B",x)
+                            xtra_msg="\n(and I also zipped the file - review console / log for any messages)"
+                    except:
+                        myPrint("B","Sorry, failed to create zip")
+                        xtra_msg="\n(with an error creating the zip file - review console / log for messages)"
+
                 MyPopUpDialogBox(extract_account_registers_fake_frame_,
                                  "Your extract has been created as requested:",
-                                 "With %s rows and %s attachments downloaded" % (iBal+iCount,iCountAttachmentsDownloaded),
+                                 "With %s rows and %s attachments downloaded %s" % (iBal+iCount,iCountAttachmentsDownloaded, xtra_msg),
                                  200,
                                  myScriptName, lModal=True).go()
 
