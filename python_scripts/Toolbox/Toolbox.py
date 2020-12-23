@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Toolbox.py build: 1004 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# Toolbox.py build: 1005 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -61,6 +61,7 @@
 # Build: 1003 - Updated common codeset
 # Build: 1004 - Removed TxnSortOrder from common code, and catch error on import for earlier versions of MD
 # Build: 1004 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
+# Build: 1005 - Tweaked for 2021 build 3032 (fonts/preferences)
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -127,7 +128,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1004"                                                                                              # noqa
+version_build = "1005"                                                                                              # noqa
 myScriptName = "Toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1605,8 +1606,9 @@ def buildDiagText(lGrabPasswords=False):
         moneydance_ui.getPreferences().getBoolSetting("gui.show_all_accts_in_popup", False)))
     textArray.append("Beep when Transactions Change: " + str(
         moneydance_ui.getPreferences().getBoolSetting("beep_on_transaction_change", True)))
-    textArray.append(
-        "Theme: " + str(moneydance_ui.getPreferences().getSetting("gui.current_theme", Theme.DEFAULT_THEME_ID)))
+    if moneydance.getBuild() < 3032:
+        textArray.append(
+            "Theme: " + str(moneydance_ui.getPreferences().getSetting("gui.current_theme", Theme.DEFAULT_THEME_ID)))
     textArray.append(
         "Show Selection Details: " + str(moneydance_ui.getPreferences().getSetting("details_view_mode", "inwindow")))
     textArray.append("Side Bar Balance Type: " + str(moneydance_ui.getPreferences().getSideBarBalanceType()))
@@ -1632,7 +1634,31 @@ def buildDiagText(lGrabPasswords=False):
     elif i == 1201: i = "December 1"
     else: i = i
     textArray.append("Fiscal Year Start: " + str(i))
-    textArray.append("Font Size: +" + str(moneydance_ui.getPreferences().getIntSetting("gui.font_increment", 0)))
+
+    if moneydance.getBuild() < 3032:
+        textArray.append("Font Size: +" + str(moneydance_ui.getPreferences().getIntSetting("gui.font_increment", 0)))
+
+    if moneydance.getBuild() >= 3032:
+        textArray.append("\n>> APPEARANCE")
+        textArray.append("Theme: " + str(moneydance_ui.getPreferences().getSetting("gui.current_theme", Theme.DEFAULT_THEME_ID)))
+        if str(moneydance_ui.getPreferences().getSetting("main_font"))!="null":
+            textArray.append("Font: " + str(moneydance_ui.getPreferences().getSetting("main_font")))
+        else:
+            textArray.append("Font: (None/Default)")
+
+        if str(moneydance_ui.getPreferences().getSetting("mono_font")) != "null":
+            textArray.append("Numeric Font: " + str(moneydance_ui.getPreferences().getSetting("mono_font")))
+        else:
+            textArray.append("Numeric Font: (None/Default)")
+
+        if str(moneydance_ui.getPreferences().getSetting("print.font_name")) != "null":
+            textArray.append("Printing Font: " + str(moneydance_ui.getPreferences().getSetting("print.font_name")))
+        else:
+            textArray.append("Printing Font: (None/Default)")
+
+        textArray.append("Font Size: " + str(moneydance_ui.getPreferences().getSetting("print.font_size", "12")))
+
+        textArray.append("Font Size: +" + str(moneydance_ui.getPreferences().getIntSetting("gui.font_increment", 0)))
 
     textArray.append("\n>> NETWORK")
     textArray.append("Automatically Download in Background: " + str(
@@ -1666,9 +1692,10 @@ def buildDiagText(lGrabPasswords=False):
     textArray.append("\n>> CHEQUE PRINTING")
     textArray.append("preferences not listed here...")
 
-    textArray.append("\n>> PRINTING")
-    textArray.append("Font: " + str(moneydance_ui.getPreferences().getSetting("print.font_name", "")))
-    textArray.append("Font Size: " + str(moneydance_ui.getPreferences().getSetting("print.font_size", "12")))
+    if moneydance.getBuild() < 3032:
+        textArray.append("\n>> PRINTING")
+        textArray.append("Font: " + str(moneydance_ui.getPreferences().getSetting("print.font_name", "")))
+        textArray.append("Font Size: " + str(moneydance_ui.getPreferences().getSetting("print.font_size", "12")))
 
     textArray.append("\n>> BACKUPS")
 
