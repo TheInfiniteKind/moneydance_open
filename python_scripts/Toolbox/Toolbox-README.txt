@@ -80,6 +80,8 @@ ALT-B - Basic Mode
     - VIEW - OFX Related Data
 
 ALT-M - Advanced Mode
+    - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync))
+    - FIX - Create Dropbox Sync Folder (creates the missing .moneydancesync folder if missing from Dropbox)
     - FIX - Change Moneydance Fonts
     - FIX - Delete Custom Theme file
     - FIX - Fix relative currencies
@@ -87,7 +89,6 @@ ALT-M - Advanced Mode
     - FIX - Forget OFX Banking Import Link (so that it asks you which account when importing ofx files)
     - FIX - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank)
     - FIX - Correct the Name of Root to match Dataset
-    - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync))
     - FIX - Delete One-Sided Txns
     - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
     - FIX - RESET Window Display Settings

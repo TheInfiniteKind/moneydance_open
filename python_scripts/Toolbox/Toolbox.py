@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Toolbox.py build: 1005 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# Toolbox.py build: 1006 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -62,6 +62,8 @@
 # Build: 1004 - Removed TxnSortOrder from common code, and catch error on import for earlier versions of MD
 # Build: 1004 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 # Build: 1005 - Tweaked for 2021 build 3032 (fonts/preferences)
+# Build: 1006 - Detect when the .moneydancesync folder is missing and add button to fix this
+# Build: 1006 - Detect current Toolbox version from github.. added downloadStuWareSoftSystemsExtensions() to common code
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -128,7 +130,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1005"                                                                                              # noqa
+version_build = "1006"                                                                                              # noqa
 myScriptName = "Toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1128,6 +1130,37 @@ myPrint("DB", "DEBUG IS ON..")
 # END ALL CODE COPY HERE ###############################################################################################
 
 
+# noinspection PyBroadException
+def downloadStuWareSoftSystemsExtensions( what ):
+    global i_am_an_extension_so_run_headless, debug
+
+    dictInfo = StreamTable()
+
+    inx = None
+    theDict = "https://raw.githubusercontent.com/yogi1967/MoneyDancePythonScripts/master/source/%s-meta_info.dict" %what
+
+    try:
+        myPrint("B","About to open url")
+        urlDict = URL(theDict)
+        inx = BufferedReader(InputStreamReader(urlDict.openStream(), "UTF8"))
+        dictInfo.readFrom(inx)
+    except:
+
+        myPrint("DB", "ERROR downloading from theZip... ")
+        if debug: dump_sys_error_to_md_console_and_errorlog()
+        return False
+
+    finally:
+        if inx:
+            try:
+                inx.close()
+            except:
+                myPrint("B", "Error closing URL stream (%s)" %theDict)
+                dump_sys_error_to_md_console_and_errorlog()
+
+    return dictInfo
+
+
 class DetectAndChangeMacTabbingMode(AbstractAction):
 
     def __init__(self,statusLabel,lQuickCheckOnly):
@@ -1435,6 +1468,9 @@ def buildDiagText(lGrabPasswords=False):
     else:
         syncMethod = syncMethod
     textArray.append("Sync Method: " + str(syncMethod.getSyncFolder()))
+
+    if not check_for_dropbox_folder():
+        textArray.append("Sync WARNING: Dropbox sync will not work until you add the missing .moneydancesync folder - use advanced mode to fix!")
 
     textArray.append("\nTHEMES")
     textArray.append("Your selected Theme: " + str(
@@ -1961,18 +1997,18 @@ def view_extensions_details():
         theData.append("\nLISTING EXTENSIONS ORPHANED IN CONFIG.DICT OR FILES (*.MXT)\n")
 
         for x in orphan_prefs.keys():
-            theData.append("%s Extension: %s is %s" %(pad("config.dict:",20),pad(x,20),pad(orphan_prefs[x],20)))
+            theData.append("%s Extension: %s is %s" %(pad("config.dict:",40),pad(x,40),pad(orphan_prefs[x],40)))
 
         theData.append("")
 
         for x in orphan_confirmed_extn_keys.keys():
             _theVersion = moneydance_ui.getPreferences().getSetting(orphan_confirmed_extn_keys[x][1],None)
-            theData.append("%s Extension: %s Key: %s (build: %s) is %s" %(pad("config.dict:",20),pad(x,20),pad(orphan_confirmed_extn_keys[x][1],40),_theVersion, pad(orphan_confirmed_extn_keys[x][0],20)))
+            theData.append("%s Extension: %s Key: %s (build: %s) is %s" %(pad("config.dict:",40),pad(x,40),pad(orphan_confirmed_extn_keys[x][1],40),_theVersion, pad(orphan_confirmed_extn_keys[x][0],40)))
 
         theData.append("")
 
         for x in orphan_files.keys():
-            theData.append("%s Extension: %s is %s" %(pad("File: "+orphan_files[x][1],40),pad(x,20),pad(orphan_files[x][0],20)))
+            theData.append("%s Extension: %s is %s" %(pad("File: "+orphan_files[x][1],40),pad(x,40),pad(orphan_files[x][0],40)))
 
     theData.append("\n<END>")
 
@@ -1981,6 +2017,7 @@ def view_extensions_details():
         theData[i] = theData[i] + "\n"
     theData = "".join(theData)
     return theData
+
 
 # noinspection PyBroadException
 def downloadExtensions():
@@ -2429,6 +2466,8 @@ ALT-B - Basic Mode
     - VIEW - OFX Related Data
 
 ALT-M - Advanced Mode
+    - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync))
+    - FIX - Create Dropbox Sync Folder (creates the missing .moneydancesync folder if missing from Dropbox)
     - FIX - Change Moneydance Fonts
     - FIX - Delete Custom Theme file
     - FIX - Fix relative currencies
@@ -2436,7 +2475,6 @@ ALT-M - Advanced Mode
     - FIX - Forget OFX Banking Import Link (so that it asks you which account when importing ofx files)
     - FIX - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank)
     - FIX - Correct the Name of Root to match Dataset
-    - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync))
     - FIX - Delete One-Sided Txns
     - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
     - FIX - RESET Window Display Settings
@@ -2446,9 +2484,9 @@ ALT-M - Advanced Mode
             3. RESET>> Just Register Transaction Initial Views (e.g. In investments, start on Portfolio or Security View
             4. RESET>> Window locations, Size, Sort Orders, One-line, Split Reg, Offset, Column Widths; Dividers, isOpen,
             isExpanded, isMaximised settings (this does not reset Filters or Initial views)
-    - FIX - Check / fix MacOS Tabbing Mode on Big Sur. If set to always it will allow you to change it
+    - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
             More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
-            
+
 ALT-G - GEEK OUT MODE
     >> Allows you to view raw settings
     - Search for keys or keydata containing filter characters (you specify)
@@ -3093,21 +3131,25 @@ def extract_StuWareSoftSystems_version(theVersionToCheck):
 def check_for_updatable_extensions_on_startup(statusLabel):
     global lIgnoreOutdatedExtensions_TB
 
+    Toolbox_version = 0
+
     displayData = "\nStuWareSoftSystems: ALERT INFORMATION ABOUT YOUR EXTENSIONS:\n\n"
 
     try:
         theUpdateList = get_extension_update_info()
 
         if not theUpdateList or len(theUpdateList)<1:
-            return
+            return Toolbox_version
 
         for key in theUpdateList.keys():
             updateInfo = theUpdateList[key]
             displayData+="** UPGRADEABLE EXTENSION: %s to version: %s\n" %(pad(key,20),str(updateInfo[0].getBuild()))
             myPrint("B", "** UPGRADEABLE EXTENSION: %s to version: %s" %(pad(key,20),str(updateInfo[0].getBuild())))
+            if key.lower() == "toolbox" and int(updateInfo[0].getBuild()) > 0:
+                Toolbox_version = int(updateInfo[0].getBuild())
     except:
         dump_sys_error_to_md_console_and_errorlog()
-        return
+        return Toolbox_version
 
     displayData+="\n<END>\n"
 
@@ -3134,10 +3176,10 @@ def check_for_updatable_extensions_on_startup(statusLabel):
         statusLabel.setText( ("ALERT - YOU HAVE %s EXTENSION(S) THAT CAN BE UPGRADED!...STARTUP POPUP WARNINGS SUPPRESSED (by you)" %howMany ).ljust(800, " "))
         statusLabel.setForeground(Color.BLUE)
 
-    return
+    return Toolbox_version
 
 def check_for_old_StuWareSoftSystems_scripts(statusLabel):
-    global lPickle_version_warning, myParameters
+    global lPickle_version_warning, myParameters, i_am_an_extension_so_run_headless, debug
 
     lVersionWarning = False
 
@@ -3645,6 +3687,28 @@ class CloseAction(AbstractAction):
         self.theFrame.dispose()
         return
 
+
+def check_for_dropbox_folder():
+
+    syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(moneydance_ui, moneydance_ui.getCurrentAccounts())
+    syncMethod = SyncFolderUtil.getConfigurerForFile(moneydance_ui, moneydance_ui.getCurrentAccounts(), syncMethods)
+
+    dropboxOption = SyncFolderUtil.configurerForIDFromList("dropbox_folder", syncMethods)
+    if (not dropboxOption) or syncMethod.getSyncFolder():
+        return True
+
+    userHomeProperty = System.getProperty("UserHome", System.getProperty("user.home", "."))
+    baseFolder = File(userHomeProperty, "Dropbox")
+    dropbox = File(baseFolder, ".moneydancesync")
+
+    # If Dropbox folder does not exist then do nothing
+    if not (baseFolder.exists() and baseFolder.isDirectory()):
+        return True
+
+    if dropbox.exists() and dropbox.isDirectory():
+        return True
+
+    return False
 
 def about_this_script():
     global Toolbox_frame_, debug, scriptExit
@@ -5183,6 +5247,57 @@ class DiagnosticDisplay():
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
 
+    class MakeDropBoxSyncFolder(AbstractAction):
+
+        def __init__(self, statusLabel, myButton):
+            self.statusLabel = statusLabel
+            self.myButton = myButton
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            if check_for_dropbox_folder():
+                self.statusLabel.setText("Sorry - Fix: Create .moneydancesync folder button not available!?".ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPrint("B","MakeDropBoxSyncFolder() called, but check_for_dropbox_folder() returned True - so we should not be here? FIX NOT AVAILABLE")
+                return
+
+            if not myPopupAskQuestion(Toolbox_frame_,
+                                      "DROPBOX",
+                                      "Create missing Dropbox .moneydancesync folder?",
+                                      JOptionPane.YES_NO_OPTION,
+                                      JOptionPane.ERROR_MESSAGE):
+
+                self.statusLabel.setText("User declined to create missing Dropbox .moneydancesync folder ".ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                return
+
+            self.myButton.setVisible(False)
+            self.myButton.setEnabled(False)
+
+            userHomeProperty = System.getProperty("UserHome", System.getProperty("user.home", "."))
+            baseFolder = File(userHomeProperty, "Dropbox")
+
+            try:
+                if File(baseFolder, ".moneydancesync").mkdir():
+                    self.statusLabel.setText(("Created Dropbox .moneydancesync folder").ljust(800, " "))
+                    self.statusLabel.setForeground(Color.BLUE)
+                    myPrint("B", "Created .moneydancesync folder in dropbox")
+                    myPopupInformationBox(Toolbox_frame_, ".moneydancesync folder created!", "DROPBOX", JOptionPane.WARNING_MESSAGE)
+                    return
+
+            except:
+                dump_sys_error_to_md_console_and_errorlog()
+
+            myPrint("B", "Error creating Dropbox .moneydancesync folder!?")
+            self.statusLabel.setText(("Error creating Dropbox .moneydancesync folder!?").ljust(800, " "))
+            self.statusLabel.setForeground(Color.RED)
+            myPopupInformationBox(Toolbox_frame_, "Error creating Dropbox .moneydancesync folder!?", "DROPBOX", JOptionPane.ERROR_MESSAGE)
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+            return
+
     class DeleteThemeFileButtonAction(AbstractAction):
 
         def __init__(self, statusLabel):
@@ -5256,18 +5371,18 @@ class DiagnosticDisplay():
             displayData="\nLISTING EXTENSIONS ORPHANED IN CONFIG.DICT OR FILES (*.MXT)\n\n"
 
             for x in orphan_prefs.keys():
-                displayData+="%s Extension: %s is %s\n" %(pad("config.dict:",20),pad(x,20),pad(orphan_prefs[x],20))
+                displayData+="%s Extension: %s is %s\n" %(pad("config.dict:",40),pad(x,40),pad(orphan_prefs[x],40))
 
             displayData+="\n"
 
             for x in orphan_confirmed_extn_keys.keys():
                 _theVersion = moneydance_ui.getPreferences().getSetting(orphan_confirmed_extn_keys[x][1],None)
-                displayData+="%s Extension: %s Key: %s (build: %s) is %s\n" %(pad("config.dict: ",20),pad(x,20),pad(orphan_confirmed_extn_keys[x][1],40),_theVersion,pad(orphan_confirmed_extn_keys[x][0],20))
+                displayData+="%s Extension: %s Key: %s (build: %s) is %s\n" %(pad("config.dict: ",40),pad(x,40),pad(orphan_confirmed_extn_keys[x][1],40),_theVersion,pad(orphan_confirmed_extn_keys[x][0],40))
 
             displayData+="\n"
 
             for x in orphan_files.keys():
-                displayData+="%s Extension: %s is %s\n" %(pad("File: "+orphan_files[x][1],40),pad(x,20),pad(orphan_files[x][0],20))
+                displayData+="%s Extension: %s is %s\n" %(pad("File: "+orphan_files[x][1],40),pad(x,40),pad(orphan_files[x][0],40))
 
             displayData+="\n<END>"
             jif = QuickJFrame("ORPHANED EXTENSIONS", displayData).show_the_frame()
@@ -7280,7 +7395,7 @@ The limit is set deliberately low to enable it to work with computers having ver
             return
 
     def openDisplay(self):
-        global Toolbox_frame_, DARK_GREEN, lPickle_version_warning, lCopyAllToClipBoard_TB, myParameters, lIgnoreOutdatedExtensions_TB
+        global Toolbox_frame_, DARK_GREEN, lPickle_version_warning, lCopyAllToClipBoard_TB, myParameters, lIgnoreOutdatedExtensions_TB, version_build
 
         screenSize = Toolkit.getDefaultToolkit().getScreenSize()
 
@@ -7357,6 +7472,15 @@ The limit is set deliberately low to enable it to work with computers having ver
             convertSecondary_button.addActionListener(self.ConvertSecondaryButtonAction(displayString, statusLabel))
             convertSecondary_button.setVisible(False)
             displayPanel.add(convertSecondary_button)
+
+        if (not check_for_dropbox_folder()):
+            createMoneydanceSyncFolder_button = JButton("<html><center><B>FIX: Create Dropbox<BR>Sync Folder</B></center></html>")
+            createMoneydanceSyncFolder_button.setToolTipText("This will allow you to add the missing .moneydancesync folder in Dropbox. THIS CREATES A FOLDER!")
+            createMoneydanceSyncFolder_button.setBackground(Color.ORANGE)
+            createMoneydanceSyncFolder_button.setForeground(Color.WHITE)
+            createMoneydanceSyncFolder_button.addActionListener(self.MakeDropBoxSyncFolder(statusLabel, createMoneydanceSyncFolder_button))
+            createMoneydanceSyncFolder_button.setVisible(False)
+            displayPanel.add(createMoneydanceSyncFolder_button)
 
         if moneydance.getBuild() >= 3030:
             changeTheFont_button = JButton("<html><center>Set/Change Default<BR>Moneydance FONTS</center></html>")
@@ -7709,8 +7833,25 @@ The limit is set deliberately low to enable it to work with computers having ver
 
         check_for_old_StuWareSoftSystems_scripts(statusLabel)
 
-        check_for_updatable_extensions_on_startup(statusLabel)
+        _tb_extn_avail_version = check_for_updatable_extensions_on_startup(statusLabel)
 
+        checkModule = "Toolbox"
+        myExtensions = downloadStuWareSoftSystemsExtensions(checkModule)
+        if myExtensions:
+            myModule = myExtensions.get("id")
+            if myModule == checkModule:
+                availableFromGitHubVersion = int(myExtensions.get("module_build"))
+                if availableFromGitHubVersion > int(version_build):
+                    myPrint("DB","Toolbox upgrade to version %s is available from GitHub to download...." %availableFromGitHubVersion)
+                    theStr = "You are running version %s\n" %version_build
+                    if _tb_extn_avail_version > int(version_build):
+                        theStr += "Extension version %s is available from Moneydance Menu>Manage Extensions Menu\n" %_tb_extn_avail_version
+                    if availableFromGitHubVersion > _tb_extn_avail_version:
+                        theStr += "Version %s is available from https://yogi1967.github.io/MoneyDancePythonScripts/" %availableFromGitHubVersion
+
+                    MyPopUpDialogBox(Toolbox_frame_,"Toolbox Version:",theStr,200,"UPGRADE AVAILABLE",OKButtonText="Acknowledge").go()
+                else:
+                    myPrint("DB","I've checked GitHub and Toolbox is running latest version: %s" %availableFromGitHubVersion)
 
 
 if not i_am_an_extension_so_run_headless: print("""
