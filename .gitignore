@@ -11,3 +11,4 @@ lib/moneydance-private.jar
 src/user.properties
 .DS_Store
 classes
+user.properties
