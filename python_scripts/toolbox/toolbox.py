@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1007 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1008 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -65,6 +65,9 @@
 # Build: 1006 - Detect when the .moneydancesync folder is missing and add button to fix this
 # Build: 1006 - Detect current Toolbox version from github.. added downloadStuWareSoftSystemsExtensions() to common code
 # Build: 1007 - Renamed REPO, Moneydance and ID to lowercase ready for signing (Sean request)...
+# Build: 1008 - Cosmetic changes to searching window; update available windows...
+# Build: 1008 - new button; search for ios sync data for sync key recovery....
+# Build: 1008 - New hacker buttons; Moneydance internal DEBUG ON/OFF; Moneydance ofx connection console debug ON/OFF check; set check days
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -131,7 +134,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1007"                                                                                              # noqa
+version_build = "1008"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -2410,7 +2413,8 @@ To enable the User to self-diagnose problems, or access key diagnostics to enabl
 - Advanced Mode - Allows user to run fixes - THIS CHANGES DATA
 - Geek Mode - Allows user to view technical information/settings in various places (this is readonly)
 - Hacker Mode - Allows the user to manually add/change/delete config.dict and LocalStorage() keys/values - ONLY USE IF YOU KNOW WHAT YOU ARE DOING
-
+                Also allows you to toggle Moneydance internal settings like DEBUG
+                
 - The Toolbox offers the option to Backup first  - ALWAYS BACKUP (But this is your choice!)
 - The Toolbox will *ALWAYS* make a copy of config.dict, custom theme file, LocalStorage() ./safe/settings before any changes
 >> These backup files will have a unique (timestamp-like) number and _$SAVED$ appended to the end of the filename
@@ -2465,6 +2469,7 @@ ALT-B - Basic Mode
     - DIAGnostics - Diagnose relative currencies. If errors, then go to FIX below
     - DIAGnostics - View Categories with zero balance. You can also inactivate these below.
     - VIEW - OFX Related Data
+    - Find my Sync Encryption password(s) in iOS Backup(s)
 
 ALT-M - Advanced Mode
     - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync))
@@ -2505,6 +2510,9 @@ ALT-G - GEEK OUT MODE
 Menu - HACKER MODE
     >> VERY TECHNICAL - DO NOT USE UNLESS YOU KNOW WHAT YOU ARE DOING
     >> Allows User to Add/Change/Delete a key/value in config.dict or LocalStorage() (./safe/settings)
+    >> Toggle internal Moneydance DEBUG ON/OFF (use with care)
+    >> Toggle internal Moneydance OFX DEBUG CONSOLE WINDOW ON/OFF (use with care)
+    >> Change the internal Next Check Number look-back threshold (in days) from the default of 180 (temporary change only) 
 
 CMD-P - View parameters file (StuWareSoftSystems). Also allows user to Delete all, and/or change/delete single saved parameters
 
@@ -3809,6 +3817,142 @@ class DiagnosticDisplay():
             myPrint("DB", "DiagnosticDisplay() Frame shutting down....")
 
             terminate_script()
+
+            return
+
+    class HackerModeSetCheckDaysButtonAction(AbstractAction):
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug, DARK_GREEN, lCopyAllToClipBoard_TB
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            key = "moneydance.checknum_series_threshold"
+            props_lookback_days = System.getProperty(key, "180")
+
+            ask = MyPopUpDialogBox(Toolbox_frame_,"Next Check Number Algorithm look-back Threshold:",
+                                   'System.getProperty("%s") currently set to: %s\n'%(key,props_lookback_days),
+                                   200,"NEXT CHEQUE NUMBER ALGORITHM",
+                                   lCancelButton=True,OKButtonText="CHANGE")
+            if not ask.go():
+                self.statusLabel.setText(("HACKER MODE: NO CHANGES MADE TO NEXT CHECK NUMBER LOOK-BACK THRESHOLD").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                return
+
+            lDidIChangeDays=False
+
+            while True:
+                days_response = myPopupAskForInput(None,"CHANGE NEXT CHECK NUMBER LOOK-BACK THRESHOLD","Days:",
+                                                   "Enter new number of days (1 to 365):",props_lookback_days)
+
+                if days_response is None:
+                    days_response = 0
+                    break
+                elif days_response == props_lookback_days:
+                    break
+                elif not StringUtils.isInteger(days_response):
+                    continue
+                elif int(days_response)>0 and int(days_response)<365:                                               # noqa
+                    lDidIChangeDays = True
+                    break
+
+            if lDidIChangeDays:
+                System.setProperty(key,str(days_response))
+                myPrint("B","HACKER MODE: System Property '%s' set to %s" %(key,days_response))
+            else:
+                self.statusLabel.setText(("HACKER MODE: NO CHANGES MADE TO NEXT CHECK NUMBER LOOK-BACK THRESHOLD").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                return
+
+            myPopupInformationBox(Toolbox_frame_,"HACKER MODE: Next Check Number Algorithm look-back Threshold set to %s (days)" %days_response,"NEXT CHEQUE NUMBER ALGORITHM",JOptionPane.WARNING_MESSAGE)
+            self.statusLabel.setText(("HACKER MODE: Next Check Number Algorithm look-back Threshold set to %s (days)" %days_response).ljust(800, " "))
+            self.statusLabel.setForeground(Color.BLUE)
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+            return
+
+
+    class HackerModeOFXDEBUGButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug, DARK_GREEN, lCopyAllToClipBoard_TB
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            key = "ofx.debug.console"
+            props_ofx_debug = System.getProperty(key, None)
+
+            toggleText = "ON"
+            if (props_ofx_debug is not None and props_ofx_debug!="false"):
+                toggleText = "OFF"
+
+            ask = MyPopUpDialogBox(Toolbox_frame_,"OFX DEBUG CONSOLE STATUS:",
+                                   'System.getProperty("%s") currently set to: %s\n'%(key,props_ofx_debug),
+                                   200,"TOGGLE MONEYDANCE INTERNAL OFX DEBUG",
+                                   lCancelButton=True,OKButtonText="SET to %s" %toggleText)
+            if not ask.go():
+                self.statusLabel.setText(("HACKER MODE: NO CHANGES MADE TO OFX DEBUG CONSOLE!").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                return
+
+            myPrint("B","HACKER MODE: User requested to toggle System Property '%s' to %s - setting this now...!" %(key,toggleText))
+            if toggleText == "OFF":
+                System.clearProperty(key)
+            else:
+                System.setProperty(key, "true")
+
+            myPopupInformationBox(Toolbox_frame_,"Moneydance internal ofx debug console setting turned %s" %toggleText,"TOGGLE MONEYDANCE INTERNAL OFX DEBUG",JOptionPane.WARNING_MESSAGE)
+            self.statusLabel.setText(("Moneydance internal debug ofx debug console setting turned %s" %toggleText).ljust(800, " "))
+            self.statusLabel.setForeground(Color.BLUE)
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+            return
+
+    class HackerModeDEBUGButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug, DARK_GREEN, lCopyAllToClipBoard_TB
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            key = "moneydance.debug"
+            md_debug = moneydance_ui.getMain().DEBUG
+            props_debug = System.getProperty(key, None)
+
+            toggleText = "ON"
+            if md_debug or (props_debug is not None and props_debug!="false"):
+                toggleText = "OFF"
+
+            ask = MyPopUpDialogBox(Toolbox_frame_,"DEBUG STATUS:",
+                             "main.DEBUG currently set to: %s\n"
+                             'System.getProperty("%s") currently set to: %s\n'%(md_debug,key,props_debug),
+                             200,"TOGGLE MONEYDANCE INTERNAL DEBUG",
+                             lCancelButton=True,OKButtonText="SET BOTH to %s" %toggleText)
+            if not ask.go():
+                self.statusLabel.setText(("HACKER MODE: NO CHANGES MADE TO DEBUG!").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                return
+
+            myPrint("B","HACKER MODE: User requested to toggle main.DEBUG and System Property '%s' both to %s - setting these now...!" %(key,toggleText))
+            if toggleText == "OFF":
+                moneydance_ui.getMain().DEBUG = False
+                System.clearProperty(key)
+            else:
+                moneydance_ui.getMain().DEBUG = True
+                System.setProperty(key, "true")
+
+            myPopupInformationBox(Toolbox_frame_,"Both Moneydance internal debug settings turned %s" %toggleText,"TOGGLE MONEYDANCE INTERNAL DEBUG",JOptionPane.WARNING_MESSAGE)
+            self.statusLabel.setText(("Both Moneydance internal debug settings turned %s" %toggleText).ljust(800, " "))
+            self.statusLabel.setForeground(Color.BLUE)
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
             return
 
@@ -6564,6 +6708,637 @@ The limit is set deliberately low to enable it to work with computers having ver
             return
 
 
+    class FindIOSSyncDataButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug, i_am_an_extension_so_run_headless
+
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            if not(Platform.isOSX() or Platform.isWindows()):
+                myPrint("B","FindIOSSyncDataButtonAction() called, but not OSx or Windows!?")
+                self.statusLabel.setText(("FindIOSSyncDataButtonAction() called, but not OSx or Windows!?").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                return
+
+            instructions = """
+INSTRUCTIONS TO ATTEMPT TO RETRIEVE YOUR MONEYDANCE SYNC ENCRYPTION KEY FROM iPHONE/iPAD
+
+STEP 1. Ensure you have the Moneydance iOS App working & Syncing on an iphone/iPad.
+STEP 2. Perform an iPhone/iPad backup to your computer Using iTunes (or Finder on Mac Big Sur). Instructions below....
+STEP 3. RETURN HERE and let Toolbox attempt search; or search manually yourself (instructions below)
+
+-----------------------------------------------------------------------------------------------------------------------------        
+NOTE: If on a Mac, and you want Toolbox to search in step 3, then you must change these Mac Settings first...        
+>>The system prevents programmatic access to the backups.. 
+    >> Go to Mac / Settings / Security & Privacy. Privacy Tab
+    - Click the padlock to unlock the settings
+    - Scroll down left side to Full Disk Access
+    - On the right, find Moneydance and tick it (or click the + to add and tick it) to Grant Access
+    - Exit and restart Moneydance, then run this Toolbox option again (if you don't do this, it will not find your backups!)..
+    >> Change this setting back afterwards.....
+-----------------------------------------------------------------------------------------------------------------------------        
+
+NOTE: DO NOT EDIT THE FILE MENTIONED BELOW. ALWAYS QUIT WITHOUT SAVING.
+IF YOU COPY THE FILE TO YOUR DESKTOP, MAKE SURE YOU COPY (and not move)...
+(Normally you hold down the CTRL, or OPTION/ALT key whilst dragging so the icon changes to a plus and copy)
+
+
+================================
+Mac (easiest option if possible) 
+================================
+Please review these instructions:
+https://support.apple.com/en-gb/guide/iphone/iph3ecf67d29/ios
+- Essentially install iTunes (not needed on Mac Big Sur - which uses finder)
+- Go to the iPhone/iPad tab, General options
+- Perform a local backup (NOT ENCRYPTED)
+
+>> Come back here after backup completed and then run this Toolbox option to search backups........ <<
+
+OR MANUAL INSTRUCTIONS BELOW
+
+This link has details on the backup location: https://support.apple.com/en-gb/HT204215
+
+>> Locate your backup(s) in Finder: 
+- Open Finder. Menu GO 
+- Go To Folder 
+- Copy and paste this:
+
+~/Library/Application Support/MobileSync/Backup/ 
+Press Return.
+
+You will see a list of backups. (e.g. 00008030-000E31343A02802E) 
+Right click this folder (the most recent) 
+Select "New terminal at folder". Then terminal will open at this folder. 
+  
+Copy / paste this command below and press enter...
+
+grep -rl tik_dropbox_md *
+
+...wait...
+
+It will find something like this: 
+c8/c8c8dcebf5eab9bb14012e7df9ff46aa1d333a7c 
+This is the file you need, stay in Terminal
+
+plutil -p c8/c8c8dcebf5eab9bb14012e7df9ff46aa1d333a7c 
+(and you will see the information on the screen next to "tik_dropbox_md_sync_key" =>
+
+or do this: 
+open -a TextEdit c8/c8c8dcebf5eab9bb14012e7df9ff46aa1d333a7c
+
+And you will see text and gibberish..... but also your key... Your key should be visible... See example. My was after the text 'last_account_used2V'
+
+(of course, now you know the file, you can find it, copy it to desktop, open with other text viewers....)
+
+
+================================
+WINDOWS 
+================================
+Download and install iTunes, plug in iPhone. Select the iPhone icon and you should see  (General) options
+(Help here: https://support.apple.com/en-gb/guide/iphone/iph3ecf67d29/ios)
+
+Perform a local backup, DESELECT Encrypt local backup. Select Backup NOW 
+
+...wait...
+
+>> Come back here after backup completed and then run this Toolbox option to search backups........ <<
+
+OR MANUAL INSTRUCTIONS BELOW
+
+When finished, locate your backup - help here: https://support.apple.com/en-gb/HT204215
+
+In the taskbar search box, type command (no enter) and when there is a popup select run as administrator 
+type 
+cd %userprofile% (Or a different folder if in a different place) 
+cd apple 
+cd mobilesync 
+cd backup 
+dir 
+Your backups will be listed. If only one, skip this next step, else find the latest…. Select/copy the name 
+cd <the selected name>
+
+So you will now be at something like...: 
+C:\\Users\\<username>\\Apple\\MobileSync\\Backup\\00008030-000E31343A02802E> 
+or 
+C:\\Users\\<username>>\\Apple\\MobileSync\\Backup> (if only one backup)
+
+Now type this and enter:
+
+findstr /S /I /M /C:"tik_dropbox_md" *.* 
+... wait ...
+
+It will show you something like this..:
+
+00008030-000E31343A02802E\\c8\\c8c8dcebf5eab9bb14012e7df9ff46aa1d333a7c
+
+Backup name: 00008030-000E31343A02802E 
+SubDir: c8 
+Actual file name you want: c8c8dcebf5eab9bb14012e7df9ff46aa1d333a7c
+
+Now copy/paste the whole string (one line) and type this (paste the long name) and enter
+
+start notepad 00008030-000E31343A02802E\\c8\\c8c8dcebf5eab9bb14012e7df9ff46aa1d333a7c
+
+Notepad is rubbish, so use the cursor and move right along the lines until you see your key... 
+---
+
+On both the above options, you can find and copy the file to your desktop. Rename the desktop copy to 'key.plist' for ease of use after you have it.
+
+Once you have the file..: 
+On windows you can download and use this tool: 
+https://www.imactools.com/iphonebackupviewer/download/win 
+Run the program, select the 3 line menu button top right, Tools, Property List View, then open the key.plist file you saved to your desktop..
+
+On Mac, in terminal 
+cd /Users/<yourname>/Desktop 
+type and enter 
+plutil -convert xml1 key.plist 
+Now you will have a text readable version of the file you can open in a text editor..
+
+<END>            
+"""
+
+            jif = QuickJFrame("View Instructions:", instructions,lAlertLevel=1).show_the_frame()
+            jif.setLocationRelativeTo(Toolbox_frame_)
+
+            if not myPopupAskQuestion(jif,
+                                      "SEARCH COMPUTER iOS BACKUP(s)",
+                                      "This may be time consuming...Do you want to continue with the search for Encryption Sync Passphrases now?",
+                                      JOptionPane.YES_NO_OPTION,
+                                      JOptionPane.WARNING_MESSAGE):
+
+                self.statusLabel.setText(("User Aborted iOS backup(s) search...").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                return
+
+            jif.dispose()
+
+            if Platform.isOSX():
+                searchList = ["Library/Application Support/MobileSync/Backup"]
+            else:
+                searchList = ["Apple\\MobileSync\\Backup",
+                              "Apple Computer\\MobileSync\\Backup",
+                              "AppData\\Roaming\\Apple\\MobileSync\\Backup",
+                              "AppData\\Roaming\\Apple Computer\\MobileSync\\Backup"]
+
+
+            miniText=""
+            pathList = []
+            for x in (searchList):
+                fullPath = os.path.join(get_home_dir(), x)
+                miniText += "%s\n" %fullPath
+                if os.path.exists(fullPath) and os.path.isdir(fullPath):
+                    pathList.append(fullPath)
+
+            if len(pathList)<1:
+                self.statusLabel.setText(("Sorry - could not find your IOS Backup directory(s)...").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPrint("B", "Sorry - could not find your IOS Backup directory(s) in %s ....:" %get_home_dir())
+                myPrint("B", searchList)
+                MyPopUpDialogBox(Toolbox_frame_,"Search for iOS Backup(s) - could not find your directory(s):",
+                                 miniText,theTitle="RECOVER IOS SYNC KEY",OKButtonText="ABORT").go()
+                return
+
+            theIKReference = "c8c8dcebf5eab9bb14012e7df9ff46aa1d333a7c"  # WARNING, this may change? Might have to switch to finding the key..!
+            diag = MyPopUpDialogBox(Toolbox_frame_,"Please wait: searching iOS Backup(s)..",theTitle="SEARCH", theWidth=100, lModal=False,OKButtonText="WAIT")
+            diag.go()
+
+            def findIOSBackup(pattern, path):
+                iFound=0                                                                                            # noqa
+                result = []
+                dotCounter = 0
+
+                lContinueToEnd=False
+
+                if not i_am_an_extension_so_run_headless:
+                    print "Searching for your iOS Backups (might be time consuming):.....",
+
+                for root, dirs, files in os.walk(path):
+
+                    if dotCounter % 1000 <1:
+                        if not i_am_an_extension_so_run_headless: print ".",
+                    if not dotCounter or (dotCounter % 10000 <1 and not lContinueToEnd):
+
+                        options=["STOP HERE","SEARCH TO END", "KEEP ASKING"]
+                        response = JOptionPane.showOptionDialog(Toolbox_frame_,
+                                                                "Are you OK to continue (%s found so far)?"%iFound,
+                                                                "SEARCH COMPUTER FOR iOS BACKUP(s)",
+                                                                0,
+                                                                JOptionPane.QUESTION_MESSAGE,
+                                                                None,
+                                                                options,
+                                                                options[2])
+                        if response == 0:
+                            self.statusLabel.setText(("User Aborted iOS Backup(s) search...").ljust(800, " "))
+                            self.statusLabel.setForeground(Color.RED)
+                            return result
+
+                        elif response == 1:
+                            lContinueToEnd = True
+
+                    dotCounter+=1
+
+                    for name in files:
+                        if fnmatch.fnmatch(name, pattern):
+                            result.append(os.path.join(root, name))
+                    for name in dirs:
+                        if fnmatch.fnmatch(name, pattern):
+                            iFound+=1
+                            result.append(os.path.join(root, name))
+                    for name in root:
+                        if fnmatch.fnmatch(name, pattern):
+                            iFound+=1
+                            result.append(os.path.join(root, name))
+                return result
+
+            fileList=[]
+            for theDir in pathList:
+                myPrint("P","Searching from Directory: %s" %theDir)
+                fileList += findIOSBackup(theIKReference, theDir)
+
+            diag.kill()
+
+            iFound = len(fileList)
+            print
+            myPrint("B","Completed search for iOS Backup(s): %s found (called: %s)" %(iFound, theIKReference))
+
+            if iFound < 1:
+                self.statusLabel.setText(("Sorry - could not find the Moneydance Sync file(s) (%s) in iOS backup(s)..."%theIKReference).ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPrint("B", "Sorry - could not find the Moneydance Sync file(s) (%s) in iOS backup(s)..."%theIKReference)
+                myPrint("B", fileList)
+                x=""
+                if Platform.isOSX():
+                    x="PLEASE CHECK YOU GRANTED FULL DISK ACCESS (READ INSTRUCTIONS)\n\n"
+                MyPopUpDialogBox(Toolbox_frame_,"Search for iOS Backups - SORRY >> COULD NOT FIND the Moneydance App Sync File (%s) in these directories:"%theIKReference,
+                                 x+miniText,theTitle="RECOVER IOS SYNC KEY",OKButtonText="CLOSE").go()
+                return
+
+
+            # ###############################################################################################
+            # https://github.com/provegard/binaryplist/
+            # Copyright (c) 2011, Per Rovegard <per@rovegard.se>
+            # Licensed under the 3-clause BSD license.
+            from struct import unpack
+            from datetime import tzinfo, timedelta
+
+            def dump_plist(obj, _format):
+                if 'plist' == (_format or 'plist'):
+                    from plistlib import writePlist
+                    writePlist(obj, sys.stdout)
+                elif 'json' == _format:
+                    import json
+                    s = json.dumps(obj, indent=2)
+                    print(s)
+
+
+            def decode_plist(_filename, _format="plist", _search="ALL"):   # Can be "plist" or "json"
+                with open(_filename, 'rb') as fd:
+                    try:
+                        plist_root = read_binary_plist(fd)
+
+                        if _search == "ALL":
+                            dump_plist(plist_root, _format)
+                        else:
+                            if _search in plist_root:
+                                return plist_root[_search]
+                            else:
+                                return "NOT FOUND"
+
+                    except PListFormatError as e:
+                        myPrint("B","Format error: %s" % (e.message))
+                        return "ERROR"
+                    except PListUnhandledError as e:
+                        myPrint("B","Unhandled: %s" % (e.message))
+                        return "ERROR"
+
+            # HEADER
+            #         magic number ("bplist")
+            #         file format version
+            #
+            # OBJECT TABLE
+            #         variable-sized objects
+            #
+            #         Object Formats (marker byte followed by additional info in some cases)
+            #         null    0000 0000
+            #         bool    0000 1000                       // false
+            #         bool    0000 1001                       // true
+            #         fill    0000 1111                       // fill byte
+            #         int     0001 nnnn       ...             // # of bytes is 2^nnnn, big-endian bytes
+            #         real    0010 nnnn       ...             // # of bytes is 2^nnnn, big-endian bytes
+            #         date    0011 0011       ...             // 8 byte float follows, big-endian bytes
+            #         data    0100 nnnn       [int]   ...     // nnnn is number of bytes unless 1111 then int count follows, followed by bytes
+            #         string  0101 nnnn       [int]   ...     // ASCII string, nnnn is # of chars, else 1111 then int count, then bytes
+            #         string  0110 nnnn       [int]   ...     // Unicode string, nnnn is # of chars, else 1111 then int count, then big-endian 2-byte uint16_t
+            #                 0111 xxxx                       // unused
+            #         uid     1000 nnnn       ...             // nnnn+1 is # of bytes
+            #                 1001 xxxx                       // unused
+            #         array   1010 nnnn       [int]   objref* // nnnn is count, unless '1111', then int count follows
+            #                 1011 xxxx                       // unused
+            #         set     1100 nnnn       [int]   objref* // nnnn is count, unless '1111', then int count follows
+            #         dict    1101 nnnn       [int]   keyref* objref* // nnnn is count, unless '1111', then int count follows
+            #                 1110 xxxx                       // unused
+            #                 1111 xxxx                       // unused
+            #
+            # OFFSET TABLE
+            #         list of ints, byte size of which is given in trailer
+            #         -- these are the byte offsets into the file
+            #         -- number of these is in the trailer
+            #
+            # TRAILER
+            #         byte size of offset ints in offset table
+            #         byte size of object refs in arrays and dicts
+            #         number of offsets in offset table (also is number of objects)
+            #         element # in offset table which is top level object
+            #         offset table offset
+
+
+            try:
+                unichr(8364)                                                                                       # noqa
+            except NameError:
+                # Python 3
+                def unichr(x):                                                                                                  # noqa
+                    return chr(x)
+
+            # From CFDate Reference: "Absolute time is measured in seconds relative to the
+            # absolute reference date of Jan 1 2001 00:00:00 GMT".
+            SECS_EPOCH_TO_2001 = 978307200
+
+            MARKER_NULL = 0X00
+            MARKER_FALSE = 0X08
+            MARKER_TRUE = 0X09
+            MARKER_FILL = 0X0F                                                                                       # noqa
+            MARKER_INT = 0X10
+            MARKER_REAL = 0X20
+            MARKER_DATE = 0X33
+            MARKER_DATA = 0X40
+            MARKER_ASCIISTRING = 0X50
+            MARKER_UNICODE16STRING = 0X60
+            MARKER_UID = 0X80
+            MARKER_ARRAY = 0XA0
+            MARKER_SET = 0XC0
+            MARKER_DICT = 0XD0
+
+
+            def read_binary_plist(fd):
+                """Read an object from a binary plist.
+                The binary plist format is described in CFBinaryPList.c at
+                http://opensource.apple.com/source/CF/CF-550/CFBinaryPList.c. Only the top
+                level object is returned.
+                Raise a PListFormatError or a PListUnhandledError if the input data cannot
+                be fully understood.
+                Arguments:
+                fd -- a file-like object that is seekable
+                """
+                r = BinaryPListReader(fd)
+                return r.read()
+
+
+            class PListFormatError(Exception):
+                """Represent a binary plist format error."""
+                pass
+
+
+            class PListUnhandledError(Exception):
+                """Represent a binary plist error due to an unhandled feature."""
+                pass
+
+
+            class ObjectRef(object):
+                def __init__(self, index):
+                    self.index = index
+
+                def resolve(self, lst):
+                    return lst[self.index]
+
+
+            class BinaryPListReader(object):
+
+                def __init__(self, fd):
+                    self._fd = fd
+                    self._offsets = None
+                    self.objectRefSize = None
+
+                def read(self):
+                    fd = self._fd
+
+                    # start from the beginning to check the signature
+                    fd.seek(0, 0)
+                    buf = fd.read(7)
+
+                    # verify the signature; the first version digit is always 0
+                    if buf != b"bplist0":
+                        raise PListFormatError("Invalid signature: %s" % (buf, ))
+
+                    # seek to and read the trailer (validation omitted for now)
+                    fd.seek(-32, 2)
+                    buf = fd.read(32)
+
+                    _, offsetIntSize, self.objectRefSize, numObjects, topObject, offsetTableOffset = unpack(">5x3B3Q", buf)
+
+                    # read the object offsets
+                    fd.seek(offsetTableOffset, 0)
+                    self._offsets = [self._read_sized_int(offsetIntSize) for _ in range(0, numObjects)]
+
+                    # read the actual objects
+                    objects = [self._read_object(offs) for offs in self._offsets]
+
+                    # resolve lazy values (references to the object list)
+                    self._resolve_objects(objects)
+
+                    return objects[topObject]
+
+                # noinspection PyMethodMayBeStatic
+                def _resolve_objects(self, objects):
+                    # all resolutions are in-place, to avoid breaking references to
+                    # the outer objects!
+                    for obj in objects:
+                        if isinstance(obj, list):
+                            for i in range(0, len(obj)):
+                                obj[i] = obj[i].resolve(objects)
+                        if isinstance(obj, set):
+                            temp = [item.resolve(objects) for item in obj]
+                            obj.clear()
+                            obj.update(temp)
+                        if isinstance(obj, dict):
+                            temp = {k.resolve(objects): v.resolve(objects) for k, v in list(obj.items())}
+                            obj.clear()
+                            obj.update(temp)
+
+                def _read_object(self, offset=-1):
+                    if offset >= 0:
+                        self._fd.seek(offset)
+                    else:
+                        offset = self._fd.tell()  # for the error message
+                    marker = ord(self._fd.read(1))
+                    nb1 = marker & 0xf0
+                    nb2 = marker & 0x0f
+
+                    obj = None
+                    if nb1 == MARKER_NULL:
+                        if marker == MARKER_NULL:
+                            obj = None
+                        elif marker == MARKER_FALSE:
+                            obj = False
+                        elif marker == MARKER_TRUE:
+                            obj = True
+                        # TO DO: Fill byte, skip over
+                    elif nb1 == MARKER_INT:
+                        count = 1 << nb2
+                        obj = self._read_sized_int(count)
+                    elif nb1 == MARKER_REAL:
+                        obj = self._read_sized_float(nb2)
+                    elif marker == MARKER_DATE:  # marker!
+                        secs = self._read_sized_float(3)
+                        secs += SECS_EPOCH_TO_2001
+                        obj = datetime.datetime.fromtimestamp(secs, UTC())
+                    elif nb1 == MARKER_DATA:
+                        # Binary data
+                        count = self._read_count(nb2)
+                        obj = self._fd.read(count)
+                    elif nb1 == MARKER_ASCIISTRING:
+                        # ASCII string
+                        count = self._read_count(nb2)
+                        obj = self._fd.read(count).decode("ascii")
+                    elif nb1 == MARKER_UNICODE16STRING:
+                        # UTF-16 string
+                        count = self._read_count(nb2)
+                        data = self._fd.read(count * 2)
+                        chars = unpack(">%dH" % (count, ), data)
+                        s = u''
+                        for ch in chars:
+                            s += unichr(ch)
+                        obj = s
+                    elif nb1 == MARKER_UID:
+                        count = 1 + nb2
+                        obj = self._read_sized_int(count)
+                    elif nb1 == MARKER_ARRAY:
+                        count = self._read_count(nb2)
+                        # we store lazy references to the object list
+                        obj = [ObjectRef(self._read_sized_int(self.objectRefSize)) for _ in range(0, count)]
+                    elif nb1 == MARKER_SET:
+                        count = self._read_count(nb2)
+                        # we store lazy references to the object list
+                        obj = set([ObjectRef(self._read_sized_int(self.objectRefSize)) for _ in range(0, count)])
+                    elif nb1 == MARKER_DICT:
+                        count = self._read_count(nb2)
+                        # first N keys, then N values
+                        # we store lazy references to the object list
+                        keys = [ObjectRef(self._read_sized_int(self.objectRefSize)) for _ in range(0, count)]
+                        values = [ObjectRef(self._read_sized_int(self.objectRefSize)) for _ in range(0, count)]
+                        obj = dict(list(zip(keys, values)))
+
+                    try:
+                        return obj
+                    except NameError:
+                        raise PListFormatError("Unknown marker at position %d: %d" %
+                                               (offset, marker))
+
+                def _read_count(self, nb2):
+                    count = nb2
+                    if count == 0xf:
+                        count = self._read_object()
+                    return count
+
+                def _read_sized_float(self, log2count):
+                    if log2count == 2:
+                        # 32 bits
+                        ret, = unpack(">f", self._fd.read(4))
+                    elif log2count == 3:
+                        # 64 bits
+                        ret, = unpack(">d", self._fd.read(8))
+                    else:
+                        raise PListUnhandledError("Unhandled real size: %d" %
+                                                  (1 << log2count, ))
+                    return ret
+
+                def _read_sized_int(self, count):
+                    # in format version '00', 1, 2, and 4-byte integers have to be
+                    # interpreted as unsigned, whereas 8-byte integers are signed
+                    # (and 16-byte when available). negative 1, 2, 4-byte integers
+                    # are always emitted as 8 bytes in format '00'
+                    buf = self._fd.read(count)
+                    if count == 1:
+                        ret = ord(buf)
+                    elif count == 2:
+                        ret, = unpack(">H", buf)
+                    elif count == 4:
+                        ret, = unpack(">I", buf)
+                    elif count == 8:
+                        ret, = unpack(">q", buf)
+                    else:
+                        raise PListUnhandledError("Unhandled int size: %d" %
+                                                  (count, ))
+                    return ret
+
+
+            class UTC(tzinfo):
+
+                def utcoffset(self, dt):
+                    return timedelta(0)
+
+                def tzname(self, dt):
+                    return "UTC"
+
+                def dst(self, dt):
+                    return timedelta(0)
+
+            # typedef struct {
+            #    uint8_t  _unused[5];
+            #    uint8_t  _sortVersion;
+            #    uint8_t  _offsetIntSize;
+            #    uint8_t  _objectRefSize;
+            #    uint64_t _numObjects;
+            #    uint64_t _topObject;
+            #    uint64_t _offsetTableOffset;
+            # } CFBinaryPlistTrailer;
+
+            syncPassphrases=[]
+            for foundFile in fileList:
+                try:
+                    theSyncKey = decode_plist(foundFile,_format="plist",_search="tik_dropbox_md_sync_key")
+                    syncPassphrases.append(theSyncKey)
+                except:
+                    syncPassphrases.append("Sorry - caught an error decoding the file")
+
+            niceFileList="\n SEARCH FOR MONEYDANCE (%s) iOS Backup(s)\n"%theIKReference
+            niceFileList+="Search for these Directories:\n"
+            niceFileList+=miniText
+            niceFileList+="\nFound these Directories:\n"
+
+            for x in pathList:
+                niceFileList+="%s\n" %x
+            niceFileList+="\n"
+
+            if not iFound:
+                niceFileList+="\n<NONE FOUND>\n"
+
+            for x in fileList:
+                myPrint("B","Found: %s" %x)
+                niceFileList+=x+"\n"
+
+            niceFileList+="\nPOSSIBLE SYNC ENCRYPTION PASSPHRASES:\n"
+            if len(syncPassphrases) < 1:
+                niceFileList+="\n<NONE FOUND>\n"
+
+            for encryptionKey in syncPassphrases:
+                niceFileList+="%s\n" %encryptionKey
+
+            niceFileList+="\n\n<END>"
+            self.statusLabel.setText(("Find my iOS Backup(s) found %s files, with %s possible Sync Encryption keys" %(iFound,len(syncPassphrases))).ljust(800, " "))
+            self.statusLabel.setForeground(DARK_GREEN)
+
+            jif=QuickJFrame("LIST OF MONEYDANCE iOS Backups and Sync Encryption keys FOUND".upper(), niceFileList, lAlertLevel=1).show_the_frame()
+
+            myPopupInformationBox(jif, "%s Sync Encryption keys found...." %(len(syncPassphrases)), "iOS BACKUP SEARCH", JOptionPane.INFORMATION_MESSAGE)
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+            return
+
     class FindDatasetButtonAction(AbstractAction):
 
         def __init__(self, statusLabel):
@@ -6692,14 +7467,8 @@ The limit is set deliberately low to enable it to work with computers having ver
                 self.statusLabel.setForeground(Color.RED)
                 return
 
-            diag = JDialog(Toolbox_frame_, "Please wait: searching..")
-            label1 = JLabel(">>>Searching: ...... (PLEASE WAIT)")
-            label1.setForeground(Color.BLUE)
-            diag.add(label1)
-            diag.setSize(400,200)
-            # diag.pack()
-            diag.setLocationRelativeTo(None)
-            diag.setVisible(True)
+            diag = MyPopUpDialogBox(Toolbox_frame_,"Please wait: searching..",theTitle="SEARCH", theWidth=100, lModal=False,OKButtonText="WAIT")
+            diag.go()
 
             myPrint("P","Searching from Directory: %s" %theDir)
 
@@ -6753,8 +7522,7 @@ The limit is set deliberately low to enable it to work with computers having ver
 
             fileList = findDataset(theExtension, theDir)
 
-            diag.setVisible(False)
-            diag.dispose()
+            diag.kill()
 
             iFound = len(fileList)
             print
@@ -6772,7 +7540,7 @@ The limit is set deliberately low to enable it to work with computers having ver
             self.statusLabel.setText(("Find my %s datasets(s) found %s possible files/directories" %(theExtension,iFound)).ljust(800, " "))
             self.statusLabel.setForeground(DARK_GREEN)
 
-            jif=QuickJFrame("LIST OF MONEYDANCE %s DATASETS FOUND" % theExtension, niceFileList).show_the_frame()
+            jif=QuickJFrame("LIST OF MONEYDANCE %s DATASETS FOUND" % theExtension, niceFileList, lAlertLevel=1).show_the_frame()
 
             myPopupInformationBox(jif, "%s %s Datasets located...." %(iFound,theExtension), "DATASET SEARCH", JOptionPane.INFORMATION_MESSAGE)
 
@@ -7608,6 +8376,12 @@ The limit is set deliberately low to enable it to work with computers having ver
         viewOFX_button.addActionListener(self.ViewFileButtonAction(statusLabel, "get_ofx_related_data()", "Display OFX Bank Related Data", lFile=False))
         displayPanel.add(viewOFX_button)
 
+        if Platform.isOSX() or Platform.isWindows():
+            searchIOSSyncPasswords_button = JButton("<html><center>Find Sync Password<BR>in iOS Backups</center></html>")
+            searchIOSSyncPasswords_button.setToolTipText("This search for iOS backup(s) and look for your Sync Encryption password(s)")
+            searchIOSSyncPasswords_button.addActionListener(self.FindIOSSyncDataButtonAction(statusLabel))
+            displayPanel.add(searchIOSSyncPasswords_button)
+
         forgetOFX_button = JButton("<html><center>Forget OFX Bank<BR>Import Link</center></html>")
         forgetOFX_button.setToolTipText("This will tell Moneydance to forget the OFX Banking Import link attributed to an Account. This means Moneydance will then ask you to recreate the link on the next import.. THIS CHANGES DATA!")
         forgetOFX_button.setForeground(Color.RED)
@@ -7690,6 +8464,30 @@ The limit is set deliberately low to enable it to work with computers having ver
         HackerMode_button.addActionListener(self.HackerModeButtonAction(statusLabel))
         HackerMode_button.setVisible(False)
         displayPanel.add(HackerMode_button)
+
+        HackerModeDEBUG_button = JButton("<html><center><B>HACK: Toggle<BR>Moneydance DEBUG</B></center></html>")
+        HackerModeDEBUG_button.setToolTipText("This will toggle Moneydance's internal DEBUG setting(s) ON/OFF..... USE WITH CARE")
+        HackerModeDEBUG_button.setBackground(Color.RED)
+        HackerModeDEBUG_button.setForeground(Color.WHITE)
+        HackerModeDEBUG_button.addActionListener(self.HackerModeDEBUGButtonAction(statusLabel))
+        HackerModeDEBUG_button.setVisible(False)
+        displayPanel.add(HackerModeDEBUG_button)
+
+        HackerModeOFXDEBUG_button = JButton("<html><center><B>HACK: Toggle<BR>OFX DEBUG</B></center></html>")
+        HackerModeOFXDEBUG_button.setToolTipText("This will toggle Moneydance's internal OFX DEBUG CONSOLE setting(s) ON/OFF..... USE WITH CARE")
+        HackerModeOFXDEBUG_button.setBackground(Color.RED)
+        HackerModeOFXDEBUG_button.setForeground(Color.WHITE)
+        HackerModeOFXDEBUG_button.addActionListener(self.HackerModeOFXDEBUGButtonAction(statusLabel))
+        HackerModeOFXDEBUG_button.setVisible(False)
+        displayPanel.add(HackerModeOFXDEBUG_button)
+
+        HackerModeSetCheckDays_button = JButton("<html><center><B>HACK: Change<BR>Checknum Threshold</B></center></html>")
+        HackerModeSetCheckDays_button.setToolTipText("This allows you to change the internal Check Number look-back Threshold (days) for the Next Chq Num algorithm..... REVERTS AFTER RESTART")
+        HackerModeSetCheckDays_button.setBackground(Color.RED)
+        HackerModeSetCheckDays_button.setForeground(Color.WHITE)
+        HackerModeSetCheckDays_button.addActionListener(self.HackerModeSetCheckDaysButtonAction(statusLabel))
+        HackerModeSetCheckDays_button.setVisible(False)
+        displayPanel.add(HackerModeSetCheckDays_button)
 
         components = displayPanel.getComponents()
         for theComponent in components:
