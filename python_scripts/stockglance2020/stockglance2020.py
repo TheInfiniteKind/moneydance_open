@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# stockglance2020.py build:1007 - October 2020 - Stuart Beesley
+# stockglance2020.py build:1008 - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java Moneydance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -94,6 +94,7 @@
 # Build: 1006 - Removed TxnSortOrder from common code
 # Build: 1006 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 # Build: 1007 - Renamed module to stockglance2020 (lowercase) ready for signing..... (Sean request)
+# Build: 1008 - Fix for fonts so that row heights and margin resize...; Moved parameter save back to last (for column width save)
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -155,7 +156,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1007"                                                                                              # noqa
+version_build = "1008"                                                                                              # noqa
 myScriptName = "stockglance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1308,6 +1309,12 @@ def terminate_script():
     global debug, StockGlance2020_frame_, i_am_an_extension_so_run_headless, scriptExit, csvfilename, lDisplayOnly, lGlobalErrorDetected
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+    try:
+        save_StuWareSoftSystems_parameters_to_file()
+    except:
+        myPrint("B", "Error - failed to save parameters to pickle file...!")
+        dump_sys_error_to_md_console_and_errorlog()
 
     if not lDisplayOnly and not lGlobalErrorDetected:
         try:
@@ -2468,6 +2475,9 @@ if not lExit:
                     renderer.setHorizontalAlignment(JLabel.CENTER)
                 else:
                     renderer = DefaultTableCellRenderer()
+
+                renderer.setVerticalAlignment(JLabel.CENTER)
+
                 return renderer
 
             class MyTextNumberComparator(Comparator):
@@ -2751,6 +2761,17 @@ if not lExit:
             self.footerModel = self.getFooterModel()  # Generate/populate the footer table data
             # Creates JTable() for footer - with disabled sorting too
             self.footerTable = self.MyJTable(self.footerModel, False, True)                                      # noqa
+
+
+            fontSize = self.table.getFont().getSize()+5
+            self.table.setRowHeight(fontSize)
+            self.table.setRowMargin(0)
+            myPrint("DB","Setting main table row height to %s and intercellspacing to 0" %fontSize)
+
+            fontSize = self.footerTable.getFont().getSize()+5
+            self.footerTable.setRowHeight(fontSize)
+            self.footerTable.setRowMargin(0)
+            myPrint("DB","Setting footer table row height to %s and intercellspacing to 0" %fontSize)
 
             # Column listeners to resize columns on both tables to keep them in sync
             cListener1 = self.ColumnChangeListener(self.table, self.footerTable)
