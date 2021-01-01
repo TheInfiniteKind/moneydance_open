@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1006)
+# extract_reminders_csv.py (build: 1007)
 
 ###############################################################################
 # MIT License
@@ -53,6 +53,7 @@
 # Build: 1005 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 # Build: 1005 - Write parameters to csv extract; added fake JFrame() for icons...;moved parameter save earlier
 # Build: 1006 - Renames of REPO, Moneydance, url etc
+# Build: 1007 - Moved parameter save back to last to catch column changes
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -116,7 +117,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1006"           																					# noqa
+version_build = "1007"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1223,6 +1224,12 @@ def terminate_script():
 	global debug, extract_reminders_csv_frame_, lDisplayOnly, lGlobalErrorDetected
 
 	myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+	try:
+		save_StuWareSoftSystems_parameters_to_file()
+	except:
+		myPrint("B", "Error - failed to save parameters to pickle file...!")
+		dump_sys_error_to_md_console_and_errorlog()
 
 	if not lDisplayOnly:
 		try:
