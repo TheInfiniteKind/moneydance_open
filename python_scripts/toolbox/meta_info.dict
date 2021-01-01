@@ -1,6 +1,5 @@
 {
   "id" = "toolbox"
-  "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
   "module_build" = "1008"
   "minbuild" = "2012"

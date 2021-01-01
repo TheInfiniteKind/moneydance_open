@@ -1,6 +1,5 @@
 {
   "id" = "extract_account_registers_csv"
-  "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
   "module_build" = "1002"
   "minbuild" = "2012"

@@ -1,6 +1,5 @@
 {
   "id" = "extract_reminders_csv"
-  "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
   "module_build" = "1007"
   "minbuild" = "2012"
