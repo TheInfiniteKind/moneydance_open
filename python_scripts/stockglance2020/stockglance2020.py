@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# StockGlance2020 build:1006 - October 2020 - Stuart Beesley
+# stockglance2020.py build:1007 - October 2020 - Stuart Beesley
 
-#   Original code StockGlance.java MoneyDance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
+#   Original code StockGlance.java Moneydance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
 #   Copyright (c) 2020, Stuart Beesley StuWareSoftSystems
 #   All rights reserved.
@@ -33,7 +33,7 @@
 #  Modified by waynelloydsmith to run as standalone Python/Jython script StockGlance75.py and to show in which accounts the stocks are held.
 #  https://github.com/waynelloydsmith/Moneydance-Scripts/blob/master/StockGlance75.py
 
-#  Extensively modified/enhanced by Stuart Beesley - StuWareSoftSystems - September 2020 to create StockGlance2020.py with these features:
+#  Extensively modified/enhanced by Stuart Beesley - StuWareSoftSystems - September 2020 to create stockglance2020.py with these features:
 #  - This script basically shows all stocks/funds summarised into single stocks/funds per row. I.E. consolidates data across all Accounts
 #  - Some of the code looks somewhat different to how I would write native Python, but it is as it is as it was converted from pure Java by waynelloydsmith
 #  - Shows QTY of shares
@@ -93,6 +93,7 @@
 # Build: 1005 - Moved parameter save earlier...; added parameters to writer csv output
 # Build: 1006 - Removed TxnSortOrder from common code
 # Build: 1006 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
+# Build: 1007 - Renamed module to stockglance2020 (lowercase) ready for signing..... (Sean request)
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -154,8 +155,8 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1006"                                                                                              # noqa
-myScriptName = "StockGlance2020.py(Extension)"                                                                      # noqa
+version_build = "1007"                                                                                              # noqa
+myScriptName = "stockglance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
 _resetParameters = False                                                                                            # noqa
@@ -218,7 +219,7 @@ acctSeparator = ' : '                                                           
 scriptpath = ""                                                                                                     # noqa
 lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
 StockGlance2020_fake_frame_ = None                                                                                  # noqa
-extract_filename='StockGlance2020_extract_stock_balances.csv'
+extract_filename='stockglance2020_extract_stock_balances.csv'
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 # COMMON CODE ##########################################################################################################
@@ -233,16 +234,16 @@ scriptExit = """
 Thank you for using %s! The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-Toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
+toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
 
 Extension (.mxt) and Script (.py) Versions available:
-StockGlance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
+stockglance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
 extract_reminders_csv                   View reminders on screen, edit if required, extract all to csv
 extract_currency_history_csv            Extract currency history to csv
 extract_investment_transactions_csv     Extract investment transactions to csv
 extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
 
-Visit: https://yogi1967.github.io/MoneyDancePythonScripts/ (Author's site)
+Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
 """ %myScriptName
 
@@ -788,7 +789,7 @@ moneydanceIcon = MDImages.getImage(moneydance_ui.getMain().getSourceInformation(
 
 def MDDiag():
     global debug
-    myPrint("D", "MoneyDance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
+    myPrint("D", "Moneydance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
 
 
 MDDiag()
@@ -2718,9 +2719,9 @@ if not lExit:
 
             JFrame.setDefaultLookAndFeelDecorated(True)
             if lDisplayOnly:
-                StockGlance2020_frame_ = JFrame("Stock Glance 2020 - StuWareSoftSystems(build: %s)..." % version_build)
+                StockGlance2020_frame_ = JFrame("StockGlance2020 - StuWareSoftSystems(build: %s)..." % version_build)
             else:
-                StockGlance2020_frame_ = JFrame("Stock Glance 2020 - StuWareSoftSystems(build: %s)... (NOTE: your file has already been exported)" % version_build)
+                StockGlance2020_frame_ = JFrame("StockGlance2020 - StuWareSoftSystems(build: %s)... (NOTE: your file has already been exported)" % version_build)
 
             if (not Platform.isMac()):
                 moneydance_ui.getImages()
@@ -3100,7 +3101,7 @@ if not lExit:
                         writer.writerow([""])
                         writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
                                          + version_build
-                                         + ")  MoneyDance Python Script - Date of Extract: "
+                                         + ")  Moneydance Python Script - Date of Extract: "
                                          + str(sdf.format(today.getTime()))])
 
                         writer.writerow([""])
