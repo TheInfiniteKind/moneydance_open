@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 1001 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1002 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -28,7 +28,7 @@
 
 # This script extracts Account Register transactions to csv file - and also grabs, decrypts, and stores your attachments
 
-# Use in MoneyDance Menu Window->Show Moneybot Console >> Open Script >> RUN
+# Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
 # NOTE: This will not operate on Investment Accounts...
 
 # Stuart Beesley Created 2020-12-11 tested on MacOS - MD2021 onwards - StuWareSoftSystems....
@@ -44,6 +44,7 @@
 # Build: 1000 - PUBLIC RELEASE
 # Build: 1001 - Added zip of the file on Mac; changed file attachement key to be 5 digits key always unique number
 # Build: 1001 - bugfix on first usage....; added zip/windows 10 bsdtar and linux tar too.....
+# Build: 1002 - REPO, Moneydance, url, module renames
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -105,7 +106,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1001"                                                                                                 # noqa
+version_build = "1002"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -185,16 +186,16 @@ scriptExit = """
 Thank you for using %s! The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-Toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
+toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
 
 Extension (.mxt) and Script (.py) Versions available:
-StockGlance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
+stockglance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
 extract_reminders_csv                   View reminders on screen, edit if required, extract all to csv
 extract_currency_history_csv            Extract currency history to csv
 extract_investment_transactions_csv     Extract investment transactions to csv
 extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
 
-Visit: https://yogi1967.github.io/MoneyDancePythonScripts/ (Author's site)
+Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
 """ %myScriptName
 
@@ -740,7 +741,7 @@ moneydanceIcon = MDImages.getImage(moneydance_ui.getMain().getSourceInformation(
 
 def MDDiag():
     global debug
-    myPrint("D", "MoneyDance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
+    myPrint("D", "Moneydance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
 
 
 MDDiag()
@@ -2504,7 +2505,7 @@ if not lExit:
                     writer.writerow([""])
                     writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
                                      + version_build
-                                     + ")  MoneyDance Python Script - Date of Extract: "
+                                     + ")  Moneydance Python Script - Date of Extract: "
                                      + str(sdf.format(today.getTime()))])
 
                     writer.writerow([""])
