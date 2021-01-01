@@ -436,8 +436,43 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="toolbox" depends="init">
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
-      <param name="feature" value="Toolbox" />
-      <param name="python-base" value="${python-src}/Toolbox" />
+      <param name="feature" value="toolbox" />
+      <param name="python-base" value="${python-src}/toolbox" />
+    </antcall>
+  </target>
+
+  <target name="stockglance2020" depends="init">
+    <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
+      <param name="feature" value="stockglance2020" />
+      <param name="python-base" value="${python-src}/stockglance2020" />
+    </antcall>
+  </target>
+
+  <target name="extract_account_registers_csv" depends="init">
+    <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
+      <param name="feature" value="extract_account_registers_csv" />
+      <param name="python-base" value="${python-src}/extract_account_registers_csv" />
+    </antcall>
+  </target>
+
+  <target name="extract_currency_history_csv" depends="init">
+    <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
+      <param name="feature" value="extract_currency_history_csv" />
+      <param name="python-base" value="${python-src}/extract_currency_history_csv" />
+    </antcall>
+  </target>
+
+  <target name="extract_investment_transactions_csv" depends="init">
+    <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
+      <param name="feature" value="extract_investment_transactions_csv" />
+      <param name="python-base" value="${python-src}/extract_investment_transactions_csv" />
+    </antcall>
+  </target>
+
+  <target name="extract_reminders_csv" depends="init">
+    <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
+      <param name="feature" value="extract_reminders_csv" />
+      <param name="python-base" value="${python-src}/extract_reminders_csv" />
     </antcall>
   </target>
 
