@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_currency_history_csv build 1004 - November 2020 - Stuart Beesley StuWareSoftSystems
+# extract_currency_history_csv build 1005 - November 2020 - Stuart Beesley StuWareSoftSystems
 # Extracts your Currency rate history to CSV file (as MD doesn't do this)
 # This script does not change any data!
 # Thanks to DerekKent23 for his testing....
@@ -50,6 +50,7 @@
 # Build: 1004 - Write parameters out to csv file; added the fake JFrame() for icons...; moved parameter  save earlier
 # Build: 1004 - Moved the currency table scan to only run if extract file selected...
 # Build: 1004 - Fix for Jython 2.7.1 non handling of Unicode on csv.writerow on currency symbols
+# Build: 1005 - Renames for module, REPO, url, Moneydance etc
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -111,7 +112,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1004"                                                                                              # noqa
+version_build = "1005"                                                                                              # noqa
 myScriptName = "extract_currency_history_csv.py(Extension)"                                                         # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -165,16 +166,16 @@ scriptExit = """
 Thank you for using %s! The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-Toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
+toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
 
 Extension (.mxt) and Script (.py) Versions available:
-StockGlance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
+stockglance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
 extract_reminders_csv                   View reminders on screen, edit if required, extract all to csv
 extract_currency_history_csv            Extract currency history to csv
 extract_investment_transactions_csv     Extract investment transactions to csv
 extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
 
-Visit: https://yogi1967.github.io/MoneyDancePythonScripts/ (Author's site)
+Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
 """ %myScriptName
 
@@ -720,7 +721,7 @@ moneydanceIcon = MDImages.getImage(moneydance_ui.getMain().getSourceInformation(
 
 def MDDiag():
     global debug
-    myPrint("D", "MoneyDance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
+    myPrint("D", "Moneydance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
 
 
 MDDiag()
@@ -1562,7 +1563,7 @@ if not lExit:
                         writer.writerow([""])
                         writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
                                          + version_build
-                                         + ")  MoneyDance Python Script - Date of Extract: "
+                                         + ")  Moneydance Python Script - Date of Extract: "
                                          + str(sdf.format(today.getTime()))])
 
                         writer.writerow([""])
