@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Toolbox.py build: 1006 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1007 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -64,6 +64,7 @@
 # Build: 1005 - Tweaked for 2021 build 3032 (fonts/preferences)
 # Build: 1006 - Detect when the .moneydancesync folder is missing and add button to fix this
 # Build: 1006 - Detect current Toolbox version from github.. added downloadStuWareSoftSystemsExtensions() to common code
+# Build: 1007 - Renamed REPO, Moneydance and ID to lowercase ready for signing (Sean request)...
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -130,8 +131,8 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1006"                                                                                              # noqa
-myScriptName = "Toolbox.py(Extension)"                                                                              # noqa
+version_build = "1007"                                                                                              # noqa
+myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
 _resetParameters = False                                                                                            # noqa
@@ -197,16 +198,16 @@ scriptExit = """
 Thank you for using %s! The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-Toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
+toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
 
 Extension (.mxt) and Script (.py) Versions available:
-StockGlance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
+stockglance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
 extract_reminders_csv                   View reminders on screen, edit if required, extract all to csv
 extract_currency_history_csv            Extract currency history to csv
 extract_investment_transactions_csv     Extract investment transactions to csv
 extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
 
-Visit: https://yogi1967.github.io/MoneyDancePythonScripts/ (Author's site)
+Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
 """ %myScriptName
 
@@ -752,7 +753,7 @@ moneydanceIcon = MDImages.getImage(moneydance_ui.getMain().getSourceInformation(
 
 def MDDiag():
     global debug
-    myPrint("D", "MoneyDance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
+    myPrint("D", "Moneydance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
 
 
 MDDiag()
@@ -1137,7 +1138,7 @@ def downloadStuWareSoftSystemsExtensions( what ):
     dictInfo = StreamTable()
 
     inx = None
-    theDict = "https://raw.githubusercontent.com/yogi1967/MoneyDancePythonScripts/master/source/%s-meta_info.dict" %what
+    theDict = "https://raw.githubusercontent.com/yogi1967/MoneydancePythonScripts/master/source/%s-meta_info.dict" %what
 
     try:
         myPrint("B","About to open url")
@@ -1318,9 +1319,9 @@ def buildDiagText(lGrabPasswords=False):
 
     textArray = []                                                                                                  # noqa
 
-    textArray.append("MoneyDance Version / Build: " + str(moneydance.getVersion()) + "  Build: " + str(moneydance.getBuild()))
-    textArray.append("MoneyDance Config file reports: " + moneydance_ui.getPreferences().getSetting("current_version", ""))
-    textArray.append("MoneyDance updater version to track: " + moneydance_ui.getPreferences().getSetting("updater.version_to_track",""))
+    textArray.append("Moneydance Version / Build: " + str(moneydance.getVersion()) + "  Build: " + str(moneydance.getBuild()))
+    textArray.append("Moneydance Config file reports: " + moneydance_ui.getPreferences().getSetting("current_version", ""))
+    textArray.append("Moneydance updater version to track: " + moneydance_ui.getPreferences().getSetting("updater.version_to_track",""))
 
     currLicense = moneydance_ui.getPreferences().getSetting("gen.lic_key2021",
                                                             moneydance_ui.getPreferences().getSetting("gen.lic_key2019",
@@ -2389,7 +2390,7 @@ def display_help():
 Author: Stuart Beesley - StuWareSoftSystems (written November/December 2020 - a lockdown project)
 Credit: Derek Kent(23) for his extensive texting
 
-Get more Scripts/Extensions from: https://yogi1967.github.io/MoneyDancePythonScripts/
+Get more Scripts/Extensions from: https://yogi1967.github.io/MoneydancePythonScripts/
 
 NOTE: I AM JUST A USER - I HAVE NO AFFILIATION WITH MONEYDANCE!
 
@@ -3232,11 +3233,11 @@ def check_for_old_StuWareSoftSystems_scripts(statusLabel):
     if lPickle_version_warning or lVersionWarning:
         displayData+="""
 \nCURRENT SCRIPT VERSIONS ARE:
-StockGlance2020.py:                     1000
+stockglance2020.py:                     1000
 extract_currency_history_csv.py:        1000
 extract_reminders_csv.py:               1000
 extract_investment_transactions_csv.py: 1000
-Toolbox.py:                             1000
+toolbox.py:                             1000
 \nPlease update any that you use to at least these versions listed above....\n
         """
 
@@ -7835,7 +7836,7 @@ The limit is set deliberately low to enable it to work with computers having ver
 
         _tb_extn_avail_version = check_for_updatable_extensions_on_startup(statusLabel)
 
-        checkModule = "Toolbox"
+        checkModule = "toolbox"
         myExtensions = downloadStuWareSoftSystemsExtensions(checkModule)
         if myExtensions:
             myModule = myExtensions.get("id")
@@ -7847,7 +7848,7 @@ The limit is set deliberately low to enable it to work with computers having ver
                     if _tb_extn_avail_version > int(version_build):
                         theStr += "Extension version %s is available from Moneydance Menu>Manage Extensions Menu\n" %_tb_extn_avail_version
                     if availableFromGitHubVersion > _tb_extn_avail_version:
-                        theStr += "Version %s is available from https://yogi1967.github.io/MoneyDancePythonScripts/" %availableFromGitHubVersion
+                        theStr += "Version %s is available from https://yogi1967.github.io/MoneydancePythonScripts/" %availableFromGitHubVersion
 
                     MyPopUpDialogBox(Toolbox_frame_,"Toolbox Version:",theStr,200,"UPGRADE AVAILABLE",OKButtonText="Acknowledge").go()
                 else:
@@ -7865,7 +7866,7 @@ Script is analysing your moneydance & system settings....
 """)
 
 if moneydance.getVersion() < 2020 or not lImportOK:
-    myPrint("B", "Sorry, this Toolbox has only been tested on Moneydance version 2020 upwards... Existing.....")
+    myPrint("B", "Sorry, this Toolbox has only been tested on Moneydance version 2020 upwards... Exiting.....")
     myPopupInformationBox(None,
                           "Sorry, this Toolbox has only been tested on Moneydance version 2020 upwards... Exiting.....",
                           "VERSION TOO OLD",

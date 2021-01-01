@@ -1,0 +1,11 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "toolbox.py"
+      "name" = "Toolbox"
+      "module_name" = "Toolbox"
+    }
+  
+  ) 
+}
