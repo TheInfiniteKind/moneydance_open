@@ -434,6 +434,9 @@ http://jakarta.apache.org/ant/index.html
       <move file="${src}/s-moneyPie.mxt" tofile="${dist}/moneyPie.mxt"/>
   </target>
 
+  <target name="all_python" depends="init,toolbox,extract_reminders_csv,extract_investment_transactions_csv,extract_currency_history_csv,extract_account_registers_csv,stockglance2020">
+  </target>
+  
   <target name="toolbox" depends="init">
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="toolbox" />
