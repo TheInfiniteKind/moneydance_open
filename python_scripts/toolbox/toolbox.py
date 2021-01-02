@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1008 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1009 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -68,6 +68,7 @@
 # Build: 1008 - Cosmetic changes to searching window; update available windows...
 # Build: 1008 - new button; search for ios sync data for sync key recovery....
 # Build: 1008 - New hacker buttons; Moneydance internal DEBUG ON/OFF; Moneydance ofx connection console debug ON/OFF check; set check days
+# Build: 1009 - Changed JFrame() to leverage internal moneydance's main frame size/dimensions etc.... (IK request)
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -134,7 +135,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1008"                                                                                              # noqa
+version_build = "1009"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1144,7 +1145,7 @@ def downloadStuWareSoftSystemsExtensions( what ):
     theDict = "https://raw.githubusercontent.com/yogi1967/MoneydancePythonScripts/master/source/%s-meta_info.dict" %what
 
     try:
-        myPrint("B","About to open url")
+        myPrint("DB","About to open url: %s" %theDict)
         urlDict = URL(theDict)
         inx = BufferedReader(InputStreamReader(urlDict.openStream(), "UTF8"))
         dictInfo.readFrom(inx)
@@ -2311,11 +2312,11 @@ def getMDEncryptionKey():
         try:
 
             # This next line triggers a message in the console error log file: "loading with 128 bit encryption key"
-            myPrint("J","I'm testing your encryption key.... Will trigger a 'loading with 128 bit encryption key' message on next line......")
+            myPrint("J","Checking encryption key....")
             key = LocalStorageCipher.encryptionKeyFromBytesAndPassword(encryptedKeyBytes, list(newPassphrase), cipherLevel)
             # cipher = LocalStorageCipher(key, cipherLevel)
         except:
-            return "Not sure: could not decrypt from your passphrase!"
+            return "Not sure: could not validate your encryption!"
 
         theFormat  = key.getFormat()
         theAlg = key.getAlgorithm()
@@ -2675,8 +2676,11 @@ class QuickJFrame():
         global lCopyAllToClipBoard_TB, debug, Toolbox_frame_
 
         screenSize = Toolkit.getDefaultToolkit().getScreenSize()
-        frame_width = screenSize.width - 20
-        frame_height = screenSize.height - 20
+        # frame_width = screenSize.width - 20
+        # frame_height = screenSize.height - 20
+
+        frame_width = min(screenSize.width-20, max(1024,int(round(moneydance_ui.firstMainFrame.getSize().width *.9,0))))
+        frame_height = min(screenSize.height-20, max(768, int(round(moneydance_ui.firstMainFrame.getSize().height *.9,0))))
 
         JFrame.setDefaultLookAndFeelDecorated(True)
 
@@ -2712,12 +2716,13 @@ class QuickJFrame():
             theJText.setBackground(Color.YELLOW)
             theJText.setForeground(Color.BLACK)
 
-        jInternalFrame.setMinimumSize(Dimension(frame_width - 50, 0))
-        jInternalFrame.setMaximumSize(Dimension(frame_width - 50, frame_height - 100))
+        jInternalFrame.setMinimumSize(Dimension(frame_width, 0))
+        jInternalFrame.setMaximumSize(Dimension(frame_width, frame_height))
 
-        if Platform.isWindows():
-            if theJText.getLineCount() > 30:
-                jInternalFrame.setPreferredSize(Dimension(frame_width - 50, frame_height - 100))
+        # if Platform.isWindows():
+        #     if theJText.getLineCount() > 30:
+        #         jInternalFrame.setPreferredSize(Dimension(frame_width - 50, frame_height - 100))
+        #
 
         jInternalFrame.add(internalScrollPane)
 
@@ -8170,10 +8175,13 @@ Now you will have a text readable version of the file you can open in a text edi
 
         button_width = 230
         button_height = 40
-        frame_width = screenSize.width - 20
-        frame_height = screenSize.height - 20
         # panel_width = frame_width - 50
         # button_panel_height = button_height + 5
+        # frame_width = screenSize.width - 20
+        # frame_height = screenSize.height - 20
+
+        frame_width = min(screenSize.width-20, max(1024,int(round(moneydance_ui.firstMainFrame.getSize().width *.95,0))))
+        frame_height = min(screenSize.height-20, max(768, int(round(moneydance_ui.firstMainFrame.getSize().height *.95,0))))
 
         JFrame.setDefaultLookAndFeelDecorated(True)
         Toolbox_frame_ = JFrame("StuWareSoftSystems: " + myScriptName + " (" + version_build + ")...  (%s+I for Help)    -    DATASET: %s" % (moneydance_ui.ACCELERATOR_MASK_STR, moneydance.getCurrentAccountBook().getName().strip()))
@@ -8217,10 +8225,19 @@ Now you will have a text readable version of the file you can open in a text edi
         Toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_I, shortcut), "display-help")
         Toolbox_frame_.getRootPane().getActionMap().put("display-help", self.ViewFileButtonAction(statusLabel, "display_help()", "HELP DOCUMENTATION", lFile=False))
 
-        Toolbox_frame_.setPreferredSize(Dimension(frame_width, frame_height))
         # Toolbox_frame_.setPreferredSize(Dimension(1400,900))
-        Toolbox_frame_.setExtendedState(JFrame.MAXIMIZED_BOTH)
-        # Toolbox_frame_.getContentPane().setLayout(BorderLayout())
+        # Toolbox_frame_.setPreferredSize(Dimension(frame_width, frame_height))
+
+        # Toolbox_frame_.setPreferredSize(moneydance_ui.firstMainFrame.getSize())
+        Toolbox_frame_.setPreferredSize(Dimension(frame_width, frame_height))
+
+        # if moneydance_ui.firstMainFrame.getExtendedState() != JFrame.ICONIFIED:
+        #     Toolbox_frame_.setExtendedState(moneydance_ui.firstMainFrame.getExtendedState())
+        # else:
+        #     Toolbox_frame_.setExtendedState(JFrame.MAXIMIZED_BOTH)
+        #
+        Toolbox_frame_.setExtendedState(JFrame.NORMAL)
+
         displayPanel = JPanel()
         displayPanel.setLayout(FlowLayout(FlowLayout.LEFT))
         # displayPanel.setLayout(BorderLayout())
@@ -8510,7 +8527,8 @@ Now you will have a text readable version of the file you can open in a text edi
         displayPanel.add(statusLabel)
 
         myScrollPane = JScrollPane(myDiagText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
-        myScrollPane.setPreferredSize(Dimension(frame_width - 20, frame_height - 300))
+        # myScrollPane.setPreferredSize(Dimension(frame_width - 20, frame_height - 200))
+        myScrollPane.setPreferredSize(Dimension(frame_width - 20, frame_height - displayPanel.getPreferredSize().height))
         myScrollPane.setWheelScrollingEnabled(True)
         displayPanel.add(myScrollPane)
 
@@ -8601,6 +8619,7 @@ Now you will have a text readable version of the file you can open in a text edi
         Toolbox_frame_.setJMenuBar(mb)
 
         Toolbox_frame_.add(displayPanel)
+
         Toolbox_frame_.pack()
         Toolbox_frame_.setLocationRelativeTo(None)
         Toolbox_frame_.setVisible(True)
