@@ -1308,7 +1308,7 @@ label4 = JLabel("Turn DEBUG Verbose messages on?")
 user_selectDEBUG = JCheckBox("", debug)
 
 
-userFilters = JPanel(GridLayout(15, 2))
+userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(label1)
 userFilters.add(user_dateformat)
 userFilters.add(label2)

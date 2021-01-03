@@ -4520,7 +4520,7 @@ class DiagnosticDisplay():
                     user_selectDateEnd = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
                     user_selectDateEnd.setDateInt(dateEnd)
 
-                    datePanel = JPanel(GridLayout(8, 2))
+                    datePanel = JPanel(GridLayout(0, 2))
                     datePanel.add(labelDateStart)
                     datePanel.add(user_selectDateStart)
 

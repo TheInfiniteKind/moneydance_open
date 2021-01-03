@@ -1276,7 +1276,7 @@ user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
 if debug:  user_selectDEBUG.setText("Y")
 else:           user_selectDEBUG.setText("N")
 
-userFilters = JPanel(GridLayout(14, 2))
+userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(label1)
 userFilters.add(user_hideHiddenSecurities)
 userFilters.add(label2)
