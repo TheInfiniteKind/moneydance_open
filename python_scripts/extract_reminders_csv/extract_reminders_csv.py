@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1007)
+# extract_reminders_csv.py (build: 1008)
 
 ###############################################################################
 # MIT License
@@ -54,6 +54,8 @@
 # Build: 1005 - Write parameters to csv extract; added fake JFrame() for icons...;moved parameter save earlier
 # Build: 1006 - Renames of REPO, Moneydance, url etc
 # Build: 1007 - Moved parameter save back to last to catch column changes
+# Build: 1008 - Tweak to common code (Popups); leverage moneydance window sizes too; fix row height for odd fonts..
+# Build: 1008 - Changed parameter screen to use JCheckBox and JComboBox
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -84,7 +86,7 @@ from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, Spli
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
-from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
+from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox
 from javax.swing.text import PlainDocument
 from javax.swing.border import EmptyBorder
 
@@ -97,7 +99,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
 						JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
 						JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
 						InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -117,7 +119,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1007"           																					# noqa
+version_build = "1008"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -468,7 +470,7 @@ def myPopupAskForInput(theParent,
 # APPLICATION_MODAL, DOCUMENT_MODAL, MODELESS, TOOLKIT_MODAL
 class MyPopUpDialogBox():
 
-	def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK"):
+	def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK", lAlertLevel=0):
 		self.theParent = theParent
 		self.theStatus = theStatus
 		self.theMessage = theMessage
@@ -477,6 +479,7 @@ class MyPopUpDialogBox():
 		self.lModal = lModal
 		self.lCancelButton = lCancelButton
 		self.OKButtonText = OKButtonText
+		self.lAlertLevel = lAlertLevel
 		self.fakeJFrame = None
 		self._popup_d = None
 		self.lResult = [None]
@@ -627,8 +630,8 @@ class MyPopUpDialogBox():
 			_label1.setForeground(Color.BLUE)
 			_popupPanel.add(_label1)
 
+		myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 		if displayJText.getLineCount()>5:
-			myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 			# myScrollPane.setMinimumSize(Dimension(self.theWidth-20, 10))
 			# myScrollPane.setMaximumSize(Dimension(self.theWidth-20, maxHeight-100))
 			myScrollPane.setWheelScrollingEnabled(True)
@@ -636,8 +639,8 @@ class MyPopUpDialogBox():
 		else:
 			_popupPanel.add(displayJText)
 
+		buttonPanel = JPanel()
 		if self.lModal or self.lCancelButton:
-			buttonPanel = JPanel()
 			buttonPanel.setLayout(FlowLayout(FlowLayout.CENTER))
 
 			if self.lCancelButton:
@@ -664,8 +667,29 @@ class MyPopUpDialogBox():
 
 			_popupPanel.add(buttonPanel)
 
-		self._popup_d.add(_popupPanel)
+		if self.lAlertLevel>=2:
+			# internalScrollPane.setBackground(Color.RED)
+			# theJText.setBackground(Color.RED)
+			# theJText.setForeground(Color.BLACK)
+			displayJText.setBackground(Color.RED)
+			displayJText.setForeground(Color.BLACK)
+			_popupPanel.setBackground(Color.RED)
+			_popupPanel.setForeground(Color.BLACK)
+			buttonPanel.setBackground(Color.RED)
+			myScrollPane.setBackground(Color.RED)
 
+		elif self.lAlertLevel>=1:
+			# internalScrollPane.setBackground(Color.YELLOW)
+			# theJText.setBackground(Color.YELLOW)
+			# theJText.setForeground(Color.BLACK)
+			displayJText.setBackground(Color.YELLOW)
+			displayJText.setForeground(Color.BLACK)
+			_popupPanel.setBackground(Color.YELLOW)
+			_popupPanel.setForeground(Color.BLACK)
+			buttonPanel.setBackground(Color.YELLOW)
+			myScrollPane.setBackground(Color.RED)
+
+		self._popup_d.add(_popupPanel)
 		self._popup_d.pack()
 		self._popup_d.setLocationRelativeTo(None)
 		self._popup_d.setVisible(True)
@@ -1259,38 +1283,30 @@ myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCh
 
 sdf = SimpleDateFormat("dd/MM/yyyy")
 
-label1 = JLabel("Output Date Format 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd:")
-user_dateformat = JTextField(2)
-user_dateformat.setDocument(JTextFieldLimitYN(1, True, "1234"))
+dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+# 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
+label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+user_dateformat = JComboBox(dateStrings)
 
-if userdateformat == "%d/%m/%Y": user_dateformat.setText("1")
-elif userdateformat == "%m/%d/%Y": user_dateformat.setText("2")
-elif userdateformat == "%Y/%m/%d": user_dateformat.setText("3")
-elif userdateformat == "%Y%m%d": user_dateformat.setText("4")
-else: user_dateformat.setText("3")
+if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
-label2 = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
-user_selectStripASCII = JTextField(2)
-user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lStripASCII: user_selectStripASCII.setText("Y")
-else:               user_selectStripASCII.setText("N")
+label2 = JLabel("Strip non ASCII characters from CSV export?")
+user_selectStripASCII = JCheckBox("", lStripASCII)
 
+delimStrings = [";","|",","]
 label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-user_selectDELIMITER = JTextField(2)
-user_selectDELIMITER.setDocument(JTextFieldLimitYN(1, True, "DELIM"))
-user_selectDELIMITER.setText(csvDelimiter)
+user_selectDELIMITER = JComboBox(delimStrings)
+user_selectDELIMITER.setSelectedItem(csvDelimiter)
 
-labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files) (Y/N):")
-user_selectBOM = JTextField(2)
-user_selectBOM.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lWriteBOMToExportFile_SWSS:  user_selectBOM.setText("Y")
-else:                           user_selectBOM.setText("N")
+labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
-label4 = JLabel("Turn DEBUG Verbose messages on? (Y/N)")
-user_selectDEBUG = JTextField(2)
-user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if debug:  user_selectDEBUG.setText("Y")
-else:           user_selectDEBUG.setText("N")
+label4 = JLabel("Turn DEBUG Verbose messages on?")
+user_selectDEBUG = JCheckBox("", debug)
+
 
 userFilters = JPanel(GridLayout(15, 2))
 userFilters.add(label1)
@@ -1331,27 +1347,30 @@ else:
 	lExit = True
 
 if not lExit:
+
+	debug = user_selectDEBUG.isSelected()
+	myPrint("DB", "DEBUG turned on")
+
 	if debug:
 		myPrint("DB","Parameters Captured",
-			"User Date Format:", user_dateformat.getText(),
-			"Strip ASCII:", user_selectStripASCII.getText(),
-			"Write BOM to file:", user_selectBOM.getText(),
-			"Verbose Debug Messages: ", user_selectDEBUG.getText(),
-			"CSV File Delimiter:", user_selectDELIMITER.getText())
+			"User Date Format:", user_dateformat.getSelectedItem(),
+			"Strip ASCII:", user_selectStripASCII.isSelected(),
+			"Write BOM to file:", user_selectBOM.isSelected(),
+			"Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+			"CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
 	# endif
 
-	if user_dateformat.getText() == "1": userdateformat = "%d/%m/%Y"
-	elif user_dateformat.getText() == "2": userdateformat = "%m/%d/%Y"
-	elif user_dateformat.getText() == "3": userdateformat = "%Y/%m/%d"
-	elif user_dateformat.getText() == "4": userdateformat = "%Y%m%d"
+	if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+	elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+	elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+	elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
 	else:
 		# PROBLEM /  default
 		userdateformat = "%Y/%m/%d"
 
-	if user_selectStripASCII.getText() == "Y":      lStripASCII = True
-	else:                                           lStripASCII = False
+	lStripASCII = user_selectStripASCII.isSelected()
 
-	csvDelimiter = user_selectDELIMITER.getText()
+	csvDelimiter = user_selectDELIMITER.getSelectedItem()
 	if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
 		myPrint("DB", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
 		csvDelimiter = ","
@@ -1359,10 +1378,7 @@ if not lExit:
 		myPrint("DB", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
 		lDisplayOnly = True
 
-	lWriteBOMToExportFile_SWSS = user_selectBOM.getText() == "Y"
-
-	debug = user_selectDEBUG.getText() == "Y"
-	myPrint("DB", "DEBUG turned on")
+	lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
 
 	myPrint("B", "User Parameters...")
 	myPrint("B", "user date format....:", userdateformat)
@@ -2186,8 +2202,14 @@ if not lExit:
 
 		button_width = 220
 		button_height = 40
-		frame_width = min(screenSize.width-20, allcols + 100)
-		frame_height = min(screenSize.height, 900)
+		# frame_width = min(screenSize.width-20, allcols + 100)
+		# frame_height = min(screenSize.height, 900)
+
+		frame_width = min(screenSize.width-20, max(1024,int(round(moneydance_ui.firstMainFrame.getSize().width *.95,0))))
+		frame_height = min(screenSize.height-20, max(768, int(round(moneydance_ui.firstMainFrame.getSize().height *.95,0))))
+
+		frame_width = min( allcols+100, frame_width)
+
 		panel_width = frame_width - 50
 		button_panel_height = button_height + 5
 
@@ -2288,6 +2310,10 @@ if not lExit:
 		table.getTableHeader().setReorderingAllowed(True)  # no more drag and drop columns, it didn't work (on the footer)
 		table.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
 		table.selectionMode = ListSelectionModel.SINGLE_SELECTION
+
+		fontSize = table.getFont().getSize()+5
+		table.setRowHeight(fontSize)
+		table.setRowMargin(0)
 
 		table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ENTER"), "Enter")
 		table.getActionMap().put("Enter", EnterAction())

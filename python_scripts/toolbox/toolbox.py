@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1009 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1010 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -69,6 +69,7 @@
 # Build: 1008 - new button; search for ios sync data for sync key recovery....
 # Build: 1008 - New hacker buttons; Moneydance internal DEBUG ON/OFF; Moneydance ofx connection console debug ON/OFF check; set check days
 # Build: 1009 - Changed JFrame() to leverage internal moneydance's main frame size/dimensions etc.... (IK request)
+# Build: 1010 - Tweaks to popup boxes to fit text for certain fonts and common imports
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -102,7 +103,7 @@ from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, Spli
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
-from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
+from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox
 from javax.swing.text import PlainDocument
 from javax.swing.border import EmptyBorder
 
@@ -115,7 +116,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                      InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -135,7 +136,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1009"                                                                                              # noqa
+version_build = "1010"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -496,7 +497,7 @@ def myPopupAskForInput(theParent,
 # APPLICATION_MODAL, DOCUMENT_MODAL, MODELESS, TOOLKIT_MODAL
 class MyPopUpDialogBox():
 
-    def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK"):
+    def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK", lAlertLevel=0):
         self.theParent = theParent
         self.theStatus = theStatus
         self.theMessage = theMessage
@@ -505,6 +506,7 @@ class MyPopUpDialogBox():
         self.lModal = lModal
         self.lCancelButton = lCancelButton
         self.OKButtonText = OKButtonText
+        self.lAlertLevel = lAlertLevel
         self.fakeJFrame = None
         self._popup_d = None
         self.lResult = [None]
@@ -655,8 +657,8 @@ class MyPopUpDialogBox():
             _label1.setForeground(Color.BLUE)
             _popupPanel.add(_label1)
 
+        myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
         if displayJText.getLineCount()>5:
-            myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
             # myScrollPane.setMinimumSize(Dimension(self.theWidth-20, 10))
             # myScrollPane.setMaximumSize(Dimension(self.theWidth-20, maxHeight-100))
             myScrollPane.setWheelScrollingEnabled(True)
@@ -664,8 +666,8 @@ class MyPopUpDialogBox():
         else:
             _popupPanel.add(displayJText)
 
+        buttonPanel = JPanel()
         if self.lModal or self.lCancelButton:
-            buttonPanel = JPanel()
             buttonPanel.setLayout(FlowLayout(FlowLayout.CENTER))
 
             if self.lCancelButton:
@@ -692,8 +694,29 @@ class MyPopUpDialogBox():
 
             _popupPanel.add(buttonPanel)
 
-        self._popup_d.add(_popupPanel)
+        if self.lAlertLevel>=2:
+            # internalScrollPane.setBackground(Color.RED)
+            # theJText.setBackground(Color.RED)
+            # theJText.setForeground(Color.BLACK)
+            displayJText.setBackground(Color.RED)
+            displayJText.setForeground(Color.BLACK)
+            _popupPanel.setBackground(Color.RED)
+            _popupPanel.setForeground(Color.BLACK)
+            buttonPanel.setBackground(Color.RED)
+            myScrollPane.setBackground(Color.RED)
 
+        elif self.lAlertLevel>=1:
+            # internalScrollPane.setBackground(Color.YELLOW)
+            # theJText.setBackground(Color.YELLOW)
+            # theJText.setForeground(Color.BLACK)
+            displayJText.setBackground(Color.YELLOW)
+            displayJText.setForeground(Color.BLACK)
+            _popupPanel.setBackground(Color.YELLOW)
+            _popupPanel.setForeground(Color.BLACK)
+            buttonPanel.setBackground(Color.YELLOW)
+            myScrollPane.setBackground(Color.RED)
+
+        self._popup_d.add(_popupPanel)
         self._popup_d.pack()
         self._popup_d.setLocationRelativeTo(None)
         self._popup_d.setVisible(True)
@@ -5351,7 +5374,7 @@ class DiagnosticDisplay():
             if iCountForInactivation < 1:
                 self.statusLabel.setText(("FIX ZERO BALANCE CATEGORIES: You have no Zero Balance Categories to fix - no fixes applied...").ljust(800, " "))
                 self.statusLabel.setForeground(DARK_GREEN)
-                myPopupInformationBox(jif, "You have no Zero Balance Categories to fix - no fixes will be applied...", "ZERO BALANCE CATEGORIES", JOptionPane.INFORMATION_MESSAGE)
+                myPopupInformationBox(jif, "No Zero Balance Categories >> No fixes will be applied !", "ZERO BALANCE CATEGORIES", JOptionPane.INFORMATION_MESSAGE)
                 return
 
             if not myPopupAskQuestion(jif,
@@ -6224,7 +6247,7 @@ class DiagnosticDisplay():
                 myPrint("D", "NO FONT ACTIONS TAKEN")
                 self.statusLabel.setText("NO FONT ACTIONS TAKEN! - no changes made....".ljust(800, " "))
                 self.statusLabel.setForeground(Color.BLUE)
-                myPopupInformationBox(Toolbox_frame_, "NO FONT ACTIONS TAKEN!", "FONTS", JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(Toolbox_frame_, "NO FONT ACTIONS / CHANGES TAKEN !", "FONTS", JOptionPane.WARNING_MESSAGE)
 
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
@@ -8629,15 +8652,15 @@ Now you will have a text readable version of the file you can open in a text edi
 
         if not moneydance_data.getLocalStorage().getBoolean("_is_master_node", True):
 
-            myPopupInformationBox(Toolbox_frame_,
-                                  "This Dataset is running as a Secondary Node\n" +
-                                  "- either you are Synchronising to it,\n" +
-                                  "- or you have restored it from a backup/sync copy.\n" +
-                                  "To convert to Primary, use Advanced Tools...\n" +
-                                  "........\n",
-                                  "SECONDARY DATASET/NODE",
-                                  JOptionPane.WARNING_MESSAGE)
-
+            MyPopUpDialogBox(Toolbox_frame_,"!! WARNING / ALERT !!:",
+                                             "This Dataset is running as a Secondary Node\n" 
+                                             "- either you are Synchronising to it,\n" 
+                                             "- or you have restored it from a backup/sync copy.\n" 
+                                             "To convert to Primary, use Advanced Tools Menu",
+                                             120,
+                                             "SECONDARY DATASET/NODE",
+                                             OKButtonText="ACKNOWLEDGE",
+                                             lAlertLevel=1).go()
 
         if lTabbingModeNeedsChanging:
             myPopupInformationBox(Toolbox_frame_,

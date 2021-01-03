@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 1002 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1003 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -45,6 +45,7 @@
 # Build: 1001 - Added zip of the file on Mac; changed file attachement key to be 5 digits key always unique number
 # Build: 1001 - bugfix on first usage....; added zip/windows 10 bsdtar and linux tar too.....
 # Build: 1002 - REPO, Moneydance, url, module renames
+# Build: 1003 - Tweak to common code popups & imports
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -73,7 +74,7 @@ from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, Spli
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
-from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable
+from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox
 from javax.swing.text import PlainDocument
 from javax.swing.border import EmptyBorder
 
@@ -86,7 +87,7 @@ from java.util import Calendar, ArrayList
 from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
-if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox,
+if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                      InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
@@ -106,7 +107,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1002"                                                                                                 # noqa
+version_build = "1003"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -480,7 +481,7 @@ def myPopupAskForInput(theParent,
 # APPLICATION_MODAL, DOCUMENT_MODAL, MODELESS, TOOLKIT_MODAL
 class MyPopUpDialogBox():
 
-    def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK"):
+    def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK", lAlertLevel=0):
         self.theParent = theParent
         self.theStatus = theStatus
         self.theMessage = theMessage
@@ -489,6 +490,7 @@ class MyPopUpDialogBox():
         self.lModal = lModal
         self.lCancelButton = lCancelButton
         self.OKButtonText = OKButtonText
+        self.lAlertLevel = lAlertLevel
         self.fakeJFrame = None
         self._popup_d = None
         self.lResult = [None]
@@ -639,8 +641,8 @@ class MyPopUpDialogBox():
             _label1.setForeground(Color.BLUE)
             _popupPanel.add(_label1)
 
+        myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
         if displayJText.getLineCount()>5:
-            myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
             # myScrollPane.setMinimumSize(Dimension(self.theWidth-20, 10))
             # myScrollPane.setMaximumSize(Dimension(self.theWidth-20, maxHeight-100))
             myScrollPane.setWheelScrollingEnabled(True)
@@ -648,8 +650,8 @@ class MyPopUpDialogBox():
         else:
             _popupPanel.add(displayJText)
 
+        buttonPanel = JPanel()
         if self.lModal or self.lCancelButton:
-            buttonPanel = JPanel()
             buttonPanel.setLayout(FlowLayout(FlowLayout.CENTER))
 
             if self.lCancelButton:
@@ -676,8 +678,29 @@ class MyPopUpDialogBox():
 
             _popupPanel.add(buttonPanel)
 
-        self._popup_d.add(_popupPanel)
+        if self.lAlertLevel>=2:
+            # internalScrollPane.setBackground(Color.RED)
+            # theJText.setBackground(Color.RED)
+            # theJText.setForeground(Color.BLACK)
+            displayJText.setBackground(Color.RED)
+            displayJText.setForeground(Color.BLACK)
+            _popupPanel.setBackground(Color.RED)
+            _popupPanel.setForeground(Color.BLACK)
+            buttonPanel.setBackground(Color.RED)
+            myScrollPane.setBackground(Color.RED)
 
+        elif self.lAlertLevel>=1:
+            # internalScrollPane.setBackground(Color.YELLOW)
+            # theJText.setBackground(Color.YELLOW)
+            # theJText.setForeground(Color.BLACK)
+            displayJText.setBackground(Color.YELLOW)
+            displayJText.setForeground(Color.BLACK)
+            _popupPanel.setBackground(Color.YELLOW)
+            _popupPanel.setForeground(Color.BLACK)
+            buttonPanel.setBackground(Color.YELLOW)
+            myScrollPane.setBackground(Color.RED)
+
+        self._popup_d.add(_popupPanel)
         self._popup_d.pack()
         self._popup_d.setLocationRelativeTo(None)
         self._popup_d.setVisible(True)
@@ -2607,9 +2630,9 @@ if not lExit:
                     try:
                         if theCommand:
                             os.chdir(scriptpath)
-                            x=subprocess.check_output( theCommand, shell=lShell)
+                            xx=subprocess.check_output( theCommand, shell=lShell)
                             myPrint("B","Created zip using command: %s (output follows)" %theCommand)
-                            myPrint("B",x)
+                            myPrint("B",xx)
                             xtra_msg="\n(and I also zipped the file - review console / log for any messages)"
                     except:
                         myPrint("B","Sorry, failed to create zip")
