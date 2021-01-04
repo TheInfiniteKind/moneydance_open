@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_currency_history_csv build 1006 - November 2020 - Stuart Beesley StuWareSoftSystems
+# extract_currency_history_csv build 1007 - November 2020 - Stuart Beesley StuWareSoftSystems
 # Extracts your Currency rate history to CSV file (as MD doesn't do this)
 # This script does not change any data!
 # Thanks to DerekKent23 for his testing....
@@ -52,6 +52,7 @@
 # Build: 1004 - Fix for Jython 2.7.1 non handling of Unicode on csv.writerow on currency symbols
 # Build: 1005 - Renames for module, REPO, url, Moneydance etc
 # Build: 1006 - Tweak to common code (popups) and imports
+# Build: 1007 - Updated parameter screens to use JCheckBox and JComboBox
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -113,7 +114,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1006"                                                                                              # noqa
+version_build = "1007"                                                                                              # noqa
 myScriptName = "extract_currency_history_csv.py(Extension)"                                                         # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -145,7 +146,7 @@ userdateformat = "%Y/%m/%d"                                                     
 lStripASCII = False                                                                                                 # noqa
 csvDelimiter = ","                                                                                                  # noqa
 lSimplify_ECH = False                                                                                               # noqa
-userdateStart_ECH = 19700101                                                                                        # noqa
+userdateStart_ECH = 19600101                                                                                        # noqa
 userdateEnd_ECH = 20201231                                                                                          # noqa
 hideHiddenCurrencies_ECH = True                                                                                     # noqa
 
@@ -1164,15 +1165,15 @@ myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCh
 
 sdf = SimpleDateFormat("dd/MM/yyyy")
 
-label1 = JLabel("Output Date Format 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd:")
-user_dateformat = JTextField(2)
-user_dateformat.setDocument(JTextFieldLimitYN(1, True, "1234"))
+dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+# 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
+label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+user_dateformat = JComboBox(dateStrings)
 
-if userdateformat == "%d/%m/%Y": user_dateformat.setText("1")
-elif userdateformat == "%m/%d/%Y": user_dateformat.setText("2")
-elif userdateformat == "%Y/%m/%d": user_dateformat.setText("3")
-elif userdateformat == "%Y%m%d": user_dateformat.setText("4")
-else: user_dateformat.setText("3")
+if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
 labelDateStart = JLabel("Date range start (enter as yyyy/mm/dd):")
 user_selectDateStart = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
@@ -1183,40 +1184,25 @@ user_selectDateEnd = JDateField(CustomDateFormat("ymd"),15)   # Use MD API funct
 user_selectDateEnd.setDateInt(userdateEnd_ECH)
 # user_selectDateEnd.gotoToday()
 
-labelSimplify = JLabel("Simplify extract (Y/N):")
-user_selectSimplify = JTextField(2)
-user_selectSimplify.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lSimplify_ECH: user_selectSimplify.setText("Y")
-else:             user_selectSimplify.setText("N")
+labelSimplify = JLabel("Simplify extract?")
+user_selectSimplify = JCheckBox("", lSimplify_ECH)
 
-labelHideHiddenCurrencies = JLabel("Hide Hidden Currencies (Y/N):")
-user_selectHideHiddenCurrencies = JTextField(2)
-user_selectHideHiddenCurrencies.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideHiddenCurrencies_ECH: user_selectHideHiddenCurrencies.setText("Y")
-else:                        user_selectHideHiddenCurrencies.setText("N")
+labelHideHiddenCurrencies = JLabel("Hide Hidden Currencies?")
+user_selectHideHiddenCurrencies = JCheckBox("", hideHiddenCurrencies_ECH)
 
-label2 = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
-user_selectStripASCII = JTextField(2)
-user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lStripASCII: user_selectStripASCII.setText("Y")
-else:               user_selectStripASCII.setText("N")
+label2 = JLabel("Strip non ASCII characters from CSV export?")
+user_selectStripASCII = JCheckBox("", lStripASCII)
 
+delimStrings = [";","|",","]
 label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-user_selectDELIMITER = JTextField(2)
-user_selectDELIMITER.setDocument(JTextFieldLimitYN(1, True, "DELIM"))
-user_selectDELIMITER.setText(csvDelimiter)
+user_selectDELIMITER = JComboBox(delimStrings)
+user_selectDELIMITER.setSelectedItem(csvDelimiter)
 
-labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files) (Y/N):")
-user_selectBOM = JTextField(2)
-user_selectBOM.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lWriteBOMToExportFile_SWSS:  user_selectBOM.setText("Y")
-else:                           user_selectBOM.setText("N")
+labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
-label4 = JLabel("Turn DEBUG Verbose messages on? (Y/N)")
-user_selectDEBUG = JTextField(2)
-user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if debug:  user_selectDEBUG.setText("Y")
-else:      user_selectDEBUG.setText("N")
+label4 = JLabel("Turn DEBUG Verbose messages on?")
+user_selectDEBUG = JCheckBox("", debug)
 
 userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(label1)
@@ -1274,33 +1260,33 @@ while True:
 
 if not lExit:
     myPrint("DB", "Parameters Captured",
-        "User Date Format:", user_dateformat.getText(),
-        "Simplify:", user_selectSimplify.getText(),
-        "Hide Hidden Currencies:", user_selectHideHiddenCurrencies.getText(),
+        "User Date Format:", user_dateformat.getSelectedItem(),
+        "Simplify:", user_selectSimplify.isSelected(),
+        "Hide Hidden Currencies:", user_selectHideHiddenCurrencies.isSelected(),
         "Start date:", user_selectDateStart.getDateInt(),
         "End date:", user_selectDateEnd.getDateInt(),
-        "Strip ASCII:", user_selectStripASCII.getText(),
-        "Write BOM to file:", user_selectBOM.getText(),
-        "Verbose Debug Messages: ", user_selectDEBUG.getText(),
-        "CSV File Delimiter:", user_selectDELIMITER.getText())
+        "Strip ASCII:", user_selectStripASCII.isSelected(),
+        "Write BOM to file:", user_selectBOM.isSelected(),
+        "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+        "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
     # endif
 
-    if user_dateformat.getText() == "1": userdateformat = "%d/%m/%Y"
-    elif user_dateformat.getText() == "2": userdateformat = "%m/%d/%Y"
-    elif user_dateformat.getText() == "3": userdateformat = "%Y/%m/%d"
-    elif user_dateformat.getText() == "4": userdateformat = "%Y%m%d"
+    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
     else:
         # PROBLEM /  default
         userdateformat = "%Y/%m/%d"
 
-    lSimplify_ECH = user_selectSimplify.getText() == "Y"
-    hideHiddenCurrencies_ECH = user_selectHideHiddenCurrencies.getText() == "Y"
+    lSimplify_ECH = user_selectSimplify.isSelected()
+    hideHiddenCurrencies_ECH = user_selectHideHiddenCurrencies.isSelected()
     userdateStart_ECH = user_selectDateStart.getDateInt()
     userdateEnd_ECH = user_selectDateEnd.getDateInt()
 
-    lStripASCII = user_selectStripASCII.getText() == "Y"
+    lStripASCII = user_selectStripASCII.isSelected()
 
-    csvDelimiter = user_selectDELIMITER.getText()
+    csvDelimiter = user_selectDELIMITER.getSelectedItem()
     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
         csvDelimiter = ","
@@ -1308,9 +1294,9 @@ if not lExit:
         myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
         lDisplayOnly = True
 
-    lWriteBOMToExportFile_SWSS = user_selectBOM.getText() == "Y"
+    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
 
-    debug = user_selectDEBUG.getText() == "Y"
+    debug = user_selectDEBUG.isSelected()
     myPrint("DB", "DEBUG turned ON")
 
     myPrint("B","User Parameters...")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 1003 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1004 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -42,10 +42,11 @@
 # Build: 6 PREVIEW - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 # Build: 7 PREVIEW - added dropdown date range selector(s)' changed mac csv message to file:///
 # Build: 1000 - PUBLIC RELEASE
-# Build: 1001 - Added zip of the file on Mac; changed file attachement key to be 5 digits key always unique number
+# Build: 1001 - Added zip of the file on Mac; changed file attachment key to be 5 digits key always unique number
 # Build: 1001 - bugfix on first usage....; added zip/windows 10 bsdtar and linux tar too.....
 # Build: 1002 - REPO, Moneydance, url, module renames
 # Build: 1003 - Tweak to common code popups & imports
+# Build: 1004 - Changed parameter  screen to use JComboBox JCheckBox etc...
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -107,7 +108,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1003"                                                                                                 # noqa
+version_build = "1004"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1247,7 +1248,7 @@ class PanelAction(AbstractAction):
 
         _components = self.thePanel.getComponents()
         for _theComponent in _components:
-            if isinstance(_theComponent, (JComboBox, JTextField)):
+            if isinstance(_theComponent, (JComboBox, JTextField, JCheckBox)):
                 if event.getSource().getName() == _theComponent.getName():
                     if _theComponent.getName() == "dateDropdown": theDateRangeDropDown  = _theComponent
                     if _theComponent.getName() == "accountDropdown": theAccountDropdown  = _theComponent
@@ -1285,7 +1286,7 @@ class PanelAction(AbstractAction):
                 theFilterAccounts.setEnabled(True)
                 theFilterCurrency.setEnabled(True)
 
-                theSubAccounts.setText("N")
+                theSubAccounts.setSelected(False)
 
             else:
                 theSubAccounts.setEnabled(True)
@@ -1294,8 +1295,8 @@ class PanelAction(AbstractAction):
                 theFilterAccounts.setEnabled(False)
                 theFilterCurrency.setEnabled(False)
 
-                theHideInactiveAccounts.setText("Y")
-                theHideHiddenAccounts.setText("Y")
+                theHideInactiveAccounts.setSelected(True)
+                theHideHiddenAccounts.setSelected(True)
                 theFilterAccounts.setText("ALL")
                 theFilterCurrency.setText("ALL")
 
@@ -1303,19 +1304,13 @@ class PanelAction(AbstractAction):
         return
 
 
-labelHideInactiveAccounts = JLabel("Hide Inactive Accounts (Y/N)?:")
-user_hideInactiveAccounts = JTextField(2)
+labelHideInactiveAccounts = JLabel("Hide Inactive Accounts?")
+user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
 user_hideInactiveAccounts.setName("user_hideInactiveAccounts")
-user_hideInactiveAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideInactiveAccounts: user_hideInactiveAccounts.setText("Y")
-else:                    user_hideInactiveAccounts.setText("N")
 
-labelHideHiddenAccounts = JLabel("Hide Hidden Accounts (Y/N):")
-user_hideHiddenAccounts = JTextField(2)
+labelHideHiddenAccounts = JLabel("Hide Hidden Accounts?")
+user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
 user_hideHiddenAccounts.setName("user_hideHiddenAccounts")
-user_hideHiddenAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideHiddenAccounts: user_hideHiddenAccounts.setText("Y")
-else:                  user_hideHiddenAccounts.setText("N")
 
 labelFilterCurrency = JLabel("Filter for Currency containing text '...' or ALL:")
 user_selectCurrency = JTextField(12)
@@ -1367,12 +1362,9 @@ user_selectAccounts.setDocument(JTextFieldLimitYN(30, True, "CURR"))
 if lAllAccounts: user_selectAccounts.setText("ALL")
 else:            user_selectAccounts.setText(filterForAccounts)
 
-labelIncludeSubAccounts = JLabel("Include Sub Accounts (Y/N)?:")
-user_includeSubAccounts = JTextField(2)
+labelIncludeSubAccounts = JLabel("Include Sub Accounts?:")
+user_includeSubAccounts = JCheckBox("",lIncludeSubAccounts_EAR)
 user_includeSubAccounts.setName("user_includeSubAccounts")
-user_includeSubAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lIncludeSubAccounts_EAR: user_includeSubAccounts.setText("Y")
-else:                       user_includeSubAccounts.setText("N")
 
 labelSeparator1 = JLabel("--------------------------------------------------------------------")
 labelSeparator2 = JLabel("--<<Select Account above *OR* ACCT filters below - BUT NOT BOTH>>---".upper())
@@ -1385,13 +1377,9 @@ labelSeparator6.setForeground(Color.BLUE)
 labelSeparator7 = JLabel("--------------------------------------------------------------------")
 labelSeparator8 = JLabel("--------------------------------------------------------------------")
 
-labelOpeningBalances = JLabel("Include Opening Balances (Y/N):")
-user_selectOpeningBalances = JTextField(2)
+labelOpeningBalances = JLabel("Include Opening Balances?")
+user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances_EAR)
 user_selectOpeningBalances.setName("user_selectOpeningBalances")
-user_selectOpeningBalances.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lIncludeOpeningBalances_EAR: user_selectOpeningBalances.setText("Y")
-else:                           user_selectOpeningBalances.setText("N")
-
 
 if isinstance(accountDropdown.getSelectedItem(),(str,unicode)):
     user_includeSubAccounts.setEnabled(False)
@@ -1400,26 +1388,23 @@ if isinstance(accountDropdown.getSelectedItem(),(str,unicode)):
     user_selectAccounts.setEnabled(True)
     user_selectCurrency.setEnabled(True)
 
-    user_includeSubAccounts.setText("N")
+    user_includeSubAccounts.setSelected(False)
 
 else:
-    user_includeSubAccounts.setEnabled(True)
+    user_includeSubAccounts.setSelected(True)
     user_hideInactiveAccounts.setEnabled(False)
     user_hideHiddenAccounts.setEnabled(False)
     user_selectAccounts.setEnabled(False)
     user_selectCurrency.setEnabled(False)
 
-    user_hideInactiveAccounts.setText("Y")
-    user_hideHiddenAccounts.setText("Y")
+    user_hideInactiveAccounts.setSelected(True)
+    user_hideHiddenAccounts.setSelected(True)
     user_selectAccounts.setText("ALL")
     user_selectCurrency.setText("ALL")
 
-labelIncludeTransfers = JLabel("Include Transfers between Accounts Selected in this Extract (Y/N):")
-user_selectIncludeTransfers = JTextField(2)
+labelIncludeTransfers = JLabel("Include Transfers between Accounts Selected in this Extract?")
+user_selectIncludeTransfers = JCheckBox("", lIncludeInternalTransfers_EAR)
 user_selectIncludeTransfers.setName("user_selectIncludeTransfers")
-user_selectIncludeTransfers.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lIncludeInternalTransfers_EAR: user_selectIncludeTransfers.setText("Y")
-else:                    user_selectIncludeTransfers.setText("N")
 
 dateOptions = [ "year_to_date",
                 "fiscal_year_to_date",
@@ -1556,50 +1541,37 @@ user_selectText.setDocument(JTextFieldLimitYN(30, True, "CURR"))
 if lAllText_EAR: user_selectText.setText("ALL")
 else:            user_selectText.setText(textFilter_EAR)
 
-labelAttachments = JLabel("Extract & Download Attachments (Y/N):")
-user_selectExtractAttachments = JTextField(2)
+labelAttachments = JLabel("Extract & Download Attachments?")
+user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EAR)
 user_selectExtractAttachments.setName("user_selectExtractAttachments")
-user_selectExtractAttachments.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lExtractAttachments_EAR: user_selectExtractAttachments.setText("Y")
-else:                       user_selectExtractAttachments.setText("N")
 
-labelDateFomat = JLabel("Output Date Format 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd:")
-user_dateformat = JTextField(2)
+dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+labelDateFomat = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+user_dateformat = JComboBox(dateStrings)
 user_dateformat.setName("user_dateformat")
-user_dateformat.setDocument(JTextFieldLimitYN(1, True, "1234"))
 
-if userdateformat == "%d/%m/%Y": user_dateformat.setText("1")
-elif userdateformat == "%m/%d/%Y": user_dateformat.setText("2")
-elif userdateformat == "%Y/%m/%d": user_dateformat.setText("3")
-elif userdateformat == "%Y%m%d": user_dateformat.setText("4")
-else: user_dateformat.setText("3")
+if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
-labelStripASCII = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
-user_selectStripASCII = JTextField(2)
+labelStripASCII = JLabel("Strip non ASCII characters from CSV export?")
+user_selectStripASCII = JCheckBox("", lStripASCII)
 user_selectStripASCII.setName("user_selectStripASCII")
-user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lStripASCII: user_selectStripASCII.setText("Y")
-else:               user_selectStripASCII.setText("N")
 
+delimStrings = [";","|",","]
 labelDelimiter = JLabel("Change CSV Export Delimiter from default to: '|,'")
-user_selectDELIMITER = JTextField(2)
+user_selectDELIMITER = JComboBox(delimStrings)
 user_selectDELIMITER.setName("user_selectDELIMITER")
-user_selectDELIMITER.setDocument(JTextFieldLimitYN(1, True, "DELIM"))
-user_selectDELIMITER.setText(csvDelimiter)
+user_selectDELIMITER.setSelectedItem(csvDelimiter)
 
-labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files) (Y/N):")
-user_selectBOM = JTextField(2)
+labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 user_selectBOM.setName("user_selectBOM")
-user_selectBOM.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lWriteBOMToExportFile_SWSS:  user_selectBOM.setText("Y")
-else:                           user_selectBOM.setText("N")
 
-labelDEBUG = JLabel("Turn DEBUG Verbose messages on? (Y/N)")
-user_selectDEBUG = JTextField(2)
+labelDEBUG = JLabel("Turn DEBUG Verbose messages on?")
+user_selectDEBUG = JCheckBox("", debug)
 user_selectDEBUG.setName("user_selectDEBUG")
-user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if debug:  user_selectDEBUG.setText("Y")
-else:           user_selectDEBUG.setText("N")
 
 labelSTATUSbar = JLabel("")
 labelSTATUSbar.setName("labelSTATUSbar")
@@ -1687,14 +1659,14 @@ while True:
         labelSTATUSbar.setForeground(Color.RED)
         continue
 
-    if user_selectTags.getText() != "ALL" and user_selectOpeningBalances.getText() == "Y":
+    if user_selectTags.getText() != "ALL" and user_selectOpeningBalances.isSelected():
         user_selectTags.setForeground(Color.RED)
         user_selectOpeningBalances.setForeground(Color.RED)
         labelSTATUSbar.setText(">> Error - You cannot filter on Tags and Include Opening Balances..... <<".upper())
         labelSTATUSbar.setForeground(Color.RED)
         continue
 
-    if user_selectText.getText() != "ALL" and user_selectOpeningBalances.getText() == "Y":
+    if user_selectText.getText() != "ALL" and user_selectOpeningBalances.isSelected():
         user_selectText.setForeground(Color.RED)
         user_selectOpeningBalances.setForeground(Color.RED)
         labelSTATUSbar.setText(">> Error - You cannot filter on Text and Include Opening Balances..... <<".upper())
@@ -1707,9 +1679,9 @@ while True:
 
     if isinstance(accountDropdown.getSelectedItem(),(str,unicode)) and accountDropdown.getSelectedItem() == textToUse:
         # So <NONE> Selected in Account dropdown....
-        if user_includeSubAccounts.getText() != "N":
-            user_includeSubAccounts.setText("N")
-            labelSTATUSbar.setText(">> Error - Dropdown Accounts <NONE> and Include Sub Accounts Y... <<".upper())
+        if user_includeSubAccounts.isSelected():
+            user_includeSubAccounts.setSelected(False)
+            labelSTATUSbar.setText(">> Error - Dropdown Accounts <NONE> and Include Sub Accounts True... <<".upper())
             labelSTATUSbar.setForeground(Color.RED)
             user_includeSubAccounts.setForeground(Color.RED)
             accountDropdown.setForeground(Color.RED)
@@ -1717,11 +1689,11 @@ while True:
     elif isinstance(accountDropdown.getSelectedItem(),(Account)):
 
         if (user_selectAccounts.getText() != "ALL" or user_selectCurrency.getText() != "ALL"
-                or user_hideInactiveAccounts.getText() != "Y" or user_hideHiddenAccounts.getText() != "Y"):
+                or (not user_hideInactiveAccounts.isSelected()) or (not user_hideHiddenAccounts.isSelected())):
             user_selectAccounts.setText("ALL")
             user_selectCurrency.setText("ALL")
-            user_hideInactiveAccounts.setText("Y")
-            user_hideHiddenAccounts.setText("Y")
+            user_hideInactiveAccounts.setSelected(True)
+            user_hideHiddenAccounts.setSelected(True)
             labelSTATUSbar.setText(">> Error - Dropdown Accounts Selected. FILTERS RESET TO DEFAULTS <<".upper())
             labelSTATUSbar.setForeground(Color.RED)
             user_selectAccounts.setForeground(Color.RED)
@@ -1745,35 +1717,35 @@ while True:
 if not lExit:
     myPrint("DB", "Parameters Captured",
         "DropdownAccount:", accountDropdown.getSelectedItem(),
-        "SubActs:", user_includeSubAccounts.getText(),
-        "InActAct:", user_hideInactiveAccounts.getText(),
-        "HidAct:", user_hideHiddenAccounts.getText(),
+        "SubActs:", user_includeSubAccounts.isSelected(),
+        "InActAct:", user_hideInactiveAccounts.isSelected(),
+        "HidAct:", user_hideHiddenAccounts.isSelected(),
         "Filter Accts:", user_selectAccounts.getText(),
         "Filter Curr:", user_selectCurrency.getText(),
-        "Incl Open Bals:", user_selectOpeningBalances.getText(),
-        # "Incl Transfers:", user_selectIncludeTransfers.getText(),
+        "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
+        # "Incl Transfers:", user_selectIncludeTransfers.isSelected(),
         "Date Range:", dateDropdown.getSelectedItem(),
-        "StartDate:", user_selectDateStart.getText(),
-        "EndDate:", user_selectDateEnd.getText(),
-        "DwnldAttchments:", user_selectExtractAttachments.getText(),
+        "StartDate:", user_selectDateStart.getDateInt(),
+        "EndDate:", user_selectDateEnd.getDateInt(),
+        "DwnldAttchments:", user_selectExtractAttachments.isSelected(),
         "Tags:", user_selectTags.getText(),
         "Text:", user_selectText.getText(),
-        "User Date Format:", user_dateformat.getText(),
-        "Strip ASCII:", user_selectStripASCII.getText(),
-        "Write BOM to file:", user_selectBOM.getText(),
-        "Verbose Debug Messages: ", user_selectDEBUG.getText(),
-        "CSV File Delimiter:", user_selectDELIMITER.getText())
+        "User Date Format:", user_dateformat.getSelectedItem(),
+        "Strip ASCII:", user_selectStripASCII.isSelected(),
+        "Write BOM to file:", user_selectBOM.isSelected(),
+        "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+        "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
     # endif
 
-    hideInactiveAccounts = user_hideInactiveAccounts.getText() == "Y"
-    hideHiddenAccounts = user_hideHiddenAccounts.getText() == "Y"
-    lIncludeSubAccounts_EAR = user_includeSubAccounts.getText() == "Y"
-    lIncludeOpeningBalances_EAR = user_selectOpeningBalances.getText() == "Y"
-    lIncludeInternalTransfers_EAR = user_selectIncludeTransfers.getText() == "Y"
-    lExtractAttachments_EAR = user_selectExtractAttachments.getText() == "Y"
-    lWriteBOMToExportFile_SWSS = user_selectBOM.getText() == "Y"
-    lStripASCII = user_selectStripASCII.getText() == "Y"
-    debug = user_selectDEBUG.getText() == "Y"
+    hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
+    hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
+    lIncludeSubAccounts_EAR = user_includeSubAccounts.isSelected()
+    lIncludeOpeningBalances_EAR = user_selectOpeningBalances.isSelected()
+    lIncludeInternalTransfers_EAR = user_selectIncludeTransfers.isSelected()
+    lExtractAttachments_EAR = user_selectExtractAttachments.isSelected()
+    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+    lStripASCII = user_selectStripASCII.isSelected()
+    debug = user_selectDEBUG.isSelected()
 
     if user_selectTags.getText() == "ALL" or user_selectTags.getText().strip() == "":
         lAllTags_EAR = True
@@ -1792,15 +1764,16 @@ if not lExit:
     userdateStart_EAR = user_selectDateStart.getDateInt()
     userdateEnd_EAR = user_selectDateEnd.getDateInt()
 
-    if user_dateformat.getText() == "1": userdateformat = "%d/%m/%Y"
-    elif user_dateformat.getText() == "2": userdateformat = "%m/%d/%Y"
-    elif user_dateformat.getText() == "3": userdateformat = "%Y/%m/%d"
-    elif user_dateformat.getText() == "4": userdateformat = "%Y%m%d"
+    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
     else:
         # PROBLEM /  default
         userdateformat = "%Y/%m/%d"
 
-    csvDelimiter = user_selectDELIMITER.getText()
+
+    csvDelimiter = user_selectDELIMITER.getSelectedItem()
     if csvDelimiter == "" or (not (csvDelimiter in "|,")):
         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
         csvDelimiter = ","
@@ -1815,7 +1788,7 @@ if not lExit:
         dropDownAccount_EAR = accountDropdown.getSelectedItem()
         # noinspection PyUnresolvedReferences
         saveDropDownAccountUUID_EAR = dropDownAccount_EAR.getUUID()
-        labelIncludeSubAccounts = user_includeSubAccounts.getText() == "Y"
+        labelIncludeSubAccounts = user_includeSubAccounts.isSelected()
         lAllAccounts = True
         lAllCurrency = True
         filterForAccounts = "ALL"

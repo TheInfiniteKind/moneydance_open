@@ -1372,10 +1372,10 @@ if not lExit:
 
 	csvDelimiter = user_selectDELIMITER.getSelectedItem()
 	if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-		myPrint("DB", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+		myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
 		csvDelimiter = ","
 	if decimalCharSep == csvDelimiter:
-		myPrint("DB", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
+		myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
 		lDisplayOnly = True
 
 	lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()

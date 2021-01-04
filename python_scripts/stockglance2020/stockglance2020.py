@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# stockglance2020.py build:1009 - October 2020 - Stuart Beesley
+# stockglance2020.py build:1010 - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java Moneydance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -96,6 +96,7 @@
 # Build: 1007 - Renamed module to stockglance2020 (lowercase) ready for signing..... (Sean request)
 # Build: 1008 - Fix for fonts so that row heights and margin resize...; Moved parameter save back to last (for column width save)
 # Build: 1009 - Tweak to common code (popups) and imports
+# Build: 1010 - Changed parameter screen to leverage JCheckBox and JComboBox
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -157,7 +158,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1009"                                                                                              # noqa
+version_build = "1010"                                                                                              # noqa
 myScriptName = "stockglance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1363,23 +1364,14 @@ rawrawFooterTable = None
 
 sdf = SimpleDateFormat("dd/MM/yyyy")
 
-label1 = JLabel("Hide Hidden Securities (Y/N)?:")
-user_hideHiddenSecurities = JTextField(2)
-user_hideHiddenSecurities.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideHiddenSecurities: user_hideHiddenSecurities.setText("Y")
-else:                        user_hideHiddenSecurities.setText("N")
+label1 = JLabel("Hide Hidden Securities?")
+user_hideHiddenSecurities = JCheckBox("", hideHiddenSecurities)
 
-label2 = JLabel("Hide Inactive Accounts (Y/N)?:")
-user_hideInactiveAccounts = JTextField(2)
-user_hideInactiveAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideInactiveAccounts: user_hideInactiveAccounts.setText("Y")
-else:                        user_hideInactiveAccounts.setText("N")
+label2 = JLabel("Hide Inactive Accounts?")
+user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
 
-label3 = JLabel("Hide Hidden Accounts (Y/N):")
-user_hideHiddenAccounts = JTextField(2)
-user_hideHiddenAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideHiddenAccounts: user_hideHiddenAccounts.setText("Y")
-else:                      user_hideHiddenAccounts.setText("N")
+label3 = JLabel("Hide Hidden Accounts?")
+user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
 
 label4 = JLabel("Filter for Currency containing text '...' or ALL:")
 user_selectCurrency = JTextField(5)
@@ -1399,59 +1391,34 @@ user_selectAccounts.setDocument(JTextFieldLimitYN(20, True, "CURR"))
 if lAllAccounts: user_selectAccounts.setText("ALL")
 else:            user_selectAccounts.setText(filterForAccounts)
 
-label7 = JLabel("Include Cash Balances for each account? (Y/N):")
-user_selectCashBalances = JTextField(2)
-user_selectCashBalances.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lIncludeCashBalances: user_selectCashBalances.setText("Y")
-else:               user_selectCashBalances.setText("N")
+label7 = JLabel("Include Cash Balances for each account?")
+user_selectCashBalances = JCheckBox("", lIncludeCashBalances)
 
-label7b = JLabel("Split Security Qtys by Account? (Y/N):")
-user_splitSecurities = JTextField(2)
-user_splitSecurities.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lSplitSecuritiesByAccount:   user_splitSecurities.setText("Y")
-else:                           user_splitSecurities.setText("N")
+label7b = JLabel("Split Security Qtys by Account?")
+user_splitSecurities = JCheckBox("", lSplitSecuritiesByAccount)
 
-labelFutureBalances = JLabel("Include Future Balances (rather than current)? (Y/N):")
-user_includeFutureBalances = JTextField(2)
-user_includeFutureBalances.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lIncludeFutureBalances_SG2020:   user_includeFutureBalances.setText("Y")
-else:                               user_includeFutureBalances.setText("N")
+labelFutureBalances = JLabel("Include Future Balances (rather than current)?")
+user_includeFutureBalances = JCheckBox("", lIncludeFutureBalances_SG2020)
 
+label7c = JLabel("Exclude Totals from CSV extract (helps pivots)?")
+user_excludeTotalsFromCSV = JCheckBox("", lExcludeTotalsFromCSV)
 
-label7c = JLabel("Exclude Totals from CSV extract (helps pivots)? (Y/N):")
-user_excludeTotalsFromCSV = JTextField(2)
-user_excludeTotalsFromCSV.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lExcludeTotalsFromCSV:       user_excludeTotalsFromCSV.setText("Y")
-else:                           user_excludeTotalsFromCSV.setText("N")
+label7d = JLabel("Round calculated price using security dpc setting (N=No Rounding)?")
+user_roundPrice = JCheckBox("", lRoundPrice)
 
-label7d = JLabel("Round calculated price using security dpc setting (N=No Rounding)? (Y/N):")
-user_roundPrice = JTextField(2)
-user_roundPrice.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lRoundPrice:       user_roundPrice.setText("Y")
-else:                 user_roundPrice.setText("N")
+label8 = JLabel("Strip non ASCII characters from CSV export?")
+user_selectStripASCII = JCheckBox("", lStripASCII)
 
-label8 = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
-user_selectStripASCII = JTextField(2)
-user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lStripASCII: user_selectStripASCII.setText("Y")
-else:               user_selectStripASCII.setText("N")
-
+delimStrings = [";","|",","]
 label9 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-user_selectDELIMITER = JTextField(2)
-user_selectDELIMITER.setDocument(JTextFieldLimitYN(1, True, "DELIM"))
-user_selectDELIMITER.setText(csvDelimiter)
+user_selectDELIMITER = JComboBox(delimStrings)
+user_selectDELIMITER.setSelectedItem(csvDelimiter)
 
-labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files) (Y/N):")
-user_selectBOM = JTextField(2)
-user_selectBOM.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lWriteBOMToExportFile_SWSS:  user_selectBOM.setText("Y")
-else:                           user_selectBOM.setText("N")
+labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
-label10 = JLabel("Turn DEBUG Verbose messages on? (Y/N)")
-user_selectDEBUG = JTextField(2)
-user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if debug:  user_selectDEBUG.setText("Y")
-else:           user_selectDEBUG.setText("N")
+label10 = JLabel("Turn DEBUG Verbose messages on?")
+user_selectDEBUG = JCheckBox("", debug)
 
 userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(label1)
@@ -1512,26 +1479,27 @@ else:
 
 if not lExit:
     if debug:
-        myPrint("DB", "Parameters Captured", "Sec: ", user_hideHiddenSecurities.getText(),
-            "InActAct:", user_hideInactiveAccounts.getText(),
-            "HidAct:", user_hideHiddenAccounts.getText(),
+        myPrint("DB", "Parameters Captured",
+            "Sec: ", user_hideHiddenSecurities.isSelected(),
+            "InActAct:", user_hideInactiveAccounts.isSelected(),
+            "HidAct:", user_hideHiddenAccounts.isSelected(),
             "Curr:", user_selectCurrency.getText(),
             "Ticker:", user_selectTicker.getText(),
             "Filter Accts:", user_selectAccounts.getText(),
-            "Include Cash Balances:", user_selectCashBalances.getText(),
-            "Split Securities:", user_splitSecurities.getText(),
-            "Include Future Balances:", user_includeFutureBalances.getText(),
-            "Exclude Totals from CSV:", user_excludeTotalsFromCSV.getText(),
-            "Round Calc Price:", user_roundPrice.getText(),
-            "Strip ASCII:", user_selectStripASCII.getText(),
-            "Write BOM to file:", user_selectBOM.getText(),
-            "Verbose Debug Messages: ", user_selectDEBUG.getText(),
-            "CSV File Delimiter:", user_selectDELIMITER.getText())
+            "Include Cash Balances:", user_selectCashBalances.isSelected(),
+            "Split Securities:", user_splitSecurities.isSelected(),
+            "Include Future Balances:", user_includeFutureBalances.isSelected(),
+            "Exclude Totals from CSV:", user_excludeTotalsFromCSV.isSelected(),
+            "Round Calc Price:", user_roundPrice.isSelected(),
+            "Strip ASCII:", user_selectStripASCII.isSelected(),
+            "Write BOM to file:", user_selectBOM.isSelected(),
+            "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+            "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
     # endif
 
-    hideHiddenSecurities = user_hideHiddenSecurities.getText() == "Y"
-    hideInactiveAccounts = user_hideInactiveAccounts.getText() == "Y"
-    hideHiddenAccounts = user_hideHiddenAccounts.getText() == "Y"
+    hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
+    hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
+    hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
 
     if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
         lAllCurrency = True
@@ -1554,24 +1522,24 @@ if not lExit:
         lAllAccounts = False
         filterForAccounts = user_selectAccounts.getText()
 
-    lIncludeCashBalances = user_selectCashBalances.getText() == "Y"
-    lSplitSecuritiesByAccount = user_splitSecurities.getText() == "Y"
-    lExcludeTotalsFromCSV = user_excludeTotalsFromCSV.getText() == "Y"
-    lIncludeFutureBalances_SG2020 = user_includeFutureBalances.getText() == "Y"
-    lRoundPrice = user_roundPrice.getText() == "Y"
-    lStripASCII = user_selectStripASCII.getText() == "Y"
+    lIncludeCashBalances = user_selectCashBalances.isSelected()
+    lSplitSecuritiesByAccount = user_splitSecurities.isSelected()
+    lExcludeTotalsFromCSV = user_excludeTotalsFromCSV.isSelected()
+    lIncludeFutureBalances_SG2020 = user_includeFutureBalances.isSelected()
+    lRoundPrice = user_roundPrice.isSelected()
+    lStripASCII = user_selectStripASCII.isSelected()
 
-    csvDelimiter = user_selectDELIMITER.getText()
+    csvDelimiter = user_selectDELIMITER.getSelectedItem()
     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-        myPrint("DB", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+        myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
         csvDelimiter = ","
     if decimalCharSep == csvDelimiter:
-        myPrint("DB", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
+        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
         lDisplayOnly = True
 
-    lWriteBOMToExportFile_SWSS = user_selectBOM.getText() == "Y"
+    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
 
-    debug = user_selectDEBUG.getText() == "Y"
+    debug = user_selectDEBUG.isSelected()
     myPrint("DB", "DEBUG turned on")
 
     myPrint("B", "User Parameters...")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1010 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1011 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -70,6 +70,7 @@
 # Build: 1008 - New hacker buttons; Moneydance internal DEBUG ON/OFF; Moneydance ofx connection console debug ON/OFF check; set check days
 # Build: 1009 - Changed JFrame() to leverage internal moneydance's main frame size/dimensions etc.... (IK request)
 # Build: 1010 - Tweaks to popup boxes to fit text for certain fonts and common imports
+# Build: 1011 - Added "code_font" setting (which got sneaked into MD).... (and the print font setting too while I was at it); also corrected where font set to 'null' in config.dict
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -136,7 +137,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1010"                                                                                              # noqa
+version_build = "1011"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1712,6 +1713,11 @@ def buildDiagText(lGrabPasswords=False):
 
         if str(moneydance_ui.getPreferences().getSetting("mono_font")) != "null":
             textArray.append("Numeric Font: " + str(moneydance_ui.getPreferences().getSetting("mono_font")))
+        else:
+            textArray.append("Numeric Font: (None/Default)")
+
+        if str(moneydance_ui.getPreferences().getSetting("code_font")) != "null":
+            textArray.append("Moneybot Coding (monospaced) Font: " + str(moneydance_ui.getPreferences().getSetting("code_font")))
         else:
             textArray.append("Numeric Font: (None/Default)")
 
@@ -6085,38 +6091,70 @@ class DiagnosticDisplay():
             for installedFont in systemFonts:
                 myPrint("D","System OS Font %s is installed in your system..:" %installedFont)
 
-            # These are taken from MD Code - build 3030 - watch out they may change...!
+            # These are taken from MD Code - build 3034 - watch out they may change...!
             Mac_fonts_main =     ["SF Pro Display", "SF Display", "Helvetica Neue", "Helvetica", "Lucida Grande", "Dialog"]
             Mac_fonts_mono =     ["Gill Sans", "Menlo", "Monaco", "Monospaced"]
 
             Windows_fonts_main = ["Dialog"]
             Windows_fonts_mono = ["Calibri","Monospaced"]
 
-            Linux_fonts_main =   ["DejaVu Sans","Dialog"]
+            Linux_fonts_main =   ["Dialog"]
             Linux_fonts_mono =   ["Monospaced"]
+
+            all_fonts_code =   ["Hack", "Monospaced"]
+            all_fonts_print =   ["Helvetica", "Dialog"]
 
             lExit=False
             lAnyFontChanges=False
+
+            for checkFont in ["main_font","mono_font","code_font","print.font_name"]:
+                x = prefs.getSetting(checkFont, None)
+                if x is not None and x == "null":
+                    lAnyFontChanges=True
+                    prefs.setSetting(checkFont,None)
+                    myPrint("B","@@ Font setting %s in config.dict was set to 'null'. I have corrected this and deleted the setting.." %checkFont)
+
+            if lAnyFontChanges:
+                moneydance.savePreferences()
 
             while True:
                 if lExit: break
 
                 mainF = prefs.getSetting("main_font", None)
                 monoF = prefs.getSetting("mono_font", None)
+                codeF = prefs.getSetting("code_font", None)
+                printF = prefs.getSetting("print.font_name", None)
 
                 myPrint("DB",'@@ MONEYDANCE: Config.dict: "main_font" currently set to %s' %mainF)
                 myPrint("DB",'@@ MONEYDANCE: Config.dict: "mono_font" currently set to %s' %monoF)
+                myPrint("DB",'@@ MONEYDANCE: Config.dict: "code_font" currently set to %s' %codeF)
+                myPrint("DB",'@@ MONEYDANCE: Config.dict: "print.font_name" currently set to %s' %printF)
 
                 display_main="None(Moneydance defaults)"
                 display_mono="None(Moneydance defaults)"
-                if mainF: display_main = mainF
-                if monoF: display_mono = monoF
+                display_code="None(Moneydance defaults)"
+                display_print="None(Moneydance defaults)"
+                if mainF and mainF != "null": display_main = mainF
+                if monoF and monoF != "null": display_mono = monoF
+                if codeF and codeF != "null": display_code = codeF
+                if printF and printF != "null": display_print = printF
 
                 MyPopUpDialogBox(Toolbox_frame_,"Config.dict - CURRENT FONTS:",
-                                                '"main_font" currently set to %s\n"mono_font" currently set to %s' %(display_main,display_mono),
+                                                '"main_font" currently set to %s\n'
+                                                '"mono_font" currently set to %s\n'
+                                                '"code_font" currently set to %s\n'
+                                                '"print.font_name" currently set to %s' %(display_main,display_mono,display_code,display_print),
                                                 150,"FONTS",OKButtonText="CONTINUE").go()
 
-                _options=["MAIN: CHANGE SETTING", "MAIN: DELETE SETTING", "MONO: CHANGE SETTING", "MONO: DELETE SETTING"]
+                _options=["MAIN: CHANGE SETTING",
+                          "MAIN: DELETE SETTING",
+                          "MONO: CHANGE SETTING",
+                          "MONO: DELETE SETTING",
+                          "CODE: CHANGE SETTING",
+                          "CODE: DELETE SETTING",
+                          "PRINT: CHANGE SETTING",
+                          "PRINT: DELETE SETTING"]
+
                 selectedOption = JOptionPane.showInputDialog(Toolbox_frame_,
                                                              "What type of change do you want to make?",
                                                              "ALTER FONTS",
@@ -6130,14 +6168,20 @@ class DiagnosticDisplay():
 
                 lMain = (_options.index(selectedOption) == 0 or _options.index(selectedOption) == 1)
                 lMono = (_options.index(selectedOption) == 2 or _options.index(selectedOption) == 3)
+                lCode = (_options.index(selectedOption) == 4 or _options.index(selectedOption) == 5)
+                lPrint = (_options.index(selectedOption) == 6 or _options.index(selectedOption) == 7)
 
-                lDelete = (_options.index(selectedOption) == 1 or _options.index(selectedOption) == 3)
-                lChange = (_options.index(selectedOption) == 0 or _options.index(selectedOption) == 2)
+                lDelete = (_options.index(selectedOption) == 1 or _options.index(selectedOption) == 3 or _options.index(selectedOption) == 5 or _options.index(selectedOption) == 7)
+                lChange = (_options.index(selectedOption) == 0 or _options.index(selectedOption) == 2 or _options.index(selectedOption) == 4 or _options.index(selectedOption) == 6)
 
                 if lMain:
                     theKey = "main_font"
                 elif lMono:
                     theKey = "mono_font"
+                elif lCode:
+                    theKey = "code_font"
+                elif lPrint:
+                    theKey = "print.font_name"
                 else:
                     raise(Exception("error"))
 
@@ -6160,24 +6204,35 @@ class DiagnosticDisplay():
                             theFonts = Mac_fonts_main
                         elif lMono:
                             theFonts = Mac_fonts_mono
+                        elif lCode:
+                            theFonts = all_fonts_code
+                        elif lPrint:
+                            theFonts = all_fonts_print
                         else: raise(Exception("error"))
                     elif Platform.isWindows():
                         if lMain:
                             theFonts = Windows_fonts_main
                         elif lMono:
                             theFonts = Windows_fonts_mono
+                        elif lCode:
+                            theFonts = all_fonts_code
+                        elif lPrint:
+                            theFonts = all_fonts_print
                         else: raise(Exception("error"))
                     else:
                         if lMain:
                             theFonts = Linux_fonts_main
                         elif lMono:
                             theFonts = Linux_fonts_mono
+                        elif lCode:
+                            theFonts = all_fonts_code
+                        elif lPrint:
+                            theFonts = all_fonts_print
                         else: raise(Exception("error"))
 
                     for x in theFonts:
                         myPrint("D","Possible internal default fonts for your Platform...: %s" %x)
 
-                    # _options=["EXIT", "CHOOSE FROM MD INTERNAL LIST", "CAREFULLY ENTER YOUR OWN", "CHOOSE FROM SYSTEM INSTALLED"]
                     _options=["CHOOSE FROM MD INTERNAL LIST", "CHOOSE FROM YOUR OS' SYSTEM INSTALLED"]
                     selectedOption = JOptionPane.showInputDialog(Toolbox_frame_,
                                                                  "New Font Selection options for: %s?" %theKey,
@@ -6210,31 +6265,6 @@ class DiagnosticDisplay():
                             myPopupInformationBox(Toolbox_frame_, 'Config.dict: key: %s CHANGED to "%s"\nRESTART MD' %(theKey,selectedFont), "FONTS", JOptionPane.WARNING_MESSAGE)
                             continue
 
-                    # elif _options.index(selectedOption) == 2:
-                    #
-                    #     if lMain: currentFont = mainF
-                    #     elif lMono: currentFont = monoF
-                    #     else: raise(Exception("error"))
-                    #
-                    #     newFont = myPopupAskForInput(None,
-                    #                        "CHANGE FONT",
-                    #                        "New Font",
-                    #                        "Carefully type the name of the new Font",
-                    #                        currentFont,
-                    #                        False,
-                    #                        JOptionPane.WARNING_MESSAGE)
-                    #
-                    #     if newFont == "" or newFont == currentFont:
-                    #         lExit = True
-                    #         myPrint("P", "NO FONT ACTION TAKEN")
-                    #         myPopupInformationBox(None, "NO FONT ACTION TAKEN!", "FONTS", JOptionPane.WARNING_MESSAGE)
-                    #         continue
-                    #     else:
-                    #         prefs.setSetting(theKey,newFont)
-                    #         moneydance.savePreferences()
-                    #         myPrint("B", 'Config.dict: key: %s CHANGED to "%s" - RESTART MD' %(theKey,newFont))
-                    #         myPopupInformationBox(None, 'Config.dict: key: %s CHANGED to "%s"\nRESTART MD' %(theKey,newFont), "FONTS", JOptionPane.WARNING_MESSAGE)
-                    #         continue
                     else:
                         raise(Exception("error"))
 

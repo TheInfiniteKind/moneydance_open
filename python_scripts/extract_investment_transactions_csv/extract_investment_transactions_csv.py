@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - build: 1007 - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - build: 1008 - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -55,6 +55,7 @@
 # Build: 1005 - Write parameters to csv extract; added fake JFrame() for icons; moved parameter save earlier
 # Build: 1006 - Renames of Module, REPO, url and Moneydance...
 # Build: 1007 - Tweak to common code (popups) and imports
+# Build: 1008 - Changed parameter screeen to use JComboBox and JCheckBox
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -116,7 +117,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1007"                                                                                              # noqa
+version_build = "1008"                                                                                              # noqa
 myScriptName = "extract_investment_transactions_csv.py(Extension)"                                                  # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1195,23 +1196,14 @@ myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCh
 
 sdf = SimpleDateFormat("dd/MM/yyyy")
 
-label1 = JLabel("Hide Hidden Securities (Y/N)?:")
-user_hideHiddenSecurities = JTextField(2)
-user_hideHiddenSecurities.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideHiddenSecurities: user_hideHiddenSecurities.setText("Y")
-else:                        user_hideHiddenSecurities.setText("N")
+label1 = JLabel("Hide Hidden Securities?")
+user_hideHiddenSecurities = JCheckBox("", hideHiddenSecurities)
 
-label2 = JLabel("Hide Inactive Accounts (Y/N)?:")
-user_hideInactiveAccounts = JTextField(2)
-user_hideInactiveAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideInactiveAccounts: user_hideInactiveAccounts.setText("Y")
-else:                        user_hideInactiveAccounts.setText("N")
+label2 = JLabel("Hide Inactive Accounts?")
+user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
 
-label3 = JLabel("Hide Hidden Accounts (Y/N):")
-user_hideHiddenAccounts = JTextField(2)
-user_hideHiddenAccounts.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if hideHiddenAccounts: user_hideHiddenAccounts.setText("Y")
-else:                      user_hideHiddenAccounts.setText("N")
+label3 = JLabel("Hide Hidden Accounts?")
+user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
 
 label4 = JLabel("Filter for Currency containing text '...' or ALL:")
 user_selectCurrency = JTextField(5)
@@ -1231,50 +1223,34 @@ user_selectAccounts.setDocument(JTextFieldLimitYN(20, True, "CURR"))
 if lAllAccounts: user_selectAccounts.setText("ALL")
 else:            user_selectAccounts.setText(filterForAccounts)
 
-label7 = JLabel("Include Opening Balances (Y/N):")
-user_selectOpeningBalances = JTextField(2)
-user_selectOpeningBalances.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lIncludeOpeningBalances: user_selectOpeningBalances.setText("Y")
-else:                       user_selectOpeningBalances.setText("N")
+label7 = JLabel("Include Opening Balances?")
+user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances)
 
-label8 = JLabel("Adjust for stock splits (Y/N):")
-user_selectAdjustSplits = JTextField(2)
-user_selectAdjustSplits.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lAdjustForSplits: user_selectAdjustSplits.setText("Y")
-else:                user_selectAdjustSplits.setText("N")
+label8 = JLabel("Adjust for stock splits/")
+user_selectAdjustSplits = JCheckBox("", lAdjustForSplits)
 
-label9 = JLabel("Output Date Format 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd:")
-user_dateformat = JTextField(2)
-user_dateformat.setDocument(JTextFieldLimitYN(1, True, "1234"))
+dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+label9 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+user_dateformat = JComboBox(dateStrings)
 
-if userdateformat == "%d/%m/%Y": user_dateformat.setText("1")
-elif userdateformat == "%m/%d/%Y": user_dateformat.setText("2")
-elif userdateformat == "%Y/%m/%d": user_dateformat.setText("3")
-elif userdateformat == "%Y%m%d": user_dateformat.setText("4")
-else: user_dateformat.setText("3")
+if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
-label10 = JLabel("Strip non ASCII characters from CSV export? (Y/N)")
-user_selectStripASCII = JTextField(2)
-user_selectStripASCII.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lStripASCII: user_selectStripASCII.setText("Y")
-else:               user_selectStripASCII.setText("N")
+label10 = JLabel("Strip non ASCII characters from CSV export?")
+user_selectStripASCII = JCheckBox("", lStripASCII)
 
+delimStrings = [";","|",","]
 label11 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-user_selectDELIMITER = JTextField(2)
-user_selectDELIMITER.setDocument(JTextFieldLimitYN(1, True, "DELIM"))
-user_selectDELIMITER.setText(csvDelimiter)
+user_selectDELIMITER = JComboBox(delimStrings)
+user_selectDELIMITER.setSelectedItem(csvDelimiter)
 
-labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files) (Y/N):")
-user_selectBOM = JTextField(2)
-user_selectBOM.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if lWriteBOMToExportFile_SWSS:  user_selectBOM.setText("Y")
-else:                           user_selectBOM.setText("N")
+labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
-label12 = JLabel("Turn DEBUG Verbose messages on? (Y/N)")
-user_selectDEBUG = JTextField(2)
-user_selectDEBUG.setDocument(JTextFieldLimitYN(1, True, "YN"))
-if debug:  user_selectDEBUG.setText("Y")
-else:           user_selectDEBUG.setText("N")
+label12 = JLabel("Turn DEBUG Verbose messages on?")
+user_selectDEBUG = JCheckBox("", debug)
 
 userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(label1)
@@ -1324,30 +1300,23 @@ else:
 
 if not lExit:
     myPrint("DB", "Parameters Captured",
-        "Sec: ", user_hideHiddenSecurities.getText(),
-        "InActAct:", user_hideInactiveAccounts.getText(),
-        "HidAct:", user_hideHiddenAccounts.getText(),
+        "Sec: ", user_hideHiddenSecurities.isSelected(),
+        "InActAct:", user_hideInactiveAccounts.isSelected(),
+        "HidAct:", user_hideHiddenAccounts.isSelected(),
         "Curr:", user_selectCurrency.getText(),
         "Ticker:", user_selectTicker.getText(),
         "Filter Accts:", user_selectAccounts.getText(),
-        "Incl Open Bals:", user_selectOpeningBalances.getText(),
-        "Adj Splits:", user_selectAdjustSplits.getText(),
-        "User Date Format:", user_dateformat.getText(),
-        "Strip ASCII:", user_selectStripASCII.getText(),
-        "Write BOM to file:", user_selectBOM.getText(),
-        "Verbose Debug Messages: ", user_selectDEBUG.getText(),
-        "CSV File Delimiter:", user_selectDELIMITER.getText())
-    # endif
+        "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
+        "Adj Splits:", user_selectAdjustSplits.isSelected(),
+        "User Date Format:", user_dateformat.getSelectedItem(),
+        "Strip ASCII:", user_selectStripASCII.isSelected(),
+        "Write BOM to file:", user_selectBOM.isSelected(),
+        "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+        "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
 
-    hideHiddenSecurities = False
-    hideInactiveAccounts = False
-    hideHiddenAccounts = False
-    if user_hideHiddenSecurities.getText() == "Y":  hideHiddenSecurities = True
-    else:                                           hideHiddenSecurities = False
-    if user_hideInactiveAccounts.getText() == "Y":  hideInactiveAccounts = True
-    else:                                           hideInactiveAccounts = False
-    if user_hideHiddenAccounts.getText() == "Y":    hideHiddenAccounts = True
-    else:                                           hideHiddenAccounts = False
+    hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
+    hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
+    hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
 
     if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
         lAllCurrency = True
@@ -1370,24 +1339,20 @@ if not lExit:
         lAllAccounts = False
         filterForAccounts = user_selectAccounts.getText()
 
-    if user_selectOpeningBalances.getText() == "Y":     lIncludeOpeningBalances = True
-    else:                                               lIncludeOpeningBalances = False
+    lIncludeOpeningBalances = user_selectOpeningBalances.isSelected()
+    lAdjustForSplits = user_selectAdjustSplits.isSelected()
 
-    if user_selectAdjustSplits.getText() == "Y":    lAdjustForSplits = True
-    else:                                           lAdjustForSplits = False
-
-    if user_dateformat.getText() == "1": userdateformat = "%d/%m/%Y"
-    elif user_dateformat.getText() == "2": userdateformat = "%m/%d/%Y"
-    elif user_dateformat.getText() == "3": userdateformat = "%Y/%m/%d"
-    elif user_dateformat.getText() == "4": userdateformat = "%Y%m%d"
+    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
     else:
         # PROBLEM /  default
         userdateformat = "%Y/%m/%d"
 
-    if user_selectStripASCII.getText() == "Y":      lStripASCII = True
-    else:                                           lStripASCII = False
+    lStripASCII = user_selectStripASCII.isSelected()
 
-    csvDelimiter = user_selectDELIMITER.getText()
+    csvDelimiter = user_selectDELIMITER.getSelectedItem()
     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
         csvDelimiter = ","
@@ -1396,9 +1361,10 @@ if not lExit:
             decimalCharSep, " - Proceeding without file export!!")
         lDisplayOnly = True
 
-    lWriteBOMToExportFile_SWSS = user_selectBOM.getText() == "Y"
+    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
 
-    debug = user_selectDEBUG.getText() == "Y"
+    debug = user_selectDEBUG.isSelected()
+
     myPrint("DB", "DEBUG turned ON")
 
     myPrint("B","User Parameters...")
