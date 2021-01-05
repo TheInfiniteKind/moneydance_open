@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 1004 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1005 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -47,6 +47,7 @@
 # Build: 1002 - REPO, Moneydance, url, module renames
 # Build: 1003 - Tweak to common code popups & imports
 # Build: 1004 - Changed parameter  screen to use JComboBox JCheckBox etc...
+# Build: 1005 - Fixed currency conversion - swapped fields around.....; added dataset name to extract
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -108,7 +109,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1004"                                                                                                 # noqa
+version_build = "1005"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -2250,11 +2251,12 @@ if not lExit:
                     splitCat = parent_Txn.getOtherTxn(_ii).getAccount().getAccountName()
                     splitHasAttachments = parent_Txn.getOtherTxn(_ii).hasAttachments()
 
-                    splitAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getValue()) * -1
-
                     splitFAmount = None
                     if parent_Txn.getOtherTxn(_ii).getAmount() != parent_Txn.getOtherTxn(_ii).getValue():
-                        splitFAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getAmount()) * -1
+                        splitFAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getValue()) * -1
+                        splitAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getAmount()) * -1
+                    else:
+                        splitAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getValue()) * -1
 
                     transferAcct = parent_Txn.getOtherTxn(_ii).getAccount()
                     transferType = transferAcct.getAccountType()
@@ -2289,11 +2291,13 @@ if not lExit:
                     splitCat = parent_Txn.getAccount().getAccountName()
                     splitHasAttachments = txn.hasAttachments()
 
-                    splitAmount = acctCurr.getDoubleValue(txn.getValue())
 
                     splitFAmount = None
                     if txn.getAmount() != txn.getValue():
-                        splitFAmount = acctCurr.getDoubleValue(txn.getAmount())
+                        splitFAmount = acctCurr.getDoubleValue(txn.getValue())
+                        splitAmount = acctCurr.getDoubleValue(txn.getAmount())
+                    else:
+                        splitAmount = acctCurr.getDoubleValue(txn.getValue())
 
                     transferAcct = parent_Txn.getAccount()
                     transferType = transferAcct.getAccountType()
@@ -2503,6 +2507,9 @@ if not lExit:
                                      + version_build
                                      + ")  Moneydance Python Script - Date of Extract: "
                                      + str(sdf.format(today.getTime()))])
+
+                    writer.writerow([""])
+                    writer.writerow(["Dataset path/name: %s" %(moneydance_data.getRootFolder()) ])
 
                     writer.writerow([""])
                     writer.writerow(["User Parameters..."])

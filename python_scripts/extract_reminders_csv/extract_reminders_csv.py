@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1008)
+# extract_reminders_csv.py (build: 1009)
 
 ###############################################################################
 # MIT License
@@ -56,6 +56,8 @@
 # Build: 1007 - Moved parameter save back to last to catch column changes
 # Build: 1008 - Tweak to common code (Popups); leverage moneydance window sizes too; fix row height for odd fonts..
 # Build: 1008 - Changed parameter screen to use JCheckBox and JComboBox
+# Build: 1009 - Changed the main screen, move button(s) to menubar; fix resize issues.....; added reset columns to parameter screen
+# Build: 1009 - Added dataset path/name to extract
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -119,7 +121,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1008"           																					# noqa
+version_build = "1009"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1228,14 +1230,20 @@ def about_this_script():
 
 class DoTheMenu(AbstractAction):
 
-	def __init__(self, menu, callingClass=None):
+	def __init__(self, menu):
 		self.menu = menu
-		self.callingClass = callingClass
 
 	def actionPerformed(self, event):																				# noqa
 		global extract_reminders_csv_frame_, debug
+		global _column_widths_ERTC
 
 		myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+		if event.getActionCommand().lower().startswith("refresh"):
+			RefreshMenuAction().refresh()
+
+		if event.getActionCommand().lower().startswith("extract") or event.getActionCommand().lower().startswith("close"):
+			ExtractMenuAction().extract_or_close()
 
 		if event.getActionCommand() == "About":
 			about_this_script()
@@ -1293,6 +1301,9 @@ elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
 elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
 else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
+labelRC = JLabel("Reset Column Widths to Defaults?")
+user_selectResetColumns = JCheckBox("", False)
+
 label2 = JLabel("Strip non ASCII characters from CSV export?")
 user_selectStripASCII = JCheckBox("", lStripASCII)
 
@@ -1311,6 +1322,8 @@ user_selectDEBUG = JCheckBox("", debug)
 userFilters = JPanel(GridLayout(0, 2))
 userFilters.add(label1)
 userFilters.add(user_dateformat)
+userFilters.add(labelRC)
+userFilters.add(user_selectResetColumns)
 userFilters.add(label2)
 userFilters.add(user_selectStripASCII)
 userFilters.add(label3)
@@ -1354,6 +1367,7 @@ if not lExit:
 	if debug:
 		myPrint("DB","Parameters Captured",
 			"User Date Format:", user_dateformat.getSelectedItem(),
+			"Reset Columns", user_selectResetColumns.isSelected(),
 			"Strip ASCII:", user_selectStripASCII.isSelected(),
 			"Write BOM to file:", user_selectBOM.isSelected(),
 			"Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
@@ -1367,6 +1381,10 @@ if not lExit:
 	else:
 		# PROBLEM /  default
 		userdateformat = "%Y/%m/%d"
+
+	if user_selectResetColumns.isSelected():
+		myPrint("B","User asked to reset columns.... Resetting Now....")
+		_column_widths_ERTC=[]  # This will invalidate them
 
 	lStripASCII = user_selectStripASCII.isSelected()
 
@@ -1963,23 +1981,28 @@ if not lExit:
 			return
 
 
-	class ExtractButtonAction(AbstractAction):
+	class ExtractMenuAction():
+		def __init__(self):
+			pass
+
 		# noinspection PyMethodMayBeStatic
-		# noinspection PyUnusedLocal
-		def actionPerformed(self, event):
+		def extract_or_close(self):
 			global extract_reminders_csv_frame_, debug
 			myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-			myPrint("D", "inside ExtractButtonAction() ;->")
+			myPrint("D", "inside ExtractMenuAction() ;->")
 
 			terminate_script()
 
 
-	class RefreshButtonAction(AbstractAction):
+	class RefreshMenuAction():
+		def __init__(self):
+			pass
+
 		# noinspection PyMethodMayBeStatic
-		def actionPerformed(self, event):
+		def refresh(self):
 			global extract_reminders_csv_frame_, table, row, debug
 			row = 0  # reset to row 1
-			myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event, "\npre-extract details(1), row: ", row)
+			myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "\npre-extract details(1), row: ", row)
 			build_the_data_file(1)  # Re-extract data
 			myPrint("D", "back from extractdetails(1), row: ", row)
 			table.setRowSelectionInterval(0, row)
@@ -2156,25 +2179,6 @@ if not lExit:
 
 		myDefaultWidths = [70,95,110,150,150,95,95,95,120,100,80,100,150,50,100,150,150,150]
 
-		# col0 = 70
-		# col1 = 95
-		# col2 = 110
-		# col3 = 150
-		# col4 = 150
-		# col5 = 95
-		# col6 = 95
-		# col7 = 95
-		# col8 = 120
-		# col9 = 100
-		# col10 = 80
-		# col11 = 100
-		# col12 = 150
-		# col13 = 50
-		# col14 = 100
-		# col15 = 150
-		# col16 = 150
-		# col17 = 150
-
 		validCount=0
 		lInvalidate=True
 		if _column_widths_ERTC is not None and isinstance(_column_widths_ERTC,(list)) and len(_column_widths_ERTC) == len(myDefaultWidths):
@@ -2200,8 +2204,8 @@ if not lExit:
 
 		screenSize = Toolkit.getDefaultToolkit().getScreenSize()
 
-		button_width = 220
-		button_height = 40
+		# button_width = 220
+		# button_height = 40
 		# frame_width = min(screenSize.width-20, allcols + 100)
 		# frame_height = min(screenSize.height, 900)
 
@@ -2210,20 +2214,26 @@ if not lExit:
 
 		frame_width = min( allcols+100, frame_width)
 
-		panel_width = frame_width - 50
-		button_panel_height = button_height + 5
+		# panel_width = frame_width - 50
+		# button_panel_height = button_height + 5
+
+		if ind == 1:    scrollpane.getViewport().remove(table)  # On repeat, just remove/refresh the table & rebuild the viewport
+
+		colnames = csvheaderline
+
+		table = MyJTable(DefaultTableModel(tabledata, colnames))
 
 		if ind == 0:  # Function can get called multiple times; only set main frames up once
 
 			JFrame.setDefaultLookAndFeelDecorated(True)
 			extract_reminders_csv_frame_ = JFrame("All Reminders - StuWareSoftSystems(build: %s)..." % version_build)
-			extract_reminders_csv_frame_.setLayout(FlowLayout())
+			# extract_reminders_csv_frame_.setLayout(FlowLayout())
 
 			if (not Platform.isMac()):
 				moneydance_ui.getImages()
 				extract_reminders_csv_frame_.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
 
-			extract_reminders_csv_frame_.setPreferredSize(Dimension(frame_width, frame_height))
+			# extract_reminders_csv_frame_.setPreferredSize(Dimension(frame_width, frame_height))
 			# frame.setExtendedState(JFrame.MAXIMIZED_BOTH)
 
 			extract_reminders_csv_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
@@ -2238,53 +2248,33 @@ if not lExit:
 			extract_reminders_csv_frame_.addWindowFocusListener(WL)
 			extract_reminders_csv_frame_.addWindowListener(WL)
 
-			button_panel = JPanel()
-			button_panel.setLayout(FlowLayout())
-			button_panel.setPreferredSize(Dimension((panel_width), button_panel_height))
-
-			# dateformat_button = JButton("Choose Dateformat")
-			# dateformat_button.setPreferredSize(Dimension(button_width, button_height))
-			# dateformat_button.setBackground(Color.LIGHT_GRAY)
-			# dateformat_button.setBorderPainted(False)
-			# dateformat_button.setOpaque(True)
-			# dateformat_button.addActionListener(DateformatButtonAction())
-			# button_panel.add(dateformat_button)
-
-			refresh_button = JButton("Refresh data / Default Sort")
-			refresh_button.setPreferredSize(Dimension(button_width, button_height))
-			refresh_button.setBackground(Color.LIGHT_GRAY)
-			refresh_button.setBorderPainted(False)
-			refresh_button.setOpaque(True)
-			refresh_button.addActionListener(RefreshButtonAction())
-
-			button_panel.add(refresh_button)
-
-			if not lDisplayOnly:
-				extract_button = JButton("Extract to CSV")
-				extract_button.setPreferredSize(Dimension(button_width, button_height))
-				extract_button.setBackground(Color.LIGHT_GRAY)
-				extract_button.setBorderPainted(False)
-				extract_button.setOpaque(True)
-				extract_button.addActionListener(ExtractButtonAction())
-			else:
-				extract_button = JButton("Close Window")
-				extract_button.setPreferredSize(Dimension(button_width, button_height))
-				extract_button.setBackground(Color.LIGHT_GRAY)
-				extract_button.setBorderPainted(False)
-				extract_button.setOpaque(True)
-				extract_button.addActionListener(ExtractButtonAction())
-
-			button_panel.add(extract_button)
-
-			extract_reminders_csv_frame_.add(button_panel)
-
-			tableview_panel = JPanel()
-
 			if Platform.isOSX():
 				save_useScreenMenuBar= System.getProperty("apple.laf.useScreenMenuBar")
 				System.setProperty("apple.laf.useScreenMenuBar", "false")
 
 			mb = JMenuBar()
+
+			menuO = JMenu("<html><B>OPTIONS</b></html>")
+
+			menuItemR = JMenuItem("Refresh Data/Default Sort")
+			menuItemR.setToolTipText("Refresh (re-extract) the data, revert to default sort  order....")
+			menuItemR.addActionListener(DoTheMenu(menuO))
+			menuItemR.setEnabled(True)
+			menuO.add(menuItemR)
+
+			if not lDisplayOnly:
+				menuItemE = JMenuItem("Extract to CSV")
+				menuItemE.setToolTipText("Extract the data to CSV and exit....")
+			else:
+				menuItemE = JMenuItem("Close Window")
+				menuItemE.setToolTipText("Exit and close the window")
+
+			menuItemE.addActionListener(DoTheMenu(menuO))
+			menuItemE.setEnabled(True)
+			menuO.add(menuItemE)
+
+			mb.add(menuO)
+
 			menuH = JMenu("<html><B>ABOUT</b></html>")
 
 			menuItemA = JMenuItem("About")
@@ -2292,20 +2282,13 @@ if not lExit:
 			menuItemA.addActionListener(DoTheMenu(menuH))
 			menuItemA.setEnabled(True)
 			menuH.add(menuItemA)
+
 			mb.add(menuH)
 
 			extract_reminders_csv_frame_.setJMenuBar(mb)
 
 			if Platform.isOSX():
 				System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)                                 # noqa
-
-		# button_panel.setBackground(Color.LIGHT_GRAY)
-
-		if ind == 1:    scrollpane.getViewport().remove(table)  # On repeat, just remove/refresh the table & rebuild the viewport
-
-		colnames = csvheaderline
-
-		table = MyJTable(DefaultTableModel(tabledata, colnames))
 
 		table.getTableHeader().setReorderingAllowed(True)  # no more drag and drop columns, it didn't work (on the footer)
 		table.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
@@ -2333,17 +2316,17 @@ if not lExit:
 		table.addMouseListener(ML)
 
 		if ind == 0:
-			scrollpane = JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)  # On first call, create the scrollpane
+			scrollpane = JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS)  # On first call, create the scrollpane
 			scrollpane.setBorder(CompoundBorder(MatteBorder(1, 1, 1, 1, Color.gray), EmptyBorder(0, 0, 0, 0)))
+			# scrollpane.setPreferredSize(Dimension(frame_width-20, frame_height-20	))
 
-		table.setPreferredScrollableViewportSize(Dimension(panel_width, frame_height - button_panel_height - 100))
-
+		table.setPreferredScrollableViewportSize(Dimension(frame_width-20, frame_height-100))
+		#
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF)
-
+		#
 		scrollpane.setViewportView(table)
 		if ind == 0:
-			tableview_panel.add(scrollpane)																		# noqa
-			extract_reminders_csv_frame_.add(tableview_panel)
+			extract_reminders_csv_frame_.add(scrollpane)
 			extract_reminders_csv_frame_.pack()
 			extract_reminders_csv_frame_.setLocationRelativeTo(None)
 
@@ -2496,6 +2479,9 @@ if not lExit:
 										+ version_build
 										+ ")  Moneydance Python Script - Date of Extract: "
 										+ str(sdf.format(today.getTime()))])
+
+						writer.writerow([""])
+						writer.writerow(["Dataset path/name: %s" %(moneydance_data.getRootFolder()) ])
 
 						writer.writerow([""])
 						writer.writerow(["User Parameters..."])

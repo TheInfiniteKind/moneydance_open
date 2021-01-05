@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# stockglance2020.py build:1010 - October 2020 - Stuart Beesley
+# stockglance2020.py build:1011 - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java Moneydance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -97,6 +97,7 @@
 # Build: 1008 - Fix for fonts so that row heights and margin resize...; Moved parameter save back to last (for column width save)
 # Build: 1009 - Tweak to common code (popups) and imports
 # Build: 1010 - Changed parameter screen to leverage JCheckBox and JComboBox
+# Build: 1011 - Added reset columns to parameter screen; added dataset path/name to extract
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -158,7 +159,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1010"                                                                                              # noqa
+version_build = "1011"                                                                                              # noqa
 myScriptName = "stockglance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1406,6 +1407,9 @@ user_excludeTotalsFromCSV = JCheckBox("", lExcludeTotalsFromCSV)
 label7d = JLabel("Round calculated price using security dpc setting (N=No Rounding)?")
 user_roundPrice = JCheckBox("", lRoundPrice)
 
+labelRC = JLabel("Reset Column Widths to Defaults?")
+user_selectResetColumns = JCheckBox("", False)
+
 label8 = JLabel("Strip non ASCII characters from CSV export?")
 user_selectStripASCII = JCheckBox("", lStripASCII)
 
@@ -1443,6 +1447,8 @@ userFilters.add(label7c)
 userFilters.add(user_excludeTotalsFromCSV)
 userFilters.add(label7d)
 userFilters.add(user_roundPrice)
+userFilters.add(labelRC)
+userFilters.add(user_selectResetColumns)
 userFilters.add(label8)
 userFilters.add(user_selectStripASCII)
 userFilters.add(label9)
@@ -1491,11 +1497,16 @@ if not lExit:
             "Include Future Balances:", user_includeFutureBalances.isSelected(),
             "Exclude Totals from CSV:", user_excludeTotalsFromCSV.isSelected(),
             "Round Calc Price:", user_roundPrice.isSelected(),
+            "Reset Columns:", user_selectResetColumns.isSelected(),
             "Strip ASCII:", user_selectStripASCII.isSelected(),
             "Write BOM to file:", user_selectBOM.isSelected(),
             "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
             "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
     # endif
+
+    if user_selectResetColumns.isSelected():
+        myPrint("B","User asked to reset columns.... Resetting Now....")
+        _column_widths_SG2020=[]  # This will invalidate the
 
     hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
     hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
@@ -3115,6 +3126,9 @@ if not lExit:
                                          + version_build
                                          + ")  Moneydance Python Script - Date of Extract: "
                                          + str(sdf.format(today.getTime()))])
+
+                        writer.writerow([""])
+                        writer.writerow(["Dataset path/name: %s" %(moneydance_data.getRootFolder()) ])
 
                         writer.writerow([""])
                         writer.writerow(["User Parameters..."])

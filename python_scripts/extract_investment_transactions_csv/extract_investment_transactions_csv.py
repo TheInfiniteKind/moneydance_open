@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - build: 1008 - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - build: 1009 - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -56,6 +56,7 @@
 # Build: 1006 - Renames of Module, REPO, url and Moneydance...
 # Build: 1007 - Tweak to common code (popups) and imports
 # Build: 1008 - Changed parameter screeen to use JComboBox and JCheckBox
+# Build: 1009 - Added dataset path/name to extract
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -117,7 +118,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1008"                                                                                              # noqa
+version_build = "1009"                                                                                              # noqa
 myScriptName = "extract_investment_transactions_csv.py(Extension)"                                                  # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -2063,6 +2064,9 @@ if not lExit:
                                      + version_build
                                      + ")  Moneydance Python Script - Date of Extract: "
                                      + str(sdf.format(today.getTime()))])
+
+                    writer.writerow([""])
+                    writer.writerow(["Dataset path/name: %s" %(moneydance_data.getRootFolder()) ])
 
                     writer.writerow([""])
                     writer.writerow(["User Parameters..."])

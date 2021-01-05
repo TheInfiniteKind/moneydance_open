@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1011 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1012 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -71,6 +71,7 @@
 # Build: 1009 - Changed JFrame() to leverage internal moneydance's main frame size/dimensions etc.... (IK request)
 # Build: 1010 - Tweaks to popup boxes to fit text for certain fonts and common imports
 # Build: 1011 - Added "code_font" setting (which got sneaked into MD).... (and the print font setting too while I was at it); also corrected where font set to 'null' in config.dict
+# Build: 1012 - Tweak to code_font display message
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -137,7 +138,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1011"                                                                                              # noqa
+version_build = "1012"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -6141,8 +6142,8 @@ class DiagnosticDisplay():
 
                 MyPopUpDialogBox(Toolbox_frame_,"Config.dict - CURRENT FONTS:",
                                                 '"main_font" currently set to %s\n'
-                                                '"mono_font" currently set to %s\n'
-                                                '"code_font" currently set to %s\n'
+                                                '"mono_font" currently set to %s  (Used for mainly numbers)\n'
+                                                '"code_font" currently set to %s  (This is the Moneybot Console Font)\n'
                                                 '"print.font_name" currently set to %s' %(display_main,display_mono,display_code,display_print),
                                                 150,"FONTS",OKButtonText="CONTINUE").go()
 

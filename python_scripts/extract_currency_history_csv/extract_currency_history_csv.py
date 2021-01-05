@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_currency_history_csv build 1007 - November 2020 - Stuart Beesley StuWareSoftSystems
+# extract_currency_history_csv build 1008 - November 2020 - Stuart Beesley StuWareSoftSystems
 # Extracts your Currency rate history to CSV file (as MD doesn't do this)
 # This script does not change any data!
 # Thanks to DerekKent23 for his testing....
@@ -53,6 +53,7 @@
 # Build: 1005 - Renames for module, REPO, url, Moneydance etc
 # Build: 1006 - Tweak to common code (popups) and imports
 # Build: 1007 - Updated parameter screens to use JCheckBox and JComboBox
+# Build: 1008 - Added dataset path/name to extract
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -114,7 +115,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1007"                                                                                              # noqa
+version_build = "1008"                                                                                              # noqa
 myScriptName = "extract_currency_history_csv.py(Extension)"                                                         # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -1574,6 +1575,9 @@ if not lExit:
                                          + version_build
                                          + ")  Moneydance Python Script - Date of Extract: "
                                          + str(sdf.format(today.getTime()))])
+
+                        writer.writerow([""])
+                        writer.writerow(["Dataset path/name: %s" %(moneydance_data.getRootFolder()) ])
 
                         writer.writerow([""])
                         writer.writerow(["User Parameters..."])
