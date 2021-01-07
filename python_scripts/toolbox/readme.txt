@@ -78,6 +78,7 @@ ALT-B - Basic Mode
     - DIAGnostics - List decimal places (currency and security). Shows you hidden settings etc.
     - DIAGnostics - Diagnose relative currencies. If errors, then go to FIX below
     - DIAGnostics - View Categories with zero balance. You can also inactivate these below.
+    - DIAGnostics - Analise your  attachments (and Detect Orphans)
     - VIEW - OFX Related Data
     - Find my Sync Encryption password(s) in iOS Backup(s)
 

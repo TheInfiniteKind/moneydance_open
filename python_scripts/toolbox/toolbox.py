@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1012 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1013 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -72,6 +72,7 @@
 # Build: 1010 - Tweaks to popup boxes to fit text for certain fonts and common imports
 # Build: 1011 - Added "code_font" setting (which got sneaked into MD).... (and the print font setting too while I was at it); also corrected where font set to 'null' in config.dict
 # Build: 1012 - Tweak to code_font display message
+# Build: 1013 - Added Diagnose Attachments button(also detects Orphans)
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -138,7 +139,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1012"                                                                                              # noqa
+version_build = "1013"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -162,10 +163,10 @@ from com.moneydance.apps.md.controller import Common
 from com.moneydance.apps.md.controller import BalanceType
 from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
 from com.moneydance.apps.md.controller import ModuleLoader
-from java.awt import GraphicsEnvironment
+from java.awt import GraphicsEnvironment, Desktop
 
 from com.infinitekind.util import StreamTable, StreamVector, IOUtils, StringUtils, CustomDateFormat
-from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService
+from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem, AbstractTxn
 from com.infinitekind.tiksync import SyncRecord
 
 from java.awt.datatransfer import StringSelection
@@ -1167,7 +1168,7 @@ def downloadStuWareSoftSystemsExtensions( what ):
     dictInfo = StreamTable()
 
     inx = None
-    theDict = "https://raw.githubusercontent.com/yogi1967/MoneydancePythonScripts/master/source/%s-meta_info.dict" %what
+    theDict = "https://raw.githubusercontent.com/yogi1967/MoneydancePythonScripts/master/source/%s/meta_info.dict" %what
 
     try:
         myPrint("DB","About to open url: %s" %theDict)
@@ -1175,8 +1176,8 @@ def downloadStuWareSoftSystemsExtensions( what ):
         inx = BufferedReader(InputStreamReader(urlDict.openStream(), "UTF8"))
         dictInfo.readFrom(inx)
     except:
-
-        myPrint("DB", "ERROR downloading from theZip... ")
+        myPrint("J","")
+        myPrint("DB", "ERROR downloading meta-info.dict from GitHub... ")
         if debug: dump_sys_error_to_md_console_and_errorlog()
         return False
 
@@ -1222,7 +1223,7 @@ class DetectAndChangeMacTabbingMode(AbstractAction):
             myPrint("B", "Change Mac Tabbing Mode - You are running 2021.build %s - This version has problems with DUAL MONITORS\nPlease upgrade to at least 2021. build 2012:\nhttps://infinitekind.com/preview" %moneydance.getBuild())
             self.statusLabel.setText(("You are running 2021.build %s - This version has problems with DUAL MONITORS - Upgrade to at least 2021. build 2012: https://infinitekind.com/preview" %moneydance.getBuild()).ljust(800, " "))
             self.statusLabel.setForeground(Color.RED)
-            myPopupInformationBox(None,"Change Mac Tabbing Mode - You are running 2021.build %s - This version has problems with DUAL MONITORS\nPlease upgrade to at least 2021 first! build 2012:\nhttps://infinitekind.com/preview" %moneydance.getBuild(),theMessageType=JOptionPane.ERROR_MESSAGE)
+            myPopupInformationBox(Toolbox_frame_,"Change Mac Tabbing Mode - You are running 2021.build %s - This version has problems with DUAL MONITORS\nPlease upgrade to at least 2021 first! build 2012:\nhttps://infinitekind.com/preview" %moneydance.getBuild(),theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
         prefFile = os.path.join(System.getProperty("UserHome"), "Library/Preferences/.GlobalPreferences.plist")
@@ -1271,8 +1272,8 @@ class DetectAndChangeMacTabbingMode(AbstractAction):
         myPrint("B","More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac")
 
         myPrint("B", "@@@ PROBLEM - Your Tabbing Mode is set to: %s - NEEDS CHANGING" %tabbingMode)
-        myPopupInformationBox(None,"@@@ PROBLEM - Your Tabbing Mode is set to: %s\nTHIS NEEDS CHANGING!" %tabbingMode,theMessageType=JOptionPane.ERROR_MESSAGE)
-        myPopupInformationBox(None,"Info:\n<https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac>\nPress OK to select new mode...",theMessageType=JOptionPane.ERROR_MESSAGE)
+        myPopupInformationBox(Toolbox_frame_,"@@@ PROBLEM - Your Tabbing Mode is set to: %s\nTHIS NEEDS CHANGING!" %tabbingMode,theMessageType=JOptionPane.ERROR_MESSAGE)
+        myPopupInformationBox(Toolbox_frame_,"Info:\n<https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac>\nPress OK to select new mode...",theMessageType=JOptionPane.ERROR_MESSAGE)
 
         mode_options = ["fullscreen", "manual"]
         selectedMode = JOptionPane.showInputDialog(Toolbox_frame_,
@@ -1317,7 +1318,7 @@ class DetectAndChangeMacTabbingMode(AbstractAction):
         if tabbingModeChanged.strip() != "":
             myPopupInformationBox(Toolbox_frame_,"Change Mac Tabbing Mode: Response: %s" %tabbingModeChanged, JOptionPane.WARNING_MESSAGE)
 
-        myPopupInformationBox(None,"OK I Made the Change to your Mac Tabbing Mode: Please exit and restart Moneydance...",theMessageType=JOptionPane.WARNING_MESSAGE)
+        myPopupInformationBox(Toolbox_frame_,"OK I Made the Change to your Mac Tabbing Mode: Please exit and restart Moneydance...",theMessageType=JOptionPane.WARNING_MESSAGE)
         self.statusLabel.setText(("MacOS Tabbing Mode: OK I Made the Change to your Mac Tabbing Mode: Please exit and restart Moneydance...").ljust(800, " "))
         self.statusLabel.setForeground(Color.RED)
 
@@ -2499,6 +2500,7 @@ ALT-B - Basic Mode
     - DIAGnostics - List decimal places (currency and security). Shows you hidden settings etc.
     - DIAGnostics - Diagnose relative currencies. If errors, then go to FIX below
     - DIAGnostics - View Categories with zero balance. You can also inactivate these below.
+    - DIAGnostics - Analise your  attachments (and Detect Orphans)
     - VIEW - OFX Related Data
     - Find my Sync Encryption password(s) in iOS Backup(s)
 
@@ -3819,6 +3821,8 @@ def terminate_script():
 
     if not i_am_an_extension_so_run_headless: print(scriptExit)
 
+    moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - Thanks for using Toolbox.......",0)
+
     Toolbox_frame_.dispose()
     return
 
@@ -3878,7 +3882,7 @@ class DiagnosticDisplay():
             lDidIChangeDays=False
 
             while True:
-                days_response = myPopupAskForInput(None,"CHANGE NEXT CHECK NUMBER LOOK-BACK THRESHOLD","Days:",
+                days_response = myPopupAskForInput(Toolbox_frame_,"CHANGE NEXT CHECK NUMBER LOOK-BACK THRESHOLD","Days:",
                                                    "Enter new number of days (1 to 365):",props_lookback_days)
 
                 if days_response is None:
@@ -5044,6 +5048,372 @@ class DiagnosticDisplay():
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
 
+    class DiagnoseAttachmentsButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug, DARK_GREEN, lCopyAllToClipBoard_TB
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            if moneydance_data is None:
+                self.statusLabel.setText(("No data to scan - aborting..").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                return
+
+            scanningMsg = MyPopUpDialogBox(Toolbox_frame_,"Please wait: searching Database and filesystem for attachments..",
+                                           theTitle="ATTACHMENT(S) SEARCH",
+                                           theWidth=100, lModal=False,OKButtonText="WAIT")
+            scanningMsg.go()
+
+            myPrint("P", "Scanning database for attachment data..")
+            book = moneydance_data
+
+            attachmentList={}
+            attachmentLocations={}
+
+            iObjectsScanned=0
+            iTxnsScanned=0
+
+            iTxnsWithAttachments = 0
+            iAttachmentsFound = 0
+            iAttachmentsNotInLS = 0
+            iDuplicateKeys = 0
+            attachmentsNotInLS=[]
+
+            diagDisplay="ANALYSIS OF ATTACHMENTS\n\n"
+
+            attachmentFullPath = os.path.join(moneydance_data.getRootFolder().getCanonicalPath(), "safe", moneydance.getCurrentAccountBook().getAttachmentsFolder())
+
+            LS = moneydance.getCurrentAccountBook().getLocalStorage()
+
+            for _mdItem in book.getSyncer().getSyncedDocument().allItems():
+
+                iObjectsScanned+=1
+
+                if not isinstance(_mdItem, MoneydanceSyncableItem):
+                    x="@@ Found: %s >> what is this?" %type(_mdItem)
+                    myPrint("B", x)
+                    diagDisplay+=(x+"\n")
+                    continue
+
+                if not isinstance(_mdItem, AbstractTxn):
+                    continue
+
+                iTxnsScanned+=1
+
+                if not _mdItem.hasAttachments():
+                    continue
+
+                iTxnsWithAttachments+=1
+                x="Found Record with %s Attachment(s): %s" %(len(_mdItem.getAttachmentKeys()),_mdItem)
+                myPrint("D",x)
+                if debug: diagDisplay+=(x+"\n")
+
+                if attachmentList.get(_mdItem.getUUID()):
+                    iDuplicateKeys += 1
+                    x="@@ Error %s already exists in my attachment list...!?" %_mdItem.getUUID()
+                    myPrint("DB", x)
+                    if debug: diagDisplay+=(x+"\n")
+
+                attachmentList[_mdItem.getUUID()] = [
+                    _mdItem.getUUID(),
+                    _mdItem.getAccount().getAccountName(),
+                    _mdItem.getAccount().getAccountType(),
+                    _mdItem.getDateInt(),
+                    _mdItem.getValue(),
+                    _mdItem.getAttachmentKeys()
+                ]
+                x="Attachment keys: %s" %_mdItem.getAttachmentKeys()
+                myPrint("D",x)
+                if debug: diagDisplay+=(x+"\n")
+
+                for _key in _mdItem.getAttachmentKeys():
+                    iAttachmentsFound+=1
+                    if attachmentLocations.get(_mdItem.getAttachmentTag(_key)):
+                        iDuplicateKeys += 1
+                        x="@@ Error %s already exists in my attachment location list...!?" %_mdItem.getUUID()
+                        myPrint("B", )
+                        if debug: diagDisplay+=(x+"\n")
+
+                    attachmentLocations[_mdItem.getAttachmentTag(_key)] = [
+                        _mdItem.getAttachmentTag(_key),
+                        _key,
+                        _mdItem.getUUID(),
+                        LS.exists(_mdItem.getAttachmentTag(_key))
+                    ]
+                    if not LS.exists(_mdItem.getAttachmentTag(_key)):
+                        iAttachmentsNotInLS+=1
+                        attachmentsNotInLS.append([
+                            _mdItem.getUUID(),
+                            _mdItem.getAccount().getAccountName(),
+                            _mdItem.getAccount().getAccountType(),
+                            _mdItem.getDateInt(),
+                            _mdItem.getValue(),
+                            _mdItem.getAttachmentKeys()
+                        ])
+
+                        x="@@ Error - Attachment for Txn DOES NOT EXIST! - Attachment tag: %s" %_mdItem.getAttachmentTag(_key)
+                        myPrint("B",x)
+                        diagDisplay+=(x+"\n")
+                    else:
+                        x="Attachment tag: %s" %_mdItem.getAttachmentTag(_key)
+                        myPrint("D", x)
+                        if debug: diagDisplay+=(x+"\n")
+
+
+            # Now scan the file system for attachments
+            myPrint("P", "Now scanning attachment directory(s) and files...:")
+
+            attachmentsRawListFound = []
+
+            typesFound={}
+
+            for root, dirs, files in os.walk(attachmentFullPath):
+
+                for name in files:
+                    theFile = os.path.join(root,name)[len(attachmentFullPath)-len(moneydance.getCurrentAccountBook().getAttachmentsFolder()):]
+                    byteSize = os.path.getsize(os.path.join(root,name))
+                    modified = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S')
+                    attachmentsRawListFound.append([theFile, byteSize, modified])
+                    theExtension = os.path.splitext(theFile)[1].lower()
+
+                    iCountExtensions = 0
+                    iBytes = 0
+                    if typesFound.get(theExtension):
+                        iCountExtensions = typesFound.get(theExtension)[1]
+                        iBytes = typesFound.get(theExtension)[2]
+                    typesFound[theExtension] = [theExtension, iCountExtensions+1, iBytes+byteSize ]
+
+                    x="Found Attachment File: %s" %theFile
+                    myPrint("D", x)
+                    if debug: diagDisplay+=(x+"\n")
+
+            # Now match file system to the list from the database
+            iOrphans=0
+            iOrphanBytes=0
+
+            orphanList=[]
+
+            for fileDetails in attachmentsRawListFound:
+                deriveTheKey = fileDetails[0]
+                deriveTheBytes = fileDetails[1]
+                deriveTheModified = fileDetails[2]
+                if attachmentLocations.get(deriveTheKey.replace(os.path.sep,"/")):
+                    x="Attachment file system link found in Moneydance database"
+                    myPrint("D", x)
+                    if debug: diagDisplay+=(x+"\n")
+                else:
+                    x="Error: Attachment filesystem link missing in Moneydance database: %s" %deriveTheKey
+                    myPrint("DB", x)
+                    if debug: diagDisplay+=(x+"\n")
+                    iOrphans+=1
+                    iOrphanBytes+=deriveTheBytes
+                    orphanList.append([deriveTheKey,deriveTheBytes, deriveTheModified])
+
+            msgStr=""
+
+            myPrint("P","\n"*5)
+
+            x="----------------------------------"
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n")
+
+            x = "Objects scanned: %s" %iObjectsScanned
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n")
+
+            x="Transactions scanned: %s" %iTxnsScanned
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n")
+            x="Transactions with attachments: %s" %iTxnsWithAttachments
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n")
+            x="Total Attachments referenced in Moneydance database (a txn may have multi-attachments): %s" %iAttachmentsFound
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n")
+            x="Attachments missing from Local Storage: %s" %iAttachmentsNotInLS
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n")
+            x="Total Attachments found in file system: %s (difference %s)" %(len(attachmentsRawListFound),len(attachmentsRawListFound)-iAttachmentsFound)
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n")
+
+
+            myPrint("P","\n"*1)
+
+            x="Attachment extensions found: %s" %len(typesFound)
+            myPrint("B", x)
+            diagDisplay+=("\n"+x+"\n")
+
+            iTotalBytes = 0
+            sortedExtensions = sorted(typesFound.values(), key=lambda _x: (_x[2]), reverse=True)
+
+            for x in sortedExtensions:
+                iTotalBytes+=x[2]
+
+                x="Extension: %s Number: %s Size: %sMB" %(pad(x[0],6),rpad(x[1],12),rpad(round(x[2]/(1024.0 * 1024.0),2),12))
+                myPrint("B", x)
+                diagDisplay+=(x+"\n")
+
+            x="Attachments on disk are taking: %sMB" %(round(iTotalBytes/(1024.0 * 1024.0),2))
+            myPrint("B", x)
+            diagDisplay+=(x+"\n")
+            msgStr+=(x+"\n")
+            x="----------------------------------"
+            myPrint("B", x)
+            msgStr+=(x+"\n")
+            diagDisplay+=(x+"\n\n")
+
+            lErrors=False
+            if iAttachmentsNotInLS:
+                x = "@@ ERROR: You have %s missing attachment(s) referenced on Moneydance Txns!" %(iAttachmentsNotInLS)
+                msgStr+=x+"\n"
+                diagDisplay+=(x+"\n\n")
+                myPrint("P","")
+                myPrint("B",x)
+                self.statusLabel.setText((x.upper()).ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                lErrors=True
+                attachmentsNotInLS=sorted(attachmentsNotInLS, key=lambda _x: (_x[3]), reverse=False)
+                for theOrphanRecord in attachmentsNotInLS:
+                    x="Attachment is missing from this Txn: AcctType: %s Account: %s Date: %s Value: %s AttachKey: %s" %(theOrphanRecord[1],
+                                                                                                                         theOrphanRecord[2],
+                                                                                                                         theOrphanRecord[3],
+                                                                                                                         theOrphanRecord[4],
+                                                                                                                         theOrphanRecord[5])
+                    myPrint("B", x)
+                    diagDisplay+=(x+"\n")
+                diagDisplay+="\n"
+
+            if iOrphans:
+                x = "@@ ERROR: %s Orphan attachment(s) found, taking up %sMBs" %(iOrphans,round(iOrphanBytes/(1024.0 * 1024.0),2))
+                msgStr+=x+"\n"
+                diagDisplay+=(x+"\n\n")
+                myPrint("P","")
+                self.statusLabel.setText((x.upper()).ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+
+                myPrint("B",x)
+                x="Base Attachment Directory is: %s" %os.path.join(moneydance_data.getRootFolder().getCanonicalPath(), "safe","")
+                myPrint("P",x)
+                diagDisplay+=(x+"\n")
+                lErrors=True
+                orphanList=sorted(orphanList, key=lambda _x: (_x[2]), reverse=False)
+                for theOrphanRecord in orphanList:
+
+                    x="Orphaned Attachment >> Txn Size: %sKB Modified %s for file: %s" %(rpad(round(theOrphanRecord[1]/(1024.0),1),6),
+                                                                                         pad(theOrphanRecord[2],19),
+                                                                                         theOrphanRecord[0])
+                    diagDisplay+=(x+"\n")
+                    myPrint("B", x)
+
+            if not lErrors:
+                x= "Congratulations! - No orphan attachments detected!".upper()
+                myPrint("B",x)
+                diagDisplay+=(x+"\n")
+                self.statusLabel.setText((x.upper()).ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+
+
+            if iAttachmentsFound:
+                diagDisplay+="\n\nLISTING VALID ATTACHMENTS FOR REFERENCE\n"
+                diagDisplay+="=======================================\n"
+                x="\nBase Attachment Directory is: %s" %os.path.join(moneydance_data.getRootFolder().getCanonicalPath(), "safe","")
+                diagDisplay+=(x+"\n-----------\n")
+
+                for validLocation in attachmentLocations:
+                    locationRecord = attachmentLocations[validLocation]
+                    record = attachmentList[locationRecord[2]]
+                    diagDisplay+="AT: %s ACT: %s DT: %s Val: %s FILE: %s\n" \
+                                 %(pad(repr(record[2]),12),
+                                   pad(str(record[1]),20),
+                                   record[3],
+                                   rpad(record[4]/100.0,10),
+                                   validLocation)
+
+            diagDisplay+='\n<END>'
+            jif = QuickJFrame("ATTACHMENT ANALYSIS",diagDisplay).show_the_frame()
+
+            if iOrphans:
+                msg = MyPopUpDialogBox(jif,
+                                       "You have %s Orphan attachment(s) found, taking up %sMBs" %(iOrphans,round(iOrphanBytes/(1024.0 * 1024.0),2)),
+                                       msgStr+"CLICK TO VIEW ORPHANS, or CANCEL TO EXIT",
+                                       200,"ORPHANED ATTACHMENTS",
+                                       lCancelButton=True,
+                                       OKButtonText="CLICK TO VIEW",
+                                       lAlertLevel=1)
+            elif iAttachmentsNotInLS:
+                msg = MyPopUpDialogBox(jif,
+                                       "You have %s missing attachment(s) referenced on Moneydance Txns!" %(iAttachmentsNotInLS),
+                                       msgStr,
+                                       200,"MISSING ATTACHMENTS",
+                                       lCancelButton=False,
+                                       OKButtonText="OK",
+                                       lAlertLevel=1)
+
+            if lErrors:
+                pass
+            else:
+                msg = MyPopUpDialogBox(jif,
+                                       x,
+                                       msgStr,
+                                       200,"ATTACHMENTS STATUS",
+                                       lCancelButton=False,
+                                       OKButtonText="OK",
+                                       lAlertLevel=0)
+
+            myPrint("P","\n"*2)
+
+            scanningMsg.kill()
+
+            if iOrphans:
+                if msg.go():        # noqa
+                    while True:
+                        selectedOrphan = JOptionPane.showInputDialog(jif,
+                                                                     "Select an Orphan to View",
+                                                                     "VIEW ORPHAN (Escape or Cancel to exit)",
+                                                                     JOptionPane.WARNING_MESSAGE,
+                                                                     None,
+                                                                     orphanList,
+                                                                     None)
+                        if not selectedOrphan:
+                            break
+
+                        try:
+                            tmpDir = File(moneydance_data.getRootFolder(), "tmp")
+                            tmpDir.mkdirs()
+                            attachFileName = (File(tmpDir, selectedOrphan[0])).getName()            # noqa
+                            tmpFile = File.createTempFile(str(System.currentTimeMillis() % 10000L), attachFileName, tmpDir)
+                            tmpFile.deleteOnExit()
+                            fout = FileOutputStream(tmpFile)
+                            LS.readFile(selectedOrphan[0], fout)                                    # noqa
+                            fout.close()
+                            Desktop.getDesktop().open(tmpFile)
+
+                        except:
+                            myPrint("B","Sorry, could not open attachment file....: %s" %selectedOrphan[0])     # noqa
+
+            else:
+                msg.go()        # noqa
+
+            del attachmentList
+            del attachmentLocations
+            del typesFound
+            del attachmentsRawListFound
+            del attachmentsNotInLS
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+            return
+
     class ZeroBalCategoriesButtonAction(AbstractAction):
 
         def __init__(self, statusLabel, lFix):
@@ -6192,7 +6562,7 @@ class DiagnosticDisplay():
                         moneydance.savePreferences()
                         lAnyFontChanges=True
                         myPrint("B", "Config.dict: key: %s DELETED - RESTART MD" %theKey)
-                        myPopupInformationBox(None, "Config.dict: key: %s DELETED - RESTART MD" %theKey, "FONTS", JOptionPane.WARNING_MESSAGE)
+                        myPopupInformationBox(Toolbox_frame_, "Config.dict: key: %s DELETED - RESTART MD" %theKey, "FONTS", JOptionPane.WARNING_MESSAGE)
                         continue
                     else:
                         continue
@@ -8435,6 +8805,11 @@ Now you will have a text readable version of the file you can open in a text edi
         viewZeroBalCats_button.addActionListener(self.ZeroBalCategoriesButtonAction(statusLabel, False))
         displayPanel.add(viewZeroBalCats_button)
 
+        diagnoseAttachments_button = JButton("<html><center>DIAG: Attachments<BR>detect Orphans too</center></html>")
+        diagnoseAttachments_button.setToolTipText("This will analise your Attachments, show you file storage used, and detect Orphans/issues")
+        diagnoseAttachments_button.addActionListener(self.DiagnoseAttachmentsButtonAction(statusLabel))
+        displayPanel.add(diagnoseAttachments_button)
+
         inactivateZeroBalCats_button = JButton("<html><center>FIX: Make 0 Balance<BR>Categories Inactive</center></html>")
         inactivateZeroBalCats_button.setToolTipText("This will allow you Inactivate all Categories with Zero Balances (you will see the report first). THIS CHANGES DATA!")
         inactivateZeroBalCats_button.setForeground(Color.RED)
@@ -8744,6 +9119,8 @@ if moneydance.getVersion() < 2020 or not lImportOK:
                           JOptionPane.ERROR_MESSAGE)
 else:
     fixRCurrencyCheck = 0
+
+    moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - Toolbox launching.......",0)
 
     theDisplay = DiagnosticDisplay()
     theDisplay.openDisplay()
