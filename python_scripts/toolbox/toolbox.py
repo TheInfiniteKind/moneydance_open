@@ -5341,6 +5341,9 @@ class DiagnosticDisplay():
                                    validLocation)
 
             diagDisplay+='\n<END>'
+
+            scanningMsg.kill()
+
             jif = QuickJFrame("ATTACHMENT ANALYSIS",diagDisplay).show_the_frame()
 
             if iOrphans:
@@ -5372,8 +5375,6 @@ class DiagnosticDisplay():
                                        lAlertLevel=0)
 
             myPrint("P","\n"*2)
-
-            scanningMsg.kill()
 
             if iOrphans:
                 if msg.go():        # noqa
@@ -5410,6 +5411,9 @@ class DiagnosticDisplay():
             del typesFound
             del attachmentsRawListFound
             del attachmentsNotInLS
+
+            Toolbox_frame_.toFront()
+            jif.toFront()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
