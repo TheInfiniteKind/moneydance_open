@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1013 - November-December 2020 - Stuart Beesley StuWareSoftSystems
+# toolbox.py build: 1014 - November-December 2020 - Stuart Beesley StuWareSoftSystems
 # NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
 # NOTE: I have run all these fixes / updates on my own live personal dataset
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
@@ -73,6 +73,8 @@
 # Build: 1011 - Added "code_font" setting (which got sneaked into MD).... (and the print font setting too while I was at it); also corrected where font set to 'null' in config.dict
 # Build: 1012 - Tweak to code_font display message
 # Build: 1013 - Added Diagnose Attachments button(also detects Orphans)
+# Build: 1014 - Added size and date to search for dataset outputs
+# Build: 1014 - Enhanced main Frame to resize components on resize....; also the QuickJFrame; Small fix to Geek out mode error....:->
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -139,7 +141,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1013"                                                                                              # noqa
+version_build = "1014"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -172,6 +174,8 @@ from com.infinitekind.tiksync import SyncRecord
 from java.awt.datatransfer import StringSelection
 from java.net import URL
 from java.nio.charset import Charset
+
+from java.awt.event import ComponentAdapter
 
 try:
     from com.infinitekind.moneydance.model import TxnSortOrder
@@ -2690,6 +2694,27 @@ class QuickJFrame():
         self.output = output
         self.lAlertLevel = lAlertLevel
 
+    class ReSizeListener(ComponentAdapter):
+
+        def __init__(self, theFrame, theScrollPane):
+            self.theFrame = theFrame
+            self.theScrollPane = theScrollPane
+
+        def componentResized(self, componentEvent):                                                                       # noqa
+            global debug, Toolbox_frame_
+
+            myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
+
+            # calcWidth = self.theFrame.getSize().width-20
+            # calcHeight = self.theFrame.getSize().height-20
+            #
+            # self.theFrame.setSize(Dimension(calcWidth, calcHeight))
+            #
+            # self.theScrollPane.revalidate()
+            # self.theFrame.repaint()
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
     class CloseAction(AbstractAction):
 
         def __init__(self, theFrame):
@@ -2748,8 +2773,11 @@ class QuickJFrame():
             theJText.setBackground(Color.YELLOW)
             theJText.setForeground(Color.BLACK)
 
-        jInternalFrame.setMinimumSize(Dimension(frame_width, 0))
-        jInternalFrame.setMaximumSize(Dimension(frame_width, frame_height))
+        # jInternalFrame.setMinimumSize(Dimension(frame_width, 0))
+        # jInternalFrame.setMaximumSize(Dimension(frame_width, frame_height))
+
+        jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
+
 
         # if Platform.isWindows():
         #     if theJText.getLineCount() > 30:
@@ -2760,6 +2788,9 @@ class QuickJFrame():
 
         jInternalFrame.pack()
         jInternalFrame.setLocationRelativeTo(Toolbox_frame_)
+
+        # jInternalFrame.getRootPane().addComponentListener(self.ReSizeListener(jInternalFrame, internalScrollPane))
+
         jInternalFrame.setVisible(True)
 
         if "errlog.txt" in self.title:
@@ -3828,7 +3859,7 @@ def terminate_script():
 
 class DiagnosticDisplay():
     def __init__(self):
-        pass
+        self.myScrollPane = None
 
     class WindowListener(WindowAdapter):
 
@@ -3843,6 +3874,31 @@ class DiagnosticDisplay():
             myPrint("DB", "DiagnosticDisplay() Frame shutting down....")
 
             terminate_script()
+
+    class ReSizeListener(ComponentAdapter):
+
+        def __init__(self, theFrame, thePanel, theScrollPane):
+            self.theFrame = theFrame
+            self.thePanel = thePanel
+            self.theScrollPane = theScrollPane
+
+        def componentResized(self, componentEvent):                                                                       # noqa
+            global debug, Toolbox_frame_
+
+            myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
+
+            calcWidth = self.theFrame.getSize().width - 20
+
+            scrollPaneTop = self.theScrollPane.getY()
+            calcHeight = (self.theFrame.getSize().height - scrollPaneTop - 70)
+
+            self.theScrollPane.setSize(Dimension(calcWidth, calcHeight))
+
+            self.theScrollPane.revalidate()
+            self.theFrame.repaint()
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
 
     class CloseAction(AbstractAction):
 
@@ -4921,7 +4977,7 @@ class DiagnosticDisplay():
                             if lKeys and not (searchWhat.lower() in theKey.lower()): continue
                             elif lKeyData and not (searchWhat.lower() in myTestValue.lower()): continue
                         # noinspection PyUnresolvedReferences
-                        output += (pad("Key:%s" % (theKey),35)+ " Value: %s\n" %((value.strip())))
+                        output += (pad("Key:%s" % (theKey),35)+ " Value: %s\n" %((value)))
 
 
                 if selectedWhat == what[_ROOTKEYS] or lSync or lOFX or lSizes or lSearch:  # ROOT
@@ -7942,15 +7998,22 @@ Now you will have a text readable version of the file you can open in a text edi
                     if lBackup:
                         for name in files:
                             if fnmatch.fnmatch(name, pattern):
-                                result.append("File: "+os.path.join(root, name))
+                                result.append("File >> Sz: %sMB Mod: %s Name: %s "
+                                              %(rpad(round(os.path.getsize(os.path.join(root, name))/(1024.0*1024.0),1),6),
+                                                pad(datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S'),11),
+                                                os.path.join(root, name)))
                     for name in dirs:
                         if fnmatch.fnmatch(name, pattern):
                             iFound+=1
-                            result.append("Dir: "+os.path.join(root, name))
+                            result.append("Dir >> Modified: %s %s"
+                                          %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S'),11),
+                                          os.path.join(root, name)))
                     for name in root:
                         if fnmatch.fnmatch(name, pattern):
                             iFound+=1
-                            result.append("Root: "+os.path.join(root, name))
+                            result.append("Root >> Modified: %s %s"
+                                          %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S'),11),
+                                          os.path.join(root, name)))
                 return result
 
             fileList = findDataset(theExtension, theDir)
@@ -8459,6 +8522,9 @@ Now you will have a text readable version of the file you can open in a text edi
                         if ("GEEK" in buttonText):
                             theComponent.setVisible(not theComponent.isVisible())
 
+                # Force a repaint to calculate scrollpane height....
+                self.callingClass.ReSizeListener(Toolbox_frame_, self.displayPanel, self.callingClass.myScrollPane).componentResized("")
+
             if event.getActionCommand() == "Debug":
                 if debug:
                     self.statusLabel.setText("Script Debug mode disabled".ljust(800, " "))
@@ -8514,7 +8580,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         self.statusLabel.setForeground(Color.RED)
                 else:
                     myPrint("B","HACKER MODE DISABLED <PHEW!>")
-                    self.statusLabel.setText(("HACKER MODE DiSABLED <PHEW!>").ljust(800," "))
+                    self.statusLabel.setText(("HACKER MODE DISABLED <PHEW!>").ljust(800," "))
                     self.statusLabel.setForeground(Color.BLUE)
 
                 lHackerMode = not lHackerMode
@@ -8528,6 +8594,8 @@ Now you will have a text readable version of the file you can open in a text edi
                         if ("HACK:" in buttonText):
                             theComponent.setVisible(lHackerMode)
 
+                # Force a repaint to calculate scrollpane height....
+                self.callingClass.ReSizeListener(Toolbox_frame_, self.displayPanel, self.callingClass.myScrollPane).componentResized("")
 
             if event.getActionCommand() == "Advanced Mode":
                 if myPopupAskQuestion(Toolbox_frame_,
@@ -8563,6 +8631,10 @@ Now you will have a text readable version of the file you can open in a text edi
                                   or "DELETE" in buttonText
                                   or "FORGET" in buttonText):
                                 theComponent.setVisible(True)
+
+                    # Force a repaint to calculate scrollpane height....
+                    self.callingClass.ReSizeListener(Toolbox_frame_, self.displayPanel, self.callingClass.myScrollPane).componentResized("")
+
                 else:
                     self.statusLabel.setText("ADVANCED MODE DISABLED AS USER DECLINED DISCLAIMER - BASIC MODE ONLY".ljust(800, " "))
                     self.statusLabel.setForeground(Color.RED)
@@ -8592,6 +8664,9 @@ Now you will have a text readable version of the file you can open in a text edi
                               or "DELETE" in buttonText
                               or "FORGET" in buttonText):
                             theComponent.setVisible(False)
+
+                # Force a repaint to calculate scrollpane height....
+                self.callingClass.ReSizeListener(Toolbox_frame_, self.displayPanel, self.callingClass.myScrollPane).componentResized("")
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
@@ -8959,11 +9034,11 @@ Now you will have a text readable version of the file you can open in a text edi
 
         displayPanel.add(statusLabel)
 
-        myScrollPane = JScrollPane(myDiagText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
-        # myScrollPane.setPreferredSize(Dimension(frame_width - 20, frame_height - 200))
-        myScrollPane.setPreferredSize(Dimension(frame_width - 20, frame_height - displayPanel.getPreferredSize().height))
-        myScrollPane.setWheelScrollingEnabled(True)
-        displayPanel.add(myScrollPane)
+        self.myScrollPane = JScrollPane(myDiagText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+        # self.myScrollPane.setPreferredSize(Dimension(frame_width - 20, frame_height - 200))
+        self.myScrollPane.setPreferredSize(Dimension(frame_width - 20, frame_height - displayPanel.getPreferredSize().height))
+        self.myScrollPane.setWheelScrollingEnabled(True)
+        displayPanel.add(self.myScrollPane)
 
         keyToUse = shortcut
 
@@ -8982,21 +9057,21 @@ Now you will have a text readable version of the file you can open in a text edi
         menuItem0.setMnemonic(KeyEvent.VK_B)
         menuItem0.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, keyToUse))
         menuItem0.setToolTipText("Switch to basic (no harm) mode")
-        menuItem0.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1))
+        menuItem0.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1, self))
         menuItem0.setEnabled(False)
         menu1.add(menuItem0)
 
         menuItem1 = JMenuItem("Advanced Mode")
         menuItem1.setMnemonic(KeyEvent.VK_M)  # Can't think of a spare letter to use!!!!
         menuItem1.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, keyToUse))
-        menuItem1.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1))
+        menuItem1.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1, self))
         menuItem1.setToolTipText("Switch to Advanced / Fix Mode (can update data)")
         menu1.add(menuItem1)
 
         menuItemC = JCheckBoxMenuItem("Copy all Output to Clipboard")
         menuItemC.setMnemonic(KeyEvent.VK_O)  # Can't think of a spare letter to use!!!!
         menuItemC.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, keyToUse))
-        menuItemC.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1))
+        menuItemC.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1, self))
         menuItemC.setToolTipText("When selected copies the output of all displays to Clipboard")
         menuItemC.setSelected(lCopyAllToClipBoard_TB)
         menu1.add(menuItemC)
@@ -9004,19 +9079,19 @@ Now you will have a text readable version of the file you can open in a text edi
         menuItemG = JCheckBoxMenuItem("Geek Out Mode")
         menuItemG.setMnemonic(KeyEvent.VK_G)  # Can't think of a spare letter to use!!!!
         menuItemG.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, keyToUse))
-        menuItemG.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1))
+        menuItemG.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1, self))
         menuItemG.setToolTipText("Enables the Geek Out Button to show very technical stuff - readonly")
         menuItemG.setSelected(lGeekOutModeEnabled_TB)
         menu1.add(menuItemG)
 
         menuItemH = JCheckBoxMenuItem("Hacker Mode")
-        menuItemH.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1))
+        menuItemH.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1, self))
         menuItemH.setToolTipText("Enables 'Hacker' Mode - Do not do this unless you know what you are doing... Allows you to update data!")
         menuItemH.setSelected(False)
         menu1.add(menuItemH)
 
         menuItemD = JCheckBoxMenuItem("Debug")
-        menuItemD.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1))
+        menuItemD.addActionListener(self.DoTheMenu(statusLabel, displayPanel, menu1, self))
         menuItemD.setToolTipText("Enables script to output debug information - technical stuff - readonly")
         menuItemD.setSelected(debug)
         menu1.add(menuItemD)
@@ -9055,7 +9130,12 @@ Now you will have a text readable version of the file you can open in a text edi
 
         Toolbox_frame_.pack()
         Toolbox_frame_.setLocationRelativeTo(None)
+
+        Toolbox_frame_.getRootPane().addComponentListener(self.ReSizeListener(Toolbox_frame_, displayPanel, self.myScrollPane))
         Toolbox_frame_.setVisible(True)
+
+        # Force a repaint to calculate scrollpane height....
+        self.ReSizeListener(Toolbox_frame_, displayPanel, self.myScrollPane).componentResized("")
 
         if Platform.isOSX():
             System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)                                 # noqa
