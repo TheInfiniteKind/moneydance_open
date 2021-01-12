@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - build: 1009 - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - build: 1010 - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -57,6 +57,7 @@
 # Build: 1007 - Tweak to common code (popups) and imports
 # Build: 1008 - Changed parameter screeen to use JComboBox and JCheckBox
 # Build: 1009 - Added dataset path/name to extract
+# Build: 1010 - Override max font size
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -118,7 +119,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1009"                                                                                              # noqa
+version_build = "1010"                                                                                              # noqa
 myScriptName = "extract_investment_transactions_csv.py(Extension)"                                                  # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -803,7 +804,14 @@ def setDefaultFonts():
 
     myFont = moneydance_ui.getFonts().defaultText
 
-    myPrint("DB", "Attempting to set default font to %s" %myFont)
+    if myFont.getSize()>18:
+        try:
+            myFont = myFont.deriveFont(16.0)
+            myPrint("B", "I have reduced the font size down to point-size 16 - Default Fonts are now set to: %s" %(myFont))
+        except:
+            myPrint("B","ERROR - failed to override font point size down to 16.... will ignore and continue. Font set to: %s" %(myFont))
+    else:
+        myPrint("DB", "Attempting to set default font to %s" %myFont)
 
     try:
         UIManager.getLookAndFeelDefaults().put("defaultFont", myFont )
