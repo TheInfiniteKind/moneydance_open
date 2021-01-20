@@ -4,6 +4,10 @@ Visit: https://yogi1967.github.io/MoneydancePythonScripts/ for more downloads an
 THESE ARE EXTENSIONS / SCRIPTS FOR MONEYDANCE WRITTEN IN PYTHON (JYTHON 2.7)
 The scripts and extensions are identical. The extensions are simply a packaged script version.
 
+The Extensions will only run on Moneydance version 2021 build 2012 onwards... The scripts don't have this requirement
+NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
+(If you have installed the extension, but nothing happens, then check your MD version)
+
 Extensions have a file extension of *.mxt
 Scripts have a file extension of *.py
 

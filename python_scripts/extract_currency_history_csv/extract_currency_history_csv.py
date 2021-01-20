@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_currency_history_csv build 1009 - November 2020 - Stuart Beesley StuWareSoftSystems
+# extract_currency_history_csv build 1010 - November 2020 - Stuart Beesley StuWareSoftSystems
 # Extracts your Currency rate history to CSV file (as MD doesn't do this)
 # This script does not change any data!
 # Thanks to DerekKent23 for his testing....
@@ -55,6 +55,8 @@
 # Build: 1007 - Updated parameter screens to use JCheckBox and JComboBox
 # Build: 1008 - Added dataset path/name to extract
 # Build: 1009 - Override max font size
+# Build: 1010 - Use mono font in common code
+# Build: 1011 - Tweak to allow escape in common code popup dialog
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -83,7 +85,7 @@ from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, Spli
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
-from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox
+from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox, JRadioButton, ButtonGroup
 from javax.swing.text import PlainDocument
 from javax.swing.border import EmptyBorder
 
@@ -99,7 +101,7 @@ from java.io import BufferedReader, InputStreamReader
 if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
-                     InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
+                     InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                      AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
                      JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
                      WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
@@ -116,7 +118,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1009"                                                                                              # noqa
+version_build = "1011"                                                                                              # noqa
 myScriptName = "extract_currency_history_csv.py(Extension)"                                                         # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -598,6 +600,7 @@ class MyPopUpDialogBox():
         # Add standard CMD-W keystrokes etc to close window
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+        self._popup_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
         self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
         self._popup_d.addWindowListener(self.WindowListener(self._popup_d, self.fakeJFrame,self.lResult))
 
@@ -606,7 +609,7 @@ class MyPopUpDialogBox():
             self._popup_d.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
 
         displayJText = JTextArea(self.theMessage)
-        # displayJText.setFont( getMonoFont() )
+        displayJText.setFont( getMonoFont() )
         displayJText.setEditable(False)
         displayJText.setLineWrap(False)
         displayJText.setWrapStyleWord(False)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# stockglance2020.py build:1012 - October 2020 - Stuart Beesley
+# stockglance2020.py build:1014 - October 2020 - Stuart Beesley
 
 #   Original code StockGlance.java Moneydance Extension Copyright James Larus - https://github.com/jameslarus/stockglance
 #
@@ -99,6 +99,8 @@
 # Build: 1010 - Changed parameter screen to leverage JCheckBox and JComboBox
 # Build: 1011 - Added reset columns to parameter screen; added dataset path/name to extract
 # Build: 1012 - Override max font size
+# Build: 1013 - Use mono font in common code
+# Build: 1014 - Minor tweak to about window close with escape key; Tweak to allow escape in common code popup dialog
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -127,7 +129,7 @@ from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, Spli
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
-from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox
+from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox, JRadioButton, ButtonGroup
 from javax.swing.text import PlainDocument
 from javax.swing.border import EmptyBorder
 
@@ -143,7 +145,7 @@ from java.io import BufferedReader, InputStreamReader
 if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
-                     InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
+                     InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                      AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
                      JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
                      WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
@@ -160,7 +162,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1012"                                                                                              # noqa
+version_build = "1014"                                                                                              # noqa
 myScriptName = "stockglance2020.py(Extension)"                                                                      # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -667,6 +669,7 @@ class MyPopUpDialogBox():
         # Add standard CMD-W keystrokes etc to close window
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+        self._popup_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
         self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
         self._popup_d.addWindowListener(self.WindowListener(self._popup_d, self.fakeJFrame,self.lResult))
 
@@ -675,7 +678,7 @@ class MyPopUpDialogBox():
             self._popup_d.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
 
         displayJText = JTextArea(self.theMessage)
-        # displayJText.setFont( getMonoFont() )
+        displayJText.setFont( getMonoFont() )
         displayJText.setEditable(False)
         displayJText.setLineWrap(False)
         displayJText.setWrapStyleWord(False)
@@ -1280,7 +1283,7 @@ def about_this_script():
     shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
     about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
     about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
-
+    about_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
     about_d.getRootPane().getActionMap().put("close-window", CloseAboutAction(about_d))
 
     about_d.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)  # The CloseAction() and WindowListener() will handle dispose() - else change back to DISPOSE_ON_CLOSE

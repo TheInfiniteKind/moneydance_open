@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1010)
+# extract_reminders_csv.py (build: 1012)
 
 ###############################################################################
 # MIT License
@@ -59,6 +59,8 @@
 # Build: 1009 - Changed the main screen, move button(s) to menubar; fix resize issues.....; added reset columns to parameter screen
 # Build: 1009 - Added dataset path/name to extract
 # Build: 1010 - Override max font size
+# Build: 1011 - Use mono font in common code
+# Build: 1012 - Minor tweak to about window close with escape key; Tweak to allow escape in common code popup dialog
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -89,7 +91,7 @@ from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, Spli
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
-from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox
+from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox, JRadioButton, ButtonGroup
 from javax.swing.text import PlainDocument
 from javax.swing.border import EmptyBorder
 
@@ -103,12 +105,12 @@ from java.lang import System, Double, Math, Character
 from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 from java.io import BufferedReader, InputStreamReader
 if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
-						JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
-						JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
-						InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
-						AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
-						JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
-						WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
+					JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
+					JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
+					InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
+					AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
+					JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
+					WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
 if codecs.BOM_UTF8 is not None: pass
 if csv.QUOTE_ALL is not None: pass
 if datetime.MINYEAR is not None: pass
@@ -122,7 +124,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1010"           																					# noqa
+version_build = "1012"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -607,6 +609,7 @@ class MyPopUpDialogBox():
 		# Add standard CMD-W keystrokes etc to close window
 		self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
 		self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+		self._popup_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
 		self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
 		self._popup_d.addWindowListener(self.WindowListener(self._popup_d, self.fakeJFrame,self.lResult))
 
@@ -615,7 +618,7 @@ class MyPopUpDialogBox():
 			self._popup_d.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
 
 		displayJText = JTextArea(self.theMessage)
-		# displayJText.setFont( getMonoFont() )
+		displayJText.setFont( getMonoFont() )
 		displayJText.setEditable(False)
 		displayJText.setLineWrap(False)
 		displayJText.setWrapStyleWord(False)
@@ -1194,6 +1197,7 @@ def about_this_script():
 	shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
 	about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
 	about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+	about_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
 
 	about_d.getRootPane().getActionMap().put("close-window", CloseAboutAction(about_d))
 
