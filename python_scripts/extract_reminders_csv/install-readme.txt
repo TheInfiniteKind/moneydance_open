@@ -6,7 +6,7 @@ The scripts and extensions are identical. The extensions are simply a packaged s
 
 The Extensions will only run on Moneydance version 2021 build 2012 onwards... The scripts don't have this requirement
 NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
-(If you have installed the extension, but nothing happens, then check your MD version)
+(If you have installed the extension, but nothing happens, then check your Moneydance version)
 
 Extensions have a file extension of *.mxt
 Scripts have a file extension of *.py

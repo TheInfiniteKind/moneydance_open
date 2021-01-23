@@ -1164,6 +1164,8 @@ get_StuWareSoftSystems_parameters_from_file()
 myPrint("DB", "DEBUG IS ON..")
 # END ALL CODE COPY HERE ###############################################################################################
 
+moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
+
 # Create fake JFrame() so that all popups have correct Moneydance Icons etc
 extract_reminders_csv_fake_frame_ = JFrame()
 if (not Platform.isMac()):
@@ -1290,6 +1292,7 @@ def terminate_script():
 			myPopupInformationBox(extract_reminders_csv_frame_, "ERROR WHILST CREATING EXPORT! Review Console Log", myScriptName)
 			dump_sys_error_to_md_console_and_errorlog()
 
+	moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
 	if not i_am_an_extension_so_run_headless: print(scriptExit)
 
 	extract_reminders_csv_frame_.dispose()

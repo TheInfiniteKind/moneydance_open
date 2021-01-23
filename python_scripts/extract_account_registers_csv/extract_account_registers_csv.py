@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 1009 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1010 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -52,6 +52,7 @@
 # Build: 1007 - Override max font size
 # Build: 1008 - Use mono font in common code
 # Build: 1009 - Tweak to allow escape in common code popup dialog
+# Build: 1010 - Small fix as program tried to remove a dir that wasn't created; also error trap if attachment missing....
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -1218,6 +1219,7 @@ get_StuWareSoftSystems_parameters_from_file()
 myPrint("DB", "DEBUG IS ON..")
 # END ALL CODE COPY HERE ###############################################################################################
 
+moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
 # Create fake JFrame() so that all popups have correct Moneydance Icons etc
 extract_account_registers_fake_frame_ = JFrame()
@@ -2133,6 +2135,7 @@ if not lExit:
         accountBalances = {}
 
         _local_storage = moneydance.getCurrentAccountBook().getLocalStorage()
+        iAttachmentErrors=0
 
         iCount = 0
         iCountAttachmentsDownloaded = 0
@@ -2377,18 +2380,20 @@ if not lExit:
                 uniqueFileString=" "*5
                 for attachmentLocation in attachmentLocations:
                     uniqueFileString = str(uniqueFileNumber).strip().zfill(5)
-                    # attachmentLocation = txn.getAttachmentTag(attachmentKey)
-                    # outputFile = os.path.join(attachmentDir,str(uniqueFileString)+ os.path.splitext(attachmentLocation)[1] )
                     outputFile = os.path.join(attachmentDir,str(uniqueFileString)+"-"+os.path.basename(attachmentLocation) )
-                    _ostr = FileOutputStream( File(outputFile) )
-                    bytesCopied = _local_storage.readFile(attachmentLocation, _ostr)
-                    _ostr.close()
-                    myPrint("DB","Attachment %s bytes >> %s copied to %s" %(bytesCopied, attachmentLocation,outputFile))
-                    uniqueFileNumber += 1
-                    attachmentFileList.append(outputFile)
-                    iCountAttachmentsDownloaded += 1
-                    lDidIUseAttachmentDir = True
+                    try:
+                        _ostr = FileOutputStream( File(outputFile) )
+                        bytesCopied = _local_storage.readFile(attachmentLocation, _ostr)
+                        _ostr.close()
+                        myPrint("DB","Attachment %s bytes >> %s copied to %s" %(bytesCopied, attachmentLocation,outputFile))
+                        attachmentFileList.append(outputFile)
+                        iCountAttachmentsDownloaded += 1
+                        lDidIUseAttachmentDir = True
+                    except:
+                        iAttachmentErrors+=1
+                        myPrint("B","ERROR - Could not extract %s" %(attachmentLocation))
 
+                    uniqueFileNumber += 1
 
                 if len(attachmentFileList) < 1:
                     myPrint("B", "@@Major Error whilst searching attachments! Will just move on to next record and skip attachment")
@@ -2421,11 +2426,15 @@ if not lExit:
                         keyIndex += 1
                         iCount += 1
 
-
+        myPrint("P","")
         myPrint("B", "Account Register Transaction Records (Parents, Splits, Attachments) selected:", len(transactionTable) )
+
         if iCountAttachmentsDownloaded:
             myPrint("B", ".. and I downloaded %s attachments for you too" %iCountAttachmentsDownloaded )
+
         if iBal: myPrint("B", "...and %s Manual Opening Balance entries created too..." %iBal)
+
+        if iAttachmentErrors: myPrint("B", "@@ ...and %s Attachment Errors..." %iAttachmentErrors)
         ###########################################################################################################
 
 
@@ -2632,7 +2641,8 @@ if not lExit:
 
                 MyPopUpDialogBox(extract_account_registers_fake_frame_,
                                  "Your extract has been created as requested:",
-                                 "With %s rows and %s attachments downloaded %s" % (iBal+iCount,iCountAttachmentsDownloaded, xtra_msg),
+                                 "With %s rows and %s attachments downloaded %s\n"
+                                 "\n(... and %s Attachment Errors...)" % (len(transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors),
                                  200,
                                  myScriptName, lModal=True).go()
 
@@ -2646,7 +2656,7 @@ if not lExit:
             myPopupInformationBox(extract_account_registers_fake_frame_, "No records selected and no extract file created....", myScriptName)
 
         # Clean up...
-        if not lDidIUseAttachmentDir:
+        if not lDidIUseAttachmentDir and attachmentDir:
             try:
                 os.rmdir(attachmentDir)
                 myPrint("B", "Successfully removed unused/empty Attachment Directory: %s" %attachmentDir)
@@ -2663,5 +2673,6 @@ if extract_account_registers_fake_frame_ is not None:
     del extract_account_registers_fake_frame_
 
 myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
+moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
 
 if not i_am_an_extension_so_run_headless: print(scriptExit)

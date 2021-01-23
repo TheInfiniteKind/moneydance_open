@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - build: 1012 - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - build: 1013 - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -60,6 +60,7 @@
 # Build: 1010 - Override max font size
 # Build: 1011 - Use mono font in common code
 # Build: 1012 - Tweak to allow escape in common code popup dialog
+# Build: 1013 - Upgraded to add extract attachments feature (and small fix to script trying to remove dir is didn't actually create)
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -121,7 +122,7 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1012"                                                                                              # noqa
+version_build = "1013"                                                                                              # noqa
 myScriptName = "extract_investment_transactions_csv.py(Extension)"                                                  # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -132,7 +133,8 @@ lGlobalErrorDetected = False																						# noqa
 # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
 # >>> THIS SCRIPT'S IMPORTS ############################################################################################
-# NONE...
+from copy import deepcopy
+import subprocess
 # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
 # >>> THIS SCRIPT'S GLOBALS ############################################################################################
@@ -143,11 +145,12 @@ global hideHiddenSecurities, hideInactiveAccounts, hideHiddenAccounts, lAllCurre
 global filterForSecurity, lAllAccounts, filterForAccounts, csvDelimiter, lIncludeOpeningBalances, lAdjustForSplits
 global lStripASCII, scriptpath, userdateformat
 global lWriteBOMToExportFile_SWSS
+global lExtractAttachments_EIT
 
 # Other used by program
 global csvfilename, lDisplayOnly
 global baseCurrency, sdf
-global transactionTable, dataKeys, extract_investment_transactions_fake_frame_
+global transactionTable, dataKeys, attachmentDir, relativePath, lDidIUseAttachmentDir, extract_investment_transactions_fake_frame_
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
@@ -164,6 +167,7 @@ filterForAccounts = "ALL"                                                       
 lIncludeOpeningBalances = True                                                                                      # noqa
 lAdjustForSplits = True                                                                                             # noqa
 userdateformat = "%Y/%m/%d"                                                                                         # noqa
+lExtractAttachments_EIT=False                                                                                       # noqa
                                                                                                                     # noqa
 lStripASCII = False                                                                                                 # noqa
 csvDelimiter = ","                                                                                                  # noqa
@@ -171,6 +175,8 @@ lWriteBOMToExportFile_SWSS = True                                               
 
 scriptpath = ""                                                                                                     # noqa
 extract_investment_transactions_fake_frame_ = None                                                                  # noqa
+attachmentDir = ""                                                                                                  # noqa
+lDidIUseAttachmentDir = False                                                                                       # noqa
 extract_filename="extract_investment_transactions.csv"
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
@@ -1109,6 +1115,7 @@ def load_StuWareSoftSystems_parameters_into_memory():
     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lStripASCII, csvDelimiter, scriptpath
     global lIncludeOpeningBalances, lAdjustForSplits, userdateformat
     global lWriteBOMToExportFile_SWSS                                                                                  # noqa
+    global lExtractAttachments_EIT
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
     myPrint("DB", "Loading variables into memory...")
@@ -1131,6 +1138,7 @@ def load_StuWareSoftSystems_parameters_into_memory():
     if myParameters.get("lAdjustForSplits") is not None: lAdjustForSplits = myParameters.get("lAdjustForSplits")
     if myParameters.get("userdateformat") is not None: userdateformat = myParameters.get("userdateformat")
     if myParameters.get("lWriteBOMToExportFile_SWSS") is not None: lWriteBOMToExportFile_SWSS = myParameters.get("lWriteBOMToExportFile_SWSS")                                                                                  # noqa
+    if myParameters.get("lExtractAttachments_EIT") is not None: lExtractAttachments_EIT = myParameters.get("lExtractAttachments_EIT")                                                                                  # noqa
 
     if myParameters.get("scriptpath") is not None:
         scriptpath = myParameters.get("scriptpath")
@@ -1154,6 +1162,7 @@ def dump_StuWareSoftSystems_parameters_from_memory():
     global lIncludeOpeningBalances, lAdjustForSplits
     global userdateformat
     global lWriteBOMToExportFile_SWSS                                                                                  # noqa
+    global lExtractAttachments_EIT
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
@@ -1174,6 +1183,7 @@ def dump_StuWareSoftSystems_parameters_from_memory():
     myParameters["filterForAccounts"] = filterForAccounts
     myParameters["lStripASCII"] = lStripASCII
     myParameters["csvDelimiter"] = csvDelimiter
+    myParameters["lExtractAttachments_EIT"] = lExtractAttachments_EIT
 
     myParameters["lIncludeOpeningBalances"] = lIncludeOpeningBalances
     myParameters["lAdjustForSplits"] = lAdjustForSplits
@@ -1191,6 +1201,8 @@ def dump_StuWareSoftSystems_parameters_from_memory():
 get_StuWareSoftSystems_parameters_from_file()
 myPrint("DB", "DEBUG IS ON..")
 # END ALL CODE COPY HERE ###############################################################################################
+
+moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
 # Create fake JFrame() so that all popups have correct Moneydance Icons etc
 extract_investment_transactions_fake_frame_ = JFrame()
@@ -1250,6 +1262,10 @@ elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
 elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
 else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
+labelAttachments = JLabel("Extract & Download Attachments?")
+user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EIT)
+user_selectExtractAttachments.setName("user_selectExtractAttachments")
+
 label10 = JLabel("Strip non ASCII characters from CSV export?")
 user_selectStripASCII = JCheckBox("", lStripASCII)
 
@@ -1281,6 +1297,8 @@ userFilters.add(label7)
 userFilters.add(user_selectOpeningBalances)
 userFilters.add(label8)
 userFilters.add(user_selectAdjustSplits)
+userFilters.add(labelAttachments)
+userFilters.add(user_selectExtractAttachments)
 userFilters.add(label9)
 userFilters.add(user_dateformat)
 userFilters.add(label10)
@@ -1320,6 +1338,7 @@ if not lExit:
         "Filter Accts:", user_selectAccounts.getText(),
         "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
         "Adj Splits:", user_selectAdjustSplits.isSelected(),
+        "DwnldAttchments:", user_selectExtractAttachments.isSelected(),
         "User Date Format:", user_dateformat.getSelectedItem(),
         "Strip ASCII:", user_selectStripASCII.isSelected(),
         "Write BOM to file:", user_selectBOM.isSelected(),
@@ -1353,6 +1372,7 @@ if not lExit:
 
     lIncludeOpeningBalances = user_selectOpeningBalances.isSelected()
     lAdjustForSplits = user_selectAdjustSplits.isSelected()
+    lExtractAttachments_EIT = user_selectExtractAttachments.isSelected()
 
     if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
     elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
@@ -1439,6 +1459,9 @@ if not lExit:
 
         def grabTheFile():
             global debug, lDisplayOnly, csvfilename, lIamAMac, scriptpath, myScriptName
+
+            global attachmentDir, relativePath, lExtractAttachments_EIT
+
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
             if scriptpath == "" or scriptpath is None:  # No parameter saved / loaded from disk
@@ -1454,10 +1477,21 @@ if not lExit:
                 System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
                 System.setProperty("apple.awt.fileDialogForDirectories", "false")
 
-            filename = FileDialog(extract_investment_transactions_fake_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
+
+            if lExtractAttachments_EIT:
+                filename = FileDialog(extract_investment_transactions_fake_frame_, "Select/Create CSV file for extract - MUST BE A UNIQUE NAME -(CANCEL=NO EXPORT)")
+            else:
+                filename = FileDialog(extract_investment_transactions_fake_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
+
             filename.setMultipleMode(False)
             filename.setMode(FileDialog.SAVE)
-            filename.setFile(extract_filename)
+            if lExtractAttachments_EIT:
+                split_the_name = os.path.splitext(extract_filename)
+                attachmentDir = split_the_name[0]+get_filename_addition()
+                newName = attachmentDir+split_the_name[1]
+                filename.setFile(newName)
+            else:
+                filename.setFile(extract_filename)
             if (scriptpath is not None and scriptpath != ""): filename.setDirectory(scriptpath)
 
             # Copied from MD code... File filters only work on non Macs (or Macs below certain versions)
@@ -1466,7 +1500,6 @@ if not lExit:
                 filename.setFilenameFilter(extfilter)  # I'm not actually sure this works...?
 
             filename.setVisible(True)
-
             csvfilename = filename.getFile()
 
             if (csvfilename is None) or csvfilename == "":
@@ -1487,6 +1520,9 @@ if not lExit:
                 lDisplayOnly = True
                 csvfilename = None
             else:
+                if not lDisplayOnly:
+                    relativePath = os.path.splitext(csvfilename)[0]
+
                 csvfilename = os.path.join(filename.getDirectory(), filename.getFile())
                 scriptpath = str(filename.getDirectory())
 
@@ -1506,9 +1542,31 @@ if not lExit:
                     myPopupInformationBox(extract_investment_transactions_fake_frame_, "Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename, "FILE EXPORT")
                     csvfilename=""
                     lDisplayOnly = True
+                    return
+
+                attachmentDir = None
+                if lExtractAttachments_EIT:
+                    attachmentDir = os.path.splitext( csvfilename )[0]
+                    if os.path.exists(attachmentDir):
+                        myPrint("B", "Sorry - Attachment Directory already exists... I need to create it: %s" %attachmentDir)
+                        myPopupInformationBox(extract_investment_transactions_fake_frame_, "Sorry - Attachment Directory already exists... I need to create it: %s" % attachmentDir, "ATTACHMENT DIRECTORY")
+                        csvfilename=""
+                        lDisplayOnly = True
+                        return
+
+                    try:
+                        os.mkdir(attachmentDir)
+                        myPrint("B", "Successfully created Attachment Directory: %s" %attachmentDir)
+                        MyPopUpDialogBox(extract_investment_transactions_fake_frame_, theStatus="I have created Attachment Directory:", theMessage=attachmentDir, theWidth=200, theTitle="Info", lModal=True).go()
+
+                    except:
+                        myPrint("B", "Sorry - Failed to create Attachment Directory: %s",attachmentDir)
+                        myPopupInformationBox(extract_investment_transactions_fake_frame_, "Sorry - Failed to create Attachment Directory: %s" % attachmentDir, "ATTACHMENT DIRECTORY")
+                        csvfilename=""
+                        lDisplayOnly = True
+                        return
 
             return
-
 
         # enddef
 
@@ -1521,7 +1579,10 @@ if not lExit:
         lDisplayOnly = True
         myPrint("P", "No Export will be performed")
 
+
+    # save here in case script crashes....
     save_StuWareSoftSystems_parameters_to_file()
+
 
     if not lDisplayOnly:
 
@@ -1694,38 +1755,42 @@ if not lExit:
         _COLUMN = 0
         _HEADING = 1
         dataKeys = {
-                "_ACCOUNT":         [0, "Account"],
-                "_DATE":            [1, "Date"],
-                "_TAXDATE":         [2, "TaxDate"],
-                "_CURR":            [3, "Currency"],
-                "_SECURITY":        [4, "Security"],
-                "_TICKER":          [5, "SecurityTicker"],
-                "_SECCURR":         [6, "SecurityCurrency"],
-                "_AVGCOST":         [7, "AverageCostControl"],
-                "_ACTION":          [8, "Action"],
-                "_TT":              [9, "ActionType"],
-                "_CHEQUE":          [10, "Cheque"],
-                "_DESC":            [11, "Description"],
-                "_MEMO":            [12, "Memo"],
-                "_CLEARED":         [13, "Cleared"],
-                "_TRANSFER":        [14, "Transfer"],
-                "_CAT":             [15, "Category"],
-                "_SHARES":          [16, "Shares"],
-                "_PRICE":           [17, "Price"],
-                "_AMOUNT":          [18, "Amount"],
-                "_FEE":             [19, "Fee"],
-                "_FEECAT":          [20, "FeeCategory"],
-                "_TXNNETAMOUNT":    [21, "TransactionNetAmount"],
-                "_CASHIMPACT":      [22, "CashImpact"],
-                "_SHRSAFTERSPLIT":  [23, "CalculateSharesAfterSplit"],
-                "_PRICEAFTERSPLIT": [24, "CalculatePriceAfterSplit"],
-                "_HASATTACHMENTS":  [25, "HasAttachments"],
-                "_LOTS":            [26, "Lot Data"],
-                "_ACCTCASHBAL":     [27, "AccountCashBalance"],
-                "_SECSHRHOLDING":   [28, "SecurityShareHolding"],
-                "_END":             [29, "_END"]
+                "_ACCOUNT":             [0, "Account"],
+                "_DATE":                [1, "Date"],
+                "_TAXDATE":             [2, "TaxDate"],
+                "_CURR":                [3, "Currency"],
+                "_SECURITY":            [4, "Security"],
+                "_TICKER":              [5, "SecurityTicker"],
+                "_SECCURR":             [6, "SecurityCurrency"],
+                "_AVGCOST":             [7, "AverageCostControl"],
+                "_ACTION":              [8, "Action"],
+                "_TT":                  [9, "ActionType"],
+                "_CHEQUE":              [10, "Cheque"],
+                "_DESC":                [11, "Description"],
+                "_MEMO":                [12, "Memo"],
+                "_CLEARED":             [13, "Cleared"],
+                "_TRANSFER":            [14, "Transfer"],
+                "_CAT":                 [15, "Category"],
+                "_SHARES":              [16, "Shares"],
+                "_PRICE":               [17, "Price"],
+                "_AMOUNT":              [18, "Amount"],
+                "_FEE":                 [19, "Fee"],
+                "_FEECAT":              [20, "FeeCategory"],
+                "_TXNNETAMOUNT":        [21, "TransactionNetAmount"],
+                "_CASHIMPACT":          [22, "CashImpact"],
+                "_SHRSAFTERSPLIT":      [23, "CalculateSharesAfterSplit"],
+                "_PRICEAFTERSPLIT":     [24, "CalculatePriceAfterSplit"],
+                "_HASATTACHMENTS":      [25, "HasAttachments"],
+                "_LOTS":                [26, "Lot Data"],
+                "_ACCTCASHBAL":         [27, "AccountCashBalance"],
+                "_SECSHRHOLDING":       [28, "SecurityShareHolding"],
+                "_ATTACHMENTLINK":      [29, "AttachmentLink"],
+                "_ATTACHMENTLINKREL":   [30, "AttachmentLinkRelative"],
+                "_KEY":                 [31, "Key"],
+                "_END":                 [32, "_END"]
                 }
 
+        attachmentsDownloaded = 0
         transactionTable = []
 
         myPrint("DB", dataKeys)
@@ -1746,10 +1811,16 @@ if not lExit:
                                                                                  filterForSecurity,
                                                                                  None))
 
+        iCount = 0
+        iCountAttachmentsDownloaded = 0
+        uniqueFileNumber = 1
+
+        _local_storage = moneydance.getCurrentAccountBook().getLocalStorage()
+        iAttachmentErrors=0
+
         iBal = 0
         accountBalances = {}
 
-        iCount = 0
         for txn in txns:
 
             txnAcct = txn.getAccount()
@@ -1808,7 +1879,12 @@ if not lExit:
                 expTxn = TxnUtil.getExpensePart(txn)
                 if expTxn:expAcct = expTxn.getAccount()
 
+            keyIndex = 0
             row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+
+            txnKey = txn.getUUID()
+            row[dataKeys["_KEY"][_COLUMN]] = txnKey + "-" + str(keyIndex).zfill(3)
+
 
             if lParent and str(txn.getTransferType()).lower() == "xfrtp_bank" and str(txn.getInvestTxnType()).lower() == "bank" \
                     and not xfrTxn and feeTxn and not securityTxn:
@@ -1978,7 +2054,6 @@ if not lExit:
 
             row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(txnAcct.getBalance())
 
-
             # row[dataKeys["_CURRDPC"][_COLUMN]] = acctCurr.getDecimalPlaces()
             # row[dataKeys["_SECDPC"][_COLUMN]] = securityCurr.getDecimalPlaces()
 
@@ -2003,18 +2078,106 @@ if not lExit:
                 # endif
             # endif
 
-            myPrint("D", row)
-            transactionTable.append(row)
-            iCount += 1
+            # ATTACHMENT ROUTINE
+            holdTheKeys = ArrayList()
+            holdTheLocations = ArrayList()
 
+            if lExtractAttachments_EIT and txn.hasAttachments():
+
+                masterRowCopy = deepcopy(row)
+
+                # noinspection PyUnresolvedReferences
+                holdTheKeys = holdTheKeys + txn.getAttachmentKeys()
+                for _attachKey in txn.getAttachmentKeys():
+                    # noinspection PyUnresolvedReferences
+                    holdTheLocations.append(txn.getAttachmentTag(_attachKey))
+
+                # ok, we should still be on the first record here.... and we want to download attachments....
+                attachmentFileList=[]
+                attachmentKeys = holdTheKeys
+                attachmentLocations = holdTheLocations
+                uniqueFileString=" "*5
+                for attachmentLocation in attachmentLocations:
+                    uniqueFileString = str(uniqueFileNumber).strip().zfill(5)
+                    outputFile = os.path.join(attachmentDir,str(uniqueFileString)+"-"+os.path.basename(attachmentLocation) )
+                    try:
+                        _ostr = FileOutputStream( File(outputFile) )
+                        bytesCopied = _local_storage.readFile(attachmentLocation, _ostr)
+                        _ostr.close()
+                        myPrint("DB","Attachment %s bytes >> %s copied to %s" %(bytesCopied, attachmentLocation,outputFile))
+                        attachmentFileList.append(outputFile)
+                        iCountAttachmentsDownloaded += 1
+                        lDidIUseAttachmentDir = True
+                    except:
+                        iAttachmentErrors+=1
+                        myPrint("B","ERROR - Could not extract %s" %(attachmentLocation))
+
+                    uniqueFileNumber += 1
+
+                if len(attachmentFileList) < 1:
+                    myPrint("B", "@@Major Error whilst searching attachments! Will just move on to next record and skip attachment")
+                    masterRowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = "*ERROR*"
+                    myPrint("B", masterRowCopy)
+                    transactionTable.append(masterRowCopy)
+                    keyIndex += 1
+                    iCount += 1
+                    continue
+
+                for _i in range(0,len(attachmentFileList)):
+                    rowCopy = deepcopy(masterRowCopy)  # Otherwise passes by references and future changes affect the original(s)
+
+                    if _i > 0:  # If not on first record, update the key...
+                        rowCopy[dataKeys["_KEY"][_COLUMN]] = txnKey + "-" + str(keyIndex).zfill(3)
+
+                    if _i == 1:
+                        # Nuke repeated rows for Attachments (so totals are still OK)
+                        rowCopy[dataKeys["_SHARES"][_COLUMN]] = None
+                        rowCopy[dataKeys["_PRICE"][_COLUMN]] = None
+                        rowCopy[dataKeys["_AMOUNT"][_COLUMN]] = None
+                        rowCopy[dataKeys["_FEE"][_COLUMN]] = None
+                        rowCopy[dataKeys["_FEECAT"][_COLUMN]] = None
+                        rowCopy[dataKeys["_TXNNETAMOUNT"][_COLUMN]] = None
+                        rowCopy[dataKeys["_CASHIMPACT"][_COLUMN]] = None
+                        rowCopy[dataKeys["_SHRSAFTERSPLIT"][_COLUMN]] = None
+                        rowCopy[dataKeys["_PRICEAFTERSPLIT"][_COLUMN]] = None
+                        rowCopy[dataKeys["_LOTS"][_COLUMN]] = None
+                        rowCopy[dataKeys["_ACCTCASHBAL"][_COLUMN]] = None
+                        rowCopy[dataKeys["_SECSHRHOLDING"][_COLUMN]] = None
+
+                    rowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = '=HYPERLINK("'+attachmentFileList[_i]+'","FILE: '+os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
+                    rowCopy[dataKeys["_ATTACHMENTLINKREL"][_COLUMN]] = '=HYPERLINK("'+os.path.join(".",relativePath,os.path.basename(attachmentFileList[_i]))+'","FILE: '+os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
+
+                    transactionTable.append(rowCopy)
+
+                    keyIndex += 1
+                    iCount += 1
+
+            # END ATTACHMENT ROUTINE
+            else:
+                myPrint("D", row)
+                transactionTable.append(row)
+                iCount += 1
+
+        myPrint("P","")
         myPrint("B", "Investment Transaction Records selected:", len(transactionTable) )
+
+        if iCountAttachmentsDownloaded:
+            myPrint("B", ".. and I downloaded %s attachments for you too" %iCountAttachmentsDownloaded )
+
         if iBal: myPrint("B", "...and %s Manual Opening Balance entries created too..." %iBal)
+
+        if iAttachmentErrors: myPrint("B", "@@ ...and %s Attachment Errors..." %iAttachmentErrors)
         ###########################################################################################################
 
 
         # sort the file: Account>Security>Date
-        transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_ACCOUNT"][_COLUMN]],
-                                                                   x[dataKeys["_DATE"][_COLUMN]]) )
+        if lExtractAttachments_EIT:
+            transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_ACCOUNT"][_COLUMN]],
+                                                                       x[dataKeys["_DATE"][_COLUMN]],
+                                                                       x[dataKeys["_KEY"][_COLUMN]]) )
+        else:
+            transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_ACCOUNT"][_COLUMN]],
+                                                                       x[dataKeys["_DATE"][_COLUMN]]))
 
         ###########################################################################################################
 
@@ -2022,7 +2185,7 @@ if not lExit:
         def ExportDataToFile():
             global debug, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build, myScriptName
             global transactionTable, userdateformat, lGlobalErrorDetected
-            global lWriteBOMToExportFile_SWSS
+            global lWriteBOMToExportFile_SWSS, lExtractAttachments_EIT, relativePath
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -2064,10 +2227,33 @@ if not lExit:
                     if csvDelimiter != ",":
                         writer.writerow(["sep=", ""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
 
-                    writer.writerow(headings)  # Print the header, but not the extra _field headings
+                    if lExtractAttachments_EIT and Platform.isOSX():
+                        writer.writerow([""])
+                        writer.writerow(["** On a Mac with Later versions of Excel, Apple 'Sand Boxing' prevents file access..."])
+                        writer.writerow(["** Edit this cell below, then press Enter and it will change to a Hyperlink (blue)"])
+                        writer.writerow(["** Click it, then Open, and then GRANT access to the folder.... (the links below will then work)"])
+                        writer.writerow([""])
+                        # writer.writerow(["FILE://" + os.path.join(".",relativePath)])
+                        writer.writerow(["FILE://" + scriptpath])
+                        # writer.writerow(["FILE:///"])  # This attempts to allow access to whole folder subsystem....
+                        writer.writerow([""])
+
+                    if lExtractAttachments_EIT:
+                        if debug:
+                            writer.writerow(headings[:dataKeys["_END"][_COLUMN]])  # Print the header, but not the extra _field headings
+                        else:
+                            writer.writerow(headings[:dataKeys["_KEY"][_COLUMN]])  # Print the header, but not the extra _field headings
+                    else:
+                        writer.writerow(headings[:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])  # Print the header, but not the extra _field headings
 
                     for i in range(0, len(transactionTable)):
-                        writer.writerow(transactionTable[i])
+                        if lExtractAttachments_EIT:
+                            if debug:
+                                writer.writerow(transactionTable[i][:dataKeys["_END"][_COLUMN]])
+                            else:
+                                writer.writerow(transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
+                        else:
+                            writer.writerow(transactionTable[i][:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])
 
                     today = Calendar.getInstance()
                     writer.writerow([""])
@@ -2091,6 +2277,7 @@ if not lExit:
                     writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances)])
                     writer.writerow(["Adjust for Splits..........: %s" %(lAdjustForSplits)])
                     writer.writerow(["Split Securities by Account: %s" %(userdateformat)])
+                    writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EIT)])
 
                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
@@ -2103,7 +2290,6 @@ if not lExit:
                 myPopupInformationBox(extract_investment_transactions_fake_frame_,"Sorry - error writing to export file!", "FILE EXTRACT")
 
         # enddef
-
 
         def fixFormatsStr(theString, lNumber=False, sFormat=""):
 
@@ -2130,9 +2316,9 @@ if not lExit:
 
             theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
             theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
-            theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
-            theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
-            theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
+            # theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
+            # theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
+            # theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
 
             if lStripASCII:
                 all_ASCII = ''.join(char for char in theString if ord(char) < 128)  # Eliminate non ASCII printable Chars too....
@@ -2140,19 +2326,77 @@ if not lExit:
                 all_ASCII = theString
             return all_ASCII
 
-        ExportDataToFile()
-        if not lGlobalErrorDetected:
-            myPopupInformationBox(extract_investment_transactions_fake_frame_,"Your extract has been created as requested",myScriptName)
+        if len(transactionTable) > 0:
+
+            ExportDataToFile()
+
+            if not lGlobalErrorDetected:
+                xtra_msg=""
+                if lDidIUseAttachmentDir:
+
+                    baseName = os.path.basename(csvfilename)
+                    lShell = None
+                    theCommand = None
+
+                    if not Platform.isWindows():
+                        theCommand = 'zip -v -r "%s" "%s" "%s"' %(os.path.splitext(baseName)[0]+".zip",
+                                                                  baseName,
+                                                                  os.path.join(os.path.splitext(baseName)[0],""))
+
+                        lShell = True
+                    else:
+                        try:
+                            if float(System.getProperty("os.version")) >= 10:
+                                theCommand = 'tar -a -cvf "%s" "%s" "%s"' %(os.path.splitext(baseName)[0]+".zip",
+                                                                            baseName,
+                                                                            os.path.join(os.path.splitext(baseName)[0],"*.*"))
+
+                                lShell = False
+                        except:
+                            pass
+                    try:
+                        if theCommand:
+                            os.chdir(scriptpath)
+                            xx=subprocess.check_output( theCommand, shell=lShell)
+                            myPrint("B","Created zip using command: %s (output follows)" %theCommand)
+                            myPrint("B",xx)
+                            xtra_msg="\n(and I also zipped the file - review console / log for any messages)"
+                    except:
+                        myPrint("B","Sorry, failed to create zip")
+                        xtra_msg="\n(with an error creating the zip file - review console / log for messages)"
+
+                MyPopUpDialogBox(extract_investment_transactions_fake_frame_,
+                                 "Your extract has been created as requested:",
+                                 "With %s rows and %s attachments downloaded %s\n"
+                                 "\n(... and %s Attachment Errors...)" % (len(transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors),
+                                 200,
+                                 myScriptName, lModal=True).go()
+
+                try:
+                    helper = moneydance.getPlatformHelper()
+                    helper.openDirectory(File(csvfilename))
+                except:
+                    pass
+        else:
+            myPopupInformationBox(extract_investment_transactions_fake_frame_, "No records selected and no extract file created....", myScriptName)
+
+        # Clean up...
+        if not lDidIUseAttachmentDir and attachmentDir:
             try:
-                helper = moneydance.getPlatformHelper()
-                helper.openDirectory(File(csvfilename))
+                os.rmdir(attachmentDir)
+                myPrint("B", "Successfully removed unused/empty Attachment Directory: %s" %(attachmentDir))
             except:
-                pass
+                myPrint("B", "Sorry - I failed to remove the unused/empty Attachment Directory: %s",(attachmentDir))
+
+        # delete references to large objects
+        del transactionTable
+        del accountBalances
 
 if extract_investment_transactions_fake_frame_ is not None:
     extract_investment_transactions_fake_frame_.dispose()
     del extract_investment_transactions_fake_frame_
 
 myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
+moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
 
 if not i_am_an_extension_so_run_headless: print(scriptExit)
