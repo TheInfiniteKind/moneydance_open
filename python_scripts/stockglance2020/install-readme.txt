@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems 2020
+Author: Stuart Beesley - StuWareSoftSystems 2020-2021
 Visit: https://yogi1967.github.io/MoneydancePythonScripts/ for more downloads and information
 
 THESE ARE EXTENSIONS / SCRIPTS FOR MONEYDANCE WRITTEN IN PYTHON (JYTHON 2.7)
@@ -10,6 +10,7 @@ NOTE: You may need to download the MD preview version from: https://infinitekind
 
 Extensions have a file extension of *.mxt
 Scripts have a file extension of *.py
+If you downloaded a zip file (extension *.zip) then unzip first in a directory of your choice to get at the file(s)
 
 Toolbox is an Extension format only - i.e. just the Toolbox.mxt file
 All the others have both Extension (*.mxt) and Script (*.py) formats
@@ -38,3 +39,5 @@ extract_currency_history_csv: Extract currency history to csv
 extract_account_registers_csv: Extract Account Register(s) to csv along with any attachments
 extract_investment_transactions_csv: Extract investment transactions to csv
 
+useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzip and select the script you want. Includes:
+- calculate_moneydance_objs_and_datasetsize.py: Analyse your dataset, object counts, file sizes, and find other known datasets

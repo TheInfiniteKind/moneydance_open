@@ -250,6 +250,9 @@ extract_currency_history_csv            Extract currency history to csv
 extract_investment_transactions_csv     Extract investment transactions to csv
 extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
 
+A collection of useful ad-hoc scripts (zip file)
+useful_scripts:                         Just unzip and select the script you want for the task at hand...
+
 Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
 """ %myScriptName
