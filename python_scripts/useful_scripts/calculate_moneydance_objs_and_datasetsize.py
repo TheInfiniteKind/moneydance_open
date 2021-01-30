@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# calculate_moneydance_objs_and_datasetsize.py build: 1 - Jan 2021 - Stuart Beesley StuWareSoftSystems
+# calculate_moneydance_objs_and_datasetsize.py build: 2 - Jan 2021 - Stuart Beesley StuWareSoftSystems
 
 # COMMON IMPORTS #######################################################################################################
 import sys
-
 reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
 sys.setdefaultencoding('utf8')  # Dirty hack to eliminate UTF-8 coding errors. Without this str() fails on unicode strings...
 
@@ -31,11 +30,11 @@ from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, Spli
 
 from javax.swing import JButton, JScrollPane, WindowConstants, JFrame, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
 from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
-from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox
+from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox, JRadioButton, ButtonGroup
 from javax.swing.text import PlainDocument
 from javax.swing.border import EmptyBorder
 
-from java.awt import Color, Dimension, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
+from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
 from java.awt import BorderLayout, Dialog, Insets
 from java.awt.event import KeyEvent, WindowAdapter, InputEvent
 
@@ -47,7 +46,7 @@ from java.io import BufferedReader, InputStreamReader
 if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                      JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                      JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
-                     InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil,
+                     InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                      AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
                      JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
                      WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
@@ -59,12 +58,13 @@ if Math.max(1,1): pass
 
 # COMMON GLOBALS #######################################################################################################
 global debug  # Set to True if you want verbose messages, else set to False....
-global myParameters, myScriptName, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
+global myParameters, myScriptName, version_build, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
 global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlobalErrorDetected
+global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1"                                                                                                 # noqa
+version_build = "2"                                                                                                 # noqa
 myScriptName = "calculate_moneydance_objs_and_datasetsize.py.py(Extension)"                                         # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -72,6 +72,7 @@ _resetParameters = False                                                        
 lPickle_version_warning = False                                                                                     # noqa
 lIamAMac = False                                                                                                    # noqa
 lGlobalErrorDetected = False																						# noqa
+MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
 # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
 # >>> THIS SCRIPT'S IMPORTS ############################################################################################
@@ -105,12 +106,12 @@ extract_currency_history_csv            Extract currency history to csv
 extract_investment_transactions_csv     Extract investment transactions to csv
 extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
 
-A collection of useful ad-hoc scripts (zip file):
-useful_scripts                          Just unzip and select the script you want for the task at hand...
+A collection of useful ad-hoc scripts (zip file)
+useful_scripts:                         Just unzip and select the script you want for the task at hand...
 
-Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
+Visit: %s (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
-""" %myScriptName
+""" %(myScriptName, MYPYTHON_DOWNLOAD_URL)
 
 # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both, D=If Debug Only print, DB=print both
 def myPrint(where, *args):
@@ -184,7 +185,7 @@ def cpad(theText, theLength):
 
 
 myPrint("B", "StuWareSoftSystems...")
-myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:",version_build)
+myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
 def is_moneydance_loaded_properly():
     global debug
@@ -219,7 +220,7 @@ def getMonoFont():
 
     try:
         theFont = moneydance_ui.getFonts().code
-        if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
+        # if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
     except:
         theFont = Font("monospaced", Font.PLAIN, 15)
         if debug: myPrint("B","Failed to Font set to Moneydance code - So using: %s" %theFont)
@@ -528,6 +529,7 @@ class MyPopUpDialogBox():
         # Add standard CMD-W keystrokes etc to close window
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+        self._popup_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
         self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
         self._popup_d.addWindowListener(self.WindowListener(self._popup_d, self.fakeJFrame,self.lResult))
 
@@ -536,7 +538,7 @@ class MyPopUpDialogBox():
             self._popup_d.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
 
         displayJText = JTextArea(self.theMessage)
-        # displayJText.setFont( getMonoFont() )
+        displayJText.setFont( getMonoFont() )
         displayJText.setEditable(False)
         displayJText.setLineWrap(False)
         displayJText.setWrapStyleWord(False)
@@ -720,7 +722,14 @@ def setDefaultFonts():
 
     myFont = moneydance_ui.getFonts().defaultText
 
-    myPrint("DB", "Attempting to set default font to %s" %myFont)
+    if myFont.getSize()>18:
+        try:
+            myFont = myFont.deriveFont(16.0)
+            myPrint("B", "I have reduced the font size down to point-size 16 - Default Fonts are now set to: %s" %(myFont))
+        except:
+            myPrint("B","ERROR - failed to override font point size down to 16.... will ignore and continue. Font set to: %s" %(myFont))
+    else:
+        myPrint("DB", "Attempting to set default font to %s" %myFont)
 
     try:
         UIManager.getLookAndFeelDefaults().put("defaultFont", myFont )
@@ -873,7 +882,7 @@ def fix_delimiter( theDelimiter ):
     return str( theDelimiter )
 
 def get_StuWareSoftSystems_parameters_from_file():
-    global debug, myParameters, lPickle_version_warning, _resetParameters                            # noqa
+    global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
@@ -958,7 +967,7 @@ def get_StuWareSoftSystems_parameters_from_file():
     return
 
 def save_StuWareSoftSystems_parameters_to_file():
-    global debug, myParameters, lPickle_version_warning
+    global debug, myParameters, lPickle_version_warning, version_build
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
@@ -1005,6 +1014,7 @@ def save_StuWareSoftSystems_parameters_to_file():
 # END COMMON DEFINITIONS ###############################################################################################
 
 
+if isinstance(None, FileDialog): pass
 
 startDir=moneydance_data.getRootFolder().getCanonicalPath()
 print("\nDataset path:        %s" %(startDir))

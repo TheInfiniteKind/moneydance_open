@@ -125,6 +125,7 @@ _resetParameters = False                                                        
 lPickle_version_warning = False                                                                                     # noqa
 lIamAMac = False                                                                                                    # noqa
 lGlobalErrorDetected = False																						# noqa
+MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
 # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
 # >>> THIS SCRIPT'S IMPORTS ############################################################################################
