@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_account_registers_csv.py - build: 1010 - December 2020 - Stuart Beesley
+# extract_account_registers_csv.py - build: 1011 - December 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -53,6 +53,8 @@
 # Build: 1008 - Use mono font in common code
 # Build: 1009 - Tweak to allow escape in common code popup dialog
 # Build: 1010 - Small fix as program tried to remove a dir that wasn't created; also error trap if attachment missing....
+# Build: 1010 - Common code tweak
+# Build: 1011 - Common code tweak
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -111,10 +113,11 @@ if Math.max(1,1): pass
 global debug  # Set to True if you want verbose messages, else set to False....
 global myParameters, myScriptName, version_build, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
 global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlobalErrorDetected
+global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1009"                                                                                                 # noqa
+version_build = "1011"                                                                                                 # noqa
 myScriptName = "extract_account_registers_csv.py(Extension)"                                                        # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -203,12 +206,12 @@ extract_currency_history_csv            Extract currency history to csv
 extract_investment_transactions_csv     Extract investment transactions to csv
 extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
 
-A collection of useful ad-hoc scripts (zip file):
-useful_scripts                          Just unzip and select the script you want for the task at hand...
+A collection of useful ad-hoc scripts (zip file)
+useful_scripts:                         Just unzip and select the script you want for the task at hand...
 
-Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
+Visit: %s (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
-""" %myScriptName
+""" %(myScriptName, MYPYTHON_DOWNLOAD_URL)
 
 # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both, D=If Debug Only print, DB=print both
 def myPrint(where, *args):
@@ -288,7 +291,7 @@ def is_moneydance_loaded_properly():
     global debug
 
     if debug or moneydance_data is None or moneydance_ui is None:
-        for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
+        for theClass in ["moneydance",  moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
             myPrint("B","Moneydance Objects now....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
         myPrint("P","")
 
@@ -299,8 +302,8 @@ def is_moneydance_loaded_properly():
     # to cope with being run as Extension.... temporary
     if moneydance is not None and moneydance_data is None and moneydance_ui is None:                                # noqa
         myPrint("B", "@@@ Moneydance variables not set (run as extension?) - attempting to manually set @@@")
-        exec "global moneydance_ui" + "moneydance_ui=moneydance.getUI()"
-        exec "global moneydance_data" + "moneydance_data=moneydance.getCurrentAccount().getBook()"
+        exec "global moneydance_ui;" + "moneydance_ui=moneydance.getUI();"
+        exec "global moneydance_data;" + "moneydance_data=moneydance.getCurrentAccount().getBook();"
 
         for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
             myPrint("B","Moneydance Objects after manual setting....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
@@ -317,7 +320,7 @@ def getMonoFont():
 
     try:
         theFont = moneydance_ui.getFonts().code
-        if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
+        # if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
     except:
         theFont = Font("monospaced", Font.PLAIN, 15)
         if debug: myPrint("B","Failed to Font set to Moneydance code - So using: %s" %theFont)
@@ -361,12 +364,12 @@ def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
 
     if lGetPoint:
         _decimalCharSep = decimalSymbols.getDecimalSeparator()
-        myPrint("DB","Decimal Point Character:", _decimalCharSep)
+        myPrint("D","Decimal Point Character:", _decimalCharSep)
         return _decimalCharSep
 
     if lGetGrouping:
         _groupingCharSep = decimalSymbols.getGroupingSeparator()
-        myPrint("DB","Grouping Separator Character:", _groupingCharSep)
+        myPrint("D","Grouping Separator Character:", _groupingCharSep)
         return _groupingCharSep
 
     return "error"
@@ -421,6 +424,7 @@ def myPopupAskBackup(theParent=None, theMessage="What no message?!"):
         return True
 
     elif response == 1:
+        myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
         return True
 
     return False
@@ -625,8 +629,8 @@ class MyPopUpDialogBox():
         # Add standard CMD-W keystrokes etc to close window
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
-        self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
         self._popup_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+        self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
         self._popup_d.addWindowListener(self.WindowListener(self._popup_d, self.fakeJFrame,self.lResult))
 
         if (not Platform.isMac()):
@@ -956,7 +960,7 @@ class JTextFieldLimitYN(PlainDocument):
         if (myString is None): return
         if self.toUpper: myString = myString.upper()
         if (self.what == "YN" and (myString in "YN")) \
-                or (self.what == "DELIM" and (myString in "|,")) \
+                or (self.what == "DELIM" and (myString in ";|,")) \
                 or (self.what == "1234" and (myString in "1234")) \
                 or (self.what == "CURR"):
             if ((self.getLength() + len(myString)) <= self.limit):
@@ -1069,7 +1073,7 @@ def save_StuWareSoftSystems_parameters_to_file():
 
     if myParameters is None: myParameters = {}
 
-    # Don't forget, any parameters loaded earlier will be preserved just add changed variables....
+    # Don't forget, any parameters loaded earlier will be preserved; just add changed variables....
     myParameters["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
     myParameters["debug"] = debug
 

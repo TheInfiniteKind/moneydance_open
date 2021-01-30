@@ -2,7 +2,7 @@
   "id" = "extract_reminders_csv"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1012"
+  "module_build" = "1013"
   "minbuild" = "2012"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "vendor.url" = "https://yogi1967.github.io/MoneydancePythonScripts/"

@@ -1179,31 +1179,21 @@ def find_other_datasets():
             del dirList
     del externalFiles
 
-    backupLocation = moneydance_ui.getPreferences().getSetting("backup.location",FileUtils.getDefaultBackupDir().getAbsolutePath())
-    if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
-        dirList =  os.listdir(backupLocation)
-        for fileName in dirList:
-            fullPath = os.path.join(backupLocation,fileName)
-            if fileName.endswith(md_extn):
-                if saveFiles.get(fileName) is not None:
-                    saveFiles[fullPath] = True
-            elif fileName.endswith(md_archive):
-                saveArchiveFiles[fullPath] = True
-        del dirList
+    for backupLocation in [ FileUtils.getBackupDir(moneydance.getPreferences()).getCanonicalPath(),
+                            moneydance_ui.getPreferences().getSetting("backup.location",""),
+                            moneydance_ui.getPreferences().getSetting("backup.last_saved",""),
+                            moneydance_ui.getPreferences().getSetting("backup.last_browsed","")]:
+        if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
+            dirList =  os.listdir(backupLocation)
+            for fileName in dirList:
+                fullPath = os.path.join(backupLocation,fileName)
+                if fileName.endswith(md_extn):
+                    if saveFiles.get(fileName) is not None:
+                        saveFiles[fullPath] = True
+                elif fileName.endswith(md_archive):
+                    saveArchiveFiles[fullPath] = True
+            del dirList
     del backupLocation
-
-    lastBackupLocation = moneydance_ui.getPreferences().getSetting("backup.last_saved", "")
-    if lastBackupLocation is not None and lastBackupLocation != "" and os.path.exists(lastBackupLocation):
-        dirList =  os.listdir(lastBackupLocation)
-        for fileName in dirList:
-            fullPath = os.path.join(lastBackupLocation,fileName)
-            if fileName.endswith(md_extn):
-                if saveFiles.get(fileName) is not None:
-                    saveFiles[fullPath] = True
-            elif fileName.endswith(md_archive):
-                saveArchiveFiles[fullPath] = True
-        del dirList
-    del lastBackupLocation
 
     saveFiles[myDataset] = None
 

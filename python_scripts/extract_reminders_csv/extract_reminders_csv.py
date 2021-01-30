@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_reminders_csv.py (build: 1012)
+# extract_reminders_csv.py (build: 1013)
 
 ###############################################################################
 # MIT License
@@ -61,6 +61,7 @@
 # Build: 1010 - Override max font size
 # Build: 1011 - Use mono font in common code
 # Build: 1012 - Minor tweak to about window close with escape key; Tweak to allow escape in common code popup dialog
+# Build: 1013 - Tweak to common code
 
 # Displays Moneydance reminders and allows extract to a csv file (compatible with Excel)
 
@@ -121,10 +122,11 @@ if Math.max(1,1): pass
 global debug  # Set to True if you want verbose messages, else set to False....
 global myParameters, myScriptName, version_build, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
 global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlobalErrorDetected
+global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1012"           																					# noqa
+version_build = "1013"           																					# noqa
 myScriptName = "extract_reminders_csv.py(Extension)"																# noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -132,6 +134,7 @@ _resetParameters = False                                                        
 lPickle_version_warning = False                                                                                     # noqa
 lIamAMac = False                                                                                                    # noqa
 lGlobalErrorDetected = False																						# noqa
+MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
 # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
 # >>> THIS SCRIPT'S IMPORTS ############################################################################################
@@ -193,9 +196,9 @@ extract_account_registers_csv           Extract Account Register(s) to csv along
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
 
-Visit: https://yogi1967.github.io/MoneydancePythonScripts/ (Author's site)
+Visit: %s (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
-""" %myScriptName
+""" %(myScriptName, MYPYTHON_DOWNLOAD_URL)
 
 # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both, D=If Debug Only print, DB=print both
 def myPrint(where, *args):
@@ -275,7 +278,7 @@ def is_moneydance_loaded_properly():
 	global debug
 
 	if debug or moneydance_data is None or moneydance_ui is None:
-		for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
+		for theClass in ["moneydance",  moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
 			myPrint("B","Moneydance Objects now....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
 		myPrint("P","")
 
@@ -304,7 +307,7 @@ def getMonoFont():
 
 	try:
 		theFont = moneydance_ui.getFonts().code
-		if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
+		# if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
 	except:
 		theFont = Font("monospaced", Font.PLAIN, 15)
 		if debug: myPrint("B","Failed to Font set to Moneydance code - So using: %s" %theFont)
@@ -348,12 +351,12 @@ def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
 
 	if lGetPoint:
 		_decimalCharSep = decimalSymbols.getDecimalSeparator()
-		myPrint("DB","Decimal Point Character:", _decimalCharSep)
+		myPrint("D","Decimal Point Character:", _decimalCharSep)
 		return _decimalCharSep
 
 	if lGetGrouping:
 		_groupingCharSep = decimalSymbols.getGroupingSeparator()
-		myPrint("DB","Grouping Separator Character:", _groupingCharSep)
+		myPrint("D","Grouping Separator Character:", _groupingCharSep)
 		return _groupingCharSep
 
 	return "error"
@@ -408,6 +411,7 @@ def myPopupAskBackup(theParent=None, theMessage="What no message?!"):
 		return True
 
 	elif response == 1:
+		myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
 		return True
 
 	return False

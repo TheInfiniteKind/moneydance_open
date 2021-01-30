@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_currency_history_csv build 1012 - November 2020 - Stuart Beesley StuWareSoftSystems
-# Extracts your Currency rate history to CSV file (as MD doesn't do this)
-# This script does not change any data!
-# Thanks to DerekKent23 for his testing....
+# orphan_attachments.py - build: 4 - January 2021 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2020 Stuart Beesley - StuWareSoftSystems & Moneydance
+# Copyright (c) 2020 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,36 +25,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-# V0.1 beta - Initial release
-# V0.2 beta - Parameter enhancements, simplify option (for DerekKent23)
-# V0.3 beta - Added UTF8 BOM to help Excel double-click open files. Changed open() to 'W' instead of 'wb'
-# V0.4 beta - Changed to no rounding on price history... Added suffix to simple format
-# V0.5 beta - Cosmetic display change; catch pickle.load() error (from restored file); extract format changes..
-# V0.6 beta - Reverted to open() with 'wb'
-# V1 - Initial release
-# V1a - Changed pickle file to be unencrypted
-# V1b - Slight change to myParameters; changed __file__ usage; code cleanup; version change
-
-# Build: 1000 - IntelliJ code cleanup; made Extension ready; refresh bits with common code - script file renamed - no functional changes
-# Build: 1000 - no functional changes; Added code fix for extension runtime to set moneydance variables (if not set)
-# Build: 1000 - all print functions changed to work headless; added some popup warnings...; streamlined common code
-# Build: 1000 - optional parameter whether to write BOM to export file; added date/time to console log
-# Build: 1001 - Enhanced MyPrint to catch unicode utf-8 encode/decode errors
-# Build: 1002 - fixed raise(Exception) clauses ;->
-# Build: 1003 - Updated common codeset; leverage moneydance fonts
-# Build: 1004 - Removed TxnSortOrder from common code
-# Build: 1004 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
-# Build: 1004 - Write parameters out to csv file; added the fake JFrame() for icons...; moved parameter  save earlier
-# Build: 1004 - Moved the currency table scan to only run if extract file selected...
-# Build: 1004 - Fix for Jython 2.7.1 non handling of Unicode on csv.writerow on currency symbols
-# Build: 1005 - Renames for module, REPO, url, Moneydance etc
-# Build: 1006 - Tweak to common code (popups) and imports
-# Build: 1007 - Updated parameter screens to use JCheckBox and JComboBox
-# Build: 1008 - Added dataset path/name to extract
-# Build: 1009 - Override max font size
-# Build: 1010 - Use mono font in common code
-# Build: 1011 - Tweak to allow escape in common code popup dialog
-# Build: 1012 - Tweak to common code
+# Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
+# Stuart Beesley Created 2020-12-24 tested on MacOS - MD2021 (3034) onwards - StuWareSoftSystems....
+# Build: 1 beta - Initial release
+# Build: 2 Fix windows \s for /s
+# Build: 3 Display enhancements
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -119,10 +91,9 @@ global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlob
 global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
-
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1012"                                                                                              # noqa
-myScriptName = "extract_currency_history_csv.py(Extension)"                                                         # noqa
+version_build = "4"                                                                                                 # noqa
+myScriptName = "orphan_transactions(Extension)"                                                                     # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
 _resetParameters = False                                                                                            # noqa
@@ -133,35 +104,10 @@ MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"   
 # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
 # >>> THIS SCRIPT'S IMPORTS ############################################################################################
-# NONE...
+from java.awt import Desktop
 # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
 # >>> THIS SCRIPT'S GLOBALS ############################################################################################
-
-# Saved to parameters file
-global __extract_currency_history_csv
-global lStripASCII, csvDelimiter,csvfilename, scriptpath, lDisplayOnly, userdateformat
-global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
-global lWriteBOMToExportFile_SWSS
-
-# Other used by program
-global baseCurrency, sdf, csvlines, extract_currency_history_csv_fake_frame_
-# >>> END THIS SCRIPT'S GLOBALS ############################################################################################
-
-# Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
-# NOTE: You  can override in the pop-up screen
-userdateformat = "%Y/%m/%d"                                                                                         # noqa
-lStripASCII = False                                                                                                 # noqa
-csvDelimiter = ","                                                                                                  # noqa
-lSimplify_ECH = False                                                                                               # noqa
-userdateStart_ECH = 19600101                                                                                        # noqa
-userdateEnd_ECH = 20201231                                                                                          # noqa
-hideHiddenCurrencies_ECH = True                                                                                     # noqa
-
-scriptpath = ""                                                                                                     # noqa
-lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
-extract_currency_history_csv_fake_frame_ = None                                                                     # noqa
-extract_filename="extract_currency_history.csv"
 # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 # COMMON CODE ##########################################################################################################
@@ -307,7 +253,7 @@ def getMonoFont():
     return theFont
 
 def getTheSetting(what):
-    x = moneydance_ui.getPreferences().getSetting(what, None)
+    x = moneydance_ui.getPreferences().getSetting(what, None)        # noqa
     if not x or x == "": return None
     return what + ": " + str(x)
 
@@ -453,7 +399,7 @@ def myPopupAskForInput(theParent,
     else:
         field = JTextField(defaultText)
 
-    x = 0
+    x = 0       # noqa
     if theFieldLabel:
         p.add(JLabel(theFieldLabel), GridC.getc(x, 0).east())
         x+=1
@@ -1093,593 +1039,435 @@ def save_StuWareSoftSystems_parameters_to_file():
 # END COMMON DEFINITIONS ###############################################################################################
 
 
-# >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
-def load_StuWareSoftSystems_parameters_into_memory():
-    global debug, myParameters, lPickle_version_warning, version_build
 
-    # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD
-    global __extract_currency_history_csv
-    global lStripASCII, csvDelimiter, scriptpath, userdateformat
-    global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
-    global lWriteBOMToExportFile_SWSS                                                                                  # noqa
+class QuickJFrame():
 
-    myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
-    myPrint("DB", "Loading variables into memory...")
+    def __init__(self, title, output, lAlertLevel=0):
+        self.title = title
+        self.output = output
+        self.lAlertLevel = lAlertLevel
 
-    if myParameters is None: myParameters = {}
+    class CloseAction(AbstractAction):
 
-    if myParameters.get("__extract_currency_history_csv") is not None: __extract_currency_history_csv = myParameters.get("__extract_currency_history_csv")
-    if myParameters.get("userdateformat") is not None: userdateformat = myParameters.get("userdateformat")
-    if myParameters.get("lStripASCII") is not None: lStripASCII = myParameters.get("lStripASCII")
-    if myParameters.get("csvDelimiter") is not None: csvDelimiter = myParameters.get("csvDelimiter")
+        def __init__(self, theFrame):
+            self.theFrame = theFrame
 
-    if myParameters.get("lSimplify_ECH") is not None: lSimplify_ECH = myParameters.get("lSimplify_ECH")
-    if myParameters.get("userdateStart_ECH") is not None: userdateStart_ECH = myParameters.get("userdateStart_ECH")
-    if myParameters.get("userdateEnd_ECH") is not None: userdateEnd_ECH = myParameters.get("userdateEnd_ECH")
-    if myParameters.get("hideHiddenCurrencies_ECH") is not None: hideHiddenCurrencies_ECH = myParameters.get("hideHiddenCurrencies_ECH")
-    if myParameters.get("lWriteBOMToExportFile_SWSS") is not None: lWriteBOMToExportFile_SWSS = myParameters.get("lWriteBOMToExportFile_SWSS")                                                                                  # noqa
+        def actionPerformed(self, event):
+            global debug
+            myPrint("D","in CloseAction(), Event: ", event)
 
-    if myParameters.get("scriptpath") is not None:
-        scriptpath = myParameters.get("scriptpath")
-        if not os.path.isdir(scriptpath):
-            myPrint("DB", "Warning: loaded parameter scriptpath does not appear to be a valid directory:", scriptpath, "will ignore")
-            scriptpath = ""
+            myPrint("DB", "QuickJFrame() Frame shutting down....")
 
-    myPrint("DB","myParameters{} set into memory (as variables).....")
-
-    return
-
-# >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
-def dump_StuWareSoftSystems_parameters_from_memory():
-    global debug, myParameters, lPickle_version_warning, version_build
-
-    # >>> THESE ARE THIS SCRIPT's PARAMETERS TO SAVE
-    global __extract_currency_history_csv
-    global lStripASCII, csvDelimiter, scriptpath
-    global lDisplayOnly, userdateformat
-    global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
-    global lWriteBOMToExportFile_SWSS                                                                                  # noqa
-
-    myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
-
-    # NOTE: Parameters were loaded earlier on... Preserve existing, and update any used ones...
-    # (i.e. other StuWareSoftSystems programs might be sharing the same file)
-
-    if myParameters is None: myParameters = {}
-
-    myParameters["__extract_currency_history_csv"] = version_build
-    myParameters["userdateformat"] = userdateformat
-    myParameters["lStripASCII"] = lStripASCII
-    myParameters["csvDelimiter"] = csvDelimiter
-    myParameters["lSimplify_ECH"] = lSimplify_ECH
-    myParameters["userdateStart_ECH"] = userdateStart_ECH
-    myParameters["userdateEnd_ECH"] = userdateEnd_ECH
-    myParameters["hideHiddenCurrencies_ECH"] = hideHiddenCurrencies_ECH
-    myParameters["lWriteBOMToExportFile_SWSS"] = lWriteBOMToExportFile_SWSS
-
-    if not lDisplayOnly and scriptpath != "" and os.path.isdir(scriptpath):
-        myParameters["scriptpath"] = scriptpath
-
-    myPrint("DB","variables dumped from memory back into myParameters{}.....")
-
-    return
-
-
-get_StuWareSoftSystems_parameters_from_file()
-myPrint("DB", "DEBUG IS ON..")
-# END ALL CODE COPY HERE ###############################################################################################
-
-moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
-
-# Create fake JFrame() so that all popups have correct Moneydance Icons etc
-extract_currency_history_csv_fake_frame_ = JFrame()
-if (not Platform.isMac()):
-    moneydance_ui.getImages()
-    extract_currency_history_csv_fake_frame_.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
-extract_currency_history_csv_fake_frame_.setUndecorated(True)
-extract_currency_history_csv_fake_frame_.setVisible(False)
-extract_currency_history_csv_fake_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
-
-csvfilename = None
-
-if decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ";"  # Override for EU countries or where decimal point is actually a comma...
-myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCharSep, "CSV Delimiter set to:", csvDelimiter)
-
-sdf = SimpleDateFormat("dd/MM/yyyy")
-
-dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
-# 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
-label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
-user_dateformat = JComboBox(dateStrings)
-
-if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
-elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
-elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
-else: user_dateformat.setSelectedItem("yyyy/mm/dd")
-
-labelDateStart = JLabel("Date range start (enter as yyyy/mm/dd):")
-user_selectDateStart = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
-user_selectDateStart.setDateInt(userdateStart_ECH)
-
-labelDateEnd = JLabel("Date range end (enter as yyyy/mm/dd):")
-user_selectDateEnd = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
-user_selectDateEnd.setDateInt(userdateEnd_ECH)
-# user_selectDateEnd.gotoToday()
-
-labelSimplify = JLabel("Simplify extract?")
-user_selectSimplify = JCheckBox("", lSimplify_ECH)
-
-labelHideHiddenCurrencies = JLabel("Hide Hidden Currencies?")
-user_selectHideHiddenCurrencies = JCheckBox("", hideHiddenCurrencies_ECH)
-
-label2 = JLabel("Strip non ASCII characters from CSV export?")
-user_selectStripASCII = JCheckBox("", lStripASCII)
-
-delimStrings = [";","|",","]
-label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-user_selectDELIMITER = JComboBox(delimStrings)
-user_selectDELIMITER.setSelectedItem(csvDelimiter)
-
-labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
-user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
-
-label4 = JLabel("Turn DEBUG Verbose messages on?")
-user_selectDEBUG = JCheckBox("", debug)
-
-userFilters = JPanel(GridLayout(0, 2))
-userFilters.add(label1)
-userFilters.add(user_dateformat)
-
-userFilters.add(labelDateStart)
-userFilters.add(user_selectDateStart)
-
-userFilters.add(labelDateEnd)
-userFilters.add(user_selectDateEnd)
-
-userFilters.add(labelSimplify)
-userFilters.add(user_selectSimplify)
-
-userFilters.add(labelHideHiddenCurrencies)
-userFilters.add(user_selectHideHiddenCurrencies)
-
-userFilters.add(label2)
-userFilters.add(user_selectStripASCII)
-userFilters.add(label3)
-userFilters.add(user_selectDELIMITER)
-userFilters.add(labelBOM)
-userFilters.add(user_selectBOM)
-userFilters.add(label4)
-userFilters.add(user_selectDEBUG)
-
-lExit = False
-lDisplayOnly = False
-
-options = ["Abort", "CSV Export"]
-
-while True:
-
-    userAction = (JOptionPane.showOptionDialog(extract_currency_history_csv_fake_frame_, userFilters, "%s(build: %s) Set Script Parameters...."%(myScriptName,version_build),
-                                         JOptionPane.OK_CANCEL_OPTION,
-                                         JOptionPane.QUESTION_MESSAGE,
-                                         moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
-                                         options, options[1]))
-    if userAction != 1:
-        myPrint("B", "User Cancelled Parameter selection.. Will abort..")
-        myPopupInformationBox(extract_currency_history_csv_fake_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
-        lDisplayOnly = False
-        lExit = True
-        break
-
-    if user_selectDateStart.getDateInt() <= user_selectDateEnd.getDateInt() \
-            and user_selectDateEnd.getDateInt() >= user_selectDateStart.getDateInt():
-        break   # Valid date range
-
-    myPrint("P","Error - date range incorrect, please try again...")
-    user_selectDateStart.setForeground(Color.RED)
-    user_selectDateEnd.setForeground(Color.RED)
-    continue   # Loop
-
-
-if not lExit:
-    myPrint("DB", "Parameters Captured",
-        "User Date Format:", user_dateformat.getSelectedItem(),
-        "Simplify:", user_selectSimplify.isSelected(),
-        "Hide Hidden Currencies:", user_selectHideHiddenCurrencies.isSelected(),
-        "Start date:", user_selectDateStart.getDateInt(),
-        "End date:", user_selectDateEnd.getDateInt(),
-        "Strip ASCII:", user_selectStripASCII.isSelected(),
-        "Write BOM to file:", user_selectBOM.isSelected(),
-        "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
-        "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
-    # endif
-
-    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
-    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
-    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
-    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
-    else:
-        # PROBLEM /  default
-        userdateformat = "%Y/%m/%d"
-
-    lSimplify_ECH = user_selectSimplify.isSelected()
-    hideHiddenCurrencies_ECH = user_selectHideHiddenCurrencies.isSelected()
-    userdateStart_ECH = user_selectDateStart.getDateInt()
-    userdateEnd_ECH = user_selectDateEnd.getDateInt()
-
-    lStripASCII = user_selectStripASCII.isSelected()
-
-    csvDelimiter = user_selectDELIMITER.getSelectedItem()
-    if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-        myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
-        csvDelimiter = ","
-    if decimalCharSep == csvDelimiter:
-        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
-        lDisplayOnly = True
-
-    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
-
-    debug = user_selectDEBUG.isSelected()
-    myPrint("DB", "DEBUG turned ON")
-
-    myPrint("B","User Parameters...")
-
-    if lSimplify_ECH:
-        myPrint("B","Simplifying extract")
-    else:
-        myPrint("B","Providing a detailed extract")
-
-    myPrint("B","user date format....:", userdateformat)
-
-    myPrint("B", "Selected start date:", userdateStart_ECH)
-    myPrint("B", "Selected end date:", userdateEnd_ECH)
-
-    if hideHiddenCurrencies_ECH:
-        myPrint("B", "Hiding hidden currencies...")
-
-    # Now get the export filename
-    csvfilename = None
-
-    if not lDisplayOnly:  # i.e. we have asked for a file export - so get the filename
-
-        if lStripASCII:
-            myPrint("B","Will strip non-ASCII characters - e.g. Currency symbols from output file...", " Using Delimiter:", csvDelimiter)
-        else:
-            myPrint("B","Non-ASCII characters will not be stripped from file: ", " Using Delimiter:", csvDelimiter)
-
-        if lWriteBOMToExportFile_SWSS:
-            myPrint("B", "Script will add a BOM (Byte Order Mark) to front of the extracted file...")
-        else:
-            myPrint("B", "No BOM (Byte Order Mark) will be added to the extracted file...")
-
-        def grabTheFile():
-            global debug, lDisplayOnly, csvfilename, lIamAMac, scriptpath, myScriptName
-            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-
-            if scriptpath == "" or scriptpath is None:  # No parameter saved / loaded from disk
-                scriptpath = myDir()
-
-            myPrint("DB", "Default file export output path is....:", scriptpath)
-
-            csvfilename = ""
-            if lIamAMac:
-                myPrint("DB", "MacOS X detected: Therefore I will run FileDialog with no extension filters to get filename....")
-                # jFileChooser hangs on Mac when using file extension filters, also looks rubbish. So using Mac(ish)GUI
-
-                System.setProperty("com.apple.macos.use-file-dialog-packages", "true")  # In theory prevents access to app file structure (but doesnt seem to work)
-                System.setProperty("apple.awt.fileDialogForDirectories", "false")
-
-            filename = FileDialog(extract_currency_history_csv_fake_frame_, "Select/Create CSV file for extract (CANCEL=NO EXPORT)")
-            filename.setMultipleMode(False)
-            filename.setMode(FileDialog.SAVE)
-            filename.setFile(extract_filename)
-            if (scriptpath is not None and scriptpath != ""): filename.setDirectory(scriptpath)
-
-            # Copied from MD code... File filters only work on non Macs (or Macs below certain versions)
-            if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
-                extfilter = ExtFilenameFilter("csv")
-                filename.setFilenameFilter(extfilter)  # I'm not actually sure this works...?
-
-            filename.setVisible(True)
-
-            csvfilename = filename.getFile()
-
-            if (csvfilename is None) or csvfilename == "":
-                lDisplayOnly = True
-                csvfilename = None
-                myPrint("B", "User chose to cancel or no file selected >>  So no Extract will be performed... ")
-                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"User chose to cancel or no file selected >>  So no Extract will be performed... ","FILE SELECTION")
-            elif str(csvfilename).endswith(".moneydance"):
-                myPrint("B", "User selected file:", csvfilename)
-                myPrint("B", "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - User chose to use .moneydance extension - I will not allow it!... So no Extract will be performed...","FILE SELECTION")
-                lDisplayOnly = True
-                csvfilename = None
-            elif ".moneydance" in filename.getDirectory():
-                myPrint("B", "User selected file:", filename.getDirectory(), csvfilename)
-                myPrint("B", "Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...")
-                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - FileDialog() User chose to save file in .moneydance location. NOT Good practice so I will not allow it!... So no Extract will be performed...","FILE SELECTION")
-                lDisplayOnly = True
-                csvfilename = None
-            else:
-                csvfilename = os.path.join(filename.getDirectory(), filename.getFile())
-                scriptpath = str(filename.getDirectory())
-
-            if not lDisplayOnly:
-                if os.path.exists(csvfilename) and os.path.isfile(csvfilename):
-                    myPrint("D", "WARNING: file exists,but assuming user said OK to overwrite..")
-
-            if not lDisplayOnly:
-                if check_file_writable(csvfilename):
-                    if lStripASCII:
-                        myPrint("B", 'Will extract to file: ', csvfilename, "(NOTE: Should drop non utf8 characters...)")
-                    else:
-                        myPrint("B", 'Will extract to file: ', csvfilename, "...")
-                    scriptpath = os.path.dirname(csvfilename)
-                else:
-                    myPrint("B", "Sorry - I just checked and you do not have permissions to create this file:", csvfilename)
-                    myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - I just checked and you do not have permissions to create this file: %s" %csvfilename,"FILE SELECTION")
-                    csvfilename=""
-                    lDisplayOnly = True
-
+            self.theFrame.dispose()
             return
 
-        # enddef
+    def show_the_frame(self):
+        global debug
 
-        if not lDisplayOnly: grabTheFile()
+        screenSize = Toolkit.getDefaultToolkit().getScreenSize()
+        # frame_width = screenSize.width - 20
+        # frame_height = screenSize.height - 20
+
+        frame_width = min(screenSize.width-20, max(1024,int(round(moneydance_ui.firstMainFrame.getSize().width *.9,0))))
+        frame_height = min(screenSize.height-20, max(768, int(round(moneydance_ui.firstMainFrame.getSize().height *.9,0))))
+
+        JFrame.setDefaultLookAndFeelDecorated(True)
+
+        jInternalFrame = JFrame(self.title)
+
+        if not Platform.isOSX():
+            jInternalFrame.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+
+        jInternalFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+        jInternalFrame.setResizable(True)
+
+        shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+        jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
+        jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+
+        jInternalFrame.getRootPane().getActionMap().put("close-window", self.CloseAction(jInternalFrame))
+
+        theJText = JTextArea(self.output)
+        theJText.setEditable(False)
+        theJText.setLineWrap(True)
+        theJText.setWrapStyleWord(True)
+        # theJText.setFont(Font("monospaced", Font.PLAIN, 15))
+        theJText.setFont( getMonoFont() )
+
+        internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+
+        if self.lAlertLevel>=2:
+            internalScrollPane.setBackground(Color.RED)
+            theJText.setBackground(Color.RED)
+            theJText.setForeground(Color.BLACK)
+        elif self.lAlertLevel>=1:
+            internalScrollPane.setBackground(Color.YELLOW)
+            theJText.setBackground(Color.YELLOW)
+            theJText.setForeground(Color.BLACK)
+
+        jInternalFrame.setMinimumSize(Dimension(frame_width, 0))
+        jInternalFrame.setMaximumSize(Dimension(frame_width, frame_height))
+
+        # if Platform.isWindows():
+        #     if theJText.getLineCount() > 30:
+        #         jInternalFrame.setPreferredSize(Dimension(frame_width - 50, frame_height - 100))
+        #
+
+        jInternalFrame.add(internalScrollPane)
+
+        jInternalFrame.pack()
+        jInternalFrame.setLocationRelativeTo(None)
+        jInternalFrame.setVisible(True)
+
+        if "errlog.txt" in self.title:
+            theJText.setCaretPosition(theJText.getDocument().getLength())
+
+        try:
+            pass
+        except:
+
+            myPrint("J","Error copying contents to Clipboard")
+            dump_sys_error_to_md_console_and_errorlog()
+
+        return (jInternalFrame)
+
+
+if isinstance(None, (FileDialog)): pass
+
+scanningMsg = MyPopUpDialogBox(None,"Please wait: searching Database and filesystem for attachments..",theTitle="ATTACHMENT(S) SEARCH", theWidth=100, lModal=False,OKButtonText="WAIT")
+scanningMsg.go()
+
+myPrint("P", "Scanning database for attachment data..")
+book = moneydance_data
+
+attachmentList={}
+attachmentLocations={}
+
+iObjectsScanned=0
+iTxnsScanned=0
+
+iTxnsWithAttachments = 0
+iAttachmentsFound = 0
+iAttachmentsNotInLS = 0
+iDuplicateKeys = 0
+attachmentsNotInLS=[]
+
+diagDisplay="ANALYSIS OF ATTACHMENTS\n\n"
+
+attachmentFullPath = os.path.join(moneydance_data.getRootFolder().getCanonicalPath(), "safe", moneydance.getCurrentAccountBook().getAttachmentsFolder())
+
+LS = moneydance.getCurrentAccountBook().getLocalStorage()
+
+txnSet = book.getTransactionSet()
+for _mdItem in txnSet.iterableTxns():
+    iObjectsScanned+=1
+
+    iTxnsScanned+=1
+
+    if not (_mdItem.hasAttachments() or len(_mdItem.getAttachmentKeys())>0):
+        continue
+
+    iTxnsWithAttachments+=1
+    x="Found Record with %s Attachment(s): %s" %(len(_mdItem.getAttachmentKeys()),_mdItem)
+    myPrint("D",x)
+    if debug: diagDisplay+=(x+"\n")
+
+    if attachmentList.get(_mdItem.getUUID()):
+        iDuplicateKeys += 1
+        x="@@ Error %s already exists in my attachment list...!?" %_mdItem.getUUID()
+        myPrint("DB", x)
+        if debug: diagDisplay+=(x+"\n")
+
+    attachmentList[_mdItem.getUUID()] = [
+                                        _mdItem.getUUID(),
+                                        _mdItem.getAccount().getAccountName(),
+                                        _mdItem.getAccount().getAccountType(),
+                                        _mdItem.getDateInt(),
+                                        _mdItem.getValue(),
+                                        _mdItem.getAttachmentKeys()
+                                        ]
+    x="Attachment keys: %s" %_mdItem.getAttachmentKeys()
+    myPrint("D",x)
+    if debug: diagDisplay+=(x+"\n")
+
+    for _key in _mdItem.getAttachmentKeys():
+        iAttachmentsFound+=1
+        if attachmentLocations.get(_mdItem.getAttachmentTag(_key)):
+            iDuplicateKeys += 1
+            x="@@ Error %s already exists in my attachment location list...!?" %_mdItem.getUUID()
+            myPrint("B", )
+            if debug: diagDisplay+=(x+"\n")
+
+        attachmentLocations[_mdItem.getAttachmentTag(_key)] = [
+                                                                _mdItem.getAttachmentTag(_key),
+                                                                _key,
+                                                                _mdItem.getUUID(),
+                                                                LS.exists(_mdItem.getAttachmentTag(_key))
+                                                                ]
+        if not LS.exists(_mdItem.getAttachmentTag(_key)):
+            iAttachmentsNotInLS+=1
+            attachmentsNotInLS.append([
+                                        _mdItem.getUUID(),
+                                        _mdItem.getAccount().getAccountName(),
+                                        _mdItem.getAccount().getAccountType(),
+                                        _mdItem.getDateInt(),
+                                        _mdItem.getValue(),
+                                        _mdItem.getAttachmentKeys()
+                                        ])
+
+            x="@@ Error - Attachment for Txn DOES NOT EXIST! - Attachment tag: %s" %_mdItem.getAttachmentTag(_key)
+            myPrint("B",x)
+            diagDisplay+=(x+"\n")
+        else:
+            x="Attachment tag: %s" %_mdItem.getAttachmentTag(_key)
+            myPrint("D", x)
+            if debug: diagDisplay+=(x+"\n")
+
+
+# Now scan the file system for attachments
+myPrint("P", "Now scanning attachment directory(s) and files...:")
+
+attachmentsRawListFound = []
+
+typesFound={}
+
+for root, dirs, files in os.walk(attachmentFullPath):
+
+    for name in files:
+        theFile = os.path.join(root,name)[len(attachmentFullPath)-len(moneydance.getCurrentAccountBook().getAttachmentsFolder()):]
+        byteSize = os.path.getsize(os.path.join(root,name))
+        modified = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S')
+        attachmentsRawListFound.append([theFile, byteSize, modified])
+        theExtension = os.path.splitext(theFile)[1].lower()
+
+        iCountExtensions = 0
+        iBytes = 0
+        if typesFound.get(theExtension):
+            iCountExtensions = typesFound.get(theExtension)[1]
+            iBytes = typesFound.get(theExtension)[2]
+        typesFound[theExtension] = [theExtension, iCountExtensions+1, iBytes+byteSize ]
+
+        x="Found Attachment File: %s" %theFile
+        myPrint("D", x)
+        if debug: diagDisplay+=(x+"\n")
+
+# Now match file system to the list from the database
+iOrphans=0
+iOrphanBytes=0
+
+orphanList=[]
+
+for fileDetails in attachmentsRawListFound:
+    deriveTheKey = fileDetails[0]
+    deriveTheBytes = fileDetails[1]
+    deriveTheModified = fileDetails[2]
+    if attachmentLocations.get(deriveTheKey.replace(os.path.sep,"/")):
+        x="Attachment file system link found in Moneydance database"
+        myPrint("D", x)
+        if debug: diagDisplay+=(x+"\n")
     else:
-        pass
-    # endif
+        x="Error: Attachment filesystem link missing in Moneydance database: %s" %deriveTheKey
+        myPrint("DB", x)
+        if debug: diagDisplay+=(x+"\n")
+        iOrphans+=1
+        iOrphanBytes+=deriveTheBytes
+        orphanList.append([deriveTheKey,deriveTheBytes, deriveTheModified])
 
-    if csvfilename is None:
-        lDisplayOnly = True
-        myPrint("B", "No Export will be performed")
+msgStr=""
 
-    if not lDisplayOnly:
-        save_StuWareSoftSystems_parameters_to_file()
+myPrint("P","\n"*5)
 
-        myPrint("P", "\nScript running to extract your currency rate history....")
-        myPrint("P", "-------------------------------------------------------------------")
-        if moneydance_data is None:
-            myPrint("B", "MD Data file is empty - no data to scan - aborting...")
-            myPopupInformationBox(extract_currency_history_csv_fake_frame_,"MD Data file is empty - no data to scan - aborting...","EMPTY DATASET")
-            extract_currency_history_csv_fake_frame_.dispose()
-            raise(Exception("MD Data file is empty - no data to scan - aborting..."))
+x="----------------------------------"
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n")
 
-        header = ["CurrencyName",
-                  "CurrencyID",
-                  "isBase",
-                  "DecimalPlaces",
-                  "Prefix",
-                  "Suffix",
-                  "CurrentRateR2B",
-                  "CurrentRateB2R",
-                  "Snap_Date",
-                  "Snap_DailyRateR2B",
-                  "Snap_DailyRateB2R"]
+x = "Objects scanned: %s" %iObjectsScanned
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n")
 
-        def list_currency_rate_history():
-            global hideHiddenCurrencies_ECH, lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH
-
-            curr_table=[]
-
-            currencies = moneydance.getCurrentAccountBook().getCurrencies()
-            baseCurr = currencies.getBaseType()
-
-            myPrint("P","\nIterating the currency table...")
-            for curr in currencies:
-
-                # noinspection PyUnresolvedReferences
-                if curr.getCurrencyType() != CurrencyType.Type.CURRENCY: continue   # Skip if not on a Currency record (i.e. a Security)
-
-                if hideHiddenCurrencies_ECH and curr.getHideInUI(): continue   # Skip if hidden in MD
-
-                myPrint("P","Currency: %s %s" %(curr, curr.getPrefix()) )
-
-                currSnapshots = curr.getSnapshots()
-
-                if not lSimplify_ECH and not len(currSnapshots) and curr == baseCurr:
-
-                    row = []
-
-                    row.append((curr.getName()))
-                    row.append((curr.getIDString()))
-                    row.append(curr == baseCurr)
-                    row.append(curr.getDecimalPlaces())
-                    row.append((curr.getPrefix()))
-                    row.append((curr.getSuffix()))
-                    row.append(1)
-                    row.append(1)
-                    row.append(None)
-                    row.append(None)
-                    row.append(None)
-                    curr_table.append(row)
-
-                # noinspection PyUnusedLocal
-                dpc = curr.getDecimalPlaces()
-                dpc = 8   # Override to 8dpc
-
-                for currSnapshot in currSnapshots:
-                    if currSnapshot.getDateInt() < userdateStart_ECH \
-                            or currSnapshot.getDateInt() > userdateEnd_ECH:
-                        continue   # Skip if out of date range
-
-                    row = []
-
-                    row.append((curr.getName()))
-                    row.append((curr.getIDString()))
-                    row.append(curr == baseCurr)
-                    row.append(curr.getDecimalPlaces())
-                    row.append((curr.getPrefix()))
-                    row.append((curr.getSuffix()))
-                    row.append(round(float(curr.getParameter("rate", None)),dpc))
-                    row.append(round(1/float(curr.getParameter("rate", None)),dpc))
-
-                    # I don't print relative currency as it's supposed to always be None or = Base..
-
-                    row.append(currSnapshot.getDateInt())
-                    row.append(round(float(currSnapshot.getRate()),dpc))
-                    row.append(round(1/float(currSnapshot.getRate()),dpc))
-
-                    curr_table.append(row)
-
-            return curr_table
-
-        currencyTable = list_currency_rate_history()
-
-        def ExportDataToFile(theTable, header):                                                                 # noqa
-            global debug, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build, myScriptName
-            global sdf, userdateformat, lGlobalErrorDetected
-            global lWriteBOMToExportFile_SWSS
-
-            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-
-            _CURRNAME = 0
-            _CURRID = 1
-            _SYMB =4
-            _SNAPDATE = 8
+x="Transactions scanned: %s" %iTxnsScanned
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n")
+x="Transactions with attachments: %s" %iTxnsWithAttachments
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n")
+x="Total Attachments referenced in Moneydance database (a txn may have multi-attachments): %s" %iAttachmentsFound
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n")
+x="Attachments missing from Local Storage: %s" %iAttachmentsNotInLS
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n")
+x="Total Attachments found in file system: %s (difference %s)" %(len(attachmentsRawListFound),len(attachmentsRawListFound)-iAttachmentsFound)
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n")
 
 
-            # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
-            if True:
-                theTable = sorted(theTable, key=lambda x: (str(x[_CURRNAME]).upper(),x[_SNAPDATE]))
+myPrint("P","\n"*1)
 
-            myPrint("P", "Now pre-processing the file to convert integer dates to 'formatted' dates....")
-            for row in theTable:
-                try:
-                    if row[_SNAPDATE]:
-                        dateasdate = datetime.datetime.strptime(str(row[_SNAPDATE]),"%Y%m%d")  # Convert to Date field
-                        dateoutput = dateasdate.strftime(userdateformat)
-                        row[_SNAPDATE] = dateoutput
+x="Attachment extensions found: %s" %len(typesFound)
+myPrint("B", x)
+diagDisplay+=("\n"+x+"\n")
 
-                except:
-                    myPrint("B","Error on row below with curr:", row[_CURRNAME], "snap date:", row[_SNAPDATE])
-                    myPrint("B",row)
-                    continue
+iTotalBytes = 0
+sortedExtensions = sorted(typesFound.values(), key=lambda _x: (_x[2]), reverse=True)
 
-                if lStripASCII:
-                    for col in range(0, len(row)):
-                        row[col] = fixFormatsStr(row[col])
+for x in sortedExtensions:
+    iTotalBytes+=x[2]
 
-            theTable.insert(0,header)  # Insert Column Headings at top of list. A bit rough and ready, not great coding, but a short list...!
+    x="Extension: %s Number: %s Size: %sMB" %(pad(x[0],6),rpad(x[1],12),rpad(round(x[2]/(1024.0 * 1024.0),2),12))
+    myPrint("B", x)
+    diagDisplay+=(x+"\n")
 
-            # Write the theTable to a file
-            myPrint("B", "Opening file and writing ", len(theTable), " records")
+x="Attachments on disk are taking: %sMB" %(round(iTotalBytes/(1024.0 * 1024.0),2))
+myPrint("B", x)
+diagDisplay+=(x+"\n")
+msgStr+=(x+"\n")
+x="----------------------------------"
+myPrint("B", x)
+msgStr+=(x+"\n")
+diagDisplay+=(x+"\n\n")
 
-            try:
-                # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
-                # with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; just use "w" and newline='' in PY3.0
-                with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; just use "w" and newline='' in PY3.0
+lErrors=False
+if iAttachmentsNotInLS:
+    x = "@@ ERROR: You have %s missing attachment(s) referenced on Moneydance Txns!" %(iAttachmentsNotInLS)
+    msgStr+=x+"\n"
+    diagDisplay+=(x+"\n\n")
+    myPrint("P","")
+    myPrint("B",x)
+    lErrors=True
 
-                    if lWriteBOMToExportFile_SWSS:
-                        csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
+    attachmentsNotInLS=sorted(attachmentsNotInLS, key=lambda _x: (_x[3]), reverse=False)
+    for theOrphanRecord in attachmentsNotInLS:
+        x="Attachment is missing from this Txn: AcctType: %s Account: %s Date: %s Value: %s AttachKey: %s" %(theOrphanRecord[1],
+                                                                                                            theOrphanRecord[2],
+                                                                                                            theOrphanRecord[3],
+                                                                                                            theOrphanRecord[4],
+                                                                                                            theOrphanRecord[5])
+        myPrint("B", x)
+        diagDisplay+=(x+"\n")
+    diagDisplay+="\n"
 
-                    writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(csvDelimiter))
+if iOrphans:
+    x = "@@ ERROR: %s Orphan attachment(s) found, taking up %sMBs" %(iOrphans,round(iOrphanBytes/(1024.0 * 1024.0),2))
+    msgStr+=x+"\n"
+    diagDisplay+=(x+"\n\n")
+    myPrint("P","")
+    myPrint("B",x)
+    x="Base Attachment Directory is: %s" %os.path.join(moneydance_data.getRootFolder().getCanonicalPath(), "safe","")
+    myPrint("P",x)
+    diagDisplay+=(x+"\n")
+    lErrors=True
+    orphanList=sorted(orphanList, key=lambda _x: (_x[2]), reverse=False)
+    for theOrphanRecord in orphanList:
 
-                    if csvDelimiter != ",":
-                        writer.writerow(["sep=",""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
+        x="Orphaned Attachment >> Txn Size: %sKB Modified %s for file: %s" %(rpad(round(theOrphanRecord[1]/(1024.0),1),6),
+                                                                                    pad(theOrphanRecord[2],19),
+                                                                                    theOrphanRecord[0])
+        diagDisplay+=(x+"\n")
+        myPrint("B", x)
 
-                    if not lSimplify_ECH:
-                        for i in range(0, len(theTable)):
-                            try:
-                                writer.writerow( theTable[i] )
-                            except:
-                                myPrint("B","Error writing row %s to file... Older Jython version?" %i)
-                                myPrint("B","Row: ",theTable[i])
-                                myPrint("B","Will attempt coding back to str()..... Let's see if this fails?!")
-                                for _col in range(0, len(theTable[i])):
-                                    theTable[i][_col] = fix_delimiter(theTable[i][_col])
-                                writer.writerow( theTable[i] )
-                        # NEXT
-                        today = Calendar.getInstance()
-                        writer.writerow([""])
-                        writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
-                                         + version_build
-                                         + ")  Moneydance Python Script - Date of Extract: "
-                                         + str(sdf.format(today.getTime()))])
-
-                        writer.writerow([""])
-                        writer.writerow(["Dataset path/name: %s" %(moneydance_data.getRootFolder()) ])
-
-                        writer.writerow([""])
-                        writer.writerow(["User Parameters..."])
-                        writer.writerow(["Simplify Extract...........: %s" %(lSimplify_ECH)])
-                        writer.writerow(["Hiding Hidden Currencies...: %s" %(hideHiddenCurrencies_ECH)])
-                        writer.writerow(["Date format................: %s" %(userdateformat)])
-                        writer.writerow(["Date Range Selected........: "+str(userdateStart_ECH) + " to " +str(userdateEnd_ECH)])
-
-                    else:
-                        # Simplify is for my tester 'buddy' DerekKent23 - it's actually an MS Money Import format
-                        lCurr = None
-                        for row in theTable[1:]:
-                            # Write the table, but swap in the raw numbers (rather than formatted number strings)
-                            if row[_CURRNAME] != lCurr:
-                                if lCurr: writer.writerow("")
-                                lCurr = row[_CURRNAME]
-                                writer.writerow( [fix_delimiter(row[ _CURRNAME])
-                                                  +" - "+fix_delimiter(row[_CURRID])
-                                                  +" - "+fix_delimiter(row[_SYMB])
-                                                  +fix_delimiter(row[_SYMB+1])] )
-                                writer.writerow(["Date","Base to Rate","Rate to Base"])
-
-                            writer.writerow([row[_SNAPDATE],
-                                            row[_SNAPDATE+1],
-                                            row[_SNAPDATE+2]])
-                        # NEXT
-                myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
-
-            except IOError, e:
-                lGlobalErrorDetected = True
-                myPrint("B", "Oh no - File IO Error!", e)
-                myPrint("B", "Path:", csvfilename)
-                myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
-                dump_sys_error_to_md_console_and_errorlog()
-                myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Sorry - error writing to export file!", "FILE EXTRACT")
-        # enddef
-
-        def fixFormatsStr(theString, lNumber=False, sFormat=""):
-            global lStripASCII
-
-            if isinstance(theString, bool): return theString
-
-            if isinstance(theString, int) or isinstance(theString, float):
-                lNumber = True
-
-            if lNumber is None: lNumber = False
-            if theString is None: theString = ""
-
-            if sFormat == "%" and theString != "":
-                theString = "{:.1%}".format(theString)
-                return theString
-
-            if lNumber: return str(theString)
-
-            theString = theString.strip()  # remove leading and trailing spaces
-
-            theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-            theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
-
-            if lStripASCII:
-                all_ASCII = ''.join(char for char in theString if ord(char) < 128)  # Eliminate non ASCII printable Chars too....
-            else:
-                all_ASCII = theString
-            return all_ASCII
-
-        ExportDataToFile(currencyTable, header)
-        if not lGlobalErrorDetected:
-            myPopupInformationBox(extract_currency_history_csv_fake_frame_,"Your extract has been created as requested",myScriptName)
-            try:
-                helper = moneydance.getPlatformHelper()
-                helper.openDirectory(File(csvfilename))
-            except:
-                pass
+if not lErrors:
+    x= "Congratulations! - No orphan attachments detected!".upper()
+    myPrint("B",x)
+    diagDisplay+=(x+"\n")
 
 
-if extract_currency_history_csv_fake_frame_ is not None:
-    extract_currency_history_csv_fake_frame_.dispose()
-    del extract_currency_history_csv_fake_frame_
+if iAttachmentsFound:
+    diagDisplay+="\n\nLISTING VALID ATTACHMENTS FOR REFERENCE\n"
+    diagDisplay+="=======================================\n"
+    x="\nBase Attachment Directory is: %s" %os.path.join(moneydance_data.getRootFolder().getCanonicalPath(), "safe","")
+    diagDisplay+=(x+"\n-----------\n")
 
-myPrint("P", "-----------------------------------------------------------------")
+    for validLocation in attachmentLocations:
+        locationRecord = attachmentLocations[validLocation]
+        record = attachmentList[locationRecord[2]]
+        diagDisplay+="AT: %s ACT: %s DT: %s Val: %s FILE: %s\n" \
+                     %(pad(repr(record[2]),12),
+                       pad(str(record[1]),20),
+                       record[3],
+                       rpad(record[4]/100.0,10),
+                       validLocation)
+
+diagDisplay+='\n<END>'
+jif = QuickJFrame("ATTACHMENT ANALYSIS",diagDisplay).show_the_frame()
+
+if iOrphans:
+    msg = MyPopUpDialogBox(jif,
+                           "You have %s Orphan attachment(s) found, taking up %sMBs" %(iOrphans,round(iOrphanBytes/(1024.0 * 1024.0),2)),
+                           msgStr+"CLICK TO VIEW ORPHANS, or CANCEL TO EXIT",
+                           200,"ORPHANED ATTACHMENTS",
+                           lCancelButton=True,
+                           OKButtonText="CLICK TO VIEW",
+                           lAlertLevel=1)
+elif iAttachmentsNotInLS:
+    msg = MyPopUpDialogBox(jif,
+                           "You have %s missing attachment(s) referenced on Moneydance Txns!" %(iAttachmentsNotInLS),
+                           msgStr,
+                           200,"MISSING ATTACHMENTS",
+                           lCancelButton=False,
+                           OKButtonText="OK",
+                           lAlertLevel=1)
+
+if lErrors:
+    moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems: %s - ERRORS DETECTED!" %(myScriptName),0)
+else:
+    moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems "+x,0)
+    msg = MyPopUpDialogBox(jif,
+                           x,
+                           msgStr,
+                           200,"ATTACHMENTS STATUS",
+                           lCancelButton=False,
+                           OKButtonText="OK",
+                           lAlertLevel=0)
+
+myPrint("P","\n"*2)
+
+
 myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
-moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
 
 if not i_am_an_extension_so_run_headless: print(scriptExit)
+
+scanningMsg.kill()
+
+if iOrphans:
+    if msg.go():        # noqa
+        while True:
+            selectedOrphan = JOptionPane.showInputDialog(jif,
+                                                         "Select an Orphan to View",
+                                                         "VIEW ORPHAN (Escape or Cancel to exit)",
+                                                         JOptionPane.WARNING_MESSAGE,
+                                                         None,
+                                                         orphanList,
+                                                         None)
+            if not selectedOrphan:
+                break
+
+            try:
+                tmpDir = File(moneydance_data.getRootFolder(), "tmp")
+                tmpDir.mkdirs()
+                attachFileName = (File(tmpDir, selectedOrphan[0])).getName()            # noqa
+                tmpFile = File.createTempFile(str(System.currentTimeMillis() % 10000L), attachFileName, tmpDir)
+                tmpFile.deleteOnExit()
+                fout = FileOutputStream(tmpFile)
+                LS.readFile(selectedOrphan[0], fout)                                    # noqa
+                fout.close()
+                Desktop.getDesktop().open(tmpFile)
+
+            except:
+                myPrint("B","Sorry, could not open attachment file....: %s" %selectedOrphan[0])     # noqa
+
+else:
+    msg.go()        # noqa
+
+del attachmentList
+del attachmentLocations
+del typesFound
+del attachmentsRawListFound
+del attachmentsNotInLS
