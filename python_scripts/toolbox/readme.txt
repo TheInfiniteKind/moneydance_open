@@ -159,13 +159,13 @@ ALT-G - GEEK OUT MODE
 Menu - HACKER MODE
     >> VERY TECHNICAL - DO NOT USE UNLESS YOU KNOW WHAT YOU ARE DOING
     - Allows User to Add/Change/Delete Settings/Prefs >> key/value in config.dict or LocalStorage() (./safe/settings)
+    - Edit/Change/Delete an Object's Parameter keys
     - Toggle all internal Moneydance DEBUG settings ON/OFF (same as viewing console)
     - Toggle other known DEBUG settings on (extra messages in Console)
     - Extract (a single) File from within LocalStorage. Extracts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
     - Call Save Trunk File option....
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
-    - Edit/Change/Delete an Object's Parameter keys
-    - Remove Int/Ext Files from Filelist.
+    - Remove Int/Ext Files from File-list.
         >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
         >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
 

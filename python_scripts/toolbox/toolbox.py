@@ -128,6 +128,7 @@
 # Build: 1021 - Tweak to find my dataset, don't report .moneydance folder as a dataset in the counts.. fixed display of archives found count..
 # Build: 1021 - Applied same cosmetic tweaks to Find iOS Dataset too....
 # Build: 1021 - Added please wait message when extracting attachments....
+# Build: 1021 - Somehow lost the Hack menu DEBUG toggle button... Put back....
 
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
 
@@ -3475,13 +3476,13 @@ ALT-G - GEEK OUT MODE
 Menu - HACKER MODE
     >> VERY TECHNICAL - DO NOT USE UNLESS YOU KNOW WHAT YOU ARE DOING
     - Allows User to Add/Change/Delete Settings/Prefs >> key/value in config.dict or LocalStorage() (./safe/settings)
+    - Edit/Change/Delete an Object's Parameter keys
     - Toggle all internal Moneydance DEBUG settings ON/OFF (same as viewing console)
     - Toggle other known DEBUG settings on (extra messages in Console)
     - Extract (a single) File from within LocalStorage. Extracts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
     - Call Save Trunk File option....
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
-    - Edit/Change/Delete an Object's Parameter keys
-    - Remove Int/Ext Files from Filelist.
+    - Remove Int/Ext Files from File-list.
         >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
         >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
 
@@ -14873,6 +14874,14 @@ Now you will have a text readable version of the file you can open in a text edi
         HackerRemoveIntExternalFilesSettings_button.addActionListener(self.HackerRemoveIntExternalFilesSettingsButtonAction(statusLabel))
         HackerRemoveIntExternalFilesSettings_button.setVisible(False)
         displayPanel.add(HackerRemoveIntExternalFilesSettings_button)
+
+        HackerModeDEBUG_button = JButton("<html><center><B>HACK: Toggle<BR>Moneydance DEBUG</B></center></html>")
+        HackerModeDEBUG_button.setToolTipText("This will toggle Moneydance's internal DEBUG setting(s) ON/OFF..... USE WITH CARE")
+        HackerModeDEBUG_button.setBackground(Color.RED)
+        HackerModeDEBUG_button.setForeground(Color.WHITE)
+        HackerModeDEBUG_button.addActionListener(HackerModeDEBUGButtonAction(statusLabel))
+        HackerModeDEBUG_button.setVisible(False)
+        displayPanel.add(HackerModeDEBUG_button)
 
         HackerModeOtherDEBUG_button = JButton("<html><center><B>HACK: Toggle Other<BR>Moneydance DEBUGs</B></center></html>")
         HackerModeOtherDEBUG_button.setToolTipText("This will allow you to toggle other known Moneydance internal DEBUG setting(s) ON/OFF..... (these add extra messages to Console output))")
