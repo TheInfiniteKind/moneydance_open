@@ -93,7 +93,7 @@ global MYPYTHON_DOWNLOAD_URL
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
 version_build = "4"                                                                                                 # noqa
-myScriptName = "orphan_transactions(Extension)"                                                                     # noqa
+myScriptName = "orphan_transactions.py(Extension)"                                                                     # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
 _resetParameters = False                                                                                            # noqa

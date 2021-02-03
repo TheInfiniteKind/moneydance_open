@@ -144,6 +144,7 @@
 # Build: 1022 - Added the older Import QIF file button; added service.clearAuthenticationCache() to remove_one_service.py script
 # Build: 1022 - Added delete_intermediate_downloaded_transaction_caches.py script to OFX banking menu
 # Build: 1022 - Rebadged as InfiniteKind - co-authored by Stuart Beesley
+# Build: 1022 - Added size of database objects to analyse objects button
 
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
 
@@ -1609,8 +1610,8 @@ def find_other_datasets():
 
 def count_database_objects():
     output = ""
-    output+=("\nDATABASE OBJECT COUNT:\n"
-             "---------------------\n")
+    output+=("\nDATABASE OBJECT COUNT        (count) (est.size KBs):\n"
+             "-----------------------------------------------------\n")
     foundStrange=0
     types={}
 
@@ -1631,19 +1632,31 @@ def count_database_objects():
             if isinstance(mdItem, OnlinePayeeList):     onlinePayees    +=mdItem.getPayeeCount()
             if isinstance(mdItem, OnlinePaymentList):   onlinePayments  +=mdItem.getPaymentCount()
 
-            x = types.get(mdItem.getParameter("obj_type", "UNKNOWN"))
-            if x is None:x = 0
-            types[mdItem.getParameter("obj_type", "UNKNOWN")] = x+1
+            getTheSavedData = types.get(mdItem.getParameter("obj_type", "UNKNOWN"))
+            if getTheSavedData is not None:
+                x,theLength = getTheSavedData
+            else:
+                x = 0
+                theLength = 0
+
+            theSyncInfo = mdItem.getSyncInfo()
+            theDescription = theSyncInfo.toMultilineHumanReadableString()  # format is "key: data\n" but file is '&key=data'
+            theLength += len( ("mod.%s:" %(mdItem.getParameter("obj_type",""))) )
+            theLength += len(theDescription)
+            theLength -= len(mdItem.getParameterKeys())  # remove the number of "\n"s
+
+            types[mdItem.getParameter("obj_type", "UNKNOWN")] = [x+1, theLength]
         else:
             foundStrange+=1
     i=0
+    charCount=0
     for x in types.keys():
-        i+=types[x]
-
+        i+=types[x][0]
+        charCount+=types[x][1]
         extraText = ""
         if x == "oltxns":
             if onlineTxns:
-                extraText = "(containing %s Online Txns consuming %s characters)" %(onlineTxns, onlineTxnsCharacters)
+                extraText = "(containing %s Online Txns consuming %s KBs)" %(onlineTxns, round(onlineTxnsCharacters/1000.0,1))
         elif x == "olpayees":
             if onlinePayees:
                 extraText = "(containing %s Online Payees)" %(onlinePayees)
@@ -1651,14 +1664,15 @@ def count_database_objects():
             if onlinePayments:
                 extraText = "(containing %s Online Payments)" %(onlinePayments)
 
-        output+=("Object: %s %s %s\n" %(pad(x,15),rpad(types[x],12),extraText))
+        output+=("Object: %s %s   %s %s\n" %(pad(x,15),rpad(types[x][0],12),rpad(round(types[x][1] / (1000.0),1),12), extraText))
 
     if foundStrange:
         output+=("\n@@ I also found %s non Moneydance Syncable Items?! Why? @@\n" %(foundStrange))
-    output+=(" ==========\n TOTAL:                 %s\n\n" %(rpad(i,12)))
+    output+=(" ==========\n TOTAL:                 %s   %s\n\n" %(rpad(i,12),rpad(round(charCount/(1000.0),1),12)))
     del types
     del foundStrange
     return output
+
 
 
 # noinspection PyBroadException
