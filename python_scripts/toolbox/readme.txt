@@ -1,10 +1,10 @@
-Author: Stuart Beesley - StuWareSoftSystems (November 2020 thru January 2021 - a lockdown project ~500 programming hours)
+The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
+
+Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru Feb 2021 - a lockdown project ~500 programming hours)
 Credit: Derek Kent(23) for his extensive texting and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
 Get more Scripts/Extensions from: https://yogi1967.github.io/MoneydancePythonScripts/
-
-NOTE: I AM JUST A USER - I HAVE NO AFFILIATION WITH MONEYDANCE!
 
 Minimum Moneydance version for use as an Extension: 2021 (build: 2012) - (Minimum version 2020 if run as a script)
 NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
@@ -45,21 +45,27 @@ To enable the User to self-diagnose problems, or access key diagnostics to enabl
 # fix_macos_tabbing_mode.py v1b
 
 # Also includes these MD scripts (enhanced)
-# reset_relative_currencies.py                  (from Moneydance support)
-# remove_ofx_account_bindings.py                (from Moneydance support)
-# convert_secondary_to_primary_data_set.py      (from Moneydance support)
-# remove_one_service.py                         (from Moneydance support)
-# delete_invalid_txns.py                        (from Moneydance support)
-# price_history_thinner.py                      (from Moneydance support)
-# fix_dropbox_one_way_syncing.py                (from Moneydance support)
-# force_change_account_currency.py              (from Moneydance support)
-# fix_restored_accounts.py (check only)         (from Moneydance support)
-# extract_all_attachments.py                    (from Moneydance support)
-# fix_account_parent.py                         (from Moneydance support)
-# fix_non-hierarchical_security_account_txns.py (from Moneydance support)
-# show_open_tax_lots.py                         (author unknown)
-# MakeFifoCost.py                               (author unknown)
-# change-security-cusip.py                      (from Finite Mobius, LLC / Jason R. Miller)
+# reset_relative_currencies.py                          (from Moneydance support)
+# remove_ofx_account_bindings.py                        (from Moneydance support)
+# convert_secondary_to_primary_data_set.py              (from Moneydance support)
+# remove_one_service.py                                 (from Moneydance support)
+# delete_invalid_txns.py                                (from Moneydance support)
+# price_history_thinner.py                              (from Moneydance support)
+# fix_dropbox_one_way_syncing.py                        (from Moneydance support)
+# reset_sync_and_dropbox_settings.py                    (from Moneydance support)
+# force_change_account_currency.py                      (from Moneydance support)
+# fix_restored_accounts.py (check only)                 (from Moneydance support)
+# export_all_attachments.py                             (from Moneydance support)
+# fix_account_parent.py                                 (from Moneydance support)
+# (... and old check_root_structure.py)                 (from Moneydance support)
+# fix_non-hierarchical_security_account_txns.py         (from Moneydance support)
+# remove_ofx_security_bindings.py                       (from Moneydance support)
+# show_object_type_quantities.py                        (from Moneydance support)
+# delete_intermediate_downloaded_transaction_caches.py  (from Moneydance support)
+# delete_orphaned_downloaded_txn_lists.py               (from Moneydance support)
+# show_open_tax_lots.py                                 (author unknown)
+# MakeFifoCost.py                                       (author unknown)
+# change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
 
 Features:
 - Main window shows various diagnostic data and MD Preferences
@@ -91,7 +97,7 @@ ALT-B - Basic Mode
     - View Register Txn Sort Orders
     - View Check number settings
     - View Extensions details
-    - Extract your Attachments (this decrypts and extracts your attachments to a directory of your choice) (extract_all_attachments.py)
+    - Extract your Attachments (this decrypts and extracts your attachments to a directory of your choice) (export_all_attachments.py)
     - Online (OFX) Banking Tools:
         - Search for stored OFX related data
         - View your installed Service / Bank logon profiles
@@ -105,6 +111,7 @@ ALT-B - Basic Mode
     - DIAGnostics - View Categories with zero balance. You can also inactivate these below.
     - DIAGnostics - Show your open LOTs on stocks/shares (when using LOT control) (show_open_tax_lots.py)
     - Find my Sync Encryption password(s) in iOS Backup(s)
+    - Execute the 'older' Import QIF file and set parameters for import (useful if you want to import Account Structure Only)
 
 ALT-M - Advanced Mode
     - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync)) (convert_secondary_to_primary_data_set.py)
@@ -118,11 +125,12 @@ ALT-M - Advanced Mode
         - All basic mode settings plus:
         - Forget OFX Banking Import Link (so that it asks you which account when importing ofx files) (remove_ofx_account_bindings.py)
         - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank) (remove_one_service.py)
-        - Reset/Fix/Edit/Add CUSIP Banking Link. This is the link for downloaded securities....
+        - Reset/Fix/Edit/Add CUSIP Banking Link. This is the link for downloaded securities.... (remove_ofx_security_bindings.py and change-security-cusip.py)
         - Update OFXLastTxnUpdate Last Download Date for Online Txns
+        - Delete single cached OnlineTxnList record/Txns
+        - Delete ALL cached OnlineTxnList record/Txns (delete_intermediate_downloaded_transaction_caches.py)
         - OFX Cookie Management (some options also required Hacker mode)
         - OFX Authentication Management (some options also required Hacker mode)
-        - Delete Saved OnlineTxnList record/Txns (Advanced + Hacker mode only)
     - FIX - Thin/Purge Price History (allows you to thin/prune your price history based on parameters you input; also fix 'orphans') (price_history_thinner.py
     - FIX - Correct the Name of Root to match Dataset
     - FIX - Delete One-Sided Txns (delete_invalid_txns.py)
@@ -140,7 +148,8 @@ ALT-M - Advanced Mode
             isExpanded, isMaximised settings (this does not reset Filters or Initial views)
     - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
             More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
-    - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py script / fix). Removes key "migrated.netsync.dropbox.fileid"
+    - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix). Removes key "migrated.netsync.dropbox.fileid"
+
 
 ALT-G - GEEK OUT MODE
     >> Allows you to view raw settings

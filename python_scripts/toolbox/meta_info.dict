@@ -1,12 +1,12 @@
 {
   "id" = "toolbox"
   "extension_type" = "python"
-  "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1021"
+  "vendor" = "The Infinite Kind (co-authored with Stuart Beesley - StuWareSoftSystems)"
+  "module_build" = "1022"
   "minbuild" = "2012"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "vendor.url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Toolbox"
-  "module_desc" = "<html><body><title>Toolbox</title><p>Show setting, diagnostics, fix issues & much more....</p></body></html>"
-  "desc" = "Toolbox: Displays all your Moneydance settings, allows you to diagnose issues, run fixes, and much more.....\nMINIMUM BUILD REQUIREMENTS: 2021.2012....\nhttps://yogi1967.github.io/MoneydancePythonScripts/"
+  "module_desc" = "<html><body><title>Toolbox</title><p>Infinite Kind support tool: Show setting, diagnostics, fix issues & much more....</p></body></html>"
+  "desc" = "Toolbox: Infinite Kind support tool: Displays Moneydance settings, diagnoses issues, run fixes, and much more.....\nMINIMUM BUILD REQUIREMENTS: 2021.2012....\nhttps://yogi1967.github.io/MoneydancePythonScripts/"
 }

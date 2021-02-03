@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox.py build: 1021 - November 2020 thru January 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
-# NOTE: I am just a fellow Moneydance User >> I HAVE NO AFFILIATION WITH MONEYDANCE
-# NOTE: I have run all these fixes / updates on my own live personal dataset
+# ######################################################################################################################
+# The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
+#
+# Moneydance Support Tool
+# ######################################################################################################################
+
+# toolbox.py build: 1022 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -23,27 +27,34 @@
 # DIAG-diagnose_currencies.py v2a
 # fix_macos_tabbing_mode.py v1b
 
-# reset_relative_currencies.py              (from Moneydance support)
-# remove_ofx_account_bindings.py            (from Moneydance support)
-# convert_secondary_to_primary_data_set.py  (from Moneydance support)
-# remove_one_service.py                     (from Moneydance support)
-# delete_invalid_txns.py                    (from Moneydance support)
-# price_history_thinner.py                  (from Moneydance support)
-# fix_dropbox_one_way_syncing.py            (from Moneydance support)
-# force_change_account_currency.py          (from Moneydance support)
-# fix_restored_accounts.py (check only)     (from Moneydance support)
-# extract_all_attachments.py                (from Moneydance support)
-# fix_account_parent.py                     (from Moneydance support)
-
-# show_open_tax_lots.py                     (author unknown)
-# MakeFifoCost.py                           (author unknown)
-# change-security-cusip.py                  (from Finite Mobius, LLC / Jason R. Miller:
+# Also includes these MD scripts (enhanced)
+# reset_relative_currencies.py                          (from Moneydance support)
+# remove_ofx_account_bindings.py                        (from Moneydance support)
+# convert_secondary_to_primary_data_set.py              (from Moneydance support)
+# remove_one_service.py                                 (from Moneydance support)
+# delete_invalid_txns.py                                (from Moneydance support)
+# price_history_thinner.py                              (from Moneydance support)
+# fix_dropbox_one_way_syncing.py                        (from Moneydance support)
+# reset_sync_and_dropbox_settings.py                    (from Moneydance support)
+# force_change_account_currency.py                      (from Moneydance support)
+# fix_restored_accounts.py (check only)                 (from Moneydance support)
+# export_all_attachments.py                             (from Moneydance support)
+# fix_account_parent.py                                 (from Moneydance support)
+# (... and old check_root_structure.py)                 (from Moneydance support)
+# fix_non-hierarchical_security_account_txns.py         (from Moneydance support)
+# remove_ofx_security_bindings.py                       (from Moneydance support)
+# show_object_type_quantities.py                        (from Moneydance support)
+# delete_intermediate_downloaded_transaction_caches.py  (from Moneydance support)
+# delete_orphaned_downloaded_txn_lists.py               (from Moneydance support)
+# show_open_tax_lots.py                                 (author unknown)
+# MakeFifoCost.py                                       (author unknown)
+# change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
 # https://github.com/finitemobius/moneydance-py
 
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2020 Stuart Beesley - StuWareSoftSystems & Moneydance
+# Copyright (c) 2020 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -129,6 +140,10 @@
 # Build: 1021 - Applied same cosmetic tweaks to Find iOS Dataset too....
 # Build: 1021 - Added please wait message when extracting attachments....
 # Build: 1021 - Somehow lost the Hack menu DEBUG toggle button... Put back....
+# Build: 1022 - Cosmetic tweak to curr/sec dpc to show something when blank name...
+# Build: 1022 - Added the older Import QIF file button; added service.clearAuthenticationCache() to remove_one_service.py script
+# Build: 1022 - Added delete_intermediate_downloaded_transaction_caches.py script to OFX banking menu
+# Build: 1022 - Rebadged as InfiniteKind - co-authored by Stuart Beesley
 
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
 
@@ -198,7 +213,7 @@ global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1021"                                                                                              # noqa
+version_build = "1022"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -401,7 +416,7 @@ def cpad(theText, theLength):
     return theText
 
 
-myPrint("B", "StuWareSoftSystems...")
+myPrint("B", "Infinite Kind - Co-authored by StuWareSoftSystems...")
 myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
 def is_moneydance_loaded_properly():
@@ -1191,7 +1206,7 @@ def save_StuWareSoftSystems_parameters_to_file():
     if myParameters is None: myParameters = {}
 
     # Don't forget, any parameters loaded earlier will be preserved; just add changed variables....
-    myParameters["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
+    myParameters["__Author"] = "Infinite Kind - Co-authored by Stuart Beesley - StuWareSoftSystems"
     myParameters["debug"] = debug
 
     dump_StuWareSoftSystems_parameters_from_memory()
@@ -3013,7 +3028,7 @@ def OFX_view_online_txns_payees_payments(statusLabel):
         if selectedObject.getLongParameter(convertTimeStamp, 0) > 0:
             output += "%s %s\n" % (pad("TIMESTAMP('%s'):" %(convertTimeStamp),50), get_time_stamp_as_nice_text(selectedObject.getLongParameter(convertTimeStamp, 0))  )
 
-    keys = selectedObject.getParameterKeys()
+    keys = sorted(selectedObject.getParameterKeys())
     for theKey in keys:
         # noinspection PyUnresolvedReferences
         value = selectedObject.getParameter(theKey)
@@ -3315,13 +3330,13 @@ def display_help():
 
     help_data = \
 """
-Author: Stuart Beesley - StuWareSoftSystems (November 2020 thru January 2021 - a lockdown project ~500 programming hours)
+The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
+
+Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru Feb 2021 - a lockdown project ~500 programming hours)
 Credit: Derek Kent(23) for his extensive texting and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
 Get more Scripts/Extensions from: %s
-
-NOTE: I AM JUST A USER - I HAVE NO AFFILIATION WITH MONEYDANCE!
 
 Minimum Moneydance version for use as an Extension: 2021 (build: 2012) - (Minimum version %s if run as a script)
 NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
@@ -3362,21 +3377,27 @@ To enable the User to self-diagnose problems, or access key diagnostics to enabl
 # fix_macos_tabbing_mode.py v1b
 
 # Also includes these MD scripts (enhanced)
-# reset_relative_currencies.py                  (from Moneydance support)
-# remove_ofx_account_bindings.py                (from Moneydance support)
-# convert_secondary_to_primary_data_set.py      (from Moneydance support)
-# remove_one_service.py                         (from Moneydance support)
-# delete_invalid_txns.py                        (from Moneydance support)
-# price_history_thinner.py                      (from Moneydance support)
-# fix_dropbox_one_way_syncing.py                (from Moneydance support)
-# force_change_account_currency.py              (from Moneydance support)
-# fix_restored_accounts.py (check only)         (from Moneydance support)
-# extract_all_attachments.py                    (from Moneydance support)
-# fix_account_parent.py                         (from Moneydance support)
-# fix_non-hierarchical_security_account_txns.py (from Moneydance support)
-# show_open_tax_lots.py                         (author unknown)
-# MakeFifoCost.py                               (author unknown)
-# change-security-cusip.py                      (from Finite Mobius, LLC / Jason R. Miller)
+# reset_relative_currencies.py                          (from Moneydance support)
+# remove_ofx_account_bindings.py                        (from Moneydance support)
+# convert_secondary_to_primary_data_set.py              (from Moneydance support)
+# remove_one_service.py                                 (from Moneydance support)
+# delete_invalid_txns.py                                (from Moneydance support)
+# price_history_thinner.py                              (from Moneydance support)
+# fix_dropbox_one_way_syncing.py                        (from Moneydance support)
+# reset_sync_and_dropbox_settings.py                    (from Moneydance support)
+# force_change_account_currency.py                      (from Moneydance support)
+# fix_restored_accounts.py (check only)                 (from Moneydance support)
+# export_all_attachments.py                             (from Moneydance support)
+# fix_account_parent.py                                 (from Moneydance support)
+# (... and old check_root_structure.py)                 (from Moneydance support)
+# fix_non-hierarchical_security_account_txns.py         (from Moneydance support)
+# remove_ofx_security_bindings.py                       (from Moneydance support)
+# show_object_type_quantities.py                        (from Moneydance support)
+# delete_intermediate_downloaded_transaction_caches.py  (from Moneydance support)
+# delete_orphaned_downloaded_txn_lists.py               (from Moneydance support)
+# show_open_tax_lots.py                                 (author unknown)
+# MakeFifoCost.py                                       (author unknown)
+# change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
 
 Features:
 - Main window shows various diagnostic data and MD Preferences
@@ -3408,7 +3429,7 @@ ALT-B - Basic Mode
     - View Register Txn Sort Orders
     - View Check number settings
     - View Extensions details
-    - Extract your Attachments (this decrypts and extracts your attachments to a directory of your choice) (extract_all_attachments.py)
+    - Extract your Attachments (this decrypts and extracts your attachments to a directory of your choice) (export_all_attachments.py)
     - Online (OFX) Banking Tools:
         - Search for stored OFX related data
         - View your installed Service / Bank logon profiles
@@ -3422,6 +3443,7 @@ ALT-B - Basic Mode
     - DIAGnostics - View Categories with zero balance. You can also inactivate these below.
     - DIAGnostics - Show your open LOTs on stocks/shares (when using LOT control) (show_open_tax_lots.py)
     - Find my Sync Encryption password(s) in iOS Backup(s)
+    - Execute the 'older' Import QIF file and set parameters for import (useful if you want to import Account Structure Only)
 
 ALT-M - Advanced Mode
     - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync)) (convert_secondary_to_primary_data_set.py)
@@ -3435,11 +3457,12 @@ ALT-M - Advanced Mode
         - All basic mode settings plus:
         - Forget OFX Banking Import Link (so that it asks you which account when importing ofx files) (remove_ofx_account_bindings.py)
         - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank) (remove_one_service.py)
-        - Reset/Fix/Edit/Add CUSIP Banking Link. This is the link for downloaded securities....
+        - Reset/Fix/Edit/Add CUSIP Banking Link. This is the link for downloaded securities.... (remove_ofx_security_bindings.py and change-security-cusip.py)
         - Update OFXLastTxnUpdate Last Download Date for Online Txns
+        - Delete single cached OnlineTxnList record/Txns
+        - Delete ALL cached OnlineTxnList record/Txns (delete_intermediate_downloaded_transaction_caches.py)
         - OFX Cookie Management (some options also required Hacker mode)
         - OFX Authentication Management (some options also required Hacker mode)
-        - Delete Saved OnlineTxnList record/Txns (Advanced + Hacker mode only)
     - FIX - Thin/Purge Price History (allows you to thin/prune your price history based on parameters you input; also fix 'orphans') (price_history_thinner.py
     - FIX - Correct the Name of Root to match Dataset
     - FIX - Delete One-Sided Txns (delete_invalid_txns.py)
@@ -3457,7 +3480,7 @@ ALT-M - Advanced Mode
             isExpanded, isMaximised settings (this does not reset Filters or Initial views)
     - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
             More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
-    - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py script / fix). Removes key "migrated.netsync.dropbox.fileid"
+    - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix). Removes key "migrated.netsync.dropbox.fileid"
 
 ALT-G - GEEK OUT MODE
     >> Allows you to view raw settings
@@ -3993,6 +4016,11 @@ def list_security_currency_decimal_places(statusLabel):
 
     output = ""
 
+    def get_curr_sec_name(curr_sec):
+        if curr_sec.getName() is not None and len(curr_sec.getName().strip()) > 0:
+            return curr_sec.getName()
+        return (curr_sec.getIDString() + ":" + curr_sec.getIDString())
+
     def analyse_curr(theCurr, theType):
         output = ""                                                                                                 # noqa
         iWarn = 0
@@ -4002,7 +4030,7 @@ def list_security_currency_decimal_places(statusLabel):
             foo = str(round(CurrencyUtil.getUserRate(sec_curr, sec_curr.getRelativeCurrency()), 8))
             priceDecimals = max(sec_curr.getDecimalPlaces(), min(8, len(foo.split(decimalPoint_MD)[-1])))
 
-            output += sec_curr.getName()[:myLen].ljust(myLen, " ") + "\tDPC: " + \
+            output += pad(get_curr_sec_name(sec_curr),myLen) + "\tDPC: " + \
                       str(sec_curr.getDecimalPlaces()) + \
                       "\t" + \
                       "Relative to: " + str(sec_curr.getRelativeCurrency())[:20].ljust(20, " ") + \
@@ -4265,7 +4293,7 @@ def check_for_updatable_extensions_on_startup(statusLabel):
 
     Toolbox_version = 0
 
-    displayData = "\nStuWareSoftSystems: ALERT INFORMATION ABOUT YOUR EXTENSIONS:\n\n"
+    displayData = "\nALERT INFORMATION ABOUT YOUR EXTENSIONS:\n\n"
 
     try:
         theUpdateList = get_extension_update_info()
@@ -4290,7 +4318,7 @@ def check_for_updatable_extensions_on_startup(statusLabel):
     if not lIgnoreOutdatedExtensions_TB:
         statusLabel.setText( ("ALERT - YOU HAVE %s EXTENSION(S) THAT CAN BE UPGRADED!..." %howMany ).ljust(800, " "))
         statusLabel.setForeground(Color.BLUE)
-        jif = QuickJFrame("StuWareSoftSystems - EXTENSIONS ALERT!", displayData, 1).show_the_frame()
+        jif = QuickJFrame("EXTENSIONS ALERT!", displayData, 1).show_the_frame()
         options=["OK (keep reminding me)","OK - DON'T TELL ME AGAIN ON STARTUP!"]
         response = JOptionPane.showOptionDialog(jif,
                                                 "INFO: You have %s older Extensions that can be upgraded" %howMany,
@@ -4981,7 +5009,11 @@ def about_this_script():
     aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
     aboutPanel.setPreferredSize(Dimension(1070, 400))
 
-    _label1 = JLabel(pad("Author: Stuart Beesley", 800))
+    _label0 = JLabel(pad("Infinite Kind (Moneydance)", 800))
+    _label0.setForeground(Color.BLUE)
+    aboutPanel.add(_label0)
+
+    _label1 = JLabel(pad("Co-Author: Stuart Beesley", 800))
     _label1.setForeground(Color.BLUE)
     aboutPanel.add(_label1)
 
@@ -5027,7 +5059,7 @@ def terminate_script():
         pass
 
     try:
-        moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - Thanks for using Toolbox.......",0)
+        moneydance_ui.firstMainFrame.setStatus(">> Infinite Kind (co-authored by Stuart Beesley: StuWareSoftSystems) - Thanks for using Toolbox.......",0)
     except:
         pass  # If this fails, then MD is probably shutting down.......
 
@@ -5567,13 +5599,140 @@ def OFX_update_OFXLastTxnUpdate(statusLabel):
 
     myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
-def OFX_delete_saved_online_txns(statusLabel):
-    global lAdvancedMode, lHackerMode
+def OFX_delete_ALL_saved_online_txns(statusLabel):
+    global lAdvancedMode
+
+    # delete_intermediate_downloaded_transaction_caches.py
+    # delete_orphaned_downloaded_txn_lists.py
+
+    # CREATE TEST DATA
+    # allAccounts = AccountUtil.allMatchesForSearch(moneydance_data, AcctFilter.NON_CATEGORY_FILTER)
+    # for acct in allAccounts:
+    #     if "TEST"  != acct.getFullAccountName().upper() and "TEST2"  != acct.getFullAccountName().upper(): continue
+    #     print "found: %s" %(acct)
+    #     olTxns = acct.getDownloadedTxns()  # Note - this actually creates a new OnlineTxnList object if it didn't exist
+    #     for i in range(0,10):
+    #         olTxn = olTxns.newTxn()
+    #         olTxn.setFIID("qif")
+    #         olTxn.setName("Desc1" +str(i))
+    #         olTxn.setDatePostedInt(	20200115+i )
+    #         olTxn.setAmount( 9999+i )
+    #         olTxn.setAllowDuplicateIDs(True)
+    #         olTxns.addNewTxn(olTxn)
+    #     olTxns.syncItem()
+    #     print olTxns.getSyncInfo()
+    # END CREATE TEST DATA
 
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
     if moneydance_data is None: return
-    if not (lAdvancedMode and lHackerMode): return
+    if not (lAdvancedMode): return
+
+    # quick check first...
+    olTxnLists = moneydance_data.getItemsWithType("oltxns")
+    lAny=False
+    for txnList in olTxnLists:
+        if txnList.getTxnCount() > 0:
+            lAny=True
+            break
+
+    if not lAny and not myPopupAskQuestion(Toolbox_frame_,"OFX PURGE OnlineTxnList OBJECTS","You don't seem to have any cached Online Txns. Proceed anyway (with general cleanup)?",theMessageType=JOptionPane.WARNING_MESSAGE):
+        statusLabel.setText(("OFX PURGE OnlineTxnList OBJECTS. You have no cached Txns - no changes made...." ).ljust(800, " "))
+        statusLabel.setForeground(Color.RED)
+        myPopupInformationBox(Toolbox_frame_,"OFX PURGE OnlineTxnList OBJECTS. You have no cached Txns - no changes made....",theMessageType=JOptionPane.WARNING_MESSAGE)
+        return
+
+    if not confirm_backup_confirm_disclaimer(Toolbox_frame_,statusLabel, "OFX PURGE OnlineTxnList OBJECTS","Purge/Clean all Cached OnlineTxnList Txns (very safe to run)?"):
+        return
+
+    myPrint("B","Purging / cleaning all OnlineTxnList Cached txns.....")
+
+    allAccounts = AccountUtil.allMatchesForSearch(moneydance_data, AcctFilter.NON_CATEGORY_FILTER)
+
+    output = "PURGE/CLEAN ALL CACHED OnlineTxnList TXN RECORDS\n" \
+             " ===============================================\n\n"
+
+    output += (" Found %s accounts and %s OnlineTxnList objects\n" % (len(allAccounts), len(olTxnLists)))
+    shouldSaveTrunk = False
+
+    # delete all online transactions from all downloaded-transaction-list objects,
+    # which includes lists that are no longer associated with accounts
+    for txnList in olTxnLists:
+        output+=("OnlineTxnList %s    with    %s cached txns\n" % (pad(txnList.getUUID(),50), rpad(txnList.getTxnCount(),12)))
+        if txnList.getTxnCount() > 0:
+            myPrint("J", "OnlineTxnList %s - DELETING %s cached txns" % (pad(txnList.getUUID(),50), rpad(txnList.getTxnCount(),12)))
+            shouldSaveTrunk = True
+            output+=("   >> DELETING Cached Txns....\n")
+            while txnList.getTxnCount() > 0:
+                txnList.removeTxn(txnList.getTxnCount() - 1)
+            txnList.syncItem()
+            output+=("   OnlineTxnList %s now has %s cached txns\n" % (pad(txnList.getUUID(),50), rpad(txnList.getTxnCount(),12)))
+
+    output += "\n--------\n\n"
+
+    for acct in allAccounts:
+        olTxns = acct.getDownloadedTxns()  # Note - this actually creates a new OnlineTxnList object if it didn't exist
+        olTxnsIdx = olTxnLists.indexOf(olTxns)
+        if olTxnsIdx >= 0:
+            if olTxns.getTxnCount() > 0:    # Note - I think this never finds any, as it will have been caught in the loop above....
+                shouldSaveTrunk = True
+                output+=("Found OnlineTxnList %s at index %s for account %s - DELETING %s cached txns\n"
+                      % (pad(olTxns.getUUID(),50), rpad(olTxnsIdx,10), pad(acct.getAccountName(),30), olTxns.getTxnCount()))
+                myPrint("J", "Found OnlineTxnList %s at index %s for account %s - DELETING %s cached txns"
+                        % (pad(olTxns.getUUID(),50), rpad(olTxnsIdx,10), pad(acct.getAccountName(),30), olTxns.getTxnCount()))
+                while olTxns.getTxnCount() > 0:
+                    olTxns.removeTxn(olTxns.getTxnCount() - 1)
+                olTxns.syncItem()
+                output+=("   OnlineTxnList %s                        >now has %s cached txns\n" % (pad(olTxns.getUUID(),50), rpad(olTxns.getTxnCount(),12)))
+            olTxnLists.remove(olTxns)  # This check is OK though.....
+        # else:
+        #     output+=("@@ OnlineTxnList record NOT FOUND (orphaned), containing %s cached txns\n" % (rpad(olTxns.getTxnCount(),12)))
+
+    output += "\n--------\n\n"
+
+    output+=("Remaining/orphan OnlineTxnList objects to delete:\n")
+
+    for txnList in olTxnLists:
+        output+=(">> DELETING ORPHAN >> OnlineTxnList %s with %s cached txns\n" % (pad(txnList.getUUID(),50), rpad(txnList.getTxnCount(),12)))
+        myPrint("J", ">> DELETING ORPHAN >> OnlineTxnList %s with %s cached txns" % (pad(txnList.getUUID(),50), rpad(txnList.getTxnCount(),12)))
+        txnList.deleteItem()
+        shouldSaveTrunk = True
+
+    output += "\n--------\n\n"
+
+    moneydance_data.logRemovedItems(olTxnLists)
+    if shouldSaveTrunk:
+        myPrint("J","Purge/Clean ALL OnlineTxnList objects - Saving Trunk file now....")
+        output+=("SAVING TRUNK FILE...\n")
+        moneydance_data.saveTrunkFile()
+    else:
+        myPrint("J","Purge/Clean ALL OnlineTxnList objects - NO CHANGES MADE....")
+        output+=("Purge/Clean ALL OnlineTxnList objects - NO CHANGES MADE....\n")
+
+    output+="\n<END>"
+
+    myPrint("P",output)
+
+    jif = QuickJFrame("OFX PURGE ALL OnlineTxnList OBJECTS",output).show_the_frame()
+
+    play_the_money_sound()
+    statusLabel.setText(("OFX: Purge / Clean ALL OnlineTxnList Objects cached Txns completed...").ljust(800, " "))
+    statusLabel.setForeground(Color.RED)
+    myPrint("B", "OFX: Purge / Clean ALL OnlineTxnList Objects cached Txns completed...")
+    myPopupInformationBox(jif,"OFX: ALL OnlineTxnList Objects cached Txns purged/cleaned...","OFX PURGE ALL OnlineTxnList",JOptionPane.ERROR_MESSAGE)
+
+    myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+def OFX_delete_saved_online_txns(statusLabel):
+    global lAdvancedMode, lHackerMode
+
+    # delete_intermediate_downloaded_transaction_caches.py
+    # delete_orphaned_downloaded_txn_lists.py
+
+    myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+    if moneydance_data is None: return
+    if not (lAdvancedMode): return
 
     accountsListForOlTxns = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(18))
     accountsListForOlTxns = sorted(accountsListForOlTxns, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
@@ -5639,10 +5798,14 @@ def OFX_delete_saved_online_txns(statusLabel):
 
     elif lDeleteAllTxns:
 
-        for i in reversed(range(0,saveTxnCount)):
-            theOnlineTxnRecord.obj.removeTxn(i)
+        while theOnlineTxnRecord.obj.getTxnCount() > 0:
+            theOnlineTxnRecord.obj.removeTxn(theOnlineTxnRecord.obj.getTxnCount() - 1)
         theOnlineTxnRecord.obj.syncItem()
 
+        # for i in reversed(range(0,saveTxnCount)):
+        #     theOnlineTxnRecord.obj.removeTxn(i)
+        # theOnlineTxnRecord.obj.syncItem()
+        #
         play_the_money_sound()
         statusLabel.setText(("OFX HACK OnlineTxnList Record for acct: %s: %s Txns deleted" %(selectedAcct, saveTxnCount)).ljust(800, " "))
         statusLabel.setForeground(Color.RED)
@@ -5891,6 +6054,8 @@ def CUSIPFix(statusLabel):
     currID = "curr_id."
 
     # Credit to: Finite Mobius, LLC / Jason R. Miller" for original code (https://github.com/finitemobius/moneydance-py)
+    # change-security-cusip.py
+    # Variant of remove_ofx_security_bindings.py
 
     # Find Securities with CUSIP(s) set...
     dropdownSecs=ArrayList()
@@ -6151,6 +6316,8 @@ def CUSIPFix(statusLabel):
 def deleteOFXService(statusLabel):
     global Toolbox_frame_, debug
 
+    # remove_one_service.py
+
     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
     serviceList = moneydance.getCurrentAccountBook().getOnlineInfo().getAllServices()
@@ -6170,7 +6337,11 @@ def deleteOFXService(statusLabel):
 
     if confirm_backup_confirm_disclaimer(Toolbox_frame_,statusLabel,"DELETE BANK SERVICE","Delete Bank Service/Logon profile %s?" %(service)):
         # noinspection PyUnresolvedReferences
+        service.clearAuthenticationCache()
+        # noinspection PyUnresolvedReferences
         service.deleteItem()
+        LS = moneydance_data.getLocalStorage()
+        LS.save()
         play_the_money_sound()
         statusLabel.setText(("Banking service / logon profile successfully deleted: " + str(service).ljust(800, " ")))
         statusLabel.setForeground(Color.RED)
@@ -7817,7 +7988,7 @@ class GeekOutModeButtonAction(AbstractAction):
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
-def prune_internal_backups(statusLabel):
+def prune_internal_backups(statusLabel, lStartup=False):
     myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
 
     myPrint("J","Auto-prune is enabled.... auto-pruning internal backups of config.dict and settings now.....")
@@ -7912,8 +8083,9 @@ def prune_internal_backups(statusLabel):
     myPrint("J","Auto-prune of internal backups completed - deleted %s config.dict, %s settings and %s custom_theme files (with %s errors)..."
             %(iDeletedConfig,iDeletedSettings,iDeletedThemes,iErrors))
 
-    statusLabel.setText(("Auto-prune of internal backups completed - deleted %s config.dict, %s settings and %s custom_theme files (with %s errors)..." %(iDeletedConfig,iDeletedSettings,iDeletedThemes,iErrors)).ljust(800, " "))
-    statusLabel.setForeground(Color.RED)
+    if not lStartup:
+        statusLabel.setText(("Auto-prune of internal backups completed - deleted %s config.dict, %s settings and %s custom_theme files (with %s errors)..." %(iDeletedConfig,iDeletedSettings,iDeletedThemes,iErrors)).ljust(800, " "))
+        statusLabel.setForeground(Color.RED)
 
     if iErrors:
         myPopupInformationBox(Toolbox_frame_, "Auto-prune of internal backups completed - deleted %s config.dict, %s settings and %s custom_theme files (with %s errors)..."
@@ -8003,6 +8175,239 @@ class DiagnosticDisplay():
             myPrint("DB", "DiagnosticDisplay() Frame shutting down....")
 
             terminate_script()
+
+            return
+
+    class ImportQIFButtonAction(AbstractAction):
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug, DARK_GREEN, lCopyAllToClipBoard_TB
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            if Platform.isOSX():
+                System.setProperty("com.apple.macos.use-file-dialog-packages", "true")  # In theory prevents access to app file structure (but doesnt seem to work)
+                System.setProperty("apple.awt.fileDialogForDirectories", "false")
+
+            fDialog = FileDialog(Toolbox_frame_, "Select QIF file for import")
+            fDialog.setMultipleMode(False)
+            fDialog.setMode(FileDialog.LOAD)
+            fDialog.setFile("select_your_file.qif")
+            fDialog.setDirectory(get_home_dir())
+
+            # Copied from MD code... File filters only work on non Macs (or Macs below certain versions)
+            if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+                extfilter = ExtFilenameFilter("qif")
+                fDialog.setFilenameFilter(extfilter)
+
+            fDialog.setVisible(True)
+
+            if (fDialog.getFile() is None) or fDialog.getFile() == "":
+                self.statusLabel.setText(("QIF IMPORT: User chose to cancel or no file selected >>  So no Import will be performed... ").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPopupInformationBox(Toolbox_frame_,"User chose to cancel or no file selected >>  So no Import will be performed... ","QIF FILE SELECTION", theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            QIFfilename = os.path.join(fDialog.getDirectory(), fDialog.getFile())
+
+            if not os.path.exists(QIFfilename) or not os.path.isfile(QIFfilename):
+                self.statusLabel.setText(("QIF IMPORT: Sorry, file selected to import either does not exist or is not a file").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPopupInformationBox(Toolbox_frame_,"QIF IMPORT: Sorry, file selected to import either does not exist or is not a file","QIF FILE SELECTION", theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            dropdownAccts=AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(5))
+            dropdownAccts=sorted(dropdownAccts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))  # type: [Account]
+            dropdownAccts.insert(0,"<NONE: USE QIF SPECIFIED>")
+
+            label_QIF = JLabel("%s" %(os.path.basename(QIFfilename)))
+
+            label_accounts = JLabel("Select Default Account if none specified in QIF:")
+            user_accounts = JComboBox(dropdownAccts)
+
+            # QIF_FORMATS = ["QIF_FORMAT_AUTO", "QIF_FORMAT_MMDDYY", "QIF_FORMAT_DDMMYY", "QIF_FORMAT_YYMMDD"]
+            QIF_FORMATS = ["QIF_FORMAT_AUTO", "QIF_FORMAT_MMDDYY", "QIF_FORMAT_DDMMYY", "QIF_FORMAT_YYMMDD"]
+            label_qif_format = JLabel("Select QIF Format")
+            user_QIF_format = JComboBox(QIF_FORMATS)
+
+            decimalStrings = [".",","]
+            label_decimal = JLabel("Select your decimal point character")
+            user_selectDecimal = JComboBox(decimalStrings)
+            user_selectDecimal.setSelectedIndex(0)
+
+            dropdownCurrs=[]
+            currencies = moneydance_data.getCurrencies().getAllCurrencies()
+            for curr in currencies:
+                if curr.getCurrencyType() != CurrencyType.Type.CURRENCY: continue                                  # noqa
+                dropdownCurrs.append(curr)
+            dropdownCurrs=sorted(dropdownCurrs, key=lambda sort_x: (sort_x.getName().upper()))
+            label_currency = JLabel("Select Default Currency for any Accounts created:")
+            user_currency = JComboBox(dropdownCurrs)
+            user_currency.setSelectedItem(moneydance_data.getCurrencies().getBaseType())
+
+            IMPORT_TYPE = ["QIF_MODE_TRANSFER", "QIF_MODE_DOWNLOAD"]
+            # label_import_type = JLabel("Select Import Type")
+            # user_import_type = JComboBox(IMPORT_TYPE)
+            #
+
+            label_import_type_transfer = JLabel("TRANSFER MODE?")
+            user_import_type_transfer = JRadioButton("(transfer)", True)
+            label_import_type_download = JLabel("DOWNLOAD (from bank) MODE?")
+            user_import_type_download = JRadioButton("(disabled - use newer function)",False)
+            user_import_type_download.setEnabled(False)
+            bg2 = ButtonGroup()
+            bg2.add(user_import_type_transfer)
+            bg2.add(user_import_type_download)
+
+            label_importStructure = JLabel("Import Structure only (no data)?")
+            user_importStructureOnly = JRadioButton("(structure only)", False)
+            label_importAllData = JLabel("Import all data?")
+            user_importAllData = JRadioButton("(all data)", False)
+            bg = ButtonGroup()
+            bg.add(user_importStructureOnly)
+            bg.add(user_importAllData)
+
+            userFilters = JPanel(GridLayout(0, 2))
+            userFilters.add(JLabel("IMPORT FILE:"))
+            userFilters.add(label_QIF)
+            userFilters.add(label_qif_format)
+            userFilters.add(user_QIF_format)
+            userFilters.add(label_decimal)
+            userFilters.add(user_selectDecimal)
+            userFilters.add(label_currency)
+            userFilters.add(user_currency)
+            userFilters.add(label_accounts)
+            userFilters.add(user_accounts)
+            userFilters.add(JLabel(""))
+            userFilters.add(JLabel("---"))
+            # userFilters.add(label_import_type)
+            # userFilters.add(user_import_type)
+            userFilters.add(label_import_type_transfer)
+            userFilters.add(user_import_type_transfer)
+            userFilters.add(label_import_type_download)
+            userFilters.add(user_import_type_download)
+            userFilters.add(JLabel(""))
+            userFilters.add(JLabel("---"))
+            userFilters.add(label_importStructure)
+            userFilters.add(user_importStructureOnly)
+            userFilters.add(label_importAllData)
+            userFilters.add(user_importAllData)
+
+
+            while True:
+                options = ["EXIT", "IMPORT"]
+                userAction = (JOptionPane.showOptionDialog(Toolbox_frame_,
+                                                           userFilters,
+                                                           "IMPORT QIF (Older MD Function)",
+                                                           JOptionPane.OK_CANCEL_OPTION,
+                                                           JOptionPane.QUESTION_MESSAGE,
+                                                           moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                           options, options[0]))
+                if userAction != 1:
+                    self.statusLabel.setText(("QIF IMPORT: - User aborted - No changes made.....").ljust(800, " "))
+                    self.statusLabel.setForeground(Color.BLUE)
+                    myPopupInformationBox(Toolbox_frame_,"QIF IMPORT: User Aborted - NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                    return
+
+                if not user_importStructureOnly.isSelected() and not user_importAllData.isSelected():
+                    user_importStructureOnly.setForeground(Color.RED)
+                    user_importAllData.setForeground(Color.RED)
+                    continue
+
+                if not user_import_type_transfer.isSelected() and not user_import_type_download.isSelected():
+                    user_import_type_transfer.setForeground(Color.RED)
+                    user_import_type_download.setForeground(Color.RED)
+                    continue
+
+                break
+
+            if user_QIF_format.getSelectedItem() == "QIF_FORMAT_AUTO":
+                theQIFFormat = Common.QIF_FORMAT_AUTO
+            elif user_QIF_format.getSelectedItem() == "QIF_FORMAT_MMDDYY":
+                theQIFFormat = Common.QIF_FORMAT_MMDDYY
+            elif user_QIF_format.getSelectedItem() == "QIF_FORMAT_DDMMYY":
+                theQIFFormat = Common.QIF_FORMAT_DDMMYY
+            elif user_QIF_format.getSelectedItem() == "QIF_FORMAT_YYMMDD":
+                theQIFFormat = Common.QIF_FORMAT_YYMMDD
+            else:
+                self.statusLabel.setText(("QIF IMPORT: Error - QIF Format %s unknown / unsupported by Moneydance now....?!" %(user_QIF_format.getSelectedItem())).ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPopupInformationBox(Toolbox_frame_,"QIF IMPORT: Error - QIF Format %s unknown / unsupported by Moneydance now....?! NO CHANGES MADE","QIF IMPORT" %(user_QIF_format.getSelectedItem()), theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            if user_import_type_transfer.isSelected():
+                theImportType = Common.QIF_MODE_TRANSFER
+            elif user_import_type_download.isSelected():
+                theImportType = Common.QIF_MODE_DOWNLOAD
+            else:
+                self.statusLabel.setText(("QIF IMPORT: Error - QIF MODE unknown / unsupported by Moneydance now....?!" ).ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPopupInformationBox(Toolbox_frame_,"QIF IMPORT: Error - QIF MODE unknown / unsupported by Moneydance now....?! NO CHANGES MADE","QIF IMPORT", theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            # if user_import_type.getSelectedItem() == "QIF_MODE_TRANSFER":
+            #     theImportType = Common.QIF_MODE_TRANSFER
+            # elif user_import_type.getSelectedItem() == "QIF_MODE_DOWNLOAD":
+            #     theImportType = Common.QIF_MODE_DOWNLOAD
+            # else:
+            #     self.statusLabel.setText(("QIF IMPORT: Error - QIF MODE %s unknown / unsupported by Moneydance now....?!" %(user_import_type.getSelectedItem())).ljust(800, " "))
+            #     self.statusLabel.setForeground(Color.RED)
+            #     myPopupInformationBox(Toolbox_frame_,"QIF IMPORT: Error - QIF MODE %s unknown / unsupported by Moneydance now....?! NO CHANGES MADE","QIF IMPORT" %(user_import_type.getSelectedItem()), theMessageType=JOptionPane.WARNING_MESSAGE)
+            #     return
+
+            theAcct = None
+            if isinstance(user_accounts.getSelectedItem(), Account):
+                theAcct = user_accounts.getSelectedItem()
+
+            msg =  "File name:        %s\n"         %(QIFfilename)
+            msg += "QIF Format:       %s (%s)\n"    %(user_QIF_format.getSelectedItem(),theQIFFormat)
+            msg += "Decimal Char:     %s\n"         %(user_selectDecimal.getSelectedItem())
+            msg += "Default Currency: %s\n"         %(user_currency.getSelectedItem())
+            msg += "Default Account:  %s\n"         %(user_accounts.getSelectedItem())
+            msg += "Import Type:      %s (%s)\n"    %(IMPORT_TYPE[theImportType],theImportType)
+            msg += "Structure Only:   %s\n"         %(user_importStructureOnly.isSelected())
+
+            ask=MyPopUpDialogBox(Toolbox_frame_,
+                                 theStatus="Please confirm parameters:",
+                                 theMessage=msg,
+                                 theWidth=225,
+                                 theTitle="QIF IMPORT",
+                                 OKButtonText="PROCEED",
+                                 lCancelButton=True)
+            if (not ask.go()
+                    or not myPopupAskBackup(Toolbox_frame_,"Do you want to make a Backup before your QIF Import?")):
+                self.statusLabel.setText(("QIF IMPORT: User aborted - NO CHANGES MADE").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPopupInformationBox(Toolbox_frame_,"User aborted, NO CHANGES MADE","QIF IMPORT", theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            myPrint("B","User has requested a QIF import with these following parameters:\n")
+            myPrint("B",msg)
+            myPrint("J",">>EXECUTING IMPORT................\n")
+
+            moneydance.importQIFIntoAccount(    moneydance_data,
+                                                File(QIFfilename),
+                                                theQIFFormat,                           # one of Common.QIF_FORMAT_MMDDYY, QIF_FORMAT_YYMMDD, QIF_FORMAT_DDMMYY, QIF_FORMAT_AUTO
+                                                user_selectDecimal.getSelectedItem(),   # your decimal place character.
+                                                user_currency.getSelectedItem(),        # the default currency to use for any new accounts that are created
+                                                theAcct,                                # the default account to import into (though the QIF file may also specify multiple accounts with names)
+                                                theImportType,                          # Common.QIF_MODE_DOWNLOAD or Common.QIF_MODE_TRANSFER
+                                                user_importStructureOnly.isSelected())  # if true, only import the account and category structure
+
+            myPrint("J",">>FINISHED IMPORT................\n")
+
+            self.statusLabel.setText(("QIF IMPORT: File %s imported - review console log for messaged" %(os.path.basename(QIFfilename))).ljust(800, " "))
+            self.statusLabel.setForeground(Color.BLUE)
+            play_the_money_sound()
+            myPopupInformationBox(Toolbox_frame_,
+                                  "File %s imported - review console log for messaged" %(os.path.basename(QIFfilename)),
+                                  "QIF IMPORT",
+                                  theMessageType=JOptionPane.WARNING_MESSAGE)
+
+            ConsoleWindow.showConsoleWindow(moneydance_ui)
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
             return
 
@@ -8098,6 +8503,8 @@ class DiagnosticDisplay():
             global Toolbox_frame_, debug, DARK_GREEN, lCopyAllToClipBoard_TB
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
+            # fix_dropbox_one_way_syncing.py
+            # reset_sync_and_dropbox_settings.py
             theKey = "migrated.netsync.dropbox.fileid"
 
             if not confirm_backup_confirm_disclaimer(Toolbox_frame_,self.statusLabel,"FIX DROPBOX ONE WAY SYNC","Fix Dropbox One-Way Syncing?"):
@@ -10944,6 +11351,8 @@ In Linux - due to permissions, you will need to do this:
         def actionPerformed(self, event):
             global Toolbox_frame_, debug, MYPYTHON_DOWNLOAD_URL
 
+            # export_all_attachments.py
+
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
             ask=MyPopUpDialogBox(Toolbox_frame_,"EXTRACT ATTACHMENTS - For Your Information",
@@ -12167,6 +12576,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
+            # force_change_account_currency.py
             ask=MyPopUpDialogBox(Toolbox_frame_,
                                  theStatus="Are you sure you want to FORCE change an Account's Currency?",
                                  theTitle="FORCE CHANGE CURRENCY",
@@ -12275,15 +12685,15 @@ Now you will have a text readable version of the file you can open in a text edi
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
-            user_forgetOFXBankingLink =         JRadioButton("Forget OFX Banking File Import Link", False)
+            user_forgetOFXBankingLink =         JRadioButton("Forget OFX Banking File Import Link (remove_ofx_account_bindings.py)", False)
             user_forgetOFXBankingLink.setEnabled(lAdvancedMode)
             user_forgetOFXBankingLink.setForeground(Color.RED)
 
-            user_manageCUSIPLink =              JRadioButton("Reset/Fix/Edit/Add CUSIP Banking Link", False)
+            user_manageCUSIPLink =              JRadioButton("Reset/Fix/Edit/Add CUSIP Banking Link (remove_ofx_security_bindings.py)", False)
             user_manageCUSIPLink.setEnabled(lAdvancedMode)
             user_manageCUSIPLink.setForeground(Color.RED)
 
-            user_deleteOFXBankingLogonProfile = JRadioButton("Delete OFX Banking Service / Logon Profile", False)
+            user_deleteOFXBankingLogonProfile = JRadioButton("Delete OFX Banking Service / Logon Profile (remove_one_service.py)", False)
             user_deleteOFXBankingLogonProfile.setEnabled(lAdvancedMode)
             user_deleteOFXBankingLogonProfile.setForeground(Color.RED)
 
@@ -12298,9 +12708,13 @@ Now you will have a text readable version of the file you can open in a text edi
             user_authenticationManagement.setEnabled(lAdvancedMode)
             user_authenticationManagement.setForeground(Color.RED)
 
-            user_deleteOnlineTxns =     JRadioButton("Delete Saved OnlineTxnList Record/Txns (Hacker Mode Only)", False)
-            user_deleteOnlineTxns.setEnabled(lAdvancedMode and lHackerMode)
+            user_deleteOnlineTxns =     JRadioButton("Delete Single cached OnlineTxnList Record/Txns", False)
+            user_deleteOnlineTxns.setEnabled(lAdvancedMode)
             user_deleteOnlineTxns.setForeground(Color.RED)
+
+            user_deleteALLOnlineTxns =  JRadioButton("Delete ALL cached OnlineTxnList Record/Txns (delete_intermediate_downloaded_transaction_caches.py)", False)
+            user_deleteALLOnlineTxns.setEnabled(lAdvancedMode)
+            user_deleteALLOnlineTxns.setForeground(Color.RED)
 
             user_updateOFXLastTxnUpdate = JRadioButton("Update the OFX Last Txn Update Date (Downloaded) field for an account", False)
             user_updateOFXLastTxnUpdate.setEnabled(lAdvancedMode)
@@ -12331,6 +12745,7 @@ Now you will have a text readable version of the file you can open in a text edi
             bg.add(user_cookieManagement)
             bg.add(user_authenticationManagement)
             bg.add(user_deleteOnlineTxns)
+            bg.add(user_deleteALLOnlineTxns)
             bg.add(user_updateOFXLastTxnUpdate)
             bg.add(user_viewListALLMDServices)
             # bg.add(user_toggleOFXDebug)
@@ -12352,9 +12767,11 @@ Now you will have a text readable version of the file you can open in a text edi
             userFilters.add(user_updateOFXLastTxnUpdate)
             userFilters.add(user_deleteOFXBankingLogonProfile)
             userFilters.add(user_authenticationManagement)
+            userFilters.add(user_deleteOnlineTxns)
+            userFilters.add(user_deleteALLOnlineTxns)
+            userFilters.add(JLabel(" "))
             userFilters.add(JLabel("---- ADVANCED + HACKER MODE ONLY  -----"))
             userFilters.add(user_cookieManagement)
-            userFilters.add(user_deleteOnlineTxns)
 
             if not lAdvancedMode or not lHackerMode:
                 userFilters.add(labelFYI2)
@@ -12428,6 +12845,10 @@ Now you will have a text readable version of the file you can open in a text edi
 
                 if user_deleteOnlineTxns.isSelected():
                     OFX_delete_saved_online_txns(self.statusLabel)
+
+                if user_deleteALLOnlineTxns.isSelected():
+                    OFX_delete_ALL_saved_online_txns(self.statusLabel)
+                    return
 
                 if user_updateOFXLastTxnUpdate.isSelected():
                     OFX_update_OFXLastTxnUpdate(self.statusLabel)
@@ -12965,6 +13386,8 @@ Now you will have a text readable version of the file you can open in a text edi
         def actionPerformed(self, event):
             global Toolbox_frame_, debug
 
+            # fix_account_parent.py (and old check_root_structure.py)
+
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
             myPrint("B", "Diagnosing INVALID Parent Accounts....")
@@ -13190,6 +13613,9 @@ Now you will have a text readable version of the file you can open in a text edi
 
         def actionPerformed(self, event):
             global Toolbox_frame_, debug, lMustRestartAfterSnapChanges
+
+            # based on: price_history_thinner.py
+            # (also includes elements from 2017_remove_orphaned_currency_history_entries.py)
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
@@ -14060,6 +14486,9 @@ Now you will have a text readable version of the file you can open in a text edi
 
         def actionPerformed(self, event):
             global Toolbox_frame_, debug
+
+            # show_object_type_quantities.py
+
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
             output = "DATASET FILE ANALYSIS\n" \
@@ -14495,7 +14924,7 @@ Now you will have a text readable version of the file you can open in a text edi
         frame_height = min(screenSize.height-20, max(768, int(round(moneydance_ui.firstMainFrame.getSize().height *.95,0))))
 
         JFrame.setDefaultLookAndFeelDecorated(True)
-        Toolbox_frame_ = JFrame("StuWareSoftSystems: " + myScriptName + " (" + version_build + ")...  (%s+I for Help)    -    DATASET: %s" % (moneydance_ui.ACCELERATOR_MASK_STR, moneydance.getCurrentAccountBook().getName().strip()))
+        Toolbox_frame_ = JFrame("Infinite Kind (co-authored by StuWareSoftSystems): " + myScriptName + " (" + version_build + ")...  (%s+I for Help)    -    DATASET: %s" % (moneydance_ui.ACCELERATOR_MASK_STR, moneydance.getCurrentAccountBook().getName().strip()))
         # Toolbox_frame_.setLayout(FlowLayout())
 
         # icon = moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
@@ -14511,7 +14940,7 @@ Now you will have a text readable version of the file you can open in a text edi
         Toolbox_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)  # The CloseAction() and WindowListener() will handle dispose() - else change back to DISPOSE_ON_CLOSE
 
         displayString = buildDiagText()
-        statusLabel = JLabel(("DIAG STATUS: BASIC MODE RUNNING... - %s+I for Help (check out the Toolbox menu for more options/modes/features)"%moneydance_ui.ACCELERATOR_MASK_STR).ljust(800, " "), JLabel.LEFT)
+        statusLabel = JLabel(("Infinite Kind (Moneydance) support tool >> DIAG STATUS: BASIC MODE RUNNING... - %s+I for Help (check out the Toolbox menu for more options/modes/features)"%moneydance_ui.ACCELERATOR_MASK_STR).ljust(800, " "), JLabel.LEFT)
         statusLabel.setForeground(DARK_GREEN)
 
         try:
@@ -14551,7 +14980,7 @@ Now you will have a text readable version of the file you can open in a text edi
         displayPanel.setPreferredSize(Dimension(frame_width - 30, 300))
 
         if lAutoPruneInternalBackups_TB:
-            prune_internal_backups(statusLabel)
+            prune_internal_backups(statusLabel,lStartup=True)
         else:
             myPrint("J","Auto-prune of internal backups of config.dict, custom_theme.properties, ./safe/settings files is disabled... so no action")
 
@@ -14600,7 +15029,7 @@ Now you will have a text readable version of the file you can open in a text edi
         displayPanel.add(displayPasswords_button)
 
         analiseDatasetSize_button = JButton("<html><center>Analyse Dataset<BR>Objs, Size & Files</center></html>")
-        analiseDatasetSize_button.setToolTipText("This quickly analyse the contents of your dataset and show you your Object counts, file sizes, what's taking space, and non-valid files...")
+        analiseDatasetSize_button.setToolTipText("This quickly analyse the contents of your dataset and show you your Object counts, file sizes, what's taking space, and non-valid files...(show_object_type_quantities.py)")
         analiseDatasetSize_button.addActionListener(self.AnalyseDatasetSizeButtonAction(statusLabel))
         displayPanel.add(analiseDatasetSize_button)
 
@@ -14744,6 +15173,11 @@ Now you will have a text readable version of the file you can open in a text edi
         onlineBankingTools_button.addActionListener(self.OnlineBankingToolsButtonAction(displayString, statusLabel))
         displayPanel.add(onlineBankingTools_button)
 
+        importQIFFile_button = JButton("<html><center>'Older' Import QIF file<BR>and set parameters</center></html>")
+        importQIFFile_button.setToolTipText("Runs the 'older' MD importQIFIntoAccount() function and allows you to set parameters (you can select create Account Structure Only) - WILL IMPORT / CHANGE DATA!")
+        importQIFFile_button.addActionListener(self.ImportQIFButtonAction(statusLabel))
+        displayPanel.add(importQIFFile_button)
+
         thinPriceHistory_button = JButton("<html><center>FIX: Thin/Purge<BR>Price History</center></html>")
         thinPriceHistory_button.setToolTipText("This will allow you to Thin / Prune your Price History based on user parameters. THIS CHANGES DATA!")
         thinPriceHistory_button.setForeground(Color.RED)
@@ -14836,7 +15270,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
         if moneydance_data.getLocalStorage().getStr("migrated.netsync.dropbox.fileid", None):
             FixDropboxOneWaySync_button = JButton("<html><center><B>FIX: Fix Dropbox<BR>One Way Syncing</B></center></html>")
-            FixDropboxOneWaySync_button.setToolTipText("This removes the key migrated.netsync.dropbox.fileid to fix Dropbox One-way Syncing")
+            FixDropboxOneWaySync_button.setToolTipText("This removes the key migrated.netsync.dropbox.fileid to fix Dropbox One-way Syncing (reset_sync_and_dropbox_settings.py)")
             FixDropboxOneWaySync_button.setBackground(Color.RED)
             FixDropboxOneWaySync_button.setForeground(Color.WHITE)
             FixDropboxOneWaySync_button.addActionListener(self.FixDropboxOneWaySyncButtonAction(statusLabel, FixDropboxOneWaySync_button))
@@ -15150,7 +15584,7 @@ else:
 
         fixRCurrencyCheck = 0
 
-        moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - Toolbox launching.......",0)
+        moneydance_ui.firstMainFrame.setStatus(">> Infinite Kind (co-authored by Stuart Beesley: StuWareSoftSystems) - Toolbox launching.......",0)
 
         # These checks already run at Dataset Load time:
         # >> com.infinitekind.moneydance.model.AccountBook.performPostLoadVerification()
@@ -15187,14 +15621,14 @@ else:
             myPopupInformationBox(None,"ERROR: I've Detected that your ROOT Account is Missing or not type ROOT! Contact support or the Author of Toolbox for a fix",
                                   "ROOT ACCOUNT WARNING",JOptionPane.ERROR_MESSAGE)
             myPrint("B","@@ ERROR: I've Detected that your ROOT Account is Missing or not type ROOT! Contact support or the Author of Toolbox for a fix")
-            myPrint("B","@@ FYI - there used to be a script called fix_restored_accounts.py for this (but the last time I looked it was broken.....")
+            myPrint("B","@@ FYI - there used to be scripts called fix_restored_accounts.py or fix_root_account_type.py for this (but the last time I looked they were broken.....")
         else:
             theDisplay = DiagnosticDisplay()
             theDisplay.openDisplay()
 
-            myPrint("P","------------------------------------------------------------------------------------")
-            myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending (frame is open/running)......")
-            myPrint("P","------------------------------------------------------------------------------------")
+            myPrint("P","-----------------------------------------------------------------------------------------------------------")
+            myPrint("B", "Infinite Kind in conjunction with StuWareSoftSystems - ", myScriptName, " script ending (frame is open/running)......")
+            myPrint("P","-----------------------------------------------------------------------------------------------------------")
     else:
         lAbort = True
 
