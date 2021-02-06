@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1022 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1023 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -42,10 +42,14 @@
 # fix_account_parent.py                                 (from Moneydance support)
 # (... and old check_root_structure.py)                 (from Moneydance support)
 # fix_non-hierarchical_security_account_txns.py         (from Moneydance support)
+# (... and fix_investment_txns_to_wrong_security.py)    (from Moneydance support)
 # remove_ofx_security_bindings.py                       (from Moneydance support)
 # show_object_type_quantities.py                        (from Moneydance support)
 # delete_intermediate_downloaded_transaction_caches.py  (from Moneydance support)
 # delete_orphaned_downloaded_txn_lists.py               (from Moneydance support)
+# set_account_type.py                                   (from Moneydance support)
+# force_change_all_currencies.py                        (from Moneydance support)
+# fix_invalid_currency_rates.py                         (from Moneydance support)
 # show_open_tax_lots.py                                 (author unknown)
 # MakeFifoCost.py                                       (author unknown)
 # change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
@@ -132,7 +136,7 @@
 # Build: 1020 - Listen to MD Events.. Close Toolbox down when switching datasets.... (called when MD flags new file has been opened)
 # Build: 1020 - save parameters everytime the menu option changes (in case program is killed or MD exits)
 # Build: 1020 - script now checks for version information online and updates it's own defaults....
-# Build: 1020 - Added button / script fix_non-hierarchical_security_account_txns.py
+# Build: 1020 - Added button / script fix_non-hierarchical_security_account_txns.py (and fix_investment_txns_to_wrong_security.py)
 # Build: 1020 - script now dials home to check for updated version information etc.... (any error/not found, it just ignores and carries on)
 # Build: 1020 - RELEASE 2.0: New Diag and Fix buttons (incl. Thin Price History and more); New OFX Bank Management Menu; many updates to Hacker mode
 # Build: 1021 - Tweak to delete int/ext files workflow; changed open file to JFileChooser() when I don't want remembered directories (Java 'feature')
@@ -143,8 +147,16 @@
 # Build: 1022 - Cosmetic tweak to curr/sec dpc to show something when blank name...
 # Build: 1022 - Added the older Import QIF file button; added service.clearAuthenticationCache() to remove_one_service.py script
 # Build: 1022 - Added delete_intermediate_downloaded_transaction_caches.py script to OFX banking menu
-# Build: 1022 - Rebadged as InfiniteKind - co-authored by Stuart Beesley
+# Build: 1022 - Re-badged as InfiniteKind - co-authored by Stuart Beesley
 # Build: 1022 - Added size of database objects to analyse objects button
+# Build: 1023 - Added option after search for datasets to add missing files to config.dict and file open menu; also excluded /System from search on Macs
+# Build: 1023 - Added Force change Account type button to advanced menu (set_account_type.py)
+# Build: 1023 - Added Force change all Accounts' currencies to advanced menu (force_change_all_currencies.py)
+# Build: 1023 - Started the journey (due to learning) to ensure unicode used everywhere (rather than byte strings) (yes; I learnt coding back in the 80s!)
+# Build: 1023 - Error trapped diagnostic display - crashed on non utf8 characters - and also when decimal local grouping character was nbsp (chr(160)) - fixed....
+# Build: 1023 - added button fix invalid currency rates to advanced menu (fix_invalid_currency_rates.py)
+# Build: 1023 - Updated search datasets and search ios backups to skip symbolic links....
+
 
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
 
@@ -214,7 +226,7 @@ global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1022"                                                                                              # noqa
+version_build = "1023"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -417,7 +429,6 @@ def cpad(theText, theLength):
     return theText
 
 
-myPrint("B", "Infinite Kind - Co-authored by StuWareSoftSystems...")
 myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
 def is_moneydance_loaded_properly():
@@ -462,8 +473,8 @@ def getMonoFont():
 
 def getTheSetting(what):
     x = moneydance_ui.getPreferences().getSetting(what, None)
-    if not x or x == "": return None
-    return what + ": " + str(x)
+    if not x or x == u"": return None
+    return what + u": %s" %(x)
 
 def get_home_dir():
     homeDir = None
@@ -471,18 +482,18 @@ def get_home_dir():
     # noinspection PyBroadException
     try:
         if Platform.isOSX():
-            homeDir = System.getProperty("UserHome")  # On a Mac in a Java VM, the homedir is hidden
+            homeDir = System.getProperty(u"UserHome")  # On a Mac in a Java VM, the homedir is hidden
         else:
             # homeDir = System.getProperty("user.home")
-            homeDir = os.path.expanduser("~")  # Should work on Unix and Windows
-            if homeDir is None or homeDir == "":
-                homeDir = System.getProperty("user.home")
-            if homeDir is None or homeDir == "":
-                homeDir = os.environ.get("HOMEPATH")
+            homeDir = os.path.expanduser(u"~")  # Should work on Unix and Windows
+            if homeDir is None or homeDir == u"":
+                homeDir = System.getProperty(u"user.home")
+            if homeDir is None or homeDir == u"":
+                homeDir = os.environ.get(u"HOMEPATH")
     except:
         pass
 
-    if not homeDir: homeDir = "?"
+    if not homeDir: homeDir = u"?"
     return homeDir
 
 def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
@@ -493,19 +504,31 @@ def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
     decimalSymbols = decimalFormat.getDecimalFormatSymbols()
 
     if not lGetGrouping: lGetPoint = True
-    if lGetGrouping and lGetPoint: return "error"
+    if lGetGrouping and lGetPoint: return u"error"
 
-    if lGetPoint:
-        _decimalCharSep = decimalSymbols.getDecimalSeparator()
-        myPrint("D","Decimal Point Character:", _decimalCharSep)
-        return _decimalCharSep
+    try:
+        if lGetPoint:
+            _decimalCharSep = decimalSymbols.getDecimalSeparator()
+            myPrint(u"D",u"Decimal Point Character: %s" %(_decimalCharSep))
+            return _decimalCharSep
 
-    if lGetGrouping:
-        _groupingCharSep = decimalSymbols.getGroupingSeparator()
-        myPrint("D","Grouping Separator Character:", _groupingCharSep)
-        return _groupingCharSep
+        if lGetGrouping:
+            _groupingCharSep = decimalSymbols.getGroupingSeparator()
+            if _groupingCharSep is None or _groupingCharSep == u"":
+                myPrint(u"B", u"Caught empty Grouping Separator")
+                return u""
+            if ord(_groupingCharSep) >= 128:    # Probably a nbsp (160) = e.g. South Africa for example..!
+                myPrint(u"B", u"Caught special character in Grouping Separator. Ord(%s)" %(ord(_groupingCharSep)))
+                if ord(_groupingCharSep) == 160:
+                    return u" (non breaking space character)"
+                return u" (non printable character)"
+            myPrint(u"D",u"Grouping Separator Character:", _groupingCharSep)
+            return _groupingCharSep
+    except:
+        myPrint(u"B",u"Error in getDecimalPoint() routine....?")
+        dump_sys_error_to_md_console_and_errorlog()
 
-    return "error"
+    return u"error"
 
 
 decimalCharSep = getDecimalPoint(lGetPoint=True)
@@ -1207,7 +1230,7 @@ def save_StuWareSoftSystems_parameters_to_file():
     if myParameters is None: myParameters = {}
 
     # Don't forget, any parameters loaded earlier will be preserved; just add changed variables....
-    myParameters["__Author"] = "Infinite Kind - Co-authored by Stuart Beesley - StuWareSoftSystems"
+    myParameters["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
     myParameters["debug"] = debug
 
     dump_StuWareSoftSystems_parameters_from_memory()
@@ -1678,327 +1701,315 @@ def count_database_objects():
 # noinspection PyBroadException
 def buildDiagText(lGrabPasswords=False):
     if lGrabPasswords:
-        returnString = ""
+        returnString = u""
 
         MD_enc = moneydance_ui.getCurrentAccounts().getEncryptionKey()
         MD_hnt = moneydance_ui.getCurrentAccounts().getEncryptionHint()
         MD_sync_pwd = moneydance_ui.getCurrentAccounts().getSyncEncryptionPassword()
 
-        if MD_enc is not None and MD_enc != "":
-            returnString += "MD Encryption Passphrase: " + MD_enc
-            if MD_hnt is not None and MD_hnt != "":
-                returnString += "   Encryption Passphrase Hint: " + MD_hnt
+        if MD_enc is not None and MD_enc != u"":
+            returnString += u"MD Encryption Passphrase: " + MD_enc
+            if MD_hnt is not None and MD_hnt != u"":
+                returnString += u"   Encryption Passphrase Hint: " + MD_hnt
 
-        if MD_sync_pwd is not None and MD_sync_pwd != "":
-            returnString += "  MD Sync Passphrase: " + MD_sync_pwd
+        if MD_sync_pwd is not None and MD_sync_pwd != u"":
+            returnString += u"  MD Sync Passphrase: " + MD_sync_pwd
 
-        if returnString.strip() == "":
-            returnString = " - NO PASSPHRASE(S) FOUND - "
+        if returnString.strip() == u"":
+            returnString = u" - NO PASSPHRASE(S) FOUND - "
 
         return returnString
 
 
     textArray = []                                                                                                  # noqa
 
-    textArray.append("Moneydance Version / Build: " + str(moneydance.getVersion()) + "  Build: " + str(moneydance.getBuild()))
-    textArray.append("Moneydance Config file reports: " + moneydance_ui.getPreferences().getSetting("current_version", ""))
-    textArray.append("Moneydance updater version to track: " + moneydance_ui.getPreferences().getSetting("updater.version_to_track",""))
+    textArray.append(u"Moneydance Version / Build: %s" %(moneydance.getVersion()) + u"  Build: %s" %(moneydance.getBuild()))
+    textArray.append(u"Moneydance Config file reports: %s" %moneydance_ui.getPreferences().getSetting(u"current_version", u""))
+    textArray.append(u"Moneydance updater version to track: %s" %moneydance_ui.getPreferences().getSetting(u"updater.version_to_track",u""))
 
-    currLicense = moneydance_ui.getPreferences().getSetting("gen.lic_key2021",
-                                                            moneydance_ui.getPreferences().getSetting("gen.lic_key2019",
-                                                                                                      moneydance_ui.getPreferences().getSetting(
-                                                                                                          "gen.lic_key2017",
-                                                                                                          moneydance_ui.getPreferences().getSetting(
-                                                                                                              "gen.lic_key2015",
-                                                                                                              moneydance_ui.getPreferences().getSetting(
-                                                                                                                  "gen.lic_key2014",
-                                                                                                                  moneydance_ui.getPreferences().getSetting(
-                                                                                                                      "gen.lic_key2011",
-                                                                                                                      moneydance_ui.getPreferences().getSetting(
-                                                                                                                          "gen.lic_key2010",
-                                                                                                                          moneydance_ui.getPreferences().getSetting(
-                                                                                                                              "gen.lic_key2004",
-                                                                                                                              moneydance_ui.getPreferences().getSetting(
-                                                                                                                                  "gen.lic_key",
-                                                                                                                                  "?")))))))))
+    currLicense = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2021",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key2019",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key2017",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key2015",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key2014",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key2011",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key2010",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key2004",
+                                                            moneydance_ui.getPreferences().getSetting(u"gen.lic_key",u"?")))))))))
 
-    license2021 = moneydance_ui.getPreferences().getSetting("gen.lic_key2021", None)                                # noqa
-    license2019 = moneydance_ui.getPreferences().getSetting("gen.lic_key2019", None)
-    license2017 = moneydance_ui.getPreferences().getSetting("gen.lic_key2017", None)
-    license2015 = moneydance_ui.getPreferences().getSetting("gen.lic_key2015", None)
-    license2014 = moneydance_ui.getPreferences().getSetting("gen.lic_key2014", None)
-    license2011 = moneydance_ui.getPreferences().getSetting("gen.lic_key2011", None)
-    license2010 = moneydance_ui.getPreferences().getSetting("gen.lic_key2010", None)
-    license2004 = moneydance_ui.getPreferences().getSetting("gen.lic_key2004", None)
+    license2021 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2021", None)                               # noqa
+    license2019 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2019", None)
+    license2017 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2017", None)
+    license2015 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2015", None)
+    license2014 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2014", None)
+    license2011 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2011", None)
+    license2010 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2010", None)
+    license2004 = moneydance_ui.getPreferences().getSetting(u"gen.lic_key2004", None)
 
     if moneydance_ui.getMain().isRegistered():
-        textArray.append("LICENSED: " + currLicense)
+        textArray.append(u"LICENSED: %s" %currLicense)
     else:
-        textArray.append("UNLICENSED!")
+        textArray.append(u"UNLICENSED!")
 
-    if license2019:      textArray.append(" >old licenses (2019): " + license2019)
-    if license2017:      textArray.append(" >old licenses (2017): " + license2017)
-    if license2015:      textArray.append(" >old licenses (2015): " + license2015)
-    if license2014:      textArray.append(" >old licenses (2014): " + license2014)
-    if license2011:      textArray.append(" >old licenses (2011): " + license2011)
-    if license2010:      textArray.append(" >old licenses (2010): " + license2010)
-    if license2004:      textArray.append(" >old licenses (2004): " + license2004)
+    if license2019:      textArray.append(u" >old licenses (2019): " + license2019)
+    if license2017:      textArray.append(u" >old licenses (2017): " + license2017)
+    if license2015:      textArray.append(u" >old licenses (2015): " + license2015)
+    if license2014:      textArray.append(u" >old licenses (2014): " + license2014)
+    if license2011:      textArray.append(u" >old licenses (2011): " + license2011)
+    if license2010:      textArray.append(u" >old licenses (2010): " + license2010)
+    if license2004:      textArray.append(u" >old licenses (2004): " + license2004)
 
-    if not moneydance_data: textArray.append("Moneydance datafile is empty")
-    x = moneydance_ui.getPreferences().getSetting("current_accountbook", None)
-    y = moneydance_ui.getPreferences().getSetting("current_account_file", None)
+    if not moneydance_data: textArray.append(u"Moneydance datafile is empty")
+    x = moneydance_ui.getPreferences().getSetting(u"current_accountbook", None)
+    y = moneydance_ui.getPreferences().getSetting(u"current_account_file", None)
 
-    theExtn = os.path.splitext(str(moneydance_data.getRootFolder()))
+    theExtn = os.path.splitext((moneydance_data.getRootFolder().getCanonicalPath()))
 
     if x:
-        textArray.append("Current Dataset: " + str(x))
+        textArray.append(u"Current Dataset: %s" %(x))
     if y:
-        textArray.append("Current Dataset: " + str(y))
+        textArray.append(u"Current Dataset: %s" %(y))
 
-    textArray.append("Full location of this Dataset: %s" %(moneydance_data.getRootFolder()))
+    textArray.append(u"Full location of this Dataset: %s" %(moneydance_data.getRootFolder()))
 
     x = find_the_program_install_dir()
     if x:
-        textArray.append("Application Install Directory: %s" %(x))
+        textArray.append(u"Application Install Directory: %s" %(x))
     else:
-        textArray.append("UNABLE TO DETERMINE Application's Install Directory?!")
+        textArray.append(u"UNABLE TO DETERMINE Application's Install Directory?!")
 
 
     lDropbox, lSuppressed = check_dropbox_and_suppress_warnings()
     if lDropbox:
-        textArray.append("\n@@ WARNING: You have your dataset installed in Dropbox - This can damage your data!")
+        textArray.append(u"\n@@ WARNING: You have your dataset installed in Dropbox - This can damage your data!")
         if lSuppressed:
-            textArray.append("@@ WARNING: You have also SUPPRESSED the warning messages - THIS IS AT YOUR OWN RISK!")
-        textArray.append("@@ The recommendation is to move your Dataset to your local drive (out of Dropbox) and a) use MD's internal Sync feature, or b) set Dropbox as the location for MD Backups\n")
+            textArray.append(u"@@ WARNING: You have also SUPPRESSED the warning messages - THIS IS AT YOUR OWN RISK!")
+        textArray.append(u"@@ The recommendation is to move your Dataset to your local drive (out of Dropbox) and a) use MD's internal Sync feature, or b) set Dropbox as the location for MD Backups\n")
 
-    textArray.append("\nRUNTIME ENVIRONMENT")
+    textArray.append(u"\nRUNTIME ENVIRONMENT")
 
-    textArray.append("Java version: " + str(System.getProperty("java.version")))
-    textArray.append("Java vendor: " + str(System.getProperty("java.vendor")))
+    textArray.append(u"Java version: %s"  %(System.getProperty(u"java.version")))
+    textArray.append(u"Java vendor: %s"  %(System.getProperty(u"java.vendor")))
 
-    textArray.append("Platform: " + platform.python_implementation()
-                     + " " + platform.system() + " " + str(sys.version_info.major)
-                     + "" + "." + str(sys.version_info.minor))
+    textArray.append(u"Platform: " + platform.python_implementation()
+                     + u" " + platform.system() + " %s" %(sys.version_info.major)
+                     + u"" + ".%s" %(sys.version_info.minor))
 
-    textArray.append("SandBoxed: " + repr(moneydance.getPlatformHelper().isSandboxed()))
-    textArray.append("Restricted: " + repr(moneydance.getPlatformHelper().isConstrainedToSandbox()))
+    textArray.append(u"SandBoxed: %s" %(moneydance.getPlatformHelper().isSandboxed()))
+    textArray.append(u"Restricted: %s" %(moneydance.getPlatformHelper().isConstrainedToSandbox()))
 
     if moneydance.getExecutionMode() == moneydance.EXEC_MODE_APP:
-        textArray.append("MD Execution Mode: " + str(moneydance.getExecutionMode()) + " = APP (Normal App)")
+        textArray.append(u"MD Execution Mode: %s" %(moneydance.getExecutionMode()) + u" = APP (Normal App)")
     elif moneydance.getExecutionMode() == moneydance.EXEC_MODE_APPLET:
-        textArray.append("MD Execution Mode: " + str(moneydance.getExecutionMode()) + " = APPLET (probably from an AppStore?")
+        textArray.append(u"MD Execution Mode: %s" %(moneydance.getExecutionMode()) + u" = APPLET (probably from an AppStore?")
     else:
-        textArray.append("MD Execution Mode: " + str(moneydance.getExecutionMode()))
+        textArray.append(u"MD Execution Mode: %s" %(moneydance.getExecutionMode()))
 
-    textArray.append("MD Debug Mode: " + repr(moneydance.DEBUG))
-    textArray.append("Beta Features: " + repr(moneydance.BETA_FEATURES))
-    textArray.append("Architecture: " + str(System.getProperty("os.arch")))
+    textArray.append(u"MD Debug Mode: %s" %(moneydance.DEBUG))
+    textArray.append(u"Beta Features: %s" %(moneydance.BETA_FEATURES))
+    textArray.append(u"Architecture: %s" %(System.getProperty(u"os.arch")))
 
-    if theExtn and theExtn[1].strip() != "":
-        textArray.append("File Extension: " + theExtn[1])
+    if theExtn and theExtn[1].strip() != u"":
+        textArray.append(u"File Extension: %s" %theExtn[1])
     else:
-        textArray.append("File Extension: " + str(moneydance.FILE_EXTENSION))
+        textArray.append(u"File Extension: %s" %(moneydance.FILE_EXTENSION))
 
-    textArray.append("Operating System file encoding is: " + str(Charset.defaultCharset()))
-    textArray.append(
-        "Python default character encoding has been set to: " + sys.getfilesystemencoding() + " (the normal default is ASCII)")
+    textArray.append(u"Operating System file encoding is: %s" %(Charset.defaultCharset()))
+    textArray.append(u"Python default character encoding has been set to: %s" %(sys.getfilesystemencoding()) + u" (the normal default is ASCII)")
 
     try:
         # New for MD2020.2012
         x = moneydance_ui.getFonts().code
     except:
-        myPrint("B","Failed to get Moneydance code font (must be older version), loading older mono")
+        myPrint("B",u"Failed to get Moneydance code font (must be older version), loading older mono")
         x = moneydance_ui.getFonts().mono
 
-    textArray.append("Python default display font: " + x.getFontName() + " size: " + str(x.getSize()))
+    textArray.append(u"Python default display font: " + x.getFontName() + u" size: %s" %(x.getSize()))
 
-    textArray.append(
-        "\nMaster Node (dataset): " + str(moneydance_data.getLocalStorage().getBoolean("_is_master_node", True)))
+    textArray.append(u"\nMaster Node (dataset): %s" %(moneydance_data.getLocalStorage().getBoolean(u"_is_master_node", True)))
 
-    textArray.append("\nENCRYPTION")
+    textArray.append(u"\nENCRYPTION")
     x = moneydance_ui.getCurrentAccounts().getEncryptionKey()
-    if x is None or x == "":
-        x = "Encryption not set! - This means an internal Moneydance passphrase is being used to encrypt your dataset!"
+    if x is None or x == u"":
+        x = u"Encryption not set! - This means an internal Moneydance passphrase is being used to encrypt your dataset!"
     else:
-        x = "***************"
-    textArray.append("Encryption Passphrase: " + x)
+        x = u"***************"
+    textArray.append(u"Encryption Passphrase: %s" %x)
 
-    x="Encryption Store Online Banking (OFX) Passwords in File: " + str(moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean("store_passwords", False))
-    if moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean("store_passwords", False):
-        textArray.append(x+" (This means you are able to save your online banking passwords)")
+    x = u"Encryption Store Online Banking (OFX) Passwords in File: %s" %(moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean(u"store_passwords", False))
+    if moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean(u"store_passwords", False):
+        textArray.append(x+u" (This means you are able to save your online banking passwords)")
     else:
-        textArray.append(x+"\n>>You cannot save online banking passwords until you set a 'Master' (encryption) password **AND** select 'Store Online Passwords in File'\n")
+        textArray.append(x+u"\n>>You cannot save online banking passwords until you set a 'Master' (encryption) password **AND** select 'Store Online Passwords in File'\n")
 
     x = moneydance_ui.getCurrentAccounts().getEncryptionHint()
-    if x is None or x == "":
-        x = "Encryption passphrase hint not set!"
+    if x is None or x == u"":
+        x = u"Encryption passphrase hint not set!"
     else:
-        x = "***************"
-    textArray.append("Encryption passphrase hint: " + x)
+        x = u"***************"
+    textArray.append(u"Encryption passphrase hint: %s" %x)
 
     # if moneydance_ui.getCurrentAccounts().getEncryptionLevel(): # Always reports des - is this legacy?
-    if moneydance.getRootAccount().getParameter("md.crypto_level", None):
-        x = "Encryption level - Moneydance reports: %s (but I believe this is a legacy encryption method??)" %moneydance_ui.getCurrentAccounts().getEncryptionLevel()
+    if moneydance.getRootAccount().getParameter(u"md.crypto_level", None):
+        x = u"Encryption level - Moneydance reports: %s (but I believe this is a legacy encryption method??)" %moneydance_ui.getCurrentAccounts().getEncryptionLevel()
         textArray.append(x)
     else:
-        x = "My Encryption 'test' of your key/passphrase reports: %s\n"%getMDEncryptionKey()
-        x += "I understand the dataset encryption is: AES 128-bit. Passphrase encrypted using PBKDF2WithHmacSHA512 (fixed internal salt, high iteration) and then your (secure/random) key is encrypted and used to encrypt data to disk using AES/CBC/PKCS5Padding with a fixed internal IV"
+        x = u"My Encryption 'test' of your key/passphrase reports: %s\n" %(getMDEncryptionKey())
+        x += u"I understand the dataset encryption is: AES 128-bit. Passphrase encrypted using PBKDF2WithHmacSHA512 " \
+             u"(fixed internal salt, high iteration) and then your (secure/random) key is encrypted and used to encrypt " \
+             u"data to disk using AES/CBC/PKCS5Padding with a fixed internal IV"
         textArray.append(x)
 
-    textArray.append("\nSYNC DETAILS")
+    textArray.append(u"\nSYNC DETAILS")
     # SYNC details
     x = moneydance_ui.getCurrentAccounts().getSyncEncryptionPassword()
-    if x is None or x == "":
-        x = "Sync passphrase not set!"
+    if x is None or x == u"":
+        x = u"Sync passphrase not set!"
     else:
-        x = "***************"
-    textArray.append("Sync Password: " + x)
+        x = u"***************"
+    textArray.append(u"Sync Password: %s" %x)
 
     syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(moneydance_ui, moneydance_ui.getCurrentAccounts())
-    noSyncOption = SyncFolderUtil.configurerForIDFromList("none", syncMethods)
+    noSyncOption = SyncFolderUtil.configurerForIDFromList(u"none", syncMethods)
     syncMethod = SyncFolderUtil.getConfigurerForFile(moneydance_ui, moneydance_ui.getCurrentAccounts(), syncMethods)
     if syncMethod is None:
         syncMethod = noSyncOption
     else:
         syncMethod = syncMethod
-    textArray.append("Sync Method: " + str(syncMethod.getSyncFolder()))
+    textArray.append(u"Sync Method: %s" %(syncMethod.getSyncFolder()))
 
     if not check_for_dropbox_folder():
-        textArray.append("Sync WARNING: Dropbox sync will not work until you add the missing .moneydancesync folder - use advanced mode to fix!")
+        textArray.append(u"Sync WARNING: Dropbox sync will not work until you add the missing .moneydancesync folder - use advanced mode to fix!")
 
-    textArray.append("\nTHEMES")
-    textArray.append("Your selected Theme: " + str(
-        moneydance_ui.getPreferences().getSetting("gui.current_theme", Theme.DEFAULT_THEME_ID)))
+    textArray.append(u"\nTHEMES")
+    textArray.append(u"Your selected Theme: %s" %(moneydance_ui.getPreferences().getSetting(u"gui.current_theme", Theme.DEFAULT_THEME_ID)))
     # noinspection PyUnresolvedReferences
-    x = theme.Theme.customThemeFile
-    if not os.path.exists(str(x)):
-        x = " custom_theme.properties file DOES NOT EXIST!"
-    textArray.append("Custom Theme File: " + str(x))
+    x = theme.Theme.customThemeFile.getCanonicalPath()
+    if not os.path.exists(x):
+        x = u" custom_theme.properties file DOES NOT EXIST!"
+    textArray.append(u"Custom Theme File: %s" %(x))
     # noinspection PyUnresolvedReferences
-    textArray.append("Available themes: " + str(theme.Theme.getAllThemes()))
+    textArray.append(u"Available themes: %s" %(theme.Theme.getAllThemes()))
 
-    textArray.append("\nENVIRONMENT")
+    textArray.append(u"\nENVIRONMENT")
 
     try:
-        username = System.getProperty("user.name")
+        username = System.getProperty(u"user.name")
     except:
-        username = "???"
-    textArray.append("Username:" + username)
+        username = u"???"
+    textArray.append(u"Username: %s" %username)
 
-    textArray.append(
-        "OS Platform:" + System.getProperty("os.name") + "OS Version:" + str(System.getProperty("os.version")))
+    textArray.append(u"OS Platform: %s" %System.getProperty(u"os.name") + u"OS Version: %s" %(System.getProperty(u"os.version")))
 
-    textArray.append("Home Directory: " + get_home_dir())
+    textArray.append(u"Home Directory: " + get_home_dir())
 
-    if System.getProperty("user.dir"): textArray.append("  user.dir:" + System.getProperty("user.dir"))
-    if System.getProperty("UserHome"): textArray.append("  UserHome:" + System.getProperty("UserHome"))
-    if os.path.expanduser("~"): textArray.append("  ~:" + os.path.expanduser("~"))
-    if os.environ.get("HOMEPATH"): textArray.append("  HOMEPATH:" + os.environ.get("HOMEPATH"))
+    if System.getProperty(u"user.dir"): textArray.append(u"  user.dir: %s" %System.getProperty(u"user.dir"))
+    if System.getProperty(u"UserHome"): textArray.append(u"  UserHome: %s" %System.getProperty(u"UserHome"))
+    if os.path.expanduser(u"~"): textArray.append(u"  ~: %s" %os.path.expanduser(u"~"))
+    if os.environ.get(u"HOMEPATH"): textArray.append(u"  HOMEPATH: %s" %os.environ.get(u"HOMEPATH"))
 
-    textArray.append("Moneydance decimal point: " + moneydance_ui.getPreferences().getSetting("decimal_character", "."))
-    textArray.append(
-        "System Locale Decimal Point: " + getDecimalPoint(lGetPoint=True) + " Grouping Char: " + getDecimalPoint(
-            lGetGrouping=True))
-    if moneydance_ui.getPreferences().getSetting("decimal_character", ".") != getDecimalPoint(lGetPoint=True):
-        textArray.append("NOTE - MD Decimal point is DIFFERENT to the Locale decimal point!!!")
-    textArray.append("Locale Country: " + str(moneydance_ui.getPreferences().getSetting("locale.country", "")))
-    textArray.append("Locale Language: " + str(moneydance_ui.getPreferences().getSetting("locale.language", "")))
+    textArray.append(u"Moneydance decimal point: %s" %moneydance_ui.getPreferences().getSetting(u"decimal_character", u"."))
+    textArray.append(u"System Locale Decimal Point: %s" %(getDecimalPoint(lGetPoint=True)) + u" Grouping Char: %s" %(getDecimalPoint(lGetGrouping=True)))
+    if moneydance_ui.getPreferences().getSetting(u"decimal_character", u".") != getDecimalPoint(lGetPoint=True):
+        textArray.append(u"NOTE - MD Decimal point is DIFFERENT to the Locale decimal point!!!")
+    textArray.append(u"Locale Country: %s" %(moneydance_ui.getPreferences().getSetting(u"locale.country", u"")))
+    textArray.append(u"Locale Language: %s" %(moneydance_ui.getPreferences().getSetting(u"locale.language", u"")))
 
-    textArray.append("\nFOLDER / FILE LOCATIONS")
+    textArray.append(u"\nFOLDER / FILE LOCATIONS")
 
-    textArray.append("moneydance_data Dataset internal top level (root) Directory: " + str(moneydance_data.getRootFolder().getParent()))
-    textArray.append("Auto Backup Folder: %s " %(FileUtils.getBackupDir(moneydance.getPreferences()).getCanonicalPath() ) )
-    textArray.append("(Last backup location: " + str(moneydance_ui.getPreferences().getSetting("backup.last_saved", "")) + ")")
+    textArray.append(u"moneydance_data Dataset internal top level (root) Directory: %s" %(moneydance_data.getRootFolder().getParent()))
+    textArray.append(u"Auto Backup Folder: %s " %(FileUtils.getBackupDir(moneydance.getPreferences()).getCanonicalPath() ) )
+    textArray.append(u"(Last backup location: %s)" %(moneydance_ui.getPreferences().getSetting(u"backup.last_saved", u"")))
 
     internalFiles = AccountBookUtil.getInternalAccountBooks()
     externalFiles = AccountBookUtil.getExternalAccountBooks()
 
     if internalFiles.size() + externalFiles.size() > 1:
-        textArray.append("\nOther MD Datasets I am aware of...:")
+        textArray.append(u"\nOther MD Datasets I am aware of...:")
 
     for wrapper in internalFiles:
         if moneydance_ui.getCurrentAccounts() is not None and moneydance_ui.getCurrentAccounts().getBook() == wrapper.getBook():
             pass
         else:
-            textArray.append("Internal file: " + str(wrapper.getBook().getRootFolder()))
+            textArray.append(u"Internal file: %s" %(wrapper.getBook().getRootFolder().getCanonicalPath()))
 
     for wrapper in externalFiles:
         if (moneydance_ui.getCurrentAccounts() is not None and moneydance_ui.getCurrentAccounts().getBook() == wrapper.getBook()):
             pass
         else:
-            textArray.append("External file: " + str(wrapper.getBook().getRootFolder()))
+            textArray.append(u"External file: %s" %(wrapper.getBook().getRootFolder().getCanonicalPath()))
 
     if internalFiles.size() + externalFiles.size() > 1:
-        textArray.append("\n")
+        textArray.append(u"\n")
 
-    textArray.append("MD System Root Directory: " + repr(Common.getRootDirectory()))
+    textArray.append(u"MD System Root Directory: %s" %(Common.getRootDirectory().getCanonicalPath()))
 
-    textArray.append("MD Log file: " + repr(moneydance.getLogFile()))
-    textArray.append("Preferences File: " + repr(Common.getPreferencesFile()))
+    textArray.append(u"MD Log file: %s" %(moneydance.getLogFile().getCanonicalPath()))
+    textArray.append(u"Preferences File: %s" %(Common.getPreferencesFile().getCanonicalPath()))
 
-    if os.path.exists(str(Common.getArchiveDirectory())):         textArray.append(
-        "Archive Directory: " + repr(Common.getArchiveDirectory()))
-    if os.path.exists(str(Common.getFeatureModulesDirectory())):  textArray.append(
-        "Extensions Directory: " + repr(Common.getFeatureModulesDirectory()))
-    if os.path.exists(str(Common.getCertificateDirectory())):     textArray.append(
-        "Certificates Directory: " + repr(Common.getCertificateDirectory()))
-    if os.path.exists(str(Common.getDocumentsDirectory())):       textArray.append(
-        "Documents Directory: " + repr(Common.getDocumentsDirectory()))
+    if os.path.exists((Common.getArchiveDirectory().getCanonicalPath())):
+        textArray.append(u"Archive Directory: %s" %(Common.getArchiveDirectory().getCanonicalPath()))
+    if os.path.exists((Common.getFeatureModulesDirectory().getCanonicalPath())):
+        textArray.append(u"Extensions Directory: %s" %(Common.getFeatureModulesDirectory().getCanonicalPath()))
+    if os.path.exists((Common.getCertificateDirectory().getCanonicalPath())):
+        textArray.append(u"Certificates Directory: %s" %(Common.getCertificateDirectory().getCanonicalPath()))
+    if os.path.exists((Common.getDocumentsDirectory().getCanonicalPath())):
+        textArray.append(u"Documents Directory: %s" %(Common.getDocumentsDirectory().getCanonicalPath()))
 
-    if getTheSetting("gen.report_dir"):
-        textArray.append(getTheSetting("gen.report_dir"))
-    if getTheSetting("gen.data_dir"):
-        textArray.append(getTheSetting("gen.data_dir"))
-    if getTheSetting("gen.import_dir"):
-        textArray.append(getTheSetting("gen.import_dir"))
+    if getTheSetting(u"gen.report_dir"):
+        textArray.append(getTheSetting(u"gen.report_dir"))
+    if getTheSetting(u"gen.data_dir"):
+        textArray.append(getTheSetting(u"gen.data_dir"))
+    if getTheSetting(u"gen.import_dir"):
+        textArray.append(getTheSetting(u"gen.import_dir"))
 
-    textArray.append("\n")
-    if os.path.exists(str(Common.getPythonDirectory())):          textArray.append(
-        "Python Directory: " + repr(Common.getPythonDirectory()))
-    if getTheSetting("gen.last_ext_file_dir"):
-        textArray.append(getTheSetting("gen.last_ext_file_dir"))
-    if getTheSetting("gen.python_default_file"):
-        textArray.append(getTheSetting("gen.python_default_file"))
-    if getTheSetting("gen.python_dir"):
-        textArray.append(getTheSetting("gen.python_dir"))
-    if getTheSetting("gen.graph_dir"):
-        textArray.append(getTheSetting("gen.graph_dir"))
-    if getTheSetting("gen.recent_files"):
-        textArray.append(getTheSetting("gen.recent_files"))
+    textArray.append(u"\n")
+    if os.path.exists((Common.getPythonDirectory().getCanonicalPath())):
+        textArray.append(u"Python Directory: %s" %(Common.getPythonDirectory().getCanonicalPath()))
+    if getTheSetting(u"gen.last_ext_file_dir"):
+        textArray.append(getTheSetting(u"gen.last_ext_file_dir"))
+    if getTheSetting(u"gen.python_default_file"):
+        textArray.append(getTheSetting(u"gen.python_default_file"))
+    if getTheSetting(u"gen.python_dir"):
+        textArray.append(getTheSetting(u"gen.python_dir"))
+    if getTheSetting(u"gen.graph_dir"):
+        textArray.append(getTheSetting(u"gen.graph_dir"))
+    if getTheSetting(u"gen.recent_files"):
+        textArray.append(getTheSetting(u"gen.recent_files"))
 
-    textArray.append("System 'python.path': " + System.getProperty("python.path"))
-    textArray.append("System 'python.cachedir': " + System.getProperty("python.cachedir"))
-    textArray.append("System 'python.cachedir.skip': " + System.getProperty("python.cachedir.skip"))
+    textArray.append(u"System 'python.path': %s" %System.getProperty(u"python.path"))
+    textArray.append(u"System 'python.cachedir': %s" %System.getProperty(u"python.cachedir"))
+    textArray.append(u"System 'python.cachedir.skip': %s" %System.getProperty(u"python.cachedir.skip"))
 
     try:
-        textArray.append("\nEXTENSIONS / EDITORS / VIEWS")
+        textArray.append(u"\nEXTENSIONS / EDITORS / VIEWS")
 
-        textArray.append("Extensions enabled: %s" %moneydance_ui.getMain().getSourceInformation().getExtensionsEnabled())
+        textArray.append(u"Extensions enabled: %s" %moneydance_ui.getMain().getSourceInformation().getExtensionsEnabled())
 
         x = moneydance.getExternalAccountEditors()
         for y in x:
-            textArray.append("External Account Editor: " + str(y))
+            textArray.append(u"External Account Editor: %s" %(y))
         x = moneydance.getExternalViews()
         for y in x:
-            textArray.append("External View(er): " + str(y))
+            textArray.append(u"External View(er): %s" %(y))
         x = moneydance.getLoadedModules()
         for y in x:
-            textArray.append("Extension Loaded: " + str(y.getDisplayName()))
+            textArray.append(u"Extension Loaded: %s" %(y.getDisplayName()))
         x = moneydance.getSuppressedExtensionIDs()
         for y in x:
-            textArray.append("Internal/suppressed/secret extensions: " + str(y))
+            textArray.append(u"Internal/suppressed/secret extensions: %s" %(y))
         x = moneydance.getOutdatedExtensionIDs()
         for y in x:
-            textArray.append("Outdated extensions (not loaded): " + str(y))
+            textArray.append(u"Outdated extensions (not loaded): %s" %(y))
 
         try:
             theUpdateList = get_extension_update_info()
 
             for key in theUpdateList.keys():
                 updateInfo = theUpdateList[key]
-                textArray.append("** UPDATABLE EXTENSION: %s to version: %s" %(pad(key,20),str(updateInfo[0].getBuild())) )
+                textArray.append(u"** UPDATABLE EXTENSION: %s to version: %s" %(pad(key,20),(updateInfo[0].getBuild())) )
         except:
-            textArray.append("ERROR: Failed to retrieve / download Extension update list....")
+            textArray.append(u"ERROR: Failed to retrieve / download Extension update list....")
             dump_sys_error_to_md_console_and_errorlog()
 
     except:
@@ -2007,259 +2018,251 @@ def buildDiagText(lGrabPasswords=False):
     orphan_prefs, orphan_files, orphan_confirmed_extn_keys = get_orphaned_extension()
 
     if len(orphan_prefs)<1 and len(orphan_files)<1 and len(orphan_confirmed_extn_keys)<1:
-        textArray.append("\nCONGRATULATIONS - NO ORPHAN EXTENSIONS DETECTED!!\n")
+        textArray.append(u"\nCONGRATULATIONS - NO ORPHAN EXTENSIONS DETECTED!!\n")
     else:
-        textArray.append("\nWARNING: Orphan Extensions detected (%s in config.dict) & (%s in .MXT files)\n" %(len(orphan_prefs)+len(orphan_confirmed_extn_keys),len(orphan_files)))
-        myPrint("B", "WARNING: Orphan Extensions detected (%s in config.dict) & (%s in .MXT files)\n" %(len(orphan_prefs)+len(orphan_confirmed_extn_keys),len(orphan_files)))
+        textArray.append(u"\nWARNING: Orphan Extensions detected (%s in config.dict) & (%s in .MXT files)\n" %(len(orphan_prefs)+len(orphan_confirmed_extn_keys),len(orphan_files)))
+        myPrint(u"B", u"WARNING: Orphan Extensions detected (%s in config.dict) & (%s in .MXT files)\n" %(len(orphan_prefs)+len(orphan_confirmed_extn_keys),len(orphan_files)))
 
 
     textArray.append(count_database_objects())
 
-    textArray.append("\n ======================================================================================")
-    textArray.append("USER PREFERENCES")
-    textArray.append("-----------------")
-    textArray.append(">> GENERAL")
-    textArray.append("Show Full Account Paths: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("show_full_account_path", True)))
-    textArray.append("Register Follows Recorded Txns: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("gui.register_follows_txns", True)))
-    textArray.append("Use VAT/GST: " + str(moneydance_ui.getPreferences().getBoolSetting("gen.use_vat", False)))
-    textArray.append("Case Sensitive Auto-Complete: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("gen.case_sensitive_ac", False)))
-    textArray.append(
-        "Auto Insert Decimal Points: " + str(moneydance_ui.getPreferences().getBoolSetting("gui.quickdecimal", False)))
-    textArray.append("Auto Create New Transactions: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("gui.new_txn_on_record", True)))
-    textArray.append("Separate Tax Date for Transactions: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("gen.separate_tax_date", False)))
-    textArray.append("Show All Accounts in Popup: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("gui.show_all_accts_in_popup", False)))
-    textArray.append("Beep when Transactions Change: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("beep_on_transaction_change", True)))
+    textArray.append(u"\n ======================================================================================")
+    textArray.append(u"USER PREFERENCES")
+    textArray.append(u"-----------------")
+    textArray.append(u">> GENERAL")
+    textArray.append(u"Show Full Account Paths: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"show_full_account_path", True)))
+    textArray.append(u"Register Follows Recorded Txns: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gui.register_follows_txns", True)))
+    textArray.append(u"Use VAT/GST: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gen.use_vat", False)))
+    textArray.append(u"Case Sensitive Auto-Complete: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gen.case_sensitive_ac", False)))
+    textArray.append(u"Auto Insert Decimal Points: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gui.quickdecimal", False)))
+    textArray.append(u"Auto Create New Transactions: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gui.new_txn_on_record", True)))
+    textArray.append(u"Separate Tax Date for Transactions: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gen.separate_tax_date", False)))
+    textArray.append(u"Show All Accounts in Popup: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gui.show_all_accts_in_popup", False)))
+    textArray.append(u"Beep when Transactions Change: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"beep_on_transaction_change", True)))
     if float(moneydance.getBuild()) < 3032:
-        textArray.append(
-            "Theme: " + str(moneydance_ui.getPreferences().getSetting("gui.current_theme", Theme.DEFAULT_THEME_ID)))
-    textArray.append(
-        "Show Selection Details: " + str(moneydance_ui.getPreferences().getSetting("details_view_mode", "inwindow")))
-    textArray.append("Side Bar Balance Type: " + str(moneydance_ui.getPreferences().getSideBarBalanceType()))
-    textArray.append("Date Format: " + str(moneydance_ui.getPreferences().getSetting("date_format", None)))
+        textArray.append(u"Theme: %s" %(moneydance_ui.getPreferences().getSetting(u"gui.current_theme", Theme.DEFAULT_THEME_ID)))
+    textArray.append(u"Show Selection Details: %s" %(moneydance_ui.getPreferences().getSetting(u"details_view_mode", u"inwindow")))
+    textArray.append(u"Side Bar Balance Type: %s" %(moneydance_ui.getPreferences().getSideBarBalanceType()))
+    textArray.append(u"Date Format: %5s" %(moneydance_ui.getPreferences().getSetting(u"date_format", None)))
     # this.prefs.getShortDateFormat());
-    textArray.append("Decimal Character: " + str(moneydance_ui.getPreferences().getSetting("decimal_character", ".")))
+    textArray.append(u"Decimal Character: %s" %(moneydance_ui.getPreferences().getSetting(u"decimal_character", ".")))
     # this.prefs.getDecimalChar()));
-    textArray.append("Locale: " + str(moneydance_ui.getPreferences().getLocale()))
+    textArray.append(u"Locale: %s" %(moneydance_ui.getPreferences().getLocale()))
 
-    i = moneydance_ui.getPreferences().getIntSetting("gen.fiscal_year_start_mmdd", 101)
-    if i == 101: i = "January 1"
-    elif i == 201: i = "February 1"
-    elif i == 301: i = "March 1"
-    elif i == 401: i = "April 1"
-    elif i == 406: i = "April 6 (UK Tax Year Start Date)"
-    elif i == 501: i = "May 1"
-    elif i == 601: i = "June 1"
-    elif i == 701: i = "July 1"
-    elif i == 801: i = "August 1"
-    elif i == 901: i = "September 1"
-    elif i == 1001: i = "October 1"
-    elif i == 1101: i = "November 1"
-    elif i == 1201: i = "December 1"
+    i = moneydance_ui.getPreferences().getIntSetting(u"gen.fiscal_year_start_mmdd", 101)
+    if i == 101: i = u"January 1"
+    elif i == 201: i = u"February 1"
+    elif i == 301: i = u"March 1"
+    elif i == 401: i = u"April 1"
+    elif i == 406: i = u"April 6 (UK Tax Year Start Date)"
+    elif i == 501: i = u"May 1"
+    elif i == 601: i = u"June 1"
+    elif i == 701: i = u"July 1"
+    elif i == 801: i = u"August 1"
+    elif i == 901: i = u"September 1"
+    elif i == 1001: i = u"October 1"
+    elif i == 1101: i = u"November 1"
+    elif i == 1201: i = u"December 1"
     else: i = i
-    textArray.append("Fiscal Year Start: " + str(i))
+    textArray.append(u"Fiscal Year Start: %s" %(i))
 
     if float(moneydance.getBuild()) < 3032:
-        textArray.append("Font Size: +" + str(moneydance_ui.getPreferences().getIntSetting("gui.font_increment", 0)))
+        textArray.append(u"Font Size: +%s" %(moneydance_ui.getPreferences().getIntSetting(u"gui.font_increment", 0)))
 
     if float(moneydance.getBuild()) >= 3032:
-        textArray.append("\n>> APPEARANCE")
-        textArray.append("Theme: " + str(moneydance_ui.getPreferences().getSetting("gui.current_theme", Theme.DEFAULT_THEME_ID)))
-        if str(moneydance_ui.getPreferences().getSetting("main_font"))!="null":
-            textArray.append("Font: " + str(moneydance_ui.getPreferences().getSetting("main_font")))
+        textArray.append(u"\n>> APPEARANCE")
+        textArray.append(u"Theme: %s" %(moneydance_ui.getPreferences().getSetting(u"gui.current_theme", Theme.DEFAULT_THEME_ID)))
+        if (moneydance_ui.getPreferences().getSetting(u"main_font")) != u"null":
+            textArray.append(u"Font: %s" %(moneydance_ui.getPreferences().getSetting(u"main_font")))
         else:
-            textArray.append("Font: (None/Default)")
+            textArray.append(u"Font: (None/Default)")
 
-        if str(moneydance_ui.getPreferences().getSetting("mono_font")) != "null":
-            textArray.append("Numeric Font: " + str(moneydance_ui.getPreferences().getSetting("mono_font")))
+        if (moneydance_ui.getPreferences().getSetting(u"mono_font")) != u"null":
+            textArray.append(u"Numeric Font: %s" %(moneydance_ui.getPreferences().getSetting(u"mono_font")))
         else:
-            textArray.append("Numeric Font: (None/Default)")
+            textArray.append(u"Numeric Font: (None/Default)")
 
-        if str(moneydance_ui.getPreferences().getSetting("code_font")) != "null":
-            textArray.append("Moneybot Coding (monospaced) Font: " + str(moneydance_ui.getPreferences().getSetting("code_font")))
+        if (moneydance_ui.getPreferences().getSetting(u"code_font")) != u"null":
+            textArray.append(u"Moneybot Coding (monospaced) Font: %s" %(moneydance_ui.getPreferences().getSetting(u"code_font")))
         else:
-            textArray.append("Numeric Font: (None/Default)")
+            textArray.append(u"Numeric Font: (None/Default)")
 
-        if str(moneydance_ui.getPreferences().getSetting("print.font_name")) != "null":
-            textArray.append("Printing Font: " + str(moneydance_ui.getPreferences().getSetting("print.font_name")))
+        if (moneydance_ui.getPreferences().getSetting(u"print.font_name")) != u"null":
+            textArray.append(u"Printing Font: %s" %(moneydance_ui.getPreferences().getSetting(u"print.font_name")))
         else:
-            textArray.append("Printing Font: (None/Default)")
+            textArray.append(u"Printing Font: (None/Default)")
 
-        textArray.append("Font Size: " + str(moneydance_ui.getPreferences().getSetting("print.font_size", "12")))
+        textArray.append(u"Font Size: %s" %(moneydance_ui.getPreferences().getSetting(u"print.font_size", u"12")))
+        textArray.append(u"Font Size: +%s" %(moneydance_ui.getPreferences().getIntSetting(u"gui.font_increment", 0)))
 
-        textArray.append("Font Size: +" + str(moneydance_ui.getPreferences().getIntSetting("gui.font_increment", 0)))
-
-    textArray.append("\n>> NETWORK")
-    textArray.append("Automatically Download in Background: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("net.auto_download", False)))
-    textArray.append("Automatically Merge Downloaded Transactions: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("gen.preprocess_dwnlds", False)))
-    textArray.append("Mark Transactions as Cleared When Confirmed: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("net.clear_confirmed_txns", False)))
-    textArray.append("Use Bank Dates for Merged Transactions: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("olb.prefer_bank_dates", False)))
-    textArray.append("Ignore Transaction Types in Favor of Amount Signs: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("prefer_amt_sign_to_txn_type", False)))
+    textArray.append(u"\n>> NETWORK")
+    textArray.append(u"Automatically Download in Background: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"net.auto_download", False)))
+    textArray.append(u"Automatically Merge Downloaded Transactions: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"gen.preprocess_dwnlds", False)))
+    textArray.append(u"Mark Transactions as Cleared When Confirmed: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"net.clear_confirmed_txns", False)))
+    textArray.append(u"Use Bank Dates for Merged Transactions: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"olb.prefer_bank_dates", False)))
+    textArray.append(u"Ignore Transaction Types in Favor of Amount Signs: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"prefer_amt_sign_to_txn_type", False)))
 
     dataStorage = moneydance_data.getLocalStorage()
-    autocommit = not dataStorage or dataStorage.getBoolean("do_autocommits",moneydance_ui.getCurrentAccounts().isMasterSyncNode())
-    textArray.append("Auto-Commit Reminders (applies to current file on this computer): " + str(autocommit))
+    autocommit = not dataStorage or dataStorage.getBoolean(u"do_autocommits",moneydance_ui.getCurrentAccounts().isMasterSyncNode())
+    textArray.append(u"Auto-Commit Reminders (applies to current file on this computer): %s" %(autocommit))
 
-    textArray.append("Use Proxy: " + str(moneydance_ui.getPreferences().getBoolSetting("net.use_proxy", False)))
-    textArray.append(" Proxy Host: " + str(moneydance_ui.getPreferences().getSetting("net.proxy_host", "")))
-    textArray.append(" Proxy Port: " + str(moneydance_ui.getPreferences().getIntSetting("net.proxy_port", 80)))
-    textArray.append(
-        "Proxy Requires Authentication: " + str(moneydance_ui.getPreferences().getBoolSetting("net.auth_proxy", False)))
-    textArray.append(" Proxy Username: " + str(moneydance_ui.getPreferences().getSetting("net.proxy_user", "")))
-    textArray.append(" Proxy Password: " + str(moneydance_ui.getPreferences().getSetting("net.proxy_pass", "")))
-    textArray.append("Observe Online Payment Date Restrictions: " + str(
-        moneydance_ui.getPreferences().getBoolSetting("ofx.observe_bp_window", True)))
-    i = moneydance_ui.getPreferences().getIntSetting("net.downloaded_txn_date_window", -1)
-    if i < 0: i = "Default"
-    textArray.append("Only Match downloaded transactions when they are at most " + str(i) + " days apart")
+    textArray.append(u"Use Proxy: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"net.use_proxy", False)))
+    textArray.append(u" Proxy Host: %s" %(moneydance_ui.getPreferences().getSetting(u"net.proxy_host", "")))
+    textArray.append(u" Proxy Port: %s" %(moneydance_ui.getPreferences().getIntSetting(u"net.proxy_port", 80)))
+    textArray.append(u"Proxy Requires Authentication: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"net.auth_proxy", False)))
+    textArray.append(u" Proxy Username: %s" %(moneydance_ui.getPreferences().getSetting(u"net.proxy_user", "")))
+    textArray.append(u" Proxy Password: %s" %(moneydance_ui.getPreferences().getSetting(u"net.proxy_pass", "")))
+    textArray.append(u"Observe Online Payment Date Restrictions: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"ofx.observe_bp_window", True)))
+    i = moneydance_ui.getPreferences().getIntSetting(u"net.downloaded_txn_date_window", -1)
+    if i < 0: i = u"Default"
+    textArray.append(u"Only Match downloaded transactions when they are at most %s days apart" %(i))
 
-    textArray.append("\n>> CHEQUE PRINTING")
-    textArray.append("preferences not listed here...")
+    textArray.append(u"\n>> CHEQUE PRINTING")
+    textArray.append(u"preferences not listed here...")
 
     if float(moneydance.getBuild()) < 3032:
-        textArray.append("\n>> PRINTING")
-        textArray.append("Font: " + str(moneydance_ui.getPreferences().getSetting("print.font_name", "")))
-        textArray.append("Font Size: " + str(moneydance_ui.getPreferences().getSetting("print.font_size", "12")))
+        textArray.append(u"\n>> PRINTING")
+        textArray.append(u"Font: %s" %(moneydance_ui.getPreferences().getSetting(u"print.font_name", u"")))
+        textArray.append(u"Font Size: %s" %(moneydance_ui.getPreferences().getSetting(u"print.font_size", u"12")))
 
-    textArray.append("\n>> BACKUPS")
+    textArray.append(u"\n>> BACKUPS")
 
-    destroyBackupChoices = moneydance_ui.getPreferences().getSetting("backup.destroy_number", "5")
-    returnedBackupType = moneydance_ui.getPreferences().getSetting("backup.backup_type", "every_x_days")
-    if returnedBackupType == "every_time":
+    destroyBackupChoices = moneydance_ui.getPreferences().getSetting(u"backup.destroy_number", u"5")
+    returnedBackupType = moneydance_ui.getPreferences().getSetting(u"backup.backup_type", u"every_x_days")
+    if returnedBackupType == u"every_time":
         dailyBackupCheckbox = True
         destroyBackupChoices = 1
-    elif returnedBackupType == "every_x_days":
+    elif returnedBackupType == u"every_x_days":
         dailyBackupCheckbox = True
     else:
         dailyBackupCheckbox = False
 
-    textArray.append("Save Backups Daily: " + str(dailyBackupCheckbox))
-    textArray.append("Keep no more than " + str(destroyBackupChoices) + " backups")
+    textArray.append(u"Save Backups Daily: %s" %(dailyBackupCheckbox))
+    textArray.append(u"Keep no more than %s" %(destroyBackupChoices) + u" backups")
 
-    textArray.append("separate Backup Folder: " + str(moneydance_ui.getPreferences().getBoolSetting("backup.location_selected", True)))
-    textArray.append("Backup Folder: %s " %(FileUtils.getBackupDir(moneydance.getPreferences()).getCanonicalPath() ))
+    textArray.append(u"separate Backup Folder: %s" %(moneydance_ui.getPreferences().getBoolSetting(u"backup.location_selected", True)))
+    textArray.append(u"Backup Folder: %s " %(FileUtils.getBackupDir(moneydance.getPreferences()).getCanonicalPath() ))
 
-    textArray.append("\n>> SUMMARY PAGE")
-    textArray.append("preferences not listed here...")
-    textArray.append(" ======================================================================================\n")
+    textArray.append(u"\n>> SUMMARY PAGE")
+    textArray.append(u"preferences not listed here...")
+    textArray.append(u" ======================================================================================\n")
 
-    textArray.append("\nHOME SCREEN USER SELECTED PREFERENCES")
-    textArray.append("----------------------------")
-    textArray.append("Home Screen Configured: %s" %moneydance_ui.getPreferences().getSetting("gui.home.configured", "NOT SET"))
+    textArray.append(u"\nHOME SCREEN USER SELECTED PREFERENCES")
+    textArray.append(u"----------------------------")
+    textArray.append(u"Home Screen Configured: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.configured", u"NOT SET"))
 
-    if moneydance_ui.getPreferences().getSetting("sidebar_bal_type", False):
-        textArray.append("Side Bar Balance Type: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting("sidebar_bal_type",0))))
+    if moneydance_ui.getPreferences().getSetting(u"sidebar_bal_type", False):
+        textArray.append(u"Side Bar Balance Type: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting(u"sidebar_bal_type",0))))
+    textArray.append(u"Dashboard Item Selected: %s" %moneydance_ui.getPreferences().getSetting(u"gui.dashboard.item", u"NOT SET"))
+    textArray.append(u"Quick Graph Selected: %s" %moneydance_ui.getPreferences().getSetting(u"gui.quick_graph_type", u"NOT SET"))
+    textArray.append(u"Budget Bar Date Range Selected: %s" %moneydance_ui.getPreferences().getSetting(u"budgetbars_date_range", u"NOT SET"))
+    textArray.append(u"Reminders View: %s" %moneydance_ui.getPreferences().getSetting(u"upcoming_setting", u"NOT SET"))
 
-    textArray.append("Dashboard Item Selected: %s" %moneydance_ui.getPreferences().getSetting("gui.dashboard.item", "NOT SET"))
+    textArray.append(u"Exchange Rates View - Invert?: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.invert_rates", u"NOT SET"))
 
-    textArray.append("Quick Graph Selected: %s" %moneydance_ui.getPreferences().getSetting("gui.quick_graph_type", "NOT SET"))
+    textArray.append(u"BANK Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.bank_expanded", u"NOT SET"))
+    if moneydance_ui.getPreferences().getSetting(u"gui.home.bank_bal_type", False):
+        textArray.append(u">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting(u"gui.home.bank_bal_type",0))))
 
-    textArray.append("Budget Bar Date Range Selected: %s" %moneydance_ui.getPreferences().getSetting("budgetbars_date_range", "NOT SET"))
+    textArray.append(u"LOAN Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.loan_expanded", u"NOT SET"))
+    if moneydance_ui.getPreferences().getSetting(u"gui.home.loan_bal_type", False):
+        textArray.append(u">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting(u"gui.home.loan_bal_type",0))))
 
+    textArray.append(u"LIABILITY Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.liability_expanded", u"NOT SET"))
+    if moneydance_ui.getPreferences().getSetting(u"gui.home.liability_bal_type", False):
+        textArray.append(u">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting(u"gui.home.liability_bal_type",0))))
 
-    textArray.append("Reminders View: %s" %moneydance_ui.getPreferences().getSetting("upcoming_setting", "NOT SET"))
+    textArray.append(u"INVESTMENT Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.invst_expanded", u"NOT SET"))
+    if moneydance_ui.getPreferences().getSetting(u"gui.home.invst_bal_type", False):
+        textArray.append(u">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting(u"gui.home.invst_bal_type",0))))
 
-    textArray.append("Exchange Rates View - Invert?: %s" %moneydance_ui.getPreferences().getSetting("gui.home.invert_rates", "NOT SET"))
+    textArray.append(u"CREDIT CARD Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.cc_expanded", u"NOT SET"))
+    if moneydance_ui.getPreferences().getSetting(u"gui.home.cc_bal_type", False):
+        textArray.append(u">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting(u"gui.home.cc_bal_type",0))))
 
-    textArray.append("BANK Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting("gui.home.bank_expanded", "NOT SET"))
-    if moneydance_ui.getPreferences().getSetting("gui.home.bank_bal_type", False):
-        textArray.append(">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting("gui.home.bank_bal_type",0))))
-
-    textArray.append("LOAN Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting("gui.home.loan_expanded", "NOT SET"))
-    if moneydance_ui.getPreferences().getSetting("gui.home.loan_bal_type", False):
-        textArray.append(">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting("gui.home.loan_bal_type",0))))
-
-    textArray.append("LIABILITY Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting("gui.home.liability_expanded", "NOT SET"))
-    if moneydance_ui.getPreferences().getSetting("gui.home.liability_bal_type", False):
-        textArray.append(">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting("gui.home.liability_bal_type",0))))
-
-    textArray.append("INVESTMENT Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting("gui.home.invst_expanded", "NOT SET"))
-    if moneydance_ui.getPreferences().getSetting("gui.home.invst_bal_type", False):
-        textArray.append(">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting("gui.home.invst_bal_type",0))))
-
-    textArray.append("CREDIT CARD Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting("gui.home.cc_expanded", "NOT SET"))
-    if moneydance_ui.getPreferences().getSetting("gui.home.cc_bal_type", False):
-        textArray.append(">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting("gui.home.cc_bal_type",0))))
-
-    textArray.append("ASSET Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting("gui.home.asset_expanded", "NOT SET"))
-    if moneydance_ui.getPreferences().getSetting("gui.home.asset_bal_type", False):
-        textArray.append(">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting("gui.home.asset_bal_type",0))))
+    textArray.append(u"ASSET Accounts Expanded: %s" %moneydance_ui.getPreferences().getSetting(u"gui.home.asset_expanded", u"NOT SET"))
+    if moneydance_ui.getPreferences().getSetting(u"gui.home.asset_bal_type", False):
+        textArray.append(u">Balance Displayed: %s" %(BalanceType.fromInt(moneydance_ui.getPreferences().getIntSetting(u"gui.home.asset_bal_type",0))))
 
 
-    textArray.append(" ======================================================================================\n")
+    textArray.append(u" ======================================================================================\n")
 
     try:
-        textArray.append("\nFONTS")
-        textArray.append(">> Swing Manager default: " + str(UIManager.getFont("Label.font")))
-        textArray.append(">> Moneydance default: " + str(moneydance_ui.getFonts().defaultSystemFont))
-        textArray.append(">> Moneydance mono: " + str(moneydance_ui.getFonts().mono))
-        textArray.append(">> Moneydance default text: " + str(moneydance_ui.getFonts().defaultText))
-        textArray.append(">> Moneydance default title: " + str(moneydance_ui.getFonts().detailTitle))
-        textArray.append(">> Moneydance calendar title: " + str(moneydance_ui.getFonts().calendarTitle))
-        textArray.append(">> Moneydance header: " + str(moneydance_ui.getFonts().header))
-        textArray.append(">> Moneydance register: " + str(moneydance_ui.getFonts().register))
-        textArray.append(">> Moneydance report header: " + str(moneydance_ui.getFonts().reportHeader))
-        textArray.append(">> Moneydance report title: " + str(moneydance_ui.getFonts().reportTitle))
+        textArray.append(u"\nFONTS")
+        textArray.append(u">> Swing Manager default: %s" %(UIManager.getFont("Label.font")))
+        textArray.append(u">> Moneydance default: %s" %(moneydance_ui.getFonts().defaultSystemFont))
+        textArray.append(u">> Moneydance mono: %s" %(moneydance_ui.getFonts().mono))
+        textArray.append(u">> Moneydance default text: %s" %(moneydance_ui.getFonts().defaultText))
+        textArray.append(u">> Moneydance default title: %s" %(moneydance_ui.getFonts().detailTitle))
+        textArray.append(u">> Moneydance calendar title: %s" %(moneydance_ui.getFonts().calendarTitle))
+        textArray.append(u">> Moneydance header: %s" %(moneydance_ui.getFonts().header))
+        textArray.append(u">> Moneydance register: %s" %(moneydance_ui.getFonts().register))
+        textArray.append(u">> Moneydance report header: %s" %(moneydance_ui.getFonts().reportHeader))
+        textArray.append(u">> Moneydance report title: %s" %(moneydance_ui.getFonts().reportTitle))
 
         try:
-            textArray.append(">> Moneydance code: " + str(moneydance_ui.getFonts().code))
+            textArray.append(u">> Moneydance code: %s" %(moneydance_ui.getFonts().code))
         except:
             pass
 
     except:
-        myPrint("B","Error getting fonts..?")
+        myPrint(u"B",u"Error getting fonts..?")
         dump_sys_error_to_md_console_and_errorlog()
 
-    textArray.append("\n>> OTHER INTERESTING SETTINGS....")
+    textArray.append(u"\n>> OTHER INTERESTING SETTINGS....")
 
-    if getTheSetting("net.default_browser"):
-        textArray.append(getTheSetting("net.default_browser"))
-    if getTheSetting("gen.import_dt_fmt_idx"):
-        textArray.append(getTheSetting("gen.import_dt_fmt_idx"))
-    if getTheSetting("txtimport_datefmt"):
-        textArray.append(getTheSetting("txtimport_datefmt"))
-    if getTheSetting("txtimport_csv_delim"):
-        textArray.append(getTheSetting("txtimport_csv_delim"))
-    if getTheSetting("txtimport_csv_decpoint"):
-        textArray.append(getTheSetting("txtimport_csv_decpoint"))
+    if getTheSetting(u"net.default_browser"):
+        textArray.append(getTheSetting(u"net.default_browser"))
+    if getTheSetting(u"gen.import_dt_fmt_idx"):
+        textArray.append(getTheSetting(u"gen.import_dt_fmt_idx"))
+    if getTheSetting(u"txtimport_datefmt"):
+        textArray.append(getTheSetting(u"txtimport_datefmt"))
+    if getTheSetting(u"txtimport_csv_delim"):
+        textArray.append(getTheSetting(u"txtimport_csv_delim"))
+    if getTheSetting(u"txtimport_csv_decpoint"):
+        textArray.append(getTheSetting(u"txtimport_csv_decpoint"))
 
-    textArray.append("")
+    textArray.append(u"")
 
-    if getTheSetting("ofx.app_id"):
-        textArray.append(getTheSetting("ofx.app_id"))
-    if getTheSetting("ofx.app_version"):
-        textArray.append(getTheSetting("ofx.app_version"))
-    if getTheSetting("ofx.bp_country"):
-        textArray.append(getTheSetting("ofx.bp_country"))
-    if getTheSetting("ofx.app_version"):
-        textArray.append(getTheSetting("ofx.app_version"))
+    if getTheSetting(u"ofx.app_id"):
+        textArray.append(getTheSetting(u"ofx.app_id"))
+    if getTheSetting(u"ofx.app_version"):
+        textArray.append(getTheSetting(u"ofx.app_version"))
+    if getTheSetting(u"ofx.bp_country"):
+        textArray.append(getTheSetting(u"ofx.bp_country"))
+    if getTheSetting(u"ofx.app_version"):
+        textArray.append(getTheSetting(u"ofx.app_version"))
 
-
-    textArray.append("")
-    textArray.append("System Properties containing references to Moneydance")
+    textArray.append(u"")
+    textArray.append(u"System Properties containing references to Moneydance")
     for x in System.getProperties():
 
         # noinspection PyUnresolvedReferences
-        if "moneydance" in System.getProperty(x).lower():
-            textArray.append(">> %s:\t%s" %(x, System.getProperty(x)))
+        if u"moneydance" in System.getProperty(x).lower():
+            textArray.append(u">> %s:\t%s" %(x, System.getProperty(x)))
 
-    textArray.append("\n\n<END>\n")
+    textArray.append(u"\n\n<END>\n")
 
-    for i in range(0, len(textArray)):
-        textArray[i] = textArray[i] + "\n"
+    # This catches exceptions.UnicodeDecodeError 'utf-8' codec can't decode byte 0xa0 in position 46: unexpected code byte'
+    # First spotted with South African Locale and nbsp used for decimal grouping character....
 
-    return "".join(textArray)
+    try:
+        returnString = u"\n".join(textArray)
+        myPrint(u"DB",u"Success joining diagnostics text array.....")
+    except:
+        myPrint(u"B",u"UH-OH - Seems like we probably caught an utf8 error... trying to rectify")
+        myPrint(u"B", dump_sys_error_to_md_console_and_errorlog(True))
+        returnString = u""
+        for i in range(0, len(textArray)):
+            for char in textArray[i]:
+                if ord(char)>=128:
+                    myPrint(u"B",u"char ord(%s) found in row %s; position %s" %(ord(char),i,textArray[i].find(char)))
+                    myPrint(u"B",u"@@ FAILING ROW STARTS: '%s'" %(textArray[i][:textArray[i].find(char)]))
+                    break
+            returnString += (u"".join(char for char in textArray[i] if ord(char) < 128) )+u"\n"
+        returnString += u"\n(** NOTE: I had to strip non ASCII characters **)\n"
+
+    return returnString
 
 def get_list_memorised_reports():
     # Build a quick virtual file of Memorized reports and graphs to display
@@ -2274,7 +2277,7 @@ def get_list_memorised_reports():
         iCount+=1
         memz.append("Report: %s" % (x.getName()))
 
-    memz = sorted(memz, key=lambda sort_x: (str(sort_x[0]).upper()))
+    memz = sorted(memz, key=lambda sort_x: ((sort_x[0]).upper()))
 
     memz.insert(0,"YOUR MEMORIZED REPORTS\n ======================\n")
 
@@ -2360,27 +2363,27 @@ def view_extensions_details():
             isUpdatable= "(latest version)"
             updateInfo = theUpdateList.get(y.getIDStr().lower())
             if updateInfo:
-                isUpdatable+= "\t******* Updatable to version: %s *******" % str(updateInfo[0].getBuild()).upper()
-            theData.append("Extension ID: " + y.getIDStr())
-            theData.append("Extension Name: " + y.getName())
-            theData.append("Extension Display Name: " + y.getDisplayName())
-            theData.append("Extension Description: " + y.getDescription())
-            theData.append("Extension Version: " + str(y.getBuild()) + isUpdatable)
-            theData.append("Extension Source File: " + str(y.getSourceFile()))
-            theData.append("Extension Vendor: " + y.getVendor())
-            theData.append("Extension isBundled: " + str(y.isBundled()))
-            theData.append("Extension isVerified: " + str(y.isVerified()))
+                isUpdatable+= "\t******* Updatable to version: %s *******" % (updateInfo[0].getBuild()).upper()
+            theData.append("Extension ID:           %s" %y.getIDStr())
+            theData.append("Extension Name:         %s" %y.getName())
+            theData.append("Extension Display Name: %s" %y.getDisplayName())
+            theData.append("Extension Description:  %s" %y.getDescription())
+            theData.append("Extension Version:      %s" %(y.getBuild()) + isUpdatable)
+            theData.append("Extension Source File:  %s" %(y.getSourceFile()))
+            theData.append("Extension Vendor:       %s" %y.getVendor())
+            theData.append("Extension isBundled:    %s" %(y.isBundled()))
+            theData.append("Extension isVerified:   %s" %(y.isVerified()))
             if moneydance_ui.getPreferences().getSetting("confirmedext."+str(y.getName()).strip(), None):
                 theData.append("** User has Confirmed this unsigned Extension can run - version: " + moneydance_ui.getPreferences().getSetting("confirmedext."+str(y.getName()).strip(), None))
             theData.append("\n\n")
 
         x = moneydance.getSuppressedExtensionIDs()
         for y in x:
-            theData.append("Internal/suppressed/secret extensions: " + str(y))
+            theData.append("Internal/suppressed/secret extensions: %s" %(y))
 
         x = moneydance.getOutdatedExtensionIDs()
         for y in x:
-            theData.append("Outdated extensions (not loaded): " + str(y))
+            theData.append("Outdated extensions (not loaded): %s" %(y))
     except:
         theData.append("\nERROR READING EXTENSION DATA!!!!\n")
         dump_sys_error_to_md_console_and_errorlog()
@@ -2649,7 +2652,7 @@ def check_if_key_string_valid(test_str):
 
 def get_extension_update_info():
     availableExtensionInfo=downloadExtensions()
-    moduleList = availableExtensionInfo.get("feature_modules")      # StreamVector
+    moduleList = availableExtensionInfo.get(u"feature_modules")      # StreamVector
 
     installed = moneydance_ui.getMain().getLoadedModules()          # FeatureModule[]
     excludedIDs = moneydance.getSuppressedExtensionIDs()            # List<String>
@@ -2663,7 +2666,7 @@ def get_extension_update_info():
         if moduleList:
             for obj in moduleList:
                 if not (isinstance(obj, StreamTable)):
-                    myPrint("J", "ERROR - Retrieved data is not a StreamTable()", obj)
+                    myPrint(u"J", u"ERROR - Retrieved data is not a StreamTable()", obj)
                     continue
 
                 extInfo = ModuleMetaData(obj)       # ModuleMetaData
@@ -2692,9 +2695,9 @@ def get_extension_update_info():
                     miniUpdateList[extInfo.getModuleID().lower()] = [extInfo, isInstalled, isUpdatable]
 
         else:
-            myPrint("J", "ERROR - Failed to download module list!)")
+            myPrint(u"J", u"ERROR - Failed to download module list!)")
     except:
-        myPrint("B", "ERROR decoding downloaded module list!)")
+        myPrint(u"B", u"ERROR decoding downloaded module list!)")
         dump_sys_error_to_md_console_and_errorlog()
 
     return miniUpdateList
@@ -2808,12 +2811,12 @@ def view_check_num_settings(statusLabel):
     theData.append("\nMaster Dataset & defaults (root account): " + moneydance.getCurrentAccountBook().getName())
     if not x:  # Assume old style check numbers
         theData.append(
-            " >>Old style Check numbers as default: " + str(moneydance_ui.getResources().getCheckNumberList(acct)))
+            " >>Old style Check numbers as default: %s" %(moneydance_ui.getResources().getCheckNumberList(acct)))
         theData.append("\n\n")
     else:
-        theData.append(" >>Fixed Chq Items: " + str(x.getPopupStrings()))
+        theData.append(" >>Fixed Chq Items: %s" %(x.getPopupStrings()))
         theData.append(
-            " >>Complete list of all Items in Chq Popup: " + str(moneydance_ui.getResources().getCheckNumberList(acct)))
+            " >>Complete list of all Items in Chq Popup: %s" %(moneydance_ui.getResources().getCheckNumberList(acct)))
         y = x.getRecentsOption()
 
         # noinspection PyUnresolvedReferences
@@ -2821,10 +2824,10 @@ def view_check_num_settings(statusLabel):
         elif y == CheckNumSettings.IncludeRecentsOption.GLOBAL: y = "Include from All Accounts"
         elif y == CheckNumSettings.IncludeRecentsOption.NONE: y = "Don't Include"
 
-        theData.append(" >>Recent Entries: " + str(y))
-        theData.append(" >>Max Entries: " + str(x.getMaximumRecents()))
-        theData.append(" >>Show Next-Check Number: " + str(x.getIncludeNextCheckNumber()))
-        theData.append(" >>Show Print-Check Option: " + str(x.getIncludePrintCheckMarker()))
+        theData.append(" >>Recent Entries:          %s" %(y))
+        theData.append(" >>Max Entries:             %s" %(x.getMaximumRecents()))
+        theData.append(" >>Show Next-Check Number:  %s" %(x.getIncludeNextCheckNumber()))
+        theData.append(" >>Show Print-Check Option: %s" %(x.getIncludePrintCheckMarker()))
         theData.append("\n")
 
     accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(3))
@@ -2838,15 +2841,13 @@ def view_check_num_settings(statusLabel):
 
         if not x:
             theData.append("Account: " + acct.getFullAccountName() + " (Settings: NONE/Default)")
-            theData.append(" >>Complete list of all Items in Chq Popup: " + str(
-                moneydance_ui.getResources().getCheckNumberList(acct)))
+            theData.append(" >>Complete list of all Items in Chq Popup: %s" %(moneydance_ui.getResources().getCheckNumberList(acct)))
             theData.append("\n")
         else:
             theData.append("Account: " + pad(acct.getFullAccountName(), 80))
-            theData.append(" >>Fixed Chq Items: " + str(x.getPopupStrings()))
+            theData.append(" >>Fixed Chq Items: %s" %(x.getPopupStrings()))
             if acct.getAccountType() != Account.AccountType.ROOT:                                               # noqa
-                theData.append(" >>Complete list of all Items in Chq Popup: " + str(
-                    moneydance_ui.getResources().getCheckNumberList(acct)))
+                theData.append(" >>Complete list of all Items in Chq Popup: %s" %(moneydance_ui.getResources().getCheckNumberList(acct)))
 
             y = x.getRecentsOption()
             if y == CheckNumSettings.IncludeRecentsOption.ACCOUNT:                                              # noqa
@@ -2856,10 +2857,10 @@ def view_check_num_settings(statusLabel):
             elif y == CheckNumSettings.IncludeRecentsOption.NONE:                                               # noqa
                 y = "Don't Include"
 
-            theData.append(" >>Recent Entries: " + str(y))
-            theData.append(" >>Max Entries: " + str(x.getMaximumRecents()))
-            theData.append(" >>Show Next-Check Number: " + str(x.getIncludeNextCheckNumber()))
-            theData.append(" >>Show Print-Check Option: " + str(x.getIncludePrintCheckMarker()))
+            theData.append(" >>Recent Entries:          %s" %(y))
+            theData.append(" >>Max Entries:             %s" %(x.getMaximumRecents()))
+            theData.append(" >>Show Next-Check Number:  %s" %(x.getIncludeNextCheckNumber()))
+            theData.append(" >>Show Print-Check Option: %s" %(x.getIncludePrintCheckMarker()))
             theData.append("\n")
             # CheckNumSettings.IncludeRecentsOption
 
@@ -2889,7 +2890,7 @@ def isUserEncryptionPassphraseSet():
 def getMDEncryptionKey():
 
     try:
-        keyFile = File(moneydance_data.getRootFolder(), "key")
+        keyFile = File(moneydance_data.getRootFolder(), u"key")
 
         keyInfo = SyncRecord()
         fin = FileInputStream(keyFile)
@@ -2899,30 +2900,30 @@ def getMDEncryptionKey():
         # noinspection PyUnresolvedReferences
         cipherLevel = LocalStorageCipher.MDCipherLevel.GOOD
 
-        keyString=keyInfo.getString("key",None)
-        test_with_random = "E6520436865636B2C2062616279206F6E65203220312074776F4D6963726F7068306E6520436865636B204D6963723070686F6"
+        keyString=keyInfo.getString(u"key",None)
+        test_with_random = u"E6520436865636B2C2062616279206F6E65203220312074776F4D6963726F7068306E6520436865636B204D6963723070686F6"
         y=StringUtils.decodeHex(test_with_random[int(len(test_with_random)/2):]+test_with_random[:int(len(test_with_random)/2)])
         z=""
         for x in y: z+=chr(x)
         newPassphrase = z
         encryptedKeyBytes = StringUtils.decodeHex(keyString)
-        if keyInfo.getBoolean("userpass", False):
+        if keyInfo.getBoolean(u"userpass", False):
             newPassphrase = moneydance_ui.getCurrentAccounts().getEncryptionKey()
             if not newPassphrase:
-                return "Not sure: Error retrieving your Encryption key!"
+                return u"Not sure: Error retrieving your Encryption key!"
         try:
 
             # This next line triggers a message in the console error log file: "loading with 128 bit encryption key"
-            myPrint("J","Checking encryption key....")
+            myPrint(u"J",u"Checking encryption key....")
             key = LocalStorageCipher.encryptionKeyFromBytesAndPassword(encryptedKeyBytes, list(newPassphrase), cipherLevel)
             # cipher = LocalStorageCipher(key, cipherLevel)
         except:
-            return "Not sure: could not validate your encryption!"
+            return u"Not sure: could not validate your encryption!"
 
         theFormat  = key.getFormat()
         theAlg = key.getAlgorithm()
     except:
-        return "Not sure: Error in decryption routine - oh well!!"
+        return u"Not sure: Error in decryption routine - oh well!!"
 
 
     return "%s / %s" % (theFormat, theAlg)
@@ -3405,10 +3406,14 @@ To enable the User to self-diagnose problems, or access key diagnostics to enabl
 # fix_account_parent.py                                 (from Moneydance support)
 # (... and old check_root_structure.py)                 (from Moneydance support)
 # fix_non-hierarchical_security_account_txns.py         (from Moneydance support)
+# (... and fix_investment_txns_to_wrong_security.py)    (from Moneydance support)
 # remove_ofx_security_bindings.py                       (from Moneydance support)
 # show_object_type_quantities.py                        (from Moneydance support)
 # delete_intermediate_downloaded_transaction_caches.py  (from Moneydance support)
 # delete_orphaned_downloaded_txn_lists.py               (from Moneydance support)
+# set_account_type.py                                   (from Moneydance support)
+# force_change_all_currencies.py                        (from Moneydance support)
+# fix_invalid_currency_rates.py                         (from Moneydance support)
 # show_open_tax_lots.py                                 (author unknown)
 # MakeFifoCost.py                                       (author unknown)
 # change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
@@ -3465,7 +3470,10 @@ ALT-M - Advanced Mode
     - FIX - Change Moneydance Fonts
     - FIX - Delete Custom Theme file
     - FIX - Fix relative currencies (fixes your currency and security's key settings) (reset_relative_currencies.py)
+    - FIX - Fix invalid relative currency rates (fixes relative rates where <0 or >9999999999) (fix_invalid_currency_rates.py)
     - FIX - FORCE change an Account's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)
+    - FIX - FORCE change ALL Account's currencies (use with care. Does not update any transactions) (force_change_all_currencies.py)
+    - FIX - FORCE change an Account's Type (use with care. Does not update any transactions) (set_account_type.py)
     - FIX - Inactivate all Categories with Zero Balance
     - Online (OFX) Banking Tools:
         - All basic mode settings plus:
@@ -3483,7 +3491,7 @@ ALT-M - Advanced Mode
     - FIX - Account's Invalid Parent Account (script fix_account_parent.py)
     - FIX - Convert Stock to LOT Controlled and Allocate LOTs using FiFo method (MakeFifoCost.py)
     - FIX - Convert Stock to Average Cost Control (and wipe any LOT control records)
-    - FIX - Non Hierarchical Security Account Txns (fix_non-hierarchical_security_account_txns.py)
+    - FIX - Non Hierarchical Security Account Txns (cross-linked securities) (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)
     - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
     - FIX - RESET Window Display Settings
             This allows you to tell Moneydance to forget remembered Display settings:
@@ -3719,6 +3727,11 @@ class MyAcctFilter(AcctFilter):
                     return True
 
             return False
+
+        if self.selectType == 19:
+            # noinspection PyUnresolvedReferences
+            if acct.getAccountType() == Account.AccountType.SECURITY or acct.getAccountType() == Account.AccountType.ROOT: return False
+            else: return True
 
         if (acct.getAccountOrParentIsInactive()): return False
         if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
@@ -4307,7 +4320,7 @@ def check_for_updatable_extensions_on_startup(statusLabel):
 
     Toolbox_version = 0
 
-    displayData = "\nALERT INFORMATION ABOUT YOUR EXTENSIONS:\n\n"
+    displayData = u"\nALERT INFORMATION ABOUT YOUR EXTENSIONS:\n\n"
 
     try:
         theUpdateList = get_extension_update_info()
@@ -4317,26 +4330,26 @@ def check_for_updatable_extensions_on_startup(statusLabel):
 
         for key in theUpdateList.keys():
             updateInfo = theUpdateList[key]
-            displayData+="** UPGRADEABLE EXTENSION: %s to version: %s\n" %(pad(key,20),str(updateInfo[0].getBuild()))
-            myPrint("B", "** UPGRADEABLE EXTENSION: %s to version: %s" %(pad(key,20),str(updateInfo[0].getBuild())))
-            if key.lower() == "toolbox" and int(updateInfo[0].getBuild()) > 0:
+            displayData+=u"** UPGRADEABLE EXTENSION: %s to version: %s\n" %(pad(key,20),(updateInfo[0].getBuild()))
+            myPrint(u"B", u"** UPGRADEABLE EXTENSION: %s to version: %s" %(pad(key,20),(updateInfo[0].getBuild())))
+            if key.lower() == u"toolbox" and int(updateInfo[0].getBuild()) > 0:
                 Toolbox_version = int(updateInfo[0].getBuild())
     except:
         dump_sys_error_to_md_console_and_errorlog()
         return Toolbox_version
 
-    displayData+="\n<END>\n"
+    displayData+=u"\n<END>\n"
 
     howMany = int(len(theUpdateList))
 
     if not lIgnoreOutdatedExtensions_TB:
-        statusLabel.setText( ("ALERT - YOU HAVE %s EXTENSION(S) THAT CAN BE UPGRADED!..." %howMany ).ljust(800, " "))
+        statusLabel.setText( (u"ALERT - YOU HAVE %s EXTENSION(S) THAT CAN BE UPGRADED!..." %howMany ).ljust(800, u" "))
         statusLabel.setForeground(Color.BLUE)
-        jif = QuickJFrame("EXTENSIONS ALERT!", displayData, 1).show_the_frame()
-        options=["OK (keep reminding me)","OK - DON'T TELL ME AGAIN ON STARTUP!"]
+        jif = QuickJFrame(u"EXTENSIONS ALERT!", displayData, 1).show_the_frame()
+        options=[u"OK (keep reminding me)",u"OK - DON'T TELL ME AGAIN ON STARTUP!"]
         response = JOptionPane.showOptionDialog(jif,
-                                                "INFO: You have %s older Extensions that can be upgraded" %howMany,
-                                                "OUTDATED EXTENSIONS",
+                                                u"INFO: You have %s older Extensions that can be upgraded" %howMany,
+                                                u"OUTDATED EXTENSIONS",
                                                 0,
                                                 JOptionPane.QUESTION_MESSAGE,
                                                 None,
@@ -4344,10 +4357,10 @@ def check_for_updatable_extensions_on_startup(statusLabel):
                                                 options[0])
 
         if response:
-            myPrint("B","User requested to ignore Outdated warning extensions going forward..... I will obey!!")
+            myPrint(u"B",u"User requested to ignore Outdated warning extensions going forward..... I will obey!!")
             lIgnoreOutdatedExtensions_TB = True
     else:
-        statusLabel.setText( ("ALERT - YOU HAVE %s EXTENSION(S) THAT CAN BE UPGRADED!...STARTUP POPUP WARNINGS SUPPRESSED (by you)" %howMany ).ljust(800, " "))
+        statusLabel.setText( (u"ALERT - YOU HAVE %s EXTENSION(S) THAT CAN BE UPGRADED!...STARTUP POPUP WARNINGS SUPPRESSED (by you)" %howMany ).ljust(800, " "))
         statusLabel.setForeground(Color.BLUE)
 
     return Toolbox_version
@@ -5479,6 +5492,23 @@ def manualEditOfUserIDs(statusLabel):
 
     myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
     return
+
+class StoreAccountList():
+    def __init__(self, obj):
+        if isinstance(obj,Account):
+            self.obj = obj                          # type: Account
+        else:
+            self.obj = None
+
+    def __str__(self):
+        if self.obj is None:
+            return "Invalid Acct Obj or None"
+        return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
+
+    def __repr__(self):
+        if self.obj is None:
+            return "Invalid Acct Obj or None"
+        return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
 
 class StoreTheOnlineTxnList():
     def __init__(self, obj, acct):
@@ -7070,8 +7100,8 @@ def hackerRemoveExternalFilesSettings(statusLabel):
         externalFilesVector.remove(selectedFile)
         prefs.setSetting("external_files", externalFilesVector)
         moneydance.savePreferences()
-        myPrint("B","OK I have removed the reference to file %s from the file/open menu" %(selectedFile))
-        myPopupInformationBox(Toolbox_frame_,"OK I have removed the reference to file %s from the file/open menu" %(selectedFile),"HACKER",JOptionPane.WARNING_MESSAGE)
+        myPrint("B","OK I have removed the reference to file %s from config.dict (and file/open menu if present)" %(selectedFile))
+        myPopupInformationBox(Toolbox_frame_,"OK I have removed the reference to file %s from config.dict (and file/open menu if present)" %(selectedFile),"HACKER",JOptionPane.WARNING_MESSAGE)
 
         if not os.path.exists(selectedFile): continue
 
@@ -8948,7 +8978,9 @@ class DiagnosticDisplay():
                 lExternal = True
                 theText = ( "This allows you to REMOVE references to Datasets stored in the non-default/External locations\n"
                             "This removes the entries from the MD File>Open Menu.\n"
+                            "(These may not actually exist on disk any more)\n"
                             "I will offer you each Dataset name one-by-one\n"
+                            "You will not be offered, or allowed, to delete the current open dataset\n"
                             "OPTIONALLY - You can choose to also DELETE these dataset(s) FROM DISK (after your confirmation)\n"
                             "There will not be any backup prompts - please do this yourself first!\n"
                             "(RESTART MD AFTER USING TO REFRESH THE File>Open list)\n\n"
@@ -8957,6 +8989,7 @@ class DiagnosticDisplay():
                 lInternal = True
                 theText = ( "This allows you to DELETE Datasets from the MD Internal/Default location\n"
                             "I will offer you each Dataset name one-by-one\n"
+                            "You will not be offered, or allowed, to delete the current open dataset\n"
                             "Each one you select will be DELETED FROM DISK (after your confirmation)\n"
                             "(This will therefore remove the entry from the MD File>Open Menu)\n"
                             "There will not be any backup prompts - please do this yourself first!\n"
@@ -11889,18 +11922,27 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     dotCounter+=1
 
+                    if debug: myPrint("DB","Searching: %s" %(root))
+
                     for name in files:
+                        fp = os.path.join(root, name)
+                        if os.path.islink(fp):
+                            myPrint("DB", "found file link! %s - will skip" %fp)
+                            continue
                         if fnmatch.fnmatch(name, pattern):
+                            dotCounter+=1
                             iFound+=1
-                            result.append(os.path.join(root, name))
+                            result.append(fp)
+
                     for name in dirs:
+                        fp = os.path.join(root, name)
+                        if os.path.islink(fp):
+                            myPrint("DB", "found dir link! %s - will skip" %fp)
+                            continue
                         if fnmatch.fnmatch(name, pattern):
+                            dotCounter+=1
                             iFound+=1
-                            result.append(os.path.join(root, name))
-                    for name in root:
-                        if fnmatch.fnmatch(name, pattern):
-                            iFound+=1
-                            result.append(os.path.join(root, name))
+                            result.append(fp)
 
                 return result, iFound
 
@@ -12426,7 +12468,9 @@ Now you will have a text readable version of the file you can open in a text edi
             diag = MyPopUpDialogBox(Toolbox_frame_,"Please wait: searching..",theTitle="SEARCH", theWidth=100, lModal=False,OKButtonText="WAIT")
             diag.go()
 
-            myPrint("P","Searching from Directory: %s" %theDir)
+            save_list_of_found_files=[]
+
+            myPrint("B","DATASET Search >> Searching from Directory: %s" %theDir)
 
             def findDataset(pattern, path):
                 iFound=0                                                                                            # noqa
@@ -12438,7 +12482,12 @@ Now you will have a text readable version of the file you can open in a text edi
                 if not i_am_an_extension_so_run_headless:
                     print "Searching for your %s Datasets (might be time consuming):."%theExtension,
 
-                for root, dirs, files in os.walk(path):
+                exclude_these_dirs = ["/System", "/Library"]
+
+                for root, dirs, files in os.walk(path, topdown=True):
+
+                    if debug: myPrint("DB","Searching: %s" %(root))
+
                     if dotCounter % 1000 <1:
                         if not i_am_an_extension_so_run_headless: print ".",
                     if not dotCounter or (dotCounter % 10000 <1 and not lContinueToEnd):
@@ -12462,27 +12511,39 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     dotCounter+=1
 
+                    # Remove /System dir etc on Mac....
+                    if Platform.isOSX():
+                        for d in list(dirs):
+                            for ex in exclude_these_dirs:
+                                if (root+d).startswith(ex):
+                                    dirs.remove(d)
+
                     if lBackup:
                         for name in files:
+                            fp = os.path.join(root,name)
+                            if os.path.islink(fp):
+                                myPrint("DB", "found file link! %s - will skip" %fp)
+                                continue
+                            dotCounter+=1
                             if fnmatch.fnmatch(name, pattern):
                                 iFound+=1
                                 result.append("File >> Sz: %sMB Mod: %s Name: %s "
                                               %(rpad(round(os.path.getsize(os.path.join(root, name))/(1000.0*1000.0),1),6),
-                                                pad(datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S'),11),
+                                                pad(datetime.datetime.fromtimestamp(os.path.getmtime(fp)).strftime('%Y-%m-%d %H:%M:%S'),11),
                                                 os.path.join(root, name)))
                     for name in dirs:
+                        fp = os.path.join(root,name)
+                        if os.path.islink(fp):
+                            myPrint("DB", "found dir link! %s - will skip" %fp)
+                            continue
+
+                        dotCounter+=1
                         if fnmatch.fnmatch(name, pattern):
                             if name != ".moneydance":
+                                save_list_of_found_files.append(fp)
                                 iFound+=1
                             result.append("Dir >> Modified: %s %s"
-                                          %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S'),11),
-                                          os.path.join(root, name)))
-                    for name in root:
-                        if fnmatch.fnmatch(name, pattern):
-                            if name != ".moneydance":
-                                iFound+=1
-                            result.append("Root >> Modified: %s %s"
-                                          %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S'),11),
+                                          %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(fp)).strftime('%Y-%m-%d %H:%M:%S'),11),
                                           os.path.join(root, name)))
                 return result, iFound
 
@@ -12508,6 +12569,45 @@ Now you will have a text readable version of the file you can open in a text edi
             jif=QuickJFrame("LIST OF MONEYDANCE %s DATASETS FOUND" % theExtension, niceFileList, lAlertLevel=1).show_the_frame()
 
             myPopupInformationBox(jif, "%s %s Datasets located...." %(iFound,theExtension), "DATASET SEARCH", JOptionPane.INFORMATION_MESSAGE)
+
+            if not lBackup:
+                add_to_ext_list=[]
+                internalDir = Common.getDocumentsDirectory().getCanonicalPath()
+
+                externalFiles = AccountBookUtil.getExternalAccountBooks()
+                externalFiles_asList = []
+                for ext in externalFiles:
+                    externalFiles_asList.append(ext.getBook().getRootFolder().getCanonicalPath())
+
+                for filename in save_list_of_found_files:
+                    if not os.path.exists(filename):
+                        continue
+                    if internalDir in filename:
+                        continue
+                    if filename in externalFiles_asList:
+                        continue
+                    add_to_ext_list.append(filename)
+
+                myPrint("DB","Found %s external files that can be added to config.dict: %s" %(len(add_to_ext_list),add_to_ext_list))
+
+                if (len(add_to_ext_list) > 0
+                        and myPopupAskQuestion(jif, "SEARCH FOR DATASETS", "%s of these datasets are not showing in your File/Open menu list(and config.dict)? WOULD YOU LIKE TO ADD ANY OF THEM?" %(len(add_to_ext_list))) ):
+
+                    backup_config_dict(True)
+
+                    iAdded = 0
+                    externalFilesVector = moneydance_ui.getPreferences().getVectorSetting("external_files", StreamVector())
+                    for add_this_file in add_to_ext_list:
+                        if not myPopupAskQuestion(jif,"ADD FILE TO FILE/OPEN MENU","ADD: %s?" %((add_this_file))):
+                            continue
+                        iAdded+=1
+                        myPrint("B","SEARCH FOR DATASETS - %s added to config.dict and file/open menu" %(add_this_file))
+                        externalFilesVector.add(add_this_file)
+                        moneydance_ui.getPreferences().setSetting("external_files", externalFilesVector)
+
+                    if iAdded:
+                        moneydance.savePreferences()
+                        myPopupInformationBox(jif, "SEARCH FOR DATASETS - %s files added to config.dict and file/open menu (RESTART MD REQUIRED)" %(iAdded), "DATASET SEARCH", JOptionPane.INFORMATION_MESSAGE)
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
@@ -12578,11 +12678,320 @@ Now you will have a text readable version of the file you can open in a text edi
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
 
-    class ForceChangeAccountCurrencyButtonAction(AbstractAction):
-        theString = ""
+    # noinspection PyUnresolvedReferences
+    class ForceChangeAccountTypeButtonAction(AbstractAction):
 
-        def __init__(self, theString, statusLabel):
-            self.theString = theString
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug
+
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            # set_account_type.py
+            ask=MyPopUpDialogBox(Toolbox_frame_,
+                                 theStatus="Are you sure you want to FORCE change an Account's Type?",
+                                 theTitle="FORCE CHANGE TYPE",
+                                 theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
+                                            "The typical scenario is where you have have created an Account with the wrong Type\n"
+                                            "This fix will NOT attempt to check that the Acct has Txns that are valid in the new Account Type.\n"
+                                            "It simply changes the Type set on the account to the new Type.\n"
+                                            "You should carefully review your data afterwards and revert\n"
+                                            "to a backup if you are not happy with the results....\n"
+                                            "\n",
+                                 lCancelButton=True,
+                                 OKButtonText="I AGREE - PROCEED",
+                                 lAlertLevel=2)
+
+            if not ask.go():
+                self.statusLabel.setText(("User did not say yes to FORCE change an Account's type - no changes made").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+            del ask
+
+            accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(19))
+            accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+            newAccounts = []
+            for acct in accounts:
+                newAccounts.append(StoreAccountList(acct))
+
+            selectedAccount = JOptionPane.showInputDialog(Toolbox_frame_,
+                                                          "Select the Account to FORCE change its Type",
+                                                          "FORCE CHANGE ACCOUNT's TYPE",
+                                                          JOptionPane.WARNING_MESSAGE,
+                                                          None,
+                                                          newAccounts,
+                                                          None)  # type: StoreAccountList
+            if not selectedAccount:
+                self.statusLabel.setText(("User did not Select an Account to FORCE change its Type - no changes made").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            selectedAccount = selectedAccount.obj       # type: Account
+
+            if selectedAccount.getAccountType() == Account.AccountType.ROOT:
+                if not myPopupAskQuestion(Toolbox_frame_,"FORCE CHANGE ACCOUNT TYPE","THIS ACCOUNT IS ROOT (SPECIAL). DO YOU REALLY WANT TO CHANGE IT'S TYPE (Normally a bad idea!) ?", theMessageType=JOptionPane.ERROR_MESSAGE):
+                    self.statusLabel.setText(("User Aborted change of Root's Account Type (phew!) - no changes made").ljust(800, " "))
+                    self.statusLabel.setForeground(Color.BLUE)
+                    myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                    return
+
+            possTypes = Account.AccountType.values()
+            possTypes.remove(Account.AccountType.ROOT)
+            possTypes.remove(Account.AccountType.SECURITY)
+            if selectedAccount.getAccountType() in possTypes:
+                possTypes.remove(selectedAccount.getAccountType())
+
+            selectedType = JOptionPane.showInputDialog(Toolbox_frame_,
+                                                          "Select the new Account Type",
+                                                          "FORCE CHANGE ACCOUNT's TYPE",
+                                                          JOptionPane.WARNING_MESSAGE,
+                                                          None,
+                                                          possTypes,
+                                                          None)  # type: Account.AccountType
+            if not selectedType:
+                self.statusLabel.setText(("User did not Select a new Account Type - no changes made").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            if selectedType == Account.AccountType.ROOT:
+                if not myPopupAskQuestion(Toolbox_frame_,"FORCE CHANGE ACCOUNT TYPE","DO YOU REALLY WANT TO CHANGE TO ROOT (Normally a bad idea!)?", theMessageType=JOptionPane.ERROR_MESSAGE):
+                    self.statusLabel.setText(("User Aborted change Account to type Root (phew!) - no changes made").ljust(800, " "))
+                    self.statusLabel.setForeground(Color.BLUE)
+                    myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                    return
+
+            ask=MyPopUpDialogBox(Toolbox_frame_,
+                                 theStatus="Are you sure you want to FORCE change this Account's Type?",
+                                 theTitle="FORCE CHANGE TYPE",
+                                 theMessage="Account: %s\n"
+                                            "Old Type: %s\n"
+                                            "New Type: %s\n"
+                                            %(selectedAccount.getFullAccountName(), selectedAccount.getAccountType(),selectedType),  # noqa
+                                 lCancelButton=True,
+                                 OKButtonText="I AGREE - PROCEED",
+                                 lAlertLevel=2)
+
+            if not ask.go():
+                self.statusLabel.setText(("User aborted the FORCE change to an Account's type - no changes made").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+                myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            if not confirm_backup_confirm_disclaimer(Toolbox_frame_, self.statusLabel, "FORCE CHANGE TYPE", "FORCE CHANGE ACCOUNT %s TYPE to %s" %(selectedAccount.getFullAccountName(),selectedType)):    # noqa
+                return
+
+            myPrint("B","@@ User requested to Force Change the Type of Account: %s from: %s to %s - APPLYING UPDATE NOW...."
+                    %(selectedAccount.getFullAccountName(),selectedAccount.getAccountType(),selectedType))          # noqa
+
+            selectedAccount.setAccountType(selectedType)                                                            # noqa
+            selectedAccount.syncItem()                                                                              # noqa
+
+            self.statusLabel.setText(("The Account: %s has been changed to Type: %s- PLEASE REVIEW"
+                                      %(selectedAccount.getAccountName(),selectedAccount.getAccountType())).ljust(800, " "))   # noqa
+            self.statusLabel.setForeground(Color.RED)
+
+            play_the_money_sound()
+            myPopupInformationBox(Toolbox_frame_,"The Account: %s has been changed to Type: %s - PLEASE RESTART MD & REVIEW"
+                                  %(selectedAccount.getAccountName(),selectedAccount.getAccountType()),theMessageType=JOptionPane.ERROR_MESSAGE)   # noqa
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+            return
+
+    # noinspection PyUnresolvedReferences
+    class ForceChangeAllAccountsCurrenciesButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug
+
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+            # force_change_all_currencies.py
+            ask=MyPopUpDialogBox(Toolbox_frame_,
+                                 theStatus="Are you sure you want to FORCE change ALL Account's Currencies?",
+                                 theTitle="FORCE CHANGE ALL ACCOUNTS' CURRENCIES",
+                                 theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
+                                            "The typical scenario is where you have a missing currency, or need to change them all\n"
+                                            "This fix will not touch the ROOT account nor Security sub-accounts (which are stocks/shares)\n"
+                                            "This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the currency\n"
+                                            "set on all accounts to the new currency. You should carefully review your data afterwards and revert\n"
+                                            "to a backup if you are not happy with the results....\n"
+                                            "\n",
+                                 lCancelButton=True,
+                                 OKButtonText="I AGREE - PROCEED",
+                                 lAlertLevel=2)
+
+            if not ask.go():
+                self.statusLabel.setText(("User did not say yes to FORCE change ALL Account's currencies - no changes made").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+            del ask
+
+            accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(19))
+            accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+
+            currencies=[]
+            book = moneydance.getCurrentAccountBook()
+            allCurrencies = book.getCurrencies().getAllCurrencies()
+            for c in allCurrencies:
+                if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                               # noqa
+                    currencies.append(c)
+            currencies = sorted(currencies, key=lambda sort_x: (sort_x.getName().upper()))
+
+            if len(currencies) < 1:
+                myPrint("B", "FORCE CHANGE ALL ACCOUNTS' CURRENCIES - Creating new currency record!")
+                selectedCurrency = CurrencyType(book.getCurrencies())       # Creates a null:null CT record
+                selectedCurrency.setName("NEW CURRENCY - PLEASE EDIT ME LATER")
+                selectedCurrency.setIDString("AAA")
+                selectedCurrency.setDecimalPlaces(2)
+                selectedCurrency.syncItem()
+                myPrint("B", "FORCE CHANGE ALL ACCOUNTS' CURRENCIES - Creating new currency: %s" %(selectedCurrency))
+                myPopupInformationBox(Toolbox_frame_,"FYI - I have created a new Currency %s for you (Edit me later)" %(selectedCurrency),
+                                      "FORCE CHANGE ALL ACCOUNTS' CURRENCIES")
+            else:
+                selectedCurrency = JOptionPane.showInputDialog(Toolbox_frame_,
+                                                               "Select a currency to assign to *ALL* accounts",
+                                                               "FORCE CHANGE ALL ACCOUNT's CURRENCIES",
+                                                               JOptionPane.ERROR_MESSAGE,
+                                                               None,
+                                                               currencies,
+                                                               None)  # type: CurrencyType
+
+            if not selectedCurrency:
+                self.statusLabel.setText(("User did not Select a new currency for FORCE change ALL Accounts' Currencies - no changes made").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            if not confirm_backup_confirm_disclaimer(Toolbox_frame_, self.statusLabel, "FORCE CHANGE ALL ACCOUNTS' CURRENCIES", "FORCE CHANGE ALL %s ACCOUNT's CURRENCIES TO %s?" %(len(accounts),selectedCurrency)):    # noqa
+                return
+
+            myPrint("B","@@ User requested to Force Change the Currency of ALL %s Accounts to %s - APPLYING UPDATE NOW...."
+                                                                             %(len(accounts),selectedCurrency))     # noqa
+
+            accountsChanged = 0
+            for account in accounts:
+                if account.getAccountType() == Account.AccountType.ROOT:
+                    continue
+                if account.getAccountType() == Account.AccountType.SECURITY:
+                    continue
+                if account.getCurrencyType() == selectedCurrency:
+                    continue
+
+                myPrint("B","Setting account %s to currency %s" %(account, selectedCurrency))
+                account.setCurrencyType(selectedCurrency)
+                account.syncItem()
+                accountsChanged += 1
+
+            self.statusLabel.setText(("FORCE CHANGE ALL ACCOUNTS' CURRENCIES: %s Accounts changed to currency: %s - PLEASE RESTART MD & REVIEW"
+                                      %(accountsChanged,selectedCurrency)).ljust(800, " "))   # noqa
+            self.statusLabel.setForeground(Color.RED)
+            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' CURRENCIES: %s Accounts changed to currency: %s - PLEASE RESTART MD & REVIEW"
+                    %(accountsChanged,selectedCurrency))
+            play_the_money_sound()
+            myPopupInformationBox(Toolbox_frame_,"%s Accounts changed to currency: %s - PLEASE RESTART MD & REVIEW"
+                                  %(accountsChanged,selectedCurrency),theMessageType=JOptionPane.ERROR_MESSAGE)   # noqa
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+            return
+
+    class FixInvalidRelativeCurrencyRatesButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
+        def actionPerformed(self, event):
+            global Toolbox_frame_, debug
+
+            myPrint(u"D", u"In ", inspect.currentframe().f_code.co_name, u"()", u"Event: ", event )
+
+            if moneydance_data is None: return
+
+            book = moneydance.getCurrentAccountBook()
+            currencies = book.getCurrencies().getAllCurrencies()
+            currencies = sorted(currencies, key=lambda sort_x: (sort_x.getCurrencyType(),sort_x.getName().upper()))
+
+            output=u"FIX INVALID RELATIVE CURRENCIES\n" \
+                   u" ==============================\n\n"
+
+            upperLimit = 9999999999
+            iErrors = 0
+            for curr in currencies:
+                if curr.getRelativeRate() <= 0 or curr.getRelativeRate() > upperLimit:
+                    iErrors += 1
+                    output += u"Invalid - Type: %s Name: %s Relative Rate: %s\n" %(curr.getCurrencyType(),pad(curr.getName(),25),rpad(curr.getRelativeRate(),20))
+
+            if iErrors < 1:
+                self.statusLabel.setText((u"FIX INVALID REL CURR RATES: You have no relative rates <0 or >%s to fix - NO CHANGES MADE" %upperLimit).ljust(800, u" "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_,u"You have no relative rates <0 or >%s to fix - NO CHANGES MADE" %upperLimit,u"FIX INVALID REL CURR RATES")
+                return
+
+            jif=QuickJFrame(u"FIX INVALID RELATIVE CURRENCIES",output).show_the_frame()
+
+            # force_change_account_currency.py
+            ask=MyPopUpDialogBox(jif,
+                                 theStatus=u"Are you sure you want to FIX these %s INVALID RELATIVE CURRENCIES?" %iErrors,
+                                 theTitle=u"FIX INVALID RELATIVE CURRENCIES",
+                                 theMessage=u"Do not proceed unless you know you want to do this....!\n"
+                                            u"This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the relative rate(s)\n"
+                                            u"You should carefully review your data afterwards and revert to a backup if you are not happy with the results....\n",
+                                 lCancelButton=True,
+                                 OKButtonText=u"I AGREE - PROCEED",
+                                 lAlertLevel=2)
+
+            if not ask.go():
+                self.statusLabel.setText((u"User did not say yes to fix invalid relative currencies - no changes made").ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(Toolbox_frame_,u"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+            del ask
+
+
+            if not confirm_backup_confirm_disclaimer(jif, self.statusLabel, u"FIX INVALID RELATIVE CURR RATES", u"FIX %s INVALID RELATIVE CURRENCY RATES" %(iErrors)):
+                return
+
+            jif.dispose()
+
+            myPrint(u"B",u"@@ User requested to fix %s invalid relative currency rates - APPLYING UPDATE NOW...." %(iErrors) )
+
+            output += u"\n\n APPLYING FIXES\n" \
+                      u" ==============\n\n"
+
+            for curr in currencies:
+                if curr.getRelativeRate() <= 0 or curr.getRelativeRate() > upperLimit:
+                    output += u"FIXING >> Invalid - Type: %s Name: %s Relative Rate: %s - RESET TO 1.0\n" %(curr.getCurrencyType(),pad(curr.getName(),25),rpad(curr.getRelativeRate(),20))
+
+                    myPrint(u"B", u"FIXING >> Invalid - Type: %s Name: %s Relative Rate: %s - RESET TO 1.0" %(curr.getCurrencyType(),pad(curr.getName(),25),rpad(curr.getRelativeRate(),20)))
+
+                    curr.setRelativeRate(1.0)
+                    curr.syncItem()
+
+            myPrint(u"P", output)
+
+            jif=QuickJFrame(u"FIX INVALID RELATIVE CURRENCIES",output).show_the_frame()
+
+            self.statusLabel.setText((u"FIX INVALID RELATIVE CURRENCIES: %s Invalid Currency relative rates have been reset to 1.0 - PLEASE REVIEW" %(iErrors)).ljust(800, u" "))   # noqa
+            self.statusLabel.setForeground(Color.RED)
+            play_the_money_sound()
+            myPopupInformationBox(jif,u"%s Invalid Currency relative rates have been reset to 1.0 - PLEASE RESTART MD & REVIEW" %(iErrors),
+                                  u"FIX INVALID RELATIVE CURRENCIES",
+                                  theMessageType=JOptionPane.ERROR_MESSAGE)   # noqa
+
+            myPrint(u"D", u"Exiting ", inspect.currentframe().f_code.co_name, u"()")
+            return
+
+    class ForceChangeAccountCurrencyButtonAction(AbstractAction):
+
+        def __init__(self, statusLabel):
             self.statusLabel = statusLabel
 
         def actionPerformed(self, event):
@@ -12594,7 +13003,7 @@ Now you will have a text readable version of the file you can open in a text edi
             ask=MyPopUpDialogBox(Toolbox_frame_,
                                  theStatus="Are you sure you want to FORCE change an Account's Currency?",
                                  theTitle="FORCE CHANGE CURRENCY",
-                                 theMessage="This is normally a bad idea, unless you know you want to do it....!\n"
+                                 theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
                                             "The typical scenario is where you have duplicated Currencies and you want to move\n"
                                             "transactions from one account to another, but the system prevents you unless they are the same currency\n"
                                             "This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the currency\n"
@@ -12622,19 +13031,27 @@ Now you will have a text readable version of the file you can open in a text edi
 
             accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(5))
             accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+            newAccounts = []
+            for acct in accounts:
+                newAccounts.append(StoreAccountList(acct))
 
             selectedAccount = JOptionPane.showInputDialog(Toolbox_frame_,
                                                           "Select the Account to FORCE change currency",
                                                           "FORCE CHANGE ACCOUNT's CURRENCY",
                                                           JOptionPane.WARNING_MESSAGE,
                                                           None,
-                                                          accounts,
-                                                          None)  # type: Account
+                                                          newAccounts,
+                                                          None)  # type: StoreAccountList
             if not selectedAccount:
                 self.statusLabel.setText(("User did not Select an Account to FORCE change currency - no changes made").ljust(800, " "))
                 self.statusLabel.setForeground(Color.BLUE)
                 myPopupInformationBox(Toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
                 return
+
+            selectedAccount = selectedAccount.obj       # type: Account
+
+            # noinspection PyUnresolvedReferences
+            currencies.remove(selectedAccount.getCurrencyType())
 
             selectedCurrency = JOptionPane.showInputDialog(Toolbox_frame_,
                                                            "Old Currency: %s >> Select the new currency for the account" %(selectedAccount.getCurrencyType()),                    # noqa
@@ -12680,17 +13097,15 @@ Now you will have a text readable version of the file you can open in a text edi
             self.statusLabel.setForeground(Color.RED)
 
             play_the_money_sound()
-            myPopupInformationBox(Toolbox_frame_,"The Account: %s has been changed to Currency: %s- PLEASE REVIEW"
+            myPopupInformationBox(Toolbox_frame_,"The Account: %s has been changed to Currency: %s - PLEASE RESTART MD & REVIEW"
                                   %(selectedAccount.getAccountName(),selectedAccount.getCurrencyType()),theMessageType=JOptionPane.ERROR_MESSAGE)   # noqa
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
 
     class OnlineBankingToolsButtonAction(AbstractAction):
-        theString = ""
 
-        def __init__(self, theString, statusLabel):
-            self.theString = theString
+        def __init__(self, statusLabel):
             self.statusLabel = statusLabel
 
         def actionPerformed(self, event):
@@ -13297,6 +13712,7 @@ Now you will have a text readable version of the file you can open in a text edi
             global Toolbox_frame_, debug
 
             # fix_non-hierarchical_security_account_txns.py
+            # (replaces fix_investment_txns_to_wrong_security.py)
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
@@ -13318,7 +13734,12 @@ Now you will have a text readable version of the file you can open in a text edi
                 text = ""
                 for txn in txns:
                     if txn.getParentTxn() != txn: continue   # only work with parent transactions
+
                     acct = txn.getAccount()
+                    # noinspection PyUnresolvedReferences
+                    if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
+
+                    # at this point we are only dealing with investment parent txns
                     fields.setFieldStatus(txn)
 
                     if fields.hasSecurity and not acct.isAncestorOf(fields.security):
@@ -15152,12 +15573,33 @@ Now you will have a text readable version of the file you can open in a text edi
         fixCurrencies_button.setVisible(False)
         displayPanel.add(fixCurrencies_button)
 
-        forceChangeAccountCurrency_button = JButton("<html><center>FIX: FORCE Change<BR>Account's Currency</center></html>")
-        forceChangeAccountCurrency_button.setToolTipText("This allows you to FORCE change an Account's currency - USE WITH CARE!.. THIS CHANGES DATA!")
+        fixInvalidRelativeCurrencyRates_button = JButton("<html><center>FIX: Fix Invalid<BR>Relative Curr Rates</center></html>")
+        fixInvalidRelativeCurrencyRates_button.setToolTipText("This will reset any relative rates back to 1.0 where < 0 or > 9999999999. THIS CHANGES DATA!  (fix_invalid_currency_rates.py)")
+        fixInvalidRelativeCurrencyRates_button.setForeground(Color.RED)
+        fixInvalidRelativeCurrencyRates_button.addActionListener(self.FixInvalidRelativeCurrencyRatesButtonAction(statusLabel))
+        fixInvalidRelativeCurrencyRates_button.setVisible(False)
+        displayPanel.add(fixInvalidRelativeCurrencyRates_button)
+
+        forceChangeAccountCurrency_button = JButton("<html><center>FIX: FORCE Change<BR>an Account's Currency</center></html>")
+        forceChangeAccountCurrency_button.setToolTipText("This allows you to FORCE change an Account's currency - USE WITH CARE!.. THIS CHANGES DATA! force_change_account_currency.py)")
         forceChangeAccountCurrency_button.setForeground(Color.RED)
-        forceChangeAccountCurrency_button.addActionListener(self.ForceChangeAccountCurrencyButtonAction(displayString, statusLabel))
+        forceChangeAccountCurrency_button.addActionListener(self.ForceChangeAccountCurrencyButtonAction(statusLabel))
         forceChangeAccountCurrency_button.setVisible(False)
         displayPanel.add(forceChangeAccountCurrency_button)
+
+        forceChangeAllAccountsCurrencies_button = JButton("<html><center>FIX: FORCE Change All<BR>Account's Currencies</center></html>")
+        forceChangeAllAccountsCurrencies_button.setToolTipText("This allows you to FORCE change all Account's Currencies - USE WITH CARE!.. THIS CHANGES DATA! (force_change_all_currencies.py)")
+        forceChangeAllAccountsCurrencies_button.setForeground(Color.RED)
+        forceChangeAllAccountsCurrencies_button.addActionListener(self.ForceChangeAllAccountsCurrenciesButtonAction(statusLabel))
+        forceChangeAllAccountsCurrencies_button.setVisible(False)
+        displayPanel.add(forceChangeAllAccountsCurrencies_button)
+
+        forceChangeAccountType_button = JButton("<html><center>FIX: FORCE Change<BR>an Account's Type</center></html>")
+        forceChangeAccountType_button.setToolTipText("This allows you to FORCE change an Account's Type - USE WITH CARE!.. THIS CHANGES DATA! (set_account_type.py)")
+        forceChangeAccountType_button.setForeground(Color.RED)
+        forceChangeAccountType_button.addActionListener(self.ForceChangeAccountTypeButtonAction(statusLabel))
+        forceChangeAccountType_button.setVisible(False)
+        displayPanel.add(forceChangeAccountType_button)
 
         viewZeroBalCats_button = JButton("<html><center>DIAG: Categories<BR>and Balances Report</center></html>")
         viewZeroBalCats_button.setToolTipText("This will list all your Categories and show which have Zero Balances - USE ADVANCED MODE TO MAKE THESE INACTIVE")
@@ -15172,7 +15614,7 @@ Now you will have a text readable version of the file you can open in a text edi
         displayPanel.add(inactivateZeroBalCats_button)
 
         showOpenShareLots_button = JButton("<html><center>DIAG: Show Open Share<BR>LOTS (unconsumed)</center></html>")
-        showOpenShareLots_button.setToolTipText("This will list all Stocks/Shares with Open/Unconsumed LOTS (when LOT Control ON) - READONLY")
+        showOpenShareLots_button.setToolTipText("This will list all Stocks/Shares with Open/Unconsumed LOTS (when LOT Control ON) - READONLY (show_open_tax_lots.py)")
         showOpenShareLots_button.addActionListener(self.ShowOpenShareLotsButtonAction(statusLabel))
         displayPanel.add(showOpenShareLots_button)
 
@@ -15184,7 +15626,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
         onlineBankingTools_button = JButton("<html><center>Online Banking<BR>(OFX) Tools</center></html>")
         onlineBankingTools_button.setToolTipText("A selection of tools for Online Banking - SOME OPTIONS CAN CHANGE DATA!")
-        onlineBankingTools_button.addActionListener(self.OnlineBankingToolsButtonAction(displayString, statusLabel))
+        onlineBankingTools_button.addActionListener(self.OnlineBankingToolsButtonAction(statusLabel))
         displayPanel.add(onlineBankingTools_button)
 
         importQIFFile_button = JButton("<html><center>'Older' Import QIF file<BR>and set parameters</center></html>")
@@ -15193,7 +15635,7 @@ Now you will have a text readable version of the file you can open in a text edi
         displayPanel.add(importQIFFile_button)
 
         thinPriceHistory_button = JButton("<html><center>FIX: Thin/Purge<BR>Price History</center></html>")
-        thinPriceHistory_button.setToolTipText("This will allow you to Thin / Prune your Price History based on user parameters. THIS CHANGES DATA!")
+        thinPriceHistory_button.setToolTipText("This will allow you to Thin / Prune your Price History based on user parameters. THIS CHANGES DATA! (price_history_thinner.py)")
         thinPriceHistory_button.setForeground(Color.RED)
         thinPriceHistory_button.addActionListener(self.ThinPriceHistoryButtonAction(displayString, statusLabel))
         thinPriceHistory_button.setVisible(False)
@@ -15221,14 +15663,14 @@ Now you will have a text readable version of the file you can open in a text edi
         displayPanel.add(fixDeleteOneSidedTxns_button)
 
         fixAccountParent_button = JButton("<html><center>FIX: Acct's Invalid<BR>Parent Account</center></html>")
-        fixAccountParent_button.setToolTipText("This will diagnose your Parent Accounts and fix if invalid (fix_account_parent.py). THIS CHANGES DATA!")
+        fixAccountParent_button.setToolTipText("This will diagnose your Parent Accounts and fix if invalid. THIS CHANGES DATA! (fix_account_parent.py)")
         fixAccountParent_button.setForeground(Color.RED)
         fixAccountParent_button.addActionListener(self.FixAccountParentButtonAction(statusLabel))
         fixAccountParent_button.setVisible(False)
         displayPanel.add(fixAccountParent_button)
 
         convertStockLotFIFO_button = JButton("<html><center>FIX: Convert Stock<BR>to LOT with FIFO</center></html>")
-        convertStockLotFIFO_button.setToolTipText("Convert Average Cost Controlled Stock to LOT Controlled and Allocate LOTs using FiFo method (# MakeFifoCost.py) THIS CHANGES DATA!")
+        convertStockLotFIFO_button.setToolTipText("Convert Average Cost Controlled Stock to LOT Controlled and Allocate LOTs using FiFo method - THIS CHANGES DATA! (MakeFifoCost.py)")
         convertStockLotFIFO_button.setForeground(Color.RED)
         convertStockLotFIFO_button.addActionListener(self.ConvertStockLotFIFOButtonAction(statusLabel))
         convertStockLotFIFO_button.setVisible(False)
@@ -15242,7 +15684,7 @@ Now you will have a text readable version of the file you can open in a text edi
         displayPanel.add(convertStockAvgCstControl_button)
 
         fixNonHierSecAcctTxnsExtensions_button = JButton("<html><center>FIX: Non-Hierarchical<BR>Security Acct Txns</center></html>")
-        fixNonHierSecAcctTxnsExtensions_button.setToolTipText("This reviews your Investment Security Txns and fixes where the Account reference is incorrect (fix_non-hierarchical_security_account_txns.py)")
+        fixNonHierSecAcctTxnsExtensions_button.setToolTipText("This reviews your Investment Security Txns and fixes where the Account reference is cross-linked and incorrect (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)")
         fixNonHierSecAcctTxnsExtensions_button.setForeground(Color.RED)
         fixNonHierSecAcctTxnsExtensions_button.addActionListener(self.FixNonHierSecAcctTxnsButtonAction(statusLabel))
         fixNonHierSecAcctTxnsExtensions_button.setVisible(False)

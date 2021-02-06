@@ -59,10 +59,14 @@ To enable the User to self-diagnose problems, or access key diagnostics to enabl
 # fix_account_parent.py                                 (from Moneydance support)
 # (... and old check_root_structure.py)                 (from Moneydance support)
 # fix_non-hierarchical_security_account_txns.py         (from Moneydance support)
+# (... and fix_investment_txns_to_wrong_security.py)    (from Moneydance support)
 # remove_ofx_security_bindings.py                       (from Moneydance support)
 # show_object_type_quantities.py                        (from Moneydance support)
 # delete_intermediate_downloaded_transaction_caches.py  (from Moneydance support)
 # delete_orphaned_downloaded_txn_lists.py               (from Moneydance support)
+# set_account_type.py                                   (from Moneydance support)
+# force_change_all_currencies.py                        (from Moneydance support)
+# fix_invalid_currency_rates.py                         (from Moneydance support)
 # show_open_tax_lots.py                                 (author unknown)
 # MakeFifoCost.py                                       (author unknown)
 # change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
@@ -119,7 +123,10 @@ ALT-M - Advanced Mode
     - FIX - Change Moneydance Fonts
     - FIX - Delete Custom Theme file
     - FIX - Fix relative currencies (fixes your currency and security's key settings) (reset_relative_currencies.py)
+    - FIX - Fix invalid relative currency rates (fixes relative rates where <0 or >9999999999) (fix_invalid_currency_rates.py)
     - FIX - FORCE change an Account's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)
+    - FIX - FORCE change ALL Account's currencies (use with care. Does not update any transactions) (force_change_all_currencies.py)
+    - FIX - FORCE change an Account's Type (use with care. Does not update any transactions) (set_account_type.py)
     - FIX - Inactivate all Categories with Zero Balance
     - Online (OFX) Banking Tools:
         - All basic mode settings plus:
@@ -131,13 +138,13 @@ ALT-M - Advanced Mode
         - Delete ALL cached OnlineTxnList record/Txns (delete_intermediate_downloaded_transaction_caches.py)
         - OFX Cookie Management (some options also required Hacker mode)
         - OFX Authentication Management (some options also required Hacker mode)
-    - FIX - Thin/Purge Price History (allows you to thin/prune your price history based on parameters you input; also fix 'orphans') (price_history_thinner.py
+    - FIX - Thin/Purge Price History (allows you to thin/prune your price history based on parameters you input; also fix 'orphans') (price_history_thinner.py)
     - FIX - Correct the Name of Root to match Dataset
     - FIX - Delete One-Sided Txns (delete_invalid_txns.py)
     - FIX - Account's Invalid Parent Account (script fix_account_parent.py)
     - FIX - Convert Stock to LOT Controlled and Allocate LOTs using FiFo method (MakeFifoCost.py)
     - FIX - Convert Stock to Average Cost Control (and wipe any LOT control records)
-    - FIX - Non Hierarchical Security Account Txns (fix_non-hierarchical_security_account_txns.py)
+    - FIX - Non Hierarchical Security Account Txns (cross-linked securities) (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)
     - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
     - FIX - RESET Window Display Settings
             This allows you to tell Moneydance to forget remembered Display settings:
