@@ -41,3 +41,7 @@ extract_investment_transactions_csv: Extract investment transactions to csv
 
 useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzip and select the script you want. Includes:
 - calculate_moneydance_objs_and_datasetsize.py: Analyse your dataset, object counts, file sizes, and find other known datasets
+- extract_all_attachments.py: extract all your attachments out of Moneydance to a folder of your choice
+- orphan_attachments.py: scans your attachments and detects if any are orphaned (and other related errors)
+- demo_account_currency_rates.py: demo script for beginner coders with some simple Moneydance API calls etc...
+- demo_calling_import_functions.py: demo script to show how to call deep API importFile() method and bypass UI popups

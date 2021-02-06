@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# demo_calling_import_functions.py - Build: 1
+# demo_calling_import_functions.py - Build: 3
 # A basic demo Python (Jython) script to get you started - Stuart Beesley - StuWareSoftSystems - Feb 2021
 # Allows you to call the Moneydance Import File function, set parameters, and bypass the popup screens
+# It's written with code to demo what it possible.. YOu should taylor the flow/setup accordingly....
 
 # Reverse engineered from:
 # com.moneydance.apps.md.view.gui.MoneydanceGUI.importFile(fileToImport, newAccountSet=False, contextAccount=moneydance_ui.firstMainFrame.getSelectedAccount())
@@ -12,6 +13,7 @@ import os
 from java.lang import System
 from java.io import File, FileInputStream
 from javax.swing import JOptionPane
+from com.infinitekind.moneydance.model import Account
 from com.moneydance.apps.md.controller.fileimport import FileImporter
 from com.moneydance.apps.md.controller import AccountBookWrapper
 from com.infinitekind.moneydance.model.txtimport import ImportDataSourceType
@@ -23,15 +25,44 @@ from com.moneydance.apps.md.controller.fileimport import QIFFileImporter
 from com.moneydance.util import Platform
 from java.awt import FileDialog
 
+# ######################################################################################################################
+# ######################################################################################################################
 # SET PARAMETERS HERE......!
-i_want_popups = False
+i_want_popups = False    # False = Run headless.. True = Run just like like Moneydance does normally
 
 # default_import_type = ImportDataSourceType.DOWNLOADED
 default_import_type = ImportDataSourceType.MIGRATED_FROM_ANOTHER_APP
 
-# Set this if you want to run headless.... or set to =None
+# Set this if you want to run headless.... or set to None
 # fileToImport=None
 fileToImport="/Users/stu/Documents/Moneydance/My Python Scripts/test data/WO_Flag.qif"
+
+# True = use the currently selected account in the sidebar....
+use_side_bar_selected_account = True  # Set this to False if you want to pre-select your account below
+
+# OPTIONAL - Pre-select your Account name here - If using sidebar select just leave as is.....
+acct=moneydance.getRootAccount().getAccountByName("Enter Exact Name Here",
+                                                  Account.AccountType.BANK)                                          # noqa
+# Options are: ASSET, BANK, CREDIT_CARD, EXPENSE, INCOME, INVESTMENT, LIABILITY, LOAN, ROOT, SECURITY
+
+# ######################################################################################################################
+# ######################################################################################################################
+
+if moneydance_data is None: raise Exception("ERROR - No MD data exists - aborting")
+
+if use_side_bar_selected_account:
+    contextAccount = moneydance_ui.firstMainFrame.getSelectedAccount()  # This takes the selected account on the sidebar. Set to a specific account if you like
+else:
+    if acct is None:
+        raise Exception("Sorry - that account does not exist")
+
+    contextAccount = acct
+
+if (contextAccount is None or contextAccount.getAccountType() == Account.AccountType.ROOT) and not i_want_popups:   # noqa
+    raise Exception("ERROR - No account pre-specified and no Account selected in side bar...?!")
+
+if contextAccount is not None:
+    print "I will import into Account: % s" %(contextAccount.getFullAccountName())
 
 def get_home_dir():
     homeDir = None
@@ -54,7 +85,7 @@ def get_home_dir():
     return homeDir
 
 
-if i_want_popups or fileToImport is None or fileToImport == "":
+if i_want_popups or fileToImport is None or not os.path.exists(fileToImport):
     if Platform.isOSX():
         System.setProperty("com.apple.macos.use-file-dialog-packages", "true")  # In theory prevents access to app file structure (but doesnt seem to work)
         System.setProperty("apple.awt.fileDialogForDirectories", "false")
@@ -77,16 +108,16 @@ if i_want_popups or fileToImport is None or fileToImport == "":
     if not os.path.exists(fileToImport) or not os.path.isfile(fileToImport):
         raise Exception("IMPORT: Sorry, file selected to import either does not exist or is not a file")
 
+print "I will import from file: %s" %(fileToImport)
+
 fileToImport=File(fileToImport)
 
 # set the parameters
-newAccountSet = False
-contextAccount = moneydance_ui.firstMainFrame.getSelectedAccount()
+newAccountSet = False           # True Creates a new account set!!! DANGER!!
 
 filename = fileToImport.getName()
 extension = os.path.splitext(filename)[1].upper()
 
-if moneydance_data is None: raise Exception("ERROR - No data")
 wrapper = moneydance_ui.getCurrentAccounts()  # type: AccountBookWrapper
 book = moneydance_data
 
@@ -100,6 +131,18 @@ try:
     importer = moneydance_ui.getFileImporter(fileToImport)  # type: FileImporter
     if (importer is not None):
 
+        # You can also get/set these, before or after the pre-scan
+        # importer.getSpec().setHasSingleTargetAccount(True)                          # True or False
+        # importer.getSpec().setDateFieldOrder(dateFieldOrder)                        # One of: ImportDateFieldOrder.MDY, DMY, YMD, YDM, DYM, MYD
+        # importer.getSpec().setDecimalChar(decimalChar)                              # '.' or ','
+        # importer.getSpec().setDelimiter(delimiter)                                  # e.g. ';'
+        # importer.getSpec().setUIProxy(uiProxy)                                      #
+        # importer.getSpec().setColumnTypes(columnTypes)                              # [ImportFieldType.CATEGORY, AMOUNT, CHECKNUM etc]
+        # importer.getSpec().setFileEncoding(fileEncoding)                            # e.g. 'utf-8'
+        # importer.getSpec().setDuplicateDateDiffLimit(duplicateDateDiffLimit)        #
+        # importer.getSpec().setShouldMergeTransactions(shouldMergeTransactions)      # True or False
+        # importer.getSpec().setShouldConfirmTransactions(shouldConfirmTransactions)  # True or False
+
         if i_want_popups:
             import_option = JOptionPane.showInputDialog(None,
                                                   "Select Import Type",
@@ -107,8 +150,9 @@ try:
                                                   JOptionPane.INFORMATION_MESSAGE,
                                                   moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
                                                   ImportDataSourceType.values(),
-                                                  importer.getSpec().getSourceType())
+                                                  default_import_type)
             if not import_option:
+                print "No import option selected"
                 raise Exception("No import type selected")
 
             importer.getSpec().setSourceType(import_option)
@@ -117,20 +161,40 @@ try:
 
         importer.getSpec().setTargetAccount(contextAccount)
 
+        # You can also get/set these, before or after the pre-scan
+        # importer.getSpec().setHasSingleTargetAccount(True)                          # True or False
+        # importer.getSpec().setDateFieldOrder(dateFieldOrder)                        # One of: ImportDateFieldOrder.MDY, DMY, YMD, YDM, DYM, MYD
+        # importer.getSpec().setDecimalChar(decimalChar)                              # '.' or ','
+        # importer.getSpec().setDelimiter(delimiter)                                  # e.g. ';'
+        # importer.getSpec().setUIProxy(uiProxy)                                      #
+        # importer.getSpec().setColumnTypes(columnTypes)                              # [ImportFieldType.CATEGORY, AMOUNT, CHECKNUM etc]
+        # importer.getSpec().setFileEncoding(fileEncoding)                            # e.g. 'utf-8'
+        # importer.getSpec().setDuplicateDateDiffLimit(duplicateDateDiffLimit)        #
+        # importer.getSpec().setShouldMergeTransactions(shouldMergeTransactions)      # True or False
+        # importer.getSpec().setShouldConfirmTransactions(shouldConfirmTransactions)  # True or False
+
         fis = FileInputStream(fileToImport)
 
         if i_want_popups:
             # EITHER CALL THIS FOR THE NORMAL FLOW WITH POPUP SCREENS
             moneydance_ui.doImport(importer, fis)
         else:
+
+            # HEADLESS MODE
             # OR DO THIS BELOW ////
             importer.init(moneydance_data, fis)
-            importer.loadSpecFromPreferences(moneydance_ui.getPreferences())
+
+            # load/saveSpecFromPreferences() gets/sets these config.dict variables
+            # "txtimport_fields"
+            # "txtimport_datefmt"
+            # "txtimport_csv_delim"
+
+            importer.loadSpecFromPreferences(moneydance_ui.getPreferences())  # Optional - probably not needed if you are setting programmatically
             importer.doPrescan()  # This should be a thread...
 
             confirmedImport = True
 
-            if i_want_popups:
+            if i_want_popups:  # I've left this here (effectively disabled) for demo purposes only
                 # THESE ARE THE POPUP WINDOWS - BYPASSED....
                 if isinstance(importer, TextFileImporter):
                     confirmedImport = TextImport(moneydance_ui, importer).showImportWindow(moneydance_ui.getFirstMainFrame())
@@ -144,7 +208,7 @@ try:
                 moneydance_ui.setSuspendRefresh(True)
                 try:
                     importer.doImport()  # This should be a thread...
-                    importer.saveSpecToPreferences(moneydance_ui.getPreferences())
+                    importer.saveSpecToPreferences(moneydance_ui.getPreferences())  # Optional - probably not needed if you are setting programmatically
                     moneydance_ui.getMain().setCurrentBook(wrapper)
                     moneydance_ui.getMain().saveCurrentAccount()
                 except:

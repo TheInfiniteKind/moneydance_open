@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_investment_transactions_csv.py - build: 1014 - November 2020 - Stuart Beesley
+# extract_investment_transactions_csv.py - build: 1015 - November 2020 - Stuart Beesley
 ###############################################################################
 # MIT License
 #
@@ -62,6 +62,7 @@
 # Build: 1012 - Tweak to allow escape in common code popup dialog
 # Build: 1013 - Upgraded to add extract attachments feature (and small fix to script trying to remove dir is didn't actually create)
 # Build: 1014 - Tweak to common code
+# Build: 1015 - Tweak to common code; and fix for non-breaking space character in Locale for Decimal Grouping Character; popup warning if delimiter invalid
 
 # COMMON IMPORTS #######################################################################################################
 import sys
@@ -124,7 +125,7 @@ global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1014"                                                                                              # noqa
+version_build = "1015"                                                                                              # noqa
 myScriptName = "extract_investment_transactions_csv.py(Extension)"                                                  # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -282,7 +283,6 @@ def cpad(theText, theLength):
     return theText
 
 
-myPrint("B", "StuWareSoftSystems...")
 myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
 def is_moneydance_loaded_properly():
@@ -327,8 +327,8 @@ def getMonoFont():
 
 def getTheSetting(what):
     x = moneydance_ui.getPreferences().getSetting(what, None)
-    if not x or x == "": return None
-    return what + ": " + str(x)
+    if not x or x == u"": return None
+    return what + u": %s" %(x)
 
 def get_home_dir():
     homeDir = None
@@ -336,18 +336,18 @@ def get_home_dir():
     # noinspection PyBroadException
     try:
         if Platform.isOSX():
-            homeDir = System.getProperty("UserHome")  # On a Mac in a Java VM, the homedir is hidden
+            homeDir = System.getProperty(u"UserHome")  # On a Mac in a Java VM, the homedir is hidden
         else:
             # homeDir = System.getProperty("user.home")
-            homeDir = os.path.expanduser("~")  # Should work on Unix and Windows
-            if homeDir is None or homeDir == "":
-                homeDir = System.getProperty("user.home")
-            if homeDir is None or homeDir == "":
-                homeDir = os.environ.get("HOMEPATH")
+            homeDir = os.path.expanduser(u"~")  # Should work on Unix and Windows
+            if homeDir is None or homeDir == u"":
+                homeDir = System.getProperty(u"user.home")
+            if homeDir is None or homeDir == u"":
+                homeDir = os.environ.get(u"HOMEPATH")
     except:
         pass
 
-    if not homeDir: homeDir = "?"
+    if not homeDir: homeDir = u"?"
     return homeDir
 
 def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
@@ -358,19 +358,31 @@ def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
     decimalSymbols = decimalFormat.getDecimalFormatSymbols()
 
     if not lGetGrouping: lGetPoint = True
-    if lGetGrouping and lGetPoint: return "error"
+    if lGetGrouping and lGetPoint: return u"error"
 
-    if lGetPoint:
-        _decimalCharSep = decimalSymbols.getDecimalSeparator()
-        myPrint("D","Decimal Point Character:", _decimalCharSep)
-        return _decimalCharSep
+    try:
+        if lGetPoint:
+            _decimalCharSep = decimalSymbols.getDecimalSeparator()
+            myPrint(u"D",u"Decimal Point Character: %s" %(_decimalCharSep))
+            return _decimalCharSep
 
-    if lGetGrouping:
-        _groupingCharSep = decimalSymbols.getGroupingSeparator()
-        myPrint("D","Grouping Separator Character:", _groupingCharSep)
-        return _groupingCharSep
+        if lGetGrouping:
+            _groupingCharSep = decimalSymbols.getGroupingSeparator()
+            if _groupingCharSep is None or _groupingCharSep == u"":
+                myPrint(u"B", u"Caught empty Grouping Separator")
+                return u""
+            if ord(_groupingCharSep) >= 128:    # Probably a nbsp (160) = e.g. South Africa for example..!
+                myPrint(u"B", u"Caught special character in Grouping Separator. Ord(%s)" %(ord(_groupingCharSep)))
+                if ord(_groupingCharSep) == 160:
+                    return u" (non breaking space character)"
+                return u" (non printable character)"
+            myPrint(u"D",u"Grouping Separator Character:", _groupingCharSep)
+            return _groupingCharSep
+    except:
+        myPrint(u"B",u"Error in getDecimalPoint() routine....?")
+        dump_sys_error_to_md_console_and_errorlog()
 
-    return "error"
+    return u"error"
 
 
 decimalCharSep = getDecimalPoint(lGetPoint=True)
@@ -1399,6 +1411,9 @@ if not lExit:
         myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
             decimalCharSep, " - Proceeding without file export!!")
         lDisplayOnly = True
+        myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
+                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, decimalCharSep),
+                                    "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
 
     lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
 
