@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1023 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1024 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -156,7 +156,9 @@
 # Build: 1023 - Error trapped diagnostic display - crashed on non utf8 characters - and also when decimal local grouping character was nbsp (chr(160)) - fixed....
 # Build: 1023 - added button fix invalid currency rates to advanced menu (fix_invalid_currency_rates.py)
 # Build: 1023 - Updated search datasets and search ios backups to skip symbolic links....
-
+# Build: 1024 - Updated search so that it asks again after 10 mins, but then also carries on if no response after 10 seconds
+# Build: 1024 - Moved some buttons to the toolbar...
+# Build: 1024 - Fix for when System Property "HomeDir" is None on Mac (thanks Sean!). Comma in wrong place....!
 
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
 
@@ -226,7 +228,7 @@ global MYPYTHON_DOWNLOAD_URL
 # END COMMON GLOBALS ###################################################################################################
 
 # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-version_build = "1023"                                                                                              # noqa
+version_build = "1024"                                                                                              # noqa
 myScriptName = "toolbox.py(Extension)"                                                                              # noqa
 debug = False                                                                                                       # noqa
 myParameters = {}                                                                                                   # noqa
@@ -244,8 +246,9 @@ import subprocess
 import time
 import shutil
 
-from java.util import Date
+from java.util import Timer, TimerTask
 
+from java.util import Date
 from com.moneydance.apps.md.view.gui import theme
 from com.moneydance.apps.md.view.gui.theme import Theme
 from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
@@ -1401,7 +1404,7 @@ class DetectAndChangeMacTabbingMode(AbstractAction):
             myPopupInformationBox(Toolbox_frame_,"Change Mac Tabbing Mode - You are running 2021.build %s - This version has problems with DUAL MONITORS\nPlease upgrade to at least 2021 first! build 2012:\nhttps://infinitekind.com/preview" %moneydance.getBuild(),theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
-        prefFile = os.path.join(System.getProperty("UserHome"), "Library/Preferences/.GlobalPreferences.plist")
+        prefFile = os.path.join(System.getProperty("UserHome", "Library/Preferences/.GlobalPreferences.plist"))
         if not os.path.exists(prefFile):
             if self.lQuickCheckOnly: return True
             myPrint("B", "Change Mac Tabbing Mode - Sorry - For some reason I could not find: %s - no changes made!" %prefFile)
@@ -3430,16 +3433,20 @@ CMD-I - This  Help Instruction Information
 
 CMD-O - Copy all outputs to Clipboard
 
+TOOLBAR / MENU BAR Contains the following:
+    - Toolbox Options Menu
+    - Help menu
+    - Button: Launch Console Window (opens the Moneydance Help>Show Console Window)
+    - Button: Save Console Log (to a file of your choosing)
+    - Button: Copy Diagnostics below to Clipboard (copies the main screen output to clipboard)
+
 ALT-B - Basic Mode
 - Basic mode: Buttons
     - EXPORT BACKUP (This calls the Moneydance function to backup your dataset)
-    - Copy (Diagnostics) to Clipboard
     - Display MD Passwords (encryption and Sync)
     - Analyse Dataset Objects Size & Files
     - View MD Config.dict file
     - View MD Custom Theme file  (only appears if it exists)
-    - View Console.log
-    - Copy Console.log file to wherever you want
     - View your Java .vmoptions file (only appears if it exists) - INCLUDES VARIOUS INSTRUCTIONS TOO
     - Open MD Folder
       (Preferences, Themes, Console log, Dataset, Extensions, Auto-backup folder, last backup folder[, Install Dir])
@@ -3799,6 +3806,134 @@ def MyGetDownloadedTxns(theAcct):
     #     return txns
     #
     return None
+
+class ClipboardButtonAction(AbstractAction):
+    theString = ""
+
+    def __init__(self, theString, statusLabel):
+        self.theString = theString
+        self.statusLabel = statusLabel
+
+    def actionPerformed(self, event):
+        global Toolbox_frame_, debug
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+        x = StringSelection(self.theString)
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(x, None)
+
+        self.statusLabel.setText(("Contents of all text below copied to Clipboard..").ljust(800, " "))
+        self.statusLabel.setForeground(Color.BLUE)
+
+        myPrint("DB", "Contents of diagnostic report copied to clipboard....!")
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+        return
+
+
+class ShowTheConsole(AbstractAction):
+
+    def __init__(self, statusLabel):
+        self.statusLabel = statusLabel
+
+    def actionPerformed(self, event):
+        global debug
+
+        myPrint("D","In ", inspect.currentframe().f_code.co_name, "()", "Event:", event)
+
+        ConsoleWindow.showConsoleWindow(moneydance_ui)
+
+        self.statusLabel.setText(("Standard Moneydance Console Window Launched....").ljust(800, " "))
+        self.statusLabel.setForeground(Color.BLUE)
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+class CopyConsoleLogFileButtonAction(AbstractAction):
+
+    def __init__(self, statusLabel, theFile):
+        self.statusLabel = statusLabel
+        self.theFile = theFile
+
+    def actionPerformed(self, event):
+        global Toolbox_frame_, debug
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+        x = str(self.theFile)
+        if not os.path.exists(x):
+            self.statusLabel.setText(("Sorry, the file does not seem to exist: " + x).ljust(800, " "))
+            self.statusLabel.setForeground(Color.RED)
+            return
+
+        if Platform.isOSX():
+            System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
+            System.setProperty("apple.awt.fileDialogForDirectories", "true")
+
+        filename = FileDialog(Toolbox_frame_, "Select location to copy Console Log file to... (CANCEL=ABORT)")
+        filename.setMultipleMode(False)
+        filename.setMode(FileDialog.SAVE)
+        filename.setFile('copy_of_errlog.txt')
+        # filename.setDirectory(self.theFile.getParent())
+        filename.setDirectory(get_home_dir())
+
+        if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            extFilter = ExtFilenameFilter("txt")
+            filename.setFilenameFilter(extFilter)  # I'm not actually sure this works...?
+
+        filename.setVisible(True)
+
+        copyToFile = filename.getFile()
+
+        if Platform.isOSX():
+            System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
+            System.setProperty("apple.awt.fileDialogForDirectories", "false")
+
+        if (copyToFile is None) or copyToFile == "":
+            self.statusLabel.setText(("User did not select file location - no copy performed").ljust(800, " "))
+            self.statusLabel.setForeground(Color.RED)
+            filename.dispose()
+            del filename
+            return
+        elif not str(copyToFile).endswith(".txt"):
+            self.statusLabel.setText(("Sorry - please use a .txt file extension when copying  console log file").ljust(800, " "))
+            self.statusLabel.setForeground(Color.RED)
+            filename.dispose()
+            del filename
+            return
+        elif ".moneydance" in filename.getDirectory():
+            self.statusLabel.setText(("Sorry, please choose a location outside of the  Moneydance location").ljust(800, " "))
+            self.statusLabel.setForeground(Color.RED)
+            filename.dispose()
+            del filename
+            return
+
+        copyToFile = os.path.join(filename.getDirectory(), filename.getFile())
+
+        if not check_file_writable(copyToFile):
+            self.statusLabel.setText(("Sorry, that file/location does not appear allowed by the operating system!?").ljust(800, " "))
+            self.statusLabel.setForeground(Color.RED)
+
+        try:
+            toFile = File(filename.getDirectory(), filename.getFile())
+            IOUtils.copy(self.theFile, toFile)
+            myPrint("B", x + " copied to " + str(toFile))
+            # noinspection PyTypeChecker
+            if os.path.exists(os.path.join(filename.getDirectory(), filename.getFile())):
+                play_the_money_sound()
+                self.statusLabel.setText(("Console Log file save as requested to: " + str(toFile)).ljust(800, " "))
+                self.statusLabel.setForeground(Color.BLUE)
+            else:
+                myPrint("B", "ERROR - failed to copy file" + x + " to " + str(filename.getFile()))
+                self.statusLabel.setText(("Sorry, failed to save console log file?!").ljust(800, " "))
+                self.statusLabel.setForeground(Color.RED)
+        except:
+            myPrint("B", "ERROR - failed to copy file" + x + " to " + str(filename.getFile()))
+            dump_sys_error_to_md_console_and_errorlog()
+            self.statusLabel.setText(("Sorry, failed to save console log file?!").ljust(800, " "))
+            self.statusLabel.setForeground(Color.RED)
+
+        filename.dispose()
+        del filename
+
+        return
+
 
 class QuickJFrame():
 
@@ -11010,21 +11145,6 @@ class DiagnosticDisplay():
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
 
-    class LaunchConsoleWindowButtonAction(AbstractAction):
-
-        def __init__(self, statusLabel):
-            self.statusLabel = statusLabel
-
-        def actionPerformed(self, event):
-            global Toolbox_frame_, debug
-            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
-
-            ConsoleWindow.showConsoleWindow(moneydance_ui)
-
-            self.statusLabel.setText(("Standard Moneydance Console Window Launched....").ljust(800, " "))
-            self.statusLabel.setForeground(Color.BLUE)
-
-
     class ViewFileButtonAction(AbstractAction):
         class CloseAction(AbstractAction):
 
@@ -11573,117 +11693,6 @@ In Linux - due to permissions, you will need to do this:
             return
 
 
-    class CopyConsoleLogFileButtonAction(AbstractAction):
-
-        def __init__(self, statusLabel, theFile):
-            self.statusLabel = statusLabel
-            self.theFile = theFile
-
-        def actionPerformed(self, event):
-            global Toolbox_frame_, debug
-            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
-
-            x = str(self.theFile)
-            if not os.path.exists(x):
-                self.statusLabel.setText(("Sorry, the file does not seem to exist: " + x).ljust(800, " "))
-                self.statusLabel.setForeground(Color.RED)
-                return
-
-            if Platform.isOSX():
-                System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
-                System.setProperty("apple.awt.fileDialogForDirectories", "true")
-
-            filename = FileDialog(Toolbox_frame_, "Select location to copy Console Log file to... (CANCEL=ABORT)")
-            filename.setMultipleMode(False)
-            filename.setMode(FileDialog.SAVE)
-            filename.setFile('copy_of_errlog.txt')
-            # filename.setDirectory(self.theFile.getParent())
-            filename.setDirectory(get_home_dir())
-
-            if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
-                extFilter = ExtFilenameFilter("txt")
-                filename.setFilenameFilter(extFilter)  # I'm not actually sure this works...?
-
-            filename.setVisible(True)
-
-            copyToFile = filename.getFile()
-
-            if Platform.isOSX():
-                System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
-                System.setProperty("apple.awt.fileDialogForDirectories", "false")
-
-            if (copyToFile is None) or copyToFile == "":
-                self.statusLabel.setText(("User did not select file location - no copy performed").ljust(800, " "))
-                self.statusLabel.setForeground(Color.RED)
-                filename.dispose()
-                del filename
-                return
-            elif not str(copyToFile).endswith(".txt"):
-                self.statusLabel.setText(("Sorry - please use a .txt file extension when copying  console log file").ljust(800, " "))
-                self.statusLabel.setForeground(Color.RED)
-                filename.dispose()
-                del filename
-                return
-            elif ".moneydance" in filename.getDirectory():
-                self.statusLabel.setText(("Sorry, please choose a location outside of the  Moneydance location").ljust(800, " "))
-                self.statusLabel.setForeground(Color.RED)
-                filename.dispose()
-                del filename
-                return
-
-            # noinspection PyTypeChecker
-            copyToFile = os.path.join(filename.getDirectory(), filename.getFile())
-
-            if not check_file_writable(copyToFile):
-                self.statusLabel.setText(("Sorry, that file/location does not appear allowed by the operating system!?").ljust(800, " "))
-                self.statusLabel.setForeground(Color.RED)
-
-            try:
-                toFile = File(filename.getDirectory(), filename.getFile())
-                IOUtils.copy(self.theFile, toFile)
-                myPrint("B", x + " copied to " + str(toFile))
-                # noinspection PyTypeChecker
-                if os.path.exists(os.path.join(filename.getDirectory(), filename.getFile())):
-                    play_the_money_sound()
-                    self.statusLabel.setText(("Console Log file copied as requested to: " + str(toFile)).ljust(800, " "))
-                    self.statusLabel.setForeground(Color.RED)
-                else:
-                    myPrint("B", "ERROR - failed to copy file" + x + " to " + str(filename.getFile()))
-                    self.statusLabel.setText(("Sorry, failed to copy console log file?!").ljust(800, " "))
-                    self.statusLabel.setForeground(Color.RED)
-            except:
-                myPrint("B", "ERROR - failed to copy file" + x + " to " + str(filename.getFile()))
-                dump_sys_error_to_md_console_and_errorlog()
-                self.statusLabel.setText(("Sorry, failed to copy console log file?!").ljust(800, " "))
-                self.statusLabel.setForeground(Color.RED)
-
-            filename.dispose()
-            del filename
-
-            return
-
-    class ClipboardButtonAction(AbstractAction):
-        theString = ""
-
-        def __init__(self, theString, statusLabel):
-            self.theString = theString
-            self.statusLabel = statusLabel
-
-        def actionPerformed(self, event):
-            global Toolbox_frame_, debug
-            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
-            x = StringSelection(self.theString)
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(x, None)
-
-            self.statusLabel.setText(("Contents of all text below copied to Clipboard..").ljust(800, " "))
-            self.statusLabel.setForeground(Color.RED)
-
-            myPrint("DB", "Contents of diagnostic report copied to clipboard....!")
-
-            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-            return
-
-
     class FindIOSSyncDataButtonAction(AbstractAction):
 
         def __init__(self, statusLabel):
@@ -11901,6 +11910,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     if dotCounter % 1000 <1:
                         if not i_am_an_extension_so_run_headless: print ".",
+
                     if not dotCounter or (dotCounter % 10000 <1 and not lContinueToEnd):
 
                         options=["STOP HERE","SEARCH TO END", "KEEP ASKING"]
@@ -11930,7 +11940,6 @@ Now you will have a text readable version of the file you can open in a text edi
                             myPrint("DB", "found file link! %s - will skip" %fp)
                             continue
                         if fnmatch.fnmatch(name, pattern):
-                            dotCounter+=1
                             iFound+=1
                             result.append(fp)
 
@@ -11940,7 +11949,6 @@ Now you will have a text readable version of the file you can open in a text edi
                             myPrint("DB", "found dir link! %s - will skip" %fp)
                             continue
                         if fnmatch.fnmatch(name, pattern):
-                            dotCounter+=1
                             iFound+=1
                             result.append(fp)
 
@@ -12473,9 +12481,12 @@ Now you will have a text readable version of the file you can open in a text edi
             myPrint("B","DATASET Search >> Searching from Directory: %s" %theDir)
 
             def findDataset(pattern, path):
+                global debug
+
                 iFound=0                                                                                            # noqa
                 result = []
                 dotCounter = 0
+                thingsSearched = 0
 
                 lContinueToEnd=False
 
@@ -12484,30 +12495,114 @@ Now you will have a text readable version of the file you can open in a text edi
 
                 exclude_these_dirs = ["/System", "/Library"]
 
+                start_time = time.time()
+                timeOutCheckBackMinutes = 10.0
+                timeOutSeconds = 10
+
+                class MyTimerTask(TimerTask):
+
+                    def __init__(self, dlg, theTimer):
+                        self.dlg = dlg
+                        self.theTimer = theTimer
+
+                    def run(self):
+                        global debug
+                        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+                        myPrint("D","Timer task triggered - closing the JOption Pane....")
+                        self.dlg.setVisible(False)
+                        self.theTimer.cancel()
+
+                        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+                        return
+
+                class MyJOptionPaneListener(ComponentAdapter):
+
+                    def __init__(self, timeout, dlg):
+                        self.timeout = timeout
+                        self.dlg = dlg
+                        self.t = None
+
+                    def componentShown(self, e):
+                        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", e)
+                        super(MyJOptionPaneListener, self).componentShown(e)                                        # noqa
+                        myPrint("D","Toolbox setting up Timer Task for Search function to kill Search dialog...")
+                        self.t = Timer()
+                        self.t.schedule(MyTimerTask(self.dlg,self.t), self.timeout)
+                        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+                    def componentHidden(self, e):
+                        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", e)
+                        super(MyJOptionPaneListener, self).componentHidden(e)                                        # noqa
+                        myPrint("D","Killing Timer Task for Search function as dialog closed...")
+                        self.t.cancel()
+                        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+                # showOptionDialog(Component parentComponent, Object message, String title, int optionType, int messageType, Icon icon, Object[] options, Object initialValue)
+                def showConfirmDialogWithTimeout(theFrame, theMessage, theTitle, theOptionType, theMessageType, theIcon, theChoices, theInitialValue, timeout_ms, timeoutChoice):
+                    msg = JOptionPane(theMessage, theMessageType, theOptionType, theIcon, theChoices, theInitialValue)
+                    dlg = msg.createDialog(theFrame, theTitle)
+                    dlg.setAlwaysOnTop(True)
+                    dlg.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+                    theListener = MyJOptionPaneListener( timeout_ms, dlg )
+                    dlg.addComponentListener( theListener )
+                    dlg.setVisible(True)
+                    selectedValue = msg.getValue()
+                    dlg.removeComponentListener( theListener )
+                    del theListener
+                    if selectedValue is None or selectedValue < 0:
+                        return -1
+                    try:
+                        return theChoices.index(selectedValue)
+                    except:
+                        pass    # Probably "uninitializedValue"
+
+                    return theChoices.index(timeoutChoice)
+
+                options=["STOP HERE","SEARCH TO END", "KEEP ASKING"]
+
                 for root, dirs, files in os.walk(path, topdown=True):
 
                     if debug: myPrint("DB","Searching: %s" %(root))
 
                     if dotCounter % 1000 <1:
                         if not i_am_an_extension_so_run_headless: print ".",
-                    if not dotCounter or (dotCounter % 10000 <1 and not lContinueToEnd):
 
-                        options=["STOP HERE","SEARCH TO END", "KEEP ASKING"]
-                        response = JOptionPane.showOptionDialog(Toolbox_frame_,
-                                                                 "Are you OK to continue (%s found so far)?"%iFound,
-                                                                 "SEARCH COMPUTER FOR MONEYDANCE DATASET(s)",
-                                                                 0,
-                                                                 JOptionPane.QUESTION_MESSAGE,
-                                                                 None,
-                                                                 options,
-                                                                 options[2])
-                        if response == 0:
+                    if (not dotCounter
+                            or (dotCounter % 10000 <1 and not lContinueToEnd)
+                            or (time.time() - start_time > (timeOutCheckBackMinutes*60))):
+
+                        start_time = time.time()
+
+                        # ####
+                        response = showConfirmDialogWithTimeout(Toolbox_frame_,
+                                                                "Are you OK to continue (so far..: %s found / %s files/searched)?" %(iFound, thingsSearched),
+                                                                "SEARCH COMPUTER FOR MONEYDANCE DATASET(s)",
+                                                                JOptionPane.YES_NO_OPTION,
+                                                                JOptionPane.QUESTION_MESSAGE,
+                                                                None,
+                                                                options,
+                                                                options[2],
+                                                                timeOutSeconds * 1000,
+                                                                options[2])
+
+                        # response = JOptionPane.showOptionDialog(Toolbox_frame_,
+                        #                                          "Are you OK to continue (so far..: %s found / %s files/searched)?" %(iFound, thingsSearched),
+                        #                                          "SEARCH COMPUTER FOR MONEYDANCE DATASET(s)",
+                        #                                          JOptionPane.YES_NO_OPTION,
+                        #                                          JOptionPane.QUESTION_MESSAGE,
+                        #                                          None,
+                        #                                          options,
+                        #                                          options[2])
+
+                        if response < 1:
                             self.statusLabel.setText(("User Aborted Dataset search...").ljust(800, " "))
                             self.statusLabel.setForeground(Color.RED)
                             return result, iFound
-
                         elif response == 1:
                             lContinueToEnd = True
+                        elif response == 2:
+                            pass
 
                     dotCounter+=1
 
@@ -12519,12 +12614,14 @@ Now you will have a text readable version of the file you can open in a text edi
                                     dirs.remove(d)
 
                     if lBackup:
+
                         for name in files:
                             fp = os.path.join(root,name)
                             if os.path.islink(fp):
                                 myPrint("DB", "found file link! %s - will skip" %fp)
                                 continue
-                            dotCounter+=1
+
+                            thingsSearched+=1
                             if fnmatch.fnmatch(name, pattern):
                                 iFound+=1
                                 result.append("File >> Sz: %sMB Mod: %s Name: %s "
@@ -12537,7 +12634,7 @@ Now you will have a text readable version of the file you can open in a text edi
                             myPrint("DB", "found dir link! %s - will skip" %fp)
                             continue
 
-                        dotCounter+=1
+                        thingsSearched+=1
                         if fnmatch.fnmatch(name, pattern):
                             if name != ".moneydance":
                                 save_list_of_found_files.append(fp)
@@ -15453,11 +15550,11 @@ Now you will have a text readable version of the file you can open in a text edi
             changeTheFont_button.setVisible(False)
             displayPanel.add(changeTheFont_button)
 
-        copy_button = JButton("<html><center>Copy Diagnostics<BR>below to Clipboard</center></html>")
-        copy_button.setToolTipText("This will copy the contents in the diagnostic report below to your Clipboard")
-        copy_button.addActionListener(self.ClipboardButtonAction(displayString, statusLabel))
-        displayPanel.add(copy_button)
-
+        # copy_button = JButton("<html><center>Copy Diagnostics<BR>below to Clipboard</center></html>")
+        # copy_button.setToolTipText("This will copy the contents in the diagnostic report below to your Clipboard")
+        # copy_button.addActionListener(ClipboardButtonAction(displayString, statusLabel))
+        # displayPanel.add(copy_button)
+        #
         displayPasswords_button = JButton("Display MD Passphrases")
         displayPasswords_button.setToolTipText("Display the passphrase used to open your Encrypted Dataset, and also your Sync passphrase (if set)")
         displayPasswords_button.addActionListener(self.DisplayPasswordsButtonAction(statusLabel))
@@ -15493,16 +15590,16 @@ Now you will have a text readable version of the file you can open in a text edi
         # viewConsoleLogFile_button.addActionListener(self.ViewFileButtonAction(statusLabel, moneydance.getLogFile(), "MD Console Log"))
         # displayPanel.add(viewConsoleLogFile_button)
         #
-        launchConsoleWindow_button = JButton("<html><center>Launch Console<BR>Window</center></html>")
-        launchConsoleWindow_button.setToolTipText("Launches the Standard Moneydance Console Window - to view the (error) log file")
-        launchConsoleWindow_button.addActionListener(self.LaunchConsoleWindowButtonAction(statusLabel))
-        displayPanel.add(launchConsoleWindow_button)
+        # launchConsoleWindow_button = JButton("<html><center>Launch Console<BR>Window</center></html>")
+        # launchConsoleWindow_button.setToolTipText("Launches the Standard Moneydance Console Window - to view the (error) log file")
+        # launchConsoleWindow_button.addActionListener(ShowTheConsole(statusLabel))
+        # displayPanel.add(launchConsoleWindow_button)
 
-        copyConsoleLogFile_button = JButton("Copy Console Log File")
-        copyConsoleLogFile_button.setToolTipText("Copy the Console Error log file to a directory of your choosing..")
-        copyConsoleLogFile_button.addActionListener(self.CopyConsoleLogFileButtonAction(statusLabel, moneydance.getLogFile()))
-        displayPanel.add(copyConsoleLogFile_button)
-
+        # copyConsoleLogFile_button = JButton("Copy Console Log File")
+        # copyConsoleLogFile_button.setToolTipText("Copy the Console Error log file to a directory of your choosing..")
+        # copyConsoleLogFile_button.addActionListener(CopyConsoleLogFileButtonAction(statusLabel, moneydance.getLogFile()))
+        # displayPanel.add(copyConsoleLogFile_button)
+        #
         grabProgramDir = find_the_program_install_dir()
         # noinspection PyTypeChecker
         if grabProgramDir and os.path.exists(os.path.join(grabProgramDir,"Moneydance.vmoptions")):
@@ -15938,6 +16035,37 @@ Now you will have a text readable version of the file you can open in a text edi
 
         mb.add(menuH)
 
+        # ##############
+        mb.add(Box.createHorizontalGlue())
+
+        btnConsole = JButton("Launch Console Window")
+        btnConsole.setOpaque(True)
+        btnConsole.setBackground(Color.WHITE)
+        btnConsole.setForeground(Color.BLACK)
+
+        btnSaveConsole = JButton("Save Console Log")
+        btnSaveConsole.setOpaque(True)
+        btnSaveConsole.setBackground(Color.WHITE)
+        btnSaveConsole.setForeground(Color.BLACK)
+
+        btnCopyDiagnostics = JButton("Copy Diagnostics below to Clipboard")
+        btnCopyDiagnostics.setOpaque(True)
+        btnCopyDiagnostics.setBackground(Color.WHITE)
+        btnCopyDiagnostics.setForeground(Color.BLACK)
+
+        mb.add(btnConsole)
+        mb.add(Box.createRigidArea(Dimension(10, 0)))
+        mb.add(btnSaveConsole)
+        mb.add(Box.createRigidArea(Dimension(10, 0)))
+        mb.add(btnCopyDiagnostics)
+
+        mb.add(Box.createRigidArea(Dimension(30, 0)))
+
+        btnConsole.addActionListener(ShowTheConsole(statusLabel))
+        btnSaveConsole.addActionListener(CopyConsoleLogFileButtonAction(statusLabel, moneydance.getLogFile()))
+        btnCopyDiagnostics.addActionListener(ClipboardButtonAction(displayString, statusLabel))
+        # ##############
+
         Toolbox_frame_.setJMenuBar(mb)
 
         Toolbox_frame_.add(displayPanel)
@@ -15983,6 +16111,13 @@ Now you will have a text readable version of the file you can open in a text edi
                                   "........\n",
                                   "MacOS TABBING MODE WARNING",
                                   JOptionPane.ERROR_MESSAGE)
+
+        if Platform.isOSX() and System.getProperty(u"UserHome") is None:
+            myPopupInformationBox(Toolbox_frame_,
+                                  "Your Mac's System Property 'UserHome' is not set\n" +
+                                  "Some features in Toolbox may not work as expected",
+                                  "MacOS UserHome Warning",
+                                  JOptionPane.WARNING_MESSAGE)
 
         check_for_old_StuWareSoftSystems_scripts(statusLabel)
 

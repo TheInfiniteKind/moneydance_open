@@ -83,16 +83,20 @@ CMD-I - This  Help Instruction Information
 
 CMD-O - Copy all outputs to Clipboard
 
+TOOLBAR / MENU BAR Contains the following:
+    - Toolbox Options Menu
+    - Help menu
+    - Button: Launch Console Window (opens the Moneydance Help>Show Console Window)
+    - Button: Save Console Log (to a file of your choosing)
+    - Button: Copy Diagnostics below to Clipboard (copies the main screen output to clipboard)
+
 ALT-B - Basic Mode
 - Basic mode: Buttons
     - EXPORT BACKUP (This calls the Moneydance function to backup your dataset)
-    - Copy (Diagnostics) to Clipboard
     - Display MD Passwords (encryption and Sync)
     - Analyse Dataset Objects Size & Files
     - View MD Config.dict file
     - View MD Custom Theme file  (only appears if it exists)
-    - View Console.log
-    - Copy Console.log file to wherever you want
     - View your Java .vmoptions file (only appears if it exists) - INCLUDES VARIOUS INSTRUCTIONS TOO
     - Open MD Folder
       (Preferences, Themes, Console log, Dataset, Extensions, Auto-backup folder, last backup folder[, Install Dir])
