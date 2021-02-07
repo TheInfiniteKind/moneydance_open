@@ -155,7 +155,7 @@
 # Build: 1023 - Started the journey (due to learning) to ensure unicode used everywhere (rather than byte strings) (yes; I learnt coding back in the 80s!)
 # Build: 1023 - Error trapped diagnostic display - crashed on non utf8 characters - and also when decimal local grouping character was nbsp (chr(160)) - fixed....
 # Build: 1023 - added button fix invalid currency rates to advanced menu (fix_invalid_currency_rates.py)
-# Build: 1023 - Updated search datasets and search ios backups to skip symbolic links....
+# Build: 1023 - Updated search datasets and search ios backups to skip symbolic links.... also skip some system dirs on some platforms
 # Build: 1024 - Updated search so that it asks again after 10 mins, but then also carries on if no response after 10 seconds
 # Build: 1024 - Moved some buttons to the toolbar...
 # Build: 1024 - Fix for when System Property "HomeDir" is None on Mac (thanks Sean!). Comma in wrong place....!
@@ -12397,8 +12397,11 @@ Now you will have a text readable version of the file you can open in a text edi
             else:
                 theRoot = os.path.sep
 
+            lRootExclusions = False
+
             whereFrom = ["From UserDir: %s" %get_home_dir(),
-                          "From Root: %s" %theRoot,
+                          "From Root: %s (excluding some system locations and other volumes)" %theRoot,
+                          "From Root: %s (nothing excluded - might take a long time / never finish)" %theRoot,
                           "Select your own start point"]
 
             selectedStart = JOptionPane.showInputDialog(Toolbox_frame_,
@@ -12413,7 +12416,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 self.statusLabel.setForeground(Color.RED)
                 return
 
-            if whereFrom.index(selectedStart) == 2:
+            if whereFrom.index(selectedStart) == 3:
                 if Platform.isOSX():
                     System.setProperty("com.apple.macos.use-file-dialog-packages", "true")  # In theory prevents access to app file structure (but doesnt seem to work)
                     System.setProperty("apple.awt.fileDialogForDirectories", "true")
@@ -12464,7 +12467,10 @@ Now you will have a text readable version of the file you can open in a text edi
                     else:
                         theDir = fileChooser.getSelectedFile().getAbsolutePath()
 
-            elif whereFrom.index(selectedStart) == 1:  # From ROOT
+            elif whereFrom.index(selectedStart) == 2:  # From ROOT with no exclusions
+                theDir = theRoot
+            elif whereFrom.index(selectedStart) == 1:  # From ROOT with exclusions
+                lRootExclusions = True
                 theDir = theRoot
             elif whereFrom.index(selectedStart) == 0:  # From User Home Dir
                 theDir = get_home_dir()
@@ -12493,7 +12499,14 @@ Now you will have a text readable version of the file you can open in a text edi
                 if not i_am_an_extension_so_run_headless:
                     print "Searching for your %s Datasets (might be time consuming):."%theExtension,
 
-                exclude_these_dirs = ["/System", "/Library"]
+                exclude_these_dirs = []
+
+                if lRootExclusions:
+                    if Platform.isOSX():
+                        exclude_these_dirs = ["/System", "/Library"]
+                    elif Platform.isUnix():
+                        exclude_these_dirs = ["/media", "/boot", "/cdrom", "/sys", "/proc", "/dev", "/mnt"]
+                    myPrint("B","Root exclusions requested... These are: %s" %(exclude_these_dirs))
 
                 start_time = time.time()
                 timeOutCheckBackMinutes = 10.0
@@ -12598,6 +12611,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         if response < 1:
                             self.statusLabel.setText(("User Aborted Dataset search...").ljust(800, " "))
                             self.statusLabel.setForeground(Color.RED)
+                            myPrint("B", "@@ Dataset search was abandoned by user.......")
                             return result, iFound
                         elif response == 1:
                             lContinueToEnd = True
@@ -12606,8 +12620,8 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     dotCounter+=1
 
-                    # Remove /System dir etc on Mac....
-                    if Platform.isOSX():
+                    # Remove /System dir etc on Mac/Linux....
+                    if lRootExclusions:
                         for d in list(dirs):
                             for ex in exclude_these_dirs:
                                 if (root+d).startswith(ex):
@@ -12651,8 +12665,12 @@ Now you will have a text readable version of the file you can open in a text edi
             print
             myPrint("B","Completed search for %s datafiles: %s found" %(theExtension,iFound))
 
-            niceFileList="\n SEARCH FOR MONEYDANCE (%s) DATASETS\n"%theExtension
-            niceFileList+="Search started from Directory: %s\n\n"%theDir
+            niceFileList="\n SEARCH FOR MONEYDANCE (%s) DATASETS\n" %(theExtension)
+            niceFileList+="Search started from Directory: %s\n\n" %(theDir)
+
+            if lRootExclusions:
+                niceFileList+="(NOTE: Root search exclusions of other volumes and some system locations were requested too)\n\n"
+
             if not iFound:
                 niceFileList+="\n<NONE FOUND>\n"
 
