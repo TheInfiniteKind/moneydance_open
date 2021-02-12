@@ -1708,27 +1708,7 @@ def count_database_objects():
 
 
 # noinspection PyBroadException
-def buildDiagText(lGrabPasswords=False):
-    if lGrabPasswords:
-        returnString = u""
-
-        MD_enc = moneydance_ui.getCurrentAccounts().getEncryptionKey()
-        MD_hnt = moneydance_ui.getCurrentAccounts().getEncryptionHint()
-        MD_sync_pwd = moneydance_ui.getCurrentAccounts().getSyncEncryptionPassword()
-
-        if MD_enc is not None and MD_enc != u"":
-            returnString += u"MD Encryption Passphrase: " + MD_enc
-            if MD_hnt is not None and MD_hnt != u"":
-                returnString += u"   Encryption Passphrase Hint: " + MD_hnt
-
-        if MD_sync_pwd is not None and MD_sync_pwd != u"":
-            returnString += u"  MD Sync Passphrase: " + MD_sync_pwd
-
-        if returnString.strip() == u"":
-            returnString = u" - NOT SET - "
-
-        return returnString
-
+def buildDiagText():
 
     textArray = []                                                                                                  # noqa
 
@@ -1843,7 +1823,7 @@ def buildDiagText(lGrabPasswords=False):
         x = u"Encryption not set! - This means an internal Moneydance passphrase is being used to encrypt your dataset!"
     else:
         x = u"***************"
-    textArray.append(u"Encryption Passphrase: %s" %x)
+    textArray.append(u"'Master' / Encryption Passphrase: %s" %x)
 
     x = u"Encryption Store Online Banking (OFX) Passwords in File: %s" %(moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean(u"store_passwords", False))
     if moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean(u"store_passwords", False):
@@ -2947,7 +2927,7 @@ def getMDEncryptionKey():
         return u"Not sure: Error in decryption routine - oh well!!"
 
 
-    return "%s / %s" % (theFormat, theAlg)
+    return u"%s / %s" % (theFormat, theAlg)
 
 def check_dropbox_and_suppress_warnings():
 
@@ -11926,17 +11906,51 @@ class OpenFolderButtonAction(AbstractAction):
 
 def display_passwords(statusLabel):
     global Toolbox_frame_, debug
-    myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-    myPrint("DB","Displaying Passphrases button selected....!")
-    passwords = buildDiagText(lGrabPasswords=True)
-    statusLabel.setText(("MD STORED PASSPHRASES: " + passwords).ljust(800, " "))
+    myPrint(u"D", u"In ", inspect.currentframe().f_code.co_name, u"()")
+
+    MD_enc = moneydance_ui.getCurrentAccounts().getEncryptionKey()
+    MD_hnt = moneydance_ui.getCurrentAccounts().getEncryptionHint()
+    MD_sync_pwd = moneydance_ui.getCurrentAccounts().getSyncEncryptionPassword()
+
+    msg = u"'Master' Encryption Passphrase ('password'): "
+    displayMsg = u"'Master' Encryption Passphrase ('password'): "
+
+    if MD_enc is not None and MD_enc != u"":
+        msg += u"%s" %(MD_enc)
+        displayMsg += u"%s" %(MD_enc)
+        if MD_hnt is not None and MD_hnt != u"":
+            msg += u"  >> Encryption Passphrase Hint: %s" %(MD_hnt)
+            displayMsg += u"  >> Encryption Passphrase Hint: %s" %(MD_hnt)
+        else:
+            msg += u"  >> Encryption Passphrase Hint: (NOT SET)"
+            displayMsg += u"  >> Encryption Passphrase Hint: (NOT SET)"
+
+        msg += u"\n"
+        displayMsg += u"  -  "
+    else:
+        msg += u"(NOT SET - this means a default 'internal' encryption passphrase is being used)\n"
+        displayMsg += u"(NOT SET - this means a default 'internal' encryption passphrase is being used)  -  "
+
+    msg += u"Sync Passphrase: "
+    displayMsg += u"Sync Passphrase: "
+
+    if MD_sync_pwd is not None and MD_sync_pwd != u"":
+        msg += u"%s" %(MD_sync_pwd)
+        displayMsg += u"%s" %(MD_sync_pwd)
+    else:
+        msg += u"(NOT SET)"
+        displayMsg += u"(NOT SET)"
+
+    myPrint(u"B",u"Displaying Moneydance Encryption & Sync Passphrase(s) ....!")
+
+    statusLabel.setText((u"Moneydance Encryption Passphrases: %s" %(displayMsg)).ljust(800, " "))
     statusLabel.setForeground(Color.BLUE)
-    myPrint("J", "User requested to display stored Passphrases in Toolbox status area")
-    myPopupInformationBox(Toolbox_frame_,("MD STORED PASSPHRASES: " + passwords),"PASSWORDS",JOptionPane.WARNING_MESSAGE)
 
-    myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-    return
+    MyPopUpDialogBox(Toolbox_frame_,u"Moneydance Encryption Passphrases:",msg,theTitle=u"PASSWORDS",lAlertLevel=1).go()
+
+    myPrint(u"D", u"Exiting ", inspect.currentframe().f_code.co_name, u"()")
+    return msg, displayMsg
 
 
 def change_fonts(statusLabel):

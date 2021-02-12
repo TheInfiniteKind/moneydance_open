@@ -2614,7 +2614,7 @@ if not lExit:
 
             theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
             theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
-            # theString = theString.replace("", "*")  # remove tabs within fields to keep csv format happy
+            # theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
             # theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
             # theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
 
