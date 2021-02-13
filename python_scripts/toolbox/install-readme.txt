@@ -31,13 +31,14 @@ To run Scripts:
 3) Click RUN (and not run snippet)
 4) That's it.... Repeat these steps each time.
 
-Other Extensions/Scripts available:
-toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more...
-stockglance2020: View summary of Securities/Stocks on screen, total by Security, export to csv
-extract_reminders_csv: View reminders on screen, edit if required, extract all to csv
-extract_currency_history_csv: Extract currency history to csv
-extract_account_registers_csv: Extract Account Register(s) to csv along with any attachments
-extract_investment_transactions_csv: Extract investment transactions to csv
+All Extensions/Scripts available:
+toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more...
+extract_data:                           Extract various data to screen and/or csv.. Consolidation of:
+- stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv
+- extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
+- extract_currency_history_csv          Extract currency history to csv
+- extract_investment_transactions_csv   Extract investment transactions to csv
+- extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzip and select the script you want. Includes:
 - calculate_moneydance_objs_and_datasetsize.py: Analyse your dataset, object counts, file sizes, and find other known datasets

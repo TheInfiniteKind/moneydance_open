@@ -100,11 +100,12 @@ Extension (.mxt) format only:
 toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
 
 Extension (.mxt) and Script (.py) Versions available:
-stockglance2020                         View summary of Securities/Stocks on screen, total by Security, export to csv 
-extract_reminders_csv                   View reminders on screen, edit if required, extract all to csv
-extract_currency_history_csv            Extract currency history to csv
-extract_investment_transactions_csv     Extract investment transactions to csv
-extract_account_registers_csv           Extract Account Register(s) to csv along with any attachments
+extract_data                            Extract various data to screen and/or csv.. Consolidation of:
+- stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv 
+- extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
+- extract_currency_history_csv          Extract currency history to csv
+- extract_investment_transactions_csv   Extract investment transactions to csv
+- extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...

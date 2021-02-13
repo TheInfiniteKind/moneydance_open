@@ -1,0 +1,10 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "extract_data.py"
+      "name" = "extract_data"
+    }
+  
+  ) 
+}
