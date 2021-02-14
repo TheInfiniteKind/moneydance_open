@@ -1,0 +1,10 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "list_future_reminders.py"
+      "name" = "List Future Reminders"
+    }
+  
+  ) 
+}

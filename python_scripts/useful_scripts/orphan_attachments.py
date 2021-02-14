@@ -132,6 +132,8 @@ extract_data                            Extract various data to screen and/or cs
 - extract_investment_transactions_csv   Extract investment transactions to csv
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
+list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
+
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
 

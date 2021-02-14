@@ -361,6 +361,8 @@ extract_data                            Extract various data to screen and/or cs
 - extract_investment_transactions_csv   Extract investment transactions to csv
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
+list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
+
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
 
@@ -5201,7 +5203,7 @@ def about_this_script():
 
     aboutPanel=JPanel()
     aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
-    aboutPanel.setPreferredSize(Dimension(1070, 400))
+    aboutPanel.setPreferredSize(Dimension(1070, 500))
 
     _label0 = JLabel(pad("Infinite Kind (Moneydance)", 800))
     _label0.setForeground(Color.BLUE)

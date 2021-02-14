@@ -40,6 +40,8 @@ extract_data:                           Extract various data to screen and/or cs
 - extract_investment_transactions_csv   Extract investment transactions to csv
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
+list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
+
 useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzip and select the script you want. Includes:
 - calculate_moneydance_objs_and_datasetsize.py: Analyse your dataset, object counts, file sizes, and find other known datasets
 - extract_all_attachments.py: extract all your attachments out of Moneydance to a folder of your choice
