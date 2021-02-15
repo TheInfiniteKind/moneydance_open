@@ -217,8 +217,8 @@ myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", vers
 def is_moneydance_loaded_properly():
     global debug
 
-    if debug or moneydance_data is None or moneydance_ui is None:
-        for theClass in ["moneydance",  moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
+    if debug or moneydance is None or moneydance_data is None or moneydance_ui is None:
+        for theClass in ["moneydance",  moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance]:
             myPrint("B","Moneydance Objects now....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
         myPrint("P","")
 
@@ -226,15 +226,17 @@ def is_moneydance_loaded_properly():
         if debug: myPrint("B","Success - Moneydance variables are already set....")
         return
 
+    myPrint("B","ERROR - Moneydance variables are NOT set properly....!")
+
     # to cope with being run as Extension.... temporary
-    if moneydance is not None and moneydance_data is None and moneydance_ui is None:                                # noqa
+    if moneydance is not None and (moneydance_data is None or moneydance_ui is None):                                # noqa
         myPrint("B", "@@@ Moneydance variables not set (run as extension?) - attempting to manually set @@@")
         exec "global moneydance_ui;" + "moneydance_ui=moneydance.getUI();"
         exec "global moneydance_data;" + "moneydance_data=moneydance.getCurrentAccount().getBook();"
 
-        for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance_data]:
-            myPrint("B","Moneydance Objects after manual setting....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
-        myPrint("P","")
+    for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance]:
+        myPrint("B","Moneydance Objects after manual setting....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
+    myPrint("P","")
 
     return
 
