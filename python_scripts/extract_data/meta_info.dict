@@ -2,7 +2,7 @@
   "id" = "extract_data"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1000"
+  "module_build" = "1002"
   "minbuild" = "2012"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
