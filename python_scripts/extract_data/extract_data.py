@@ -463,15 +463,23 @@ Visit: %s (Author's site)
         # to cope with being run as Extension.... temporary
         if moneydance is not None and (moneydance_data is None or moneydance_ui is None):                                # noqa
             myPrint("B", "@@@ Moneydance variables not set (run as extension?) - attempting to manually set @@@")
-            exec "global moneydance_ui;" + "moneydance_ui=moneydance.getUI();"
-            exec "global moneydance_data;" + "moneydance_data=moneydance.getCurrentAccount().getBook();"
+
+            try:
+                exec "global moneydance_ui;" + "moneydance_ui=moneydance.getUI();"
+            except:
+                myPrint("B","Failed to set moneydance_ui... This is a critical failure...!")
+                raise
+
+            try:
+                exec "global moneydance_data;" + "moneydance_data=moneydance.getCurrentAccount().getBook();"
+            except:
+                myPrint("B","Failed to set moneydance_data... I expect I am executing at MD runtime to self-install as a FeatureModule extension.. no matter...")
 
         for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance]:
             myPrint("B","Moneydance Objects after manual setting....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
         myPrint("P","")
 
         return
-
 
     is_moneydance_loaded_properly()
 
