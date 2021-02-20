@@ -8039,7 +8039,7 @@ Download from here: %s
                             else:
                                 output += "\n"
 
-                        output += pad("Key:%s" %theKey,70)+" Value: %s\n" %(value.strip())
+                        output += pad("Key:%s" %theKey,90)+" Value: %s\n" %(value.strip())
 
                 if selectedWhat == what[_ACCTKEYS] or lSync or lOFX or lSizes or lSearch:  # Accounts (excluding Root)
 
