@@ -8004,13 +8004,13 @@ Download from here: %s
                             if lKeys and not (searchWhat.lower() in theKey.lower()): continue
                             elif lKeyData and not (searchWhat.lower() in value.lower()): continue
                         if theKey.lower() == "netsync.synckey": value = "<*****>"
-                        output += pad("Key:%s" %theKey,50)+" Value: %s\n" %(value.strip())
+                        output += pad("Key:%s" %theKey,70)+" Value: %s\n" %(value.strip())
 
                     if selectedWhat == what[_ROOTKEYS]:
                         output+="\n"
                         for convertTimeStamp in ["ts", "rec_dt", "dtentered", "creation_date"]:
                             if root.getLongParameter(convertTimeStamp, 0) > 0:
-                                output += "%s %s\n" % (pad("TIMESTAMP('%s'):" %(convertTimeStamp),50), get_time_stamp_as_nice_text(root.getLongParameter(convertTimeStamp, 0))  )
+                                output += "%s %s\n" % (pad("TIMESTAMP('%s'):" %(convertTimeStamp),70), get_time_stamp_as_nice_text(root.getLongParameter(convertTimeStamp, 0))  )
 
                 if selectedWhat == what[_BOOKKEYS] or lSync or lOFX or lSizes or lSearch:  # Local Storage
 
