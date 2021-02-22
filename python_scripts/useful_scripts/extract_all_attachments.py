@@ -9,6 +9,7 @@
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 global extract_all_attachments_frame_, myModuleID
+global moneydance, moneydance_data, moneydance_ui
 
 myModuleID = u"extract_all_attachments"                                                                                 # noqa
 

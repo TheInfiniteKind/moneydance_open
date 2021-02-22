@@ -187,6 +187,7 @@
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 global toolbox_frame_, myModuleID
+global moneydance, moneydance_data, moneydance_ui
 
 myModuleID = u"toolbox"                                                                                              # noqa
 

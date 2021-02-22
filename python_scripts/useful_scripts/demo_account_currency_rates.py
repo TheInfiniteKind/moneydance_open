@@ -18,6 +18,8 @@ from com.moneydance.awt import JDateField
 from java.awt import GridLayout
 from javax.swing import JLabel, JPanel, JOptionPane
 
+global moneydance, moneydance_data, moneydance_ui
+
 # noinspection PyUnresolvedReferences
 class MyAcctFilter(AcctFilter):
 

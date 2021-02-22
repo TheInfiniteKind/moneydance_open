@@ -25,6 +25,8 @@ from com.moneydance.apps.md.controller.fileimport import QIFFileImporter
 from com.moneydance.util import Platform
 from java.awt import FileDialog
 
+global moneydance, moneydance_data, moneydance_ui
+
 # ######################################################################################################################
 # ######################################################################################################################
 # SET PARAMETERS HERE......!

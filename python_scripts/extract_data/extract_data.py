@@ -68,6 +68,7 @@
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 global extract_data_frame_, myModuleID
+global moneydance, moneydance_data, moneydance_ui
 
 myModuleID = u"extract_data"                                                                                            # noqa
 

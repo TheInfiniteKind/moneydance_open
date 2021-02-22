@@ -38,6 +38,7 @@
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 global orphan_transactions_frame_, myModuleID
+global moneydance, moneydance_data, moneydance_ui
 
 myModuleID = u"orphan_transactions"                                                                                     # noqa
 

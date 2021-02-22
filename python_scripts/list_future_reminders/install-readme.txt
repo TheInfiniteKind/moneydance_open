@@ -48,3 +48,5 @@ useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzi
 - orphan_attachments.py: scans your attachments and detects if any are orphaned (and other related errors)
 - demo_account_currency_rates.py: demo script for beginner coders with some simple Moneydance API calls etc...
 - demo_calling_import_functions.py: demo script to show how to call deep API importFile() method and bypass UI popups
+- ofx_create_new_usaa_bank_profile.py: script to create a new bank logon / service profile to connect to USAA Bank within Moneydance
+- ofx_fix_existing_usaa_bank_profile.py: script that edits/updates your existing USAA bank profile so that it can connect within Moneydance

@@ -1,17 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# calculate_moneydance_objs_and_datasetsize.py build: 5 - Feb 2021 - Stuart Beesley StuWareSoftSystems
+# build 2
+
+# ofx_create_new_usaa_bank_profile.py - Author - Stuart Beesley - StuWareSoftSystems 2021
+
+# This script attempts to build a new USAA Bank Profile from scratch to work with the new connection information
+# It will DELETE all existing USAA profiles first!
+# It will populate your UserID, Password, and allow you to change/update the Bank and Credit Card Number
+
+# DISCLAIMER >> PLEASE ALWAYS BACKUP YOUR DATA BEFORE MAKING CHANGES (Menu>Export Backup will achieve this)
+#               You use this at your own risk. I take no responsibility for its usage..!
+#               This should be considered a temporary fix only until Moneydance is fixed
+
+# CREDITS:  hleofxquotes for his technical input and dtd for his extensive testing
+
+# build 1 - Initial preview release.....
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
-global calculate_moneydance_objs_and_datasetsize_frame_, myModuleID
+global ofx_create_new_usaa_bank_profile_frame_, myModuleID
 global moneydance, moneydance_data, moneydance_ui
 
-myModuleID = u"calculate_moneydance_objs_and_datasetsize"                                                               # noqa
+myModuleID = u"ofx_create_new_usaa_bank_profile"                                                                                              # noqa
 
 from java.lang import System
 from javax.swing import JFrame
@@ -38,9 +52,9 @@ def getMyJFrame( moduleName ):
 
 frameToResurrect = None
 if (u"%s_frame_"%myModuleID in globals()
-        and isinstance(calculate_moneydance_objs_and_datasetsize_frame_, MyJFrame)
-        and calculate_moneydance_objs_and_datasetsize_frame_.isActiveInMoneydance):
-    frameToResurrect = calculate_moneydance_objs_and_datasetsize_frame_
+        and isinstance(ofx_create_new_usaa_bank_profile_frame_, MyJFrame)
+        and ofx_create_new_usaa_bank_profile_frame_.isActiveInMoneydance):
+    frameToResurrect = ofx_create_new_usaa_bank_profile_frame_
     print("%s: Detected that %s is already running in same namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
     System.err.write("%s: Detected that %s is already running in same namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
 elif getMyJFrame( myModuleID ) is not None:
@@ -126,9 +140,8 @@ else:
     global MYPYTHON_DOWNLOAD_URL
     # END COMMON GLOBALS ###################################################################################################
 
-
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "5"                                                                                                 # noqa
+    version_build = "2"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -140,14 +153,12 @@ else:
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
-    from com.infinitekind.moneydance.model import MoneydanceSyncableItem
-    from com.infinitekind.moneydance.model import OnlineTxnList, OnlinePayeeList, OnlinePaymentList
-    from com.moneydance.apps.md.controller import Common
-    from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
-    from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
+    from com.infinitekind.moneydance.model import OnlineService
+    from com.moneydance.apps.md.view.gui import MDAccountProxy
+    from com.infinitekind.tiksync import SyncRecord
+    from com.infinitekind.util import StreamTable
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
-
 
     # COMMON CODE ##########################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
@@ -1122,7 +1133,7 @@ Visit: %s (Author's site)
         for fr in frames:
             if fr.getName().lower().startswith(moduleName):
                 myPrint("DB","Found old frame %s and active status is: %s" %(fr.getName(),fr.isActiveInMoneydance))
-                # if fr.isActiveInMoneydance:
+                # if ofx_create_new_usaa_bank_profile_frame_.isActiveInMoneydance:
                 try:
                     fr.isActiveInMoneydance = False
                     fr.setVisible(False)
@@ -1139,6 +1150,16 @@ Visit: %s (Author's site)
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
+    def load_StuWareSoftSystems_parameters_into_memory():
+        pass
+        return
+
+    # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
+    def dump_StuWareSoftSystems_parameters_from_memory():
+        pass
+        return
+
+    get_StuWareSoftSystems_parameters_from_file()
 
     # clear up any old left-overs....
     destroyOldFrames(myModuleID)
@@ -1147,336 +1168,491 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
-
-
     if isinstance(None, FileDialog): pass
 
-    startDir=moneydance_data.getRootFolder().getCanonicalPath()
-    print("\nDataset path:        %s" %(startDir))
-    print("Autobackup location: %s\n"
-          %(moneydance_ui.getPreferences().getSetting("backup.location",FileUtils.getDefaultBackupDir().getAbsolutePath())))
+    debug = True                                                                                                       # noqa
+    myPrint("DB", "DEBUG IS ON..")
 
-    attach = moneydance.getCurrentAccountBook().getAttachmentsFolder()
-    keyDir = startDir
-    trunkDir = os.path.join(startDir,"safe","tiksync")
-    attachDir = os.path.join(startDir,"safe", attach)
-    settingsDir = os.path.join(startDir,"safe")
-    archiveDir = os.path.join(startDir,"safe","archive")
-    sync_outDir = os.path.join(startDir,"safe","tiksync", "out")
+    ofx_create_new_usaa_bank_profile_frame_ = MyJFrame(u"%s" % (myModuleID))
+    ofx_create_new_usaa_bank_profile_frame_.setName(u"%s_fake" %(myModuleID))
 
-    sync_outCount = 0
-    sync_outSize = 0
-
-    safe_settingsSize = 0
-    safe_attachmentsSize = 0
-    countAttachments = 0
-    safe_archiveSize = 0
-    countArchiveFiles = 0
-    safe_trunkSize = 0
-    safe_tiksyncSize = 0
-    countTIKfiles = 0
-    safe_tmpSize = 0
-    keySize = 0
-    countValidFiles=0
-    countNonValidFiles=0
-    validSize=0
-    nonValidSize=0
-    listNonValidFiles=[]
-    listLargeFiles=[]
-
-    total_size = 0
-    start_path = startDir  # To get size of current directory
-    for path, dirs, files in os.walk(start_path):
-        for f in files:
-            lValidFile = False
-
-            fp = os.path.join(path, f)
-            thisFileSize = os.path.getsize(fp)
-
-            total_size += thisFileSize
-
-            if os.path.basename(f) == "key" and path==keyDir and len:
-                lValidFile = True
-                keySize=thisFileSize
-            if os.path.basename(f) == "settings" and path==settingsDir:
-                lValidFile = True
-                safe_settingsSize=thisFileSize
-            if os.path.basename(f) == "trunk" and path==trunkDir:
-                lValidFile = True
-                safe_trunkSize=thisFileSize
-            if path[:len(sync_outDir)] == sync_outDir and (f.endswith(".txn") ):
-                lValidFile = True
-                sync_outSize+=thisFileSize
-                sync_outCount+=1
-            if path[:len(trunkDir)] == trunkDir and (f.endswith("trunk") or f.endswith(".mdtxn") or f.endswith("processed.dct") or f.endswith("delete_to_push_sync_info") or f.endswith(".txn") or f.endswith("force_push_resync") ):
-                lValidFile = True
-                safe_tiksyncSize+=thisFileSize
-                countTIKfiles+=1
-            if path[:len(attachDir)] == attachDir:
-                lValidFile = True
-                safe_attachmentsSize+=thisFileSize
-                countAttachments+=1
-            if path[:len(archiveDir)] == archiveDir and f.endswith(".mdtxnarchive"):
-                lValidFile = True
-                safe_archiveSize+=thisFileSize
-                countArchiveFiles+=1
-
-            if lValidFile:
-                countValidFiles+=1
-                validSize+=thisFileSize
-                if thisFileSize>500000:
-                    listLargeFiles.append([fp,
-                                          thisFileSize,
-                                          pad(datetime.datetime.fromtimestamp(os.path.getmtime(fp)).strftime('%Y-%m-%d %H:%M:%S'),11)])
-            else:
-                countNonValidFiles+=1
-                nonValidSize+=thisFileSize
-                listNonValidFiles.append([fp,
-                                          thisFileSize,
-                                          pad(datetime.datetime.fromtimestamp(os.path.getmtime(fp)).strftime('%Y-%m-%d %H:%M:%S'),11)])
-
-    print("Dataset size:               %sMB" %(rpad(round((total_size/(1000.0*1000.0)),1),12)))
-    print("- settings file size:       %sKB" %(rpad(round((safe_settingsSize/(1000.0)),1),12)))
-    print("- key file size:            %sKB" %(rpad(round((keySize/   (1000.0)),1),12)))
-    print("- tiksync folder size:      %sMB (with %s files)" %(rpad(round((safe_tiksyncSize/(1000.0*1000.0)),1),12),countTIKfiles))
-    print("  (note trunk file size:    %sMB)" %(rpad(round((safe_trunkSize/(1000.0*1000.0)),1),12)))
-
-    if sync_outCount:
-        print("  (WAITING Sync 'Out' size: %sMB with %s files)" %(rpad(round((sync_outSize/(1000.0*1000.0)),1),12),sync_outCount))
-
-    print("- attachments size:         %sMB (in %s attachments)" %(rpad(round((safe_attachmentsSize/(1000.0*1000.0)),1),12),countAttachments))
-    print("- archive size:             %sMB (in %s files)" %(rpad(round((safe_archiveSize/(1000.0*1000.0)),1),12),countArchiveFiles))
-    print("---------------------------------------------")
-    print("Valid files size:           %sMB (in %s files)" %(rpad(round((validSize/(1000.0*1000.0)),1),12),countValidFiles))
-    print
-    print("Non-core file(s) size:      %sMB (in %s files)" %(rpad(round((nonValidSize/(1000.0*1000.0)),1),12),countNonValidFiles))
-    for nonValid in listNonValidFiles:
-        print("   - %sMB Mod: %s %s" %(rpad(round((nonValid[1]/(1000.0*1000.0)),1),5),nonValid[2], nonValid[0]))
-    print
-
-    if len(listLargeFiles):
-        print("\nLARGE (core) file(s) > 0.5MB....:")
-        for largefile in listLargeFiles:
-            print("   - %sMB Mod: %s %s" %(rpad(round((largefile[1]/(1000.0*1000.0)),1),5),largefile[2], largefile[0]))
-        print
+    moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
 
-    def tell_me_if_dropbox_folder_exists():
+    def isUserEncryptionPassphraseSet():
 
-        userHomeProperty = System.getProperty("UserHome", System.getProperty("user.home", "."))
-        baseFolder = File(userHomeProperty, "Dropbox")
-        dropbox = File(baseFolder, ".moneydancesync")
-
-        # If Dropbox folder does not exist then do nothing
-        if baseFolder.exists() and baseFolder.isDirectory() and dropbox.exists() and dropbox.isDirectory():
-            return dropbox.getCanonicalPath()
-
-        return False
-
-
-    def find_other_datasets():
-        output = ""
-        output+=("\nQUICK SEARCH FOR OTHER DATASETS:\n"
-                 "---------------------------------\n")
-
-        md_extn = ".moneydance"
-        md_archive = ".moneydancearchive"
-
-        saveFiles={}
-        saveArchiveFiles={}
-
-        myDataset = moneydance_data.getRootFolder().getCanonicalPath()
-
-        internalDir = Common.getDocumentsDirectory().getCanonicalPath()
-        dirList =  os.listdir(internalDir)
-        for fileName in dirList:
-            fullPath = os.path.join(internalDir,fileName)
-            if fileName.endswith(md_extn):
-                saveFiles[fullPath] = True
-            elif fileName.endswith(md_archive):
-                saveArchiveFiles[fullPath] = True
-        del internalDir, dirList
-
-        parentofDataset = moneydance_data.getRootFolder().getParent()
-        if os.path.exists(parentofDataset):
-            dirList =  os.listdir(parentofDataset)
-            for fileName in dirList:
-                fullPath = os.path.join(parentofDataset,fileName)
-                if fileName.endswith(md_extn):
-                    saveFiles[fullPath] = True
-                elif fileName.endswith(md_archive):
-                    saveArchiveFiles[fullPath] = True
-            del dirList
-        del parentofDataset
-
-        externalFiles = AccountBookUtil.getExternalAccountBooks()
-        for wrapper in externalFiles:
-            saveFiles[wrapper.getBook().getRootFolder().getCanonicalPath()] = True
-            externalDir = wrapper.getBook().getRootFolder().getParent()
-            if os.path.exists(externalDir):
-                dirList =  os.listdir(externalDir)
-                for fileName in dirList:
-                    fullPath = os.path.join(externalDir,fileName)
-                    if fileName.endswith(md_extn):
-                        saveFiles[fullPath] = True
-                    elif fileName.endswith(md_archive):
-                        saveArchiveFiles[fullPath] = True
-                del dirList
-        del externalFiles
-
-        for backupLocation in [ FileUtils.getBackupDir(moneydance.getPreferences()).getCanonicalPath(),
-                                moneydance_ui.getPreferences().getSetting("backup.location",""),
-                                moneydance_ui.getPreferences().getSetting("backup.last_saved",""),
-                                moneydance_ui.getPreferences().getSetting("backup.last_browsed","")]:
-            if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
-                dirList =  os.listdir(backupLocation)
-                for fileName in dirList:
-                    fullPath = os.path.join(backupLocation,fileName)
-                    if fileName.endswith(md_extn):
-                        if saveFiles.get(fileName) is not None:
-                            saveFiles[fullPath] = True
-                    elif fileName.endswith(md_archive):
-                        saveArchiveFiles[fullPath] = True
-                del dirList
-        del backupLocation
-
-        saveFiles[myDataset] = None
-
-        listTheFiles=sorted(saveFiles.keys())
-        listTheArchiveFiles=sorted(saveArchiveFiles.keys())
-
-        for _f in listTheFiles:
-            if saveFiles[_f] is not None:
-                output+=("Dataset: Mod: %s %s\n"
-                         % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime('%Y-%m-%d %H:%M:%S'), 11), _f))
-        del listTheFiles
-
-        output+=("\nBACKUP FILES\n"
-                 "-------------\n")
-
-        for _f in listTheArchiveFiles:
-            if saveArchiveFiles[_f] is not None:
-                output+=("Archive: Mod: %s %s\n"
-                         % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime('%Y-%m-%d %H:%M:%S'), 11), _f))
-        del listTheArchiveFiles
-
-        output+=("\nSYNC FOLDERS FOUND:\n"
-                 "---------------------\n")
-
-        saveSyncFolder=None
         try:
-            syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(moneydance_ui, moneydance_ui.getCurrentAccounts())
-            syncMethod = SyncFolderUtil.getConfigurerForFile(moneydance_ui, moneydance_ui.getCurrentAccounts(), syncMethods)
+            keyFile = File(moneydance_data.getRootFolder(), "key")
 
-            if syncMethod is not None and syncMethod.getSyncFolder() is not None:
-                # noinspection PyUnresolvedReferences
-                syncBaseFolder = syncMethod.getSyncFolder().getSyncBaseFolder()
-
-                saveSyncFolder = syncBaseFolder.getCanonicalPath()
-                dirList =  os.listdir(saveSyncFolder)
-
-                for fileName in dirList:
-                    fullPath = os.path.join(saveSyncFolder,fileName)
-                    if len(fileName)>32:
-                        output+=("Sync Folder: %s %s\n"
-                                 % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime('%Y-%m-%d %H:%M:%S'), 11), fullPath))
-            else:
-                output+=("<NONE FOUND>\n")
-
-            del syncMethod, syncMethods
+            keyInfo = SyncRecord()
+            fin = FileInputStream(keyFile)
+            keyInfo.readSet(fin)
+            fin.close()
+            return keyInfo.getBoolean("userpass", False)
         except:
             pass
+        return False
 
-        dropboxPath = tell_me_if_dropbox_folder_exists()
-        if dropboxPath and dropboxPath is not None and dropboxPath != saveSyncFolder:
+    def my_getAccountKey(acct):      # noqa
+        acctNum = acct.getAccountNum()
+        if (acctNum <= 0):
+            return acct.getUUID()
+        return str(acctNum)
 
-            output+=("\nDROPBOX FOLDERS FOUND:\n"
-                     "-----------------------\n")
-            dirList =  os.listdir(dropboxPath)
+    class MyAcctFilter(AcctFilter):
+        selectType = 0
 
-            for fileName in dirList:
-                fullPath = os.path.join(dropboxPath,fileName)
-                if len(fileName)>32:
-                    output+=("Dropbox Sync Folder: %s %s\n"
-                             % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime('%Y-%m-%d %H:%M:%S'), 11), fullPath))
-        del dropboxPath
+        def __init__(self, selectType=0):
+            self.selectType = selectType
 
-        output+="\n\n(for a more extensive search please use Toolbox - Find my Datasets and Backups button\n\n"
+        def matches(self, acct):         # noqa
+            if self.selectType == 0:
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.BANK):
+                    return False
 
-        return output
+            if self.selectType == 1:
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.CREDIT_CARD):
+                    return False
 
-    def count_database_objects():
-        output = ""
-        output+=("\nDATABASE OBJECT COUNT        (count) (est.size KBs):\n"
-                 "-----------------------------------------------------\n")
-        foundStrange=0
-        types={}
+            if (acct.getAccountOrParentIsInactive()): return False
+            if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
 
-        onlineTxns=0
-        onlineTxnsCharacters=0
-        onlinePayees=0
-        onlinePayments=0
+            return True
 
-        for mdItem in moneydance_data.getSyncer().getSyncedDocument().allItems():
-            if isinstance(mdItem, MoneydanceSyncableItem):
-
-                if isinstance(mdItem, OnlineTxnList):
-                    onlineTxns      +=mdItem.getTxnCount()
-                    for olKey in mdItem.getParameterKeys():
-                        onlineTxnsCharacters += len(olKey)
-                        onlineTxnsCharacters += len(mdItem.getParameter(olKey))
-
-                if isinstance(mdItem, OnlinePayeeList):     onlinePayees    +=mdItem.getPayeeCount()
-                if isinstance(mdItem, OnlinePaymentList):   onlinePayments  +=mdItem.getPaymentCount()
-
-                getTheSavedData = types.get(mdItem.getParameter("obj_type", "UNKNOWN"))
-                if getTheSavedData is not None:
-                    x,theLength = getTheSavedData
-                else:
-                    x = 0
-                    theLength = 0
-
-                theSyncInfo = mdItem.getSyncInfo()
-                theDescription = theSyncInfo.toMultilineHumanReadableString()  # format is "key: data\n" but file is '&key=data'
-                theLength += len( ("mod.%s:" %(mdItem.getParameter("obj_type",""))) )
-                theLength += len(theDescription)
-                theLength -= len(mdItem.getParameterKeys())  # remove the number of "\n"s
-
-                types[mdItem.getParameter("obj_type", "UNKNOWN")] = [x+1, theLength]
+    class StoreAccountList():
+        def __init__(self, obj):
+            if isinstance(obj,Account):
+                self.obj = obj                          # type: Account
             else:
-                foundStrange+=1
-        i=0
-        charCount=0
-        for x in types.keys():
-            i+=types[x][0]
-            charCount+=types[x][1]
-            extraText = ""
-            if x == "oltxns":
-                if onlineTxns:
-                    extraText = "(containing %s Online Txns consuming %s KBs)" %(onlineTxns, round(onlineTxnsCharacters/1000.0,1))
-            elif x == "olpayees":
-                if onlinePayees:
-                    extraText = "(containing %s Online Payees)" %(onlinePayees)
-            elif x == "olpmts":
-                if onlinePayments:
-                    extraText = "(containing %s Online Payments)" %(onlinePayments)
+                self.obj = None
 
-            output+=("Object: %s %s   %s %s\n" %(pad(x,15),rpad(types[x][0],12),rpad(round(types[x][1] / (1000.0),1),12), extraText))
+        def __str__(self):
+            if self.obj is None:
+                return "Invalid Acct Obj or None"
+            return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
 
-        if foundStrange:
-            output+=("\n@@ I also found %s non Moneydance Syncable Items?! Why? @@\n" %(foundStrange))
-        output+=(" ==========\n TOTAL:                 %s   %s\n\n" %(rpad(i,12),rpad(round(charCount/(1000.0),1),12)))
-        del types
-        del foundStrange
-        return output
+        def __repr__(self):
+            if self.obj is None:
+                return "Invalid Acct Obj or None"
+            return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
+
+    if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "BACKUP", "CREATE A NEW USAA PROFILE >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
+        raise Exception("Please backup first - no changes made")
+
+    if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "DISCLAIMER", "DO YOU ACCEPT YOU RUN THIS AT YOUR OWN RISK?", theMessageType=JOptionPane.WARNING_MESSAGE):
+        raise Exception("Disclaimer rejected - no changes made")
+
+    ask = MyPopUpDialogBox(ofx_create_new_usaa_bank_profile_frame_, "Do you know all the relevant details - BEFORE YOU START?",
+                           "This has useful guidance: https://bitbucket.org/hleofxquotesteam/hleofxquotes/wiki/USAA\n"
+                           "and this: https://infinitekind.tenderapp.com/discussions/online-banking/18262-usaa-using-hleofxquotes-to-download-ofx#comment_49034019\n"
+                           "Do you know your new Bank Supplied UUID 36 digits 8-4-4-4-12?\n"
+                           "Do you know your Bank supplied UserID (min length 7)?\n"
+                           "Do you know your new Password (min length 5) - no longer a PIN?\n"
+                           "Do you know your Bank Account Number(s) and routing Numbers?\n"
+                           "Do you know the DIFFERENT Credit Card number that the bank will accept?\n"
+                           "Do you know which Accounts in Moneydance to select and link?\n"
+                           "IF NOT, STOP AND GATHER ALL INFORMATION",
+                           250,"KNOWLEDGE",
+                           lCancelButton=True,OKButtonText="CONFIRMED", lAlertLevel=1)
+    if not ask.go(): raise Exception("Knowledge rejected - no changes made")
+
+    lCachePasswords = (isUserEncryptionPassphraseSet() and moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean("store_passwords", False))
+    if not lCachePasswords:
+        if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_,"STORE PASSWORDS","Your system is not set up to save/store passwords. Do you want to continue?",theMessageType=JOptionPane.ERROR_MESSAGE):
+            raise Exception("Please set up Master password and select store passwords first - then try again")
+        print "Proceeding even though system is not set up for passwords"
+
+    serviceList = moneydance_data.getOnlineInfo().getAllServices()  # type: [OnlineService]
 
 
-    print
-    print count_database_objects()
-    print
-    print find_other_datasets()
-    print
+    deleteServices = []
+    for svc in serviceList:
+        if (svc.getTIKServiceID() == "md:1295"
+                or "USAA" in svc.getFIOrg()
+                or "USAA" in svc.getFIName()):
+            print "Found USAA service - to delete: %s" %(svc)
+            deleteServices.append(svc)
 
-    myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
+    if len(deleteServices) < 1:
+        print "No old USAA services found..."
+    else:
+        if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "DELETE OLD SERVICES", "OK TO DELETE %s OLD USAA SERVICES?" % (len(deleteServices)), theMessageType=JOptionPane.ERROR_MESSAGE):
+            raise Exception("ERROR - User declined to delete %s old USAA service profiles" %(len(deleteServices)))
+        else:
+            accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(0))
+            for s in deleteServices:
+                for a in accounts:
+                    if a.getBankingFI() == s or a.getBillPayFI() == s:
+                        print "clearing service link flag from account %s (%s)" %(a,s)
+                        a.setBankingFI(None)
+                        a.setBillPayFI(None)
+                        a.syncItem()
+                print "clearing authentication cache and deleting %s" %s
+                s.clearAuthenticationCache()
+                s.deleteItem()
+            del accounts
+
+    del serviceList, deleteServices
+
+    selectedBankAccount = selectedCCAccount = None
+
+    accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(0))
+    accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+    bankAccounts = []
+    for acct in accounts:
+        bankAccounts.append(StoreAccountList(acct))
+
+    saveOK = UIManager.get("OptionPane.okButtonText")
+    saveCancel = UIManager.get("OptionPane.cancelButtonText")
+    UIManager.put("OptionPane.okButtonText", "SELECT & PROCEED")
+    UIManager.put("OptionPane.cancelButtonText", "NO BANK ACCOUNT")
+
+    selectedBankAccount = JOptionPane.showInputDialog(ofx_create_new_usaa_bank_profile_frame_,
+                                                      "Select the Bank account to link",
+                                                      "Select Bank account",
+                                                      JOptionPane.WARNING_MESSAGE,
+                                                      None,
+                                                      bankAccounts,
+                                                      None)     # type: StoreAccountList
+    UIManager.put("OptionPane.okButtonText", saveOK)
+    UIManager.put("OptionPane.cancelButtonText", saveCancel)
+
+    if not selectedBankAccount:
+        print "no bank account selected"
+    else:
+        selectedBankAccount = selectedBankAccount.obj       # noqa
+        if selectedBankAccount.getAccountType() != Account.AccountType.BANK: raise Exception("ERROR BANK ACCOUNT INVALID TYPE SELECTED")    # noqa
+        print "selected bank account %s" %selectedBankAccount
+
+    accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(1))
+    accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+    ccAccounts = []
+    for acct in accounts:
+        ccAccounts.append(StoreAccountList(acct))
+
+    saveOK = UIManager.get("OptionPane.okButtonText")
+    saveCancel = UIManager.get("OptionPane.cancelButtonText")
+    UIManager.put("OptionPane.okButtonText", "SELECT & PROCEED")
+    UIManager.put("OptionPane.cancelButtonText", "NO CC ACCOUNT")
+
+    selectedCCAccount = JOptionPane.showInputDialog(ofx_create_new_usaa_bank_profile_frame_,
+                                                    "Select the CC account to link",
+                                                    "Select CC account",
+                                                    JOptionPane.WARNING_MESSAGE,
+                                                    None,
+                                                    ccAccounts,
+                                                    None)     # type: StoreAccountList
+
+    UIManager.put("OptionPane.okButtonText", saveOK)
+    UIManager.put("OptionPane.cancelButtonText", saveCancel)
+
+    if not selectedCCAccount:
+        print "no CC account selected"
+    else:
+        selectedCCAccount = selectedCCAccount.obj            # noqa
+        if selectedCCAccount.getAccountType() != Account.AccountType.CREDIT_CARD: raise Exception("ERROR CC ACCOUNT INVALID TYPE SELECTED") # noqa
+        print "selected CC account %s" %selectedCCAccount
+
+    if not selectedBankAccount and not selectedCCAccount: raise Exception("ERROR - You must select Bank and or CC account(s)")
+
+    dummy = "12345678-1111-1111-1111-123456789012"
+    uuid = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "UUID", "UUID", "Paste the Bank Supplied UUID 36 digits 8-4-4-4-12 very carefully", "nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn")
+    if (uuid is None or uuid == "" or len(uuid) != 36 or uuid == "nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn" or
+            (str(uuid)[8]+str(uuid)[13]+str(uuid)[18]+str(uuid)[23]) != "----"):
+        raise Exception("ERROR - no valid uuid supplied")
+    print "UUID entered: %s" %uuid
+
+    userID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "UserID", "UserID", "Type/Paste your UserID (min length 7) very carefully", "UserID")
+    if userID is None or userID == "" or uuid == "UserID" or len(userID)<7:
+        raise Exception("ERROR - no userID supplied")
+    print "userID entered: %s" %userID
+
+    password = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "password", "password", "Type/Paste your Password (min length 5) very carefully", "MyPassW0rd$")
+    if password is None or password == "" or password == "MyPassW0rd$" or len(password) < 5:
+        raise Exception("ERROR - no password supplied")
+    print "password entered: %s" %password
+
+    bankID = routID = None
+    route = bankAccount = None
+
+    if selectedBankAccount:
+        bankAccount = selectedBankAccount.getBankAccountNumber()        # noqa
+        bankID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "BankAccount", "BankAccount", "Type/Paste your Bank Account Number - very carefully", bankAccount)
+        if bankID is None or bankID == "": raise Exception("ERROR - no bankID supplied")
+        print "existing bank account:   %s" %bankAccount
+        print "bankID entered:          %s" %bankID
+
+        route = selectedBankAccount.getOFXBankID()                      # noqa
+        routID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "Routing", "Routing", "Type/Paste your Routing Number - very carefully", route)
+        if routID is None or routID == "": raise Exception("ERROR - no Routing supplied")
+        print "existing routing number: %s" %route
+        print "routID entered:          %s" %routID
+
+    ccID = ccAccount = None
+    if selectedCCAccount:
+        ccAccount = selectedCCAccount.getBankAccountNumber()        # noqa
+        ccID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "CC_Account", "CC_Account", "Type/Paste the CC Number that the bank uses for connection (length 16) very carefully", ccAccount)
+        if ccID is None or ccID == "" or len(ccID)!=16: raise Exception("ERROR - no valid ccID supplied")
+
+        print "existing CC number:       %s" %ccAccount
+        print "ccID entered:            %s" %ccID
+
+        if ccID == ccAccount:
+            if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "Keep CC Number", "Confirm you want use the same CC %s for connection?" % ccID, theMessageType=JOptionPane.WARNING_MESSAGE):
+                raise Exception("ERROR - User aborted on keeping the CC the same - no changes made")
+        else:
+            if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "Change CC number", "Confirm you want to set a new CC as %s for connection?" % ccID, theMessageType=JOptionPane.ERROR_MESSAGE):
+                raise Exception("ERROR - User aborted on CC change - no changes made")
+
+    del ccAccount, route, bankAccount
+
+    print "creating new service profile"
+    book = moneydance.getCurrentAccountBook()
+    manualFIInfo = StreamTable()     # type: StreamTable
+    manualFIInfo.put("obj_type",                                 "olsvc")
+    manualFIInfo.put("access_type",                              "OFX")
+    manualFIInfo.put("app_id",                                   "QMOFX")
+    manualFIInfo.put("app_ver",                                  "2300")
+    manualFIInfo.put("bank_closing_avail",                       "0")
+    manualFIInfo.put("bank_email_can_notify",                    "0")
+    manualFIInfo.put("bank_email_enabled",                       "0")
+    manualFIInfo.put("bootstrap_url",                            "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("cc_closing_avail",                         "1")
+    manualFIInfo.put("date_avail_accts",                         "20200204120000")
+    manualFIInfo.put("fi_addr1",                                 "10750 McDermott Freeway")
+    manualFIInfo.put("fi_addr2",                                 "")
+    manualFIInfo.put("fi_addr3",                                 "")
+    manualFIInfo.put("fi_city",                                  "San Antonio")
+    manualFIInfo.put("fi_country",                               "USA")
+    manualFIInfo.put("fi_cust_svc_phone",                        "877-820-8320")
+    manualFIInfo.put("fi_email",                                 "")
+    manualFIInfo.put("fi_id",                                    "67811")
+    manualFIInfo.put("fi_name",                                  "USAA Federal Savings Bank")
+    manualFIInfo.put("fi_org",                                   "USAA Federal Savings Bank")
+    manualFIInfo.put("fi_state",                                 "TX")
+    manualFIInfo.put("fi_tech_svc_phone",                        "877-820-8320")
+    manualFIInfo.put("fi_url",                                   "www.usaa.com")
+    manualFIInfo.put("fi_url_is_redirect",                       "1")
+    manualFIInfo.put("fi_zip",                                   "78288")
+    manualFIInfo.put("invst_dflt_broker_id",                     "")
+    manualFIInfo.put("language_banking",                         "ENG")
+    manualFIInfo.put("language_creditcard",                      "ENG")
+    manualFIInfo.put("language_default",                         "ENG")
+    manualFIInfo.put("language_fiprofile",                       "ENG")
+    manualFIInfo.put("language_signup",                          "ENG")
+    manualFIInfo.put("last_fi_refresh",                          "1613781515886")
+    manualFIInfo.put("no_fi_refresh",                            "y")
+    manualFIInfo.put("ofx_version",                              "103")
+    manualFIInfo.put("ofxurl_banking",                           "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("ofxurl_creditcard",                        "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("ofxurl_default",                           "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("ofxurl_signup",                            "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("realm_banking",                            "USAASignon")
+    manualFIInfo.put("realm_creditcard",                         "USAASignon")
+    manualFIInfo.put("realm_default",                            "USAASignon")
+    manualFIInfo.put("realm_fiprofile",                          "USAASignon")
+    manualFIInfo.put("realm_signup",                             "USAASignon")
+    manualFIInfo.put("rspnsfileerrors_banking",                  "1")
+    manualFIInfo.put("rspnsfileerrors_creditcard",               "1")
+    manualFIInfo.put("rspnsfileerrors_default",                  "1")
+    manualFIInfo.put("rspnsfileerrors_fiprofile",                "1")
+    manualFIInfo.put("rspnsfileerrors_signup",                   "1")
+    manualFIInfo.put("securetransport_banking",                  "1")
+    manualFIInfo.put("securetransport_creditcard",               "1")
+    manualFIInfo.put("securetransport_default",                  "1")
+    manualFIInfo.put("securetransport_fiprofile",                "1")
+    manualFIInfo.put("securetransport_signup",                   "1")
+    manualFIInfo.put("security_banking",                         "NONE")
+    manualFIInfo.put("security_creditcard",                      "NONE")
+    manualFIInfo.put("security_default",                         "NONE")
+    manualFIInfo.put("security_fiprofile",                       "NONE")
+    manualFIInfo.put("security_signup",                          "NONE")
+    manualFIInfo.put("signup_accts_avail",                       "1")
+    manualFIInfo.put("signup_can_activate_acct",                 "0")
+    manualFIInfo.put("signup_can_chg_user_info",                 "0")
+    manualFIInfo.put("signup_can_preauth",                       "0")
+    manualFIInfo.put("signup_client_acct_num_req",               "1")
+    manualFIInfo.put("signup_via_client",                        "0")
+    manualFIInfo.put("signup_via_other",                         "1")
+    manualFIInfo.put("signup_via_other_msg",                     "Please contact the financial institution for the enrollment process.")
+    manualFIInfo.put("signup_via_web",                           "0")
+    manualFIInfo.put("so_can_change_pin_USAASignon",             "1")
+    manualFIInfo.put("so_client_uid_req_USAASignon",             "1")
+    manualFIInfo.put("so_maxpasslen_USAASignon",                 "4")
+    manualFIInfo.put("so_minpasslen_USAASignon",                 "4")
+    manualFIInfo.put("so_must_chg_pin_first_USAASignon",         "0")
+    manualFIInfo.put("so_passchartype_USAASignon",               "NUMERICONLY")
+    manualFIInfo.put("so_passwd_case_sensitive_USAASignon",      "0")
+    manualFIInfo.put("so_passwd_spaces_USAASignon",              "0")
+    manualFIInfo.put("so_passwd_special_chars_USAASignon",       "0")
+    manualFIInfo.put("so_passwd_type_USAASignon",                userID)
+    manualFIInfo.put("so_user_id_USAASignon",                    userID)
+    if selectedBankAccount:
+        manualFIInfo.put("so_user_id_USAASignon::%s" %(my_getAccountKey(selectedBankAccount)), userID)
+    if selectedCCAccount:
+        manualFIInfo.put("so_user_id_USAASignon::%s" %(my_getAccountKey(selectedCCAccount)),   userID)
+    manualFIInfo.put("syncmode_banking",                         "LITE")
+    manualFIInfo.put("syncmode_creditcard",                      "LITE")
+    manualFIInfo.put("syncmode_default",                         "LITE")
+    manualFIInfo.put("syncmode_fiprofile",                       "LITE")
+    manualFIInfo.put("syncmode_signup",                          "LITE")
+    manualFIInfo.put("tik_fi_id",                                "md:1295")
+    manualFIInfo.put("user-agent",                               "InetClntApp/3.0")
+    manualFIInfo.put("uses_fi_tag",                              "y")
+    manualFIInfo.put("version_banking",                          "1")
+    manualFIInfo.put("version_creditcard",                       "1")
+    manualFIInfo.put("version_default",                          "1")
+    manualFIInfo.put("version_fiprofile",                        "1")
+    manualFIInfo.put("version_signup",                           "1")
+    # manualFIInfo.put("id",                                       "4f085ab1-6f10-42d9-8048-4431b7919d61")
+    # manualFIInfo.put("last_txn_id",                              "0-2f04b703_dd9df513-380")
+
+    num = 0
+    if selectedBankAccount:
+        sNum = str(num)
+        manualFIInfo.put("available_accts.%s.account_num" %(sNum),            str(bankID).zfill(10))
+        manualFIInfo.put("available_accts.%s.account_type" %(sNum),           "CHECKING")
+        manualFIInfo.put("available_accts.%s.branch_id" %(sNum),              "")
+        manualFIInfo.put("available_accts.%s.desc" %(sNum),                   "USAA CLASSIC CHECKING")
+        manualFIInfo.put("available_accts.%s.has_txn_dl" %(sNum),             "1")
+        manualFIInfo.put("available_accts.%s.has_xfr_from" %(sNum),           "0")
+        manualFIInfo.put("available_accts.%s.has_xfr_to" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.is_active" %(sNum),              "1")
+        manualFIInfo.put("available_accts.%s.is_avail" %(sNum),               "0")
+        manualFIInfo.put("available_accts.%s.is_bank_acct" %(sNum),           "1")
+        manualFIInfo.put("available_accts.%s.is_pending" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.msg_type" %(sNum),               "4")
+        manualFIInfo.put("available_accts.%s.phone" %(sNum),                  "")
+        manualFIInfo.put("available_accts.%s.routing_num" %(sNum),            routID)
+        num += 1
+
+    if selectedCCAccount:
+        sNum = str(num)
+        manualFIInfo.put("available_accts.%s.account_num" %(sNum),            str(ccID).zfill(16))
+        manualFIInfo.put("available_accts.%s.desc" %(sNum),                   "Signature Visa")
+        manualFIInfo.put("available_accts.%s.has_txn_dl" %(sNum),             "1")
+        manualFIInfo.put("available_accts.%s.has_xfr_from" %(sNum),           "0")
+        manualFIInfo.put("available_accts.%s.has_xfr_to" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.is_active" %(sNum),              "1")
+        manualFIInfo.put("available_accts.%s.is_avail" %(sNum),               "0")
+        manualFIInfo.put("available_accts.%s.is_cc_acct" %(sNum),             "1")
+        manualFIInfo.put("available_accts.%s.is_pending" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.msg_type" %(sNum),               "5")
+        manualFIInfo.put("available_accts.%s.phone" %(sNum),                  "")
+
+    del sNum
+
+    newService = OnlineService(book, manualFIInfo)
+    newService.syncItem()
+
+    service = newService
+
+    if selectedBankAccount:
+        print "Setting bank account number %s into account %s" %(bankID, selectedBankAccount)
+        selectedBankAccount.setBankAccountNumber(bankID)                # noqa
+        selectedBankAccount.setOFXBankID(routID)                        # noqa
+
+        print("Set Banking Acct %s link to new profile %s" %(selectedBankAccount, newService))
+        selectedBankAccount.setBankingFI(newService)                    # noqa
+
+        selectedBankAccount.syncItem()                                  # noqa
+        selectedBankAccount.getDownloadedTxns()                         # noqa
+
+    if selectedCCAccount:
+        print "Setting CC account number %s into account %s" %(ccID, selectedCCAccount)
+        selectedCCAccount.setBankAccountNumber(ccID)                    # noqa
+
+        print("Set CC Acct %s link to new profile %s" %(selectedCCAccount, newService))
+        selectedCCAccount.setBankingFI(newService)                      # noqa
+
+        selectedCCAccount.syncItem()                                    # noqa
+        selectedCCAccount.getDownloadedTxns()                           # noqa
+
+    print "Updating root with userID and uuid"
+    root = moneydance.getRootAccount()
+    authKeyPrefix = "ofx.client_uid"
+    # root.setParameter(authKeyPrefix, uuid)
+    # root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + "null",   uuid)         # noqa
+
+    rootKeys = list(root.getParameterKeys())
+    for i in range(0,len(rootKeys)):
+        rk = rootKeys[i]
+        if rk.startswith(authKeyPrefix) and service.getTIKServiceID() in rk:
+            print "Deleting old authKey %s: %s" %(rk,root.getParameter(rk))
+            root.setParameter(rk, None)
+        i+=1
+
+    root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + userID,   uuid)          # noqa
+    root.setParameter(authKeyPrefix+"_default_user"+"::" + service.getTIKServiceID(), userID)         # noqa
+    root.syncItem()
+    print "Root UserID and uuid updated..."
+
+    print("accessing authentication keys")
+
+    _ACCOUNT = 0
+    _SERVICE = 1
+    _ISBILLPAY = 2
+
+    check = 0
+    whichAccounts = []
+    if selectedBankAccount:
+        check += 1
+        whichAccounts.append(selectedBankAccount)
+    if selectedCCAccount:
+        check += 1
+        whichAccounts.append(selectedCCAccount)
+
+    listAccountMDProxies=[]
+    for acctObj in whichAccounts:
+        acct = acctObj                                 # type: Account
+        svcBank = acct.getBankingFI()                  # noqa
+        svcBPay = acct.getBillPayFI()                  # noqa
+        if svcBank is not None:
+            print(" - Found/Saved Banking Acct: %s" %acct)
+            listAccountMDProxies.append([MDAccountProxy(acct, False),svcBank,False])
+        if svcBPay is not None:
+            print(" - Found/Saved Bill Pay Acct: %s" %acct)
+            listAccountMDProxies.append([MDAccountProxy(acct, True),svcBPay,True])
+
+    if len(listAccountMDProxies) != check: raise Exception("LOGIC ERROR: listAccountMDProxies != %s" %check)
+
+    print("\n>>REALMs configured:")
+    realmsToCheck = service.getRealms()         # noqa
+    if "DEFAULT" not in realmsToCheck:
+        realmsToCheck.insert(0,"DEFAULT")       # noqa
+
+    for realm in realmsToCheck:
+        print("Realm: %s current User ID: %s" %(realm, service.getUserId(realm, None)))        # noqa
+
+        for olacct in listAccountMDProxies:
+
+            authKey = "ofx:" + realm
+            authObj = service.getCachedAuthentication(authKey)                              # noqa
+            print("Realm: %s Cached Authentication: %s" %(realm, authObj))
+
+            newAuthObj = "type=0&userid=%s&pass=%s&extra=" %(userID,password)
+            print("** Setting new cached authentication from %s to: %s" %(authKey, newAuthObj))
+            service.cacheAuthentication(authKey, newAuthObj)        # noqa
+
+            authKey = "ofx:" + (realm + "::" + olacct[_ACCOUNT].getAccountKey())
+            authObj = service.getCachedAuthentication(authKey)        # noqa
+            print("Realm: %s Account Key: %s Cached Authentication: %s" %(realm, olacct[_ACCOUNT].getAccountKey(),authObj))
+            print("** Setting new cached authentication from %s to: %s" %(authKey, newAuthObj))
+            service.cacheAuthentication(authKey, newAuthObj)        # noqa
+
+            print("Realm: %s now UserID: %s" %(realm, userID))
+
+    print "SUCCESS. Please RESTART Moneydance."
+
+    myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, "SUCCESS. REVIEW OUTPUT - Then RESTART Moneydance.", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+    if not ofx_create_new_usaa_bank_profile_frame_.isActiveInMoneydance:
+        destroyOldFrames(myModuleID)
+
+    myPrint("B", "StuWareSoftSystems - %s script ending......" %myScriptName)
+
+    moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
 
     if not i_am_an_extension_so_run_headless: print(scriptExit)

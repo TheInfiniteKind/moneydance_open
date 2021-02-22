@@ -36,7 +36,9 @@
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
+
 global list_future_reminders_frame_, myModuleID
+global moneydance, moneydance_data, moneydance_ui
 
 myModuleID = u"list_future_reminders"                                                                 		 		# noqa
 
