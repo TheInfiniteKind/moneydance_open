@@ -238,6 +238,8 @@ if frameToResurrect:
         raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
 
 else:
+    del frameToResurrect
+
     print("%s: No other 'live' instances of this program detected - running as normal" %(myModuleID))
     System.err.write("%s: No other instances of this program detected - running as normal\n" %(myModuleID))
 
@@ -531,8 +533,8 @@ Visit: %s (Author's site)
             try:
                 exec "global moneydance_ui;" + "moneydance_ui=moneydance.getUI();"
             except:
-                myPrint("B","Failed to set moneydance_ui... This is a critical failure...!")
-                raise
+                myPrint("B","Failed to set moneydance_ui... This is a critical failure... (perhaps a run-time extension and too early - will continue)!")
+                # raise
 
             try:
                 exec "global moneydance_data;" + "moneydance_data=moneydance.getCurrentAccount().getBook();"
@@ -547,12 +549,11 @@ Visit: %s (Author's site)
 
     is_moneydance_loaded_properly()
 
-
     def getMonoFont():
         global debug
 
         try:
-            theFont = moneydance_ui.getFonts().code
+            theFont = moneydance.getUI().getFonts().code
             # if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
         except:
             theFont = Font("monospaced", Font.PLAIN, 15)
@@ -561,7 +562,7 @@ Visit: %s (Author's site)
         return theFont
 
     def getTheSetting(what):
-        x = moneydance_ui.getPreferences().getSetting(what, None)
+        x = moneydance.getPreferences().getSetting(what, None)
         if not x or x == u"": return None
         return what + u": %s" %(x)
 
@@ -631,7 +632,7 @@ Visit: %s (Author's site)
 
         if theParent is None:
             if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+                icon_to_use=moneydance.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
                 JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType, icon_to_use)
                 return
         JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType)
@@ -665,7 +666,7 @@ Visit: %s (Author's site)
 
         if response == 2:
             myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
-            moneydance_ui.saveToBackup(None)
+            moneydance.getUI().saveToBackup(None)
             return True
 
         elif response == 1:
@@ -684,7 +685,7 @@ Visit: %s (Author's site)
         icon_to_use = None
         if theParent is None:
             if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+                icon_to_use=moneydance.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
 
         # question = wrapLines(theQuestion)
         question = theQuestion
@@ -709,7 +710,7 @@ Visit: %s (Author's site)
         icon_to_use = None
         if theParent is None:
             if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+                icon_to_use=moneydance.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
 
         p = JPanel(GridBagLayout())
         defaultText = None
@@ -859,7 +860,7 @@ Visit: %s (Author's site)
                 self.fakeJFrame.setUndecorated(True)
                 self.fakeJFrame.setVisible( False )
                 if not Platform.isOSX():
-                    self.fakeJFrame.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+                    self.fakeJFrame.setIconImage(MDImages.getImage(moneydance.getSourceInformation().getIconResource()))
 
             if self.lModal:
                 # noinspection PyUnresolvedReferences
@@ -881,7 +882,7 @@ Visit: %s (Author's site)
 
             if (not Platform.isMac()):
                 # moneydance_ui.getImages()
-                self._popup_d.setIconImage(MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource()))
+                self._popup_d.setIconImage(MDImages.getImage(moneydance.getSourceInformation().getIconResource()))
 
             displayJText = JTextArea(self.theMessage)
             displayJText.setFont( getMonoFont() )
@@ -974,7 +975,7 @@ Visit: %s (Author's site)
 
         # Seems to cause a crash on Virtual Machine with no Audio - so just in case....
         try:
-            moneydance_ui.getSounds().playSound("cash_register.wav")
+            moneydance.getUI().getSounds().playSound("cash_register.wav")
         except:
             pass
 
@@ -1020,8 +1021,10 @@ Visit: %s (Author's site)
                 return True
             return False
 
-
-    moneydanceIcon = MDImages.getImage(moneydance_ui.getMain().getSourceInformation().getIconResource())
+    try:
+        moneydanceIcon = MDImages.getImage(moneydance.getSourceInformation().getIconResource())
+    except:
+        moneydanceIcon = None
 
     def MDDiag():
         global debug
@@ -1066,7 +1069,7 @@ Visit: %s (Author's site)
 
     def setDefaultFonts():
 
-        myFont = moneydance_ui.getFonts().defaultText
+        myFont = moneydance.getUI().getFonts().defaultText
 
         if myFont.getSize()>18:
             try:
@@ -1131,8 +1134,8 @@ Visit: %s (Author's site)
 
         return
 
-
-    setDefaultFonts()
+    if moneydance_ui is not None:
+        setDefaultFonts()
 
     def who_am_i():
         try:
@@ -1152,12 +1155,7 @@ Visit: %s (Author's site)
         return
 
     def amIaMac():
-        myPlat = System.getProperty("os.name")
-        if myPlat is None: return False
-        myPrint("DB", "Platform:", myPlat)
-        myPrint("DB", "OS Version:", System.getProperty("os.version"))
-        return myPlat == "Mac OS X"
-
+        return Platform.isOSX()
 
     myPrint("D", "I am user:", who_am_i())
     if debug: getHomeDir()
