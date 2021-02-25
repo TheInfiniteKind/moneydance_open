@@ -1,13 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# demo_calling_import_functions.py - Build: 3
+# demo_calling_import_functions.py - Build: 4
 # A basic demo Python (Jython) script to get you started - Stuart Beesley - StuWareSoftSystems - Feb 2021
 # Allows you to call the Moneydance Import File function, set parameters, and bypass the popup screens
 # It's written with code to demo what it possible.. YOu should taylor the flow/setup accordingly....
 
 # Reverse engineered from:
 # com.moneydance.apps.md.view.gui.MoneydanceGUI.importFile(fileToImport, newAccountSet=False, contextAccount=moneydance_ui.firstMainFrame.getSelectedAccount())
+
+global moneydance, moneydance_data, moneydance_ui
+
+if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+    try:
+        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+    except:
+        pass
+    raise Exception("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+
 
 import os
 from java.lang import System
@@ -24,8 +34,6 @@ from com.moneydance.apps.md.controller.fileimport import QIFFileImporter
 # from com.moneydance.apps.md.view.gui import ImportTask
 from com.moneydance.util import Platform
 from java.awt import FileDialog
-
-global moneydance, moneydance_data, moneydance_ui
 
 # ######################################################################################################################
 # ######################################################################################################################

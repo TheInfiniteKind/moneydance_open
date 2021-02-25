@@ -64,7 +64,10 @@ elif getMyJFrame( myModuleID ) is not None:
     System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
 
 if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
-    moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+    try:
+        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+    except:
+        raise Exception("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
 
 elif frameToResurrect:
     try:

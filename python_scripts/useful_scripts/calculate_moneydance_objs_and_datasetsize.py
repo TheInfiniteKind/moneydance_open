@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# calculate_moneydance_objs_and_datasetsize.py build: 5 - Feb 2021 - Stuart Beesley StuWareSoftSystems
+# calculate_moneydance_objs_and_datasetsize.py build: 6 - Feb 2021 - Stuart Beesley StuWareSoftSystems
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -48,7 +48,13 @@ elif getMyJFrame( myModuleID ) is not None:
     print("%s: Detected that %s is already running in another namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
     System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
 
-if frameToResurrect:
+if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+    try:
+        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+    except:
+        raise Exception("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+
+elif frameToResurrect:
     try:
         frameToResurrect.setVisible(True)
         if frameToResurrect.getExtendedState() == JFrame.ICONIFIED:
@@ -130,7 +136,7 @@ else:
 
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "5"                                                                                                 # noqa
+    version_build = "6"                                                                                                 # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa

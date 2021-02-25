@@ -1,11 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# demo_account_currency_rates.py - Build: 1
+# demo_account_currency_rates.py - Build: 2
 
 # A basic demo Python (Jython) script to get you started - Stuart Beesley - StuWareSoftSystems - Jan 2021
 # Allows user to select an account, select a date, select a currency
 # script will get the Account's balance for that date, and convert to base currency, the relative currency, and selected currency
+
+global moneydance, moneydance_data, moneydance_ui
+
+if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+    try:
+        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+    except:
+        pass
+    raise Exception("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+
 
 import sys
 reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
@@ -17,8 +27,6 @@ from com.infinitekind.util import DateUtil, CustomDateFormat
 from com.moneydance.awt import JDateField
 from java.awt import GridLayout
 from javax.swing import JLabel, JPanel, JOptionPane
-
-global moneydance, moneydance_data, moneydance_ui
 
 # noinspection PyUnresolvedReferences
 class MyAcctFilter(AcctFilter):

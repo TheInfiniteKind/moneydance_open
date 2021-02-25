@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1002 - February 2021 - Stuart Beesley
+# extract_data.py - build: 1003 - February 2021 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -61,6 +61,7 @@
 # Build: 1001 - Enhance stockglance2020 to get cash balances for all accounts when the conditions are correct...
 # Build: 1002 - Detect when already running and prevent situation
 # Build: 1002 - Fix SG2020 display on account names with non-ascii characters; error trap all extract csv routines
+# Build: 1003 - Tweak, block old MD versions
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -107,7 +108,13 @@ elif getMyJFrame( myModuleID ) is not None:
     print("%s: Detected that %s is already running in another namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
     System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
 
-if frameToResurrect:
+if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+    try:
+        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+    except:
+        raise Exception("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+
+elif frameToResurrect:
     try:
         frameToResurrect.setVisible(True)
         if frameToResurrect.getExtendedState() == JFrame.ICONIFIED:
@@ -188,7 +195,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "1002"                                                                                              # noqa
+    version_build = "1003"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
