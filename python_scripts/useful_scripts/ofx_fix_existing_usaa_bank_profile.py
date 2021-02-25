@@ -3,6 +3,9 @@
 
 # ofx_fix_existing_usaa_bank_profile.py - Author - Stuart Beesley - StuWareSoftSystems 2021
 
+# READ THIS FIRST:
+# https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf
+
 # This script attempts to edit ('hack') a pre-existing USAA Bank Profile to work with the new connection information
 # It will update your UserID, Password, and allow you to change the Credit Card Number
 
@@ -12,9 +15,8 @@
 
 # CREDITS:  hleofxquotes for his technical input and dtd for his extensive testing
 
-# build 9 - Initial preview release.....
+# build 10 - Initial preview release.....
 
-# Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -59,7 +61,10 @@ elif getMyJFrame( myModuleID ) is not None:
     print("%s: Detected that %s is already running in another namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
     System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
 
-if frameToResurrect:
+if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+    moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+
+elif frameToResurrect:
     try:
         frameToResurrect.setVisible(True)
         if frameToResurrect.getExtendedState() == JFrame.ICONIFIED:
@@ -140,7 +145,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "9"                                                                                              # noqa
+    version_build = "10"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -1220,16 +1225,18 @@ Visit: %s (Author's site)
         raise Exception("Disclaimer rejected - no changes made")
 
     ask = MyPopUpDialogBox(ofx_fix_existing_usaa_bank_profile_frame_, "Do you know all the relevant details - BEFORE YOU START?",
-                           "THIS SCRIPT WILL UPDATE/EDIT/FIX A SELECTED PRE-EXISTING USAA bank profile. IT MUST HAVE ALREADY BEEN A WORKING CONNECTION before USAA broke it!\n"
-                           "THIS SCRIPT CAN DEAL WITH MULTIPLE PROFILES, UNLIMITED BANK ACCOUNTS AND MAX 1 EXISTING CC ACCOUNT (per profile).. If you need more, contact the author\n"
+                           "Get the latest useful_scripts.zip package from: https://yogi1967.github.io/MoneydancePythonScripts/ \n"
                            "Read the walk through guide: ofx_fix_existing_create_new_usaa_bank_profile.pdf\n"
+                           "Latest: https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf\n\n"
+                           "THIS SCRIPT WILL UPDATE/EDIT/FIX A SELECTED PRE-EXISTING USAA bank profile. IT MUST HAVE ALREADY BEEN A WORKING CONNECTION before USAA broke it!\n"
+                           "THIS SCRIPT CAN DEAL WITH MULTIPLE PROFILES, UNLIMITED BANK ACCOUNTS AND MAX 1 EXISTING CC ACCOUNT (per profile).. (You can add more later via MD)\n"
                            "Login to USAA. Go to https://www.usaa.com/accessid - There you can get a 'Quicken user' id and password.\n"
                            "- NOTE that you also need a clientUid (UUID) - you grab from the beginning of the browser url - (BEFORE you click approve Quicken access)\n"
                            ">> it's the long string of 36 digits (numbers & letters) 8-4-4-4-12 format. Get the url & find client_id=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy\n"
                            "Do you know your new Bank Supplied UUID (36 digits 8-4-4-4-12)?\n"
                            "Do you know your Bank supplied UserID (min length 8)?\n"
                            "Do you know your new Password (min length 6) - no longer a PIN?\n"
-                           "Do you know your Bank Account Number(s) (10-digits) and routing Numbers (to reconfirm them if needed)?\n"
+                           "Do you know your Bank Account Number(s) (10-digits) and routing Number (9-digits - usually '314074269') (to reconfirm them if necessary)\n"
                            "Do you know the DIFFERENT Credit Card number that the bank will accept? (This may not apply, just try your current one first - we can fix this later)\n"
                            "Do you know which Accounts in Moneydance are linked to this your existing bank profile?\n"
                            "IF NOT, STOP AND GATHER ALL INFORMATION",

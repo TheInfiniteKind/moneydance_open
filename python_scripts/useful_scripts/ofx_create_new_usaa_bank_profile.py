@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# build 3
+# build 4
 
 # ofx_create_new_usaa_bank_profile.py - Author - Stuart Beesley - StuWareSoftSystems 2021
+
+# READ THIS FIRST:
+# https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf
 
 # This script attempts to build a new USAA Bank Profile from scratch to work with the new connection information
 # It will DELETE all existing USAA profiles first!
@@ -15,9 +18,8 @@
 
 # CREDITS:  hleofxquotes for his technical input and dtd for his extensive testing
 
-# build 1 - Initial preview release.....
+# build 4 - Initial preview release.....
 
-# Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -49,7 +51,6 @@ def getMyJFrame( moduleName ):
             return fr
     return None
 
-
 frameToResurrect = None
 if (u"%s_frame_"%myModuleID in globals()
         and isinstance(ofx_create_new_usaa_bank_profile_frame_, MyJFrame)
@@ -62,7 +63,10 @@ elif getMyJFrame( myModuleID ) is not None:
     print("%s: Detected that %s is already running in another namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
     System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
 
-if frameToResurrect:
+if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+    moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+
+elif frameToResurrect:
     try:
         frameToResurrect.setVisible(True)
         if frameToResurrect.getExtendedState() == JFrame.ICONIFIED:
@@ -143,7 +147,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "3"                                                                                              # noqa
+    version_build = "4"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -1243,16 +1247,18 @@ Visit: %s (Author's site)
         raise Exception("Disclaimer rejected - no changes made")
 
     ask = MyPopUpDialogBox(ofx_create_new_usaa_bank_profile_frame_, "Do you know all the relevant details - BEFORE YOU START?",
-                           "THIS SCRIPT WILL DELETE ANY EXISTING 'USAA' bank profiles it finds and create a brand new one for you...\n"
-                           "THIS SCRIPT CAN ONLY DEAL WITH MAX 1 BANK ACCOUNTS AND MAX 1 CC ACCOUNT.. If you need more, contact the author\n"
+                           "Get the latest useful_scripts.zip package from: https://yogi1967.github.io/MoneydancePythonScripts/ \n"
                            "Read the walk through guide: ofx_fix_existing_create_new_usaa_bank_profile.pdf\n"
+                           "Latest: https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf\n\n"
+                           "THIS SCRIPT WILL DELETE ANY/AlL EXISTING 'USAA' bank profiles it finds and create a brand new one for you...\n"
+                           "THIS SCRIPT CAN ONLY DEAL WITH MAX 1 BANK ACCOUNTS AND MAX 1 CC ACCOUNT.. (You can add more later on using the standard MD Online Setup menus)\n"
                            "Login to USAA. Go to https://www.usaa.com/accessid - There you can get a 'Quicken user' id and password.\n"
                            "- NOTE that you also need a clientUid (UUID) - you grab from the beginning of the browser url - (BEFORE you click approve Quicken access)\n"
                            ">> it's the long string of 36 digits (numbers & letters) 8-4-4-4-12 format. Get the url & find client_id=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy\n"
                            "Do you know your new Bank Supplied UUID (36 digits 8-4-4-4-12)?\n"
                            "Do you know your Bank supplied UserID (min length 8)?\n"
                            "Do you know your new Password (min length 6) - no longer a PIN?\n"
-                           "Do you know your Bank Account Number(s) (10-digits) and routing Numbers?\n"
+                           "Do you know your Bank Account Number(s) (10-digits) and routing Number (9-digits - usually '314074269')?\n"
                            "Do you know the DIFFERENT Credit Card number that the bank will accept? (This may not apply, just try your current one first - we can fix this later)\n"
                            "Do you know which Accounts in Moneydance to select and link to this new profile?\n"
                            "IF NOT, STOP AND GATHER ALL INFORMATION",
@@ -1409,8 +1415,10 @@ Visit: %s (Author's site)
         myPrint("B", "bankID entered:          %s" %bankID)
 
         route = selectedBankAccount.getOFXBankID()                      # noqa
-        routID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "Routing", "Routing", "Type/Paste your Routing Number - very carefully", route)
-        if routID is None or routID == "": raise Exception("ERROR - no Routing supplied")
+        if route == "" or len(route) != 9:
+            route = "314074269"
+        routID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "Routing", "Routing", "Type/Paste your Routing Number (9 digits - usually '314074269')- very carefully", route)
+        if routID is None or routID == "" or len(routID) != 9 : raise Exception("ERROR - no Routing supplied")
         myPrint("B", "existing routing number: %s" %route)
         myPrint("B", "routID entered:          %s" %routID)
 
