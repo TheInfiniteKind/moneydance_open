@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# build 4
+# build 5
 
 # ofx_create_new_usaa_bank_profile.py - Author - Stuart Beesley - StuWareSoftSystems 2021
 
@@ -150,7 +150,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "4"                                                                                              # noqa
+    version_build = "5"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -1249,21 +1249,20 @@ Visit: %s (Author's site)
     if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "DISCLAIMER", "DO YOU ACCEPT YOU RUN THIS AT YOUR OWN RISK?", theMessageType=JOptionPane.WARNING_MESSAGE):
         raise Exception("Disclaimer rejected - no changes made")
 
-    ask = MyPopUpDialogBox(ofx_create_new_usaa_bank_profile_frame_, "Do you know all the relevant details - BEFORE YOU START?",
+    ask = MyPopUpDialogBox(ofx_create_new_usaa_bank_profile_frame_, "This script will replace any 'broken' USAA bank profile(s) it finds and create a brand new one for you:",
                            "Get the latest useful_scripts.zip package from: https://yogi1967.github.io/MoneydancePythonScripts/ \n"
-                           "Read the walk through guide: ofx_fix_existing_create_new_usaa_bank_profile.pdf\n"
+                           "Read the latest walk through guide: ofx_fix_existing_create_new_usaa_bank_profile.pdf\n"
                            "Latest: https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf\n\n"
-                           "THIS SCRIPT WILL DELETE ANY/AlL EXISTING 'USAA' bank profiles it finds and create a brand new one for you...\n"
-                           "THIS SCRIPT CAN ONLY DEAL WITH MAX 1 BANK ACCOUNTS AND MAX 1 CC ACCOUNT.. (You can add more later on using the standard MD Online Setup menus)\n"
-                           "Login to USAA. Go to https://www.usaa.com/accessid - There you can get a 'Quicken user' id and password.\n"
-                           "- NOTE that you also need a clientUid (UUID) - you grab from the beginning of the browser url - (BEFORE you click approve Quicken access)\n"
-                           ">> it's the long string of 36 digits (numbers & letters) 8-4-4-4-12 format. Get the url & find client_id=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy\n"
-                           "Do you know your new Bank Supplied UUID (36 digits 8-4-4-4-12)?\n"
-                           "Do you know your Bank supplied UserID (min length 8)?\n"
-                           "Do you know your new Password (min length 6) - no longer a PIN?\n"
-                           "Do you know your Bank Account Number(s) (10-digits) and routing Number (9-digits - usually '314074269')?\n"
-                           "Do you know the DIFFERENT Credit Card number that the bank will accept? (This may not apply, just try your current one first - we can fix this later)\n"
-                           "Do you know which Accounts in Moneydance to select and link to this new profile?\n"
+                           "This script will correct one bank account and one credit card account. You can correct others within Moneydance later\n\n"
+                           "> You login to USAA at https://www.usaa.com/accessid to get your 'Quicken user' credentials.\n"
+                           "> This is also where you find your clientUid (UUID) hidden within the browser url (BEFORE you click approve Quicken access)\n\n"
+                           "This script will ask you for many numbers. You must know them:\n"
+                           "- Do you know your new Bank Supplied UUID (36 digits 8-4-4-4-12)?\n"
+                           "- Do you know your Bank supplied UserID (min length 8)?\n"
+                           "- Do you know your new Password (min length 6) - no longer a PIN?\n"
+                           "- Do you know your Bank Account Number(s) (10-digits) and routing Number (9-digits - usually '314074269')?\n"
+                           "- Do you know the DIFFERENT Credit Card number that the bank will accept? (This may not apply, just try your current one first)\n"
+                           "- Do you know which Accounts in Moneydance to select and link to this new profile?\n"
                            "IF NOT, STOP AND GATHER ALL INFORMATION",
                            250,"KNOWLEDGE",
                            lCancelButton=True,OKButtonText="CONFIRMED", lAlertLevel=1)
