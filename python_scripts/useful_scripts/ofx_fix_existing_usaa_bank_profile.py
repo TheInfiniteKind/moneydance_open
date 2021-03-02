@@ -15,7 +15,7 @@
 
 # CREDITS:  hleofxquotes for his technical input and dtd for his extensive testing
 
-# build 12 - Initial preview release.....
+# build 13 - Initial preview release.....
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -186,7 +186,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "12"                                                                                              # noqa
+    version_build = "13"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -1263,6 +1263,67 @@ Visit: %s (Author's site)
 
             return True
 
+    def validate_profile_links(the_service, the_olAccounts):
+
+        myPrint("B","Validating links between MD Accounts and your profile......")
+
+        profile_avail_accounts = the_service.getAvailableAccounts()
+        if len(the_olAccounts) != len(profile_avail_accounts):
+            myPrint("B","Error - Number of MD accounts (%s) linked and profile accounts (%s) differ?!" %(len(the_olAccounts),len(profile_avail_accounts)))
+            for acc in the_olAccounts: myPrint("B","..> Found MD Account: %s %s" %(acc,acc.getBankAccountNumber()))
+            for acc in profile_avail_accounts: myPrint("B","..> Found Profile Account: %s" %(acc.getAccountNumber()))
+            return False
+
+        save_profile_accounts = {}
+        checked_numbers = {}
+
+        for pfAccount in profile_avail_accounts:
+            pf_account_number = pfAccount.getAccountNumber()
+            if save_profile_accounts.get(pf_account_number, None):
+                myPrint("B","Error, I found (profile) account number %s twice - I cannot proceed!" %pf_account_number)
+                return False
+            save_profile_accounts[pf_account_number] = pfAccount
+        myPrint("B",".. Validated profile account numbers only exist once....")
+
+        for ol_acct in the_olAccounts:
+            theAccountNumber = str(ol_acct.getBankAccountNumber()).zfill(10)
+            if checked_numbers.get(theAccountNumber, None):
+                myPrint("B","Error, I found (MD) account number %s twice - I cannot proceed!" %theAccountNumber)
+                return False
+            checked_numbers[theAccountNumber] = ol_acct
+        myPrint("B",".. Validated MD account numbers only exist once....")
+
+        for ol_acct in the_olAccounts:
+            theAccountNumber = str(ol_acct.getBankAccountNumber()).zfill(10)
+            if not save_profile_accounts.get(theAccountNumber, None):
+                myPrint("B","Error, I could not find the link for MD account %s in this profile?! I cannot proceed!" %theAccountNumber)
+                return False
+        myPrint("B",".. Validated that all MD Account(s) numbers link to your profile...")
+
+        for pfAccount in profile_avail_accounts:
+            pf_account_number = pfAccount.getAccountNumber()
+            if not checked_numbers.get(pf_account_number, None):
+                myPrint("B","Error, I could not find the link for profile account %s in the MD Account(s)?! I cannot proceed!" %pf_account_number)
+                return False
+        myPrint("B",".. Validated that all Profile available account(s) numbers link back to your MD Accounts...")
+
+        if len(save_profile_accounts.keys()) != len(checked_numbers.keys()):
+            myPrint("B","Error, Number of MD Account (%s) to profile linkage (%s) keys differ! I cannot proceed!" %(len(save_profile_accounts.keys()), len(checked_numbers.keys())))
+            return False
+
+        myPrint("B","Linkage validation routine completed... Listing the linkages...:")
+        for md_number in checked_numbers:
+            myPrint("B"," - MD Account %s Number: %s Type: %s - Profile Number: %s Type: %s"
+                    %(pad(checked_numbers.get(md_number,None).getAccountName(),25),
+                      pad(md_number,16),
+                      pad(checked_numbers.get(md_number).getAccountName(),15),
+                      pad(save_profile_accounts.get(md_number,None).getAccountNumber(),16),
+                      save_profile_accounts.get(md_number,None).getAccountType()))
+        print "..\n"
+
+        return True
+
+
     if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_, "BACKUP", "FIX EXISTING USAA PROFILE >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
         myPopupInformationBox(ofx_fix_existing_usaa_bank_profile_frame_,"PLEASE USE FILE>EXPORT BACKUP then come back!!", theMessageType=JOptionPane.ERROR_MESSAGE)
         raise Exception("Please backup first - no changes made")
@@ -1270,7 +1331,7 @@ Visit: %s (Author's site)
     if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_, "DISCLAIMER", "DO YOU ACCEPT YOU RUN THIS AT YOUR OWN RISK?", theMessageType=JOptionPane.WARNING_MESSAGE):
         raise Exception("Disclaimer rejected - no changes made")
 
-    ask = MyPopUpDialogBox(ofx_fix_existing_usaa_bank_profile_frame_, "This script will update/edit/fix a selected pre-existing USAA bank profile (it must have been previously working before USAA broke it):",
+    ask = MyPopUpDialogBox(ofx_fix_existing_usaa_bank_profile_frame_, "This script will update/edit/fix a selected pre-existing USAA bank profile (it must have been previously working before USAA broke it - DO NOT ALTER YOUR ACCOUNTS):",
                            "Get the latest useful_scripts.zip package from: https://yogi1967.github.io/MoneydancePythonScripts/ \n"
                            "Read the walk through guide: ofx_fix_existing_create_new_usaa_bank_profile.pdf\n"
                            "Latest: https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf\n\n"
@@ -1319,7 +1380,15 @@ Visit: %s (Author's site)
         raise Exception("ERROR - no USAA service selected")
     myPrint("B", "Service selected: %s" %service)
 
-    if len(service.getAvailableAccounts())<1:          # noqa
+    myPrint("B","\n--------------------------------------------------------------------------------------------------------")
+    myPrint("B","DIAGNOSTIC DATA - THIS IS THE RAW CONTENTS OF YOUR SELECTED BANKING SERVICE PROFILE (BEFORE ANY CHANGES)\n")
+    sortKeys=sorted(service.getParameterKeys())                                                                         # noqa
+    for svcKey in sortKeys:
+        myPrint("B", " -%s %s" %(pad(svcKey,40),service.getParameter(svcKey,None)))                                     # noqa
+    myPrint("B","--------------------------------------------------------------------------------------------------------\n")
+    del sortKeys
+
+    if len(service.getAvailableAccounts())<1:                                                                           # noqa
         myPrint("B", "\n"*5)
         raise Exception("Sorry, no physical Bank Accounts linked to this banking profile found?!... Stopping here - no changes made...")
 
@@ -1350,7 +1419,7 @@ Visit: %s (Author's site)
             lFoundBankAccount = True
         elif acct.getAccountType() == Account.AccountType.CREDIT_CARD:  # noqa
             if lFoundCCAccount:
-                raise Exception("SORRY - I can only deal with one CC account within this profile at this time. Contact script author")
+                raise Exception("SORRY - I can only deal with one CC account within this profile at this time. (try Online>Setup Online Banking>Disable on the *extra* CC account(s) - or run ofx_create_new_usaa_bank_profile.py).")
             lFoundCCAccount = True
             ccAccountNumber = acct.getBankAccountNumber()
             saveCC_Acct = acct
@@ -1384,6 +1453,11 @@ Visit: %s (Author's site)
         if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_,"STORE PASSWORDS","Your system is not set up to save/store passwords. Do you want to continue?",theMessageType=JOptionPane.ERROR_MESSAGE):
             raise Exception("Please set up Master password and select store passwords first - then try again")
         myPrint("B", "Proceeding even though system is not set up for passwords")
+
+    if not validate_profile_links(service,olAccounts):
+        alert = "ALERT. The links between your existing bank profile and your MD accounts are incorrect! I cannot proceed. Please try the ofx_create_new_usaa_bank_profile.py script instead.."
+        myPopupInformationBox(ofx_fix_existing_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise Exception(alert)
 
     dummy = "12345678-1111-1111-1111-123456789012"
 
