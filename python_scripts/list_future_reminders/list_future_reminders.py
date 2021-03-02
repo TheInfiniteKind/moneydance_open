@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1002)
+# list_future_reminders.py (build: 1003)
 
 ###############################################################################
 # MIT License
@@ -30,6 +30,7 @@
 # Build: 1000 - Initial release - cribbed from extract_reminders_csv (for @CanSaver)
 # Build: 1001 - Enhancement to prevent duplicate extension running.....
 # Build: 1002 - Tweak to block old MD versions...
+# Build: 1003 - tweak to common code for launch detection
 
 # Displays Moneydance future reminders
 
@@ -38,51 +39,85 @@
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
-global list_future_reminders_frame_, myModuleID
-global moneydance, moneydance_data, moneydance_ui
+myModuleID = u"list_future_reminders"
+global list_future_reminders_frame_
 
-myModuleID = u"list_future_reminders"                                                                 		 		# noqa
+global moneydance, moneydance_data, moneydance_ui
+global moneydance_extension_loader
 
 from java.lang import System
 from javax.swing import JFrame
+from java.awt.event import WindowEvent
 
 class MyJFrame(JFrame):
 
 	def __init__(self, frameTitle=None):
 		super(JFrame, self).__init__(frameTitle)
+		self.myJFrameVersion = 2
 		self.isActiveInMoneydance = False
+		self.isRunTimeExtension = False
 		self.MoneydanceAppListener = None
-
+		self.HomePageViewObj = None
 
 def getMyJFrame( moduleName ):
-	frames = JFrame.getFrames()
-	for fr in frames:
-		if (fr.getName().lower().startswith(u"%s_main" %moduleName)
-				and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
-				and fr.isActiveInMoneydance):
-			print("%s: Found live frame: %s" %(myModuleID,fr.getName()))
-			System.err.write("%s: Found live frame: %s\n" %(myModuleID, fr.getName()))
-			return fr
+	try:
+		frames = JFrame.getFrames()
+		for fr in frames:
+			if (fr.getName().lower().startswith(u"%s_main" %moduleName)
+					and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
+					and fr.isActiveInMoneydance):
+				print("%s: Found live frame: %s (MyJFrame() version: %s)" %(myModuleID,fr.getName(),fr.myJFrameVersion))
+				System.err.write("%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID, fr.getName(),fr.myJFrameVersion))
+				if fr.isRunTimeExtension: print("%s: This extension is a run-time self-installed extension too..." %(myModuleID))
+				if fr.isRunTimeExtension: System.err.write("%s: This extension is a run-time self-installed extension too...\n" %(myModuleID))
+				return fr
+	except:
+		System.err.write("%s: Critical error in getMyJFrame(); caught and ignoring...!\n" %(myModuleID))
 	return None
 
 
 frameToResurrect = None
-if (u"%s_frame_"%myModuleID in globals()
-		and isinstance(list_future_reminders_frame_, MyJFrame)
-		and list_future_reminders_frame_.isActiveInMoneydance):
-	frameToResurrect = list_future_reminders_frame_
-	print("%s: Detected that %s is already running in same namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
-	System.err.write("%s: Detected that %s is already running in same namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
-elif getMyJFrame( myModuleID ) is not None:
-	frameToResurrect = getMyJFrame( myModuleID )
-	print("%s: Detected that %s is already running in another namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
-	System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
+try:
+	if (u"%s_frame_"%myModuleID in globals()
+			and isinstance(list_future_reminders_frame_, MyJFrame)
+			and list_future_reminders_frame_.isActiveInMoneydance):
+		frameToResurrect = list_future_reminders_frame_
+	else:
+		getFr = getMyJFrame( myModuleID )
+		if getFr is not None:
+			frameToResurrect = getFr
+		del getFr
+except:
+	System.err.write("%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID))
+
+lTerminatedExtension = False
+
+try:
+	if frameToResurrect:  # and it's still alive.....
+		if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. I need to deactivate and re-register extension...
+			print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
+			System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
+			frameToResurrect.isActiveInMoneydance = False
+			try:
+				frameToResurrect.setVisible(False)
+				frameToResurrect.dispatchEvent(WindowEvent(frameToResurrect, WindowEvent.WINDOW_CLOSING))
+				System.err.write("%s: Pushed a windowClosing event to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+			except:
+				System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
+
+			lTerminatedExtension = True
+			frameToResurrect = None
+		else:
+			print("%s: Detected that %s is already running..... Attempting to resurrect.." %(myModuleID, myModuleID))
+			System.err.write("%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
+except:
+	System.err.write("%s: Critical error checking frameToResurrect(2); caught and ignoring...!\n" %(myModuleID))
 
 if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
 	try:
-		moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+		moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 	except:
-		raise Exception("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+		raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 
 elif frameToResurrect:
 	try:
@@ -98,8 +133,12 @@ elif frameToResurrect:
 else:
 	del frameToResurrect
 
-	print("%s: No other 'live' instances of this program detected - running as normal" %(myModuleID))
-	System.err.write("%s: No other instances of this program detected - running as normal\n" %(myModuleID))
+	if not lTerminatedExtension:
+		print("%s: No other 'live' instances of this program detected (or I terminated it) - running as normal" %(myModuleID))
+		System.err.write("%s: No other instances of this program detected (or I terminated it) - running as normal\n" %(myModuleID))
+	else:
+		print("%s: I terminated extension in memory, running script to allow new installation..." %(myModuleID))
+		System.err.write("%s: I terminated extension in memory, running script to allow new installation...\n" %(myModuleID))
 
 	# COMMON IMPORTS #######################################################################################################
 	# COMMON IMPORTS #######################################################################################################
@@ -145,12 +184,12 @@ else:
 	from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
 	from java.io import BufferedReader, InputStreamReader
 	if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
-						JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
-						JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
-						InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
-						AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
-						JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
-						WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
+							JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
+							JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
+							InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
+							AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
+							JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
+							WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets, FileDialog)): pass
 	if codecs.BOM_UTF8 is not None: pass
 	if csv.QUOTE_ALL is not None: pass
 	if datetime.MINYEAR is not None: pass
@@ -165,7 +204,7 @@ else:
 	# END COMMON GLOBALS ###################################################################################################
 
 	# SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-	version_build = "1002"           																					# noqa
+	version_build = "1003"           																					# noqa
 	myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
 	debug = False                                                                                                       # noqa
 	myParameters = {}                                                                                                   # noqa
@@ -1197,6 +1236,13 @@ Visit: %s (Author's site)
 					myPrint("B","Failed to dispose old frame: %s" %(fr.getName()))
 					dump_sys_error_to_md_console_and_errorlog()
 
+	def classPrinter(className, theObject):
+		try:
+			text = "Class: %s %s@{:x}".format(System.identityHashCode(theObject)) %(className, theObject.__class__)
+		except:
+			text = "Error in classPrinter(): %s: %s" %(className, theObject)
+		return text
+
 	# END COMMON DEFINITIONS ###############################################################################################
 	# END COMMON DEFINITIONS ###############################################################################################
 	# END COMMON DEFINITIONS ###############################################################################################
@@ -2125,53 +2171,78 @@ Visit: %s (Author's site)
 			def __init__(self, theFrame):
 				self.alreadyClosed = False
 				self.theFrame = theFrame
+				self.myModuleID = myModuleID
+
+			def getMyself(self):
+				fm = moneydance.getModuleForID(self.myModuleID)
+				if fm is None: return None, None
+				try:
+					pyo = fm.getClass().getDeclaredField("extensionObject")
+					pyo.setAccessible(True)
+					pyObject = pyo.get(fm)
+					pyo.setAccessible(False)
+				except:
+					myPrint("DB","Error retrieving my own Python extension object..?")
+					dump_sys_error_to_md_console_and_errorlog()
+					return None, None
+
+				return fm, pyObject
 
 			# noinspection PyMethodMayBeStatic
 			def handleEvent(self, appEvent):
 				global debug
 
+				myPrint("DB", "I am .handleEvent() within %s" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
 				if self.alreadyClosed:
 					myPrint("DB","....I'm actually still here (MD EVENT %s CALLED).. - Ignoring and returning back to MD...." %(appEvent))
 					return
 
-				# I am only closing script when a new Dataset is opened.. I was calling it on MD Close/Exit, but it seemed to cause an Exception...
+				# MD doesn't call .unload() or .cleanup(), so if uninstalled I need to close myself
+				fm, pyObject = self.getMyself()
+				myPrint("DB", "Checking myself: %s : %s" %(fm, pyObject))
+				# if (fm is None or pyObject is None) and appEvent != "md:app:exiting":
+				if (fm is None or (self.theFrame.isRunTimeExtension and pyObject is None)) and appEvent != "md:app:exiting":
+					myPrint("B", "@@ ALERT - I've detected that I'm no longer installed as an extension - I will deactivate.. (switching event code to :close)")
+					appEvent = "%s:customevent:close" %self.myModuleID
+
+				# I am only closing Toolbox when a new Dataset is opened.. I was calling it on MD Close/Exit, but it seemed to cause an Exception...
 				if (appEvent == "md:file:closing"
 						or appEvent == "md:file:closed"
 						or appEvent == "md:file:opening"
 						or appEvent == "md:app:exiting"):
 					myPrint("DB","@@ Ignoring MD handleEvent: %s" %(appEvent))
 
-				elif (appEvent == "md:file:opened"):
+				elif (appEvent == "md:file:opened" or appEvent == "%s:customevent:close" %self.myModuleID):
 					if debug:
-						myPrint("DB","MD event %s triggered.... Will call MyRunnable (on a new Thread) to push a WINDOW_CLOSING Event to %s to close itself (while I exit back to MD quickly) ...." %(appEvent, myModuleID))
+						myPrint("DB","MD event %s triggered.... Will call MyRunnable (on a new Thread) to push a WINDOW_CLOSING Event to %s to close itself (while I exit back to MD quickly) ...." %(appEvent, self.myModuleID))
 					else:
-						myPrint("B","Moneydance triggered event %s triggered - So I am closing %s now...." %(appEvent, myModuleID))
+						myPrint("B","Moneydance triggered event %s triggered - So I am closing %s now...." %(appEvent, self.myModuleID))
 					self.alreadyClosed = True
 					try:
 						t = Thread(MyRunnable(self.theFrame))
 						t.start()
-						myPrint("DB","Back from calling MyRunnable to push a WINDOW_CLOSING Event to %s.... ;-> ** I'm getting out quick! **" %(myModuleID))
+						myPrint("DB","Back from calling MyRunnable to push a WINDOW_CLOSING Event to %s.... ;-> ** I'm getting out quick! **" %(self.myModuleID))
 					except:
 						dump_sys_error_to_md_console_and_errorlog()
-						myPrint("B","@@ ERROR calling MyRunnable to push  a WINDOW_CLOSING Event to %s.... :-< ** I'm getting out quick! **" %(myModuleID))
-					if not debug: myPrint("DB","Returning back to Moneydance after calling for %s to close...." %myModuleID)
+						myPrint("B","@@ ERROR calling MyRunnable to push  a WINDOW_CLOSING Event to %s.... :-< ** I'm getting out quick! **" %(self.myModuleID))
+					if not debug: myPrint("DB","Returning back to Moneydance after calling for %s to close...." %self.myModuleID)
 					return
 
 				myPrint("DB","@@ Detected MD handleEvent: %s" %(appEvent))
 
-			# md:file:closing	The Moneydance file is being closed
-			# md:file:closed	The Moneydance file has closed
-			# md:file:opening	The Moneydance file is being opened
-			# md:file:opened	The Moneydance file has opened
-			# md:file:presave	The Moneydance file is about to be saved
-			# md:file:postsave	The Moneydance file has been saved
-			# md:app:exiting	Moneydance is shutting down
-			# md:account:select	An account has been selected by the user
-			# md:account:root	The root account has been selected
-			# md:graphreport	An embedded graph or report has been selected
-			# md:viewbudget	One of the budgets has been selected
-			# md:viewreminders	One of the reminders has been selected
-			# md:licenseupdated	The user has updated the license
+				# md:file:closing	The Moneydance file is being closed
+				# md:file:closed	The Moneydance file has closed
+				# md:file:opening	The Moneydance file is being opened
+				# md:file:opened	The Moneydance file has opened
+				# md:file:presave	The Moneydance file is about to be saved
+				# md:file:postsave	The Moneydance file has been saved
+				# md:app:exiting	Moneydance is shutting down
+				# md:account:select	An account has been selected by the user
+				# md:account:root	The root account has been selected
+				# md:graphreport	An embedded graph or report has been selected
+				# md:viewbudget	One of the budgets has been selected
+				# md:viewreminders	One of the reminders has been selected
+				# md:licenseupdated	The user has updated the license
 
 		class WindowListener(WindowAdapter):
 
@@ -2184,20 +2255,28 @@ Visit: %s (Author's site)
 
 				terminate_script()
 
-			def windowClosed(self, WindowEvent):                               											# noqa
+			def windowClosed(self, WindowEvent):                                                                       # noqa
 				global debug
 
 				myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
 
 				self.theFrame.isActiveInMoneydance = False
 
+				myPrint("DB","applistener is %s" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
+
 				if self.theFrame.MoneydanceAppListener is not None:
 					try:
 						moneydance.removeAppEventListener(self.theFrame.MoneydanceAppListener)
-						myPrint("DB","\n@@@ Removed my MD App Listener...\n")
+						myPrint("DB","\n@@@ Removed my MD App Listener... %s\n" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
+						self.theFrame.MoneydanceAppListener = None
 					except:
-						myPrint("B","FAILED to remove my MD App Listener...")
+						myPrint("B","FAILED to remove my MD App Listener... %s" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
 						dump_sys_error_to_md_console_and_errorlog()
+
+				if self.theFrame.HomePageViewObj is not None:
+					self.theFrame.HomePageViewObj.unload()
+					myPrint("DB","@@ Called HomePageView.unload() and Removed reference to HomePageView %s from MyJFrame()...@@\n" %(classPrinter("HomePageView", self.theFrame.HomePageViewObj)))
+					self.theFrame.HomePageViewObj = None
 
 				myPrint("D","Exit ", inspect.currentframe().f_code.co_name, "()")
 
@@ -2670,7 +2749,7 @@ Visit: %s (Author's site)
 				try:
 					list_future_reminders_frame_.MoneydanceAppListener = MyEventListener(list_future_reminders_frame_)
 					moneydance.addAppEventListener(list_future_reminders_frame_.MoneydanceAppListener)
-					myPrint("DB","@@@ Added MD App Listener...")
+					myPrint("DB","@@ added AppEventListener() %s @@" %(classPrinter("MoneydanceAppListener", list_future_reminders_frame_.MoneydanceAppListener)))
 				except:
 					myPrint("B","FAILED to add MD App Listener...")
 					dump_sys_error_to_md_console_and_errorlog()

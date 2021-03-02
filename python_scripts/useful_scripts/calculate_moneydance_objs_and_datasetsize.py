@@ -1,58 +1,92 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# calculate_moneydance_objs_and_datasetsize.py build: 6 - Feb 2021 - Stuart Beesley StuWareSoftSystems
+# calculate_moneydance_objs_and_datasetsize.py build: 7 - Feb 2021 - Stuart Beesley StuWareSoftSystems
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
-global calculate_moneydance_objs_and_datasetsize_frame_, myModuleID
-global moneydance, moneydance_data, moneydance_ui
+myModuleID = u"calculate_moneydance_objs_and_datasetsize"
+global calculate_moneydance_objs_and_datasetsize_frame_
 
-myModuleID = u"calculate_moneydance_objs_and_datasetsize"                                                               # noqa
+global moneydance, moneydance_data, moneydance_ui
+global moneydance_extension_loader
 
 from java.lang import System
 from javax.swing import JFrame
+from java.awt.event import WindowEvent
 
 class MyJFrame(JFrame):
 
     def __init__(self, frameTitle=None):
         super(JFrame, self).__init__(frameTitle)
+        self.myJFrameVersion = 2
         self.isActiveInMoneydance = False
+        self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
-
+        self.HomePageViewObj = None
 
 def getMyJFrame( moduleName ):
-    frames = JFrame.getFrames()
-    for fr in frames:
-        if (fr.getName().lower().startswith(u"%s_main" %moduleName)
-                and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
-                and fr.isActiveInMoneydance):
-            print("%s: Found live frame: %s" %(myModuleID,fr.getName()))
-            System.err.write("%s: Found live frame: %s\n" %(myModuleID, fr.getName()))
-            return fr
+    try:
+        frames = JFrame.getFrames()
+        for fr in frames:
+            if (fr.getName().lower().startswith(u"%s_main" %moduleName)
+                    and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
+                    and fr.isActiveInMoneydance):
+                print("%s: Found live frame: %s (MyJFrame() version: %s)" %(myModuleID,fr.getName(),fr.myJFrameVersion))
+                System.err.write("%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID, fr.getName(),fr.myJFrameVersion))
+                if fr.isRunTimeExtension: print("%s: This extension is a run-time self-installed extension too..." %(myModuleID))
+                if fr.isRunTimeExtension: System.err.write("%s: This extension is a run-time self-installed extension too...\n" %(myModuleID))
+                return fr
+    except:
+        System.err.write("%s: Critical error in getMyJFrame(); caught and ignoring...!\n" %(myModuleID))
     return None
 
 
 frameToResurrect = None
-if (u"%s_frame_"%myModuleID in globals()
-        and isinstance(calculate_moneydance_objs_and_datasetsize_frame_, MyJFrame)
-        and calculate_moneydance_objs_and_datasetsize_frame_.isActiveInMoneydance):
-    frameToResurrect = calculate_moneydance_objs_and_datasetsize_frame_
-    print("%s: Detected that %s is already running in same namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
-    System.err.write("%s: Detected that %s is already running in same namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
-elif getMyJFrame( myModuleID ) is not None:
-    frameToResurrect = getMyJFrame( myModuleID )
-    print("%s: Detected that %s is already running in another namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
-    System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
+try:
+    if (u"%s_frame_"%myModuleID in globals()
+            and isinstance(calculate_moneydance_objs_and_datasetsize_frame_, MyJFrame)
+            and calculate_moneydance_objs_and_datasetsize_frame_.isActiveInMoneydance):
+        frameToResurrect = calculate_moneydance_objs_and_datasetsize_frame_
+    else:
+        getFr = getMyJFrame( myModuleID )
+        if getFr is not None:
+            frameToResurrect = getFr
+        del getFr
+except:
+    System.err.write("%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID))
+
+lTerminatedExtension = False
+
+try:
+    if frameToResurrect:  # and it's still alive.....
+        if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. I need to deactivate and re-register extension...
+            print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
+            System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
+            frameToResurrect.isActiveInMoneydance = False
+            try:
+                frameToResurrect.setVisible(False)
+                frameToResurrect.dispatchEvent(WindowEvent(frameToResurrect, WindowEvent.WINDOW_CLOSING))
+                System.err.write("%s: Pushed a windowClosing event to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+            except:
+                System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
+
+            lTerminatedExtension = True
+            frameToResurrect = None
+        else:
+            print("%s: Detected that %s is already running..... Attempting to resurrect.." %(myModuleID, myModuleID))
+            System.err.write("%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
+except:
+    System.err.write("%s: Critical error checking frameToResurrect(2); caught and ignoring...!\n" %(myModuleID))
 
 if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
     try:
-        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
     except:
-        raise Exception("SORRY YOUR VERSION IS TOO OLD FOR THESE SCRIPTS")
+        raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 
 elif frameToResurrect:
     try:
@@ -68,8 +102,12 @@ elif frameToResurrect:
 else:
     del frameToResurrect
 
-    print("%s: No other 'live' instances of this program detected - running as normal" %(myModuleID))
-    System.err.write("%s: No other instances of this program detected - running as normal\n" %(myModuleID))
+    if not lTerminatedExtension:
+        print("%s: No other 'live' instances of this program detected (or I terminated it) - running as normal" %(myModuleID))
+        System.err.write("%s: No other instances of this program detected (or I terminated it) - running as normal\n" %(myModuleID))
+    else:
+        print("%s: I terminated extension in memory, running script to allow new installation..." %(myModuleID))
+        System.err.write("%s: I terminated extension in memory, running script to allow new installation...\n" %(myModuleID))
 
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
@@ -120,7 +158,7 @@ else:
                          InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                          AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
                          JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
-                         WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
+                         WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets, FileDialog)): pass
     if codecs.BOM_UTF8 is not None: pass
     if csv.QUOTE_ALL is not None: pass
     if datetime.MINYEAR is not None: pass
@@ -136,7 +174,7 @@ else:
 
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "6"                                                                                                 # noqa
+    version_build = "7"                                                                                                 # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -1136,6 +1174,13 @@ Visit: %s (Author's site)
                     myPrint("B","Failed to dispose old frame: %s" %(fr.getName()))
                     dump_sys_error_to_md_console_and_errorlog()
 
+    def classPrinter(className, theObject):
+        try:
+            text = "Class: %s %s@{:x}".format(System.identityHashCode(theObject)) %(className, theObject.__class__)
+        except:
+            text = "Error in classPrinter(): %s: %s" %(className, theObject)
+        return text
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -1161,8 +1206,6 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
-
-    if isinstance(None, FileDialog): pass
 
     startDir=moneydance_data.getRootFolder().getCanonicalPath()
     print("\nDataset path:        %s" %(startDir))

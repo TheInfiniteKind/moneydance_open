@@ -37,6 +37,11 @@ To enable the User to self-diagnose problems, or access key diagnostics to enabl
 
 - All updates (and other key messages) get written to the Moneydance console error log
 
+NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM. This is why:
+1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
+2. At various times it may connect to the Infinite Kind server to gather information about extensions and versions
+3. Within the OFX banking menu, it can connect to the Infinite Kind server to get the latest bank connection profiles for viewing
+
 # Includes my previous / standalone scripts (now withdrawn):
 # FIX-reset_window_location_data.py 0.2beta
 # DIAG-can_i_delete_security.py v2
@@ -83,6 +88,8 @@ NOTE: Where CMD is specified, this may be CTRL (or ALT) in Windows / Linux
 
 CMD-I - This  Help Instruction Information
 
+CMD-F - Search for text in display windows
+
 CMD-O - Copy all outputs to Clipboard
 
 TOOLBAR / MENU BAR Contains the following:
@@ -100,6 +107,7 @@ ALT-B - Basic Mode
     - Find my Dataset (Search for *.moneydance & *.moneydancearchive Datasets)
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
         - Display Dataset Password/Hint and Sync Passphrase
+        - View MD Console (the whole file - searchable)
         - View MD Config.dict file
         - View MD Custom Theme file  (only appears if it exists)
         - View your Java .vmoptions file (only appears if it exists) - INCLUDES VARIOUS INSTRUCTIONS TOO

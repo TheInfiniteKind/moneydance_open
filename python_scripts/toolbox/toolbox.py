@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1026 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1027 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -172,61 +172,107 @@
 # Build: 1025 - small fix for is_moneydance_loaded_properly() when using MD build 2012
 # Build: 1026 - Enhancements to detect when extension is already running....
 # Build: 1026 - Detect when .moneydance and or .moneydancesync folder(s) are readonly/hidden - alert only
+# Build: 1027 - CMD-F Search popup on all displays feature added; tweak to block old MD versions....; Added back view whole console (searchable)
+# Build: 1027 - enhanced launch code...; added information banner when toolbox connects to the internet...
 
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
+
+# NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM. This is why:
+# 1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
+# 2. At various times it may connect to the Infinite Kind server to gather information about extensions and versions
+# 3. Within the OFX banking menu, it can connect to the Infinite Kind server to get the latest bank connection profiles for viewing
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
 # Also: These objects: moneydance_ui, moneydance_data, moneydance are set as ignore Unresolved References (as they exist at run time)
 # Further options at: https://www.jetbrains.com/help/pycharm/disabling-and-enabling-inspections.html#comments-ref
 
-
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
-global toolbox_frame_, myModuleID
-global moneydance, moneydance_data, moneydance_ui
+myModuleID = u"toolbox"
+global toolbox_frame_
 
-myModuleID = u"toolbox"                                                                                              # noqa
+global moneydance, moneydance_data, moneydance_ui
+global moneydance_extension_loader
 
 from java.lang import System
 from javax.swing import JFrame
+from java.awt.event import WindowEvent
 
 class MyJFrame(JFrame):
 
     def __init__(self, frameTitle=None):
         super(JFrame, self).__init__(frameTitle)
+        self.myJFrameVersion = 2
         self.isActiveInMoneydance = False
+        self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
-
+        self.HomePageViewObj = None
 
 def getMyJFrame( moduleName ):
-    frames = JFrame.getFrames()
-    for fr in frames:
-        if (fr.getName().lower().startswith(u"%s_main" %moduleName)
-                and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
-                and fr.isActiveInMoneydance):
-            print("%s: Found live frame: %s" %(myModuleID,fr.getName()))
-            System.err.write("%s: Found live frame: %s\n" %(myModuleID, fr.getName()))
-            return fr
+    try:
+        frames = JFrame.getFrames()
+        for fr in frames:
+            if (fr.getName().lower().startswith(u"%s_main" %moduleName)
+                    and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
+                    and fr.isActiveInMoneydance):
+                print("%s: Found live frame: %s (MyJFrame() version: %s)" %(myModuleID,fr.getName(),fr.myJFrameVersion))
+                System.err.write("%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID, fr.getName(),fr.myJFrameVersion))
+                if fr.isRunTimeExtension: print("%s: This extension is a run-time self-installed extension too..." %(myModuleID))
+                if fr.isRunTimeExtension: System.err.write("%s: This extension is a run-time self-installed extension too...\n" %(myModuleID))
+                return fr
+    except:
+        System.err.write("%s: Critical error in getMyJFrame(); caught and ignoring...!\n" %(myModuleID))
     return None
 
 
 frameToResurrect = None
-if (u"%s_frame_"%myModuleID in globals()
-        and isinstance(toolbox_frame_, MyJFrame)
-        and toolbox_frame_.isActiveInMoneydance):
-    frameToResurrect = toolbox_frame_
-    print("%s: Detected that %s is already running in same namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
-    System.err.write("%s: Detected that %s is already running in same namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
-elif getMyJFrame( myModuleID ) is not None:
-    frameToResurrect = getMyJFrame( myModuleID )
-    print("%s: Detected that %s is already running in another namespace..... Attempting to resurrect.." %(myModuleID, myModuleID))
-    System.err.write("%s: Detected that %s is already running in another namespace..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
+try:
+    if (u"%s_frame_"%myModuleID in globals()
+            and isinstance(toolbox_frame_, MyJFrame)
+            and toolbox_frame_.isActiveInMoneydance):
+        frameToResurrect = toolbox_frame_
+    else:
+        getFr = getMyJFrame( myModuleID )
+        if getFr is not None:
+            frameToResurrect = getFr
+        del getFr
+except:
+    System.err.write("%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID))
 
-if frameToResurrect:
+lTerminatedExtension = False
+
+try:
+    if frameToResurrect:  # and it's still alive.....
+        if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. I need to deactivate and re-register extension...
+            print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
+            System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
+            frameToResurrect.isActiveInMoneydance = False
+            try:
+                frameToResurrect.setVisible(False)
+                frameToResurrect.dispatchEvent(WindowEvent(frameToResurrect, WindowEvent.WINDOW_CLOSING))
+                System.err.write("%s: Pushed a windowClosing event to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+            except:
+                System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
+
+            lTerminatedExtension = True
+            frameToResurrect = None
+        else:
+            print("%s: Detected that %s is already running..... Attempting to resurrect.." %(myModuleID, myModuleID))
+            System.err.write("%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
+except:
+    System.err.write("%s: Critical error checking frameToResurrect(2); caught and ignoring...!\n" %(myModuleID))
+
+if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+    try:
+        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+    except:
+        raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+
+elif frameToResurrect:
     try:
         frameToResurrect.setVisible(True)
         if frameToResurrect.getExtendedState() == JFrame.ICONIFIED:
@@ -240,8 +286,12 @@ if frameToResurrect:
 else:
     del frameToResurrect
 
-    print("%s: No other 'live' instances of this program detected - running as normal" %(myModuleID))
-    System.err.write("%s: No other instances of this program detected - running as normal\n" %(myModuleID))
+    if not lTerminatedExtension:
+        print("%s: No other 'live' instances of this program detected (or I terminated it) - running as normal" %(myModuleID))
+        System.err.write("%s: No other instances of this program detected (or I terminated it) - running as normal\n" %(myModuleID))
+    else:
+        print("%s: I terminated extension in memory, running script to allow new installation..." %(myModuleID))
+        System.err.write("%s: I terminated extension in memory, running script to allow new installation...\n" %(myModuleID))
 
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
@@ -292,7 +342,7 @@ else:
                          InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                          AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
                          JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
-                         WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets)): pass
+                         WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets, FileDialog)): pass
     if codecs.BOM_UTF8 is not None: pass
     if csv.QUOTE_ALL is not None: pass
     if datetime.MINYEAR is not None: pass
@@ -307,7 +357,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "1026"                                                                                              # noqa
+    version_build = "1027"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -369,6 +419,8 @@ else:
     from java.awt.event import ComponentAdapter
 
     from java.util import UUID
+
+    from javax.swing.text import DefaultHighlighter
 
     try:
         from com.infinitekind.moneydance.model import TxnSortOrder
@@ -1387,6 +1439,13 @@ Visit: %s (Author's site)
                     myPrint("B","Failed to dispose old frame: %s" %(fr.getName()))
                     dump_sys_error_to_md_console_and_errorlog()
 
+    def classPrinter(className, theObject):
+        try:
+            text = "Class: %s %s@{:x}".format(System.identityHashCode(theObject)) %(className, theObject.__class__)
+        except:
+            text = "Error in classPrinter(): %s: %s" %(className, theObject)
+        return text
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -1452,6 +1511,10 @@ Visit: %s (Author's site)
     # noinspection PyBroadException
     def downloadStuWareSoftSystemsExtensions( what ):
         global i_am_an_extension_so_run_headless, debug
+
+        myPrint("B","#########################################################################################################################################################")
+        myPrint("B","### INFORMATION: Toolbox is connecting to the master Toolbox code repository to check if an updated version is available - IT IS NOT SENDING ANY DATA ###")
+        myPrint("B","#########################################################################################################################################################")
 
         dictInfo = StreamTable()
 
@@ -1811,8 +1874,7 @@ Visit: %s (Author's site)
     # noinspection PyBroadException
     def buildDiagText():
 
-        textArray = []                                                                                                  # noqa
-
+        textArray = []
         textArray.append(u"Moneydance Version / Build: %s" %(moneydance.getVersion()) + u"  Build: %s" %(moneydance.getBuild()))
         textArray.append(u"Moneydance Config file reports: %s" %moneydance_ui.getPreferences().getSetting(u"current_version", u""))
         textArray.append(u"Moneydance updater version to track: %s" %moneydance_ui.getPreferences().getSetting(u"updater.version_to_track",u""))
@@ -1863,10 +1925,12 @@ Visit: %s (Author's site)
         textArray.append(u"Full location of this Dataset: %s" %(moneydance_data.getRootFolder()))
 
         x = find_the_program_install_dir()
-        if x:
+        if x and Platform.isOSX() and System.getProperty(u"install4j.exeDir","") != "":     # Special 'not normal' check.... will normally never trigger
+            textArray.append(u"Application Install Directory (Mac running manual launch script): %s" %(x))
+        elif x:
             textArray.append(u"Application Install Directory: %s" %(x))
         else:
-            textArray.append(u"UNABLE TO DETERMINE Application's Install Directory?!")
+            textArray.append(u"UNABLE TO DETERMINE Application's Install Directory! (are you running Moneydance by manually executing the .jar file?)")
 
 
         lDropbox, lSuppressed = check_dropbox_and_suppress_warnings()
@@ -2508,6 +2572,100 @@ Visit: %s (Author's site)
         theData = "".join(theData)
         return theData
 
+    class SearchAction(AbstractAction):
+
+        def __init__(self, theFrame, searchJText):
+            self.theFrame = theFrame
+            self.searchJText = searchJText
+            self.lastSearch = ""
+            self.lastPosn = -1
+            self.previousEndPosn = -1
+            self.lastDirection = 0
+
+        def actionPerformed(self, event):
+            myPrint("D","in SearchAction(), Event: ", event)
+
+            p = JPanel(FlowLayout())
+            lbl = JLabel("Enter the search text:")
+            tf = JTextField(self.lastSearch,20)
+            p.add(lbl)
+            p.add(tf)
+
+            options = [ "Next", "Previous", "Cancel" ]
+
+            defaultDirection = options[self.lastDirection]
+
+            response = JOptionPane.showOptionDialog(self.theFrame,
+                                            p,
+                                            "Search for text",
+                                            JOptionPane.OK_CANCEL_OPTION,
+                                            JOptionPane.QUESTION_MESSAGE,
+                                            None,
+                                            options,
+                                            defaultDirection)
+
+            lSwitch = False
+            if (response == 0 or response == 1):
+                if response != self.lastDirection: lSwitch = True
+                self.lastDirection = response
+                searchWhat = tf.getText()
+            else:
+                searchWhat = None
+
+            del p, lbl, tf, options
+
+            if not searchWhat or searchWhat == "": return
+
+            theText = self.searchJText.getText().lower()
+            highlighter = self.searchJText.getHighlighter()
+            highlighter.removeAllHighlights()
+
+            startPos = 0
+
+            if response == 0:
+                direction = "[forwards]"
+                if searchWhat == self.lastSearch:
+                    startPos = self.lastPosn
+                    if lSwitch: startPos=startPos+len(searchWhat)+1
+                self.lastSearch = searchWhat
+
+                # if startPos+len(searchWhat) >= len(theText):
+                #     startPos = 0
+                #
+                pos = theText.find(searchWhat.lower(),startPos)     # noqa
+                myPrint("DB", "Search %s Pos: %s, searchWhat: '%s', startPos: %s, endPos: %s" %(direction, pos, searchWhat,startPos, -1))
+
+            else:
+                direction = "[backwards]"
+                endPos = len(theText)-1
+
+                if searchWhat == self.lastSearch:
+                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)-1
+                    endPos = max(0,self.previousEndPosn)
+                    if lSwitch: endPos = max(0,self.lastPosn-1)
+
+                self.lastSearch = searchWhat
+
+                pos = theText.rfind(searchWhat.lower(),startPos,endPos)     # noqa
+                myPrint("DB", "Search %s Pos: %s, searchWhat: '%s', startPos: %s, endPos: %s" %(direction, pos, searchWhat,startPos,endPos))
+
+            if pos >= 0:
+                self.searchJText.setCaretPosition(pos)
+                try:
+                    highlighter.addHighlight(pos,min(pos+len(searchWhat),len(theText)),DefaultHighlighter.DefaultPainter)
+                except: pass
+                if response == 0:
+                    self.lastPosn = pos+len(searchWhat)
+                    self.previousEndPosn = len(theText)-1
+                else:
+                    self.lastPosn = pos-len(searchWhat)
+                    self.previousEndPosn = pos-1
+            else:
+                self.lastPosn = 0
+                self.previousEndPosn = len(theText)-1
+                myPopupInformationBox(self.theFrame,"Searching %s text not found" %direction)
+
+            return
 
     class ToolboxBuildInfo:
 
@@ -2565,7 +2723,9 @@ Visit: %s (Author's site)
         global OFX_SETUP_MATCH_MD_BUILD, TOOLBOX_MINIMUM_TESTED_MD_VERSION, TOOLBOX_MAXIMUM_TESTED_MD_VERSION, TOOLBOX_MAXIMUM_TESTED_MD_BUILD
         global MD_OFX_BANK_SETTINGS_DIR, MD_OFX_DEFAULT_SETTINGS_FILE, MD_OFX_DEBUG_SETTINGS_FILE, MD_EXTENSIONS_DIRECTORY_FILE, MYPYTHON_DOWNLOAD_URL
 
-        myPrint("J","Checking online for updated Toolbox version / build information.....")
+        myPrint("B","##################################################################################################################################################")
+        myPrint("B","### INFORMATION: Toolbox is connecting to the master Toolbox code repository to check version / build information - IT IS NOT SENDING ANY DATA ###")
+        myPrint("B","##################################################################################################################################################")
 
         this_toolbox_build = int(version_build)
         if this_toolbox_build < 1000:
@@ -2573,8 +2733,6 @@ Visit: %s (Author's site)
             return
 
         downloadBuilds = StreamTable()
-
-        myPrint("DB","Checking online for Toolbox version/build information....")
 
         inx = None
         try:
@@ -2704,6 +2862,10 @@ Visit: %s (Author's site)
 
     def downloadExtensions():
         global MD_EXTENSIONS_DIRECTORY_FILE
+
+        myPrint("B","#######################################################################################################################################")
+        myPrint("B","### INFORMATION: Toolbox is connecting to Infinite Kind servers to check for extension(s) version data - IT IS NOT SENDING ANY DATA ###")
+        myPrint("B","#######################################################################################################################################")
 
         downloadInfo = StreamTable()
         if moneydance_ui.getMain().getSourceInformation().getExtensionsEnabled():
@@ -3485,6 +3647,11 @@ To enable the User to self-diagnose problems, or access key diagnostics to enabl
 
 - All updates (and other key messages) get written to the Moneydance console error log
 
+NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM. This is why:
+1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
+2. At various times it may connect to the Infinite Kind server to gather information about extensions and versions
+3. Within the OFX banking menu, it can connect to the Infinite Kind server to get the latest bank connection profiles for viewing
+
 # Includes my previous / standalone scripts (now withdrawn):
 # FIX-reset_window_location_data.py 0.2beta
 # DIAG-can_i_delete_security.py v2
@@ -3531,6 +3698,8 @@ NOTE: Where CMD is specified, this may be CTRL (or ALT) in Windows / Linux
 
 CMD-I - This  Help Instruction Information
 
+CMD-F - Search for text in display windows
+
 CMD-O - Copy all outputs to Clipboard
 
 TOOLBAR / MENU BAR Contains the following:
@@ -3548,6 +3717,7 @@ ALT-B - Basic Mode
     - Find my Dataset (Search for *.moneydance & *.moneydancearchive Datasets)
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
         - Display Dataset Password/Hint and Sync Passphrase
+        - View MD Console (the whole file - searchable) 
         - View MD Config.dict file
         - View MD Custom Theme file  (only appears if it exists)
         - View your Java .vmoptions file (only appears if it exists) - INCLUDES VARIOUS INSTRUCTIONS TOO
@@ -4111,7 +4281,7 @@ Menu - Auto Prune of Internal Backup files
 
             JFrame.setDefaultLookAndFeelDecorated(True)
 
-            jInternalFrame = MyJFrame(self.title)
+            jInternalFrame = MyJFrame(self.title + " (%s+F to find/search for text)" %(moneydance_ui.ACCELERATOR_MASK_STR))
             jInternalFrame.setName(u"%s_quickjframe" %myModuleID)
 
             if not Platform.isOSX():
@@ -4121,11 +4291,10 @@ Menu - Auto Prune of Internal Backup files
             jInternalFrame.setResizable(True)
 
             shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
-            jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
+            jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W,  shortcut), "close-window")
             jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+            jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F,  shortcut), "search-window")
             jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
-
-            jInternalFrame.getRootPane().getActionMap().put("close-window", self.CloseAction(jInternalFrame))
 
             theJText = JTextArea(self.output)
             theJText.setEditable(False)
@@ -4133,6 +4302,9 @@ Menu - Auto Prune of Internal Backup files
             theJText.setWrapStyleWord(True)
             # theJText.setFont(Font("monospaced", Font.PLAIN, 15))
             theJText.setFont( getMonoFont() )
+
+            jInternalFrame.getRootPane().getActionMap().put("close-window", self.CloseAction(jInternalFrame))
+            jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
 
             internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
@@ -4706,17 +4878,19 @@ Download from here: %s
 
     def find_the_program_install_dir():
 
-        theDir = ""
+        theDir = ""     # noqa
 
         if Platform.isOSX():
             # Derive from these - not great, but OK: java.home, java.library.path, sun.boot.library.path
 
-            test = System.getProperty("java.home").strip()
+            test = System.getProperty("java.home","").strip()
             _i = test.lower().find(".app/")                                                                             # noqa
             if _i > 0:
                 theDir = test[:_i+4]
+            else:
+                theDir = System.getProperty("install4j.exeDir","").strip()
         else:
-            theDir = System.getProperty("install4j.exeDir").strip()
+            theDir = System.getProperty("install4j.exeDir","").strip()
 
         if not os.path.exists(theDir):
             theDir = ""
@@ -6699,6 +6873,10 @@ Download from here: %s
         output = ""
         inx = None
 
+        myPrint("B","######################################################################################################################################################################")
+        myPrint("B","### INFORMATION: Toolbox is connecting to Infinite Kind Servers to download the banking connection profiles for the bank you selected - IT IS NOT SENDING ANY DATA ###")
+        myPrint("B","######################################################################################################################################################################")
+
         try:
             url = URL(FI)
             urlConn = url.openConnection()
@@ -6753,6 +6931,10 @@ Download from here: %s
 
             wait = MyPopUpDialogBox(toolbox_frame_,"PLEASE WAIT - RETRIEVING FISCAL SETUP DATA...",theWidth=100,lModal=False)
             wait.go()
+
+            myPrint("B","###################################################################################################################################################")
+            myPrint("B","### INFORMATION: Toolbox is connecting to Infinite Kind Servers to download the latest banking connection profiles - IT IS NOT SENDING ANY DATA ###")
+            myPrint("B","###################################################################################################################################################")
 
             for theFile in [MD_OFX_DEBUG_SETTINGS_FILE,MD_OFX_DEFAULT_SETTINGS_FILE]:
                 myPrint("DB", "Attempting to download: %s" %(theFile))
@@ -7425,14 +7607,39 @@ Download from here: %s
         def __init__(self, theFrame):
             self.alreadyClosed = False
             self.theFrame = theFrame
+            self.myModuleID = myModuleID
+
+        def getMyself(self):
+            fm = moneydance.getModuleForID(self.myModuleID)
+            if fm is None: return None, None
+            try:
+                pyo = fm.getClass().getDeclaredField("extensionObject")
+                pyo.setAccessible(True)
+                pyObject = pyo.get(fm)
+                pyo.setAccessible(False)
+            except:
+                myPrint("DB","Error retrieving my own Python extension object..?")
+                dump_sys_error_to_md_console_and_errorlog()
+                return None, None
+
+            return fm, pyObject
 
         # noinspection PyMethodMayBeStatic
         def handleEvent(self, appEvent):
             global debug
 
+            myPrint("DB", "I am .handleEvent() within %s" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
             if self.alreadyClosed:
                 myPrint("DB","....I'm actually still here (MD EVENT %s CALLED).. - Ignoring and returning back to MD...." %(appEvent))
                 return
+
+            # MD doesn't call .unload() or .cleanup(), so if uninstalled I need to close myself
+            fm, pyObject = self.getMyself()
+            myPrint("DB", "Checking myself: %s : %s" %(fm, pyObject))
+            # if (fm is None or pyObject is None) and appEvent != "md:app:exiting":
+            if (fm is None or (self.theFrame.isRunTimeExtension and pyObject is None)) and appEvent != "md:app:exiting":
+                myPrint("B", "@@ ALERT - I've detected that I'm no longer installed as an extension - I will deactivate.. (switching event code to :close)")
+                appEvent = "%s:customevent:close" %self.myModuleID
 
             # I am only closing Toolbox when a new Dataset is opened.. I was calling it on MD Close/Exit, but it seemed to cause an Exception...
             if (appEvent == "md:file:closing"
@@ -7441,20 +7648,20 @@ Download from here: %s
                     or appEvent == "md:app:exiting"):
                 myPrint("DB","@@ Ignoring MD handleEvent: %s" %(appEvent))
 
-            elif (appEvent == "md:file:opened"):
+            elif (appEvent == "md:file:opened" or appEvent == "%s:customevent:close" %self.myModuleID):
                 if debug:
-                    myPrint("DB","MD event %s triggered.... Will call MyRunnable (on a new Thread) to push a WINDOW_CLOSING Event to %s to close itself (while I exit back to MD quickly) ...." %(appEvent, myModuleID))
+                    myPrint("DB","MD event %s triggered.... Will call MyRunnable (on a new Thread) to push a WINDOW_CLOSING Event to %s to close itself (while I exit back to MD quickly) ...." %(appEvent, self.myModuleID))
                 else:
-                    myPrint("B","Moneydance triggered event %s triggered - So I am closing %s now...." %(appEvent, myModuleID))
+                    myPrint("B","Moneydance triggered event %s triggered - So I am closing %s now...." %(appEvent, self.myModuleID))
                 self.alreadyClosed = True
                 try:
                     t = Thread(MyRunnable(self.theFrame))
                     t.start()
-                    myPrint("DB","Back from calling MyRunnable to push a WINDOW_CLOSING Event to %s.... ;-> ** I'm getting out quick! **" %(myModuleID))
+                    myPrint("DB","Back from calling MyRunnable to push a WINDOW_CLOSING Event to %s.... ;-> ** I'm getting out quick! **" %(self.myModuleID))
                 except:
                     dump_sys_error_to_md_console_and_errorlog()
-                    myPrint("B","@@ ERROR calling MyRunnable to push  a WINDOW_CLOSING Event to %s.... :-< ** I'm getting out quick! **" %(myModuleID))
-                if not debug: myPrint("DB","Returning back to Moneydance after calling for %s to close...." %myModuleID)
+                    myPrint("B","@@ ERROR calling MyRunnable to push  a WINDOW_CLOSING Event to %s.... :-< ** I'm getting out quick! **" %(self.myModuleID))
+                if not debug: myPrint("DB","Returning back to Moneydance after calling for %s to close...." %self.myModuleID)
                 return
 
             myPrint("DB","@@ Detected MD handleEvent: %s" %(appEvent))
@@ -8396,7 +8603,7 @@ If you open that file with Notepad or any other text editor, you'll see some ins
 Close Moneydance first!
 
 The basic recommendation is to changing the -Xmx1024m setting to -Xmx2048m which doubles the amount of memory that Moneydance is allowed to use.
-You can give it more if you wish, E.g.: you make it -Xmx3000m, for optimal results.
+You can give it more if you wish, E.g.: you make it -Xmx3072m, for optimal results.
 
 NOTE: The limit is set deliberately low to enable it to work with computers having very small amounts of RAM.
 
@@ -14757,13 +14964,21 @@ Now you will have a text readable version of the file you can open in a text edi
 
                 self.theFrame.isActiveInMoneydance = False
 
+                myPrint("DB","applistener is %s" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
+
                 if self.theFrame.MoneydanceAppListener is not None:
                     try:
                         moneydance.removeAppEventListener(self.theFrame.MoneydanceAppListener)
-                        myPrint("DB","\n@@@ Removed my MD App Listener...\n")
+                        myPrint("DB","\n@@@ Removed my MD App Listener... %s\n" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
+                        self.theFrame.MoneydanceAppListener = None
                     except:
-                        myPrint("B","FAILED to remove my MD App Listener...")
+                        myPrint("B","FAILED to remove my MD App Listener... %s" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
                         dump_sys_error_to_md_console_and_errorlog()
+
+                if self.theFrame.HomePageViewObj is not None:
+                    self.theFrame.HomePageViewObj.unload()
+                    myPrint("DB","@@ Called HomePageView.unload() and Removed reference to HomePageView %s from MyJFrame()...@@\n" %(classPrinter("HomePageView", self.theFrame.HomePageViewObj)))
+                    self.theFrame.HomePageViewObj = None
 
                 myPrint("D","Exit ", inspect.currentframe().f_code.co_name, "()")
 
@@ -15941,6 +16156,9 @@ Now you will have a text readable version of the file you can open in a text edi
                 user_view_MD_config_file = JRadioButton("View MD Config File", False)
                 user_view_MD_config_file.setToolTipText("View the contents of your Moneydance configuration file")
 
+                user_view_searchable_console_log = JRadioButton("View Searchable Console Log", False)
+                user_view_searchable_console_log.setToolTipText("View the whole Console log file - searchable")
+
                 user_view_MD_custom_theme_file = JRadioButton("View MD Custom Theme File", False)
                 user_view_MD_custom_theme_file.setToolTipText("View the contents of your Moneydance custom Theme file (if you have set one up)")
                 user_view_MD_custom_theme_file.setEnabled(os.path.exists(theme.Theme.customThemeFile.getAbsolutePath()))    # noqa
@@ -15991,6 +16209,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 bg = ButtonGroup()
                 bg.add(user_display_passwords)
                 bg.add(user_view_MD_config_file)
+                bg.add(user_view_searchable_console_log)
                 bg.add(user_view_MD_custom_theme_file)
                 bg.add(user_view_java_vmoptions)
                 bg.add(user_view_extensions_details)
@@ -16006,6 +16225,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 userFilters.add(JLabel(" "))
                 userFilters.add(JLabel("---------- READONLY FUNCTIONS ----------"))
                 userFilters.add(user_display_passwords)
+                userFilters.add(user_view_searchable_console_log)
                 userFilters.add(user_view_MD_config_file)
                 userFilters.add(user_view_MD_custom_theme_file)
                 userFilters.add(user_view_java_vmoptions)
@@ -16045,6 +16265,11 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     if user_display_passwords.isSelected():
                         display_passwords(self.statusLabel)
+
+                    if user_view_searchable_console_log.isSelected():
+                        x = ViewFileButtonAction(self.statusLabel, moneydance.getLogFile(), "MD Console Log")
+                        x.actionPerformed(None)
+                        return
 
                     if user_view_MD_config_file.isSelected():
                         x = ViewFileButtonAction(self.statusLabel, Common.getPreferencesFile(), "MD Config")
@@ -16745,6 +16970,7 @@ Now you will have a text readable version of the file you can open in a text edi
             # Add standard CMD-W keystrokes etc to close window
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+            toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F,  shortcut), "search-window")
             toolbox_frame_.getRootPane().getActionMap().put("close-window", self.CloseAction(toolbox_frame_))
             toolbox_frame_.addWindowListener(self.WindowListener(toolbox_frame_))
 
@@ -16891,6 +17117,9 @@ Now you will have a text readable version of the file you can open in a text edi
             myDiagText.setWrapStyleWord(True)
             myDiagText.setFont( getMonoFont() )
 
+            mySearchAction = SearchAction(toolbox_frame_,myDiagText)
+            toolbox_frame_.getRootPane().getActionMap().put("search-window", mySearchAction)
+
             displayPanel.add(statusLabel)
 
             self.myScrollPane = JScrollPane(myDiagText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
@@ -16960,6 +17189,12 @@ Now you will have a text readable version of the file you can open in a text edi
             menuItemP.setToolTipText("Enables auto pruning of the internal backups that Toolbox makes of config.dict, custom_theme.properties, and ./safe/settings")
             menuItemP.setSelected(lAutoPruneInternalBackups_TB)
             menu1.add(menuItemP)
+
+            menuItemF = JMenuItem("Find/Search")
+            menuItemF.setToolTipText("Finds text within the main display window..")
+            menuItemF.addActionListener(mySearchAction)
+            menuItemF.setEnabled(True)
+            menu1.add(menuItemF)
 
             menuItem2 = JMenuItem("Exit")
             menuItem2.setMnemonic(KeyEvent.VK_E)
@@ -17049,7 +17284,7 @@ Now you will have a text readable version of the file you can open in a text edi
             try:
                 toolbox_frame_.MoneydanceAppListener = MyEventListener(toolbox_frame_)
                 moneydance.addAppEventListener(toolbox_frame_.MoneydanceAppListener)
-                myPrint("DB","@@@ Added MD App Listener...")
+                myPrint("DB","@@ added AppEventListener() %s @@" %(classPrinter("MoneydanceAppListener", toolbox_frame_.MoneydanceAppListener)))
             except:
                 myPrint("B","FAILED to add MD App Listener...")
                 dump_sys_error_to_md_console_and_errorlog()
