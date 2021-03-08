@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1027 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1028 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -174,6 +174,7 @@
 # Build: 1026 - Detect when .moneydance and or .moneydancesync folder(s) are readonly/hidden - alert only
 # Build: 1027 - CMD-F Search popup on all displays feature added; tweak to block old MD versions....; Added back view whole console (searchable)
 # Build: 1027 - enhanced launch code...; added information banner when toolbox connects to the internet...
+# Build: 1028 - Common code update (default the parameter filename); update tested versions; Allow \&/ in keys/data
 
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
 
@@ -357,7 +358,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "1027"                                                                                              # noqa
+    version_build = "1028"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -449,10 +450,13 @@ else:
     globalSaveFI_data = None                                                                                            # noqa
     globalSave_DEBUG_FI_data = None                                                                                     # noqa
     TOOLBOX_STOP_NOW = False                                                                                            # noqa
-    OFX_SETUP_MATCH_MD_BUILD =          3034                                                                            # noqa
+
+    # Mirrors code from: com.moneydance.apps.md.view.gui.ofxsetup.OFXNewFIPanel.run() Line 294 ("min_version", "max_version)
+    OFX_SETUP_MATCH_MD_BUILD =          3039                                                                            # noqa
+
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2021.1                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3034                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3039                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -1231,7 +1235,7 @@ Visit: %s (Author's site)
             pass
 
         if homeDir is None or homeDir == "":
-            homeDir = moneydance_data.getRootFolder().getParent()  # Better than nothing!
+            homeDir = moneydance.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
 
         myPrint("DB", "Home Directory selected...:", homeDir)
         if homeDir is None: return ""
@@ -1277,7 +1281,7 @@ Visit: %s (Author's site)
 
         return str( theDelimiter )
 
-    def get_StuWareSoftSystems_parameters_from_file():
+    def get_StuWareSoftSystems_parameters_from_file(myFile="StuWareSoftSystems.dict"):
         global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -1287,11 +1291,10 @@ Visit: %s (Author's site)
             myParameters = {}
             return
 
-        myFile = "StuWareSoftSystems.dict"
         old_dict_filename = os.path.join("..", myFile)
 
         # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
@@ -1362,7 +1365,7 @@ Visit: %s (Author's site)
 
         return
 
-    def save_StuWareSoftSystems_parameters_to_file():
+    def save_StuWareSoftSystems_parameters_to_file(myFile="StuWareSoftSystems.dict"):
         global debug, myParameters, lPickle_version_warning, version_build
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -1375,9 +1378,8 @@ Visit: %s (Author's site)
 
         dump_StuWareSoftSystems_parameters_from_memory()
 
-        myFile = "StuWareSoftSystems.dict"
         # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
         myPrint("DB","Will try to save parameter file:", migratedFilename)
 
@@ -2793,13 +2795,13 @@ Visit: %s (Author's site)
         # Already sorted - newest build first
         for moduleBuild in buildTable:          # type: ToolboxBuildInfo
             if moduleBuild.build < 1000:
-                myPrint("D","Found INVALID downloaded module build %s (ignoring and stopping search)... (%s)" %(moduleBuild.build, moduleBuild.obj ))
+                myPrint("DB","Found INVALID downloaded module build %s (ignoring and stopping search)... (%s)" %(moduleBuild.build, moduleBuild.obj ))
                 return
             elif moduleBuild.build > this_toolbox_build:
-                myPrint("D","Found NEWER downloaded module build %s (ignoring and continuing search).. (%s)" %(moduleBuild.build, moduleBuild.obj ))
+                myPrint("DB","Found NEWER downloaded module build %s (ignoring and continuing search).. (%s)" %(moduleBuild.build, moduleBuild.obj ))
                 continue
             elif moduleBuild.build == this_toolbox_build:
-                myPrint("D","Found EXACT-HIT downloaded module build %s OVERRIDING PROGRAM's DEFAULTS....! (%s)" %(moduleBuild.build, moduleBuild.obj ))
+                myPrint("DB","Found EXACT-HIT downloaded module build %s OVERRIDING PROGRAM's DEFAULTS....! (%s)" %(moduleBuild.build, moduleBuild.obj ))
 
                 if debug:
                     myPrint("D","Program defaults were...:")
@@ -2840,7 +2842,7 @@ Visit: %s (Author's site)
                     myPrint("D"," OFX_SETUP_MATCH_MD_BUILD:             %s"     %(OFX_SETUP_MATCH_MD_BUILD))
                     myPrint("D"," TOOLBOX_MINIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MINIMUM_TESTED_MD_VERSION))
                     myPrint("D"," TOOLBOX_MAXIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_VERSION))
-                    myPrint("D"," TOOLBOX_MAXIMUM_TESTED_MD_BUILD:      %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_BUILD))
+                    myPrint("DB"," TOOLBOX_MAXIMUM_TESTED_MD_BUILD:      %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_BUILD))
                     myPrint("D"," MD_OFX_BANK_SETTINGS_DIR:             %s"     %(MD_OFX_BANK_SETTINGS_DIR))
                     myPrint("D"," MD_OFX_DEFAULT_SETTINGS_FILE:         %s"     %(MD_OFX_DEFAULT_SETTINGS_FILE))
                     myPrint("D"," MD_OFX_DEBUG_SETTINGS_FILE:           %s"     %(MD_OFX_DEBUG_SETTINGS_FILE))
@@ -2906,7 +2908,7 @@ Visit: %s (Author's site)
         # http://docs.python.org/library/re.html
         # re.search returns None if no position in the string matches the pattern
         # pattern to search for any character other than "._-A-Za-z0-9"
-        pattern = r"[^a-zA-Z0-9-' _.:&=;,@]"
+        pattern = r"[^a-zA-Z0-9-' _.:&=;,@/\\]"
         if re.search(pattern, test_str):
             myPrint("DB","Invalid: %r" %(test_str))
             return False
@@ -6978,6 +6980,7 @@ Download from here: %s
                         match = matches.get(i)
                         minVersion = match.info.getInt("min_version", 0)                                                    # noqa
                         maxVersion = match.info.getInt("max_version", 99999999)                                             # noqa
+                        # Mirrors code from: com.moneydance.apps.md.view.gui.ofxsetup.OFXNewFIPanel.run() Line 294 ("min_version", "max_version)
                         if (OFX_SETUP_MATCH_MD_BUILD < minVersion or OFX_SETUP_MATCH_MD_BUILD > maxVersion):
                             matches.remove(i)
                             # i-=1

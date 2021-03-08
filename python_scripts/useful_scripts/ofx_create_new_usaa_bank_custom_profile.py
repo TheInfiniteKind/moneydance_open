@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_fix_existing_usaa_bank_profile.py - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_create_new_usaa_bank_custom_profile.py (build 1) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
-# https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf
+# https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf
 
-# This script attempts to edit ('hack') a pre-existing USAA Bank Profile to work with the new connection information
-# It will update your UserID, Password, and allow you to change the Credit Card Number
+# This script builds a new USAA Bank Custom Profile from scratch to work with the new connection information
+# It will DELETE your existing USAA profile(s) first!
+# It will populate your UserID, Password, and allow you to change/update the Bank and Credit Card Number
+# It will allow also allow you to prime a second account in case you have multiple logins
+# This will create a non MD profile to avoid any refresh issues....
+# ofx_create_new_usaa_bank_profile.py and ofx_fix_existing_usaa_bank_profile.py have both been deprecated
 
 # DISCLAIMER >> PLEASE ALWAYS BACKUP YOUR DATA BEFORE MAKING CHANGES (Menu>Export Backup will achieve this)
 #               You use this at your own risk. I take no responsibility for its usage..!
@@ -15,14 +19,15 @@
 
 # CREDITS:  hleofxquotes for his technical input and dtd for his extensive testing
 
-# build 13 - Initial preview release.....
+# build 1 - Initial preview release..... Based upon ofx_create_new_usaa_bank_profile.py (now deprecated)
+# build 1 - Released: 8th March 2021
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
-myModuleID = u"ofx_fix_existing_usaa_bank_profile"
-global ofx_fix_existing_usaa_bank_profile_frame_
+myModuleID = u"ofx_create_new_usaa_bank_profile_custom"
+global ofx_create_new_usaa_bank_profile_frame_
 
 global moneydance, moneydance_data, moneydance_ui
 global moneydance_extension_loader
@@ -61,9 +66,9 @@ def getMyJFrame( moduleName ):
 frameToResurrect = None
 try:
     if (u"%s_frame_"%myModuleID in globals()
-            and isinstance(ofx_fix_existing_usaa_bank_profile_frame_, MyJFrame)
-            and ofx_fix_existing_usaa_bank_profile_frame_.isActiveInMoneydance):
-        frameToResurrect = ofx_fix_existing_usaa_bank_profile_frame_
+            and isinstance(ofx_create_new_usaa_bank_profile_frame_, MyJFrame)
+            and ofx_create_new_usaa_bank_profile_frame_.isActiveInMoneydance):
+        frameToResurrect = ofx_create_new_usaa_bank_profile_frame_
     else:
         getFr = getMyJFrame( myModuleID )
         if getFr is not None:
@@ -186,7 +191,7 @@ else:
     # END COMMON GLOBALS ###################################################################################################
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "13"                                                                                              # noqa
+    version_build = "1"                                                                                              # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
@@ -201,10 +206,12 @@ else:
     from com.infinitekind.moneydance.model import OnlineService
     from com.moneydance.apps.md.view.gui import MDAccountProxy
     from com.infinitekind.tiksync import SyncRecord
-    from java.net import URL
+    from com.infinitekind.util import StreamTable
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
+    # COMMON CODE ##########################################################################################################
+    # COMMON CODE ##########################################################################################################
     # COMMON CODE ##########################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -976,7 +983,7 @@ Visit: %s (Author's site)
             pass
 
         if homeDir is None or homeDir == "":
-            homeDir = moneydance_data.getRootFolder().getParent()  # Better than nothing!
+            homeDir = moneydance.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
 
         myPrint("DB", "Home Directory selected...:", homeDir)
         if homeDir is None: return ""
@@ -1022,7 +1029,7 @@ Visit: %s (Author's site)
 
         return str( theDelimiter )
 
-    def get_StuWareSoftSystems_parameters_from_file():
+    def get_StuWareSoftSystems_parameters_from_file(myFile="StuWareSoftSystems.dict"):
         global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -1032,11 +1039,10 @@ Visit: %s (Author's site)
             myParameters = {}
             return
 
-        myFile = "StuWareSoftSystems.dict"
         old_dict_filename = os.path.join("..", myFile)
 
         # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
@@ -1107,7 +1113,7 @@ Visit: %s (Author's site)
 
         return
 
-    def save_StuWareSoftSystems_parameters_to_file():
+    def save_StuWareSoftSystems_parameters_to_file(myFile="StuWareSoftSystems.dict"):
         global debug, myParameters, lPickle_version_warning, version_build
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -1120,9 +1126,8 @@ Visit: %s (Author's site)
 
         dump_StuWareSoftSystems_parameters_from_memory()
 
-        myFile = "StuWareSoftSystems.dict"
         # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
         myPrint("DB","Will try to save parameter file:", migratedFilename)
 
@@ -1219,8 +1224,8 @@ Visit: %s (Author's site)
     debug = False                                                                                                       # noqa
     myPrint("DB", "DEBUG IS ON..")
 
-    ofx_fix_existing_usaa_bank_profile_frame_ = MyJFrame(u"%s" % (myModuleID))
-    ofx_fix_existing_usaa_bank_profile_frame_.setName(u"%s_fake" %(myModuleID))
+    ofx_create_new_usaa_bank_profile_frame_ = MyJFrame(u"%s" % (myModuleID))
+    ofx_create_new_usaa_bank_profile_frame_.setName(u"%s_fake" %(myModuleID))
 
     moneydance_ui.firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
@@ -1238,234 +1243,317 @@ Visit: %s (Author's site)
             pass
         return False
 
+    def my_getAccountKey(acct):      # noqa
+        acctNum = acct.getAccountNum()
+        if (acctNum <= 0):
+            return acct.getUUID()
+        return str(acctNum)
+
     class MyAcctFilter(AcctFilter):
 
-        def __init__(self, selectService=None):
-            self.selectService = selectService
+        def __init__(self, selectType=0):
+            self.selectType = selectType
 
-        def matches(self, acct):    # noqa
+        def matches(self, acct):         # noqa
+            if self.selectType == 0:
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.BANK):
+                    return False
 
-            # noinspection PyUnresolvedReferences
-            if (acct.getAccountType() == Account.AccountType.BANK or acct.getAccountType() == Account.AccountType.CREDIT_CARD):
-                pass
-            else:
-                return False
+            if self.selectType == 1:
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.CREDIT_CARD):
+                    return False
 
-            if acct.canDownloadTxns() and not acct.getAccountIsInactive():
-                pass
-            else:
-                return False
+            if self.selectType == 2:
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.BANK or acct.getAccountType() == Account.AccountType.CREDIT_CARD):
+                    return False
+                else:
+                    return True
 
-            if acct.getBankingFI() == self.selectService or acct.getBillPayFI() == self.selectService:
-                pass
-            else:
-                return False
+            if (acct.getAccountOrParentIsInactive()): return False
+            if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
 
             return True
 
-    def validate_profile_links(the_service, the_olAccounts):
+    class StoreAccountList():
+        def __init__(self, obj):
+            if isinstance(obj,Account):
+                self.obj = obj                          # type: Account
+            else:
+                self.obj = None
 
-        myPrint("B","Validating links between MD Accounts and your profile......")
+        def __str__(self):
+            if self.obj is None:
+                return "Invalid Acct Obj or None"
+            return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
 
-        profile_avail_accounts = the_service.getAvailableAccounts()
-        if len(the_olAccounts) != len(profile_avail_accounts):
-            myPrint("B","Error - Number of MD accounts (%s) linked and profile accounts (%s) differ?!" %(len(the_olAccounts),len(profile_avail_accounts)))
-            for acc in the_olAccounts: myPrint("B","..> Found MD Account: %s %s" %(acc,acc.getBankAccountNumber()))
-            for acc in profile_avail_accounts: myPrint("B","..> Found Profile Account: %s" %(acc.getAccountNumber()))
-            return False
+        def __repr__(self):
+            if self.obj is None:
+                return "Invalid Acct Obj or None"
+            return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
 
-        save_profile_accounts = {}
-        checked_numbers = {}
+    if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "BACKUP", "CREATE A NEW (CUSTOM) USAA PROFILE >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
+        alert = "BACKUP FIRST! PLEASE USE FILE>EXPORT BACKUP then come back!! - No changes made."
+        myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise Exception(alert)
 
-        for pfAccount in profile_avail_accounts:
-            pf_account_number = pfAccount.getAccountNumber()
-            if save_profile_accounts.get(pf_account_number, None):
-                myPrint("B","Error, I found (profile) account number %s twice - I cannot proceed!" %pf_account_number)
-                return False
-            save_profile_accounts[pf_account_number] = pfAccount
-        myPrint("B",".. Validated profile account numbers only exist once....")
+    if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "DISCLAIMER", "DO YOU ACCEPT YOU RUN THIS AT YOUR OWN RISK?", theMessageType=JOptionPane.WARNING_MESSAGE):
+        alert = "Disclaimer rejected - no changes made"
+        myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise Exception(alert)
 
-        for ol_acct in the_olAccounts:
-            theAccountNumber = str(ol_acct.getBankAccountNumber()).zfill(10)
-            if checked_numbers.get(theAccountNumber, None):
-                myPrint("B","Error, I found (MD) account number %s twice - I cannot proceed!" %theAccountNumber)
-                return False
-            checked_numbers[theAccountNumber] = ol_acct
-        myPrint("B",".. Validated MD account numbers only exist once....")
-
-        for ol_acct in the_olAccounts:
-            theAccountNumber = str(ol_acct.getBankAccountNumber()).zfill(10)
-            if not save_profile_accounts.get(theAccountNumber, None):
-                myPrint("B","Error, I could not find the link for MD account %s in this profile?! I cannot proceed!" %theAccountNumber)
-                return False
-        myPrint("B",".. Validated that all MD Account(s) numbers link to your profile...")
-
-        for pfAccount in profile_avail_accounts:
-            pf_account_number = pfAccount.getAccountNumber()
-            if not checked_numbers.get(pf_account_number, None):
-                myPrint("B","Error, I could not find the link for profile account %s in the MD Account(s)?! I cannot proceed!" %pf_account_number)
-                return False
-        myPrint("B",".. Validated that all Profile available account(s) numbers link back to your MD Accounts...")
-
-        if len(save_profile_accounts.keys()) != len(checked_numbers.keys()):
-            myPrint("B","Error, Number of MD Account (%s) to profile linkage (%s) keys differ! I cannot proceed!" %(len(save_profile_accounts.keys()), len(checked_numbers.keys())))
-            return False
-
-        myPrint("B","Linkage validation routine completed... Listing the linkages...:")
-        for md_number in checked_numbers:
-            myPrint("B"," - MD Account %s Number: %s Type: %s - Profile Number: %s Type: %s"
-                    %(pad(checked_numbers.get(md_number,None).getAccountName(),25),
-                      pad(md_number,16),
-                      pad(checked_numbers.get(md_number).getAccountName(),15),
-                      pad(save_profile_accounts.get(md_number,None).getAccountNumber(),16),
-                      save_profile_accounts.get(md_number,None).getAccountType()))
-        print "..\n"
-
-        return True
-
-
-    if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_, "BACKUP", "FIX EXISTING USAA PROFILE >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
-        myPopupInformationBox(ofx_fix_existing_usaa_bank_profile_frame_,"PLEASE USE FILE>EXPORT BACKUP then come back!!", theMessageType=JOptionPane.ERROR_MESSAGE)
-        raise Exception("Please backup first - no changes made")
-
-    if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_, "DISCLAIMER", "DO YOU ACCEPT YOU RUN THIS AT YOUR OWN RISK?", theMessageType=JOptionPane.WARNING_MESSAGE):
-        raise Exception("Disclaimer rejected - no changes made")
-
-    ask = MyPopUpDialogBox(ofx_fix_existing_usaa_bank_profile_frame_, "This script will update/edit/fix a selected pre-existing USAA bank profile (it must have been previously working before USAA broke it - DO NOT ALTER YOUR ACCOUNTS):",
+    ask = MyPopUpDialogBox(ofx_create_new_usaa_bank_profile_frame_, "This script will delete your existing USAA bank profile(s) and CREATE A BRAND NEW CUSTOM USAA PROFILE:",
                            "Get the latest useful_scripts.zip package from: https://yogi1967.github.io/MoneydancePythonScripts/ \n"
-                           "Read the walk through guide: ofx_fix_existing_create_new_usaa_bank_profile.pdf\n"
-                           "Latest: https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_fix_existing_create_new_usaa_bank_profile.pdf\n\n"
-                           "This script can correct multiple profiles, unlimited bank accounts, and max 1 CC account (per profile). You can correct / add others within Moneydance later\n"
+                           "Read the latest walk through guide: ofx_create_new_usaa_bank_custom_profile.pdf\n"
+                           "Latest: https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf\n\n"
+                           "This script configure one bank account & up to one credit card [optional]. You can add more later using standard Moneydance online menu\n"
+                           "It will also allow you to 'prime' a second additional set of credentials for setup later [optional]\n\n"
                            "> You login to USAA at https://www.usaa.com/accessid to get your 'Quicken user' credentials.\n"
                            "> This is also where you find your clientUid (UUID) hidden within the browser url (BEFORE you click approve Quicken access)\n\n"
                            "This script will ask you for many numbers. You must know them:\n"
-                           "-Do you know your new Bank Supplied UUID (36 digits 8-4-4-4-12)?\n"
-                           "-Do you know your Bank supplied UserID (min length 8)?\n"
-                           "-Do you know your new Password (min length 6) - no longer a PIN?\n"
-                           "-Do you know your Bank Account Number(s) (10-digits) and routing Number (9-digits - usually '314074269') (to reconfirm them if necessary)\n"
-                           "-Do you know the DIFFERENT Credit Card number that the bank will accept? (This may not apply, just try your current one first - we can fix this later)\n"
-                           "-Do you know which Accounts in Moneydance are linked to this your existing bank profile?\n"
+                           "- Do you know your new Bank Supplied UUID (36 digits 8-4-4-4-12)?\n"
+                           "- Do you know your Bank supplied UserID (min length 8)?\n"
+                           "- Do you know your new Password (min length 6) - no longer a PIN?\n"
+                           "- Do you know your Bank Account Number(s) (10-digits) and routing Number (9-digits - usually '314074269')?\n"
+                           "- Do you know the DIFFERENT Credit Card number that the bank will accept? (This may not apply, just try your current one first)\n"
+                           "- Do you know which Accounts in Moneydance to select and link to this new profile?\n"
                            "IF NOT, STOP AND GATHER ALL INFORMATION",
                            250,"KNOWLEDGE",
                            lCancelButton=True,OKButtonText="CONFIRMED", lAlertLevel=1)
     if not ask.go():
-        raise Exception("Knowledge rejected - no changes made")
-
-    serviceList = moneydance_data.getOnlineInfo().getAllServices()  # type: [OnlineService]
-
-    usaaServiceList = []
-    for svc in serviceList:
-        if (svc.getTIKServiceID() == "md:1295"
-                or "USAA" in svc.getFIOrg()
-                or "USAA" in svc.getFIName()):
-            myPrint("B", "Found USAA service: %s" %(svc))
-            usaaServiceList.append(svc)
-
-    if len(usaaServiceList) < 1:
-        raise Exception("ERROR - No existing USAA services found...! No changes made")
-
-    del serviceList
-
-    service = JOptionPane.showInputDialog(ofx_fix_existing_usaa_bank_profile_frame_,
-                                          "Select a service to USAA HACK",
-                                          "Select a service to USAA HACK",
-                                          JOptionPane.INFORMATION_MESSAGE,
-                                          moneydance_ui.getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
-                                          usaaServiceList,
-                                          None)   # type: OnlineService
-
-    del usaaServiceList
-
-    if not service:
-        raise Exception("ERROR - no USAA service selected")
-    myPrint("B", "Service selected: %s" %service)
-
-    myPrint("B","\n--------------------------------------------------------------------------------------------------------")
-    myPrint("B","DIAGNOSTIC DATA - THIS IS THE RAW CONTENTS OF YOUR SELECTED BANKING SERVICE PROFILE (BEFORE ANY CHANGES)\n")
-    sortKeys=sorted(service.getParameterKeys())                                                                         # noqa
-    for svcKey in sortKeys:
-        myPrint("B", " -%s %s" %(pad(svcKey,40),service.getParameter(svcKey,None)))                                     # noqa
-    myPrint("B","--------------------------------------------------------------------------------------------------------\n")
-    del sortKeys
-
-    if len(service.getAvailableAccounts())<1:                                                                           # noqa
-        myPrint("B", "\n"*5)
-        raise Exception("Sorry, no physical Bank Accounts linked to this banking profile found?!... Stopping here - no changes made...")
-
-    # Build a list of Moneydance accounts that are enabled for download and have a service profile linked....
-    olAccounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(service))
-    if len(olAccounts)<1:
-        myPrint("B", "\n"*5)
-        raise Exception("Sorry, no MD Accounts linked to this banking profile were found - aborting - no changes made?!")
-
-    for acct in olAccounts: print ".. found linked account: %s - %s" %(acct,acct.getBankAccountNumber())
-    myPrint("B", "Found %s accounts linked" %len(olAccounts))
-    myPopupInformationBox(ofx_fix_existing_usaa_bank_profile_frame_, "INFO: I found %s pre-linked MD Bank/CC accounts" %(len(olAccounts)))
-
-    _ACCOUNT = 0
-    _SERVICE = 1
-    _ISBILLPAY = 2
-
-    lFoundBankAccount = lFoundCCAccount = False
-    ccAccountNumber = None
-    saveCC_Acct = None
-
-    listAccountMDProxies=[]
-    myPrint("B", "\nStoring bank accounts linked to this service profile for later use")
-    for acctObj in olAccounts:
-        acct = acctObj                                 # type: Account
-
-        if acct.getAccountType() == Account.AccountType.BANK:           # noqa
-            lFoundBankAccount = True
-        elif acct.getAccountType() == Account.AccountType.CREDIT_CARD:  # noqa
-            if lFoundCCAccount:
-                raise Exception("SORRY - I can only deal with one CC account within this profile at this time. (try Online>Setup Online Banking>Disable on the *extra* CC account(s) - or run ofx_create_new_usaa_bank_profile.py).")
-            lFoundCCAccount = True
-            ccAccountNumber = acct.getBankAccountNumber()
-            saveCC_Acct = acct
-            myPrint("B", "found CC account - current number: %s" %ccAccountNumber)
-        else:
-            raise Exception("Error - found account type %s that I was not expecting %s" %(acct.getAccountType(),acct))
-
-        svcBank = acct.getBankingFI()                  # type: OnlineService
-        svcBPay = acct.getBillPayFI()                  # type: OnlineService
-        if svcBank is not None:
-            myPrint("B", " - Found/Saved Banking Acct: %s  Number: %s Route: %s" %(acct,acct.getBankAccountNumber(), acct.getOFXBankID()))
-            listAccountMDProxies.append([MDAccountProxy(acct, False),svcBank,False])
-        if svcBPay is not None:
-            myPrint("B", " - Found/Saved Bill Pay Acct: %s" %acct)
-            listAccountMDProxies.append([MDAccountProxy(acct, True),svcBPay,True])
-
-        myPrint("B", "Existing OFX data on this account %s: " %(acct))
-        myPrint("B", ">> getBankAccountNumber():   %s" %acct.getBankAccountNumber())
-        myPrint("B", ">> getOFXBankID():           %s" %acct.getOFXBankID())
-        myPrint("B", ">> getOFXAccountMsgType():   %s" %acct.getOFXAccountMsgType())
-        myPrint("B", ">> getOFXAccountNumber():    %s" %acct.getOFXAccountNumber())
-        myPrint("B", ">> getOFXAccountType():      %s" %acct.getOFXAccountType())
-        myPrint("B","")
-
-    if len(listAccountMDProxies)<1 or len(listAccountMDProxies) != len(olAccounts):
-        myPrint("B", "\n"*5)
-        raise Exception("CRITICAL ERROR: ?? Accounts linked to this banking profile found (must be a logic problem) - aborting - no changes made?!")
+        alert = "Knowledge rejected - no changes made"
+        myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise Exception(alert)
 
     lCachePasswords = (isUserEncryptionPassphraseSet() and moneydance_ui.getCurrentAccounts().getBook().getLocalStorage().getBoolean("store_passwords", False))
     if not lCachePasswords:
-        if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_,"STORE PASSWORDS","Your system is not set up to save/store passwords. Do you want to continue?",theMessageType=JOptionPane.ERROR_MESSAGE):
-            raise Exception("Please set up Master password and select store passwords first - then try again")
+        if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_,"STORE PASSWORDS","Your system is not set up to save/store passwords. Do you want to continue?",theMessageType=JOptionPane.ERROR_MESSAGE):
+            alert = "Please set up Master password and select store passwords first - then try again - no changes made"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
         myPrint("B", "Proceeding even though system is not set up for passwords")
 
-    if not validate_profile_links(service,olAccounts):
-        alert = "ALERT. The links between your existing bank profile and your MD accounts are incorrect! I cannot proceed. Please try the ofx_create_new_usaa_bank_profile.py script instead.."
-        myPopupInformationBox(ofx_fix_existing_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+
+    lOverrideRootUUID = False
+    lMultiAccountSetup = False
+
+    options = ["NO (Skip this)","YES - PRIME SECOND ACCOUNT"]
+    theResult = JOptionPane.showOptionDialog(ofx_create_new_usaa_bank_profile_frame_,
+                                          "Do you have multiple DIFFERENT credentials where you wish to 'prime' the default UUID into (Root's) profile?",
+                                          "MULTI-ACCOUNTS",
+                                           JOptionPane.YES_NO_OPTION,
+                                           JOptionPane.QUESTION_MESSAGE,
+                                           None,
+                                           options,
+                                           options[0])
+    if theResult > 0:
+        lMultiAccountSetup = True
+        myPrint("B","Will setup multi-accounts too.... ")
+
+        # options = ["NO (Skip this)","YES - SET GLOBAL DEFAULT ROOT UUID"]
+        # theResult = JOptionPane.showOptionDialog(ofx_create_new_usaa_bank_profile_frame_,
+        #                                          "Do you also wish to override Root's (global) default UUID with the one you specify?",
+        #                                          "OVERRIDE ROOT DEFAULT UUID",
+        #                                          JOptionPane.YES_NO_OPTION,
+        #                                          JOptionPane.QUESTION_MESSAGE,
+        #                                          None,
+        #                                          options,
+        #                                          options[0])
+        # if theResult > 0:
+        #     lOverrideRootUUID = True
+        #     myPrint("B","Will also override Root UUID too.... ")
+        # else:
+        #     myPrint("B","User declined NOT to prime the global Root Default UUID...")
+    else:
+        myPrint("B","User selected NOT to prime for multiple-accounts...")
+
+    serviceList = moneydance_data.getOnlineInfo().getAllServices()  # type: [OnlineService]
+
+    USAA_FI_ID = "67811"
+    USAA_FI_ORG = "USAA Federal Savings Bank"
+    USAA_PROFILE_NAME = "USAA Custom Profile (ofx_create_new_usaa_bank_profile_custom.py)"
+    OLD_TIK_FI_ID = "md:1295"
+
+    authKeyPrefix = "ofx.client_uid"
+
+    ####################################################################################################################
+    deleteServices = []
+    for svc in serviceList:
+        if (svc.getTIKServiceID() == OLD_TIK_FI_ID
+                or svc.getServiceId() == ":%s:%s" %(USAA_FI_ORG, USAA_FI_ID)
+                or "USAA" in svc.getFIOrg()
+                or "USAA" in svc.getFIName()):
+            myPrint("B", "Found USAA service - to delete: %s" %(svc))
+            deleteServices.append(svc)
+
+    root = moneydance.getRootAccount()
+    rootKeys = list(root.getParameterKeys())
+    lRootNeedsSync = False
+
+    if len(deleteServices) < 1:
+        myPrint("B", "No USAA services / profile found to delete...")
+    else:
+        if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "DELETE OLD SERVICES", "OK TO DELETE %s OLD USAA SERVICES (I WILL DO THIS FIRST)?" % (len(deleteServices)), theMessageType=JOptionPane.ERROR_MESSAGE):
+            alert = "ERROR - User declined to delete %s old USAA service profiles - no changes made" %(len(deleteServices))
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
+        else:
+            accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(2))
+            for s in deleteServices:
+                iCount = 0
+                for a in accounts:
+                    if a.getBankingFI() == s or a.getBillPayFI() == s:
+                        iCount+=1
+                        myPrint("B", "clearing service link flag from account %s (%s)" %(a,s))
+                        a.setBankingFI(None)
+                        a.setBillPayFI(None)
+                        a.syncItem()
+                myPrint("B", "Clearing authentication cache from %s" %s)
+                s.clearAuthenticationCache()
+
+                # Clean up root here - as with custom profiles the UUID sets stored instead of the TIK ID which can be identified later....
+                if s.getTIKServiceID() != OLD_TIK_FI_ID:  # Thus we presume it's our own custom profile
+                    for i in range(0,len(rootKeys)):
+                        rk = rootKeys[i]
+                        if rk.startswith(authKeyPrefix) and (s.getTIKServiceID() in rk):
+                            myPrint("B", "Deleting old authKey associated with this profile (from Root) %s: %s" %(rk,root.getParameter(rk)))
+                            root.setParameter(rk, None)
+                            lRootNeedsSync = True
+                        i+=1
+
+                myPrint("B", "Deleting profile %s" %s)
+                s.deleteItem()
+                myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_,"I have deleted Bank logon profile / service: %s and forgotten associated credentials (%s accounts were de-linked)" %(s,iCount))
+            del accounts
+
+    if lRootNeedsSync:
+        root.syncItem()
+
+    del serviceList, deleteServices, lRootNeedsSync, rootKeys
+
+
+    ####################################################################################################################
+    invalidBankingLinks = []
+    invalidBillPayLinks = []
+    myPrint("B","Searching for Account banking / Bill Pay links with no profile (just a general cleanup routine)....")
+    accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(2))
+    for a in accounts:
+        if a.getBankingFI() is None and a.getParameter("olbfi", "") != "":
+            invalidBankingLinks.append(a)
+            myPrint("B","... Found account %s with a banking link (to %s), but no service profile exists (thus dead)..." %(a,a.getParameter("olbfi", "")))
+
+        if a.getBillPayFI() is None and a.getParameter("bpfi", "") != "":
+            invalidBillPayLinks.append(a)
+            myPrint("B","... Found account %s with a BillPay link (to %s), but no service profile exists (thus dead)..." %(a,a.getParameter("bpfi", "")))
+
+    if len(invalidBankingLinks) or len(invalidBillPayLinks):
+        if myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_,
+                              "ACCOUNT TO DEAD SERVICE PROFILE LINKS",
+                              "ALERT: I found %s Banking and %s BillPay links to 'dead' / missing Service / Connection profiles - Shall I remove these links?"
+                              %(len(invalidBankingLinks),len(invalidBillPayLinks)),
+                              theMessageType=JOptionPane.INFORMATION_MESSAGE):
+            for a in invalidBankingLinks:
+                a.setBankingFI(None)
+                a.syncItem()
+                myPrint("B","...removed the dead link Banking link on account %s" %(a))
+            for a in invalidBillPayLinks:
+                a.setBillPayFI(None)
+                a.syncItem()
+                myPrint("B","...removed the dead link BillPay link on account %s" %(a))
+
+    del invalidBankingLinks, invalidBillPayLinks, accounts
+    ####################################################################################################################
+
+    selectedBankAccount = selectedCCAccount = None
+
+    accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(0))
+    accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+    bankAccounts = []
+    for acct in accounts:
+        bankAccounts.append(StoreAccountList(acct))
+
+    if len(bankAccounts):
+        saveOK = UIManager.get("OptionPane.okButtonText")
+        saveCancel = UIManager.get("OptionPane.cancelButtonText")
+        UIManager.put("OptionPane.okButtonText", "SELECT & PROCEED")
+        UIManager.put("OptionPane.cancelButtonText", "NO BANK ACCOUNT")
+
+        selectedBankAccount = JOptionPane.showInputDialog(ofx_create_new_usaa_bank_profile_frame_,
+                                                          "Select the Bank account to link",
+                                                          "Select Bank account",
+                                                          JOptionPane.WARNING_MESSAGE,
+                                                          None,
+                                                          bankAccounts,
+                                                          None)     # type: StoreAccountList
+        UIManager.put("OptionPane.okButtonText", saveOK)
+        UIManager.put("OptionPane.cancelButtonText", saveCancel)
+    else:
+        selectedBankAccount = None
+
+    if not selectedBankAccount:
+        myPrint("B", "no bank account selected")
+    else:
+        selectedBankAccount = selectedBankAccount.obj       # noqa
+        if selectedBankAccount.getAccountType() != Account.AccountType.BANK:                                            # noqa
+            alert = "ERROR BANK ACCOUNT INVALID TYPE SELECTED"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
+        myPrint("B", "selected bank account %s" %selectedBankAccount)
+
+    accounts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter(1))
+    accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+    ccAccounts = []
+    for acct in accounts:
+        ccAccounts.append(StoreAccountList(acct))
+
+    if len(ccAccounts):
+        saveOK = UIManager.get("OptionPane.okButtonText")
+        saveCancel = UIManager.get("OptionPane.cancelButtonText")
+        UIManager.put("OptionPane.okButtonText", "SELECT & PROCEED")
+        UIManager.put("OptionPane.cancelButtonText", "NO CC ACCOUNT")
+
+        selectedCCAccount = JOptionPane.showInputDialog(ofx_create_new_usaa_bank_profile_frame_,
+                                                        "Select the CC account to link",
+                                                        "Select CC account",
+                                                        JOptionPane.WARNING_MESSAGE,
+                                                        None,
+                                                        ccAccounts,
+                                                        None)     # type: StoreAccountList
+
+        UIManager.put("OptionPane.okButtonText", saveOK)
+        UIManager.put("OptionPane.cancelButtonText", saveCancel)
+    else:
+        selectedCCAccount = None
+
+    if not selectedCCAccount:
+        myPrint("B", "no CC account selected")
+    else:
+        selectedCCAccount = selectedCCAccount.obj            # noqa
+        if selectedCCAccount.getAccountType() != Account.AccountType.CREDIT_CARD:                                       # noqa
+            alert = "ERROR CC ACCOUNT INVALID TYPE SELECTED"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
+        myPrint("B", "selected CC account %s" %selectedCCAccount)
+
+    if not selectedBankAccount and not selectedCCAccount:
+        alert = "ERROR - You must select Bank and or CC account(s)"
+        myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
         raise Exception(alert)
+
+    ####################################################################################################################
 
     dummy = "12345678-1111-1111-1111-123456789012"
 
     defaultEntry = "nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn"
     while True:
-        uuid = myPopupAskForInput(ofx_fix_existing_usaa_bank_profile_frame_, "UUID", "UUID", "Paste the Bank Supplied UUID 36 digits 8-4-4-4-12 very carefully", defaultEntry)
+        uuid = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "UUID", "UUID", "Paste the Bank Supplied UUID 36 digits 8-4-4-4-12 very carefully", defaultEntry)
         myPrint("B", "UUID entered: %s" %uuid)
-        if uuid is None: raise Exception("ERROR - No uuid entered! Aborting without changes")
+        if uuid is None:
+            alert = "ERROR - No uuid entered! Aborting"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
         defaultEntry = uuid
         if (uuid is None or uuid == "" or len(uuid) != 36 or uuid == "nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn" or
                 (str(uuid)[8]+str(uuid)[13]+str(uuid)[18]+str(uuid)[23]) != "----"):
@@ -1476,11 +1564,14 @@ Visit: %s (Author's site)
 
     defaultEntry = "UserID"
     while True:
-        userID = myPopupAskForInput(ofx_fix_existing_usaa_bank_profile_frame_, "UserID", "UserID", "Type/Paste your UserID (min length 8) very carefully", defaultEntry)
+        userID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "UserID", "UserID", "Type/Paste your UserID (min length 8) very carefully", defaultEntry)
         myPrint("B", "userID entered: %s" %userID)
-        if userID is None: raise Exception("ERROR - no userID supplied! Aborting without changes")
+        if userID is None:
+            alert = "ERROR - no userID supplied! Aborting"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
         defaultEntry = userID
-        if userID is None or userID == "" or uuid == "UserID" or len(userID)<8:
+        if userID is None or userID == "" or userID == "UserID" or len(userID)<8:
             myPrint("B", "\n ** ERROR - no valid userID supplied - try again ** \n")
             continue
         break
@@ -1488,9 +1579,12 @@ Visit: %s (Author's site)
 
     defaultEntry = "*****"
     while True:
-        password = myPopupAskForInput(ofx_fix_existing_usaa_bank_profile_frame_, "password", "password", "Type/Paste your Password (min length 6) very carefully", defaultEntry)
+        password = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "password", "password", "Type/Paste your Password (min length 6) very carefully", defaultEntry)
         myPrint("B", "password entered: %s" %password)
-        if password is None: raise Exception("ERROR - no password supplied! Aborting without changes")
+        if password is None:
+            alert = "ERROR - no password supplied! Aborting"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
         defaultEntry = password
         if password is None or password == "" or password == "*****" or len(password) < 6:
             myPrint("B", "\n ** ERROR - no password supplied - try again ** \n")
@@ -1498,146 +1592,348 @@ Visit: %s (Author's site)
         break
     del defaultEntry
 
-    ccID = None
-    if lFoundCCAccount:
-        ccID = myPopupAskForInput(ofx_fix_existing_usaa_bank_profile_frame_, "NewCC Number", "NewCC Number", "Type/Paste your new CC Number (length 16) (or just press enter for none/no change)", ccAccountNumber)
-        if ccID is None or ccID == "" or len(ccID)!=16: raise Exception("ERROR - no valid ccID supplied")
+    bankID = routID = None
+    route = bankAccount = None
 
-        myPrint("B", "existing CC number:       %s" %ccAccountNumber)
-        myPrint("B", "ccID entered:             %s" %ccID)
+    if selectedBankAccount:
+        bankAccount = selectedBankAccount.getBankAccountNumber()        # noqa
+        bankID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "BankAccount", "BankAccount", "Type/Paste your Bank Account Number - very carefully", bankAccount)
+        if bankID is None or bankID == "":
+            alert = "ERROR - no bankID supplied - Aborting"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
+        myPrint("B", "existing bank account:   %s" %bankAccount)
+        myPrint("B", "bankID entered:          %s" %bankID)
 
-        if ccID == ccAccountNumber:
-            if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_, "Keep CC Number", "Confirm you want use the same CC %s for connection?" % ccID, theMessageType=JOptionPane.WARNING_MESSAGE):
-                raise Exception("ERROR - User aborted on keeping the CC the same - no changes made")
+        route = selectedBankAccount.getOFXBankID()                      # noqa
+        if route == "" or len(route) != 9:
+            route = "314074269"
+        routID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "Routing", "Routing", "Type/Paste your Routing Number (9 digits - usually '314074269')- very carefully", route)
+        if routID is None or routID == "" or len(routID) != 9:
+            alert = "ERROR - invalid Routing supplied - Aborting"
+            myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(alert)
+        myPrint("B", "existing routing number: %s" %route)
+        myPrint("B", "routID entered:          %s" %routID)
+
+    ccID = ccAccount = None
+
+    if selectedCCAccount:
+        while True:
+            ccAccount = selectedCCAccount.getBankAccountNumber()        # noqa
+            ccID = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "CC_Account", "CC_Account", "Type/Paste the CC Number that the bank uses for connection (length 16) very carefully", ccAccount)
+            myPrint("B", "existing CC number:      %s" %ccAccount)
+            myPrint("B", "ccID entered:            %s" %ccID)
+            if ccID is None:
+                alert = "ERROR - no valid ccID supplied - aborting"
+                myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+                raise Exception(alert)
+            if ccID is None or ccID == "" or len(ccID)!=16:
+                myPrint("B", "\n ** ERROR - no valid ccID supplied! Please try again ** \n")
+                continue
+            break
+
+        if ccID == ccAccount:
+            if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "Keep CC Number", "Confirm you want use the same CC %s for connection?" % ccID, theMessageType=JOptionPane.WARNING_MESSAGE):
+                alert = "ERROR - User aborted on keeping the CC the same"
+                myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+                raise Exception(alert)
         else:
-            if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_, "Change CC number", "Confirm you want to set a new CC as %s for connection?" % ccID, theMessageType=JOptionPane.ERROR_MESSAGE):
-                raise Exception("ERROR - User aborted on CC change - no changes made")
+            if not myPopupAskQuestion(ofx_create_new_usaa_bank_profile_frame_, "Change CC number", "Confirm you want to set a new CC as %s for connection?" % ccID, theMessageType=JOptionPane.ERROR_MESSAGE):
+                alert = "ERROR - User aborted on CC change"
+                myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+                raise Exception(alert)
 
-    if not myPopupAskQuestion(ofx_fix_existing_usaa_bank_profile_frame_, "Proceed?", "Proceed with fixes?", theMessageType=JOptionPane.ERROR_MESSAGE):
-        myPopupInformationBox(ofx_fix_existing_usaa_bank_profile_frame_,"NO CHANGES MADE - ABORTING", theMessageType=JOptionPane.WARNING_MESSAGE)
-        raise Exception("User aborted.....")
+    del ccAccount, route, bankAccount
 
-    newURL = "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx"
+    ####################################################################################################################
 
-    myPrint("B", "clearing existing authentication cache for profile %s" %service)
-    service.clearAuthenticationCache()                                                                      # noqa
+    if lMultiAccountSetup:
+        defaultEntry = uuid
+        while True:
+            uuid2 = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "UUID 2", "UUID 2", "Paste your SECOND Bank Supplied UUID 36 digits 8-4-4-4-12 very carefully (or keep the same)", defaultEntry)
+            myPrint("B", "UUID2 entered: %s" %uuid2)
+            if uuid2 is None:
+                alert = "ERROR - No uuid2 entered! Aborting"
+                myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+                raise Exception(alert)
+            defaultEntry = uuid2
+            if (uuid2 is None or uuid2 == "" or len(uuid2) != 36 or uuid2 == "nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn" or
+                    (str(uuid2)[8]+str(uuid2)[13]+str(uuid2)[18]+str(uuid2)[23]) != "----"):
+                myPrint("B", "\n ** ERROR - no valid uuid2 supplied - try again ** \n")
+                continue
+            break
+        del defaultEntry
 
-    myPrint("B", "Hacking Service profile.....")
-    service.setParameter("access_type", "OFX")                                                              # noqa
-    service.setBootstrapURL(URL(newURL))                                                                    # noqa
-    service.setParameter("app_id","QMOFX")                                                                  # noqa
-    service.setParameter("ofx_version","103")                                                               # noqa
-    service.setParameter("app_ver","2300")                                                                  # noqa
-    service.setFIId("67811")                                                                                # noqa
-    service.setFIName("USAA Federal Savings Bank")                                                          # noqa
-    service.setFIOrg("USAA Federal Savings Bank")                                                           # noqa
-    service.setParameter("no_fi_refresh","y")                                                               # noqa
+        defaultEntry = "UserID2"
+        while True:
+            userID2 = myPopupAskForInput(ofx_create_new_usaa_bank_profile_frame_, "UserID2", "UserID2", "Type/Paste your SECOND UserID (min length 8) very carefully", defaultEntry)
+            myPrint("B", "userID2 entered: %s" %userID2)
+            if userID2 is None:
+                alert = "ERROR - no userID2 supplied! Aborting"
+                myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+                raise Exception(alert)
+            defaultEntry = userID2
+            if userID2 is None or userID2 == "" or userID2 == "UserID2" or len(userID2)<8:
+                myPrint("B", "\n ** ERROR - no valid userID2 supplied - try again ** \n")
+                continue
+            break
+        del defaultEntry
 
-    svcKeys = list(service.getParameterKeys())                                                              # noqa
-    for i in range(0,len(svcKeys)):
-        sk = svcKeys[i]
-        if sk.startswith("so_user_id_"):
-            myPrint("B", "Updating old authKey %s: %s to %s" %(sk, service.getParameter(sk), userID)    )           # noqa
-            service.setParameter(sk, userID)                                                                # noqa
-        if sk.startswith("ofxurl_"):
-            myPrint("B", "Updating url %s: %s to %s" %(sk, service.getParameter(sk), newURL) )                      # noqa
-            service.setParameter(sk, newURL)                                                                # noqa
-        if lFoundCCAccount:
-            checkCCNum = service.getParameter(sk)                                                           # noqa
-            if (sk.startswith("available_accts.") and sk.endswith(".account_num")
-                    and (checkCCNum == ccAccountNumber
-                         or checkCCNum == ccID
-                         or str(checkCCNum) == str(ccAccountNumber).zfill(16)
-                         or str(checkCCNum) == str(ccID).zfill(16))):
-                myPrint("B", "Found CC Account %s in bank profile; changing to %s" %(checkCCNum,str(ccID).zfill(16)))
-                service.setParameter(sk, str(ccID).zfill(16))                                               # noqa
-        i+=1
+    ####################################################################################################################
 
-    service.setParameter("so_client_uid_req_USAASignon", "1")  # noqa
-    service.setParameter("user-agent", "InetClntApp/3.0")  # noqa
+    myPrint("B", "creating new service profile")
+    book = moneydance.getCurrentAccountBook()
+    manualFIInfo = StreamTable()     # type: StreamTable
+    manualFIInfo.put("obj_type",                                 "olsvc")
+    manualFIInfo.put("access_type",                              "OFX")
+    manualFIInfo.put("app_id",                                   "QMOFX")
+    manualFIInfo.put("app_ver",                                  "2300")
+    manualFIInfo.put("bank_closing_avail",                       "0")
+    manualFIInfo.put("bank_email_can_notify",                    "0")
+    manualFIInfo.put("bank_email_enabled",                       "0")
+    manualFIInfo.put("bootstrap_url",                            "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("cc_closing_avail",                         "1")
+    manualFIInfo.put("date_avail_accts",                         "20200204120000")
+    manualFIInfo.put("fi_addr1",                                 "10750 McDermott Freeway")
+    manualFIInfo.put("fi_addr2",                                 "")
+    manualFIInfo.put("fi_addr3",                                 "")
+    manualFIInfo.put("fi_city",                                  "San Antonio")
+    manualFIInfo.put("fi_country",                               "USA")
+    manualFIInfo.put("fi_cust_svc_phone",                        "877-820-8320")
+    manualFIInfo.put("fi_email",                                 "")
+    manualFIInfo.put("fi_id",                                    USAA_FI_ID)
+    manualFIInfo.put("fi_name",                                  USAA_PROFILE_NAME)
+    manualFIInfo.put("fi_org",                                   USAA_FI_ORG)
+    manualFIInfo.put("fi_state",                                 "TX")
+    manualFIInfo.put("fi_tech_svc_phone",                        "877-820-8320")
+    manualFIInfo.put("fi_url",                                   "www.usaa.com")
+    manualFIInfo.put("fi_url_is_redirect",                       "1")
+    manualFIInfo.put("fi_zip",                                   "78288")
+    manualFIInfo.put("invst_dflt_broker_id",                     "")
+    manualFIInfo.put("language_banking",                         "ENG")
+    manualFIInfo.put("language_creditcard",                      "ENG")
+    manualFIInfo.put("language_default",                         "ENG")
+    manualFIInfo.put("language_fiprofile",                       "ENG")
+    manualFIInfo.put("language_signup",                          "ENG")
+    manualFIInfo.put("last_fi_refresh",                          "1613781515886")
+    manualFIInfo.put("no_fi_refresh",                            "y")
+    manualFIInfo.put("ofx_version",                              "103")
+    manualFIInfo.put("ofxurl_banking",                           "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("ofxurl_creditcard",                        "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("ofxurl_default",                           "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("ofxurl_signup",                            "https://df3cx-services.1fsapi.com/casm/usaa/access.ofx")
+    manualFIInfo.put("realm_banking",                            "USAASignon")
+    manualFIInfo.put("realm_creditcard",                         "USAASignon")
+    manualFIInfo.put("realm_default",                            "USAASignon")
+    manualFIInfo.put("realm_fiprofile",                          "USAASignon")
+    manualFIInfo.put("realm_signup",                             "USAASignon")
+    manualFIInfo.put("rspnsfileerrors_banking",                  "1")
+    manualFIInfo.put("rspnsfileerrors_creditcard",               "1")
+    manualFIInfo.put("rspnsfileerrors_default",                  "1")
+    manualFIInfo.put("rspnsfileerrors_fiprofile",                "1")
+    manualFIInfo.put("rspnsfileerrors_signup",                   "1")
+    manualFIInfo.put("securetransport_banking",                  "1")
+    manualFIInfo.put("securetransport_creditcard",               "1")
+    manualFIInfo.put("securetransport_default",                  "1")
+    manualFIInfo.put("securetransport_fiprofile",                "1")
+    manualFIInfo.put("securetransport_signup",                   "1")
+    manualFIInfo.put("security_banking",                         "NONE")
+    manualFIInfo.put("security_creditcard",                      "NONE")
+    manualFIInfo.put("security_default",                         "NONE")
+    manualFIInfo.put("security_fiprofile",                       "NONE")
+    manualFIInfo.put("security_signup",                          "NONE")
+    manualFIInfo.put("signup_accts_avail",                       "1")
+    manualFIInfo.put("signup_can_activate_acct",                 "0")
+    manualFIInfo.put("signup_can_chg_user_info",                 "0")
+    manualFIInfo.put("signup_can_preauth",                       "0")
+    manualFIInfo.put("signup_client_acct_num_req",               "1")
+    manualFIInfo.put("signup_via_client",                        "0")
+    manualFIInfo.put("signup_via_other",                         "1")
+    manualFIInfo.put("signup_via_other_msg",                     "Please contact the financial institution for the enrollment process.")
+    manualFIInfo.put("signup_via_web",                           "0")
+    manualFIInfo.put("so_can_change_pin_USAASignon",             "1")
+    manualFIInfo.put("so_client_uid_req_USAASignon",             "1")
+    manualFIInfo.put("so_maxpasslen_USAASignon",                 "4")
+    manualFIInfo.put("so_minpasslen_USAASignon",                 "4")
+    manualFIInfo.put("so_must_chg_pin_first_USAASignon",         "0")
+    manualFIInfo.put("so_passchartype_USAASignon",               "NUMERICONLY")
+    manualFIInfo.put("so_passwd_case_sensitive_USAASignon",      "0")
+    manualFIInfo.put("so_passwd_spaces_USAASignon",              "0")
+    manualFIInfo.put("so_passwd_special_chars_USAASignon",       "0")
+    manualFIInfo.put("so_passwd_type_USAASignon",                userID)
+    manualFIInfo.put("so_user_id_USAASignon",                    userID)
+    if selectedBankAccount:
+        manualFIInfo.put("so_user_id_USAASignon::%s" %(my_getAccountKey(selectedBankAccount)), userID)
+    if selectedCCAccount:
+        manualFIInfo.put("so_user_id_USAASignon::%s" %(my_getAccountKey(selectedCCAccount)),   userID)
+    manualFIInfo.put("syncmode_banking",                         "LITE")
+    manualFIInfo.put("syncmode_creditcard",                      "LITE")
+    manualFIInfo.put("syncmode_default",                         "LITE")
+    manualFIInfo.put("syncmode_fiprofile",                       "LITE")
+    manualFIInfo.put("syncmode_signup",                          "LITE")
+    # manualFIInfo.put("tik_fi_id",                                OLD_TIK_FI_ID)
+    manualFIInfo.put("user-agent",                               "InetClntApp/3.0")
+    manualFIInfo.put("uses_fi_tag",                              "y")
+    manualFIInfo.put("version_banking",                          "1")
+    manualFIInfo.put("version_creditcard",                       "1")
+    manualFIInfo.put("version_default",                          "1")
+    manualFIInfo.put("version_fiprofile",                        "1")
+    manualFIInfo.put("version_signup",                           "1")
+    # manualFIInfo.put("id",                                       "4f085ab1-6f10-42d9-8048-4431b7919d61")
+    # manualFIInfo.put("last_txn_id",                              "0-2f04b703_dd9df513-380")
 
-    myPrint("B", "Syncing Service profile after changes....")
-    service.syncItem()                                                                                  # noqa
-    myPrint("B", "USA Service %s profile hacked....." %(service))
+    num = 0
+    if selectedBankAccount:
+        sNum = str(num)
+        manualFIInfo.put("available_accts.%s.account_num" %(sNum),            str(bankID).zfill(10))
+        manualFIInfo.put("available_accts.%s.account_type" %(sNum),           "CHECKING")
+        manualFIInfo.put("available_accts.%s.branch_id" %(sNum),              "")
+        manualFIInfo.put("available_accts.%s.desc" %(sNum),                   "USAA CLASSIC CHECKING")
+        manualFIInfo.put("available_accts.%s.has_txn_dl" %(sNum),             "1")
+        manualFIInfo.put("available_accts.%s.has_xfr_from" %(sNum),           "0")
+        manualFIInfo.put("available_accts.%s.has_xfr_to" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.is_active" %(sNum),              "1")
+        manualFIInfo.put("available_accts.%s.is_avail" %(sNum),               "0")
+        manualFIInfo.put("available_accts.%s.is_bank_acct" %(sNum),           "1")
+        manualFIInfo.put("available_accts.%s.is_pending" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.msg_type" %(sNum),               "4")
+        manualFIInfo.put("available_accts.%s.phone" %(sNum),                  "")
+        manualFIInfo.put("available_accts.%s.routing_num" %(sNum),            routID)
+        num += 1
 
-    myPrint("B", "Ensuring each linked account has a valid download cache object.....")
-    for acct in olAccounts: acct.getDownloadedTxns()
+    if selectedCCAccount:
+        sNum = str(num)
+        manualFIInfo.put("available_accts.%s.account_num" %(sNum),            str(ccID).zfill(16))
+        manualFIInfo.put("available_accts.%s.desc" %(sNum),                   "Signature Visa")
+        manualFIInfo.put("available_accts.%s.has_txn_dl" %(sNum),             "1")
+        manualFIInfo.put("available_accts.%s.has_xfr_from" %(sNum),           "0")
+        manualFIInfo.put("available_accts.%s.has_xfr_to" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.is_active" %(sNum),              "1")
+        manualFIInfo.put("available_accts.%s.is_avail" %(sNum),               "0")
+        manualFIInfo.put("available_accts.%s.is_cc_acct" %(sNum),             "1")
+        manualFIInfo.put("available_accts.%s.is_pending" %(sNum),             "0")
+        manualFIInfo.put("available_accts.%s.msg_type" %(sNum),               "5")
+        manualFIInfo.put("available_accts.%s.phone" %(sNum),                  "")
 
-    # myPrint("B", "Ensuring each linked account has valid ofx data....")
-    # for acct in olAccounts:
-    #     if lFoundCCAccount and acct == saveCC_Acct: continue
-    #
-    #     # i should / could check getBankAccountNumber(), getOFXBankID(), getOFXAccountMsgType(), getOFXAccountNumber(), getOFXAccountType()
+    del sNum
 
+    newService = OnlineService(book, manualFIInfo)
+    newService.syncItem()
 
-    if lFoundCCAccount:
-        myPrint("B", "Updating Account Object CC Bank Account %s Number to %s" %(saveCC_Acct, ccID))
-        saveCC_Acct.setBankAccountNumber(str(ccID).zfill(16))
+    ####################################################################################################################
+
+    service = newService
+
+    if selectedBankAccount:
+        myPrint("B", "Setting up account %s for OFX" %(selectedBankAccount))
+        myPrint("B", ">> saving OFX bank account number: %s and OFX route: %s" %(bankID, routID))
+        selectedBankAccount.setBankAccountNumber(bankID)                # noqa
+        selectedBankAccount.setOFXBankID(routID)                        # noqa
+
+        myPrint("B", ">> setting OFX Message type to '4'")
+        selectedBankAccount.setOFXAccountMsgType(4)                     # noqa
+
+        myPrint("B", ">> setting OFX Account Number to: %s" %(str(bankID).zfill(10)))
+        selectedBankAccount.setOFXAccountNumber(str(bankID).zfill(10))  # noqa
+
+        myPrint("B", ">> setting OFX Type to 'CHECKING'")
+        selectedBankAccount.setOFXAccountType("CHECKING")               # noqa
+
+        myPrint("B", ">> Setting up the Banking Acct %s link to new bank service / profile %s" %(selectedBankAccount, newService))
+        selectedBankAccount.setBankingFI(newService)                    # noqa
+
+        selectedBankAccount.syncItem()                                  # noqa
+        selectedBankAccount.getDownloadedTxns()                         # noqa
+        myPrint("B","")
+
+    if selectedCCAccount:
+        myPrint("B", "Setting up CC Account %s for OFX" %(selectedCCAccount))
+
+        myPrint("B", ">> saving OFX CC account number %s" %(ccID))
+        selectedCCAccount.setBankAccountNumber(str(ccID).zfill(16))         # noqa
 
         # myPrint("B", ">> setting OFX Type to 'CREDITCARD'")
-        # saveCC_Acct.setOFXAccountType("CREDITCARD")               # noqa
+        # selectedBankAccount.setOFXAccountType("CREDITCARD")               # noqa
 
-        myPrint("B", ">> checking OFX Message type")
-        if saveCC_Acct.getOFXAccountMsgType() < 1:                  # noqa
-            saveCC_Acct.setOFXAccountMsgType(5)                     # noqa
+        myPrint("B", ">> setting OFX Message type to '5'")
+        selectedCCAccount.setOFXAccountMsgType(5)                     # noqa
 
-        myPrint("B", "syncing change to Account object")
-        saveCC_Acct.syncItem()
+        myPrint("B", ">> Settings up the CC Acct %s link to new profile %s" %(selectedCCAccount, newService))
+        selectedCCAccount.setBankingFI(newService)                      # noqa
+
+        selectedCCAccount.syncItem()                                    # noqa
+        selectedCCAccount.getDownloadedTxns()                           # noqa
+        print
+
+    ####################################################################################################################
 
     myPrint("B", "Updating root with userID and uuid")
     root = moneydance.getRootAccount()
-    authKeyPrefix = "ofx.client_uid"
-    # root.setParameter(authKeyPrefix, uuid)
-    # root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + "null",   uuid)         # noqa
+
+    if lOverrideRootUUID:
+        myPrint("B","Overriding Root's default UUID. Was: %s >> changing to >> %s" %(root.getParameter(authKeyPrefix, ""),uuid))
+        root.setParameter(authKeyPrefix, uuid)
+        # root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + "null",   uuid)         # noqa
 
     rootKeys = list(root.getParameterKeys())
     for i in range(0,len(rootKeys)):
         rk = rootKeys[i]
-        if rk.startswith(authKeyPrefix) and service.getTIKServiceID() in rk:                            # noqa
+        if rk.startswith(authKeyPrefix) and (service.getTIKServiceID() in rk or OLD_TIK_FI_ID in rk):
             myPrint("B", "Deleting old authKey %s: %s" %(rk,root.getParameter(rk)))
             root.setParameter(rk, None)
         i+=1
 
     root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + userID,   uuid)          # noqa
     root.setParameter(authKeyPrefix+"_default_user"+"::" + service.getTIKServiceID(), userID)         # noqa
-    root.syncItem()
     myPrint("B", "Root UserID and uuid updated...")
 
-    myPrint("B", "\nUpdating bank accounts to reestablish the link to this updated service profile")
-    for olAcct in listAccountMDProxies:
-        theAcct = olAcct[_ACCOUNT].getAccount()
-        if not olAcct[_ISBILLPAY]:
-            theAcct.setBankingFI(service)
-            myPrint("B", " - Reset Banking Acct %s to updated profile %s" %(olAcct[_ACCOUNT].getAccount().getFullAccountName(),service))
-        else:
-            theAcct.setBillPayFI(service)
-            myPrint("B", " - Reset Billpay Acct %s to updated profile %s" %(olAcct[_ACCOUNT].getAccount().getFullAccountName(),service))
-        myPrint("B", "Syncing acct.....")
-        theAcct.syncItem()
+    if lMultiAccountSetup:
+        root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + userID2,   uuid2)       # noqa
+        myPrint("B", "Root UserID TWO and uuid TWO primed - ready for Online Banking Setup...")
 
-    myPrint("B", "\nList All physical accounts configured in service profile:" + str(service.getAvailableAccounts()))          # noqa
-    for availAccount in service.getAvailableAccounts():          # noqa
-        myPrint("B", ">> Physical ACCOUNT:   %s (%s)" %(availAccount.getDescription(),availAccount.getAccountNumber()))
-        myPrint("B", "   getAccountKey()   : %s" %(availAccount.getAccountKey()))
-        myPrint("B", "   getAccountNumber(): %s" %(availAccount.getAccountNumber()))
-        myPrint("B", "   getAccountType()  : %s" %(availAccount.getAccountType()))
-        myPrint("B", "   isBankAccount()   : %s" %(availAccount.isBankAccount()))
-        myPrint("B", "   isCCAccount()     : %s" %(availAccount.isCCAccount()))
+    root.syncItem()
+    ####################################################################################################################
 
-        # if newCC is not None and newCC is not "":
-        #     if availAccount.isCCAccount() and availAccount.getAccountNumber() == oldCC:
-        #         print "Updating CC account %s"
-        #         availAccount.setAccountNumber()
-    myPrint("B","")
+    myPrint("B", "accessing authentication keys")
+
+    _ACCOUNT = 0
+    _SERVICE = 1
+    _ISBILLPAY = 2
+
+    check = 0
+    whichAccounts = []
+    if selectedBankAccount:
+        check += 1
+        whichAccounts.append(selectedBankAccount)
+    if selectedCCAccount:
+        check += 1
+        whichAccounts.append(selectedCCAccount)
+
+    listAccountMDProxies=[]
+    for acctObj in whichAccounts:
+        acct = acctObj                                 # type: Account
+        svcBank = acct.getBankingFI()                  # noqa
+        svcBPay = acct.getBillPayFI()                  # noqa
+        if svcBank is not None:
+            myPrint("B", " - Found/Saved Banking Acct: %s" %acct)
+            listAccountMDProxies.append([MDAccountProxy(acct, False),svcBank,False])
+        if svcBPay is not None:
+            myPrint("B", " - Found/Saved Bill Pay Acct: %s" %acct)
+            listAccountMDProxies.append([MDAccountProxy(acct, True),svcBPay,True])
+
+    if len(listAccountMDProxies) != check:
+        alert = "LOGIC ERROR: listAccountMDProxies != %s - Some changes have been made - review log....." %check
+        myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise Exception(alert)
 
     myPrint("B", "\n>>REALMs configured:")
-    realmsToCheck = service.getRealms()        # noqa
+    realmsToCheck = service.getRealms()         # noqa
     if "DEFAULT" not in realmsToCheck:
-        realmsToCheck.insert(0,"DEFAULT")
+        realmsToCheck.insert(0,"DEFAULT")       # noqa
 
     for realm in realmsToCheck:
-        myPrint("B", "--")
-        myPrint("B", "Realm: %s profile User ID: %s" %(realm, service.getUserId(realm, None)))        # noqa
+        myPrint("B", "Realm: %s current User ID: %s" %(realm, service.getUserId(realm, None)))        # noqa
 
         for olacct in listAccountMDProxies:
 
@@ -1657,10 +1953,13 @@ Visit: %s (Author's site)
 
             myPrint("B", "Realm: %s now UserID: %s" %(realm, userID))
 
-    myPrint("B", "SUCCESS. Please RESTART Moneydance.")
-    myPopupInformationBox(ofx_fix_existing_usaa_bank_profile_frame_, "SUCCESS. REVIEW OUTPUT - Then RESTART Moneydance.", theMessageType=JOptionPane.ERROR_MESSAGE)
+    ####################################################################################################################
 
-    if not ofx_fix_existing_usaa_bank_profile_frame_.isActiveInMoneydance:
+    myPrint("B", "SUCCESS. Please RESTART Moneydance.")
+
+    myPopupInformationBox(ofx_create_new_usaa_bank_profile_frame_, "SUCCESS. REVIEW OUTPUT - Then RESTART Moneydance.", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+    if not ofx_create_new_usaa_bank_profile_frame_.isActiveInMoneydance:
         destroyOldFrames(myModuleID)
 
     myPrint("B", "StuWareSoftSystems - %s script ending......" %myScriptName)

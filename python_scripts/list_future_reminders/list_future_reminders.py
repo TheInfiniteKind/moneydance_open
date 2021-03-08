@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1003)
+# list_future_reminders.py (build: 1004)
 
 ###############################################################################
 # MIT License
@@ -31,6 +31,7 @@
 # Build: 1001 - Enhancement to prevent duplicate extension running.....
 # Build: 1002 - Tweak to block old MD versions...
 # Build: 1003 - tweak to common code for launch detection
+# Build: 1004 - tweak to common code (minor, non-functional change)
 
 # Displays Moneydance future reminders
 
@@ -204,7 +205,7 @@ else:
 	# END COMMON GLOBALS ###################################################################################################
 
 	# SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-	version_build = "1003"           																					# noqa
+	version_build = "1004"           																					# noqa
 	myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
 	debug = False                                                                                                       # noqa
 	myParameters = {}                                                                                                   # noqa
@@ -1028,7 +1029,7 @@ Visit: %s (Author's site)
 			pass
 
 		if homeDir is None or homeDir == "":
-			homeDir = moneydance_data.getRootFolder().getParent()  # Better than nothing!
+			homeDir = moneydance.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
 
 		myPrint("DB", "Home Directory selected...:", homeDir)
 		if homeDir is None: return ""
@@ -1074,7 +1075,7 @@ Visit: %s (Author's site)
 
 		return str( theDelimiter )
 
-	def get_StuWareSoftSystems_parameters_from_file():
+	def get_StuWareSoftSystems_parameters_from_file(myFile="StuWareSoftSystems.dict"):
 		global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
 
 		myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -1084,11 +1085,10 @@ Visit: %s (Author's site)
 			myParameters = {}
 			return
 
-		myFile = "StuWareSoftSystems.dict"
 		old_dict_filename = os.path.join("..", myFile)
 
 		# Pickle was originally encrypted, no need, migrating to unencrypted
-		migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
+		migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
 		myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
@@ -1159,7 +1159,7 @@ Visit: %s (Author's site)
 
 		return
 
-	def save_StuWareSoftSystems_parameters_to_file():
+	def save_StuWareSoftSystems_parameters_to_file(myFile="StuWareSoftSystems.dict"):
 		global debug, myParameters, lPickle_version_warning, version_build
 
 		myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -1172,9 +1172,8 @@ Visit: %s (Author's site)
 
 		dump_StuWareSoftSystems_parameters_from_memory()
 
-		myFile = "StuWareSoftSystems.dict"
 		# Pickle was originally encrypted, no need, migrating to unencrypted
-		migratedFilename = os.path.join(moneydance_data.getRootFolder().getAbsolutePath(),myFile)
+		migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
 		myPrint("DB","Will try to save parameter file:", migratedFilename)
 
