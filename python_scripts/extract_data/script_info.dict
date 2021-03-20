@@ -2,7 +2,7 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "extract_data.py"
+      "script_file" = "show_extract_data.py"
       "name" = "Extract Data"
     }
   
