@@ -2,7 +2,7 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "toolbox.py"
+      "script_file" = "show_toolbox.py"
       "name" = "Toolbox"
       "module_name" = "Toolbox"
     }
