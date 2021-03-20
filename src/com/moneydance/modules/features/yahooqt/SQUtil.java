@@ -14,7 +14,7 @@ import com.infinitekind.moneydance.model.Legacy;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.moneydance.apps.md.controller.time.TimeInterval;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

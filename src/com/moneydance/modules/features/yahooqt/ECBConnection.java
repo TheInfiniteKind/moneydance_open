@@ -2,7 +2,7 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.DateUtil;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
