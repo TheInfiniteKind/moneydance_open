@@ -1,21 +1,60 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# calculate_moneydance_objs_and_datasetsize.py build: 8 - Feb 2021 - Stuart Beesley StuWareSoftSystems
+# calculate_moneydance_objs_and_datasetsize.py build: 11 - Feb 2021 - Stuart Beesley StuWareSoftSystems
+
+###############################################################################
+# MIT License
+#
+# Copyright (c) 2020 Stuart Beesley - StuWareSoftSystems
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
+# Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
+
+# build: 11 - Build 3051 of Moneydance... fix references to moneydance_* variables;
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
+# SET THESE LINES
 myModuleID = u"calculate_moneydance_objs_and_datasetsize"
+version_build = "11"
+if u"debug" in globals():
+    global debug
+else:
+    debug = False
 global calculate_moneydance_objs_and_datasetsize_frame_
 
-global moneydance, moneydance_data, moneydance_ui
-global moneydance_extension_loader
+# COPY >> START
+global moneydance, moneydance_extension_loader
+MD_REF = moneydance     # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _ui / _data variables
+if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
+if u"moneydance_extension_loader" in globals():
+    MD_EXTENSION_LOADER = moneydance_extension_loader
+else:
+    MD_EXTENSION_LOADER = None
 
-from java.lang import System
-from javax.swing import JFrame
+from java.lang import System, Runnable
+from javax.swing import JFrame, SwingUtilities, SwingWorker
 from java.awt.event import WindowEvent
 
 class MyJFrame(JFrame):
@@ -27,6 +66,35 @@ class MyJFrame(JFrame):
         self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
         self.HomePageViewObj = None
+
+class GenericWindowClosingRunnable(Runnable):
+
+    def __init__(self, theFrame):
+        self.theFrame = theFrame
+
+    def run(self):                                                                                                      # noqa
+        self.theFrame.setVisible(False)
+        self.theFrame.dispatchEvent(WindowEvent(self.theFrame, WindowEvent.WINDOW_CLOSING))
+
+class GenericDisposeRunnable(Runnable):
+    def __init__(self, theFrame):
+        self.theFrame = theFrame
+
+    def run(self):                                                                                                      # noqa
+        self.theFrame.dispose()
+
+class GenericVisibleRunnable(Runnable):
+    def __init__(self, theFrame, lVisible=True, lToFront=False):
+        self.theFrame = theFrame
+        self.lVisible = lVisible
+        self.lToFront = lToFront
+
+    def run(self):                                                                                                      # noqa
+        self.theFrame.setVisible(self.lVisible)
+        if self.lVisible and self.lToFront:
+            if self.theFrame.getExtendedState() == JFrame.ICONIFIED:
+                self.theFrame.setExtendedState(JFrame.NORMAL)
+            self.theFrame.toFront()
 
 def getMyJFrame( moduleName ):
     try:
@@ -48,9 +116,9 @@ def getMyJFrame( moduleName ):
 frameToResurrect = None
 try:
     if (u"%s_frame_"%myModuleID in globals()
-            and isinstance(calculate_moneydance_objs_and_datasetsize_frame_, MyJFrame)
-            and calculate_moneydance_objs_and_datasetsize_frame_.isActiveInMoneydance):
-        frameToResurrect = calculate_moneydance_objs_and_datasetsize_frame_
+            and isinstance(calculate_moneydance_objs_and_datasetsize_frame_, MyJFrame)        # EDIT THIS
+            and calculate_moneydance_objs_and_datasetsize_frame_.isActiveInMoneydance):       # EDIT THIS
+        frameToResurrect = calculate_moneydance_objs_and_datasetsize_frame_                   # EDIT THIS
     else:
         getFr = getMyJFrame( myModuleID )
         if getFr is not None:
@@ -68,9 +136,8 @@ try:
             System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
             frameToResurrect.isActiveInMoneydance = False
             try:
-                frameToResurrect.setVisible(False)
-                frameToResurrect.dispatchEvent(WindowEvent(frameToResurrect, WindowEvent.WINDOW_CLOSING))
-                System.err.write("%s: Pushed a windowClosing event to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+                SwingUtilities.invokeLater(GenericWindowClosingRunnable(frameToResurrect))
+                System.err.write("%s: Pushed a windowClosing event - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
             except:
                 System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
 
@@ -82,20 +149,17 @@ try:
 except:
     System.err.write("%s: Critical error checking frameToResurrect(2); caught and ignoring...!\n" %(myModuleID))
 
-if float(moneydance.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+if float(MD_REF.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
     try:
-        moneydance.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+        MD_REF.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
     except:
         raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 
 elif frameToResurrect:
     try:
-        frameToResurrect.setVisible(True)
-        if frameToResurrect.getExtendedState() == JFrame.ICONIFIED:
-            frameToResurrect.setExtendedState(JFrame.NORMAL)
-        frameToResurrect.toFront()
+        SwingUtilities.invokeLater(GenericVisibleRunnable(frameToResurrect, True, True))
     except:
-        print("%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating....." %(myModuleID))
+        print("%s: Failed to resurrect main Frame - via SwingUtilities.invokeLater() - This duplicate Script/extension is now terminating....." %(myModuleID))
         System.err.write("%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID))
         raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
 
@@ -127,6 +191,8 @@ else:
 
     from org.python.core.util import FileUtil
 
+    from java.lang import Thread
+
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
     from com.moneydance.apps.md.view.gui import MDImages
@@ -142,6 +208,9 @@ else:
     from javax.swing.text import PlainDocument
     from javax.swing.border import EmptyBorder
 
+    from java.awt.datatransfer import StringSelection
+    from javax.swing.text import DefaultHighlighter
+
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets
     from java.awt.event import KeyEvent, WindowAdapter, InputEvent
@@ -152,13 +221,14 @@ else:
     from java.lang import Double, Math, Character
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
+    from java.nio.charset import Charset
     if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                          JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                          JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                          InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                          AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
                          JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
-                         WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets, FileDialog)): pass
+                         WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets, FileDialog, Thread, SwingWorker)): pass
     if codecs.BOM_UTF8 is not None: pass
     if csv.QUOTE_ALL is not None: pass
     if datetime.MINYEAR is not None: pass
@@ -166,17 +236,15 @@ else:
     # END COMMON IMPORTS ###################################################################################################
 
     # COMMON GLOBALS #######################################################################################################
-    global debug  # Set to True if you want verbose messages, else set to False....
-    global myParameters, myScriptName, version_build, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
+    global myParameters, myScriptName, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
     global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlobalErrorDetected
     global MYPYTHON_DOWNLOAD_URL
     # END COMMON GLOBALS ###################################################################################################
+    # COPY >> END
 
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    version_build = "8"                                                                                                 # noqa
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
-    debug = False                                                                                                       # noqa
     myParameters = {}                                                                                                   # noqa
     _resetParameters = False                                                                                            # noqa
     lPickle_version_warning = False                                                                                     # noqa
@@ -195,6 +263,7 @@ else:
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 
+    # COPY >> START
     # COMMON CODE ##########################################################################################################
     # COMMON CODE ##########################################################################################################
     # COMMON CODE ##########################################################################################################
@@ -206,7 +275,8 @@ else:
 
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
-Thank you for using %s! The author has other useful Extensions / Moneybot Python scripts available...:
+Thank you for using %s!
+The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
 toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
@@ -227,6 +297,52 @@ useful_scripts:                         Just unzip and select the script you wan
 Visit: %s (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
 """ %(myScriptName, MYPYTHON_DOWNLOAD_URL)
+
+    def cleanup_references():
+        global MD_REF, MD_EXTENSION_LOADER
+        myPrint("DB","About to delete reference to MD_REF and MD_EXTENSION_LOADER....!")
+        del MD_REF, MD_EXTENSION_LOADER
+
+    def load_text_from_stream_file(theStream):
+        myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        cs = Charset.forName("UTF-8")
+
+        istream = theStream
+
+        if not istream:
+            myPrint("B","... Error - the input stream is None")
+            return "<NONE>"
+
+        fileContents = ""
+        istr = bufr = None
+        try:
+            istr = InputStreamReader(istream, cs)
+            bufr = BufferedReader(istr)
+            while True:
+                line = bufr.readLine()
+                if line is not None:
+                    line += "\n"
+                    fileContents+=line
+                    continue
+                break
+            fileContents+="\n<END>"
+        except:
+            myPrint("B", "ERROR reading from input stream... ")
+            dump_sys_error_to_md_console_and_errorlog()
+
+        try: bufr.close()
+        except: pass
+
+        try: istr.close()
+        except: pass
+
+        try: istream.close()
+        except: pass
+
+        myPrint("DB", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+        return fileContents
 
     # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both, D=If Debug Only print, DB=print both
     def myPrint(where, *args):
@@ -301,48 +417,11 @@ Visit: %s (Author's site)
 
     myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
-    def is_moneydance_loaded_properly():
-        global debug
-
-        if debug or moneydance is None or moneydance_data is None or moneydance_ui is None:
-            for theClass in ["moneydance",  moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance]:
-                myPrint("B","Moneydance Objects now....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
-            myPrint("P","")
-
-        if moneydance is not None and moneydance_data is not None and moneydance_ui is not None:                        # noqa
-            if debug: myPrint("B","Success - Moneydance variables are already set....")
-            return
-
-        myPrint("B","ERROR - Moneydance variables are NOT set properly....!")
-
-        # to cope with being run as Extension.... temporary
-        if moneydance is not None and (moneydance_data is None or moneydance_ui is None):                                # noqa
-            myPrint("B", "@@@ Moneydance variables not set (run as extension?) - attempting to manually set @@@")
-
-            try:
-                exec "global moneydance_ui;" + "moneydance_ui=moneydance.getUI();"
-            except:
-                myPrint("B","Failed to set moneydance_ui... This is a critical failure... (perhaps a run-time extension and too early - will continue)!")
-                # raise
-
-            try:
-                exec "global moneydance_data;" + "moneydance_data=moneydance.getCurrentAccount().getBook();"
-            except:
-                myPrint("B","Failed to set moneydance_data... I expect I am executing at MD runtime to self-install as a FeatureModule extension.. no matter...")
-
-        for theClass in ["moneydance",moneydance], ["moneydance_ui",moneydance_ui], ["moneydance_data",moneydance]:
-            myPrint("B","Moneydance Objects after manual setting....: Class: %s %s@{:x}".format(System.identityHashCode(theClass[1])) %(pad(theClass[0],20), theClass[1].__class__))
-        myPrint("P","")
-
-        return
-
-    is_moneydance_loaded_properly()
-
     def getMonoFont():
         global debug
 
         try:
-            theFont = moneydance.getUI().getFonts().code
+            theFont = MD_REF.getUI().getFonts().code
             # if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
         except:
             theFont = Font("monospaced", Font.PLAIN, 15)
@@ -351,7 +430,7 @@ Visit: %s (Author's site)
         return theFont
 
     def getTheSetting(what):
-        x = moneydance.getPreferences().getSetting(what, None)
+        x = MD_REF.getPreferences().getSetting(what, None)
         if not x or x == u"": return None
         return what + u": %s" %(x)
 
@@ -416,12 +495,12 @@ Visit: %s (Author's site)
     # JOptionPane.DEFAULT_OPTION, JOptionPane.YES_NO_OPTION, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.OK_CANCEL_OPTION
     # JOptionPane.ERROR_MESSAGE, JOptionPane.INFORMATION_MESSAGE, JOptionPane.WARNING_MESSAGE, JOptionPane.QUESTION_MESSAGE, JOptionPane.PLAIN_MESSAGE
 
-    # Copies Moneydance_ui.showInfoMessage
+    # Copies MD_REF.getUI().showInfoMessage
     def myPopupInformationBox(theParent=None, theMessage="What no message?!", theTitle="Info", theMessageType=JOptionPane.INFORMATION_MESSAGE):
 
         if theParent is None:
             if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=moneydance.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
                 JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType, icon_to_use)
                 return
         JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType)
@@ -455,7 +534,7 @@ Visit: %s (Author's site)
 
         if response == 2:
             myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
-            moneydance.getUI().saveToBackup(None)
+            MD_REF.getUI().saveToBackup(None)
             return True
 
         elif response == 1:
@@ -464,7 +543,7 @@ Visit: %s (Author's site)
 
         return False
 
-    # Copied Moneydance_ui.askQuestion
+    # Copied MD_REF.getUI().askQuestion
     def myPopupAskQuestion(theParent=None,
                            theTitle="Question",
                            theQuestion="What?",
@@ -474,7 +553,7 @@ Visit: %s (Author's site)
         icon_to_use = None
         if theParent is None:
             if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=moneydance.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
 
         # question = wrapLines(theQuestion)
         question = theQuestion
@@ -499,7 +578,7 @@ Visit: %s (Author's site)
         icon_to_use = None
         if theParent is None:
             if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=moneydance.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
 
         p = JPanel(GridBagLayout())
         defaultText = None
@@ -555,12 +634,14 @@ Visit: %s (Author's site)
 
             def windowClosing(self, WindowEvent):                                                                       # noqa
                 global debug
-                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
+                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
+                myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
                 myPrint("DB", "JDialog Frame shutting down....")
 
                 self.lResult[0] = False
 
+                # Note - listeners are already on the EDT
                 if self.theFakeFrame is not None:
                     self.theDialog.dispose()
                     self.theFakeFrame.dispose()
@@ -580,10 +661,12 @@ Visit: %s (Author's site)
 
             def actionPerformed(self, event):
                 global debug
-                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+                myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
                 self.lResult[0] = True
 
+                # Note - listeners are already on the EDT
                 if self.theFakeFrame is not None:
                     self.theDialog.dispose()
                     self.theFakeFrame.dispose()
@@ -603,10 +686,12 @@ Visit: %s (Author's site)
 
             def actionPerformed(self, event):
                 global debug
-                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+                myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
                 self.lResult[0] = False
 
+                # Note - listeners are already on the EDT
                 if self.theFakeFrame is not None:
                     self.theDialog.dispose()
                     self.theFakeFrame.dispose()
@@ -619,142 +704,163 @@ Visit: %s (Author's site)
         def kill(self):
 
             global debug
-            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
-            self._popup_d.setVisible(False)
-            if self.fakeJFrame is not None:
-                self._popup_d.dispose()
-                self.fakeJFrame.dispose()
+            if not SwingUtilities.isEventDispatchThread():
+                SwingUtilities.invokeLater(GenericVisibleRunnable(self._popup_d, False))
+                if self.fakeJFrame is not None:
+                    SwingUtilities.invokeLater(GenericDisposeRunnable(self._popup_d))
+                    SwingUtilities.invokeLater(GenericDisposeRunnable(self.fakeJFrame))
+                else:
+                    SwingUtilities.invokeLater(GenericDisposeRunnable(self._popup_d))
             else:
-                self._popup_d.dispose()
+                self._popup_d.setVisible(False)
+                if self.fakeJFrame is not None:
+                    self._popup_d.dispose()
+                    self.fakeJFrame.dispose()
+                else:
+                    self._popup_d.dispose()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             return
 
         def result(self):
-
             global debug
             return self.lResult[0]
 
         def go(self):
             global debug
 
-            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
-            # Create a fake JFrame so we can set the Icons...
-            if self.theParent is None:
-                self.fakeJFrame = MyJFrame()
-                self.fakeJFrame.setName(u"%s_fake_dialog" %(myModuleID))
-                self.fakeJFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
-                self.fakeJFrame.setUndecorated(True)
-                self.fakeJFrame.setVisible( False )
-                if not Platform.isOSX():
-                    self.fakeJFrame.setIconImage(MDImages.getImage(moneydance.getSourceInformation().getIconResource()))
+            class MyPopUpDialogBoxRunnable(Runnable):
+                def __init__(self, callingClass):
+                    self.callingClass = callingClass
 
-            if self.lModal:
-                # noinspection PyUnresolvedReferences
-                self._popup_d = JDialog(self.theParent, self.theTitle, Dialog.ModalityType.APPLICATION_MODAL)
-            else:
-                # noinspection PyUnresolvedReferences
-                self._popup_d = JDialog(self.theParent, self.theTitle, Dialog.ModalityType.MODELESS)
+                def run(self):                                                                                                      # noqa
 
-            self._popup_d.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
+                    myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+                    myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
-            shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+                    # Create a fake JFrame so we can set the Icons...
+                    if self.callingClass.theParent is None:
+                        self.callingClass.fakeJFrame = MyJFrame()
+                        self.callingClass.fakeJFrame.setName(u"%s_fake_dialog" %(myModuleID))
+                        self.callingClass.fakeJFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
+                        self.callingClass.fakeJFrame.setUndecorated(True)
+                        self.callingClass.fakeJFrame.setVisible( False )
+                        if not Platform.isOSX():
+                            self.callingClass.fakeJFrame.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
-            # Add standard CMD-W keystrokes etc to close window
-            self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
-            self._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
-            self._popup_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
-            self._popup_d.getRootPane().getActionMap().put("close-window", self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult))
-            self._popup_d.addWindowListener(self.WindowListener(self._popup_d, self.fakeJFrame,self.lResult))
-
-            if (not Platform.isMac()):
-                # moneydance_ui.getImages()
-                self._popup_d.setIconImage(MDImages.getImage(moneydance.getSourceInformation().getIconResource()))
-
-            displayJText = JTextArea(self.theMessage)
-            displayJText.setFont( getMonoFont() )
-            displayJText.setEditable(False)
-            displayJText.setLineWrap(False)
-            displayJText.setWrapStyleWord(False)
-
-            _popupPanel=JPanel()
-
-            # maxHeight = 500
-            _popupPanel.setLayout(GridLayout(0,1))
-            _popupPanel.setBorder(EmptyBorder(8, 8, 8, 8))
-            # _popupPanel.setMinimumSize(Dimension(self.theWidth, 0))
-            # _popupPanel.setMaximumSize(Dimension(self.theWidth, maxHeight))
-
-            if self.theStatus:
-                _label1 = JLabel(pad(self.theStatus,self.theWidth-20))
-                _label1.setForeground(Color.BLUE)
-                _popupPanel.add(_label1)
-
-            myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
-            if displayJText.getLineCount()>5:
-                # myScrollPane.setMinimumSize(Dimension(self.theWidth-20, 10))
-                # myScrollPane.setMaximumSize(Dimension(self.theWidth-20, maxHeight-100))
-                myScrollPane.setWheelScrollingEnabled(True)
-                _popupPanel.add(myScrollPane)
-            else:
-                _popupPanel.add(displayJText)
-
-            buttonPanel = JPanel()
-            if self.lModal or self.lCancelButton:
-                buttonPanel.setLayout(FlowLayout(FlowLayout.CENTER))
-
-                if self.lCancelButton:
-                    cancel_button = JButton("CANCEL")
-                    cancel_button.setPreferredSize(Dimension(100,40))
-                    cancel_button.setBackground(Color.LIGHT_GRAY)
-                    cancel_button.setBorderPainted(False)
-                    cancel_button.setOpaque(True)
-                    cancel_button.addActionListener( self.CancelButtonAction(self._popup_d, self.fakeJFrame,self.lResult) )
-                    buttonPanel.add(cancel_button)
-
-                if self.lModal:
-                    ok_button = JButton(self.OKButtonText)
-                    if len(self.OKButtonText) <= 2:
-                        ok_button.setPreferredSize(Dimension(100,40))
+                    if self.callingClass.lModal:
+                        # noinspection PyUnresolvedReferences
+                        self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.APPLICATION_MODAL)
                     else:
-                        ok_button.setPreferredSize(Dimension(200,40))
+                        # noinspection PyUnresolvedReferences
+                        self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.MODELESS)
 
-                    ok_button.setBackground(Color.LIGHT_GRAY)
-                    ok_button.setBorderPainted(False)
-                    ok_button.setOpaque(True)
-                    ok_button.addActionListener( self.OKButtonAction(self._popup_d, self.fakeJFrame, self.lResult) )
-                    buttonPanel.add(ok_button)
+                    self.callingClass._popup_d.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 
-                _popupPanel.add(buttonPanel)
+                    shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
 
-            if self.lAlertLevel>=2:
-                # internalScrollPane.setBackground(Color.RED)
-                # theJText.setBackground(Color.RED)
-                # theJText.setForeground(Color.BLACK)
-                displayJText.setBackground(Color.RED)
-                displayJText.setForeground(Color.BLACK)
-                _popupPanel.setBackground(Color.RED)
-                _popupPanel.setForeground(Color.BLACK)
-                buttonPanel.setBackground(Color.RED)
-                myScrollPane.setBackground(Color.RED)
+                    # Add standard CMD-W keystrokes etc to close window
+                    self.callingClass._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
+                    self.callingClass._popup_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+                    self.callingClass._popup_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+                    self.callingClass._popup_d.getRootPane().getActionMap().put("close-window", self.callingClass.CancelButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame,self.callingClass.lResult))
+                    self.callingClass._popup_d.addWindowListener(self.callingClass.WindowListener(self.callingClass._popup_d, self.callingClass.fakeJFrame,self.callingClass.lResult))
 
-            elif self.lAlertLevel>=1:
-                # internalScrollPane.setBackground(Color.YELLOW)
-                # theJText.setBackground(Color.YELLOW)
-                # theJText.setForeground(Color.BLACK)
-                displayJText.setBackground(Color.YELLOW)
-                displayJText.setForeground(Color.BLACK)
-                _popupPanel.setBackground(Color.YELLOW)
-                _popupPanel.setForeground(Color.BLACK)
-                buttonPanel.setBackground(Color.YELLOW)
-                myScrollPane.setBackground(Color.RED)
+                    if (not Platform.isMac()):
+                        # MD_REF.getUI().getImages()
+                        self.callingClass._popup_d.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
-            self._popup_d.add(_popupPanel)
-            self._popup_d.pack()
-            self._popup_d.setLocationRelativeTo(None)
-            self._popup_d.setVisible(True)
+                    displayJText = JTextArea(self.callingClass.theMessage)
+                    displayJText.setFont( getMonoFont() )
+                    displayJText.setEditable(False)
+                    displayJText.setLineWrap(False)
+                    displayJText.setWrapStyleWord(False)
+
+                    _popupPanel=JPanel()
+
+                    # maxHeight = 500
+                    _popupPanel.setLayout(GridLayout(0,1))
+                    _popupPanel.setBorder(EmptyBorder(8, 8, 8, 8))
+
+                    if self.callingClass.theStatus:
+                        _label1 = JLabel(pad(self.callingClass.theStatus,self.callingClass.theWidth-20))
+                        _label1.setForeground(Color.BLUE)
+                        _popupPanel.add(_label1)
+
+                    myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+                    if displayJText.getLineCount()>5:
+                        myScrollPane.setWheelScrollingEnabled(True)
+                        _popupPanel.add(myScrollPane)
+                    else:
+                        _popupPanel.add(displayJText)
+
+                    buttonPanel = JPanel()
+                    if self.callingClass.lModal or self.callingClass.lCancelButton:
+                        buttonPanel.setLayout(FlowLayout(FlowLayout.CENTER))
+
+                        if self.callingClass.lCancelButton:
+                            cancel_button = JButton("CANCEL")
+                            cancel_button.setPreferredSize(Dimension(100,40))
+                            cancel_button.setBackground(Color.LIGHT_GRAY)
+                            cancel_button.setBorderPainted(False)
+                            cancel_button.setOpaque(True)
+                            cancel_button.addActionListener( self.callingClass.CancelButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame,self.callingClass.lResult) )
+                            buttonPanel.add(cancel_button)
+
+                        if self.callingClass.lModal:
+                            ok_button = JButton(self.callingClass.OKButtonText)
+                            if len(self.callingClass.OKButtonText) <= 2:
+                                ok_button.setPreferredSize(Dimension(100,40))
+                            else:
+                                ok_button.setPreferredSize(Dimension(200,40))
+
+                            ok_button.setBackground(Color.LIGHT_GRAY)
+                            ok_button.setBorderPainted(False)
+                            ok_button.setOpaque(True)
+                            ok_button.addActionListener( self.callingClass.OKButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame, self.callingClass.lResult) )
+                            buttonPanel.add(ok_button)
+
+                        _popupPanel.add(buttonPanel)
+
+                    if self.callingClass.lAlertLevel>=2:
+                        # internalScrollPane.setBackground(Color.RED)
+                        # theJText.setBackground(Color.RED)
+                        # theJText.setForeground(Color.BLACK)
+                        displayJText.setBackground(Color.RED)
+                        displayJText.setForeground(Color.BLACK)
+                        _popupPanel.setBackground(Color.RED)
+                        _popupPanel.setForeground(Color.BLACK)
+                        buttonPanel.setBackground(Color.RED)
+                        myScrollPane.setBackground(Color.RED)
+
+                    elif self.callingClass.lAlertLevel>=1:
+                        # internalScrollPane.setBackground(Color.YELLOW)
+                        # theJText.setBackground(Color.YELLOW)
+                        # theJText.setForeground(Color.BLACK)
+                        displayJText.setBackground(Color.YELLOW)
+                        displayJText.setForeground(Color.BLACK)
+                        _popupPanel.setBackground(Color.YELLOW)
+                        _popupPanel.setForeground(Color.BLACK)
+                        buttonPanel.setBackground(Color.YELLOW)
+                        myScrollPane.setBackground(Color.RED)
+
+                    self.callingClass._popup_d.add(_popupPanel)
+                    self.callingClass._popup_d.pack()
+                    self.callingClass._popup_d.setLocationRelativeTo(None)
+                    self.callingClass._popup_d.setVisible(True)  # Keeping this modal....
+
+            if not SwingUtilities.isEventDispatchThread():
+                myPrint("DB",".. Not running within the EDT so calling via MyPopUpDialogBoxRunnable()...")
+                SwingUtilities.invokeAndWait(MyPopUpDialogBoxRunnable(self))
+            else:
+                myPrint("DB",".. Already within the EDT so calling naked...")
+                MyPopUpDialogBoxRunnable(self).run()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
@@ -764,7 +870,7 @@ Visit: %s (Author's site)
 
         # Seems to cause a crash on Virtual Machine with no Audio - so just in case....
         try:
-            moneydance.getUI().getSounds().playSound("cash_register.wav")
+            MD_REF.getUI().getSounds().playSound("cash_register.wav")
         except:
             pass
 
@@ -811,13 +917,13 @@ Visit: %s (Author's site)
             return False
 
     try:
-        moneydanceIcon = MDImages.getImage(moneydance.getSourceInformation().getIconResource())
+        moneydanceIcon = MDImages.getImage(MD_REF.getSourceInformation().getIconResource())
     except:
         moneydanceIcon = None
 
     def MDDiag():
         global debug
-        myPrint("D", "Moneydance Build:", moneydance.getVersion(), "Build:", moneydance.getBuild())
+        myPrint("D", "Moneydance Build:", MD_REF.getVersion(), "Build:", MD_REF.getBuild())
 
 
     MDDiag()
@@ -858,7 +964,7 @@ Visit: %s (Author's site)
 
     def setDefaultFonts():
 
-        myFont = moneydance.getUI().getFonts().defaultText
+        myFont = MD_REF.getUI().getFonts().defaultText
 
         if myFont.getSize()>18:
             try:
@@ -923,7 +1029,7 @@ Visit: %s (Author's site)
 
         return
 
-    if moneydance_ui is not None:
+    if MD_REF.getUI() is not None:
         setDefaultFonts()
 
     def who_am_i():
@@ -968,7 +1074,7 @@ Visit: %s (Author's site)
             pass
 
         if homeDir is None or homeDir == "":
-            homeDir = moneydance.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
+            homeDir = MD_REF.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
 
         myPrint("DB", "Home Directory selected...:", homeDir)
         if homeDir is None: return ""
@@ -1027,7 +1133,7 @@ Visit: %s (Author's site)
         old_dict_filename = os.path.join("..", myFile)
 
         # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
@@ -1055,7 +1161,7 @@ Visit: %s (Author's site)
 
                 # OK, so perhaps from older version - encrypted, try to read
                 try:
-                    local_storage = moneydance.getCurrentAccountBook().getLocalStorage()
+                    local_storage = MD_REF.getCurrentAccountBook().getLocalStorage()
                     istr = local_storage.openFileForReading(old_dict_filename)
                     load_file = FileUtil.wrap(istr)
                     # noinspection PyTypeChecker
@@ -1112,7 +1218,7 @@ Visit: %s (Author's site)
         dump_StuWareSoftSystems_parameters_from_memory()
 
         # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(moneydance.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
 
         myPrint("DB","Will try to save parameter file:", migratedFilename)
 
@@ -1160,15 +1266,20 @@ Visit: %s (Author's site)
         return _datetime
 
     def destroyOldFrames(moduleName):
+        myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
+        myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
         frames = JFrame.getFrames()
         for fr in frames:
             if fr.getName().lower().startswith(moduleName):
                 myPrint("DB","Found old frame %s and active status is: %s" %(fr.getName(),fr.isActiveInMoneydance))
-                # if fr.isActiveInMoneydance:
                 try:
                     fr.isActiveInMoneydance = False
-                    fr.setVisible(False)
-                    fr.dispose()    # This should call windowClosed() which should remove MD listeners.....
+                    if not SwingUtilities.isEventDispatchThread():
+                        SwingUtilities.invokeLater(GenericVisibleRunnable(fr, False, False))
+                        SwingUtilities.invokeLater(GenericDisposeRunnable(fr))  # This should call windowClosed() which should remove MD listeners.....
+                    else:
+                        fr.setVisible(False)
+                        fr.dispose()            # This should call windowClosed() which should remove MD listeners.....
                     myPrint("DB","disposed of old frame: %s" %(fr.getName()))
                 except:
                     myPrint("B","Failed to dispose old frame: %s" %(fr.getName()))
@@ -1181,9 +1292,293 @@ Visit: %s (Author's site)
             text = "Error in classPrinter(): %s: %s" %(className, theObject)
         return text
 
+    class SearchAction(AbstractAction):
+
+        def __init__(self, theFrame, searchJText):
+            self.theFrame = theFrame
+            self.searchJText = searchJText
+            self.lastSearch = ""
+            self.lastPosn = -1
+            self.previousEndPosn = -1
+            self.lastDirection = 0
+
+        def actionPerformed(self, event):
+            myPrint("D","in SearchAction(), Event: ", event)
+
+            p = JPanel(FlowLayout())
+            lbl = JLabel("Enter the search text:")
+            tf = JTextField(self.lastSearch,20)
+            p.add(lbl)
+            p.add(tf)
+
+            _search_options = [ "Next", "Previous", "Cancel" ]
+
+            defaultDirection = _search_options[self.lastDirection]
+
+            response = JOptionPane.showOptionDialog(self.theFrame,
+                                                    p,
+                                                    "Search for text",
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    JOptionPane.QUESTION_MESSAGE,
+                                                    None,
+                                                    _search_options,
+                                                    defaultDirection)
+
+            lSwitch = False
+            if (response == 0 or response == 1):
+                if response != self.lastDirection: lSwitch = True
+                self.lastDirection = response
+                searchWhat = tf.getText()
+            else:
+                searchWhat = None
+
+            del p, lbl, tf, _search_options
+
+            if not searchWhat or searchWhat == "": return
+
+            theText = self.searchJText.getText().lower()
+            highlighter = self.searchJText.getHighlighter()
+            highlighter.removeAllHighlights()
+
+            startPos = 0
+
+            if response == 0:
+                direction = "[forwards]"
+                if searchWhat == self.lastSearch:
+                    startPos = self.lastPosn
+                    if lSwitch: startPos=startPos+len(searchWhat)+1
+                self.lastSearch = searchWhat
+
+                # if startPos+len(searchWhat) >= len(theText):
+                #     startPos = 0
+                #
+                pos = theText.find(searchWhat.lower(),startPos)     # noqa
+                myPrint("DB", "Search %s Pos: %s, searchWhat: '%s', startPos: %s, endPos: %s" %(direction, pos, searchWhat,startPos, -1))
+
+            else:
+                direction = "[backwards]"
+                endPos = len(theText)-1
+
+                if searchWhat == self.lastSearch:
+                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)-1
+                    endPos = max(0,self.previousEndPosn)
+                    if lSwitch: endPos = max(0,self.lastPosn-1)
+
+                self.lastSearch = searchWhat
+
+                pos = theText.rfind(searchWhat.lower(),startPos,endPos)     # noqa
+                myPrint("DB", "Search %s Pos: %s, searchWhat: '%s', startPos: %s, endPos: %s" %(direction, pos, searchWhat,startPos,endPos))
+
+            if pos >= 0:
+                self.searchJText.setCaretPosition(pos)
+                try:
+                    highlighter.addHighlight(pos,min(pos+len(searchWhat),len(theText)),DefaultHighlighter.DefaultPainter)
+                except: pass
+                if response == 0:
+                    self.lastPosn = pos+len(searchWhat)
+                    self.previousEndPosn = len(theText)-1
+                else:
+                    self.lastPosn = pos-len(searchWhat)
+                    self.previousEndPosn = pos-1
+            else:
+                self.lastPosn = 0
+                self.previousEndPosn = len(theText)-1
+                myPopupInformationBox(self.theFrame,"Searching %s text not found" %direction)
+
+            return
+
+    class QuickJFrame():
+
+        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False):
+            self.title = title
+            self.output = output
+            self.lAlertLevel = lAlertLevel
+            self.returnFrame = None
+            self.copyToClipboard = copyToClipboard
+
+        class CloseAction(AbstractAction):
+
+            def __init__(self, theFrame):
+                self.theFrame = theFrame
+
+            def actionPerformed(self, event):
+                global debug
+                myPrint("D","in CloseAction(), Event: ", event)
+                myPrint("DB", "QuickJFrame() Frame shutting down....")
+
+                # Already within the EDT
+                self.theFrame.dispose()
+                return
+
+        def show_the_frame(self):
+            global debug
+
+            class MyQuickJFrameRunnable(Runnable):
+
+                def __init__(self, callingClass):
+                    self.callingClass = callingClass
+
+                def run(self):                                                                                                      # noqa
+                    screenSize = Toolkit.getDefaultToolkit().getScreenSize()
+
+                    frame_width = min(screenSize.width-20, max(1024,int(round(MD_REF.getUI().firstMainFrame.getSize().width *.9,0))))
+                    frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
+
+                    JFrame.setDefaultLookAndFeelDecorated(True)
+
+                    jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)" %(MD_REF.getUI().ACCELERATOR_MASK_STR))
+                    jInternalFrame.setName(u"%s_quickjframe" %myModuleID)
+
+                    if not Platform.isOSX():
+                        jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+
+                    jInternalFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+                    jInternalFrame.setResizable(True)
+
+                    shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+                    jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W,  shortcut), "close-window")
+                    jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+                    jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F,  shortcut), "search-window")
+                    jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
+                    theJText = JTextArea(self.callingClass.output)
+                    theJText.setEditable(False)
+                    theJText.setLineWrap(True)
+                    theJText.setWrapStyleWord(True)
+                    theJText.setFont( getMonoFont() )
+
+                    jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
+                    jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
+
+                    internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+
+                    if self.callingClass.lAlertLevel>=2:
+                        internalScrollPane.setBackground(Color.RED)
+                        theJText.setBackground(Color.RED)
+                        theJText.setForeground(Color.BLACK)
+                    elif self.callingClass.lAlertLevel>=1:
+                        internalScrollPane.setBackground(Color.YELLOW)
+                        theJText.setBackground(Color.YELLOW)
+                        theJText.setForeground(Color.BLACK)
+
+                    jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
+
+                    jInternalFrame.add(internalScrollPane)
+
+                    jInternalFrame.pack()
+                    jInternalFrame.setLocationRelativeTo(None)
+                    jInternalFrame.setVisible(True)
+
+                    if "errlog.txt" in self.callingClass.title:
+                        theJText.setCaretPosition(theJText.getDocument().getLength())
+
+                    try:
+                        if self.callingClass.copyToClipboard:
+                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(StringSelection(self.callingClass.output), None)
+                    except:
+                        myPrint("J","Error copying contents to Clipboard")
+                        dump_sys_error_to_md_console_and_errorlog()
+
+                    self.callingClass.returnFrame = jInternalFrame
+
+            if not SwingUtilities.isEventDispatchThread():
+                myPrint("DB",".. Not running within the EDT so calling via MyQuickJFrameRunnable()...")
+                SwingUtilities.invokeAndWait(MyQuickJFrameRunnable(self))
+            else:
+                myPrint("DB",".. Already within the EDT so calling naked...")
+                MyQuickJFrameRunnable(self).run()
+
+            return (self.returnFrame)
+
+    class AboutThisScript():
+
+        class CloseAboutAction(AbstractAction):
+
+            def __init__(self, theFrame):
+                self.theFrame = theFrame
+
+            def actionPerformed(self, event):
+                global debug
+                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event:", event)
+
+                # Listener is already on the Swing EDT...
+                self.theFrame.dispose()
+
+        def __init__(self, theFrame):
+            global debug, scriptExit
+            self.theFrame = theFrame
+
+        def go(self):
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+
+            class MyAboutRunnable(Runnable):
+                def __init__(self, callingClass):
+                    self.callingClass = callingClass
+
+                def run(self):                                                                                                      # noqa
+
+                    myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+                    myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+
+                    # noinspection PyUnresolvedReferences
+                    about_d = JDialog(self.callingClass.theFrame, "About", Dialog.ModalityType.MODELESS)
+
+                    shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+                    about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
+                    about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+                    about_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
+                    about_d.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAboutAction(about_d))
+
+                    about_d.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)  # The CloseAction() and WindowListener() will handle dispose() - else change back to DISPOSE_ON_CLOSE
+
+                    if (not Platform.isMac()):
+                        # MD_REF.getUI().getImages()
+                        about_d.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+
+                    aboutPanel=JPanel()
+                    aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
+                    aboutPanel.setPreferredSize(Dimension(1120, 500))
+
+                    _label1 = JLabel(pad("Author: Stuart Beesley", 800))
+                    _label1.setForeground(Color.BLUE)
+                    aboutPanel.add(_label1)
+
+                    _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
+                    _label2.setForeground(Color.BLUE)
+                    aboutPanel.add(_label2)
+
+                    displayString=scriptExit
+                    displayJText = JTextArea(displayString)
+                    displayJText.setFont( getMonoFont() )
+                    displayJText.setEditable(False)
+                    displayJText.setLineWrap(False)
+                    displayJText.setWrapStyleWord(False)
+                    displayJText.setMargin(Insets(8, 8, 8, 8))
+                    # displayJText.setBackground((mdGUI.getColors()).defaultBackground)
+                    # displayJText.setForeground((mdGUI.getColors()).defaultTextForeground)
+
+                    aboutPanel.add(displayJText)
+
+                    about_d.add(aboutPanel)
+
+                    about_d.pack()
+                    about_d.setLocationRelativeTo(None)
+                    about_d.setVisible(True)
+
+            if not SwingUtilities.isEventDispatchThread():
+                myPrint("DB",".. Not running within the EDT so calling via MyAboutRunnable()...")
+                SwingUtilities.invokeAndWait(MyAboutRunnable(self))
+            else:
+                myPrint("DB",".. Already within the EDT so calling naked...")
+                MyAboutRunnable(self).run()
+
+            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
+    # COPY >> END
 
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
@@ -1202,17 +1597,41 @@ Visit: %s (Author's site)
     # clear up any old left-overs....
     destroyOldFrames(myModuleID)
 
+    myPrint("DB", "DEBUG IS ON..")
+
+    if SwingUtilities.isEventDispatchThread():
+        myPrint("DB", "FYI - This script/extension is currently running within the Swing Event Dispatch Thread (EDT)")
+    else:
+        myPrint("DB", "FYI - This script/extension is NOT currently running within the Swing Event Dispatch Thread (EDT)")
+
+    def cleanup_actions(theFrame=None):
+        myPrint("DB", "In", inspect.currentframe().f_code.co_name, "()")
+        myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+
+        if theFrame is not None and not theFrame.isActiveInMoneydance:
+            destroyOldFrames(myModuleID)
+
+        try:
+            MD_REF.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
+        except:
+            pass  # If this fails, then MD is probably shutting down.......
+
+        if not i_am_an_extension_so_run_headless: print(scriptExit)
+
+        cleanup_references()
+
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    MD_REF.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
-    startDir=moneydance_data.getRootFolder().getCanonicalPath()
+    startDir=MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
     print("\nDataset path:        %s" %(startDir))
     print("Autobackup location: %s\n"
-          %(moneydance_ui.getPreferences().getSetting("backup.location",FileUtils.getDefaultBackupDir().getAbsolutePath())))
+          %(MD_REF.getUI().getPreferences().getSetting("backup.location",FileUtils.getDefaultBackupDir().getAbsolutePath())))
 
-    attach = moneydance.getCurrentAccountBook().getAttachmentsFolder()
+    attach = MD_REF.getCurrentAccountBook().getAttachmentsFolder()
     keyDir = startDir
     trunkDir = os.path.join(startDir,"safe","tiksync")
     attachDir = os.path.join(startDir,"safe", attach)
@@ -1341,7 +1760,7 @@ Visit: %s (Author's site)
         saveFiles={}
         saveArchiveFiles={}
 
-        myDataset = moneydance_data.getRootFolder().getCanonicalPath()
+        myDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
 
         internalDir = Common.getDocumentsDirectory().getCanonicalPath()
         dirList =  os.listdir(internalDir)
@@ -1353,7 +1772,7 @@ Visit: %s (Author's site)
                 saveArchiveFiles[fullPath] = True
         del internalDir, dirList
 
-        parentofDataset = moneydance_data.getRootFolder().getParent()
+        parentofDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getParent()
         if os.path.exists(parentofDataset):
             dirList =  os.listdir(parentofDataset)
             for fileName in dirList:
@@ -1380,10 +1799,10 @@ Visit: %s (Author's site)
                 del dirList
         del externalFiles
 
-        for backupLocation in [ FileUtils.getBackupDir(moneydance.getPreferences()).getCanonicalPath(),
-                                moneydance_ui.getPreferences().getSetting("backup.location",""),
-                                moneydance_ui.getPreferences().getSetting("backup.last_saved",""),
-                                moneydance_ui.getPreferences().getSetting("backup.last_browsed","")]:
+        for backupLocation in [ FileUtils.getBackupDir(MD_REF.getPreferences()).getCanonicalPath(),
+                                MD_REF.getUI().getPreferences().getSetting("backup.location",""),
+                                MD_REF.getUI().getPreferences().getSetting("backup.last_saved",""),
+                                MD_REF.getUI().getPreferences().getSetting("backup.last_browsed","")]:
             if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
                 dirList =  os.listdir(backupLocation)
                 for fileName in dirList:
@@ -1421,8 +1840,8 @@ Visit: %s (Author's site)
 
         saveSyncFolder=None
         try:
-            syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(moneydance_ui, moneydance_ui.getCurrentAccounts())
-            syncMethod = SyncFolderUtil.getConfigurerForFile(moneydance_ui, moneydance_ui.getCurrentAccounts(), syncMethods)
+            syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts())
+            syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
 
             if syncMethod is not None and syncMethod.getSyncFolder() is not None:
                 # noinspection PyUnresolvedReferences
@@ -1473,7 +1892,7 @@ Visit: %s (Author's site)
         onlinePayees=0
         onlinePayments=0
 
-        for mdItem in moneydance_data.getSyncer().getSyncedDocument().allItems():
+        for mdItem in MD_REF.getCurrentAccount().getBook().getSyncer().getSyncedDocument().allItems():
             if isinstance(mdItem, MoneydanceSyncableItem):
 
                 if isinstance(mdItem, OnlineTxnList):
@@ -1533,6 +1952,4 @@ Visit: %s (Author's site)
     print find_other_datasets()
     print
 
-    myPrint("B", "StuWareSoftSystems - ", myScriptName, " script ending......")
-
-    if not i_am_an_extension_so_run_headless: print(scriptExit)
+    cleanup_actions()
