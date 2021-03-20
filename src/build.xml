@@ -437,6 +437,13 @@ http://jakarta.apache.org/ant/index.html
   <target name="all_python" depends="init,toolbox,extract_data,list_future_reminders">
   </target>
   
+  <target name="extension_tester" depends="init">
+    <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
+      <param name="feature" value="tester" />
+      <param name="python-base" value="${python-src}/extension_tester" />
+    </antcall>
+  </target>
+
   <target name="toolbox" depends="init">
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="toolbox" />

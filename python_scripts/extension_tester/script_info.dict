@@ -1,0 +1,34 @@
+{
+  "actions" = (
+    {
+      "type" = "initializer"
+      "script_file" = "tester.py"
+    }
+    {
+      "type" = "menu"
+      "script_file" = "menu_action.py"
+      "name" = "Tester Extension"
+      "module_name" = "Tester Extension"
+    }
+    {
+      "type" = "method"
+      "method" = "invoke"
+      "script_file" = "invoke.py"
+    }
+    {
+      "type" = "method"
+      "method" = "handle_event"
+      "script_file" = "handle_event.py"
+    }
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "unload.py"
+    }
+    {
+      "type" = "method"
+      "method" = "cleanup"
+      "script_file" = "cleanup.py"
+    }
+  ) 
+}
