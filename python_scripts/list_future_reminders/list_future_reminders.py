@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1005)
+# list_future_reminders.py (build: 1006)
 
 ###############################################################################
 # MIT License
@@ -34,6 +34,7 @@
 # Build: 1004 - tweak to common code (minor, non-functional change)
 # Build: 1005 - Switch to SwingUtilities.invokeLater() rather than Thread(); other small internal tweaks; fix toolbar location on older versions
 # build: 1005 - Build 3051 of Moneydance... fix references to moneydance_* variables;
+# build: 1006 - Build 3056 'deal' with the Python loader changes..
 
 # Displays Moneydance future reminders
 
@@ -44,7 +45,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1005"
+version_build = "1006"
 if u"debug" in globals():
 	global debug
 else:
@@ -52,8 +53,9 @@ else:
 global list_future_reminders_frame_
 
 # COPY >> START
-global moneydance, moneydance_extension_loader
-MD_REF = moneydance     # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _ui / _data variables
+global moneydance, moneydance_ui, moneydance_extension_loader
+MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
+MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
 if u"moneydance_extension_loader" in globals():
 	MD_EXTENSION_LOADER = moneydance_extension_loader
@@ -158,7 +160,7 @@ except:
 
 if float(MD_REF.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
 	try:
-		MD_REF.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+		MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 	except:
 		raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 
@@ -335,9 +337,9 @@ Visit: %s (Author's site)
 """ %(myScriptName, MYPYTHON_DOWNLOAD_URL)
 
 	def cleanup_references():
-		global MD_REF, MD_EXTENSION_LOADER
-		myPrint("DB","About to delete reference to MD_REF and MD_EXTENSION_LOADER....!")
-		del MD_REF, MD_EXTENSION_LOADER
+		global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+		myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
+		del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
 	def load_text_from_stream_file(theStream):
 		myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -1063,9 +1065,10 @@ Visit: %s (Author's site)
 		except:
 			myPrint("B","Failed to set Swing default fonts to use Moneydance defaults... sorry")
 
+		myPrint("DB",".setDefaultFonts() successfully executed...")
 		return
 
-	if MD_REF.getUI() is not None:
+	if MD_REF_UI is not None:
 		setDefaultFonts()
 
 	def who_am_i():

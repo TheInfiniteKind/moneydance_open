@@ -2,9 +2,13 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "show_extract_data.py"
+      "script_file" = "extract_data.py"
       "name" = "Extract Data"
     }
-  
+    {
+      "type" = "initializer"
+      "script_file" = "extract_data_init.py"
+      "message" = "If you are seeing this as a warning in console, ignore it. It's used by Moneydance build 3056 onwards.... ;->"
+    }
   ) 
 }

@@ -2,9 +2,13 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "show_future_reminders.py"
+      "script_file" = "list_future_reminders.py"
       "name" = "List Future Reminders"
     }
-  
+    {
+      "type" = "initializer"
+      "script_file" = "list_future_reminders_init.py"
+      "message" = "If you are seeing this as a warning in console, ignore it. It's used by Moneydance build 3056 onwards.... ;->"
+    }
   ) 
 }

@@ -2,10 +2,14 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "show_toolbox.py"
+      "script_file" = "toolbox.py"
       "name" = "Toolbox"
       "module_name" = "Toolbox"
     }
-  
+    {
+      "type" = "initializer"
+      "script_file" = "toolbox_init.py"
+      "message" = "If you are seeing this as a warning in console, ignore it. It's used by Moneydance build 3056 onwards.... ;->"
+    }
   ) 
 }
