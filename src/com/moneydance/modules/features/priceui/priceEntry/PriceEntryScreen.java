@@ -30,7 +30,6 @@ import com.moneydance.modules.features.priceui.swing.RightAlignedCellRenderer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
 
@@ -55,7 +54,7 @@ public class PriceEntryScreen extends javax.swing.JFrame {
     private PriceEntryExec responder;
     
     private PriceTableModel tableModel;
-    private char decimalChar = '.';
+    private static char decimalChar = '.';
     
     /*
      * Additional declarations of instance variables are in generated code
@@ -110,9 +109,11 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         }
       });
       
-      priceTable.setCellEditor(new SecurityPriceEditor());
       priceTable.setDefaultRenderer(CurrencyType.class, new SecurityNameCellRenderer());
       priceTable.setDefaultRenderer(String.class, new RightAlignedCellRenderer());
+      priceTable.setDefaultEditor(Double.class, new SecurityPriceEditor());
+      System.err.println("editor column class: "+model.getColumnClass(2));
+      priceTable.getColumnModel().getColumn(2).setCellEditor(new SecurityPriceEditor());
       
       JPanel p = new JPanel(new GridBagLayout());
       JPanel asOfPanel = new JPanel(new GridBagLayout());
@@ -223,23 +224,22 @@ private int calcAsOfDate() {
   public class SecurityPriceEditor extends DefaultCellEditor {
     
     public SecurityPriceEditor() {
-      super(new JRateField(decimalChar));
+      super(makeRateEditorField());
     }
     
   }
-    
+
+
+  private static JRateField makeRateEditorField() {
+    JRateField field = new JRateField(decimalChar);
+    field.setAllowBlank(true);
+    field.setHorizontalAlignment(SwingConstants.RIGHT);
+    return field;
+  }
+
 
   public class SecurityNameCellRenderer extends DefaultTableCellRenderer {
-//    private JLabel nameLabel = new JLabel(" ", JLabel.LEFT);
-//    private JLabel baseLabel = new JLabel(" ", JLabel.RIGHT);
     
-//    public SecurityNameCellRenderer() {
-//      super(new GridBagLayout());
-//      
-//      add(nameLabel, GridC.getc(0,0).wxy(1,1).fillboth());
-//      add(baseLabel, GridC.getc(1,0));
-//    }
-
     private String altCurrency = null;
     
     public void paintComponent(Graphics g) {
@@ -265,8 +265,7 @@ private int calcAsOfDate() {
       } else if(value instanceof CurrencyType) {
         CurrencyType curr = (CurrencyType)value; 
         String text = curr.getName();
-        String relCurrID = curr.getParameter(CurrencyType.TAG_RELATIVE_TO_CURR);
-        CurrencyType relCurr = relCurrID==null ? null : curr.getBook().getCurrencies().getCurrencyByIDString(relCurrID);
+        CurrencyType relCurr = curr.getRelativeCurrency();
         this.altCurrency = relCurr!=null ? relCurr.getIDString() : null;
         setText(text);
       }

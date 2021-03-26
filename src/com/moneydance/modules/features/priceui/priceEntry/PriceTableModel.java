@@ -311,7 +311,7 @@ public class PriceTableModel extends AbstractTableModel {
         secRow.newPrice = (Double)value;
       } else {
         double d = StringUtils.parseRate(String.valueOf(value), decimalChar);
-        secRow.newPrice = d==0 ? new Double(d) : null;
+        secRow.newPrice = d==0 ? null : d;
       }
       fireTableCellUpdated (row, col);
     }
