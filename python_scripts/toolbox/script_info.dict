@@ -2,10 +2,18 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "show_toolbox.py"
+      "script_file" = "toolbox.py"
       "name" = "Toolbox"
       "module_name" = "Toolbox"
     }
-  
-  ) 
+    {
+      "type" = "initializer"
+      "script_file" = "toolbox_init.py"
+    }
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "toolbox_unload.py"
+    }
+  )
 }

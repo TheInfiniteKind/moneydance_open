@@ -2,9 +2,17 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "show_extract_data.py"
+      "script_file" = "extract_data.py"
       "name" = "Extract Data"
     }
-  
-  ) 
+    {
+      "type" = "initializer"
+      "script_file" = "extract_data_init.py"
+    }
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "extract_data_unload.py"
+    }
+  )
 }

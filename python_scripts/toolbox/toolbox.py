@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1029 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1031 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -180,7 +180,10 @@
 # build: 1029 - Build 3051 of Moneydance... fix references to moneydance_* variables; Remove OFX_SETUP_MATCH_MD_BUILD;
 # build: 1029 - Build 3051 fix >> getOutdatedExtensionIDs() replaced with getUnloadableExtensionIDs()...
 # build: 1029 - Build 3051 leverage moneydance_extension_loader class loader to get help file from the mxt container
+# build: 1030 - Build 3056 'deal' with the Python loader changes..
+# build: 1031 - Build 3056 Utilise .unload() method...
 
+# todo - OFX - delete service profile - enhance name shown with md:nnnnn (avoid duplicate names)
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
@@ -202,7 +205,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1029"
+version_build = "1031"
 if u"debug" in globals():
     global debug
 else:
@@ -210,8 +213,9 @@ else:
 global toolbox_frame_
 
 # COPY >> START
-global moneydance, moneydance_extension_loader
-MD_REF = moneydance     # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _ui / _data variables
+global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
+MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
+MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
 if u"moneydance_extension_loader" in globals():
     MD_EXTENSION_LOADER = moneydance_extension_loader
@@ -246,6 +250,7 @@ class GenericDisposeRunnable(Runnable):
         self.theFrame = theFrame
 
     def run(self):                                                                                                      # noqa
+        self.theFrame.setVisible(False)
         self.theFrame.dispose()
 
 class GenericVisibleRunnable(Runnable):
@@ -300,11 +305,13 @@ try:
             print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
             System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
             frameToResurrect.isActiveInMoneydance = False
-            try:
-                SwingUtilities.invokeLater(GenericWindowClosingRunnable(frameToResurrect))
-                System.err.write("%s: Pushed a windowClosing event - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-            except:
-                System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
+
+            if not SwingUtilities.isEventDispatchThread():
+                SwingUtilities.invokeAndWait(GenericDisposeRunnable(frameToResurrect))
+                System.err.write("%s: Pushed a dispose() - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+            else:
+                GenericDisposeRunnable(frameToResurrect).run()
+                System.err.write("%s: Pushed a dispose() (direct as already on EDT) to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
 
             lTerminatedExtension = True
             frameToResurrect = None
@@ -316,7 +323,7 @@ except:
 
 if float(MD_REF.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
     try:
-        MD_REF.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+        MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
     except:
         raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 
@@ -494,7 +501,7 @@ else:
 
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2021.1                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3051                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3056                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -538,9 +545,9 @@ Visit: %s (Author's site)
 """ %(myScriptName, MYPYTHON_DOWNLOAD_URL)
 
     def cleanup_references():
-        global MD_REF, MD_EXTENSION_LOADER
-        myPrint("DB","About to delete reference to MD_REF and MD_EXTENSION_LOADER....!")
-        del MD_REF, MD_EXTENSION_LOADER
+        global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+        myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
+        del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -1266,9 +1273,10 @@ Visit: %s (Author's site)
         except:
             myPrint("B","Failed to set Swing default fonts to use Moneydance defaults... sorry")
 
+        myPrint("DB",".setDefaultFonts() successfully executed...")
         return
 
-    if MD_REF.getUI() is not None:
+    if MD_REF_UI is not None:
         setDefaultFonts()
 
     def who_am_i():

@@ -6,7 +6,7 @@ Credit: Derek Kent(23) for his extensive texting and many hours on this project!
 
 Get more Scripts/Extensions from: https://yogi1967.github.io/MoneydancePythonScripts/
 
-Minimum Moneydance version for use as an Extension: 2021 (build: 2012) - (Minimum version 2020 if run as a script)
+Minimum Moneydance version for use as an Extension: 2021.1 (build: 3056) - (Minimum version 2020 if run as a script)
 NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
 (If you have installed the extension, but nothing happens, then check your Moneydance version)
 

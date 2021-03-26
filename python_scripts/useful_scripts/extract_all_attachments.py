@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_all_attachments.py build: 9 - Jan 2021 - Stuart Beesley StuWareSoftSystems
+# extract_all_attachments.py build: 10 - Jan 2021 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -29,6 +29,7 @@
 # Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
 
 # build: 9 - Build 3051 of Moneydance... fix references to moneydance_* variables;
+# build: 10 - Build 3056 of Moneydance...
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -37,7 +38,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_all_attachments"
-version_build = "9"
+version_build = "10"
 if u"debug" in globals():
     global debug
 else:
@@ -45,8 +46,9 @@ else:
 global extract_all_attachments_frame_
 
 # COPY >> START
-global moneydance, moneydance_extension_loader
-MD_REF = moneydance     # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _ui / _data variables
+global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
+MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
+MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
 if u"moneydance_extension_loader" in globals():
     MD_EXTENSION_LOADER = moneydance_extension_loader
@@ -81,6 +83,7 @@ class GenericDisposeRunnable(Runnable):
         self.theFrame = theFrame
 
     def run(self):                                                                                                      # noqa
+        self.theFrame.setVisible(False)
         self.theFrame.dispose()
 
 class GenericVisibleRunnable(Runnable):
@@ -135,11 +138,13 @@ try:
             print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
             System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
             frameToResurrect.isActiveInMoneydance = False
-            try:
-                SwingUtilities.invokeLater(GenericWindowClosingRunnable(frameToResurrect))
-                System.err.write("%s: Pushed a windowClosing event - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-            except:
-                System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
+
+            if not SwingUtilities.isEventDispatchThread():
+                SwingUtilities.invokeAndWait(GenericDisposeRunnable(frameToResurrect))
+                System.err.write("%s: Pushed a dispose() - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+            else:
+                GenericDisposeRunnable(frameToResurrect).run()
+                System.err.write("%s: Pushed a dispose() (direct as already on EDT) to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
 
             lTerminatedExtension = True
             frameToResurrect = None
@@ -151,7 +156,7 @@ except:
 
 if float(MD_REF.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
     try:
-        MD_REF.getUI().showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+        MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
     except:
         raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
 
@@ -297,9 +302,9 @@ Visit: %s (Author's site)
 """ %(myScriptName, MYPYTHON_DOWNLOAD_URL)
 
     def cleanup_references():
-        global MD_REF, MD_EXTENSION_LOADER
-        myPrint("DB","About to delete reference to MD_REF and MD_EXTENSION_LOADER....!")
-        del MD_REF, MD_EXTENSION_LOADER
+        global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+        myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
+        del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -1025,9 +1030,10 @@ Visit: %s (Author's site)
         except:
             myPrint("B","Failed to set Swing default fonts to use Moneydance defaults... sorry")
 
+        myPrint("DB",".setDefaultFonts() successfully executed...")
         return
 
-    if MD_REF.getUI() is not None:
+    if MD_REF_UI is not None:
         setDefaultFonts()
 
     def who_am_i():

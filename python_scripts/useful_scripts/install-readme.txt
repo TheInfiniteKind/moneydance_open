@@ -4,7 +4,7 @@ Visit: https://yogi1967.github.io/MoneydancePythonScripts/ for more downloads an
 THESE ARE EXTENSIONS / SCRIPTS FOR MONEYDANCE WRITTEN IN PYTHON (JYTHON 2.7)
 The scripts and extensions are identical. The extensions are simply a packaged script version.
 
-The Extensions will only run on Moneydance version 2021 build 2012 onwards... The scripts don't have this requirement
+The Extensions will only run on Moneydance version 2021.1 build 3056 onwards... The scripts don't have this requirement
 NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
 (If you have installed the extension, but nothing happens, then check your Moneydance version)
 
@@ -32,8 +32,8 @@ To run Scripts:
 4) That's it.... Repeat these steps each time.
 
 ----
-NOTE: On a Mac you might see one or two popup System Warning messages saying something like:
-“jffinnnnnnnnnnnnnnnnnnnn.dylib” cannot be opened because the developer cannot be verified.
+NOTE: On a Mac, in Moneydance versions older than build 3051,  you might see one or two popup System Warning messages
+saying something like: “jffinnnnnnnnnnnnnnnnnnnn.dylib” cannot be opened because the developer cannot be verified.
 macOS cannot verify that this app is free from malware.
 These are irrelevant and harmless messages. Just click any option (Cancel, Ignore, Trash, Bin), it doesn't matter.
 The script will run un-affected. It's Mac Gatekeeper complaining about a dynamic cache file being created.
@@ -51,12 +51,12 @@ extract_data:                           Extract various data to screen and/or cs
 
 list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
 
+extension_tester:                       Demo extension/scripts for coders wanting to build Moneydance Python extensions
+
 useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzip and select the script you want. Includes:
 - calculate_moneydance_objs_and_datasetsize.py: Analyse your dataset, object counts, file sizes, and find other known datasets
 - extract_all_attachments.py: extract all your attachments out of Moneydance to a folder of your choice
 - orphan_attachments.py: scans your attachments and detects if any are orphaned (and other related errors)
 - demo_account_currency_rates.py: demo script for beginner coders with some simple Moneydance API calls etc...
 - demo_calling_import_functions.py: demo script to show how to call deep API importFile() method and bypass UI popups
-- ofx_create_new_usaa_bank_profile.py: script to create a new bank logon / service profile to connect to USAA Bank within Moneydance
 - ofx_create_new_usaa_bank_custom_profile.py: script that creates a new custom USAA bank logon profile so that it can connect within Moneydance
-- ofx_create_new_secu_bank_custom_profile.py: script that create a new custom NCSECU bank logon profile so that it can connect within Moneydance
