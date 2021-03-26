@@ -1,3 +1,6 @@
+# This is the format to use when using the script methods invoke.py, handle_event.py, unload.py
+# you do not need the ExtensionClass() in this situation
+# Rename this file to script_info.dict (and remove these comments)
 {
   "actions" = (
     {

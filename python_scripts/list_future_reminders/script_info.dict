@@ -8,7 +8,11 @@
     {
       "type" = "initializer"
       "script_file" = "list_future_reminders_init.py"
-      "message" = "If you are seeing this as a warning in console, ignore it. It's used by Moneydance build 3056 onwards.... ;->"
     }
-  ) 
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "list_future_reminders_unload.py"
+    }
+  )
 }

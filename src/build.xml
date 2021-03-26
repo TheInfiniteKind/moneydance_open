@@ -439,7 +439,7 @@ http://jakarta.apache.org/ant/index.html
   
   <target name="extension_tester" depends="init">
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
-      <param name="feature" value="tester" />
+      <param name="feature" value="extension_tester" />
       <param name="python-base" value="${python-src}/extension_tester" />
     </antcall>
   </target>

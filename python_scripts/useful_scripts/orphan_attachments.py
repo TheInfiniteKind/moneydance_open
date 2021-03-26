@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# orphan_attachments.py - build: 12 - January 2021 - Stuart Beesley
+# orphan_attachments.py - build: 13 - January 2021 - Stuart Beesley
 
 ###############################################################################
 # MIT License
@@ -35,6 +35,7 @@
 # Build: 10 - Small internal tweak
 # build: 11 - Internal common code tweaks - nothing to do with the core functionality
 # build: 12 - Build 3051 of Moneydance... fix references to moneydance_* variables;
+# build: 13 - Build 3056 of Moneydance...
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -43,7 +44,7 @@
 
 # SET THESE LINES
 myModuleID = u"orphan_transactions"
-version_build = "12"
+version_build = "13"
 if u"debug" in globals():
     global debug
 else:
@@ -51,7 +52,7 @@ else:
 global orphan_transactions_frame_
 
 # COPY >> START
-global moneydance, moneydance_ui, moneydance_extension_loader
+global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
 MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
@@ -88,6 +89,7 @@ class GenericDisposeRunnable(Runnable):
         self.theFrame = theFrame
 
     def run(self):                                                                                                      # noqa
+        self.theFrame.setVisible(False)
         self.theFrame.dispose()
 
 class GenericVisibleRunnable(Runnable):
@@ -142,11 +144,13 @@ try:
             print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
             System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
             frameToResurrect.isActiveInMoneydance = False
-            try:
-                SwingUtilities.invokeLater(GenericWindowClosingRunnable(frameToResurrect))
-                System.err.write("%s: Pushed a windowClosing event - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-            except:
-                System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
+
+            if not SwingUtilities.isEventDispatchThread():
+                SwingUtilities.invokeAndWait(GenericDisposeRunnable(frameToResurrect))
+                System.err.write("%s: Pushed a dispose() - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+            else:
+                GenericDisposeRunnable(frameToResurrect).run()
+                System.err.write("%s: Pushed a dispose() (direct as already on EDT) to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
 
             lTerminatedExtension = True
             frameToResurrect = None

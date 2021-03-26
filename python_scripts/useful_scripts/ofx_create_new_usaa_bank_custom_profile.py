@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_create_new_usaa_bank_custom_profile.py (build 7) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_create_new_usaa_bank_custom_profile.py (build 8) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
 # https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf
@@ -54,6 +54,7 @@
 # build 6 - Internal common code tweaks - nothing to do with the core functionality
 # build 6 - URLEncoder.encode() the UserID and Password in the stored cached string
 # build 7 - Build 3051 of Moneydance... fix references to moneydance_* variables;
+# build 8 - Build 3056 of Moneydance...
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -61,7 +62,7 @@
 
 # SET THESE LINES
 myModuleID = u"ofx_create_new_usaa_bank_profile_custom"
-version_build = "7"
+version_build = "8"
 if u"debug" in globals():
     global debug
 else:
@@ -69,7 +70,7 @@ else:
 global ofx_create_new_usaa_bank_profile_frame_
 
 # COPY >> START
-global moneydance, moneydance_ui, moneydance_extension_loader
+global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
 MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
@@ -106,6 +107,7 @@ class GenericDisposeRunnable(Runnable):
         self.theFrame = theFrame
 
     def run(self):                                                                                                      # noqa
+        self.theFrame.setVisible(False)
         self.theFrame.dispose()
 
 class GenericVisibleRunnable(Runnable):
@@ -160,11 +162,13 @@ try:
             print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
             System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
             frameToResurrect.isActiveInMoneydance = False
-            try:
-                SwingUtilities.invokeLater(GenericWindowClosingRunnable(frameToResurrect))
-                System.err.write("%s: Pushed a windowClosing event - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-            except:
-                System.err.write("%s: ERROR pushing a windowClosing event to existing extension!\n" %(myModuleID))
+
+            if not SwingUtilities.isEventDispatchThread():
+                SwingUtilities.invokeAndWait(GenericDisposeRunnable(frameToResurrect))
+                System.err.write("%s: Pushed a dispose() - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
+            else:
+                GenericDisposeRunnable(frameToResurrect).run()
+                System.err.write("%s: Pushed a dispose() (direct as already on EDT) to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
 
             lTerminatedExtension = True
             frameToResurrect = None
