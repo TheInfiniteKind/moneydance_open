@@ -1,0 +1,8 @@
+{
+  "actions" = (
+    {
+      "type" = "initializer"
+      "script_file" = "net_account_balances_to_zero.py"
+    }
+  )
+}

@@ -5,7 +5,7 @@ Documented by Stuart Beesley - StuWareSoftSystems 2021 - https://yogi1967.github
 NOTES ABOUT PYTHON EXTENSIONS:
 
 - You want to be on Moneydance version 2021.1 build 3056 onwards as this is when Py extensions became 'fully functional'
-- You can do anything in Python that a Java extension can do
+- You can do anything in Python that a Java extension can do.
 
 - Python extensions have to be executed by the Python Interpreter. This consumes 200-300MB of RAM. Clearly an overhead over compiled Java
 - It's quicker to write Python over Java, and needs no compile, so you can very easily test within Moneybot
@@ -90,6 +90,7 @@ NOTES ABOUT PYTHON EXTENSIONS:
      self.moneydanceContext.registerHomePageView(extension_object, MyHomePageView()).
      NOTE: Use the extension_object as the first parameter, NOT your own extension class. Then MD will then be able to unload your widget
      whenever your extension is unloaded.
+     >> It will take some investigation to get your HomePageView working properly, but then that's the fun of this...!
 
 - If the User or MD uninstalls / reinstalls your extension, then .unload() method will be called, or the unload.py script, depending
      on how you defined it. Please utilise this to 'clean up' before your extension is 'killed'.. E.g. delete all references to data objects
@@ -140,13 +141,47 @@ SWING
   >> If you are a beginner writing tiny code, don't worry about the EDT. BUT if you are writing 'heavy' code, and or extensions
      for others, then research these matters ('Swing is not thread-safe') and take appropriate action(s) in your code.
 
+CODING TIPS
+- You access Moneydance via the published API: https://infinitekind.com/dev/apidoc/index.html - so start here.
+- As it's Java, most standard stuff works first-time cross-platform. But not always... Test on Mac, Windows, Linux
+- I recommend you install an IDE. IntelliJ IDEA works well and has Python support. Without this you will find code editing difficult
+    to set it up, create Project with Python 2.7 as the SDK, add a moneydance.jar as a Library,
+    add a Java Module called Moneydance (link the Library, and assign the SDK adopt-openjdk-15 (Hotspot)).
+    This will then give you a great code editor and inbuilt checking of your work....
+
+- ExtensionClass():
+    - __init__():     Perform simple variable initialisation here.
+    - initialize():   Grab 'context' and 'extention wrapper' here. Context is your gateway into Moneydance. Perform simple startup tasks
+                      but, remember, you need to be thinking 'event' driven, and not sequentially programmed driven.
+                      at this point, during MD startup, the GUI is not loaded, the dataset is not loaded, and MD is firing up.....
+                      (unless during a install/reinstall, as you will always be in the GUI then of course)
+                      here you can call .registerFeature() [optional] to stick an item on the extensions menu
+                      here you can call .registerHomePageView() [optional] if your extension will build a HomePage view too
+    - invoke():       Will be called if you click on your [optional] extensions menu item; or via .showURL()
+                      importantly, your own extension can call this during execution to trigger your own events...
+    - handle_event(): Very important that you monitor MD events. The full list is at the end of this readme
+                      'md:file:opened' is your trigger that MD, the GUI, the dataset is loaded - or when a dataset has changed
+                      'md:file:closing' and 'closed' are good points to release all references to data objects
+    - unload():       This is your trigger that your extension is being uninstalled or reinstalled. It needs to cleanup, release references, shutdown
+    - other...        Use float(context.getBuild()) to check MD build and handle version control / compatibility accordingly
+                      always consider what thread you are on (Swing EDT or not) and handle accordingly
+                      to write to the MD console: 'from java.lang import System' and then 'System.err.write("text\n")'
+                      there are some prebuilt popups you can use in .getUI() .askQuestion() .askForInput() .showInfoMessage()
+                      your extension probably needs a GUI... Swing JFrame() etc is the way to go. DO NOT instantiate
+                      .. your Swing until after the UI and the Dataset are loaded ('strange' things will happen)
+    - advanced...     You don't have Java Synchronized.. If you need this, consider self.lock = threading.Lock() and then 'with self.lock: ...'
+                      do not update the Look and Feel (LAF). Override .updateUI() in JComponents and super(YourClass, self).updateUI()
+
+- Moneydance data:    Read the API. Look at others' scripts. Learn the model. It's confusing at first, but becomes clear(er) over time.
+                      review Stuart Beesley's scripts: https://yogi1967.github.io/MoneydancePythonScripts/
+                      this is a very good 'primer': https://bitbucket.org/mikerb/moneydance-2019/wiki/Moneydance%20Information
 
 There are also more 'advanced' ways to access and manage your Py Extension but try to keep everything MD friendly and to survive upgrades.
 Details of these are out of scope for this document, I will  be happy to discuss / brainstorm these with anyone who wants
 to contact me about them....
 
 
-KEY FILES
+KEY FILES YOU NEED TO CREATE
 
 script_info.dict: Locate in the root of your .mxt file
 {
@@ -202,4 +237,7 @@ Moneydance Events:
 # md:viewbudget	    One of the budgets has been selected
 # md:viewreminders	One of the reminders has been selected
 # md:licenseupdated	The user has updated the license
+
+
+Thanks for reading.. Contact me with questions, updates... Happy Python coding.... Stuart Beesley
 

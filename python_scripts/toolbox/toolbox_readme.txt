@@ -10,7 +10,7 @@ Minimum Moneydance version for use as an Extension: 2021.1 (build: 3056) - (Mini
 NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
 (If you have installed the extension, but nothing happens, then check your Moneydance version)
 
-This is a Python(Jython 2.7) script that runs inside of Moneydance via the Moneybox Python Interpreter
+This is a Python(Jython 2.7) script that runs inside of Moneydance via the Moneybot Python Interpreter
 As such it has full access to Moneydance's internals.
 However, where possible this script uses the published APIs. In certain circumstances, it calls internal functions.
 The script will never change anything without your permission - and it will always ask you for such (several times).

@@ -12,18 +12,20 @@ Extensions have a file extension of *.mxt
 Scripts have a file extension of *.py
 If you downloaded a zip file (extension *.zip) then unzip first in a directory of your choice to get at the file(s)
 
-Toolbox is an Extension format only - i.e. just the Toolbox.mxt file
+Toolbox and net_account_balances_to_zero are Extension format only - i.e. just the Toolbox.mxt file
 All the others have both Extension (*.mxt) and Script (*.py) formats
 
 HOW DO YOU CHOOSE?
 - If you just want to run once and then never again, or very infrequently, choose the Script version.
-- If you want the functionality always available from the Moneydance extension menu, choose Extension
+- If you want the functionality always available from the Moneydance extensions menu, choose Extension
 
-To run Extensions:
-1) Install the Extension. Load Moneydance, Menu>Extensions>add from file>choose <extension_name>.mxt file
-2) Accept the warning that the extension is unsigned / missing (this simply means that Moneydance have not signed / verified my extension). Click Install Extension.
-3) Once its installed, restart Moneydance.
-4) From now on, just click Menu>Extensions and the name of the Extension
+To install/run Extensions:
+1) Load Moneydance
+2) Drag and drop the .mxt file onto the Moneydance left side bar
+   .. or Menu>Extensions>add from file>choose <extension_name>.mxt file, then click open/install
+3) Accept the warning that the extension is unsigned / missing (this simply means that Moneydance have not signed / verified my extension). Click Install Extension.
+4) Once its installed, restart Moneydance.
+5) From now on, just click Menu>Extensions and the name of the Extension
 
 To run Scripts:
 1) Load Moneydance. Menu>Window>Show Moneybot Console
@@ -37,7 +39,6 @@ saying something like: “jffinnnnnnnnnnnnnnnnnnnn.dylib” cannot be opened bec
 macOS cannot verify that this app is free from malware.
 These are irrelevant and harmless messages. Just click any option (Cancel, Ignore, Trash, Bin), it doesn't matter.
 The script will run un-affected. It's Mac Gatekeeper complaining about a dynamic cache file being created.
-The Moneydance developer (IK) is aware of this and is trying to build a fix. It happens with all Python scripts.
 ----
 
 All Extensions/Scripts available:
@@ -50,6 +51,9 @@ extract_data:                           Extract various data to screen and/or cs
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
+
+net_account_balances_to_zero.py:        Puts a small 'widget' on the Home Page. Displays the total of selected account balances
+                                        It's also a demo of how to create a true runtime Python extension and a HomePageView widget
 
 extension_tester:                       Demo extension/scripts for coders wanting to build Moneydance Python extensions
 
