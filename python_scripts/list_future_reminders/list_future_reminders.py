@@ -6,7 +6,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2020 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2021 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,8 @@
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
 version_build = "1007"
+MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
+
 if u"debug" in globals():
 	global debug
 else:
@@ -114,13 +116,15 @@ def getMyJFrame( moduleName ):
 			if (fr.getName().lower().startswith(u"%s_main" %moduleName)
 					and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
 					and fr.isActiveInMoneydance):
-				print("%s: Found live frame: %s (MyJFrame() version: %s)" %(myModuleID,fr.getName(),fr.myJFrameVersion))
-				System.err.write("%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID, fr.getName(),fr.myJFrameVersion))
-				if fr.isRunTimeExtension: print("%s: This extension is a run-time self-installed extension too..." %(myModuleID))
-				if fr.isRunTimeExtension: System.err.write("%s: This extension is a run-time self-installed extension too...\n" %(myModuleID))
+				_msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
+				print(_msg); System.err.write(_msg)
+				if fr.isRunTimeExtension:
+					_msg = "%s: This extension is a run-time self-installed extension too...\n" %(myModuleID)
+					print(_msg); System.err.write(_msg)
 				return fr
 	except:
-		System.err.write("%s: Critical error in getMyJFrame(); caught and ignoring...!\n" %(myModuleID))
+		_msg = "%s: Critical error in getMyJFrame(); caught and ignoring...!\n" %(myModuleID)
+		print(_msg); System.err.write(_msg)
 	return None
 
 
@@ -136,55 +140,45 @@ try:
 			frameToResurrect = getFr
 		del getFr
 except:
-	System.err.write("%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID))
+	msg = "%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID)
+	print(msg); System.err.write(msg)
 
-lTerminatedExtension = False
+lFoundRuntimeExtension = False
 
-try:
-	if frameToResurrect:  # and it's still alive.....
-		if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. I need to deactivate and re-register extension...
-			print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
-			System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
-			frameToResurrect.isActiveInMoneydance = False
+if frameToResurrect:  # and thus it's still alive.....
+	if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. As of build 3056, just do nothing and let MD call .unload() first...
+		msg = "%s: Detected that runtime extension %s is already running..... Assuming you are running the script within Moneybot... I'm going to DO NOTHING and just exit!\n" %(myModuleID, myModuleID)
+		print(msg); System.err.write(msg)
+		lFoundRuntimeExtension = True
+		frameToResurrect = None
+	else:
+		msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
+		print(msg); System.err.write(msg)
 
-			if not SwingUtilities.isEventDispatchThread():
-				SwingUtilities.invokeAndWait(GenericDisposeRunnable(frameToResurrect))
-				System.err.write("%s: Pushed a dispose() - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-			else:
-				GenericDisposeRunnable(frameToResurrect).run()
-				System.err.write("%s: Pushed a dispose() (direct as already on EDT) to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-
-			lTerminatedExtension = True
-			frameToResurrect = None
-		else:
-			print("%s: Detected that %s is already running..... Attempting to resurrect.." %(myModuleID, myModuleID))
-			System.err.write("%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
-except:
-	System.err.write("%s: Critical error checking frameToResurrect(2); caught and ignoring...!\n" %(myModuleID))
-
-if float(MD_REF.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+if float(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 / version < 2019.4 or 3056 accordingly
 	try:
-		MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+		MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
 	except:
-		raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+		raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
+
+elif lFoundRuntimeExtension:
+	msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on 2021.1(3056) onwards. Now exiting script!\n" %(myModuleID)
+	print(msg); System.err.write(msg)
+	try: MD_REF_UI.showInfoMessage(msg)
+	except: pass
 
 elif frameToResurrect:
 	try:
 		SwingUtilities.invokeLater(GenericVisibleRunnable(frameToResurrect, True, True))
 	except:
-		print("%s: Failed to resurrect main Frame - via SwingUtilities.invokeLater() - This duplicate Script/extension is now terminating....." %(myModuleID))
-		System.err.write("%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID))
+		msg  = "%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID)
+		print(msg); System.err.write(msg)
 		raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
 
 else:
 	del frameToResurrect
-
-	if not lTerminatedExtension:
-		print("%s: No other 'live' instances of this program detected (or I terminated it) - running as normal" %(myModuleID))
-		System.err.write("%s: No other instances of this program detected (or I terminated it) - running as normal\n" %(myModuleID))
-	else:
-		print("%s: I terminated extension in memory, running script to allow new installation..." %(myModuleID))
-		System.err.write("%s: I terminated extension in memory, running script to allow new installation...\n" %(myModuleID))
+	msg = "%s: No other instances of this program detected - running as normal\n" %(myModuleID)
+	print(msg); System.err.write(msg)
 
 	# COMMON IMPORTS #######################################################################################################
 	# COMMON IMPORTS #######################################################################################################

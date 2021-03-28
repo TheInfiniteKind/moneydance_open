@@ -12,7 +12,7 @@ Extensions have a file extension of *.mxt
 Scripts have a file extension of *.py
 If you downloaded a zip file (extension *.zip) then unzip first in a directory of your choice to get at the file(s)
 
-Toolbox and net_account_balances_to_zero are Extension format only - i.e. just the Toolbox.mxt file
+Toolbox and net_account_balances are Extension format only - i.e. just the Toolbox.mxt file
 All the others have both Extension (*.mxt) and Script (*.py) formats
 
 HOW DO YOU CHOOSE?
@@ -52,7 +52,7 @@ extract_data:                           Extract various data to screen and/or cs
 
 list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
 
-net_account_balances_to_zero.py:        Puts a small 'widget' on the Home Page. Displays the total of selected account balances
+net_account_balances.py:                Puts a small 'widget' on the Home Page. Displays the total of selected account balances
                                         It's also a demo of how to create a true runtime Python extension and a HomePageView widget
 
 extension_tester:                       Demo extension/scripts for coders wanting to build Moneydance Python extensions

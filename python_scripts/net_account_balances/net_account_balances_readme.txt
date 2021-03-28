@@ -15,10 +15,10 @@ PURPOSE
 
 This extension creates a Moneydance Home Page View >> a little widget on the Home / Summary Screen dashboard
 - It allows you to select multiple accounts, and then the balances are totalled to present on the Home screen widget
-- The concept is to add to zero. Thus a positive number is 'good', a negative is 'bad'
+- My concept was to add balances to target zero. Thus a positive number is 'good', a negative is 'bad'
 - The idea is that you net cash and debt to get back to zero every month
-- But you can use it for anything really
+- You could create a Net Worth Balance for example; you can use it for anything really
 
-- You have the option to change the balance type too
+- You have the option to change the balance type; and the display name too
 
 Thanks for reading..... ;->

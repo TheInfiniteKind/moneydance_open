@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances_to_zero.py build: 1 - March 2021 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 2 - March 2021 - Stuart Beesley - StuWareSoftSystems
 
 # This extension creates a Moneydance Home Page View >> a little widget on the Home / Summary Screen dashboard
 # - It allows you to select multiple accounts, and then the balances are totalled to present on the Home screen widget
-# - The concept is to add to zero. Thus a positive number is 'good', a negative is 'bad'
+# - The concept is to add balances and target zero. Thus a positive number is 'good', a negative is 'bad'
 # - The idea is that you net cash and debt to get back to zero every month
-# - But you can use it for anything really; You have the option to change the balance type too
+# - But you can use it for anything really; Perhaps a Net Worth Balance
+# - You have the option to change the balance type and display name too
 
 ###############################################################################
 # MIT License
@@ -36,6 +37,8 @@
 # Built to operate on Moneydance 2021.1 build 3056 onwards (as this is when the Py Extensions became fully functional)
 
 # Build: 1 - Initial release
+# Build: 2 - Screensize tweaks; ability to set widget display name; alter startup behaviour
+# Build: 2 - Renamed to net_account_balances (removed _to_zero); common code/startup
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -43,13 +46,15 @@
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
-myModuleID = u"net_account_balances_to_zero"
-version_build = "1"
+myModuleID = u"net_account_balances"
+version_build = "2"
+MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
+
 if u"debug" in globals():
     global debug
 else:
     debug = False
-global net_account_balances_to_zero_frame_
+global net_account_balances_frame_
 
 # COPY >> START
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
@@ -112,77 +117,69 @@ def getMyJFrame( moduleName ):
             if (fr.getName().lower().startswith(u"%s_main" %moduleName)
                     and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
                     and fr.isActiveInMoneydance):
-                print("%s: Found live frame: %s (MyJFrame() version: %s)" %(myModuleID,fr.getName(),fr.myJFrameVersion))
-                System.err.write("%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID, fr.getName(),fr.myJFrameVersion))
-                if fr.isRunTimeExtension: print("%s: This extension is a run-time self-installed extension too..." %(myModuleID))
-                if fr.isRunTimeExtension: System.err.write("%s: This extension is a run-time self-installed extension too...\n" %(myModuleID))
+                _msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
+                print(_msg); System.err.write(_msg)
+                if fr.isRunTimeExtension:
+                    _msg = "%s: This extension is a run-time self-installed extension too...\n" %(myModuleID)
+                    print(_msg); System.err.write(_msg)
                 return fr
     except:
-        System.err.write("%s: Critical error in getMyJFrame(); caught and ignoring...!\n" %(myModuleID))
+        _msg = "%s: Critical error in getMyJFrame(); caught and ignoring...!\n" %(myModuleID)
+        print(_msg); System.err.write(_msg)
     return None
 
 
 frameToResurrect = None
 try:
     if (u"%s_frame_"%myModuleID in globals()
-            and isinstance(net_account_balances_to_zero_frame_, MyJFrame)        # EDIT THIS
-            and net_account_balances_to_zero_frame_.isActiveInMoneydance):       # EDIT THIS
-        frameToResurrect = net_account_balances_to_zero_frame_                   # EDIT THIS
+            and isinstance(net_account_balances_frame_, MyJFrame)        # EDIT THIS
+            and net_account_balances_frame_.isActiveInMoneydance):       # EDIT THIS
+        frameToResurrect = net_account_balances_frame_                   # EDIT THIS
     else:
         getFr = getMyJFrame( myModuleID )
         if getFr is not None:
             frameToResurrect = getFr
         del getFr
 except:
-    System.err.write("%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID))
+    msg = "%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID)
+    print(msg); System.err.write(msg)
 
-lTerminatedExtension = False
+lFoundRuntimeExtension = False
 
-try:
-    if frameToResurrect:  # and it's still alive.....
-        if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. I need to deactivate and re-register extension...
-            print("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action..." %(myModuleID, myModuleID))
-            System.err.write("%s: Detected that runtime extension %s is already running..... Assuming a re-installation... Taking appropriate action...\n" %(myModuleID, myModuleID))
-            frameToResurrect.isActiveInMoneydance = False
+if frameToResurrect:  # and thus it's still alive.....
+    if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. As of build 3056, just do nothing and let MD call .unload() first...
+        msg = "%s: Detected that runtime extension %s is already running..... Assuming you are running the script within Moneybot... I'm going to DO NOTHING and just exit!\n" %(myModuleID, myModuleID)
+        print(msg); System.err.write(msg)
+        lFoundRuntimeExtension = True
+        frameToResurrect = None
+    else:
+        msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
+        print(msg); System.err.write(msg)
 
-            if not SwingUtilities.isEventDispatchThread():
-                SwingUtilities.invokeAndWait(GenericDisposeRunnable(frameToResurrect))
-                System.err.write("%s: Pushed a dispose() - via SwingUtilities.invokeLater() - to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-            else:
-                GenericDisposeRunnable(frameToResurrect).run()
-                System.err.write("%s: Pushed a dispose() (direct as already on EDT) to existing extension... Hopefully it will close to allow re-installation...\n" %(myModuleID))
-
-            lTerminatedExtension = True
-            frameToResurrect = None
-        else:
-            print("%s: Detected that %s is already running..... Attempting to resurrect.." %(myModuleID, myModuleID))
-            System.err.write("%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID))
-except:
-    System.err.write("%s: Critical error checking frameToResurrect(2); caught and ignoring...!\n" %(myModuleID))
-
-if float(MD_REF.getBuild()) < 1904:     # Check for builds less than 1904 / version < 2019.4
+if float(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 / version < 2019.4 or 3056 accordingly
     try:
-        MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+        MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
     except:
-        raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION")
+        raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
+
+elif lFoundRuntimeExtension:
+    msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on 2021.1(3056) onwards. Now exiting script!\n" %(myModuleID)
+    print(msg); System.err.write(msg)
+    try: MD_REF_UI.showInfoMessage(msg)
+    except: pass
 
 elif frameToResurrect:
     try:
         SwingUtilities.invokeLater(GenericVisibleRunnable(frameToResurrect, True, True))
     except:
-        print("%s: Failed to resurrect main Frame - via SwingUtilities.invokeLater() - This duplicate Script/extension is now terminating....." %(myModuleID))
-        System.err.write("%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID))
+        msg  = "%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID)
+        print(msg); System.err.write(msg)
         raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
 
 else:
     del frameToResurrect
-
-    if not lTerminatedExtension:
-        print("%s: No other 'live' instances of this program detected (or I terminated it) - running as normal" %(myModuleID))
-        System.err.write("%s: No other instances of this program detected (or I terminated it) - running as normal\n" %(myModuleID))
-    else:
-        print("%s: I terminated extension in memory, running script to allow new installation..." %(myModuleID))
-        System.err.write("%s: I terminated extension in memory, running script to allow new installation...\n" %(myModuleID))
+    msg = "%s: No other instances of this program detected - running as normal\n" %(myModuleID)
+    print(msg); System.err.write(msg)
 
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
@@ -280,9 +277,11 @@ else:
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
-    global __net_account_balances_to_zero_extension, extn_param_listAccountUUIDs_NABTZ, extn_param_balanceType_NABTZ
-    extn_param_listAccountUUIDs_NABTZ = []                                                                              # noqa
-    extn_param_balanceType_NABTZ = 0                                                                                    # noqa
+    global __net_account_balances_extension, extn_param_listAccountUUIDs_NAB, extn_param_balanceType_NAB, extn_param_widget_display_name_NAB
+    extn_param_listAccountUUIDs_NAB = []                                                                              # noqa
+    extn_param_balanceType_NAB = 0                                                                                    # noqa
+    extn_param_widget_display_name_NAB = ""                                                                           # noqa
+    DEFAULT_WIDGET_NAME = "Net Account Balances:"
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
     # COPY >> START
@@ -1610,16 +1609,17 @@ Visit: %s (Author's site)
         global debug, myParameters, lPickle_version_warning, version_build
 
         # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD
-        global __net_account_balances_to_zero_extension, extn_param_listAccountUUIDs_NABTZ, extn_param_balanceType_NABTZ
+        global __net_account_balances_extension, extn_param_listAccountUUIDs_NAB, extn_param_balanceType_NAB, extn_param_widget_display_name_NAB
 
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()" )
         myPrint("DB", "Loading variables into memory...")
 
         if myParameters is None: myParameters = {}
 
-        if myParameters.get("__net_account_balances_to_zero_extension") is not None: __net_account_balances_to_zero_extension = myParameters.get("__net_account_balances_to_zero_extension")
-        if myParameters.get("extn_param_listAccountUUIDs_NABTZ") is not None: extn_param_listAccountUUIDs_NABTZ = myParameters.get("extn_param_listAccountUUIDs_NABTZ")
-        if myParameters.get("extn_param_balanceType_NABTZ") is not None: extn_param_balanceType_NABTZ = myParameters.get("extn_param_balanceType_NABTZ")
+        if myParameters.get("__net_account_balances_extension") is not None: __net_account_balances_extension = myParameters.get("__net_account_balances_extension")
+        if myParameters.get("extn_param_listAccountUUIDs_NAB") is not None: extn_param_listAccountUUIDs_NAB = myParameters.get("extn_param_listAccountUUIDs_NAB")
+        if myParameters.get("extn_param_balanceType_NAB") is not None: extn_param_balanceType_NAB = myParameters.get("extn_param_balanceType_NAB")
+        if myParameters.get("extn_param_widget_display_name_NAB") is not None: extn_param_widget_display_name_NAB = myParameters.get("extn_param_widget_display_name_NAB")
 
         myPrint("DB","myParameters{} set into memory (as variables).....")
 
@@ -1630,7 +1630,7 @@ Visit: %s (Author's site)
         global debug, myParameters, lPickle_version_warning, version_build
 
         # >>> THESE ARE THIS SCRIPT's PARAMETERS TO SAVE
-        global __net_account_balances_to_zero_extension, extn_param_listAccountUUIDs_NABTZ, extn_param_balanceType_NABTZ
+        global __net_account_balances_extension, extn_param_listAccountUUIDs_NAB, extn_param_balanceType_NAB, extn_param_widget_display_name_NAB
 
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()" )
 
@@ -1639,9 +1639,10 @@ Visit: %s (Author's site)
 
         if myParameters is None: myParameters = {}
 
-        myParameters["__net_account_balances_to_zero_extension"] = version_build
-        myParameters["extn_param_listAccountUUIDs_NABTZ"] = extn_param_listAccountUUIDs_NABTZ
-        myParameters["extn_param_balanceType_NABTZ"] = extn_param_balanceType_NABTZ
+        myParameters["__net_account_balances_extension"] = version_build
+        myParameters["extn_param_listAccountUUIDs_NAB"] = extn_param_listAccountUUIDs_NAB
+        myParameters["extn_param_balanceType_NAB"] = extn_param_balanceType_NAB
+        myParameters["extn_param_widget_display_name_NAB"] = extn_param_widget_display_name_NAB
 
         myPrint("DB","variables dumped from memory back into myParameters{}.....")
 
@@ -1682,12 +1683,12 @@ Visit: %s (Author's site)
 
 
     if not i_am_an_extension_so_run_headless:
-        if lTerminatedExtension:
+        if lFoundRuntimeExtension:
             myPopupInformationBox(None, "Sorry - this script/extension is designed to only execute / install via an mxt file - aborting! I HAVE TERMINATED YOUR LIVE EXTENSION, PLEASE RESTART MD","INVALID INSTALLATION METHOD",JOptionPane.ERROR_MESSAGE)
         else:
             myPopupInformationBox(None, "Sorry - this script/extension is designed to only execute / install via an mxt file - aborting!","INVALID INSTALLATION METHOD",JOptionPane.ERROR_MESSAGE)
         raise Exception("Sorry - this script/extension is designed to only execute / install via an mxt file - aborting!")
-    del lTerminatedExtension
+    del lFoundRuntimeExtension
 
     if float(MD_REF.getBuild()) < 3056:
         msg = "Sorry - this extension is only designed to work on Moneydance version 2021.1 build 3056 onwards.. Aborting!"
@@ -1733,7 +1734,7 @@ Visit: %s (Author's site)
 
     def sendMessage(extensionID, theMessage):
         myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
-        # replicating moneydance.showURL("moneydance:fmodule:net_account_balances_to_zero:myCommand_here?thisIsMyParameter")
+        # replicating moneydance.showURL("moneydance:fmodule:net_account_balances:myCommand_here?thisIsMyParameter")
 
         frs = getMyJFrame( extensionID )
         if frs:
@@ -1745,10 +1746,10 @@ Visit: %s (Author's site)
 
     myPrint("B","HomePageView widget / extension is now running...")
 
-    class NetAccountBalancesToZeroExtension(FeatureModule):
+    class NetAccountBalancesExtension(FeatureModule):
 
         def __init__(self):  # This is the class' own initialise, just to set up variables
-            global extn_param_listAccountUUIDs_NABTZ, extn_param_balanceType_NABTZ, debug
+            global extn_param_listAccountUUIDs_NAB, extn_param_balanceType_NAB, extn_param_widget_display_name_NAB, debug
             # super(FeatureModule, self).__init__()                                                                       # noqa
 
             self.myModuleID = myModuleID
@@ -1782,12 +1783,15 @@ Visit: %s (Author's site)
 
             self.savedAccountListUUIDs = []
             self.savedBalanceType = 0
+            self.savedWidgetName = DEFAULT_WIDGET_NAME
+
             self.menuItemDEBUG = None
 
             self.configPanelOpen = False
 
             self.jlst = None
             self.balanceType_option = None
+            self.widgetNameField = None
 
             myPrint("DB", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "##########################################################################################")
@@ -1883,9 +1887,9 @@ Visit: %s (Author's site)
                 myPrint("DB", "In %s.%s() - Event: %s" %(self, inspect.currentframe().f_code.co_name, WindowEvent))
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
-                # self.callingClass.DEBUG_button.setSelected(debug)
                 self.callingClass.menuItemDEBUG.setSelected(debug)
                 self.callingClass.balanceType_option.setSelectedIndex(self.callingClass.savedBalanceType)
+                self.callingClass.widgetNameField.setText(self.callingClass.savedWidgetName)
 
                 if self.callingClass.configPanelOpen:
                     myPrint("DB",".. Application's config panel is already open so will not refresh...")
@@ -2016,7 +2020,7 @@ Visit: %s (Author's site)
                 self.callingClass = callingClass
 
             def actionPerformed(self, event):
-                global extn_param_listAccountUUIDs_NABTZ, extn_param_balanceType_NABTZ, debug
+                global extn_param_listAccountUUIDs_NAB, extn_param_balanceType_NAB, extn_param_widget_display_name_NAB, debug
 
                 myPrint("DB", "In %s.%s() - Event: %s" %(self, inspect.currentframe().f_code.co_name, event))
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
@@ -2038,8 +2042,14 @@ Visit: %s (Author's site)
                         myPrint("DB","...saving account %s in saved parameter list..." %(selectedAccount))
                         self.callingClass.savedAccountListUUIDs.append(selectedAccount.obj.getUUID())
                     self.callingClass.savedBalanceType = self.callingClass.balanceType_option.getSelectedIndex()
-                    extn_param_listAccountUUIDs_NABTZ = self.callingClass.savedAccountListUUIDs
-                    extn_param_balanceType_NABTZ = self.callingClass.savedBalanceType
+
+                    self.callingClass.savedWidgetName = self.callingClass.widgetNameField.getText()
+                    if self.callingClass.savedWidgetName.strip() == "":
+                        self.callingClass.savedWidgetName =  DEFAULT_WIDGET_NAME
+
+                    extn_param_listAccountUUIDs_NAB = self.callingClass.savedAccountListUUIDs
+                    extn_param_balanceType_NAB = self.callingClass.savedBalanceType
+                    extn_param_widget_display_name_NAB = self.callingClass.savedWidgetName
 
                     self.callingClass.configPanelOpen = False
                     self.callingClass.theFrame.setVisible(False)    # Listener, so already on Swing EDT
@@ -2088,6 +2098,12 @@ Visit: %s (Author's site)
                     self.callingClass.moneydanceContext.showURL("moneydance:fmodule:%s:%s:customevent:close" %(self.callingClass.myModuleID,self.callingClass.myModuleID))
 
                 # ######################################################################################################
+                if event.getActionCommand().lower().startswith("uninstall"):
+
+                    myPrint("DB", "User has clicked uninstall - sending 'uninstall' request via .showURL().......")
+                    self.callingClass.moneydanceContext.showURL("moneydance:fmodule:%s:%s:customevent:uninstall" %(self.callingClass.myModuleID,self.callingClass.myModuleID))
+
+                # ######################################################################################################
                 # Save parameters now...
                 if (event.getActionCommand().lower().startswith("save")
                         or event.getActionCommand().lower().startswith("debug")):
@@ -2108,7 +2124,7 @@ Visit: %s (Author's site)
 
             def getListCellRendererComponent(self, thelist, value, index, isSelected, cellHasFocus):
                 lightLightGray = Color(0xDCDCDC)
-                c = super(NetAccountBalancesToZeroExtension.MyJListRenderer, self).getListCellRendererComponent( thelist, value, index, isSelected, cellHasFocus ) # noqa
+                c = super(NetAccountBalancesExtension.MyJListRenderer, self).getListCellRendererComponent(thelist, value, index, isSelected, cellHasFocus) # noqa
                 # c.setBackground(self.getBackground() if index % 2 == 0 else lightLightGray)
 
                 # Create a line separator between accounts
@@ -2117,7 +2133,7 @@ Visit: %s (Author's site)
                 return c
 
         def load_saved_parameters(self):
-            global extn_param_listAccountUUIDs_NABTZ, extn_param_balanceType_NABTZ
+            global extn_param_listAccountUUIDs_NAB, extn_param_balanceType_NAB, extn_param_widget_display_name_NAB
 
             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
@@ -2127,12 +2143,14 @@ Visit: %s (Author's site)
                 if not self.parametersLoaded:
                     if self.moneydanceContext.getCurrentAccountBook() is not None:
                         self.configPanelOpen = False
-                        extn_param_listAccountUUIDs_NABTZ = []  # Loading will overwrite if file exists.. Otherwise we want []
-                        extn_param_balanceType_NABTZ = 0        # Loading will overwrite if file exists.. Otherwise we want 0
+                        extn_param_listAccountUUIDs_NAB = []                      # Loading will overwrite if file exists.. Otherwise we want []
+                        extn_param_balanceType_NAB = 0                            # Loading will overwrite if file exists.. Otherwise we want 0
+                        extn_param_widget_display_name_NAB = DEFAULT_WIDGET_NAME  # Loading will overwrite if file exists.. Otherwise we want this default name
                         get_StuWareSoftSystems_parameters_from_file(myFile="%s_extension.dict" %(self.myModuleID))
                         self.parametersLoaded = True
-                        self.savedAccountListUUIDs = extn_param_listAccountUUIDs_NABTZ
-                        self.savedBalanceType = extn_param_balanceType_NABTZ
+                        self.savedAccountListUUIDs = extn_param_listAccountUUIDs_NAB
+                        self.savedBalanceType = extn_param_balanceType_NAB
+                        self.savedWidgetName = extn_param_widget_display_name_NAB
 
         # method getName() must exist as the interface demands it.....
         def getName(self):      # noqa
@@ -2169,26 +2187,44 @@ Visit: %s (Author's site)
             if fm is None:
                 myPrint("DB","Failed to retrieve myself - exiting")
                 return False
-
             myPrint("DB","Retrieved myself: %s" %(fm))
 
             try:
                 p = self.moneydanceContext.getClass().getDeclaredMethod("unloadModule", [FeatureModule])
                 p.setAccessible(True)
-                p.invoke(moneydance,[fm])
+                p.invoke(self.moneydanceContext,[fm])
                 p.setAccessible(False)
-
             except:
                 myPrint("DB","Error unloading my own extension object..?")
                 dump_sys_error_to_md_console_and_errorlog()
                 return False
 
-            myPrint("DB",".. Success! Unloaded / deactivated myself..! ;->")
+            myPrint("B","@@ Success! Unloaded / deactivated myself..! ;->")
+            return True
 
+        def removeMyself(self):
+            myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
+
+            fm, pyObject = self.getMyself()
+
+            if fm is None:
+                myPrint("DB","Failed to retrieve myself - exiting")
+                return False
+            myPrint("DB","Retrieved myself: %s" %(fm))
+
+            try:
+                myPrint("DB","... about to ask MD to uninstall myself....")
+                self.moneydanceContext.uninstallModule(fm)
+            except:
+                myPrint("DB","Error uninstalling my own extension object..?")
+                dump_sys_error_to_md_console_and_errorlog()
+                return False
+
+            myPrint("B","@@ Success! Removed / uninstalled myself..! ;->")
             return True
 
         def build_main_frame(self):
-            global net_account_balances_to_zero_frame_
+            global net_account_balances_frame_
 
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
@@ -2202,7 +2238,7 @@ Visit: %s (Author's site)
                     self.callingClass = callingClass
 
                 def run(self):                                                                                                        # noqa
-                    global net_account_balances_to_zero_frame_
+                    global net_account_balances_frame_
 
                     myPrint("DB", "Creating main JFrame for application...")
 
@@ -2212,8 +2248,8 @@ Visit: %s (Author's site)
 
                     # Called from getMoneydanceUI() so assume the Moneydance GUI is loaded...
                     JFrame.setDefaultLookAndFeelDecorated(True)
-                    net_account_balances_to_zero_frame_ = MyJFrame(u"%s (%s) Home Page View widget - settings" %(self.callingClass.myModuleID.capitalize(),version_build))
-                    self.callingClass.theFrame = net_account_balances_to_zero_frame_
+                    net_account_balances_frame_ = MyJFrame(u"%s (%s) Home Page View widget - settings" % (self.callingClass.myModuleID.capitalize(), version_build))
+                    self.callingClass.theFrame = net_account_balances_frame_
                     self.callingClass.theFrame.setName(u"%s_main" %(self.callingClass.myModuleID))
 
                     self.callingClass.theFrame.isActiveInMoneydance = True
@@ -2233,11 +2269,14 @@ Visit: %s (Author's site)
                     scrollpane = JScrollPane(self.callingClass.jlst, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
-                    frame_width = 550
-                    frame_height = min(600, int(round(screenSize.height - 150,0)))
-                    scrollpane.setPreferredSize(Dimension(frame_width, frame_height))
-                    scrollpane.setMinimumSize(Dimension(frame_width, frame_height))
-                    scrollpane.setMaximumSize(Dimension(int(round(screenSize.width * 0.9,0)), int(round(frame_height - 150,0))))
+                    desired_scrollPane_width = 550
+                    desired_frame_height_max = min(650, int(round(screenSize.height * 0.9,0)))
+                    scrollPaneTop = scrollpane.getY()
+                    calcScrollPaneHeight = (desired_frame_height_max - scrollPaneTop - 70)
+
+                    scrollpane.setPreferredSize(Dimension(desired_scrollPane_width, calcScrollPaneHeight))
+                    scrollpane.setMinimumSize(Dimension(desired_scrollPane_width, calcScrollPaneHeight))
+                    scrollpane.setMaximumSize(Dimension(int(round(screenSize.width * 0.9,0)), int(round((screenSize.height * 0.9) - scrollPaneTop - 70,0))))
 
                     saveMyActionListener = self.callingClass.MyActionListener(self.callingClass)
 
@@ -2249,24 +2288,26 @@ Visit: %s (Author's site)
                     lbl.setForeground(Color.BLUE)
                     pnl.add(lbl, GridC.getc(0, 0).west().colspan(3).leftInset(10).topInset(10).bottomInset(10))
 
+                    self.callingClass.widgetNameField = JTextField(self.callingClass.savedWidgetName)
+                    pnl.add(self.callingClass.widgetNameField, GridC.getc(0, 1).west().colspan(3).leftInset(10).topInset(10).bottomInset(10).rightInset(10).fillboth())
+
                     balanceTypes = ["Balance", "Current Balance", "Cleared Balance"]
                     self.callingClass.balanceType_option = JComboBox(balanceTypes)
                     self.callingClass.balanceType_option.setToolTipText("Select the balance type to total: Balance (i.e. the final balance), Current Balance (as of today), Cleared Balance")
                     self.callingClass.balanceType_option.setSelectedItem(balanceTypes[self.callingClass.savedBalanceType])
-                    pnl.add(self.callingClass.balanceType_option, GridC.getc(0, 1).west().leftInset(20))
+                    pnl.add(self.callingClass.balanceType_option, GridC.getc(0, 2).west().leftInset(20))
 
                     saveAccountList_button = JButton("Save Changes")
                     saveAccountList_button.setToolTipText("Saves the selected account list")
                     saveAccountList_button.addActionListener(saveMyActionListener)
-                    pnl.add(saveAccountList_button, GridC.getc(1, 1).west())
+                    pnl.add(saveAccountList_button, GridC.getc(1, 2).west())
 
                     cancelChanges_button = JButton("Cancel Changes")
                     cancelChanges_button.setToolTipText("Cancels your changes and reverts to the saved account list")
                     cancelChanges_button.addActionListener(saveMyActionListener)
-                    pnl.add(cancelChanges_button, GridC.getc(2, 1).west().leftInset(20))
+                    pnl.add(cancelChanges_button, GridC.getc(2, 2).west().leftInset(20))
 
-                    pnl.add(scrollpane,GridC.getc(0, 2).wx(1.0).west().colspan(3).leftInset(8).rightInset(8).topInset(8).bottomInset(8))
-
+                    pnl.add(scrollpane,GridC.getc(0, 3).wx(1.0).west().colspan(3).leftInset(8).rightInset(8).topInset(8).bottomInset(8).fillboth())
                     self.callingClass.theFrame.add(pnl)
 
                     self.callingClass.theFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
@@ -2320,6 +2361,12 @@ Visit: %s (Author's site)
                     menuItemDeactivate.setSelected(True)
                     menuO.add(menuItemDeactivate)
 
+                    menuItemUninstall = JMenuItem("Uninstall Extension")
+                    menuItemUninstall.addActionListener(saveMyActionListener)
+                    menuItemUninstall.setToolTipText("Uninstalls and removes this extension (and also the HomePage 'widget'). This is permanent until you reinstall...")
+                    menuItemUninstall.setSelected(True)
+                    menuO.add(menuItemUninstall)
+
                     mb.add(menuO)
 
                     menuA = JMenu("About")
@@ -2342,6 +2389,9 @@ Visit: %s (Author's site)
 
                     self.callingClass.theFrame.pack()
                     self.callingClass.theFrame.setLocationRelativeTo(None)
+
+                    self.callingClass.jlst.requestFocusInWindow()           # Set initial focus on the account selector
+
                     self.callingClass.theFrame.setVisible(False)
 
                     if Platform.isOSX():
@@ -2426,7 +2476,29 @@ Visit: %s (Author's site)
 
             return True
 
-        # noinspection PyMethodMayBeStatic
+
+        class UnloadUninstallSwingWorker(SwingWorker):
+            def __init__(self, callingClass, unload=False, uninstall=False):
+                self.callingClass = callingClass
+                self.unload = unload
+                self.uninstall = uninstall
+
+            # noinspection PyMethodMayBeStatic
+            def doInBackground(self):
+                myPrint("DB", "In UnloadUninstallSwingWorker()", inspect.currentframe().f_code.co_name, "()")
+
+                if self.unload:
+                    myPrint("DB","... calling .unloadMyself()")
+                    self.callingClass.unloadMyself()
+                elif self.uninstall:
+                    myPrint("DB","... calling .removeMyself()")
+                    self.callingClass.removeMyself()
+
+            # noinspection PyMethodMayBeStatic
+            def done(self):
+                myPrint("DB", "In UnloadUninstallSwingWorker()", inspect.currentframe().f_code.co_name, "()")
+                myPrint("DB","++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
         def handle_event(self, appEvent, lPassedFromInvoke=False):
 
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
@@ -2467,28 +2539,25 @@ Visit: %s (Author's site)
                     myPrint("DB", "self.isUIavailable: %s" %(self.isUIavailable))
                     myPrint("DB", "self.theFrame.isActiveInMoneydance: %s" %(self.theFrame.isActiveInMoneydance))       # noqa
 
-            elif (appEvent == "%s:customevent:close" %self.myModuleID):
+            elif (appEvent == "%s:customevent:close" %(self.myModuleID)):
                 if debug:
-                    myPrint("DB","@@ Custom event %s triggered.... Will call .unloadMyself() to deactivate...." %(appEvent))
+                    myPrint("DB","@@ Custom event %s triggered.... Will call .unloadMyself() to deactivate (via SwingWorker)...." %(appEvent))
                 else:
                     myPrint("B","@@ %s triggered - So I will deactivate myself...." %(appEvent))
-                try:
-                    self.unloadMyself()
-                    myPrint("DB","Back from calling .unloadMyself() to deactivate... ;-> ** I'm getting out quick! **")
-                except:
-                    dump_sys_error_to_md_console_and_errorlog()
-                    myPrint("B","@@ ERROR calling .unloadMyself() to deactivate :-< ** I'm getting out quick! **")
 
-                # if debug:
-                #     myPrint("DB","Custom event %s triggered.... Will call GenericWindowClosingRunnable (via the Swing EDT) to push a WINDOW_CLOSING Event to %s to close itself (while I exit back to MD quickly) ...." %(appEvent, self.myModuleID))
-                # else:
-                #     myPrint("B","Custom event %s triggered - So I am closing %s now...." %(appEvent, self.myModuleID))
-                # try:
-                #     SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.theFrame))
-                #     myPrint("DB","Back from calling GenericWindowClosingRunnable to push a WINDOW_CLOSING Event via the EDT to %s.... ;-> ** I'm getting out quick! **" %(self.myModuleID))
-                # except:
-                #     dump_sys_error_to_md_console_and_errorlog()
-                #     myPrint("B","@@ ERROR calling GenericWindowClosingRunnable to push  a WINDOW_CLOSING Event via the EDT to %s.... :-< ** I'm getting out quick! **" %(self.myModuleID))
+                sw = self.UnloadUninstallSwingWorker(self,unload=True)
+                sw.execute()
+                myPrint("DB","Back from calling .unloadMyself() via SwingWorker to deactivate... ;-> ** I'm getting out quick! **")
+
+            elif (appEvent == "%s:customevent:uninstall" %(self.myModuleID)):
+                if debug:
+                    myPrint("DB","@@ Custom event %s triggered.... Will call .removeMyself() to uninstall (via SwingWorker)...." %(appEvent))
+                else:
+                    myPrint("B","@@ %s triggered - So I will uninstall/remove myself...." %(appEvent))
+
+                sw = self.UnloadUninstallSwingWorker(self,uninstall=True)
+                sw.execute()
+                myPrint("DB","Back from calling .removeMyself() via SwingWorker to deactivate... ;-> ** I'm getting out quick! **")
 
             else:
                 myPrint("DB","@@ Ignoring handle_event: %s (from .invoke() = %s) @@" %(appEvent,lPassedFromInvoke))
@@ -2773,8 +2842,7 @@ Visit: %s (Author's site)
                 dec = self.callingClass.extensionClass.moneydanceContext.getPreferences().getDecimalChar()
                 baseCurr = self.callingClass.extensionClass.moneydanceContext.getCurrentAccountBook().getCurrencies().getBaseType()
 
-                # nameLabel = JLabel("Net Account Balances to Zero Total:", JLabel.LEFT)
-                nameLabel = JLinkLabel("Net Account Balances to Zero Total:", "showConfig", JLabel.LEFT)
+                nameLabel = JLinkLabel("%s" %(self.callingClass.extensionClass.savedWidgetName), "showConfig", JLabel.LEFT)
 
                 netAmount = self.getBalancesBuildView()
 
@@ -2896,6 +2964,6 @@ Visit: %s (Author's site)
     myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
     # Moneydance queries this variable after script exit and uses it to install the extension
-    moneydance_extension = NetAccountBalancesToZeroExtension()
+    moneydance_extension = NetAccountBalancesExtension()
 
     myPrint("B", "StuWareSoftSystems - ", myScriptName, " initialisation routines ending......")

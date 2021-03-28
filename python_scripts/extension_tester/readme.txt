@@ -148,6 +148,16 @@ CODING TIPS
     to set it up, create Project with Python 2.7 as the SDK, add a moneydance.jar as a Library,
     add a Java Module called Moneydance (link the Library, and assign the SDK adopt-openjdk-15 (Hotspot)).
     This will then give you a great code editor and inbuilt checking of your work....
+- com.moneydance.util.Platform .isWindows() .isMac() [or .isOSX()] .isBigSurOrLater() .isUnix() are  very  useful methods.
+- Don't use file extension filters with Mac and JFileChooser() - these will randomly hang your machine.
+- Use FileDialog() on Windows to allow file creation. As when creating files with JFileChooser() on some machines, in some folder it can fail with a permission error
+- Be aware of encoding issues. Moneydance uses UTF-8 as it's default (which is good), but Python 2.7 uses ASCII (which is not good):
+    - This is not good practice, but do this 'hack' at the beginning of your code to get Python 2.7 to default to UTF-8
+        import sys; reload(sys); sys.setdefaultencoding('utf8')
+    - AVOID using str(). For example just use %s in text. So "Hello %s" %(name) - and not "Hello " + str(name)
+    - If you use str(), especially anywhere where there are extended characters - like £ or € - you will either get garbage or an error.....
+    The reference __file__ will not exist if running as an ExtensionClass()
+
 
 - ExtensionClass():
     - __init__():     Perform simple variable initialisation here.
