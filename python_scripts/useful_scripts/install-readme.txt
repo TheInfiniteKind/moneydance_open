@@ -43,6 +43,7 @@ The script will run un-affected. It's Mac Gatekeeper complaining about a dynamic
 
 All Extensions/Scripts available:
 toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more...
+
 extract_data:                           Extract various data to screen and/or csv.. Consolidation of:
 - stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv
 - extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
@@ -52,7 +53,7 @@ extract_data:                           Extract various data to screen and/or cs
 
 list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
 
-net_account_balances.py:                Puts a small 'widget' on the Home Page. Displays the total of selected account balances
+net_account_balances:                   Puts a small 'widget' on the Home Page. Displays the total of selected account balances
                                         It's also a demo of how to create a true runtime Python extension and a HomePageView widget
 
 extension_tester:                       Demo extension/scripts for coders wanting to build Moneydance Python extensions

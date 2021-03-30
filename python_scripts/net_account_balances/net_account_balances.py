@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 2 - March 2021 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1000 - March 2021 - Stuart Beesley - StuWareSoftSystems
 
+###############################################################################
 # This extension creates a Moneydance Home Page View >> a little widget on the Home / Summary Screen dashboard
-# - It allows you to select multiple accounts, and then the balances are totalled to present on the Home screen widget
-# - The concept is to add balances and target zero. Thus a positive number is 'good', a negative is 'bad'
-# - The idea is that you net cash and debt to get back to zero every month
-# - But you can use it for anything really; Perhaps a Net Worth Balance
-# - You have the option to change the balance type and display name too
+# Drag and drop the .mxt file onto the left side bar to install (or use Extensions, Manage Extensions, add from file)
+# Once installed, visit Preferences > Summary Page, and then move the new widget to the desired Home screen location
+
+# This widget allows you to select multiple accounts. The balances are totalled to present on the Home screen widget
+# My concept was to add balances to target zero. Thus a positive number is 'good', a negative is 'bad'
+# The idea is that you net cash and debt to get back to zero every month
+# However, you could create a Net Worth Balance for example; you can use it for anything really
+#
+# You can change the widget name and also the balance type in the config screen (click the widget, or extensions menu)
+# Any non base currency accounts are converted back to your base currency
+# NOTE: This does not use recursive balance totalling, it simply uses the selected accounts' balance...
 
 ###############################################################################
 # MIT License
@@ -39,6 +46,10 @@
 # Build: 1 - Initial release
 # Build: 2 - Screensize tweaks; ability to set widget display name; alter startup behaviour
 # Build: 2 - Renamed to net_account_balances (removed _to_zero); common code/startup
+# Build: 3 - properly convert fx accounts back to base currency; allow all account types in selection..
+# Build: 4 - Tweak to security currency conversion to base...
+# Build: 5 - Enhance JList colors and handling of clicks (so as not to unselect all on new click); add clear selection button
+# Build: 1000 - Formal release
 
 # Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -47,7 +58,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "2"
+version_build = "1000"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 
 if u"debug" in globals():
@@ -273,6 +284,7 @@ else:
     from javax.swing import BorderFactory
     from com.moneydance.awt import JLinkListener, JLinkLabel
     from com.moneydance.apps.md.view.gui.theme import Theme
+    from javax.swing import DefaultListSelectionModel
     # from com.moneydance.apps.md.controller import URLUtil
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
@@ -301,6 +313,7 @@ The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
 toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
+net_account_balances:                   Homepage / summary screen widget. Display the total of selected Account Balances
 
 Extension (.mxt) and Script (.py) Versions available:
 extract_data                            Extract various data to screen and/or csv.. Consolidation of:
@@ -1648,8 +1661,6 @@ Visit: %s (Author's site)
 
         return
 
-    # get_StuWareSoftSystems_parameters_from_file()
-
     # clear up any old left-overs....
     destroyOldFrames(myModuleID)
 
@@ -1705,9 +1716,14 @@ Visit: %s (Author's site)
         # noinspection PyMethodMayBeStatic
         def matches(self, acct):
 
+            # # noinspection PyUnresolvedReferences
+            # if not (acct.getAccountType() == Account.AccountType.BANK
+            #         or acct.getAccountType() == Account.AccountType.CREDIT_CARD):
+            #     return False
+
             # noinspection PyUnresolvedReferences
-            if not (acct.getAccountType() == Account.AccountType.BANK
-                    or acct.getAccountType() == Account.AccountType.CREDIT_CARD):
+            if (acct.getAccountType() == Account.AccountType.ROOT
+                    or acct.getAccountType() == Account.AccountType.SECURITY):
                 return False
 
             if (acct.getAccountOrParentIsInactive()): return False
@@ -1728,9 +1744,7 @@ Visit: %s (Author's site)
             return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
 
         def __repr__(self):
-            if self.obj is None:
-                return "Invalid Acct Obj or None"
-            return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
+            return self.__str__()
 
     def sendMessage(extensionID, theMessage):
         myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
@@ -1811,7 +1825,7 @@ Visit: %s (Author's site)
                 myPrint("DB","meta_info.dict 'desc' = %s" %(self.moneydanceExtensionObject.getDescription()))
                 myPrint("DB","script path: %s" %(self.moneydanceExtensionObject.getSourceFile()))
 
-            self.moneydanceContext.registerFeature(extension_object, "%s:customevent:showConfig" %(self.myModuleID), None, self.getName())
+            self.moneydanceContext.registerFeature(extension_object, "%s:customevent:showConfig" %(self.myModuleID), None, self.getName().replace("_"," ").title())
             myPrint("DB","@@ Registered self as an Extension onto the Extension Menu @@")
 
             self.saveMyHomePageView = MyHomePageView(self)
@@ -2077,6 +2091,11 @@ Visit: %s (Author's site)
                     SwingUtilities.invokeLater(MyRefreshRunnable(self.callingClass))
 
                 # ######################################################################################################
+                if event.getActionCommand().lower().startswith("clear"):
+                    myPrint("DB","...clearing selection...")
+                    self.callingClass.jlst.clearSelection()
+
+                # ######################################################################################################
                 if event.getActionCommand().lower().startswith("cancel"):
                     myPrint("DB","...ignoring changes and reverting to previous account list")
                     self.callingClass.configPanelOpen = False
@@ -2248,7 +2267,7 @@ Visit: %s (Author's site)
 
                     # Called from getMoneydanceUI() so assume the Moneydance GUI is loaded...
                     JFrame.setDefaultLookAndFeelDecorated(True)
-                    net_account_balances_frame_ = MyJFrame(u"%s (%s) Home Page View widget - settings" % (self.callingClass.myModuleID.capitalize(), version_build))
+                    net_account_balances_frame_ = MyJFrame(u"%s (b:%s) Home Page View widget - settings" % (self.callingClass.myModuleID.capitalize(), version_build))
                     self.callingClass.theFrame = net_account_balances_frame_
                     self.callingClass.theFrame.setName(u"%s_main" %(self.callingClass.myModuleID))
 
@@ -2262,10 +2281,28 @@ Visit: %s (Author's site)
                     gridbag = GridBagLayout()
                     pnl = JPanel(gridbag)
 
+
+                    class MyDefaultListSelectionModel(DefaultListSelectionModel):  # build_main_frame() only runs once, so this is fine to do here...
+                        # Change the selector - so not to deselect items when selecting others...
+                        def __init__(self):
+                            super(DefaultListSelectionModel, self).__init__()                                           # noqa
+
+                        def setSelectionInterval(self, start, end):
+                            if (start != end):
+                                super(MyDefaultListSelectionModel, self).setSelectionInterval(start, end)               # noqa
+                            elif self.isSelectedIndex(start):
+                                self.removeSelectionInterval(start, end)
+                            else:
+                                self.addSelectionInterval(start, end)
+
+
                     self.callingClass.jlst = JList([])
+                    self.callingClass.jlst.setBackground((self.callingClass.moneydanceContext.getUI().getColors()).listBackground)
                     self.callingClass.jlst.setCellRenderer( self.callingClass.MyJListRenderer() )
                     self.callingClass.jlst.setFixedCellHeight(self.callingClass.jlst.getFixedCellHeight()+30)
                     self.callingClass.jlst.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+                    self.callingClass.jlst.setSelectionModel(MyDefaultListSelectionModel())
+
                     scrollpane = JScrollPane(self.callingClass.jlst, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
@@ -2286,28 +2323,33 @@ Visit: %s (Author's site)
                         lbl = JLabel("Select multiple accounts - use CTRL-Click, or click first, Shift-Click last...")
 
                     lbl.setForeground(Color.BLUE)
-                    pnl.add(lbl, GridC.getc(0, 0).west().colspan(3).leftInset(10).topInset(10).bottomInset(10))
+                    pnl.add(lbl, GridC.getc(0, 0).west().colspan(4).leftInset(10).topInset(10).bottomInset(10))
 
                     self.callingClass.widgetNameField = JTextField(self.callingClass.savedWidgetName)
-                    pnl.add(self.callingClass.widgetNameField, GridC.getc(0, 1).west().colspan(3).leftInset(10).topInset(10).bottomInset(10).rightInset(10).fillboth())
+                    pnl.add(self.callingClass.widgetNameField, GridC.getc(0, 1).west().colspan(4).leftInset(10).topInset(10).bottomInset(10).rightInset(10).fillboth())
 
                     balanceTypes = ["Balance", "Current Balance", "Cleared Balance"]
                     self.callingClass.balanceType_option = JComboBox(balanceTypes)
                     self.callingClass.balanceType_option.setToolTipText("Select the balance type to total: Balance (i.e. the final balance), Current Balance (as of today), Cleared Balance")
                     self.callingClass.balanceType_option.setSelectedItem(balanceTypes[self.callingClass.savedBalanceType])
-                    pnl.add(self.callingClass.balanceType_option, GridC.getc(0, 2).west().leftInset(20))
+                    pnl.add(self.callingClass.balanceType_option, GridC.getc(0, 2).west().leftInset(10).topInset(2))
+
+                    clearList_button = JButton("Clear Selection")
+                    clearList_button.setToolTipText("Clears the current selection(s)...")
+                    clearList_button.addActionListener(saveMyActionListener)
+                    pnl.add(clearList_button, GridC.getc(1, 2).leftInset(13))
 
                     saveAccountList_button = JButton("Save Changes")
                     saveAccountList_button.setToolTipText("Saves the selected account list")
                     saveAccountList_button.addActionListener(saveMyActionListener)
-                    pnl.add(saveAccountList_button, GridC.getc(1, 2).west())
+                    pnl.add(saveAccountList_button, GridC.getc(2, 2).leftInset(13))
 
                     cancelChanges_button = JButton("Cancel Changes")
                     cancelChanges_button.setToolTipText("Cancels your changes and reverts to the saved account list")
                     cancelChanges_button.addActionListener(saveMyActionListener)
-                    pnl.add(cancelChanges_button, GridC.getc(2, 2).west().leftInset(20))
+                    pnl.add(cancelChanges_button, GridC.getc(3, 2).east().rightInset(8))
 
-                    pnl.add(scrollpane,GridC.getc(0, 3).wx(1.0).west().colspan(3).leftInset(8).rightInset(8).topInset(8).bottomInset(8).fillboth())
+                    pnl.add(scrollpane,GridC.getc(0, 3).wx(1.0).west().colspan(4).leftInset(8).rightInset(8).topInset(8).bottomInset(8).fillboth())
                     self.callingClass.theFrame.add(pnl)
 
                     self.callingClass.theFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
@@ -2630,7 +2672,7 @@ Visit: %s (Author's site)
         def getGUIView(self, book):
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
-            myPrint("DB","HomePageView widget: .getGUIView(%s)" %book)
+            myPrint("DB","HomePageView widget: .getGUIView(%s) (theBook currently: %s, lastBook: %s)" %(book, self.theBook, self.lastBookUsed))
 
             if self.is_unloaded:
                 myPrint("DB","HomePageView is unloaded, so ignoring....")
@@ -2715,7 +2757,7 @@ Visit: %s (Author's site)
                     myPrint("DB","Inside GUIRunnable.... Calling .reallyRefresh()..")
                     self.callingClass.reallyRefresh()
 
-            def getBalancesBuildView(self):
+            def getBalancesBuildView(self, dec):
                 myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -2733,6 +2775,8 @@ Visit: %s (Author's site)
 
                 myPrint("DB","HomePageView widget: (re)calculating balances")
 
+                baseCurr = self.callingClass.theBook.getCurrencies().getBaseType()
+
                 accountsToShow = []
                 for accID in self.callingClass.extensionClass.savedAccountListUUIDs:
                     myPrint("DB","...looking for Account with UUID: %s" %accID)
@@ -2745,21 +2789,56 @@ Visit: %s (Author's site)
 
                 totalBalance = 0
                 for acct in accountsToShow:
+                    acctCurr = acct.getCurrencyType()
                     # 0 = "Balance", 1 = "Current Balance", 2 = "Cleared Balance"
                     if self.callingClass.extensionClass.savedBalanceType == 0:
                         bal = acct.getBalance()
-                        myPrint("DB","HomePageView widget: adding acct: %s Balance: %s" %(acct, bal/100.0))
+                        myPrint("DB","HomePageView widget: adding acct: %s Balance: %s" %((acct.getFullAccountName()), rpad(acctCurr.formatSemiFancy(bal, dec),12)))
                     elif self.callingClass.extensionClass.savedBalanceType == 1:
                         bal = acct.getCurrentBalance()
-                        myPrint("DB","HomePageView widget: adding acct: %s Current Balance: %s" %(acct, bal/100.0))
+                        myPrint("DB","HomePageView widget: adding acct: %s Current Balance: %s" %((acct.getFullAccountName()), rpad(acctCurr.formatSemiFancy(bal, dec),12)))
                     elif self.callingClass.extensionClass.savedBalanceType == 2:
                         bal = acct.getClearedBalance()
-                        myPrint("DB","HomePageView widget: adding acct: %s Cleared Balance: %s" %(acct, bal/100.0))
+                        myPrint("DB","HomePageView widget: adding acct: %s Cleared Balance: %s" %((acct.getFullAccountName()), rpad(acctCurr.formatSemiFancy(bal, dec),12)))
                     else:
                         bal = 0
                         myPrint("B","@@ HomePageView widget - INVALID BALANCE TYPE: %s?" %(self.callingClass.extensionClass.savedBalanceType))
 
-                    totalBalance += bal
+                    if bal != 0 and acctCurr != baseCurr:
+                        balConv = CurrencyUtil.convertValue(bal, acctCurr, baseCurr)
+                        myPrint("DB",".. Converted %s to %s (base)" %(acctCurr.formatSemiFancy(bal, dec), baseCurr.formatSemiFancy(balConv, dec)))
+                        totalBalance += balConv
+                    else:
+                        totalBalance += bal
+
+                    # noinspection PyUnresolvedReferences
+                    if acct.getAccountType() == Account.AccountType.INVESTMENT:
+                        for securityAcct in acct.getSubAccounts():  # There's only one level of security sub accounts
+                            securityCurr = securityAcct.getCurrencyType()
+                            relCurr = securityCurr.getCurrencyParameter(None, None, "relative_to_currid", acctCurr)
+                            myPrint("DB",".. Security curr: %s Relative curr: %s Account curr: %s Base Curr: %s" %(securityCurr, relCurr, acctCurr, baseCurr))
+
+                            if self.callingClass.extensionClass.savedBalanceType == 0:
+                                bal = securityAcct.getBalance()
+                                myPrint("DB","HomePageView widget: adding security: %s Share Balance: %s" %((securityAcct.getAccountName()), rpad(securityCurr.formatSemiFancy(bal, dec),12)))
+                            elif self.callingClass.extensionClass.savedBalanceType == 1:
+                                bal = securityAcct.getCurrentBalance()
+                                myPrint("DB","HomePageView widget: adding security: %s Current Share Balance: %s" %((securityAcct.getAccountName()), rpad(securityCurr.formatSemiFancy(bal, dec),12)))
+                            elif self.callingClass.extensionClass.savedBalanceType == 2:
+                                bal = securityAcct.getClearedBalance()
+                                myPrint("DB","HomePageView widget: adding security: %s Cleared Share Balance: %s" %((securityAcct.getAccountName()), rpad(securityCurr.formatSemiFancy(bal, dec),12)))
+                            else:
+                                bal = 0
+                                myPrint("B","@@ HomePageView widget - INVALID BALANCE TYPE: %s?" %(self.callingClass.extensionClass.savedBalanceType))
+
+                            if bal != 0:
+                                # securityValue = CurrencyUtil.convertValue(bal, securityCurr, relCurr)
+                                # myPrint("DB",".. Converted %s to %s (base)" %(securityCurr.formatSemiFancy(bal, dec), relCurr.formatSemiFancy(securityValue, dec)))
+
+                                securityValue = CurrencyUtil.convertValue(bal, securityCurr, baseCurr)
+                                myPrint("DB",".. Converted %s to %s (base)" %(securityCurr.formatSemiFancy(bal, dec), baseCurr.formatSemiFancy(securityValue, dec)))
+
+                                totalBalance += securityValue
 
                 del accountsToShow
 
@@ -2844,9 +2923,8 @@ Visit: %s (Author's site)
 
                 nameLabel = JLinkLabel("%s" %(self.callingClass.extensionClass.savedWidgetName), "showConfig", JLabel.LEFT)
 
-                netAmount = self.getBalancesBuildView()
+                netAmount = self.getBalancesBuildView(dec)
 
-                # netTotalLbl = JLabel(baseCurr.formatFancy(netAmount, dec), JLabel.RIGHT)
                 netTotalLbl = JLinkLabel(baseCurr.formatFancy(netAmount, dec), "showConfig", JLabel.RIGHT)
                 netTotalLbl.setFont((self.callingClass.extensionClass.moneydanceContext.getUI().getFonts()).mono)
 
@@ -2896,7 +2974,7 @@ Visit: %s (Author's site)
 
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
-            myPrint("DB","HomePageView widget: .setActive(%s)" %active)
+            myPrint("DB","HomePageView widget: .setActive(%s) (theBook: %s, lastBook: %s)" %(active,self.theBook, self.lastBookUsed))
 
             if self.is_unloaded:
                 myPrint("DB","HomePageView is unloaded, so ignoring....")
@@ -2919,7 +2997,7 @@ Visit: %s (Author's site)
         def refresh(self):                                                                                              # noqa
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
-            myPrint("DB", "HomePageView widget: .refresh()")
+            myPrint("DB", "HomePageView widget: .refresh() (theBook: %s, lastBook: %s)" %(self.theBook, self.lastBookUsed))
 
             if self.is_unloaded:
                 myPrint("DB","HomePageView is unloaded, so ignoring....")
@@ -2937,7 +3015,7 @@ Visit: %s (Author's site)
         def reset(self):
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
-            myPrint("DB", "HomePageView widget: .reset() - releasing resources to book....")
+            myPrint("DB", "HomePageView widget: .reset() - releasing resources to book.... (theBook: %s, lastBook: %s)" %(self.theBook, self.lastBookUsed))
 
             if self.is_unloaded:
                 myPrint("DB","HomePageView is unloaded, so ignoring....")

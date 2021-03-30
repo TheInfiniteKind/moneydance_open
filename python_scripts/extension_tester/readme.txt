@@ -157,7 +157,11 @@ CODING TIPS
     - AVOID using str(). For example just use %s in text. So "Hello %s" %(name) - and not "Hello " + str(name)
     - If you use str(), especially anywhere where there are extended characters - like £ or € - you will either get garbage or an error.....
     The reference __file__ will not exist if running as an ExtensionClass()
-
+- Review:
+    - Stuart Beesley's scripts (especially net_account_balances extension): https://yogi1967.github.io/MoneydancePythonScripts/
+    - Mike Bray's excellent wiki:   https://bitbucket.org/mikerb/moneydance-2019/wiki/Moneydance%20Information
+    - Virantha Ekanayake's tips: https://virantha.com/2016/11/28/moneydance-python-extension-tips/
+                                 (ignore the elements in Virantha's tips about using java to package the extension)
 
 - ExtensionClass():
     - __init__():     Perform simple variable initialisation here.

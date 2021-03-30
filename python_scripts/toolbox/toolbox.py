@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1031 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1032 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -182,13 +182,12 @@
 # build: 1029 - Build 3051 leverage moneydance_extension_loader class loader to get help file from the mxt container
 # build: 1030 - Build 3056 'deal' with the Python loader changes..
 # build: 1031 - Build 3056 Utilise .unload() method...
+# build: 1032 - Add HomePageViews (widgets) to extension list; add getTIKServiceID() to delete_one_service popup display
 
-# todo - OFX - delete service profile - enhance name shown with md:nnnnn (avoid duplicate names)
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
 # todo - OFX: Generic and specific UUID; set/edit UserID
-# todo - add external homepage views to extensions list...
 
 # NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM. This is why:
 # 1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
@@ -206,7 +205,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1031"
+version_build = "1032"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 
 if u"debug" in globals():
@@ -521,6 +520,7 @@ The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
 toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
+net_account_balances:                   Homepage / summary screen widget. Display the total of selected Account Balances
 
 Extension (.mxt) and Script (.py) Versions available:
 extract_data                            Extract various data to screen and/or csv.. Consolidation of:
@@ -2539,7 +2539,7 @@ Visit: %s (Author's site)
                 textArray.append(u"External Account Editor: %s" %(y))
             x = MD_REF.getExternalViews()
             for y in x:
-                textArray.append(u"External View(er): %s" %(y))
+                textArray.append(u"External View(HomePage widget): %s" %(y))
             x = MD_REF.getLoadedModules()
             for y in x:
                 textArray.append(u"Extension Loaded: %s" %(y.getDisplayName()))
@@ -2902,6 +2902,14 @@ Visit: %s (Author's site)
 
         theData.append("EXTENSION(s) DETAILS")
         theData.append(" =====================\n")
+
+        if len(MD_REF.getExternalViews()) > 0:
+            theData.append("External Views (HomePage widgets) views:\n")
+
+            for ev in MD_REF.getExternalViews():
+                theData.append("   - %s" %(ev.getID()))
+
+            theData.append("\n")
 
         theData.append("Extensions enabled: %s\n" %MD_REF.getUI().getMain().getSourceInformation().getExtensionsEnabled())
 
@@ -6701,6 +6709,21 @@ Download from here: %s
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
+    class StoreService():
+        def __init__(self, obj):
+            if isinstance(obj,OnlineService):
+                self.obj = obj                          # type: OnlineService
+            else:
+                self.obj = None
+
+        def __str__(self):
+            if self.obj is None:
+                return "Invalid OnlineService Obj or None"
+            return "Connection profile: %s (%s)" %(self.obj.getFIName(), self.obj.getTIKServiceID())
+
+        def __repr__(self): return self.__str__()
+
+
     def deleteOFXService(statusLabel):
         global toolbox_frame_, debug
 
@@ -6710,18 +6733,24 @@ Download from here: %s
 
         serviceList = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
 
+        newServiceList = []
+        for sv in serviceList:
+            newServiceList.append(StoreService(sv))
+
         service = JOptionPane.showInputDialog(toolbox_frame_,
                                               "Select a service to delete",
                                               "DELETE SERVICE",
                                               JOptionPane.INFORMATION_MESSAGE,
                                               MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
-                                              serviceList.toArray(),
+                                              newServiceList,
                                               None)
 
         if not service:
             statusLabel.setText(("No Service was selected - no changes made..").ljust(800, " "))
             statusLabel.setForeground(Color.RED)
             return
+
+        service = service.obj       # noqa
 
         if confirm_backup_confirm_disclaimer(toolbox_frame_,statusLabel,"DELETE BANK SERVICE","Delete Bank Service/Logon profile %s?" %(service)):
             # noinspection PyUnresolvedReferences
@@ -11332,37 +11361,37 @@ now after saving the file, restart Moneydance
         jif = QuickJFrame("ATTACHMENT ANALYSIS",diagDisplay,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
         if iOrphans:
-            msg = MyPopUpDialogBox(jif,
-                                   "You have %s Orphan attachment(s) found, taking up %sMBs" %(iOrphans,round(iOrphanBytes/(1000.0 * 1000.0),2)),
-                                   msgStr+"CLICK TO VIEW ORPHANS, or CANCEL TO EXIT",
-                                   200,"ORPHANED ATTACHMENTS",
-                                   lCancelButton=True,
-                                   OKButtonText="CLICK TO VIEW",
-                                   lAlertLevel=1)
+            theMsg = MyPopUpDialogBox(jif,
+                                   "You have %s Orphan attachment(s) found, taking up %sMBs" % (iOrphans,round(iOrphanBytes/(1000.0 * 1000.0),2)),
+                                      msgStr +"CLICK TO VIEW ORPHANS, or CANCEL TO EXIT",
+                                      200,"ORPHANED ATTACHMENTS",
+                                      lCancelButton=True,
+                                      OKButtonText="CLICK TO VIEW",
+                                      lAlertLevel=1)
         elif iAttachmentsNotInLS:
-            msg = MyPopUpDialogBox(jif,
-                                   "You have %s missing attachment(s) referenced on Moneydance Txns!" %(iAttachmentsNotInLS),
-                                   msgStr,
-                                   200,"MISSING ATTACHMENTS",
-                                   lCancelButton=False,
-                                   OKButtonText="OK",
-                                   lAlertLevel=1)
+            theMsg = MyPopUpDialogBox(jif,
+                                   "You have %s missing attachment(s) referenced on Moneydance Txns!" % (iAttachmentsNotInLS),
+                                      msgStr,
+                                      200,"MISSING ATTACHMENTS",
+                                      lCancelButton=False,
+                                      OKButtonText="OK",
+                                      lAlertLevel=1)
 
         if lErrors:
             pass
         else:
-            msg = MyPopUpDialogBox(jif,
-                                   x,
-                                   msgStr,
-                                   200,"ATTACHMENTS STATUS",
-                                   lCancelButton=False,
-                                   OKButtonText="OK",
-                                   lAlertLevel=0)
+            theMsg = MyPopUpDialogBox(jif,
+                                      x,
+                                      msgStr,
+                                      200,"ATTACHMENTS STATUS",
+                                      lCancelButton=False,
+                                      OKButtonText="OK",
+                                      lAlertLevel=0)
 
         myPrint("P","\n"*2)
 
         if iOrphans:
-            if msg.go():        # noqa
+            if theMsg.go():        # noqa
                 while True:
                     selectedOrphan = JOptionPane.showInputDialog(jif,
                                                                  "Select an Orphan to View",
@@ -11389,7 +11418,7 @@ now after saving the file, restart Moneydance
                         myPrint("B","Sorry, could not open attachment file....: %s" %selectedOrphan[0])     # noqa
 
         else:
-            msg.go()        # noqa
+            theMsg.go()        # noqa
 
         del attachmentList
         del attachmentLocations
@@ -12128,33 +12157,33 @@ now after saving the file, restart Moneydance
         MD_hnt = MD_REF.getUI().getCurrentAccounts().getEncryptionHint()
         MD_sync_pwd = MD_REF.getUI().getCurrentAccounts().getSyncEncryptionPassword()
 
-        msg = u"'Master' Encryption Passphrase ('password'): "
+        theMsg = u"'Master' Encryption Passphrase ('password'): "
         displayMsg = u"'Master' Encryption Passphrase ('password'): "
 
         if MD_enc is not None and MD_enc != u"":
-            msg += u"%s" %(MD_enc)
+            theMsg += u"%s" %(MD_enc)
             displayMsg += u"%s" %(MD_enc)
             if MD_hnt is not None and MD_hnt != u"":
-                msg += u"  >> Encryption Passphrase Hint: %s" %(MD_hnt)
+                theMsg += u"  >> Encryption Passphrase Hint: %s" %(MD_hnt)
                 displayMsg += u"  >> Encryption Passphrase Hint: %s" %(MD_hnt)
             else:
-                msg += u"  >> Encryption Passphrase Hint: (NOT SET)"
+                theMsg += u"  >> Encryption Passphrase Hint: (NOT SET)"
                 displayMsg += u"  >> Encryption Passphrase Hint: (NOT SET)"
 
-            msg += u"\n"
+            theMsg += u"\n"
             displayMsg += u"  -  "
         else:
-            msg += u"(NOT SET - this means a default 'internal' encryption passphrase is being used)\n"
+            theMsg += u"(NOT SET - this means a default 'internal' encryption passphrase is being used)\n"
             displayMsg += u"(NOT SET - this means a default 'internal' encryption passphrase is being used)  -  "
 
-        msg += u"Sync Passphrase: "
+        theMsg += u"Sync Passphrase: "
         displayMsg += u"Sync Passphrase: "
 
         if MD_sync_pwd is not None and MD_sync_pwd != u"":
-            msg += u"%s" %(MD_sync_pwd)
+            theMsg += u"%s" %(MD_sync_pwd)
             displayMsg += u"%s" %(MD_sync_pwd)
         else:
-            msg += u"(NOT SET)"
+            theMsg += u"(NOT SET)"
             displayMsg += u"(NOT SET)"
 
         myPrint(u"B",u"Displaying Moneydance Encryption & Sync Passphrase(s) ....!")
@@ -12162,10 +12191,10 @@ now after saving the file, restart Moneydance
         statusLabel.setText((u"Moneydance Encryption Passphrases: %s" %(displayMsg)).ljust(800, " "))
         statusLabel.setForeground(Color.BLUE)
 
-        MyPopUpDialogBox(toolbox_frame_,u"Moneydance Encryption Passphrases:",msg,theTitle=u"PASSWORDS",lAlertLevel=1).go()
+        MyPopUpDialogBox(toolbox_frame_,u"Moneydance Encryption Passphrases:",theMsg,theTitle=u"PASSWORDS",lAlertLevel=1).go()
 
         myPrint(u"D", u"Exiting ", inspect.currentframe().f_code.co_name, u"()")
-        return msg, displayMsg
+        return theMsg, displayMsg
 
     def change_fonts(statusLabel):
         global toolbox_frame_, debug
@@ -13267,17 +13296,17 @@ Now you will have a text readable version of the file you can open in a text edi
         if isinstance(user_accounts.getSelectedItem(), Account):
             theAcct = user_accounts.getSelectedItem()
 
-        msg =  "File name:        %s\n"         %(QIFfilename)
-        msg += "QIF Format:       %s (%s)\n"    %(user_QIF_format.getSelectedItem(),theQIFFormat)
-        msg += "Decimal Char:     %s\n"         %(user_selectDecimal.getSelectedItem())
-        msg += "Default Currency: %s\n"         %(user_currency.getSelectedItem())
-        msg += "Default Account:  %s\n"         %(user_accounts.getSelectedItem())
-        msg += "Import Type:      %s (%s)\n"    %(IMPORT_TYPE[theImportType],theImportType)
-        msg += "Structure Only:   %s\n"         %(user_importStructureOnly.isSelected())
+        theMsg =  "File name:        %s\n"         %(QIFfilename)
+        theMsg += "QIF Format:       %s (%s)\n"    %(user_QIF_format.getSelectedItem(),theQIFFormat)
+        theMsg += "Decimal Char:     %s\n"         %(user_selectDecimal.getSelectedItem())
+        theMsg += "Default Currency: %s\n"         %(user_currency.getSelectedItem())
+        theMsg += "Default Account:  %s\n"         %(user_accounts.getSelectedItem())
+        theMsg += "Import Type:      %s (%s)\n"    %(IMPORT_TYPE[theImportType],theImportType)
+        theMsg += "Structure Only:   %s\n"         %(user_importStructureOnly.isSelected())
 
         ask=MyPopUpDialogBox(toolbox_frame_,
                              theStatus="Please confirm parameters:",
-                             theMessage=msg,
+                             theMessage=theMsg,
                              theWidth=225,
                              theTitle="QIF IMPORT",
                              OKButtonText="PROCEED",
@@ -13290,7 +13319,7 @@ Now you will have a text readable version of the file you can open in a text edi
             return
 
         myPrint("B","User has requested a QIF import with these following parameters:\n")
-        myPrint("B",msg)
+        myPrint("B",theMsg)
         myPrint("J",">>EXECUTING IMPORT................\n")
 
         MD_REF.importQIFIntoAccount(    MD_REF.getCurrentAccount().getBook(),
@@ -15441,14 +15470,14 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     # showOptionDialog(Component parentComponent, Object message, String title, int optionType, int messageType, Icon icon, Object[] options, Object initialValue)
                     def showConfirmDialogWithTimeout(theFrame, theMessage, theTitle, theOptionType, theMessageType, theIcon, theChoices, theInitialValue, timeout_ms, timeoutChoice):
-                        msg = JOptionPane(theMessage, theMessageType, theOptionType, theIcon, theChoices, theInitialValue)
-                        dlg = msg.createDialog(theFrame, theTitle)
+                        theMsg = JOptionPane(theMessage, theMessageType, theOptionType, theIcon, theChoices, theInitialValue)
+                        dlg = theMsg.createDialog(theFrame, theTitle)
                         dlg.setAlwaysOnTop(True)
                         dlg.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
                         theListener = MyJOptionPaneListener( timeout_ms, dlg )
                         dlg.addComponentListener( theListener )
                         dlg.setVisible(True)
-                        selectedValue = msg.getValue()
+                        selectedValue = theMsg.getValue()
                         dlg.removeComponentListener( theListener )
                         del theListener
                         if selectedValue is None or selectedValue < 0:
