@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_create_new_usaa_bank_custom_profile.py (build 9) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_create_new_usaa_bank_custom_profile.py (build 10) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
 # https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf
+
+# Official Infinite Kind knowledgeable article:
+# https://infinitekind.tenderapp.com/kb/online-banking-and-bill-pay/connecting-with-usaa
 
 # This script builds a new USAA Bank Custom Profile from scratch to work with the new connection information
 # It will DELETE your existing USAA profile(s) first!
 # It will populate your UserID, Password, and allow you to change/update the Bank and Credit Card Number
 # It will allow also allow you to prime a second account in case you have multiple logins
-# This will create a non MD profile to avoid any refresh issues....
-# ofx_create_new_usaa_bank_profile.py and ofx_fix_existing_usaa_bank_profile.py have both been deprecated
+# This will create a custom profile to avoid any refresh issues....
+# NOTE: ofx_create_new_usaa_bank_profile.py and ofx_fix_existing_usaa_bank_profile.py have both been deprecated
 
 # DISCLAIMER >> PLEASE ALWAYS BACKUP YOUR DATA BEFORE MAKING CHANGES (Menu>Export Backup will achieve this)
 #               You use this at your own risk. I take no responsibility for its usage..!
@@ -56,6 +59,7 @@
 # build 7 - Build 3051 of Moneydance... fix references to moneydance_* variables;
 # build 8 - Build 3056 of Moneydance...
 # build 9 - Change "date_avail_accts" to 2021-01-01
+# build 10 - Popup at end to show existing last txn download dates...
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -63,7 +67,7 @@
 
 # SET THESE LINES
 myModuleID = u"ofx_create_new_usaa_bank_profile_custom"
-version_build = "9"
+version_build = "10"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 
 if u"debug" in globals():
@@ -282,6 +286,8 @@ else:
     from com.infinitekind.tiksync import SyncRecord
     from com.infinitekind.util import StreamTable
     from java.net import URLEncoder
+    from com.infinitekind.moneydance.model import OnlineTxnList
+    from com.infinitekind.tiksync import SyncableItem
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
@@ -1694,6 +1700,11 @@ Visit: %s (Author's site)
                 else:
                     return True
 
+            if self.selectType == 3:
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.BANK or acct.getAccountType() == Account.AccountType.CREDIT_CARD):
+                    return False
+
             if (acct.getAccountOrParentIsInactive()): return False
             if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
 
@@ -1727,7 +1738,7 @@ Visit: %s (Author's site)
         raise Exception(alert)
 
     ask = MyPopUpDialogBox(None, "This script will delete your existing USAA bank profile(s) and CREATE A BRAND NEW CUSTOM USAA PROFILE:",
-                           "Get the latest useful_scripts.zip package from: https://yogi1967.github.io/MoneydancePythonScripts/ \n"
+                           "Get the latest useful_scripts.zip package from: %s \n"
                            "Read the latest walk through guide: ofx_create_new_usaa_bank_custom_profile.pdf\n"
                            "Latest: https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf\n\n"
                            "This script configure one bank account & up to one credit card [optional]. You can add more later using standard Moneydance online menu\n"
@@ -1741,7 +1752,7 @@ Visit: %s (Author's site)
                            "- Do you know your Bank Account Number(s) (10-digits) and routing Number (9-digits - usually '314074269')?\n"
                            "- Do you know the DIFFERENT Credit Card number that the bank will accept? (This may not apply, just try your current one first)\n"
                            "- Do you know which Accounts in Moneydance to select and link to this new profile?\n"
-                           "IF NOT, STOP AND GATHER ALL INFORMATION",
+                           "IF NOT, STOP AND GATHER ALL INFORMATION" %(MYPYTHON_DOWNLOAD_URL),
                            250,"KNOWLEDGE",
                            lCancelButton=True,OKButtonText="CONFIRMED", lAlertLevel=1)
     if not ask.go():
@@ -2235,6 +2246,8 @@ Visit: %s (Author's site)
     manualFIInfo.put("version_default",                          "1")
     manualFIInfo.put("version_fiprofile",                        "1")
     manualFIInfo.put("version_signup",                           "1")
+
+    # manualFIInfo.put("always_send_date_range",                   "1")
     # manualFIInfo.put("id",                                       "4f085ab1-6f10-42d9-8048-4431b7919d61")
     # manualFIInfo.put("last_txn_id",                              "0-2f04b703_dd9df513-380")
 
@@ -2418,8 +2431,73 @@ Visit: %s (Author's site)
 
     ####################################################################################################################
 
-    myPrint("B", "SUCCESS. Please RESTART Moneydance.")
+    last_date_options = ["NO (FINISHED)", "YES - VIEW LAST TXN DOWNLOAD DATES"]
+    theResult = JOptionPane.showOptionDialog(None,
+                                             "SUCCESS! >> Now would you like to view your last txn download dates?",
+                                             "LAST DOWNLOAD DATES",
+                                             JOptionPane.YES_NO_OPTION,
+                                             JOptionPane.QUESTION_MESSAGE,
+                                             None,
+                                             last_date_options,
+                                             last_date_options[0])
+    if theResult > 0:
+
+        def MyGetDownloadedTxns(theAcct):       # Use my version to prevent creation of default record(s)
+
+            myID = theAcct.getParameter("id", None)
+            defaultTxnsListID = myID + ".oltxns"
+
+            if myID is not None and myID != "":
+                defaultTxnList = MD_REF.getCurrentAccount().getBook().getItemForID(defaultTxnsListID)   # type: SyncableItem
+                if defaultTxnList is not None and isinstance(defaultTxnList, OnlineTxnList):
+                    return defaultTxnList
+
+            txnsListID = theAcct.getParameter("ol_txns_list_id", None)
+            if txnsListID is None or txnsListID == "":
+                if myID is not None and myID != "":
+                    txnsListID = defaultTxnsListID
+
+            if txnsListID is not None and txnsListID != "":
+                txnsObj = MD_REF.getCurrentAccount().getBook().getItemForID(txnsListID)              # type: SyncableItem
+                if (txnsObj is not None and isinstance(txnsObj, OnlineTxnList)):
+                    return txnsObj
+
+            return None
+
+        accountsDL = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(3))
+        accountsDL = sorted(accountsDL, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+
+        outputDates = "\nBANK OFX: LAST DOWNLOADED TRANSACTION DATE(s)\n"\
+                 "--------------------------------------------\n\n"\
+                 "** Please check for recent dates. If your account is set to zero - you will likely get up to six months+ of data, maybe even more, or possibly problems (from too many transactions)!\n\n"
+
+        for acct in accountsDL:
+            theOnlineTxnRecord = MyGetDownloadedTxns(acct)     # Use my version to prevent creation of default record(s)
+            if theOnlineTxnRecord is None:
+                prettyLastTxnDate = "Never downloaded = 'Download all available dates'"
+            else:
+                theCurrentDate = theOnlineTxnRecord.getOFXLastTxnUpdate()
+                if theCurrentDate > 0:
+                    prettyLastTxnDate = get_time_stamp_as_nice_text(theCurrentDate)
+                else:
+                    prettyLastTxnDate = "IS SET TO ZERO = 'Download all available dates'"
+
+            outputDates += "%s %s %s\n" %(pad(repr(acct.getAccountType()),12), pad(acct.getFullAccountName(),40), prettyLastTxnDate)
+
+        outputDates += "\nIf you have Moneydance Version 2021.1(build 2012+) then you can use the Toolbox extension if you want to change any of these dates....\n" \
+                       "... (Toolbox: Advanced Mode>Online Banking (OFX) Tools Menu>Update the Last Txn Update Date(Downloaded) field)\n" \
+                       "\nIf you have a version older than 2021.1(build 2012) you will either have to accept/deal with the volume of downloaded Txns; or upgrade to use Toolbox...\n" \
+                       "%s\n\n" \
+                       "RESTART MONEYDANCE, THEN EDIT THE LAST TXN DOWNLOAD DATES BEFORE YOU DOWNLOAD ANYTHING\n" \
+                       "\n\n** PLEASE CLOSE THIS WINDOW AND RESTART MONEYDANCE **\n\n" \
+                       %(MYPYTHON_DOWNLOAD_URL)
+
+        outputDates += "\n<END>"
+        jif =QuickJFrame("LAST DOWNLOAD DATES", outputDates).show_the_frame()
+        myPopupInformationBox(jif, "REVIEW OUTPUT. Use Toolbox first if you need to change any last download txn dates.....", theMessageType=JOptionPane.INFORMATION_MESSAGE)
 
     myPopupInformationBox(None, "SUCCESS. REVIEW OUTPUT - Then RESTART Moneydance.", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+    myPrint("B", "SUCCESS. Please RESTART Moneydance.")
 
     cleanup_actions()

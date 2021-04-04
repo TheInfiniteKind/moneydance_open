@@ -120,6 +120,7 @@ ALT-B - Basic Mode
         - View your installed Service / Bank logon profiles
         - View full list of all MD's Bank dynamic setup profiles (and then select one to view specific details)
         - View your Online saved Txns, Payees, Payments
+        - View all your OFX last download txn dates (for all accounts)
         - Toggle Moneydance DEBUG (turns ON all MD internal Debug messages - same as view console)
     - MENU: Accounts & Categories tools
         - View Check number settings

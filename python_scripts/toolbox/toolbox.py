@@ -183,6 +183,7 @@
 # build: 1030 - Build 3056 'deal' with the Python loader changes..
 # build: 1031 - Build 3056 Utilise .unload() method...
 # build: 1032 - Add HomePageViews (widgets) to extension list; add getTIKServiceID() to delete_one_service popup display
+# build: 1032 - Add 'View all your OFX last download txn dates (for all accounts)'to menu
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
@@ -495,7 +496,7 @@ else:
 
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2021.1                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3061                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3062                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -3513,6 +3514,30 @@ Visit: %s (Author's site)
 
         return fileIsUnderDropbox, suppressionFileExists
 
+    def OFX_view_all_last_txn_download_dates():
+
+        accountsDL = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(21))
+        accountsDL = sorted(accountsDL, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+
+        outputDates = "\nBANK OFX: LAST DOWNLOADED TRANSACTION DATE(s)\n" \
+                      "--------------------------------------------\n\n"
+
+        for acct in accountsDL:
+            theOnlineTxnRecord = MyGetDownloadedTxns(acct)     # Use my version to prevent creation of default record(s)
+            if theOnlineTxnRecord is None:
+                prettyLastTxnDate = "Never downloaded = 'Download all available dates'"
+            else:
+                theCurrentDate = theOnlineTxnRecord.getOFXLastTxnUpdate()
+                if theCurrentDate > 0:
+                    prettyLastTxnDate = get_time_stamp_as_nice_text(theCurrentDate)
+                else:
+                    prettyLastTxnDate = "IS SET TO ZERO = 'Download all available dates'"
+
+            outputDates += "%s %s %s\n" %(pad(repr(acct.getAccountType()),12), pad(acct.getFullAccountName(),40), prettyLastTxnDate)
+
+        outputDates += "\n<END>"
+        QuickJFrame("LAST DOWNLOAD DATES", outputDates,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+
     def OFX_view_online_txns_payees_payments(statusLabel):
 
         _OBJOFXTXNS     =  0
@@ -4160,6 +4185,15 @@ Visit: %s (Author's site)
                         or acct.getAccountType() == Account.AccountType.LIABILITY):
                     return False
                 return True
+
+            if self.selectType == 21:
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.BANK
+                        or acct.getAccountType() == Account.AccountType.CREDIT_CARD
+                        or acct.getAccountType() == Account.AccountType.LOAN
+                        or acct.getAccountType() == Account.AccountType.ASSET
+                        or acct.getAccountType() == Account.AccountType.LIABILITY):
+                    return False
 
             if (acct.getAccountOrParentIsInactive()): return False
             if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
@@ -14995,6 +15029,9 @@ Now you will have a text readable version of the file you can open in a text edi
                 user_viewOnlineTxnsPayeesPayments = JRadioButton("View your Online Txns/Payees/Payments", False)
                 user_viewOnlineTxnsPayeesPayments.setToolTipText("This will show you your cached Online Txns (there should be none) and also your saved online payees and payments")
 
+                user_viewAllLastTxnDownloadDates = JRadioButton("View all your OFX last download txn dates (for all accounts)", False)
+                user_viewAllLastTxnDownloadDates.setToolTipText("View all your OFX last download txn dates (across all accounts)")
+
                 user_toggleMDDebug = JRadioButton("Toggle Moneydance Debug (ONLY use for debugging)", False)
                 user_toggleMDDebug.setToolTipText("This toggles Moneydance's internal DEBUG(s) on/off. When ON you get more messages in the Console Log (the same as opening console)")
 
@@ -15053,6 +15090,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 bg.add(user_searchOFXData)
                 bg.add(user_viewInstalledBankProfiles)
                 bg.add(user_viewOnlineTxnsPayeesPayments)
+                bg.add(user_viewAllLastTxnDownloadDates)
                 bg.add(user_cookieManagement)
                 bg.add(user_authenticationManagement)
                 bg.add(user_deleteOnlineTxns)
@@ -15069,6 +15107,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 userFilters.add(user_viewInstalledBankProfiles)
                 userFilters.add(user_viewListALLMDServices)
                 userFilters.add(user_viewOnlineTxnsPayeesPayments)
+                userFilters.add(user_viewAllLastTxnDownloadDates)
                 userFilters.add(user_toggleMDDebug)
                 # userFilters.add(user_toggleOFXDebug)
                 userFilters.add(JLabel(" "))
@@ -15145,6 +15184,12 @@ Now you will have a text readable version of the file you can open in a text edi
                     if user_viewOnlineTxnsPayeesPayments.isSelected():
                         OFX_view_online_txns_payees_payments(self.statusLabel)
                         self.statusLabel.setText(("OFX: Your Online saved Txns, Payees, Payments have been retrieved and displayed....").ljust(800, " "))
+                        self.statusLabel.setForeground(Color.BLUE)
+                        return
+
+                    if user_viewAllLastTxnDownloadDates.isSelected():
+                        OFX_view_all_last_txn_download_dates()
+                        self.statusLabel.setText(("OFX: All your last txn download txn dates have been retrieved and displayed....").ljust(800, " "))
                         self.statusLabel.setForeground(Color.BLUE)
                         return
 
