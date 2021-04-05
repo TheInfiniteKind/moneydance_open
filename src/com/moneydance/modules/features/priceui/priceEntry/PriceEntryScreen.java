@@ -108,9 +108,10 @@ public class PriceEntryScreen extends javax.swing.JFrame {
           applyButtonActionPerformed(evt);
         }
       });
-      
+
+      RightAlignedCellRenderer amountRenderer = new RightAlignedCellRenderer();
       priceTable.setDefaultRenderer(CurrencyType.class, new SecurityNameCellRenderer());
-      priceTable.setDefaultRenderer(String.class, new RightAlignedCellRenderer());
+      priceTable.setDefaultRenderer(String.class, amountRenderer);
       priceTable.setDefaultEditor(Double.class, new SecurityPriceEditor());
       System.err.println("editor column class: "+model.getColumnClass(2));
       priceTable.getColumnModel().getColumn(2).setCellEditor(new SecurityPriceEditor());
