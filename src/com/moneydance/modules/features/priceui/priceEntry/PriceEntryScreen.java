@@ -115,6 +115,11 @@ public class PriceEntryScreen extends javax.swing.JFrame {
       System.err.println("editor column class: "+model.getColumnClass(2));
       priceTable.getColumnModel().getColumn(2).setCellEditor(new SecurityPriceEditor());
       
+      Font rowFont = amountRenderer.getFont();
+      FontMetrics fm = amountRenderer.getFontMetrics(rowFont);
+      priceTable.setRowHeight((int)Math.round(fm.getHeight()*1.2));
+      priceTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+      
       JPanel p = new JPanel(new GridBagLayout());
       JPanel asOfPanel = new JPanel(new GridBagLayout());
       asOfPanel.add(jLabel2, GridC.getc(0,0).label());
