@@ -102,10 +102,10 @@ NOTES ABOUT PYTHON EXTENSIONS:
       - There are also some more 'advanced' (sneaky) ways to do this, but out of the scope of this little jump-start document ;->
 
 ACCESSING MONEYDANCE OBJECTS
-- The moneydance variable is your friend. It exists when your script is executed and is deleted once the script exits
+- The 'moneydance' variable is your friend. It exists when your script is executed and is deleted once the script exits
     - This reference will never change and is constant
     - If using the script method extension then you should grab a reference - e.g. MD_REF = moneydance
-    - You will need this if for example you use Swing JFrame() that is running after your script exits.
+    - You will need this if for example you use Swing JFrame() that is running after your script exits (it needs a reference back to 'moneydance')'.
 
 - If using the ExtensionClass() method, your initialize() method will be called with the parameters context and extension_wrapper
     - you should save a reference to this using self.ext_context = context (thus this is the same as the moneydance object)
@@ -130,9 +130,11 @@ SWING
 - For large scripts, especially  with Swing GUI components you should take care to run all GUI updates on the Swing Event Dispatch Thread (EDT)
   ... and 'heavy' non-GUI code off the EDT.
   - Moneybot scripts run off the EDT.
-  - MXT type="menu" extensions run ON the EDT.
-  - ExtensionClass() runtime extensions will start OFF the EDT (as they trigger before the UI is loaded).
+  - MXT type="menu" extensions/scripts (i.e. run via script_info: "type" = "menu") run ON the EDT (as you have to be in the MD GUI to click the menu).
+  - ExtensionClass() runtime extensions will start OFF the EDT (as they trigger before the UI is loaded). (Unless you are installing, in which case it will be on the EDT then)
   - handle_events and invokes may be on or off the EDT
+  - Extensions can also register themselves as listeners to various data model objects and those can definitely be called off the main thread,
+        ... for example when objects are updated from the sync layer.
 
   >> Best bet is to test - e.g. 'if SwingUtilities.isEventDispatchThread(): then x'
      - You can use SwingUtilities.invokeLater() and SwingUtilities.invokeAndWait() as appropriate.
@@ -143,8 +145,9 @@ SWING
 
 CODING TIPS
 - You access Moneydance via the published API: https://infinitekind.com/dev/apidoc/index.html - so start here.
+- You can also access all Moneydance's internal code/classes. Best bet is to stick with the API.
 - As it's Java, most standard stuff works first-time cross-platform. But not always... Test on Mac, Windows, Linux
-- I recommend you install an IDE. IntelliJ IDEA works well and has Python support. Without this you will find code editing difficult
+- I recommend you install a free IDE. IntelliJ IDEA works well and has Python support. Without this you will find code editing difficult
     to set it up, create Project with Python 2.7 as the SDK, add a moneydance.jar as a Library,
     add a Java Module called Moneydance (link the Library, and assign the SDK adopt-openjdk-15 (Hotspot)).
     This will then give you a great code editor and inbuilt checking of your work....
@@ -157,6 +160,17 @@ CODING TIPS
     - AVOID using str(). For example just use %s in text. So "Hello %s" %(name) - and not "Hello " + str(name)
     - If you use str(), especially anywhere where there are extended characters - like £ or € - you will either get garbage or an error.....
     The reference __file__ will not exist if running as an ExtensionClass()
+- Account Filter  is very useful: com.infinitekind.moneydance.model.AcctFilter. It took me ages to work out.... - Example:
+    class MyAcctFilter(AcctFilter):
+        def matches(self, acct):
+            if acct.getAccountType() == Account.AccountType.BANK
+                return True
+            return False
+    accts = AccountUtil.allMatchesForSearch(moneydance_data, MyAcctFilter())
+- Object listeners (API):
+    AccountListener, BudgetListener, CurrencyListener, MDFileListener, MemorizedItemListener, OnlineInfoListener
+    OnlinePayeeListener, OnlinePaymentListener, OnlineTxnListener, ReminderListener, TransactionListener
+
 - Review:
     - Stuart Beesley's scripts (especially net_account_balances extension): https://yogi1967.github.io/MoneydancePythonScripts/
     - Mike Bray's excellent wiki:   https://bitbucket.org/mikerb/moneydance-2019/wiki/Moneydance%20Information
@@ -165,7 +179,7 @@ CODING TIPS
 
 - ExtensionClass():
     - __init__():     Perform simple variable initialisation here.
-    - initialize():   Grab 'context' and 'extention wrapper' here. Context is your gateway into Moneydance. Perform simple startup tasks
+    - initialize():   Grab 'context' and 'extension wrapper' here. Context is your gateway into Moneydance. Perform simple startup tasks
                       but, remember, you need to be thinking 'event' driven, and not sequentially programmed driven.
                       at this point, during MD startup, the GUI is not loaded, the dataset is not loaded, and MD is firing up.....
                       (unless during a install/reinstall, as you will always be in the GUI then of course)
@@ -254,4 +268,5 @@ Moneydance Events:
 
 
 Thanks for reading.. Contact me with questions, updates... Happy Python coding.... Stuart Beesley
+Last updated: 7th April 2021
 
