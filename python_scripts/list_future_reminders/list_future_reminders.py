@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1007)
+# list_future_reminders.py (build: 1008)
 
 ###############################################################################
 # MIT License
@@ -36,24 +36,26 @@
 # build: 1005 - Build 3051 of Moneydance... fix references to moneydance_* variables;
 # build: 1006 - Build 3056 'deal' with the Python loader changes..
 # build: 1007 - Build 3056 Utilise .unload() method...
+# build: 1008 - Common code tweaks
 
 # Displays Moneydance future reminders
 
-# Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1007"
+version_build = "1008"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
+_I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
 if u"debug" in globals():
 	global debug
 else:
 	debug = False
 global list_future_reminders_frame_
+# SET LINES ABOVE ^^^^
 
 # COPY >> START
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
@@ -84,7 +86,7 @@ class GenericWindowClosingRunnable(Runnable):
 	def __init__(self, theFrame):
 		self.theFrame = theFrame
 
-	def run(self):                                                                                                      # noqa
+	def run(self):
 		self.theFrame.setVisible(False)
 		self.theFrame.dispatchEvent(WindowEvent(self.theFrame, WindowEvent.WINDOW_CLOSING))
 
@@ -92,7 +94,7 @@ class GenericDisposeRunnable(Runnable):
 	def __init__(self, theFrame):
 		self.theFrame = theFrame
 
-	def run(self):                                                                                                      # noqa
+	def run(self):
 		self.theFrame.setVisible(False)
 		self.theFrame.dispose()
 
@@ -102,7 +104,7 @@ class GenericVisibleRunnable(Runnable):
 		self.lVisible = lVisible
 		self.lToFront = lToFront
 
-	def run(self):                                                                                                      # noqa
+	def run(self):
 		self.theFrame.setVisible(self.lVisible)
 		if self.lVisible and self.lToFront:
 			if self.theFrame.getExtendedState() == JFrame.ICONIFIED:
@@ -119,7 +121,7 @@ def getMyJFrame( moduleName ):
 				_msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
 				print(_msg); System.err.write(_msg)
 				if fr.isRunTimeExtension:
-					_msg = "%s: This extension is a run-time self-installed extension too...\n" %(myModuleID)
+					_msg = "%s: ... and this is a run-time self-installed extension too...\n" %(myModuleID)
 					print(_msg); System.err.write(_msg)
 				return fr
 	except:
@@ -130,11 +132,13 @@ def getMyJFrame( moduleName ):
 
 frameToResurrect = None
 try:
+	# So we check own namespace first for same frame variable...
 	if (u"%s_frame_"%myModuleID in globals()
 			and isinstance(list_future_reminders_frame_, MyJFrame)        # EDIT THIS
 			and list_future_reminders_frame_.isActiveInMoneydance):       # EDIT THIS
 		frameToResurrect = list_future_reminders_frame_                   # EDIT THIS
 	else:
+		# Now check all frames in the JVM...
 		getFr = getMyJFrame( myModuleID )
 		if getFr is not None:
 			frameToResurrect = getFr
@@ -143,41 +147,45 @@ except:
 	msg = "%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID)
 	print(msg); System.err.write(msg)
 
-lFoundRuntimeExtension = False
+# ############################
+# Trap startup conditions here.... The 'if's pass through to oblivion (and thus a clean exit)... The final 'else' actually runs the script
+if int(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 (version 2019.4) or build 3056 accordingly
+	msg = "SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD)
+	print(msg); System.err.write(msg)
+	try:    MD_REF_UI.showInfoMessage(msg)
+	except: raise Exception(msg)
 
-if frameToResurrect:  # and thus it's still alive.....
-	if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. As of build 3056, just do nothing and let MD call .unload() first...
-		msg = "%s: Detected that runtime extension %s is already running..... Assuming you are running the script within Moneybot... I'm going to DO NOTHING and just exit!\n" %(myModuleID, myModuleID)
-		print(msg); System.err.write(msg)
-		lFoundRuntimeExtension = True
-		frameToResurrect = None
-	else:
-		msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
-		print(msg); System.err.write(msg)
-
-if float(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 / version < 2019.4 or 3056 accordingly
-	try:
-		MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-	except:
-		raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-
-elif lFoundRuntimeExtension:
-	msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on 2021.1(3056) onwards. Now exiting script!\n" %(myModuleID)
+elif frameToResurrect and frameToResurrect.isRunTimeExtension:
+	msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
 	print(msg); System.err.write(msg)
 	try: MD_REF_UI.showInfoMessage(msg)
-	except: pass
+	except: raise Exception(msg)
 
-elif frameToResurrect:
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
+	msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+	print(msg); System.err.write(msg)
+	try: MD_REF_UI.showInfoMessage(msg)
+	except: raise Exception(msg)
+
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"moneydance_extension_loader" not in globals():
+	msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+	print(msg); System.err.write(msg)
+	try: MD_REF_UI.showInfoMessage(msg)
+	except: raise Exception(msg)
+
+elif frameToResurrect:  # and it's active too...
 	try:
+		msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
+		print(msg); System.err.write(msg)
 		SwingUtilities.invokeLater(GenericVisibleRunnable(frameToResurrect, True, True))
 	except:
 		msg  = "%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID)
 		print(msg); System.err.write(msg)
-		raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
+		raise Exception(msg)
 
 else:
 	del frameToResurrect
-	msg = "%s: No other instances of this program detected - running as normal\n" %(myModuleID)
+	msg = "%s: Startup conditions passed (and no other instances of this program detected). Now executing....\n" %(myModuleID)
 	print(msg); System.err.write(msg)
 
 	# COMMON IMPORTS #######################################################################################################
@@ -557,7 +565,7 @@ Visit: %s (Author's site)
 			result+=ch
 		return result
 
-	def myPopupAskBackup(theParent=None, theMessage="What no message?!"):
+	def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
 		_options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
 		response = JOptionPane.showOptionDialog(theParent,
@@ -571,12 +579,15 @@ Visit: %s (Author's site)
 
 		if response == 2:
 			myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
+			MD_REF.getUI().setStatus("%s performing an Export Backup...." %(myScriptName),-1.0)
 			MD_REF.getUI().saveToBackup(None)
+			MD_REF.getUI().setStatus("%s Export Backup completed...." %(myScriptName),0)
 			return True
 
 		elif response == 1:
 			myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
-			return True
+			if not lReturnTheTruth:
+				return True
 
 		return False
 
@@ -1703,7 +1714,7 @@ Visit: %s (Author's site)
 			destroyOldFrames(myModuleID)
 
 		try:
-			MD_REF.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
+			MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
 		except:
 			pass  # If this fails, then MD is probably shutting down.......
 
@@ -1715,7 +1726,7 @@ Visit: %s (Author's site)
 	# END ALL CODE COPY HERE ###############################################################################################
 	# END ALL CODE COPY HERE ###############################################################################################
 
-	MD_REF.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
+	MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
 	class MainAppRunnable(Runnable):
 		def __init__(self):

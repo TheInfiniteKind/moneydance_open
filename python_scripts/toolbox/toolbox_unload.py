@@ -20,5 +20,4 @@ else:
     destroyOldFrames(myModuleID)
     myPrint("DB","... Completed unload routines...")
 
-
-
+del _THIS_IS_

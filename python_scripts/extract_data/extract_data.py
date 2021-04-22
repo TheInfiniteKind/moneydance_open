@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1008 - February 2021 - Stuart Beesley
+# extract_data.py - build: 1010 - February 2021 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -69,22 +69,25 @@
 # build: 1006 - Build 3051 of Moneydance... fix references to moneydance_* variables;
 # build: 1007 - Build 3056 'deal' with the Python loader changes..
 # build: 1008 - Build 3056 Utilise .unload() method...
+# build: 1009 - Common code tweaks
+# build: 1010 - Incorporated new category filter in Extract Account Registers - mods by IK user @mark - thanks!
 
-# Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1008"
+version_build = "1010"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
+_I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
 if u"debug" in globals():
     global debug
 else:
     debug = False
 global extract_data_frame_
+# SET LINES ABOVE ^^^^
 
 # COPY >> START
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
@@ -115,7 +118,7 @@ class GenericWindowClosingRunnable(Runnable):
     def __init__(self, theFrame):
         self.theFrame = theFrame
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(False)
         self.theFrame.dispatchEvent(WindowEvent(self.theFrame, WindowEvent.WINDOW_CLOSING))
 
@@ -123,7 +126,7 @@ class GenericDisposeRunnable(Runnable):
     def __init__(self, theFrame):
         self.theFrame = theFrame
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(False)
         self.theFrame.dispose()
 
@@ -133,7 +136,7 @@ class GenericVisibleRunnable(Runnable):
         self.lVisible = lVisible
         self.lToFront = lToFront
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(self.lVisible)
         if self.lVisible and self.lToFront:
             if self.theFrame.getExtendedState() == JFrame.ICONIFIED:
@@ -150,7 +153,7 @@ def getMyJFrame( moduleName ):
                 _msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
                 print(_msg); System.err.write(_msg)
                 if fr.isRunTimeExtension:
-                    _msg = "%s: This extension is a run-time self-installed extension too...\n" %(myModuleID)
+                    _msg = "%s: ... and this is a run-time self-installed extension too...\n" %(myModuleID)
                     print(_msg); System.err.write(_msg)
                 return fr
     except:
@@ -161,11 +164,13 @@ def getMyJFrame( moduleName ):
 
 frameToResurrect = None
 try:
+    # So we check own namespace first for same frame variable...
     if (u"%s_frame_"%myModuleID in globals()
             and isinstance(extract_data_frame_, MyJFrame)        # EDIT THIS
             and extract_data_frame_.isActiveInMoneydance):       # EDIT THIS
         frameToResurrect = extract_data_frame_                   # EDIT THIS
     else:
+        # Now check all frames in the JVM...
         getFr = getMyJFrame( myModuleID )
         if getFr is not None:
             frameToResurrect = getFr
@@ -174,41 +179,45 @@ except:
     msg = "%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID)
     print(msg); System.err.write(msg)
 
-lFoundRuntimeExtension = False
+# ############################
+# Trap startup conditions here.... The 'if's pass through to oblivion (and thus a clean exit)... The final 'else' actually runs the script
+if int(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 (version 2019.4) or build 3056 accordingly
+    msg = "SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try:    MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
 
-if frameToResurrect:  # and thus it's still alive.....
-    if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. As of build 3056, just do nothing and let MD call .unload() first...
-        msg = "%s: Detected that runtime extension %s is already running..... Assuming you are running the script within Moneybot... I'm going to DO NOTHING and just exit!\n" %(myModuleID, myModuleID)
-        print(msg); System.err.write(msg)
-        lFoundRuntimeExtension = True
-        frameToResurrect = None
-    else:
-        msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
-        print(msg); System.err.write(msg)
-
-if float(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 / version < 2019.4 or 3056 accordingly
-    try:
-        MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-    except:
-        raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-
-elif lFoundRuntimeExtension:
-    msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on 2021.1(3056) onwards. Now exiting script!\n" %(myModuleID)
+elif frameToResurrect and frameToResurrect.isRunTimeExtension:
+    msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
-    except: pass
+    except: raise Exception(msg)
 
-elif frameToResurrect:
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try: MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
+
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"moneydance_extension_loader" not in globals():
+    msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try: MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
+
+elif frameToResurrect:  # and it's active too...
     try:
+        msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
+        print(msg); System.err.write(msg)
         SwingUtilities.invokeLater(GenericVisibleRunnable(frameToResurrect, True, True))
     except:
         msg  = "%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID)
         print(msg); System.err.write(msg)
-        raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
+        raise Exception(msg)
 
 else:
     del frameToResurrect
-    msg = "%s: No other instances of this program detected - running as normal\n" %(myModuleID)
+    msg = "%s: Startup conditions passed (and no other instances of this program detected). Now executing....\n" %(myModuleID)
     print(msg); System.err.write(msg)
 
     # COMMON IMPORTS #######################################################################################################
@@ -334,7 +343,7 @@ else:
     global userdateStart_EAR, userdateEnd_EAR
     global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
     global saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
-    global lAllText_EAR, textFilter_EAR
+    global lAllText_EAR, textFilter_EAR, lAllCategories_EAR, categoriesFilter_EAR
 
     # from extract_investment_transactions_csv
     global lIncludeOpeningBalances, lAdjustForSplits
@@ -404,6 +413,8 @@ else:
     tagFilter_EAR = "ALL"                                                                                               # noqa
     lAllText_EAR = True                                                                                                 # noqa
     textFilter_EAR = "ALL"                                                                                              # noqa
+    lAllCategories_EAR = True                                                                                           # noqa
+    categoriesFilter_EAR = "ALL"                                                                                        # noqa
     lExtractAttachments_EAR=False                                                                                       # noqa
     saveDropDownAccountUUID_EAR = ""                                                                                    # noqa
     saveDropDownDateRange_EAR = ""                                                                                      # noqa
@@ -692,7 +703,7 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
-    def myPopupAskBackup(theParent=None, theMessage="What no message?!"):
+    def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
         response = JOptionPane.showOptionDialog(theParent,
@@ -706,12 +717,15 @@ Visit: %s (Author's site)
 
         if response == 2:
             myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
+            MD_REF.getUI().setStatus("%s performing an Export Backup...." %(myScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
+            MD_REF.getUI().setStatus("%s Export Backup completed...." %(myScriptName),0)
             return True
 
         elif response == 1:
             myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
-            return True
+            if not lReturnTheTruth:
+                return True
 
         return False
 
@@ -1776,6 +1790,7 @@ Visit: %s (Author's site)
         global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
         global saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
         global lAllText_EAR, textFilter_EAR
+        global lAllCategories_EAR, categoriesFilter_EAR
 
         # extract_investment_transactions_csv
         global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
@@ -1835,6 +1850,8 @@ Visit: %s (Author's site)
         if myParameters.get("tagFilter_EAR") is not None: tagFilter_EAR = myParameters.get("tagFilter_EAR")
         if myParameters.get("lAllText_EAR") is not None: lAllText_EAR = myParameters.get("lAllText_EAR")
         if myParameters.get("textFilter_EAR") is not None: textFilter_EAR = myParameters.get("textFilter_EAR")
+        if myParameters.get("lAllCategories_EAR") is not None: lAllCategories_EAR = myParameters.get("lAllCategories_EAR")
+        if myParameters.get("categoriesFilter_EAR") is not None: categoriesFilter_EAR = myParameters.get("categoriesFilter_EAR")
         if myParameters.get("lExtractAttachments_EAR") is not None: lExtractAttachments_EAR = myParameters.get("lExtractAttachments_EAR")
         if myParameters.get("lIncludeOpeningBalances_EAR") is not None: lIncludeOpeningBalances_EAR = myParameters.get("lIncludeOpeningBalances_EAR")
         if myParameters.get("saveDropDownAccountUUID_EAR") is not None: saveDropDownAccountUUID_EAR = myParameters.get("saveDropDownAccountUUID_EAR")                                                                                  # noqa
@@ -1894,6 +1911,7 @@ Visit: %s (Author's site)
         global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
         global saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
         global lAllText_EAR, textFilter_EAR
+        global lAllCategories_EAR, categoriesFilter_EAR
 
         # extract_investment_transactions_csv
         global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
@@ -1941,6 +1959,8 @@ Visit: %s (Author's site)
         myParameters["tagFilter_EAR"] = tagFilter_EAR
         myParameters["lAllText_EAR"] = lAllText_EAR
         myParameters["textFilter_EAR"] = textFilter_EAR
+        myParameters["lAllCategories_EAR"] = lAllCategories_EAR
+        myParameters["categoriesFilter_EAR"] = categoriesFilter_EAR
         myParameters["lExtractAttachments_EAR"] = lExtractAttachments_EAR
         myParameters["lIncludeInternalTransfers_EAR"] = lIncludeInternalTransfers_EAR
         myParameters["saveDropDownAccountUUID_EAR"] = saveDropDownAccountUUID_EAR
@@ -1996,7 +2016,7 @@ Visit: %s (Author's site)
             destroyOldFrames(myModuleID)
 
         try:
-            MD_REF.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
+            MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
         except:
             pass  # If this fails, then MD is probably shutting down.......
 
@@ -2013,7 +2033,7 @@ Visit: %s (Author's site)
         myPopupInformationBox(None,"Moneydance appears to be empty - no data to scan - aborting...","EMPTY DATASET")
         raise(Exception("Moneydance appears to be empty - no data to scan - aborting..."))
 
-    MD_REF.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
+    MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
     class MainAppRunnable(Runnable):
         def __init__(self):
@@ -2473,6 +2493,13 @@ Visit: %s (Author's site)
             if lAllText_EAR: user_selectText.setText("ALL")
             else:            user_selectText.setText(textFilter_EAR)
 
+            labelCategories = JLabel("Filter for Text in Category or ALL:")
+            user_selectCategories = JTextField(12)
+            user_selectCategories.setName("user_selectCategories")
+            user_selectCategories.setDocument(JTextFieldLimitYN(30, True, "CURR"))
+            if lAllCategories_EAR: user_selectCategories.setText("ALL")
+            else:            user_selectCategories.setText(categoriesFilter_EAR)
+
             labelAttachments = JLabel("Extract & Download Attachments?")
             user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EAR)
             user_selectExtractAttachments.setName("user_selectExtractAttachments")
@@ -2536,6 +2563,8 @@ Visit: %s (Author's site)
             userFilters.add(user_selectTags)
             userFilters.add(labelText)
             userFilters.add(user_selectText)
+            userFilters.add(labelCategories)
+            userFilters.add(user_selectCategories)
             userFilters.add(labelSeparator7)
             userFilters.add(labelSeparator8)
             userFilters.add(labelOpeningBalances)
@@ -2602,6 +2631,13 @@ Visit: %s (Author's site)
                     labelSTATUSbar.setForeground(Color.RED)
                     continue
 
+                if user_selectCategories.getText() != "ALL" and user_selectOpeningBalances.isSelected():
+                    user_selectCategories.setForeground(Color.RED)
+                    user_selectOpeningBalances.setForeground(Color.RED)
+                    labelSTATUSbar.setText(">> Error - You cannot filter on Categories and Include Opening Balances..... <<".upper())
+                    labelSTATUSbar.setForeground(Color.RED)
+                    continue
+
                 user_selectDateStart.setForeground(saveColor)
                 user_selectDateEnd.setForeground(saveColor)
                 labelSTATUSbar.setText("")
@@ -2659,6 +2695,7 @@ Visit: %s (Author's site)
                         "DownldAttachments:", user_selectExtractAttachments.isSelected(),
                         "Tags:", user_selectTags.getText(),
                         "Text:", user_selectText.getText(),
+                        "Categories:", user_selectCategories.getText(),
                         "User Date Format:", user_dateformat.getSelectedItem(),
                         "Strip ASCII:", user_selectStripASCII.isSelected(),
                         "Write BOM to file:", user_selectBOM.isSelected(),
@@ -2689,6 +2726,13 @@ Visit: %s (Author's site)
                 else:
                     lAllText_EAR = False
                     textFilter_EAR = user_selectText.getText()
+
+                if user_selectCategories.getText() == "ALL" or user_selectCategories.getText().strip() == "":
+                    lAllCategories_EAR = True
+                    categoriesFilter_EAR = "ALL"
+                else:
+                    lAllCategories_EAR = False
+                    categoriesFilter_EAR = user_selectCategories.getText()
 
                 userdateStart_EAR = user_selectDateStart.getDateInt()
                 userdateEnd_EAR = user_selectDateEnd.getDateInt()
@@ -2764,6 +2808,7 @@ Visit: %s (Author's site)
                 # myPrint("B","Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR))
                 myPrint("B","Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR))
                 myPrint("B","Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR))
+                myPrint("B","Categories filter..........: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR))
                 myPrint("B","Download Attachments.......: %s" %(lExtractAttachments_EAR))
                 myPrint("B","Date range.................: %s" %(saveDropDownDateRange_EAR))
                 myPrint("B","Selected Start Date........: %s" %(userdateStart_EAR))
@@ -6519,7 +6564,7 @@ Visit: %s (Author's site)
                     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
                     global whichDefaultExtractToRun_SWSS
                     global lIncludeSubAccounts_EAR, lIncludeOpeningBalances_EAR, userdateStart_EAR, userdateEnd_EAR, lAllTags_EAR, tagFilter_EAR
-                    global lAllText_EAR, textFilter_EAR, lExtractAttachments_EAR, saveDropDownAccountUUID_EAR, saveDropDownDateRange_EAR, lIncludeInternalTransfers_EAR
+                    global lAllText_EAR, textFilter_EAR, lAllCategories_EAR, categoriesFilter_EAR, lExtractAttachments_EAR, saveDropDownAccountUUID_EAR, saveDropDownDateRange_EAR, lIncludeInternalTransfers_EAR
 
                     # noinspection PyArgumentList
                     class MyAcctFilter(AcctFilter):
@@ -6578,6 +6623,16 @@ Visit: %s (Author's site)
                             # Phew! We made it....
                             return True
                         # enddef
+
+                    def isCategory(theAccount):
+                        theAccountType = theAccount.getAccountType()
+
+                        # noinspection PyUnresolvedReferences
+                        if (theAccountType == Account.AccountType.INCOME
+                                or theAccountType == Account.AccountType.EXPENSE):
+                            return True
+
+                        return False
 
                     if dropDownAccount_EAR:
                         if lIncludeSubAccounts_EAR:
@@ -6804,6 +6859,16 @@ Visit: %s (Author's site)
                                                                    +parent_Txn.getOtherTxn(_ii).getDescription().upper()).strip()):
                                     continue
 
+                                # The category logic below was added by IK user @Mark
+                                if (not lAllCategories_EAR):        # Note: we only select Accounts, thus Parents are always Accounts (not categories)
+                                    splitTxnAccount = parent_Txn.getOtherTxn(_ii).getAccount()
+                                    parentAccount = parent_Txn.getAccount()
+                                    if ( (isCategory(parentAccount) and categoriesFilter_EAR in (parentAccount.getFullAccountName().upper().strip()))
+                                            or (isCategory(splitTxnAccount) and categoriesFilter_EAR in (splitTxnAccount.getFullAccountName().upper().strip())) ):
+                                        pass
+                                    else:
+                                        continue
+
                                 splitMemo = parent_Txn.getOtherTxn(_ii).getDescription()
                                 splitTags = str(parent_Txn.getOtherTxn(_ii).getKeywords())
                                 splitCat = parent_Txn.getOtherTxn(_ii).getAccount().getFullAccountName()
@@ -6831,7 +6896,9 @@ Visit: %s (Author's site)
                                 isTransferWithinExtract = (isTransfer and transferAcct in validAccountList)
 
                                 if splitTags == "[]": splitTags = ""
+
                             else:
+                                # ######################################################################################
                                 # We are on a split - which is a standalone transfer in/out
                                 if (not lAllTags_EAR
                                         and not tag_search(tagFilter_EAR, txn.getKeywords())
@@ -6843,6 +6910,16 @@ Visit: %s (Author's site)
                                                                    +parent_Txn.getDescription().upper().strip()
                                                                    +parent_Txn.getMemo().upper().strip())):
                                     break
+
+                                # The category logic below was added by IK user @Mark (and amended by me.....)
+                                if (not lAllCategories_EAR):
+                                    parentAcct = parent_Txn.getAccount()
+                                    splitTxnAcct = txn.getAccount()
+                                    if ( (isCategory(parentAcct) and categoriesFilter_EAR in parentAcct.getFullAccountName().upper().strip())
+                                            or (isCategory(splitTxnAcct) and categoriesFilter_EAR in splitTxnAcct.getFullAccountName().upper().strip()) ):
+                                        pass
+                                    else:
+                                        break
 
                                 splitMemo = txn.getDescription()
                                 splitTags = str(txn.getKeywords())
@@ -7027,6 +7104,7 @@ Visit: %s (Author's site)
                         global lWriteBOMToExportFile_SWSS
                         global lAllTags_EAR, tagFilter_EAR
                         global lAllText_EAR, textFilter_EAR
+                        global lAllCategories_EAR, categoriesFilter_EAR
                         global lExtractAttachments_EAR, relativePath
 
                         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -7130,6 +7208,7 @@ Visit: %s (Author's site)
                                 # writer.writerow(["Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR)])
                                 writer.writerow(["Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR)])
                                 writer.writerow(["Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR)])
+                                writer.writerow(["Category filter............: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR)])
                                 writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EAR)])
                                 writer.writerow(["Date range.................: %s" %(saveDropDownDateRange_EAR)])
                                 writer.writerow(["Selected Start Date........: %s" %(userdateStart_EAR)])

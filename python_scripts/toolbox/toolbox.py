@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1032 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1034 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -184,6 +184,8 @@
 # build: 1031 - Build 3056 Utilise .unload() method...
 # build: 1032 - Add HomePageViews (widgets) to extension list; add getTIKServiceID() to delete_one_service popup display
 # build: 1032 - Add 'View all your OFX last download txn dates (for all accounts)'to menu
+# build: 1033 - Common code tweaks
+# build: 1034 - Disabled the 'tabbing mode' check from build 3065 onwards
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
@@ -199,21 +201,22 @@
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
 # Further options at: https://www.jetbrains.com/help/pycharm/disabling-and-enabling-inspections.html#comments-ref
 
-# Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1032"
+version_build = "1034"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
+_I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
 if u"debug" in globals():
     global debug
 else:
     debug = False
 global toolbox_frame_
+# SET LINES ABOVE ^^^^
 
 # COPY >> START
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
@@ -244,7 +247,7 @@ class GenericWindowClosingRunnable(Runnable):
     def __init__(self, theFrame):
         self.theFrame = theFrame
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(False)
         self.theFrame.dispatchEvent(WindowEvent(self.theFrame, WindowEvent.WINDOW_CLOSING))
 
@@ -252,7 +255,7 @@ class GenericDisposeRunnable(Runnable):
     def __init__(self, theFrame):
         self.theFrame = theFrame
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(False)
         self.theFrame.dispose()
 
@@ -262,7 +265,7 @@ class GenericVisibleRunnable(Runnable):
         self.lVisible = lVisible
         self.lToFront = lToFront
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(self.lVisible)
         if self.lVisible and self.lToFront:
             if self.theFrame.getExtendedState() == JFrame.ICONIFIED:
@@ -279,7 +282,7 @@ def getMyJFrame( moduleName ):
                 _msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
                 print(_msg); System.err.write(_msg)
                 if fr.isRunTimeExtension:
-                    _msg = "%s: This extension is a run-time self-installed extension too...\n" %(myModuleID)
+                    _msg = "%s: ... and this is a run-time self-installed extension too...\n" %(myModuleID)
                     print(_msg); System.err.write(_msg)
                 return fr
     except:
@@ -290,11 +293,13 @@ def getMyJFrame( moduleName ):
 
 frameToResurrect = None
 try:
+    # So we check own namespace first for same frame variable...
     if (u"%s_frame_"%myModuleID in globals()
             and isinstance(toolbox_frame_, MyJFrame)        # EDIT THIS
             and toolbox_frame_.isActiveInMoneydance):       # EDIT THIS
         frameToResurrect = toolbox_frame_                   # EDIT THIS
     else:
+        # Now check all frames in the JVM...
         getFr = getMyJFrame( myModuleID )
         if getFr is not None:
             frameToResurrect = getFr
@@ -303,41 +308,45 @@ except:
     msg = "%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID)
     print(msg); System.err.write(msg)
 
-lFoundRuntimeExtension = False
+# ############################
+# Trap startup conditions here.... The 'if's pass through to oblivion (and thus a clean exit)... The final 'else' actually runs the script
+if int(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 (version 2019.4) or build 3056 accordingly
+    msg = "SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try:    MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
 
-if frameToResurrect:  # and thus it's still alive.....
-    if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. As of build 3056, just do nothing and let MD call .unload() first...
-        msg = "%s: Detected that runtime extension %s is already running..... Assuming you are running the script within Moneybot... I'm going to DO NOTHING and just exit!\n" %(myModuleID, myModuleID)
-        print(msg); System.err.write(msg)
-        lFoundRuntimeExtension = True
-        frameToResurrect = None
-    else:
-        msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
-        print(msg); System.err.write(msg)
-
-if float(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 / version < 2019.4 or 3056 accordingly
-    try:
-        MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-    except:
-        raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-
-elif lFoundRuntimeExtension:
-    msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on 2021.1(3056) onwards. Now exiting script!\n" %(myModuleID)
+elif frameToResurrect and frameToResurrect.isRunTimeExtension:
+    msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
-    except: pass
+    except: raise Exception(msg)
 
-elif frameToResurrect:
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try: MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
+
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"moneydance_extension_loader" not in globals():
+    msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try: MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
+
+elif frameToResurrect:  # and it's active too...
     try:
+        msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
+        print(msg); System.err.write(msg)
         SwingUtilities.invokeLater(GenericVisibleRunnable(frameToResurrect, True, True))
     except:
         msg  = "%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID)
         print(msg); System.err.write(msg)
-        raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
+        raise Exception(msg)
 
 else:
     del frameToResurrect
-    msg = "%s: No other instances of this program detected - running as normal\n" %(myModuleID)
+    msg = "%s: Startup conditions passed (and no other instances of this program detected). Now executing....\n" %(myModuleID)
     print(msg); System.err.write(msg)
 
     # COMMON IMPORTS #######################################################################################################
@@ -496,7 +505,7 @@ else:
 
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2021.1                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3062                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3065                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -762,7 +771,7 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
-    def myPopupAskBackup(theParent=None, theMessage="What no message?!"):
+    def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
         response = JOptionPane.showOptionDialog(theParent,
@@ -776,12 +785,15 @@ Visit: %s (Author's site)
 
         if response == 2:
             myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
+            MD_REF.getUI().setStatus("%s performing an Export Backup...." %(myScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
+            MD_REF.getUI().setStatus("%s Export Backup completed...." %(myScriptName),0)
             return True
 
         elif response == 1:
             myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
-            return True
+            if not lReturnTheTruth:
+                return True
 
         return False
 
@@ -1891,7 +1903,7 @@ Visit: %s (Author's site)
             destroyOldFrames(myModuleID)
 
         try:
-            MD_REF.getUI().firstMainFrame.setStatus(">> Infinite Kind (co-authored by Stuart Beesley: StuWareSoftSystems) - Thanks for using Toolbox.......",0)
+            MD_REF.getUI().setStatus(">> Infinite Kind (co-authored by Stuart Beesley: StuWareSoftSystems) - Thanks for using Toolbox.......",0)
         except:
             pass  # If this fails, then MD is probably shutting down.......
 
@@ -4192,6 +4204,7 @@ Visit: %s (Author's site)
                         or acct.getAccountType() == Account.AccountType.CREDIT_CARD
                         or acct.getAccountType() == Account.AccountType.LOAN
                         or acct.getAccountType() == Account.AccountType.ASSET
+                        or acct.getAccountType() == Account.AccountType.INVESTMENT
                         or acct.getAccountType() == Account.AccountType.LIABILITY):
                     return False
 
@@ -5362,19 +5375,9 @@ Download from here: %s
             global toolbox_frame_, debug
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
-            if myPopupAskQuestion(toolbox_frame_,
-                                      "PERFORM BACKUP",
-                                  self.theQuestion,
-                                  JOptionPane.YES_NO_OPTION,
-                                  JOptionPane.WARNING_MESSAGE):
-
-
-                myPrint("J", "User requested to perform Export Backup")
-                MD_REF.getUI().saveToBackup(None)
-                play_the_money_sound()
-
+            if myPopupAskBackup(toolbox_frame_, self.theQuestion, lReturnTheTruth=True):
                 self.statusLabel.setText(("Backup created as requested..").ljust(800, " "))
-                self.statusLabel.setForeground(Color.RED)
+                self.statusLabel.setForeground(Color.BLUE)
             else:
                 self.statusLabel.setText(("User declined to create backup..").ljust(800, " "))
                 self.statusLabel.setForeground(Color.RED)
@@ -16983,8 +16986,9 @@ Now you will have a text readable version of the file you can open in a text edi
                 displayPanel.add(createMoneydanceSyncFolder_button)
 
             lTabbingModeNeedsChanging = False
-            if Platform.isOSX() and Platform.isOSXVersionAtLeast("10.16") \
-                    and not DetectAndChangeMacTabbingMode(statusLabel, True).actionPerformed("quick check"):
+            if (Platform.isOSX() and Platform.isOSXVersionAtLeast("10.16")
+                    and int(MD_REF.getBuild()) < 3065
+                    and not DetectAndChangeMacTabbingMode(statusLabel, True).actionPerformed("quick check")):
                 lTabbingModeNeedsChanging = True
                 fixTabbingMode_button = JButton("<html><center><B>FIX: MacOS<BR>Tabbing Mode</B></center></html>")
                 fixTabbingMode_button.setToolTipText("This allows you to check/fix your MacOS Tabbing Setting")
@@ -17350,7 +17354,7 @@ Script is analysing your moneydance & system settings....
 
             fixRCurrencyCheck = 0
 
-            MD_REF.getUI().firstMainFrame.setStatus(">> Infinite Kind (co-authored by Stuart Beesley: StuWareSoftSystems) - Toolbox launching.......",0)
+            MD_REF.getUI().setStatus(">> Infinite Kind (co-authored by Stuart Beesley: StuWareSoftSystems) - Toolbox launching.......",0)
 
             # These checks already run at Dataset Load time:
             # >> com.infinitekind.moneydance.model.AccountBook.performPostLoadVerification()

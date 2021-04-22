@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1000 - March 2021 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1001 - March 2021 - Stuart Beesley - StuWareSoftSystems
 
 ###############################################################################
 # This extension creates a Moneydance Home Page View >> a little widget on the Home / Summary Screen dashboard
@@ -50,22 +50,26 @@
 # Build: 4 - Tweak to security currency conversion to base...
 # Build: 5 - Enhance JList colors and handling of clicks (so as not to unselect all on new click); add clear selection button
 # Build: 1000 - Formal release
+# Build: 1001 - Enhancements to incorporate VAqua on Mac; Fix JMenuBar() appearing in wrong place after File/Open(switch datasets)
+# Build: 1001 - Change startup common code to detect 'wrong' startup conditions. Make build 3056 the minimum for my extensions (as they leverage .unload() etc)
+# Build: 1001 - Fix condition when -invoke[_and_quit] was used to prevent refresh erroring when MD actually closing...
 
-# Detect another instance of this code running in same namespace - i.e. a Moneydance Extension
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1000"
+version_build = "1001"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
+_I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
 if u"debug" in globals():
     global debug
 else:
     debug = False
 global net_account_balances_frame_
+# SET LINES ABOVE ^^^^
 
 # COPY >> START
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
@@ -96,7 +100,7 @@ class GenericWindowClosingRunnable(Runnable):
     def __init__(self, theFrame):
         self.theFrame = theFrame
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(False)
         self.theFrame.dispatchEvent(WindowEvent(self.theFrame, WindowEvent.WINDOW_CLOSING))
 
@@ -104,7 +108,7 @@ class GenericDisposeRunnable(Runnable):
     def __init__(self, theFrame):
         self.theFrame = theFrame
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(False)
         self.theFrame.dispose()
 
@@ -114,7 +118,7 @@ class GenericVisibleRunnable(Runnable):
         self.lVisible = lVisible
         self.lToFront = lToFront
 
-    def run(self):                                                                                                      # noqa
+    def run(self):
         self.theFrame.setVisible(self.lVisible)
         if self.lVisible and self.lToFront:
             if self.theFrame.getExtendedState() == JFrame.ICONIFIED:
@@ -131,7 +135,7 @@ def getMyJFrame( moduleName ):
                 _msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
                 print(_msg); System.err.write(_msg)
                 if fr.isRunTimeExtension:
-                    _msg = "%s: This extension is a run-time self-installed extension too...\n" %(myModuleID)
+                    _msg = "%s: ... and this is a run-time self-installed extension too...\n" %(myModuleID)
                     print(_msg); System.err.write(_msg)
                 return fr
     except:
@@ -142,11 +146,13 @@ def getMyJFrame( moduleName ):
 
 frameToResurrect = None
 try:
+    # So we check own namespace first for same frame variable...
     if (u"%s_frame_"%myModuleID in globals()
             and isinstance(net_account_balances_frame_, MyJFrame)        # EDIT THIS
             and net_account_balances_frame_.isActiveInMoneydance):       # EDIT THIS
         frameToResurrect = net_account_balances_frame_                   # EDIT THIS
     else:
+        # Now check all frames in the JVM...
         getFr = getMyJFrame( myModuleID )
         if getFr is not None:
             frameToResurrect = getFr
@@ -155,41 +161,45 @@ except:
     msg = "%s: Critical error checking frameToResurrect(1); caught and ignoring...!\n" %(myModuleID)
     print(msg); System.err.write(msg)
 
-lFoundRuntimeExtension = False
+# ############################
+# Trap startup conditions here.... The 'if's pass through to oblivion (and thus a clean exit)... The final 'else' actually runs the script
+if int(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 (version 2019.4) or build 3056 accordingly
+    msg = "SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try:    MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
 
-if frameToResurrect:  # and thus it's still alive.....
-    if frameToResurrect.isRunTimeExtension:     # this must be an install/reinstall. As of build 3056, just do nothing and let MD call .unload() first...
-        msg = "%s: Detected that runtime extension %s is already running..... Assuming you are running the script within Moneybot... I'm going to DO NOTHING and just exit!\n" %(myModuleID, myModuleID)
-        print(msg); System.err.write(msg)
-        lFoundRuntimeExtension = True
-        frameToResurrect = None
-    else:
-        msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
-        print(msg); System.err.write(msg)
-
-if float(MD_REF.getBuild()) < MIN_BUILD_REQD:     # Check for builds less than 1904 / version < 2019.4 or 3056 accordingly
-    try:
-        MD_REF_UI.showInfoMessage("SORRY YOUR VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-    except:
-        raise Exception("SORRY YOUR MONEYDANCE VERSION IS TOO OLD FOR THIS SCRIPT/EXTENSION (min build %s required)" %(MIN_BUILD_REQD))
-
-elif lFoundRuntimeExtension:
-    msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on 2021.1(3056) onwards. Now exiting script!\n" %(myModuleID)
+elif frameToResurrect and frameToResurrect.isRunTimeExtension:
+    msg = "%s: Sorry - runtime extension already running. Please uninstall/reinstall properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
-    except: pass
+    except: raise Exception(msg)
 
-elif frameToResurrect:
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try: MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
+
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"moneydance_extension_loader" not in globals():
+    msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+    print(msg); System.err.write(msg)
+    try: MD_REF_UI.showInfoMessage(msg)
+    except: raise Exception(msg)
+
+elif frameToResurrect:  # and it's active too...
     try:
+        msg = "%s: Detected that %s is already running..... Attempting to resurrect..\n" %(myModuleID, myModuleID)
+        print(msg); System.err.write(msg)
         SwingUtilities.invokeLater(GenericVisibleRunnable(frameToResurrect, True, True))
     except:
         msg  = "%s: Failed to resurrect main Frame.. This duplicate Script/extension is now terminating.....\n" %(myModuleID)
         print(msg); System.err.write(msg)
-        raise Exception("SORRY - YOU CAN ONLY HAVE ONE INSTANCE OF %s RUNNING AT ONCE" %(myModuleID.upper()))
+        raise Exception(msg)
 
 else:
     del frameToResurrect
-    msg = "%s: No other instances of this program detected - running as normal\n" %(myModuleID)
+    msg = "%s: Startup conditions passed (and no other instances of this program detected). Now executing....\n" %(myModuleID)
     print(msg); System.err.write(msg)
 
     # COMMON IMPORTS #######################################################################################################
@@ -554,7 +564,7 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
-    def myPopupAskBackup(theParent=None, theMessage="What no message?!"):
+    def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
         response = JOptionPane.showOptionDialog(theParent,
@@ -568,12 +578,15 @@ Visit: %s (Author's site)
 
         if response == 2:
             myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
+            MD_REF.getUI().setStatus("%s performing an Export Backup...." %(myScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
+            MD_REF.getUI().setStatus("%s Export Backup completed...." %(myScriptName),0)
             return True
 
         elif response == 1:
             myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
-            return True
+            if not lReturnTheTruth:
+                return True
 
         return False
 
@@ -1680,7 +1693,7 @@ Visit: %s (Author's site)
         #     destroyOldFrames(myModuleID)  # This was killing frames just launched/reinstalled... not needed (I think)
         #
         try:
-            md_reference.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
+            md_reference.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
         except:
             pass  # If this fails, then MD is probably shutting down.......
 
@@ -1691,22 +1704,6 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
-
-
-    if not i_am_an_extension_so_run_headless:
-        if lFoundRuntimeExtension:
-            myPopupInformationBox(None, "Sorry - this script/extension is designed to only execute / install via an mxt file - aborting! I HAVE TERMINATED YOUR LIVE EXTENSION, PLEASE RESTART MD","INVALID INSTALLATION METHOD",JOptionPane.ERROR_MESSAGE)
-        else:
-            myPopupInformationBox(None, "Sorry - this script/extension is designed to only execute / install via an mxt file - aborting!","INVALID INSTALLATION METHOD",JOptionPane.ERROR_MESSAGE)
-        raise Exception("Sorry - this script/extension is designed to only execute / install via an mxt file - aborting!")
-    del lFoundRuntimeExtension
-
-    if float(MD_REF.getBuild()) < 3056:
-        msg = "Sorry - this extension is only designed to work on Moneydance version 2021.1 build 3056 onwards.. Aborting!"
-        myPrint("B", msg)
-        if MD_REF_UI is not None:
-            myPopupInformationBox(None, msg,"YOUR MONEYDANCE VERSION TOO OLD",JOptionPane.ERROR_MESSAGE)
-        raise Exception(msg)
 
     class MyAcctFilter(AcctFilter):
 
@@ -1800,6 +1797,7 @@ Visit: %s (Author's site)
             self.savedWidgetName = DEFAULT_WIDGET_NAME
 
             self.menuItemDEBUG = None
+            self.mainMenuBar= None
 
             self.configPanelOpen = False
 
@@ -1905,10 +1903,35 @@ Visit: %s (Author's site)
                 self.callingClass.balanceType_option.setSelectedIndex(self.callingClass.savedBalanceType)
                 self.callingClass.widgetNameField.setText(self.callingClass.savedWidgetName)
 
+                # ######################################################################################################
+                # On Mac,since VAqua was used builds 3039 onwards, the JMenuBar() would sometimes appear in the wrong place
+                # It seems that the useScreenMenuBar=false setting needs to be in play as the JFrame is made visible
+                # or perhaps when the JMenuBar() is added.... Hence doing it here. A bit messy I know.....
+                # ... probably I should create a new JFrame() with every config call, but then I would have to change the launch checks...
+                # ######################################################################################################
+                if Platform.isOSX():
+                    # self.callingClass.theFrame.setJMenuBar(None)
+                    save_useScreenMenuBar = System.getProperty("apple.laf.useScreenMenuBar")
+                    if save_useScreenMenuBar is None or save_useScreenMenuBar == "":
+                        save_useScreenMenuBar= System.getProperty("com.apple.macos.useScreenMenuBar")
+                    System.setProperty("apple.laf.useScreenMenuBar", "false")
+                    System.setProperty("com.apple.macos.useScreenMenuBar", "false")
+
+                    myPrint("DB","...setting the JMenuBar() now....: %s" %(self.callingClass.mainMenuBar))
+                    self.callingClass.theFrame.setJMenuBar(self.callingClass.mainMenuBar)
+
+                    self.callingClass.mainMenuBar.revalidate()
+                    self.callingClass.mainMenuBar.repaint()
+
+                    System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)
+                    System.setProperty("com.apple.macos.useScreenMenuBar", save_useScreenMenuBar)
+                # ##################################################################################################
+
                 if self.callingClass.configPanelOpen:
                     myPrint("DB",".. Application's config panel is already open so will not refresh...")
 
                 else:
+
                     self.callingClass.configPanelOpen = True
                     listOfAllAccountsForJList = []
 
@@ -1947,6 +1970,10 @@ Visit: %s (Author's site)
             # noinspection PyMethodMayBeStatic
             def windowDeactivated(self, WindowEvent):                                                                   # noqa
                 myPrint("DB", "In %s.%s() - Event: %s" %(self, inspect.currentframe().f_code.co_name, WindowEvent))
+
+                if Platform.isOSX():
+                    myPrint("DB","...setting JMenuBar() to None")
+                    self.callingClass.theFrame.setJMenuBar(None)
 
             # noinspection PyMethodMayBeStatic
             def windowDeiconified(self, WindowEvent):                                                                   # noqa
@@ -2379,16 +2406,7 @@ Visit: %s (Author's site)
                     self.callingClass.theFrame.setExtendedState(JFrame.NORMAL)
                     self.callingClass.theFrame.setResizable(True)
 
-                    if Platform.isOSX():
-                        save_useScreenMenuBar= System.getProperty("apple.laf.useScreenMenuBar")
-                        if save_useScreenMenuBar is None or save_useScreenMenuBar == "":
-                            save_useScreenMenuBar= System.getProperty("com.apple.macos.useScreenMenuBar")
-                        System.setProperty("apple.laf.useScreenMenuBar", "false")
-                        System.setProperty("com.apple.macos.useScreenMenuBar", "false")
-                    else:
-                        save_useScreenMenuBar = "true"
-
-                    mb = JMenuBar()
+                    self.callingClass.mainMenuBar = JMenuBar()
                     menuO = JMenu("<html><B>Options</b></html>")
 
                     self.callingClass.menuItemDEBUG = JCheckBoxMenuItem("Debug")
@@ -2409,7 +2427,7 @@ Visit: %s (Author's site)
                     menuItemUninstall.setSelected(True)
                     menuO.add(menuItemUninstall)
 
-                    mb.add(menuO)
+                    self.callingClass.mainMenuBar.add(menuO)
 
                     menuA = JMenu("About")
 
@@ -2425,9 +2443,10 @@ Visit: %s (Author's site)
                     menuItemH.setEnabled(True)
                     menuA.add(menuItemH)
 
-                    mb.add(menuA)
+                    self.callingClass.mainMenuBar.add(menuA)
 
-                    self.callingClass.theFrame.setJMenuBar(mb)
+                    if not Platform.isOSX():
+                        self.callingClass.theFrame.setJMenuBar(self.callingClass.mainMenuBar)
 
                     self.callingClass.theFrame.pack()
                     self.callingClass.theFrame.setLocationRelativeTo(None)
@@ -2436,11 +2455,7 @@ Visit: %s (Author's site)
 
                     self.callingClass.theFrame.setVisible(False)
 
-                    if Platform.isOSX():
-                        System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)
-                        System.setProperty("com.apple.macos.useScreenMenuBar", save_useScreenMenuBar)
-
-                    if (not Platform.isMac()):
+                    if (not Platform.isOSX()):
                         self.callingClass.moneydanceContext.getUI().getImages()
                         self.callingClass.theFrame.setIconImage(MDImages.getImage(self.callingClass.moneydanceContext.getUI().getMain().getSourceInformation().getIconResource()))
 
@@ -2503,7 +2518,8 @@ Visit: %s (Author's site)
                     return False
 
                 try:
-                    self.moneydanceContext.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - %s runtime extension installing......." %(self.myModuleID.capitalize()),0)
+                    # I'm calling this on firstMainFrame rather than just .getUI().setStatus() to confirm GUI is properly loaded.....
+                    self.moneydanceContext.getUI().firstMainFrame.setStatus(">> StuWareSoftSystems - %s runtime extension installing......." %(self.myModuleID.capitalize()),-1.0)
                 except:
                     myPrint("DB","ERROR - failed using the UI..... will just exit for now...")
                     return False
@@ -2629,7 +2645,8 @@ Visit: %s (Author's site)
             self.saveMyHomePageView.unload()
             myPrint("DB","@@ Called HomePageView.unload()")
 
-            self.moneydanceContext.getUI().firstMainFrame.setStatus(">> Infinite Kind (co-authored by Stuart Beesley: StuWareSoftSystems) - Thanks for using Toolbox.......",0)
+            self.moneydanceContext.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s....... >> I am now unloaded...." %(myScriptName),0)
+
             myPrint("DB","... Completed unload routines...")
 
     class MyHomePageView(HomePageView):
@@ -2915,6 +2932,11 @@ Visit: %s (Author's site)
                 myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
                 myPrint("DB", "HomePageView widget: .reallyRefresh().. rebuilding the panel and contents...")
+
+                # launch -invoke[_and_quit] can cause progam to fall over as it's shutting down.. Detect None condition
+                if self.callingClass.extensionClass.moneydanceContext.getCurrentAccountBook() is None:
+                    myPrint("DB", "@@ .reallyRefresh() detected .getCurrentAccountBook() is None... Perhaps -invoke[_and_quit].. Just ignore and exit this refresh..")
+                    return
 
                 self.listPanel.removeAll()
 
