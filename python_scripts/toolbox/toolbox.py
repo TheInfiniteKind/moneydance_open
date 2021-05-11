@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1034 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1035 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -186,6 +186,7 @@
 # build: 1032 - Add 'View all your OFX last download txn dates (for all accounts)'to menu
 # build: 1033 - Common code tweaks
 # build: 1034 - Disabled the 'tabbing mode' check from build 3065 onwards
+# build: 1035 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
@@ -207,7 +208,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1034"
+version_build = "1035"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -437,8 +438,12 @@ else:
 
     from java.util import Timer, TimerTask
 
-    from com.moneydance.apps.md.view.gui import theme
-    from com.moneydance.apps.md.view.gui.theme import Theme
+    # renamed in MD build 3067
+    if int(MD_REF.getBuild()) >= 3067:
+        from com.moneydance.apps.md.view.gui.theme import ThemeInfo                                                     # noqa
+    else:
+        from com.moneydance.apps.md.view.gui.theme import Theme as ThemeInfo
+
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
     from com.moneydance.apps.md.controller import ModuleMetaData
     from com.moneydance.apps.md.controller import LocalStorageCipher
@@ -505,7 +510,7 @@ else:
 
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2021.1                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3065                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3067                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -2443,14 +2448,14 @@ Visit: %s (Author's site)
             textArray.append(u"Sync WARNING: Dropbox sync will not work until you add the missing .moneydancesync folder - use advanced mode to fix!")
 
         textArray.append(u"\nTHEMES")
-        textArray.append(u"Your selected Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", Theme.DEFAULT_THEME_ID)))
+        textArray.append(u"Your selected Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID)))
         # noinspection PyUnresolvedReferences
-        x = theme.Theme.customThemeFile.getCanonicalPath()
+        x = ThemeInfo.customThemeFile.getCanonicalPath()
         if not os.path.exists(x):
             x = u" custom_theme.properties file DOES NOT EXIST!"
         textArray.append(u"Custom Theme File: %s" %(x))
         # noinspection PyUnresolvedReferences
-        textArray.append(u"Available themes: %s" %(theme.Theme.getAllThemes()))
+        textArray.append(u"Available themes: %s" %(ThemeInfo.getAllThemes()))
 
         textArray.append(u"\nENVIRONMENT")
 
@@ -2604,7 +2609,7 @@ Visit: %s (Author's site)
         textArray.append(u"Show All Accounts in Popup: %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gui.show_all_accts_in_popup", False)))
         textArray.append(u"Beep when Transactions Change: %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"beep_on_transaction_change", True)))
         if float(MD_REF.getBuild()) < 3032:
-            textArray.append(u"Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", Theme.DEFAULT_THEME_ID)))
+            textArray.append(u"Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID)))
         textArray.append(u"Show Selection Details: %s" %(MD_REF.getUI().getPreferences().getSetting(u"details_view_mode", u"inwindow")))
         textArray.append(u"Side Bar Balance Type: %s" %(MD_REF.getUI().getPreferences().getSideBarBalanceType()))
         textArray.append(u"Date Format: %5s" %(MD_REF.getUI().getPreferences().getSetting(u"date_format", None)))
@@ -2635,7 +2640,7 @@ Visit: %s (Author's site)
 
         if float(MD_REF.getBuild()) >= 3032:
             textArray.append(u"\n>> APPEARANCE")
-            textArray.append(u"Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", Theme.DEFAULT_THEME_ID)))
+            textArray.append(u"Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID)))
             if (MD_REF.getUI().getPreferences().getSetting(u"main_font")) != u"null":
                 textArray.append(u"Font: %s" %(MD_REF.getUI().getPreferences().getSetting(u"main_font")))
             else:
@@ -2656,8 +2661,8 @@ Visit: %s (Author's site)
             else:
                 textArray.append(u"Printing Font: (None/Default)")
 
-            textArray.append(u"Font Size: %s" %(MD_REF.getUI().getPreferences().getSetting(u"print.font_size", u"12")))
-            textArray.append(u"Font Size: +%s" %(MD_REF.getUI().getPreferences().getIntSetting(u"gui.font_increment", 0)))
+            textArray.append(u"Print Font Size: %s" %(MD_REF.getUI().getPreferences().getSetting(u"print.font_size", u"12")))
+            textArray.append(u"Screen Font Size: +%s" %(MD_REF.getUI().getPreferences().getIntSetting(u"gui.font_increment", 0)))
 
         textArray.append(u"\n>> NETWORK")
         textArray.append(u"Automatically Download in Background: %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"net.auto_download", False)))
@@ -5388,7 +5393,7 @@ Download from here: %s
     def backup_custom_theme_file():
 
         # noinspection PyUnresolvedReferences
-        themeFile = theme.Theme.customThemeFile
+        themeFile = ThemeInfo.customThemeFile
 
         newFileName = os.path.splitext(themeFile.getName())[0]+get_filename_addition()+os.path.splitext(themeFile.getName())[1]+"_$SAVED$"
         newFile = File(themeFile.getParent(), newFileName)
@@ -8347,12 +8352,12 @@ Download from here: %s
 
             backup_localStorage_path = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath())
             backup_config_path = os.path.dirname(Common.getPreferencesFile().getCanonicalPath())
-            # backup_custom_theme_path = os.path.dirname(theme.Theme.customThemeFile.getCanonicalPath())
+            # backup_custom_theme_path = os.path.dirname(ThemeInfo.customThemeFile.getCanonicalPath())
 
             settingsFile = "settings"
             # backup_localStorage_filename = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getAbsolutePath(),"settings")
             # configFile = Common.getPreferencesFile().getName()
-            # themeFile = theme.Theme.customThemeFile.getName()
+            # themeFile = ThemeInfo.customThemeFile.getName()
 
             themeFiles = []
             configFiles = []
@@ -12151,7 +12156,7 @@ now after saving the file, restart Moneydance
             # noinspection PyUnresolvedReferences
             locationsDirs = [
                 Common.getPreferencesFile(),
-                theme.Theme.customThemeFile,
+                ThemeInfo.customThemeFile,
                 MD_REF.getLogFile(),
                 MD_REF.getCurrentAccount().getBook().getRootFolder(),
                 Common.getFeatureModulesDirectory(),
@@ -12456,7 +12461,7 @@ now after saving the file, restart Moneydance
         myPrint("DB", "User requested to delete custom theme file!")
 
         # noinspection PyUnresolvedReferences
-        customThemeFile = str(theme.Theme.customThemeFile)
+        customThemeFile = str(ThemeInfo.customThemeFile)
         if not os.path.exists(customThemeFile):
             statusLabel.setText("Custom Theme file does not exist to delete!".ljust(800, " "))
             statusLabel.setForeground(Color.RED)
@@ -16132,7 +16137,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
                 user_view_MD_custom_theme_file = JRadioButton("View MD Custom Theme File", False)
                 user_view_MD_custom_theme_file.setToolTipText("View the contents of your Moneydance custom Theme file (if you have set one up)")
-                user_view_MD_custom_theme_file.setEnabled(os.path.exists(theme.Theme.customThemeFile.getAbsolutePath()))    # noqa
+                user_view_MD_custom_theme_file.setEnabled(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))    # noqa
 
                 grabProgramDir = find_the_program_install_dir()
                 user_view_java_vmoptions = JRadioButton("View Java VM Options File", False)
@@ -16159,7 +16164,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
                 user_delete_custom_theme_file = JRadioButton("Delete Custom Theme file", False)
                 user_delete_custom_theme_file.setToolTipText("Delete your custom Theme file (if it exists). This is pretty safe. MD will create a new one if you select in Preferences. THIS DELETES A FILE!")
-                user_delete_custom_theme_file.setEnabled(lAdvancedMode and os.path.exists(theme.Theme.customThemeFile.getAbsolutePath()))   # noqa
+                user_delete_custom_theme_file.setEnabled(lAdvancedMode and os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))   # noqa
                 user_delete_custom_theme_file.setForeground(Color.RED)
 
                 user_delete_orphan_extensions = JRadioButton("FIX: Delete Orphaned Extensions", False)
@@ -16219,8 +16224,8 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     grabProgramDir = find_the_program_install_dir()
                     user_view_java_vmoptions.setEnabled(grabProgramDir and os.path.exists(os.path.join(grabProgramDir,"Moneydance.vmoptions")))
-                    user_view_MD_custom_theme_file.setEnabled(os.path.exists(theme.Theme.customThemeFile.getAbsolutePath()))                    # noqa
-                    user_delete_custom_theme_file.setEnabled(lAdvancedMode and os.path.exists(theme.Theme.customThemeFile.getAbsolutePath()))   # noqa
+                    user_view_MD_custom_theme_file.setEnabled(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))                    # noqa
+                    user_delete_custom_theme_file.setEnabled(lAdvancedMode and os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))   # noqa
                     bg.clearSelection()
 
                     options = ["EXIT", "PROCEED"]
@@ -16248,7 +16253,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         return
 
                     if user_view_MD_custom_theme_file.isSelected():
-                        x = ViewFileButtonAction(self.statusLabel, theme.Theme.customThemeFile, "MD Custom Theme")          # noqa
+                        x = ViewFileButtonAction(self.statusLabel, ThemeInfo.customThemeFile, "MD Custom Theme")          # noqa
                         x.actionPerformed(None)
                         return
 

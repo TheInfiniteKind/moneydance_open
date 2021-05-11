@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1001 - March 2021 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1002 - March 2021 - Stuart Beesley - StuWareSoftSystems
 
 ###############################################################################
 # This extension creates a Moneydance Home Page View >> a little widget on the Home / Summary Screen dashboard
@@ -53,6 +53,7 @@
 # Build: 1001 - Enhancements to incorporate VAqua on Mac; Fix JMenuBar() appearing in wrong place after File/Open(switch datasets)
 # Build: 1001 - Change startup common code to detect 'wrong' startup conditions. Make build 3056 the minimum for my extensions (as they leverage .unload() etc)
 # Build: 1001 - Fix condition when -invoke[_and_quit] was used to prevent refresh erroring when MD actually closing...
+# Build: 1002 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -60,7 +61,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1001"
+version_build = "1002"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -293,8 +294,14 @@ else:
     from javax.swing import DefaultListCellRenderer
     from javax.swing import BorderFactory
     from com.moneydance.awt import JLinkListener, JLinkLabel
-    from com.moneydance.apps.md.view.gui.theme import Theme
     from javax.swing import DefaultListSelectionModel
+
+    # renamed in MD build 3067
+    if int(MD_REF.getBuild()) >= 3067:
+        from com.moneydance.apps.md.view.gui.theme import ThemeInfo                                                     # noqa
+    else:
+        from com.moneydance.apps.md.view.gui.theme import Theme as ThemeInfo
+
     # from com.moneydance.apps.md.controller import URLUtil
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
@@ -2953,7 +2960,7 @@ Visit: %s (Author's site)
                 if netAmount < 0:
                     netTotalLbl.setForeground(self.callingClass.extensionClass.moneydanceContext.getUI().getColors().negativeBalFG)
                 else:
-                    if  "default" == Theme.themeForID(self.callingClass.extensionClass.moneydanceContext.getUI(), self.callingClass.extensionClass.moneydanceContext.getUI().getPreferences().getSetting("gui.current_theme", Theme.DEFAULT_THEME_ID)).getThemeID():
+                    if  "default" == ThemeInfo.themeForID(self.callingClass.extensionClass.moneydanceContext.getUI(), self.callingClass.extensionClass.moneydanceContext.getUI().getPreferences().getSetting("gui.current_theme", ThemeInfo.DEFAULT_THEME_ID)).getThemeID():
                         netTotalLbl.setForeground(self.callingClass.extensionClass.moneydanceContext.getUI().getColors().budgetHealthyColor)
                     else:
                         netTotalLbl.setForeground(self.callingClass.extensionClass.moneydanceContext.getUI().getColors().positiveBalFG)
