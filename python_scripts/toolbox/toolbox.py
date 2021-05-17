@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1035 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1036 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -187,6 +187,7 @@
 # build: 1033 - Common code tweaks
 # build: 1034 - Disabled the 'tabbing mode' check from build 3065 onwards
 # build: 1035 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
+# build: 1036 - Added the 'Can I delete Currency' menu option
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
@@ -208,7 +209,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1035"
+version_build = "1036"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -4419,6 +4420,94 @@ Visit: %s (Author's site)
 
         return params
 
+    def can_I_delete_currency(statusLabel):
+        global toolbox_frame_, debug
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
+
+        myPrint("B", "Analysing whether you can delete a Currency, or show where it's used....")
+        myPrint("P", "------------------------------------------------------------------------")
+
+        if MD_REF.getCurrentAccount().getBook() is None: return
+
+        book = MD_REF.getCurrentAccountBook()
+        allCurrencies = book.getCurrencies().getAllCurrencies()
+
+        currOutput = ""
+
+        def accountHasCurrency(acct, curr):
+
+            localOutput = ""
+
+            currCount = 0
+
+            if acct is None: return currCount
+
+            for i in range(0,acct.getSubAccountCount()):
+
+                subAcct = acct.getSubAccount(i)
+                if subAcct.getCurrencyType() == curr:
+                    currCount += 1
+                    localOutput += ".. Account: %s Name: %s is using %s\n" %(subAcct.getAccountType(), subAcct.getFullAccountName(), curr)
+
+                local_i, local_str = accountHasCurrency(subAcct, curr)
+                currCount += local_i
+                localOutput += local_str
+
+                i+=1
+
+            return currCount, localOutput
+
+        currs = []
+
+        for currency in allCurrencies:
+            if currency.getCurrencyType() == CurrencyType.Type.CURRENCY:            # noqa
+                currs.append(currency)
+
+        currs = sorted(currs, key=lambda x: (x.getName().upper()))
+
+
+        selectedCurrency = JOptionPane.showInputDialog(toolbox_frame_,
+                                                       "Select Security", "Select the security to analyse",
+                                                       JOptionPane.INFORMATION_MESSAGE,
+                                                       MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                       currs,
+                                                       None)
+        if selectedCurrency is None:
+            statusLabel.setText("No currency was selected - aborting..".ljust(800, " "))
+            statusLabel.setForeground(Color.RED)
+            return
+
+        currOutput += "\nYou want me to look for Currency: %s \n" %(selectedCurrency)
+
+        myPrint("B", "Looking for Currency: %s %s" %(selectedCurrency, selectedCurrency.getName()) )                    # noqa
+
+        base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+
+        lFailTests = False
+        if selectedCurrency == base:
+            lFailTests = True
+            currOutput += "\n** Currency is set as the base - Deletion not possible!! **\n\n"
+
+        foundCurrCount, outputBuild = accountHasCurrency(MD_REF.getCurrentAccount(), selectedCurrency)
+        currOutput += outputBuild
+
+        if foundCurrCount or lFailTests:
+            currOutput += "\nCurrency %s ** IS BEING USED ** - Deletion not possible\n" %(selectedCurrency)
+            myPrint("B","Currency %s ** IS BEING USED ** - Deletion not possible" %(selectedCurrency))
+            statusLabel.setText(("Currency %s ** IS BEING USED ** - Deletion not possible!" %(selectedCurrency)).ljust(800, " "))
+            statusLabel.setForeground(Color.RED)
+        else:
+            currOutput += "\nCurrency %s is NOT being used - deletion should be possible....\n"  %(selectedCurrency)
+            myPrint("B", "Currency %s is NOT being used - deletion should be possible...."  %(selectedCurrency))
+            statusLabel.setText(("Currency %s is NOT being used - deletion should be possible...."  %(selectedCurrency)).ljust(800, " "))
+            statusLabel.setForeground(Color.BLUE)
+
+        currOutput += "\n<END>"
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+        return currOutput
+
     def can_I_delete_security(statusLabel):
         global toolbox_frame_, debug
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
@@ -4454,7 +4543,7 @@ Visit: %s (Author's site)
             statusLabel.setForeground(Color.RED)
             return
 
-        output = "\nYou want me to look for Security: " + str(selectedSecurity) + "\n"
+        output = "\nYou want me to look for Security: %s\n" %(selectedSecurity)
 
         accountsList = AccountUtil.allMatchesForSearch(book, MyAcctFilter(2))
         output += "Searching through %s security (sub) accounts.." % (len(accountsList)) + "\n"
@@ -4486,7 +4575,7 @@ Visit: %s (Author's site)
         if usageCount:
             output += "\nUSAGE FOUND: You are using security: %s in %s accounts!\n... with a share balance of: %s. These would need to be removed before security deletion" \
                       % (selectedSecurity, usageCount, sumShares) + "\n"
-            myPrint("J", ">> NO - Security cannot be deleted as it's being used:" + str(selectedSecurity))
+            myPrint("J", ">> NO - Security cannot be deleted as it's being used: %s" %(selectedSecurity))
 
         if countPriceHistory:
             output += "\nPRICE HISTORY FOUND: You have %s price records - If you delete Security then these will be lost..." \
@@ -8500,6 +8589,10 @@ Download from here: %s
 
             if x == "can_I_delete_security()":
                 x = can_I_delete_security(self.statusLabel)
+                if not x: return
+
+            if x == "can_I_delete_currency()":
+                x = can_I_delete_currency(self.statusLabel)
                 if not x: return
 
             if x == "list_security_currency_decimal_places()":
@@ -15865,6 +15958,9 @@ Now you will have a text readable version of the file you can open in a text edi
                 user_can_i_delete_security = JRadioButton("DIAG: Can I Delete a Security?", False)
                 user_can_i_delete_security.setToolTipText("This will tell you whether a Selected Security is in use and whether you can delete it in Moneydance")
 
+                user_can_i_delete_currency = JRadioButton("DIAG: Can I Delete a Currency?", False)
+                user_can_i_delete_currency.setToolTipText("This will tell you whether a Selected Currency is in use and whether you can delete it in Moneydance")
+
                 user_list_curr_sec_dpc = JRadioButton("DIAG: List Security / Currency decimal place settings", False)
                 user_list_curr_sec_dpc.setToolTipText("This will list your Security and Currency hidden decimal place settings (and attempt to advise of setup errors)")
 
@@ -15902,6 +15998,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 bg.add(user_convert_stock_avg_cst_control)
                 bg.add(user_thin_price_history)
                 bg.add(user_can_i_delete_security)
+                bg.add(user_can_i_delete_currency)
                 bg.add(user_list_curr_sec_dpc)
                 bg.add(user_diag_curr_sec)
                 bg.add(user_fix_curr_sec)
@@ -15913,6 +16010,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 userFilters.add(JLabel(" "))
                 userFilters.add(JLabel("---------- READONLY FUNCTIONS ----------"))
                 userFilters.add(user_can_i_delete_security)
+                userFilters.add(user_can_i_delete_currency)
                 userFilters.add(user_list_curr_sec_dpc)
                 userFilters.add(user_show_open_share_lots)
                 userFilters.add(user_diag_curr_sec)
@@ -15948,6 +16046,11 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     if user_can_i_delete_security.isSelected():
                         x = ViewFileButtonAction(self.statusLabel, "can_I_delete_security()", "CAN I DELETE A SECURITY?", lFile=False)
+                        x.actionPerformed(None)
+                        return
+
+                    if user_can_i_delete_currency.isSelected():
+                        x = ViewFileButtonAction(self.statusLabel, "can_I_delete_currency()", "CAN I DELETE A CURRENCY?", lFile=False)
                         x.actionPerformed(None)
                         return
 
