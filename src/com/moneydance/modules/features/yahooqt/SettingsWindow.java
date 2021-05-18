@@ -291,8 +291,19 @@ public class SettingsWindow
   }
   
 
+
+  /**
+   * Return the hex string for the given colour. This does _not_ include any 0x or # prefix
+   * and is only the 6 digit hexadecimal string.
+   */
+  public static String hexStringForColor(Color color) {
+    if(color==null) return "";
+    return String.format("%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
+  }
+  
   private void updateStatusBlurb() {
-    StringBuilder msg = new StringBuilder("<html><body style=\"text-align:center; font: sans;\">");
+    String fgColor = hexStringForColor(new JLabel().getForeground());
+    StringBuilder msg = new StringBuilder("<html><body style=\"text-align:center; font: sans; color: #"+fgColor+";\">");
     if (_model.getRootAccount() != null) {
       String messageFormat = _resources.getString(L10NStockQuotes.LAST_UPDATE_FMT);
       int lastRateDate = _model.getRatesLastUpdateDate();
@@ -309,6 +320,7 @@ public class SettingsWindow
     
     statusSummaryPanel.setContentType("text/html");
     statusSummaryPanel.setText(msg.toString());
+    statusSummaryPanel.setBorder(null);
   }
 
   private String getDateText(final int date) {
