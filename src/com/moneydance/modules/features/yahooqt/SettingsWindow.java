@@ -289,7 +289,7 @@ public class SettingsWindow
       _table.getColumnModel().removeColumn(_testColumn);
     }
   }
-  
+
 
 
   /**
@@ -765,7 +765,7 @@ public class SettingsWindow
 
     public UseColumnHeaderRenderer() {
       super();
-      setHorizontalAlignment(JLabel.CENTER);
+      //setHorizontalAlignment(JLabel.CENTER);
       setBorderPainted(false);
       _renderer.add(this);
       JLabel arrow = new JLabel();
