@@ -108,6 +108,7 @@ public class SettingsWindow
   public void setVisible(boolean visible) {
     if (visible) {
       _model.buildSecurityMap();
+      updateAPIKeyButton();
       setSecurityTableColumnSizes();
       // display the last update date in the test status area
       updateStatusBlurb();
@@ -126,34 +127,19 @@ public class SettingsWindow
     // stock historical quotes
     _historyConnectionSelect = new JComboBox<>(_model.getConnectionList(BaseConnection.HISTORY_SUPPORT));
     _historyConnectionSelect.setSelectedItem(_model.getSelectedHistoryConnection());
-    _historyConnectionSelect.addItemListener(new ItemListener() {
-		public void itemStateChanged(ItemEvent arg0)
-		{
-			BaseConnection bc = (BaseConnection) _historyConnectionSelect.getModel().getSelectedItem();
-			if (bc instanceof APIKeyConnection)
-			{
-				_apiKeyButton.setVisible(true);
-			}
-			else
-			{
-				_apiKeyButton.setVisible(false);
-			}
-		}
-	});
+    _historyConnectionSelect.addItemListener(arg -> updateAPIKeyButton());
+    
     // currency exchange rates
     _ratesConnectionSelect = new JComboBox<>(_model.getConnectionList(BaseConnection.EXCHANGE_RATES_SUPPORT));
     _ratesConnectionSelect.setSelectedItem(_model.getSelectedExchangeRatesConnection());
-
     
     setAPIKeyAction = new AbstractAction() {
       @Override
-      public void actionPerformed(ActionEvent e)
-	  {
-	  	BaseConnection bc = (BaseConnection) _historyConnectionSelect.getModel().getSelectedItem();
-	  	if (bc instanceof  APIKeyConnection)
-		{
-			((APIKeyConnection) bc).getAPIKey(true);
-		}
+      public void actionPerformed(ActionEvent e) {
+        BaseConnection bc = (BaseConnection) _historyConnectionSelect.getModel().getSelectedItem();
+        if (bc instanceof  APIKeyConnection) {
+          ((APIKeyConnection) bc).getAPIKey(true);
+        }
       }
     };
     setAPIKeyAction.putValue(Action.NAME, _resources.getString(L10NStockQuotes.SET_API_KEY));
@@ -172,6 +158,9 @@ public class SettingsWindow
     };
 
     statusSummaryPanel.setEditable(false);
+    statusSummaryPanel.setFocusable(false);
+    statusSummaryPanel.setForeground(new JLabel("x").getForeground());
+    statusSummaryPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
     statusSummaryPanel.addHyperlinkListener(new HyperlinkListener() {
       @Override
       public void hyperlinkUpdate(HyperlinkEvent event) {
@@ -275,7 +264,16 @@ public class SettingsWindow
     // setup actions for the controls
     addActions(context);
   }
-
+  
+  private void updateAPIKeyButton() {
+    BaseConnection bc = (BaseConnection) _historyConnectionSelect.getModel().getSelectedItem();
+    if (bc instanceof APIKeyConnection) {
+      _apiKeyButton.setVisible(true);
+    } else {
+      _apiKeyButton.setVisible(false);
+    }
+  }
+  
   private void setupTestControls() {
     if (_showingTestInfo) {
       _showTestLabel.setText(_resources.getString(L10NStockQuotes.BASIC));
@@ -601,6 +599,7 @@ public class SettingsWindow
     // find the maximum width of the columns - there may be more columns in the model than in the view
     final int viewColumnCount = _table.getColumnModel().getColumnCount();
     int[] widths = new int[viewColumnCount];
+    widths[0] = 35;
     for (int column = 0; column < viewColumnCount; column++) {
       for (int row = 0; row < _table.getRowCount(); row++) {
         TableCellRenderer renderer = _table.getCellRenderer(row, column);
@@ -615,6 +614,7 @@ public class SettingsWindow
         }
       }
     }
+    
     // set the last column to be as big as the biggest column - all extra space should be given to
     // the last column
     int maxWidth = 0;
@@ -699,8 +699,10 @@ public class SettingsWindow
   public void propertyChange(PropertyChangeEvent event) {
     final String name = event.getPropertyName();
     if (N12EStockQuotes.STATUS_UPDATE.equals(name)) {
-      final String status = (String) event.getNewValue();
-      statusSummaryPanel.setText(status == null ? " " : status);
+      String status = (String) event.getNewValue();
+      status = status==null ? " " : status;
+      statusSummaryPanel.setContentType("text/plain");
+      statusSummaryPanel.setText(status);
     } else if (N12EStockQuotes.DOWNLOAD_BEGIN.equals(name)) {
       final String text = _model.getGUI().getStr("cancel");
       UiUtil.runOnUIThread(new Runnable() {
@@ -732,13 +734,15 @@ public class SettingsWindow
     public UseColumnRenderer(final MoneydanceGUI mdGui) {
       super();
       _mdGui = mdGui;
-      setHorizontalAlignment(JLabel.CENTER);
-      setBorderPainted(true);
+      putClientProperty("JComponent.isCellEditor", true);
     }
 
     public Component getTableCellRendererComponent(JTable table, Object value,
                                                    boolean isSelected, boolean hasFocus,
                                                    int row, int column) {
+      setHorizontalAlignment(JLabel.CENTER);
+      setOpaque(false);
+      setBorderPainted(false);
       if (isSelected) {
         setForeground(table.getSelectionForeground());
         setBackground(table.getSelectionBackground());
@@ -765,8 +769,6 @@ public class SettingsWindow
 
     public UseColumnHeaderRenderer() {
       super();
-      //setHorizontalAlignment(JLabel.CENTER);
-      setBorderPainted(false);
       _renderer.add(this);
       JLabel arrow = new JLabel();
       arrow.setIcon(ExchangeComboTableColumn.ARROW_ICON);
@@ -776,6 +778,9 @@ public class SettingsWindow
     public Component getTableCellRendererComponent(JTable table, Object value,
                                                    boolean isSelected, boolean hasFocus,
                                                    int row, int column) {
+      setHorizontalAlignment(JLabel.CENTER);
+      setBorderPainted(false);
+      
       final JTableHeader header = table.getTableHeader();
       if (header != null) {
         setForeground(header.getForeground());

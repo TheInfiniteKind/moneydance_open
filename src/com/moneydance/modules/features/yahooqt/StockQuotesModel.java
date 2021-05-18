@@ -159,7 +159,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   Account getRootAccount() {
-    return book.getRootAccount();
+    return book==null ? null : book.getRootAccount();
   }
 
   AccountBook getBook() {
