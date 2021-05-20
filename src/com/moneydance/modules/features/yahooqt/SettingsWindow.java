@@ -781,7 +781,9 @@ public class SettingsWindow
       setHorizontalAlignment(JLabel.CENTER);
       setBorderPainted(false);
       
-      final JTableHeader header = table.getTableHeader();
+      // beware: if table==null then the vaqua scrollpane is calculating sizes
+      
+      final JTableHeader header = table==null ? null : table.getTableHeader();
       if (header != null) {
         setForeground(header.getForeground());
         setBackground(header.getBackground());
@@ -790,10 +792,10 @@ public class SettingsWindow
       _renderer.setBorder(UIManager.getBorder("TableHeader.cellBorder"));
       // show a checkbox that is enabled and off if all are off, enabled and on if all are on,
       // or disabled and on if some are enabled and some are not
-      final SecuritySymbolTableModel tableModel = (SecuritySymbolTableModel) table.getModel();
-      final boolean anySecuritySelected = tableModel.anySymbolEnabled();
+      final SecuritySymbolTableModel tableModel = table==null ? null : (SecuritySymbolTableModel)table.getModel();
+      final boolean anySecuritySelected = tableModel==null ? false : tableModel.anySymbolEnabled();
       setSelected(anySecuritySelected);
-      setEnabled(!anySecuritySelected || tableModel.allSymbolsEnabled());
+      setEnabled(!anySecuritySelected || (tableModel==null || tableModel.allSymbolsEnabled()));
       return _renderer;
     }
   }
