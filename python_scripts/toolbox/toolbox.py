@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1036 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1037 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -188,6 +188,7 @@
 # build: 1034 - Disabled the 'tabbing mode' check from build 3065 onwards
 # build: 1035 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
 # build: 1036 - Added the 'Can I delete Currency' menu option
+# build: 1037 - Updated for MD2021.1 stable release build 3069
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
@@ -209,7 +210,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1036"
+version_build = "1037"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -511,7 +512,7 @@ else:
 
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2021.1                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3068                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   3069                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -3095,7 +3096,7 @@ Visit: %s (Author's site)
 
         buildList = downloadBuilds.get("builds", None)                   # type: StreamVector
         if not buildList or buildList is None:
-            myPrint("B","Error - failed to download or decode build list - - will just proceed without safeguards")
+            myPrint("B","Error - failed to download or decode build list - will just proceed without safeguards")
             return
 
         buildTable=[]
@@ -3111,11 +3112,11 @@ Visit: %s (Author's site)
 
         except:
             dump_sys_error_to_md_console_and_errorlog()
-            myPrint("B", "ERROR decoding downloading toolbox version/build data!  - will just proceed without safeguards...")
+            myPrint("B", "ERROR decoding downloading toolbox version/build data! - will just proceed without safeguards...")
             return
 
         if len(buildTable)<1:
-            myPrint("B", "ERROR decoded downloaded toolbox version/build data is empty!  - will just proceed without safeguards...")
+            myPrint("B", "ERROR decoded downloaded toolbox version/build data is empty! - will just proceed without safeguards...")
             return
 
         buildTable = sorted(buildTable, key=lambda _x: (_x.build), reverse=True)          # type: [ToolboxBuildInfo]
@@ -3131,18 +3132,18 @@ Visit: %s (Author's site)
                 myPrint("DB","Found EXACT-HIT downloaded module build %s OVERRIDING PROGRAM's DEFAULTS....! (%s)" %(moduleBuild.build, moduleBuild.obj ))
 
                 if debug:
-                    myPrint("D","Program defaults were...:")
-                    myPrint("D"," TOOLBOX_STOP_NOW:                     %s"     %(TOOLBOX_STOP_NOW))
-                    myPrint("D"," TOOLBOX_MINIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MINIMUM_TESTED_MD_VERSION))
-                    myPrint("D"," TOOLBOX_MAXIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_VERSION))
-                    myPrint("D"," TOOLBOX_MAXIMUM_TESTED_MD_BUILD:      %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_BUILD))
-                    myPrint("D"," MD_OFX_BANK_SETTINGS_DIR:             %s"     %(MD_OFX_BANK_SETTINGS_DIR))
-                    myPrint("D"," MD_OFX_DEFAULT_SETTINGS_FILE:         %s"     %(MD_OFX_DEFAULT_SETTINGS_FILE))
-                    myPrint("D"," MD_OFX_DEBUG_SETTINGS_FILE:           %s"     %(MD_OFX_DEBUG_SETTINGS_FILE))
-                    myPrint("D"," MD_EXTENSIONS_DIRECTORY_FILE:         %s"     %(MD_EXTENSIONS_DIRECTORY_FILE))
-                    myPrint("D"," MYPYTHON_DOWNLOAD_URL:                %s"     %(MYPYTHON_DOWNLOAD_URL))
+                    myPrint("DB","Program defaults were...:")
+                    myPrint("DB"," TOOLBOX_STOP_NOW:                     %s"     %(TOOLBOX_STOP_NOW))
+                    myPrint("DB"," TOOLBOX_MINIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MINIMUM_TESTED_MD_VERSION))
+                    myPrint("DB"," TOOLBOX_MAXIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_VERSION))
+                    myPrint("DB"," TOOLBOX_MAXIMUM_TESTED_MD_BUILD:      %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_BUILD))
+                    myPrint("DB"," MD_OFX_BANK_SETTINGS_DIR:             %s"     %(MD_OFX_BANK_SETTINGS_DIR))
+                    myPrint("DB"," MD_OFX_DEFAULT_SETTINGS_FILE:         %s"     %(MD_OFX_DEFAULT_SETTINGS_FILE))
+                    myPrint("DB"," MD_OFX_DEBUG_SETTINGS_FILE:           %s"     %(MD_OFX_DEBUG_SETTINGS_FILE))
+                    myPrint("DB"," MD_EXTENSIONS_DIRECTORY_FILE:         %s"     %(MD_EXTENSIONS_DIRECTORY_FILE))
+                    myPrint("DB"," MYPYTHON_DOWNLOAD_URL:                %s"     %(MYPYTHON_DOWNLOAD_URL))
 
-                TOOLBOX_STOP_NOW =                      moduleBuild.disable
+                TOOLBOX_STOP_NOW = moduleBuild.disable
                 if moduleBuild.TOOLBOX_MINIMUM_TESTED_MD_VERSION > 0:
                     TOOLBOX_MINIMUM_TESTED_MD_VERSION =     moduleBuild.TOOLBOX_MINIMUM_TESTED_MD_VERSION
                 if moduleBuild.TOOLBOX_MAXIMUM_TESTED_MD_VERSION:
@@ -3161,16 +3162,16 @@ Visit: %s (Author's site)
                     MYPYTHON_DOWNLOAD_URL =                  moduleBuild.MYPYTHON_DOWNLOAD_URL
 
                 if debug:
-                    myPrint("D","Program variables are now...:")
-                    myPrint("D"," TOOLBOX_STOP_NOW:                     %s"     %(TOOLBOX_STOP_NOW))
-                    myPrint("D"," TOOLBOX_MINIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MINIMUM_TESTED_MD_VERSION))
-                    myPrint("D"," TOOLBOX_MAXIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_VERSION))
+                    myPrint("DB","Program variables are now...:")
+                    myPrint("DB"," TOOLBOX_STOP_NOW:                     %s"     %(TOOLBOX_STOP_NOW))
+                    myPrint("DB"," TOOLBOX_MINIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MINIMUM_TESTED_MD_VERSION))
+                    myPrint("DB"," TOOLBOX_MAXIMUM_TESTED_MD_VERSION:    %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_VERSION))
                     myPrint("DB"," TOOLBOX_MAXIMUM_TESTED_MD_BUILD:      %s"     %(TOOLBOX_MAXIMUM_TESTED_MD_BUILD))
-                    myPrint("D"," MD_OFX_BANK_SETTINGS_DIR:             %s"     %(MD_OFX_BANK_SETTINGS_DIR))
-                    myPrint("D"," MD_OFX_DEFAULT_SETTINGS_FILE:         %s"     %(MD_OFX_DEFAULT_SETTINGS_FILE))
-                    myPrint("D"," MD_OFX_DEBUG_SETTINGS_FILE:           %s"     %(MD_OFX_DEBUG_SETTINGS_FILE))
-                    myPrint("D"," MD_EXTENSIONS_DIRECTORY_FILE:         %s"     %(MD_EXTENSIONS_DIRECTORY_FILE))
-                    myPrint("D"," MYPYTHON_DOWNLOAD_URL:                %s"     %(MYPYTHON_DOWNLOAD_URL))
+                    myPrint("DB"," MD_OFX_BANK_SETTINGS_DIR:             %s"     %(MD_OFX_BANK_SETTINGS_DIR))
+                    myPrint("DB"," MD_OFX_DEFAULT_SETTINGS_FILE:         %s"     %(MD_OFX_DEFAULT_SETTINGS_FILE))
+                    myPrint("DB"," MD_OFX_DEBUG_SETTINGS_FILE:           %s"     %(MD_OFX_DEBUG_SETTINGS_FILE))
+                    myPrint("DB"," MD_EXTENSIONS_DIRECTORY_FILE:         %s"     %(MD_EXTENSIONS_DIRECTORY_FILE))
+                    myPrint("DB"," MYPYTHON_DOWNLOAD_URL:                %s"     %(MYPYTHON_DOWNLOAD_URL))
 
                 if TOOLBOX_STOP_NOW:
                     myPrint("B","Uh-oh... disable has been set by the Developer for this build.... Toolbox must close... Sorry")
