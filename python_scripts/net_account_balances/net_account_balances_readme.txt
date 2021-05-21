@@ -2,8 +2,7 @@ Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project)
 
 Get more Scripts/Extensions from: https://yogi1967.github.io/MoneydancePythonScripts/
 
-Extension format only >> Minimum Moneydance version 2021.1 (build: 3056)
-NOTE: You may need to download the MD preview version from: https://infinitekind.com/preview
+Extension format only >> Minimum Moneydance version 2021.1 (build: 3056, ideally 3069 onwards)
 (If you have installed the extension, but nothing happens, then check your Moneydance version)
 
 This is a Python(Jython 2.7) Extension that runs inside of Moneydance via the Moneybot Python Interpreter

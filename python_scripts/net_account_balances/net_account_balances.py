@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1002 - March 2021 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1003 - March 2021 - Stuart Beesley - StuWareSoftSystems
 
 ###############################################################################
 # This extension creates a Moneydance Home Page View >> a little widget on the Home / Summary Screen dashboard
@@ -54,6 +54,7 @@
 # Build: 1001 - Change startup common code to detect 'wrong' startup conditions. Make build 3056 the minimum for my extensions (as they leverage .unload() etc)
 # Build: 1001 - Fix condition when -invoke[_and_quit] was used to prevent refresh erroring when MD actually closing...
 # Build: 1002 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
+# Build: 1003 - Small tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -61,7 +62,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1002"
+version_build = "1003"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -2351,39 +2352,43 @@ Visit: %s (Author's site)
 
                     saveMyActionListener = self.callingClass.MyActionListener(self.callingClass)
 
+                    lbl0 = JLabel("Customize Summary Screen widget by selecting accounts/categories to include..")
+                    lbl0.setForeground(Color.BLUE)
+                    pnl.add(lbl0, GridC.getc(0, 0).west().colspan(4).leftInset(10).topInset(10).bottomInset(2))
+
                     if Platform.isOSX():
                         lbl = JLabel("Select multiple accounts - use CMD-Click, or click first, Shift-Click last...")
                     else:
                         lbl = JLabel("Select multiple accounts - use CTRL-Click, or click first, Shift-Click last...")
 
                     lbl.setForeground(Color.BLUE)
-                    pnl.add(lbl, GridC.getc(0, 0).west().colspan(4).leftInset(10).topInset(10).bottomInset(10))
+                    pnl.add(lbl, GridC.getc(0, 1).west().colspan(4).leftInset(10).topInset(3).bottomInset(10))
 
                     self.callingClass.widgetNameField = JTextField(self.callingClass.savedWidgetName)
-                    pnl.add(self.callingClass.widgetNameField, GridC.getc(0, 1).west().colspan(4).leftInset(10).topInset(10).bottomInset(10).rightInset(10).fillboth())
+                    pnl.add(self.callingClass.widgetNameField, GridC.getc(0, 2).west().colspan(4).leftInset(10).topInset(7).bottomInset(10).rightInset(10).fillboth())
 
                     balanceTypes = ["Balance", "Current Balance", "Cleared Balance"]
                     self.callingClass.balanceType_option = JComboBox(balanceTypes)
                     self.callingClass.balanceType_option.setToolTipText("Select the balance type to total: Balance (i.e. the final balance), Current Balance (as of today), Cleared Balance")
                     self.callingClass.balanceType_option.setSelectedItem(balanceTypes[self.callingClass.savedBalanceType])
-                    pnl.add(self.callingClass.balanceType_option, GridC.getc(0, 2).west().leftInset(10).topInset(2))
+                    pnl.add(self.callingClass.balanceType_option, GridC.getc(0, 3).west().leftInset(10).topInset(2))
 
                     clearList_button = JButton("Clear Selection")
                     clearList_button.setToolTipText("Clears the current selection(s)...")
                     clearList_button.addActionListener(saveMyActionListener)
-                    pnl.add(clearList_button, GridC.getc(1, 2).leftInset(13))
+                    pnl.add(clearList_button, GridC.getc(1, 3).leftInset(13))
 
                     saveAccountList_button = JButton("Save Changes")
                     saveAccountList_button.setToolTipText("Saves the selected account list")
                     saveAccountList_button.addActionListener(saveMyActionListener)
-                    pnl.add(saveAccountList_button, GridC.getc(2, 2).leftInset(13))
+                    pnl.add(saveAccountList_button, GridC.getc(2, 3).leftInset(13))
 
                     cancelChanges_button = JButton("Cancel Changes")
                     cancelChanges_button.setToolTipText("Cancels your changes and reverts to the saved account list")
                     cancelChanges_button.addActionListener(saveMyActionListener)
-                    pnl.add(cancelChanges_button, GridC.getc(3, 2).east().rightInset(8))
+                    pnl.add(cancelChanges_button, GridC.getc(3, 3).east().rightInset(8))
 
-                    pnl.add(scrollpane,GridC.getc(0, 3).wx(1.0).west().colspan(4).leftInset(8).rightInset(8).topInset(8).bottomInset(8).fillboth())
+                    pnl.add(scrollpane,GridC.getc(0, 4).wx(1.0).west().colspan(4).leftInset(8).rightInset(8).topInset(8).bottomInset(15).fillboth())
                     self.callingClass.theFrame.add(pnl)
 
                     self.callingClass.theFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
@@ -2426,13 +2431,13 @@ Visit: %s (Author's site)
                     menuItemDeactivate.addActionListener(saveMyActionListener)
                     menuItemDeactivate.setToolTipText("Deactivates this extension and also the HomePage 'widget' (will reactivate upon MD restart)")
                     menuItemDeactivate.setSelected(True)
-                    menuO.add(menuItemDeactivate)
+                    # menuO.add(menuItemDeactivate)  # Removed at the request of Sean (IK) to allow onto extensions list
 
                     menuItemUninstall = JMenuItem("Uninstall Extension")
                     menuItemUninstall.addActionListener(saveMyActionListener)
                     menuItemUninstall.setToolTipText("Uninstalls and removes this extension (and also the HomePage 'widget'). This is permanent until you reinstall...")
                     menuItemUninstall.setSelected(True)
-                    menuO.add(menuItemUninstall)
+                    # menuO.add(menuItemUninstall)  # Removed at the request of Sean (IK) to allow onto extensions list
 
                     self.callingClass.mainMenuBar.add(menuO)
 
