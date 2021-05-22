@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1037 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1038 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -189,6 +189,7 @@
 # build: 1035 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
 # build: 1036 - Added the 'Can I delete Currency' menu option
 # build: 1037 - Updated for MD2021.1 stable release build 3069
+# build: 1038 - Change to popup warning about running on a secondary node; as suggested by IK (Sean)
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
@@ -210,7 +211,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1037"
+version_build = "1038"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -17013,7 +17014,7 @@ Now you will have a text readable version of the file you can open in a text edi
             frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.95,0))))
 
             JFrame.setDefaultLookAndFeelDecorated(True)
-            toolbox_frame_ = MyJFrame("Infinite Kind (co-authored by StuWareSoftSystems): " + myScriptName + " (" + version_build + ")...  (%s+I for Help)    -    DATASET: %s" % (MD_REF.getUI().ACCELERATOR_MASK_STR, MD_REF.getCurrentAccountBook().getName().strip()))
+            toolbox_frame_ = MyJFrame(u"Toolbox - Infinite Kind (co-authored by StuWareSoftSystems)...  (%s+I for Help) - DATASET: %s" % (MD_REF.getUI().ACCELERATOR_MASK_STR, MD_REF.getCurrentAccountBook().getName().strip()))
             toolbox_frame_.setName(u"%s_main" %myModuleID)
 
             if (not Platform.isMac()):
@@ -17377,15 +17378,17 @@ Now you will have a text readable version of the file you can open in a text edi
 
             if not MD_REF.getCurrentAccount().getBook().getLocalStorage().getBoolean("_is_master_node", True):
 
-                MyPopUpDialogBox(toolbox_frame_,"!! WARNING / ALERT !!:",
-                                                 "This Dataset is running as a Secondary Node\n" 
+                MyPopUpDialogBox(toolbox_frame_,"INFORMATION ONLY - THIS IS NOT A PROBLEM",
+                                                 "This Dataset is running as a 'Secondary Node'\n" 
                                                  "- either you are Synchronising to it,\n" 
                                                  "- or you have restored it from a backup/sync copy.\n" 
-                                                 "To convert to Primary, use Advanced Tools Menu",
+                                                 "If these statements are true / OK, then ignore this message...\n" 
+                                                 ">>Otherwise, to convert to Primary, use Advanced Tools Menu.",
                                                  120,
                                                  "SECONDARY DATASET/NODE",
                                                  OKButtonText="ACKNOWLEDGE",
-                                                 lAlertLevel=1).go()
+                                                 lAlertLevel=1,
+                                                 lModal=True).go()
 
             if lTabbingModeNeedsChanging:
                 myPopupInformationBox(toolbox_frame_,

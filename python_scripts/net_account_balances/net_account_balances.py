@@ -2302,7 +2302,7 @@ Visit: %s (Author's site)
 
                     # Called from getMoneydanceUI() so assume the Moneydance GUI is loaded...
                     JFrame.setDefaultLookAndFeelDecorated(True)
-                    net_account_balances_frame_ = MyJFrame(u"%s (b:%s) Home Page View widget - settings" % (self.callingClass.myModuleID.capitalize(), version_build))
+                    net_account_balances_frame_ = MyJFrame(u"Net Account Balances: Configure Home Page View widget's settings")
                     self.callingClass.theFrame = net_account_balances_frame_
                     self.callingClass.theFrame.setName(u"%s_main" %(self.callingClass.myModuleID))
 

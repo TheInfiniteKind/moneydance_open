@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1010 - February 2021 - Stuart Beesley
+# extract_data.py - build: 1011 - February 2021 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -71,6 +71,7 @@
 # build: 1008 - Build 3056 Utilise .unload() method...
 # build: 1009 - Common code tweaks
 # build: 1010 - Incorporated new category filter in Extract Account Registers - mods by IK user @mark - thanks!
+# build: 1011 - Conforming to IK design requirements... Minor tweaks...
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -78,7 +79,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1010"
+version_build = "1011"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -2114,7 +2115,7 @@ Visit: %s (Author's site)
             options = ["EXIT", "PROCEED"]
             userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
                                                        userFilters,
-                                                       "StuWareSoftSystems EXTRACT DATA (build %s) - SELECT OPTION" %(version_build),
+                                                       "EXTRACT DATA: SELECT OPTION",
                                                        JOptionPane.OK_CANCEL_OPTION,
                                                        JOptionPane.QUESTION_MESSAGE,
                                                        MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
@@ -2163,7 +2164,7 @@ Visit: %s (Author's site)
 
     if lExit:
         myPrint("B", "User chose to cancel at extract choice screen.... exiting")
-        myPopupInformationBox(extract_data_frame_, "User chose to cancel at extract choice screen.... exiting", "FILE EXPORT")
+        # myPopupInformationBox(extract_data_frame_, "User chose to cancel at extract choice screen.... exiting", "FILE EXPORT")
 
     if not lExit:
 
@@ -2597,14 +2598,14 @@ Visit: %s (Author's site)
             while True:
 
                 userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
-                                                           userFilters, "%s(build: %s) Set Script Parameters...." % (myScriptName,version_build),
+                                                           userFilters, "EXTRACT ACCOUNT REGISTERS: Set Script Parameters....",
                                                            JOptionPane.OK_CANCEL_OPTION,
                                                            JOptionPane.QUESTION_MESSAGE,
                                                            MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
                                                            options, options[1]))
                 if userAction != 1:
                     myPrint("B", "User Cancelled Parameter selection.. Will abort..")
-                    myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+                    # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
                     lDisplayOnly = False
                     lExit = True
                     break
@@ -2914,7 +2915,7 @@ Visit: %s (Author's site)
             lDisplayOnly = False
 
             options = ["ABORT", "CSV Export"]
-            userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "%s(build: %s) Set Script Parameters...."%(myScriptName,version_build),
+            userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT INVESTMENT TRANSACTIONS: Set Script Parameters....",
                                                        JOptionPane.OK_CANCEL_OPTION,
                                                        JOptionPane.QUESTION_MESSAGE,
                                                        MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
@@ -2924,7 +2925,7 @@ Visit: %s (Author's site)
                 lDisplayOnly = False
             else:
                 myPrint("B", "User Cancelled Parameter selection.. Will exit..")
-                myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+                # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
                 lDisplayOnly = False
                 lExit = True
 
@@ -3120,14 +3121,14 @@ Visit: %s (Author's site)
 
             while True:
 
-                userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "%s(build: %s) Set Script Parameters...."%(myScriptName,version_build),
+                userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT CURRENCY HISTORY: Set Script Parameters....",
                                                            JOptionPane.OK_CANCEL_OPTION,
                                                            JOptionPane.QUESTION_MESSAGE,
                                                            MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
                                                            options, options[1]))
                 if userAction != 1:
                     myPrint("B", "User Cancelled Parameter selection.. Will abort..")
-                    myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+                    # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
                     lDisplayOnly = False
                     lExit = True
                     break
@@ -3303,7 +3304,7 @@ Visit: %s (Author's site)
             options = ["Abort", "Display & CSV Export", "Display Only"]
             userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
                                                        userFilters,
-                                                       "%s(build: %s) Set Script Parameters...." %(myScriptName,version_build),
+                                                       "StockGlance2020 - Summarise Stocks/Funds: Set Script Parameters....",
                                                        JOptionPane.OK_CANCEL_OPTION,
                                                        JOptionPane.QUESTION_MESSAGE,
                                                        MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
@@ -3318,7 +3319,7 @@ Visit: %s (Author's site)
             else:
                 # Abort
                 myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
-                myPopupInformationBox(extract_data_frame_,"User Cancelled Parameter selection.. Will abort..","PARAMETERS")
+                # myPopupInformationBox(extract_data_frame_,"User Cancelled Parameter selection.. Will abort..","PARAMETERS")
                 lDisplayOnly = False
                 lExit = True
 
@@ -3498,7 +3499,7 @@ Visit: %s (Author's site)
             options = ["Abort", "Display & CSV Export", "Display Only"]
             userAction = (JOptionPane.showOptionDialog( extract_data_frame_,
                                                         userFilters,
-                                                        "%s(build: %s) Set Script Parameters...." %(myScriptName, version_build),
+                                                        "EXTRACT REMINDERS: Set Script Parameters....",
                                                         JOptionPane.OK_CANCEL_OPTION,
                                                         JOptionPane.QUESTION_MESSAGE,
                                                         MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
@@ -3514,7 +3515,7 @@ Visit: %s (Author's site)
             else:
                 # Abort
                 myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
-                myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+                # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
                 lDisplayOnly = False
                 lExit = True
 
@@ -4958,12 +4959,12 @@ Visit: %s (Author's site)
                         screenSize = Toolkit.getDefaultToolkit().getScreenSize()
 
                         JFrame.setDefaultLookAndFeelDecorated(True)
+
                         if lDisplayOnly:
-                            # extract_data_frame_ = JFrame("extract_data(StockGlance2020) - StuWareSoftSystems(build: %s)..." % version_build)
-                            extract_data_frame_.setTitle("extract_data(StockGlance2020) - StuWareSoftSystems(build: %s)..." % version_build)
+                            extract_data_frame_.setTitle(u"StockGlance2020 - Summarise Stocks/Funds...")
                         else:
-                            # extract_data_frame_ = JFrame("extract_data(StockGlance2020) - StuWareSoftSystems(build: %s)... (NOTE: your file has already been exported)" % version_build)
-                            extract_data_frame_.setTitle("extract_data(StockGlance2020) - StuWareSoftSystems(build: %s)... (NOTE: your file has already been exported)" % version_build)
+                            extract_data_frame_.setTitle(u"StockGlance2020 - Summarise Stocks/Funds... (NOTE: your file has already been exported)")
+
                         extract_data_frame_.setName(u"%s_main_stockglance2020" %(myModuleID))
 
                         if (not Platform.isMac()):
@@ -6255,7 +6256,7 @@ Visit: %s (Author's site)
 
                         JFrame.setDefaultLookAndFeelDecorated(True)
                         # extract_data_frame_ = JFrame("extract_data(Reminders) - StuWareSoftSystems(build: %s)..." % version_build)
-                        extract_data_frame_.setTitle(u"extract_data(Reminders) - StuWareSoftSystems(build: %s)..." % version_build)
+                        extract_data_frame_.setTitle(u"Extract Reminders...")
                         extract_data_frame_.setName(u"%s_main_reminders" %myModuleID)
                         # extract_data_frame_.setLayout(FlowLayout())
 

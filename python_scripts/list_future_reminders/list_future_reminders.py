@@ -2947,17 +2947,12 @@ Visit: %s (Author's site)
 	
 			if ind == 0:  # Function can get called multiple times; only set main frames up once
 				JFrame.setDefaultLookAndFeelDecorated(True)
-				# list_future_reminders_frame_ = JFrame("Listing future reminders - StuWareSoftSystems(build: %s)..." % version_build)
-				list_future_reminders_frame_.setTitle(u"Listing future reminders - StuWareSoftSystems(build: %s)..." % version_build)
+				list_future_reminders_frame_.setTitle(u"List future reminders...")
 				list_future_reminders_frame_.setName(u"%s_main" %(myModuleID))
-				# list_future_reminders_frame_.setLayout(FlowLayout())
-	
+
 				if (not Platform.isMac()):
 					MD_REF.getUI().getImages()
 					list_future_reminders_frame_.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
-	
-				# list_future_reminders_frame_.setPreferredSize(Dimension(frame_width, frame_height))
-				# frame.setExtendedState(JFrame.MAXIMIZED_BOTH)
 	
 				list_future_reminders_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 	
