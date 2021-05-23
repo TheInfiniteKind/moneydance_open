@@ -189,7 +189,7 @@
 # build: 1035 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
 # build: 1036 - Added the 'Can I delete Currency' menu option
 # build: 1037 - Updated for MD2021.1 stable release build 3069
-# build: 1038 - Change to popup warning about running on a secondary node; as suggested by IK (Sean)
+# build: 1038 - Change to popup warning about running on a secondary node; as suggested by IK (Sean); Popup warning about improper opening of backup files...
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
@@ -17407,6 +17407,27 @@ Now you will have a text readable version of the file you can open in a text edi
                                       "MacOS UserHome Warning",
                                       JOptionPane.WARNING_MESSAGE)
 
+
+            # Check for repeated opening of backup files
+            try:
+                datapath = moneydance.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+                datafile = os.path.basename(datapath)
+                datafilenew = datafile.replace(".moneydance","")
+                if len(datafilenew) > 17:
+                    searchDash = datafilenew[-3] + datafilenew[-6] + datafilenew[-14] + datafilenew[-17]
+                    if searchDash == "----":
+                        MyPopUpDialogBox(toolbox_frame_,
+                                         "WARNING: Detected multiple dates in dataset filename.",
+                                         "This might mean you're opening backup (*.moneydancearchive) files by double-clicking\n"
+                                         "...and this may be creating a new dataset everytime as a result... and so on....\n"
+                                         ">> If so, please correct your file opening procedure....",
+                                         140,
+                                         "IMPROPER OPENING OF BACKUP FILES",
+                                         OKButtonText="ACKNOWLEDGE",
+                                         lAlertLevel=1,
+                                         lModal=True).go()
+            except:
+                pass
 
             check_for_old_StuWareSoftSystems_scripts(statusLabel)
 
