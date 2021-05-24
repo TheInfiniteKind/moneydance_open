@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_create_new_usaa_bank_custom_profile.py (build 11) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_create_new_usaa_bank_custom_profile.py (build 12) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
 # https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf
@@ -61,6 +61,7 @@
 # build: 9 - Change "date_avail_accts" to 2021-01-01
 # build: 10 - Popup at end to show existing last txn download dates...
 # build: 11 - Common code tweaks
+# build: 12 - Common code tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -68,7 +69,7 @@
 
 # SET THESE LINES
 myModuleID = u"ofx_create_new_usaa_bank_profile_custom"
-version_build = "11"
+version_build = "12"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -1581,7 +1582,7 @@ Visit: %s (Author's site)
 
                     aboutPanel=JPanel()
                     aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
-                    aboutPanel.setPreferredSize(Dimension(1120, 500))
+                    aboutPanel.setPreferredSize(Dimension(1120, 525))
 
                     _label1 = JLabel(pad("Author: Stuart Beesley", 800))
                     _label1.setForeground(Color.BLUE)
@@ -1590,6 +1591,10 @@ Visit: %s (Author's site)
                     _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
                     _label2.setForeground(Color.BLUE)
                     aboutPanel.add(_label2)
+
+                    _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
+                    _label3.setForeground(Color.BLUE)
+                    aboutPanel.add(_label3)
 
                     displayString=scriptExit
                     displayJText = JTextArea(displayString)

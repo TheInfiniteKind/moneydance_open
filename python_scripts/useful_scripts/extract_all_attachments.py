@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_all_attachments.py build: 11 - Jan 2021 - Stuart Beesley StuWareSoftSystems
+# extract_all_attachments.py build: 12 - Jan 2021 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -31,6 +31,7 @@
 # build: 9 - Build 3051 of Moneydance... fix references to moneydance_* variables;
 # build: 10 - Build 3056 of Moneydance...
 # build: 11 - Common code tweaks
+# build: 12 - Common code tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -38,7 +39,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_all_attachments"
-version_build = "11"
+version_build = "12"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -1548,7 +1549,7 @@ Visit: %s (Author's site)
 
                     aboutPanel=JPanel()
                     aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
-                    aboutPanel.setPreferredSize(Dimension(1120, 500))
+                    aboutPanel.setPreferredSize(Dimension(1120, 525))
 
                     _label1 = JLabel(pad("Author: Stuart Beesley", 800))
                     _label1.setForeground(Color.BLUE)
@@ -1557,6 +1558,10 @@ Visit: %s (Author's site)
                     _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
                     _label2.setForeground(Color.BLUE)
                     aboutPanel.add(_label2)
+
+                    _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
+                    _label3.setForeground(Color.BLUE)
+                    aboutPanel.add(_label3)
 
                     displayString=scriptExit
                     displayJText = JTextArea(displayString)

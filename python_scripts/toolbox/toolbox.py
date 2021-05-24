@@ -191,6 +191,8 @@
 # build: 1037 - Updated for MD2021.1 stable release build 3069
 # build: 1038 - Change to popup warning about running on a secondary node; as suggested by IK (Sean); Popup warning about improper opening of backup files...
 
+# todo - check/fix alert colours since VAqua....!?
+
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - build a class for holding txns in Geekout and Hacker modes to fix display width; also handle .syncItem() on split txns..
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
@@ -1801,7 +1803,7 @@ Visit: %s (Author's site)
 
                     aboutPanel=JPanel()
                     aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
-                    aboutPanel.setPreferredSize(Dimension(1120, 500))
+                    aboutPanel.setPreferredSize(Dimension(1120, 525))
 
                     _label1 = JLabel(pad("Author: Stuart Beesley", 800))
                     _label1.setForeground(Color.BLUE)
@@ -1810,6 +1812,10 @@ Visit: %s (Author's site)
                     _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
                     _label2.setForeground(Color.BLUE)
                     aboutPanel.add(_label2)
+
+                    _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
+                    _label3.setForeground(Color.BLUE)
+                    aboutPanel.add(_label3)
 
                     displayString=scriptExit
                     displayJText = JTextArea(displayString)

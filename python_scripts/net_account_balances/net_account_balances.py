@@ -54,7 +54,7 @@
 # Build: 1001 - Change startup common code to detect 'wrong' startup conditions. Make build 3056 the minimum for my extensions (as they leverage .unload() etc)
 # Build: 1001 - Fix condition when -invoke[_and_quit] was used to prevent refresh erroring when MD actually closing...
 # Build: 1002 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
-# Build: 1003 - Small tweaks
+# Build: 1003 - Small tweaks to conform to IK design standards
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -1594,7 +1594,7 @@ Visit: %s (Author's site)
 
                     aboutPanel=JPanel()
                     aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
-                    aboutPanel.setPreferredSize(Dimension(1120, 500))
+                    aboutPanel.setPreferredSize(Dimension(1120, 525))
 
                     _label1 = JLabel(pad("Author: Stuart Beesley", 800))
                     _label1.setForeground(Color.BLUE)
@@ -1603,6 +1603,10 @@ Visit: %s (Author's site)
                     _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
                     _label2.setForeground(Color.BLUE)
                     aboutPanel.add(_label2)
+
+                    _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
+                    _label3.setForeground(Color.BLUE)
+                    aboutPanel.add(_label3)
 
                     displayString=scriptExit
                     displayJText = JTextArea(displayString)
