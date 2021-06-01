@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1038 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
+# toolbox.py build: 1040 - November 2020 thru February 2021 - Stuart Beesley StuWareSoftSystems (~500 programming hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -96,7 +96,7 @@
 # Build: 1004 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
 # Build: 1005 - Tweaked for 2021 build 3032 (fonts/preferences)
 # Build: 1006 - Detect when the .moneydancesync folder is missing and add button to fix this
-# Build: 1006 - Detect current Toolbox version from github.. added downloadStuWareSoftSystemsExtensions() to common code
+# Build: 1006 - Detect current Toolbox version from github.. added downloadStuWareSoftSystemsExtensions()
 # Build: 1007 - Renamed REPO, Moneydance and ID to lowercase ready for signing (Sean request)...
 # Build: 1008 - Cosmetic changes to searching window; update available windows...
 # Build: 1008 - new button; search for ios sync data for sync key recovery....
@@ -190,6 +190,8 @@
 # build: 1036 - Added the 'Can I delete Currency' menu option
 # build: 1037 - Updated for MD2021.1 stable release build 3069
 # build: 1038 - Change to popup warning about running on a secondary node; as suggested by IK (Sean); Popup warning about improper opening of backup files...
+# build: 1039 - Built in error trap for .getSyncFolder() as it crashes if there is a Dropbox issue on the machine...
+# build: 1040 - Changes requested by IK to change / remove version updates from non IK source(s) - so as to load into manage extensions list
 
 # todo - check/fix alert colours since VAqua....!?
 
@@ -213,7 +215,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1038"
+version_build = "1040"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -447,7 +449,7 @@ else:
     if int(MD_REF.getBuild()) >= 3067:
         from com.moneydance.apps.md.view.gui.theme import ThemeInfo                                                     # noqa
     else:
-        from com.moneydance.apps.md.view.gui.theme import Theme as ThemeInfo
+        from com.moneydance.apps.md.view.gui.theme import Theme as ThemeInfo                                            # noqa
 
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
     from com.moneydance.apps.md.controller import ModuleMetaData
@@ -521,6 +523,7 @@ else:
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
     MD_EXTENSIONS_DIRECTORY_FILE = "https://infinitekind.com/app/md/extensions.dct"                                     # noqa
     TOOLBOX_VERSION_VALIDATION_URL = "https://raw.githubusercontent.com/yogi1967/MoneydancePythonScripts/master/source/toolbox/toolbox_version_requirements.dict" # noqa
+    # Alternatively perhaps use....: "https://raw.githubusercontent.com/TheInfiniteKind/moneydance_open/main/python_scripts/toolbox/toolbox_version_requirements.dict"
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
     # COPY >> START
@@ -2187,6 +2190,7 @@ Visit: %s (Author's site)
 
         saveSyncFolder=None
         try:
+            # NOTE: If there is a problem with Dropbox, then .getSyncFolder() will crash
             syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts())
             syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
 
@@ -2451,7 +2455,24 @@ Visit: %s (Author's site)
             syncMethod = noSyncOption
         else:
             syncMethod = syncMethod
-        textArray.append(u"Sync Method: %s" %(syncMethod.getSyncFolder()))
+
+        try:
+            textArray.append(u"Sync Method: %s" %(syncMethod.getSyncFolder()))
+        except:
+            textArray.append(u"Sync Method: *** YOU HAVE A PROBLEM WITH YOUR DROPBOX CONFIGURATION! ***")
+            myPrint("B",u"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            myPrint("B",u"!! WARNING - You have a Dropbox configuration issue which is crashing .getSyncFolder() !!")
+            myPrint("B",u"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            MyPopUpDialogBox(toolbox_frame_,
+                             u"WARNING - DROPBOX ERROR",
+                             u"You seem to have a Dropbox configuration issue!?\n"
+                             u"Toolbox cannot fix this for you - please review your console logs\n"
+                             u"and contact the online support forum for help....\n"
+                             u"(if you find a fix, please inform the Toolbox author)",
+                             150,
+                             u"DROPBOX ERROR",
+                             lModal=False,
+                             lAlertLevel=2).go()
 
         if not check_for_dropbox_folder():
             textArray.append(u"Sync WARNING: Dropbox sync will not work until you add the missing .moneydancesync folder - use advanced mode to fix!")
@@ -3046,7 +3067,7 @@ Visit: %s (Author's site)
                 self.MD_OFX_DEFAULT_SETTINGS_FILE =         None
                 self.MD_OFX_DEBUG_SETTINGS_FILE =           None
                 self.MD_EXTENSIONS_DIRECTORY_FILE =         None
-                self.MYPYTHON_DOWNLOAD_URL =                 None
+                self.MYPYTHON_DOWNLOAD_URL =                None
 
 
         def __str__(self):
@@ -3268,14 +3289,18 @@ Visit: %s (Author's site)
 
                     extInfo = ModuleMetaData(obj)       # ModuleMetaData
 
+                    # Mirrors code from com.moneydance.apps.md.view.gui.extensions.ExtensionsWindow lines 290-317 (ish)....
+
                     # noinspection PyUnresolvedReferences
                     if excludedIDs.contains(extInfo.getModuleID().lower()):     # Probably internal modules like Python/Jython
                         continue
-                    if not (1928 >= extInfo.getMinimumSupportedBuild() and 1928 <= extInfo.getMaximumSupportedBuild()):  # noqa
+                    if not ((float(MD_REF.getBuild())) >= extInfo.getMinimumSupportedBuild() and (float(MD_REF.getBuild())) <= extInfo.getMaximumSupportedBuild()):  # noqa
                         continue
                     if not (extInfo.getMinimumSupportedBuild() >= 1000):
                         continue
-                    if not(extInfo.isMacSandboxFriendly() or not Platform.isMac() or not MD_REF.getUI().getMain().getPlatformHelper().isConstrainedToSandbox()):
+                    if (extInfo.isMacSandboxFriendly() or not Platform.isMac() or not MD_REF.getUI().getMain().getPlatformHelper().isConstrainedToSandbox()):
+                        pass
+                    else:
                         continue
                     existingMod = None          # FeatureModule
                     for mod in installed:
@@ -4936,7 +4961,7 @@ Visit: %s (Author's site)
                                                     options[0])
 
             if response:
-                myPrint(u"B",u"User requested to ignore Outdated warning extensions going forward..... I will obey!!")
+                myPrint(u"B",u"User requested to ignore Outdated warning extensions going forward..... Acknowledged!!")
                 lIgnoreOutdatedExtensions_TB = True
         else:
             statusLabel.setText( (u"ALERT - YOU HAVE %s EXTENSION(S) THAT CAN BE UPGRADED!...STARTUP POPUP WARNINGS SUPPRESSED (by you)" %howMany ).ljust(800, " "))
@@ -4957,7 +4982,7 @@ Visit: %s (Author's site)
 
         if lPickle_version_warning:
             displayData += "I detected an older (encrypted) version of saved parameter file for use with my Python scripts\n"
-            displayData += "No problem, I have updated / converted it.\n\n"
+            displayData += ".... but no problem, I have updated / converted it.\n\n"
 
         _MAJOR = 0
         _MINOR = 1
@@ -4973,7 +4998,7 @@ Visit: %s (Author's site)
                         if theVersion[_MAJOR] <  1000:
                             pass
                         else: continue
-                    elif key == "__StockGlance2020":
+                    elif key.lower() == "__StockGlance2020".lower():
                         if theVersion[_MAJOR] <  1000:
                             pass
                         else: continue
@@ -4999,22 +5024,17 @@ Visit: %s (Author's site)
         if lPickle_version_warning or lVersionWarning:
             displayData+="""
 
-CURRENT SCRIPT VERSIONS ARE:
+The current versions are available as Extensions from the MD Menu >> Manage Extensions.... 
 
-toolbox.py:                             >1000
-
-extract_data:                           >1000
-This is a consolidation of all prior extract scripts - including:
+NOTE: extract_data is a consolidation of all prior extract scripts - including:
 - stockglance2020.py:                     
 - extract_reminders_csv.py:               
 - extract_currency_history_csv.py:        
 - extract_investment_transactions_csv.py: 
 - extract_account_registers_csv           
 
-Please update any that you use to at least these versions listed above....
-
-Download from here: %s
-""" %(MYPYTHON_DOWNLOAD_URL)
+Please update any that you use before proceeding....
+"""
 
             jif = QuickJFrame("StuWareSoftSystems - Scripts alert!", displayData, 1,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
@@ -5554,7 +5574,12 @@ Download from here: %s
         syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
 
         dropboxOption = SyncFolderUtil.configurerForIDFromList("dropbox_folder", syncMethods)
-        if (not dropboxOption) or syncMethod.getSyncFolder():
+
+        try:
+            if (not dropboxOption) or syncMethod.getSyncFolder():
+                return True
+        except:
+            # If there is a problem with Dropbox, .getSyncFolder() will crash....
             return True
 
         userHomeProperty = System.getProperty("UserHome", System.getProperty("user.home", "."))
@@ -11051,13 +11076,10 @@ now after saving the file, restart Moneydance
 
         ask=MyPopUpDialogBox(toolbox_frame_,"EXTRACT ATTACHMENTS - For Your Information",
                              "This will extract all your attachments to a directory....\n"
-                             "I also have two scripts which will extract attachments alongside your Investment or Bank Account Registers\n"
-                             "- extract_account_registers_csv.py\n"
-                             "- extract_investment_transactions_csv.py\n"
-                             "Visit: %s to download\n\n"
+                             "There is also an extension which will extract attachments alongside your Investment or Bank Account Registers\n"
+                             ">> Extension: extract_data available from MD menu >> Manage Extensions\n"
                              "Please select a directory to extract attachments to...\n"
-                             "I will create a sub-directory called 'EXTRACT_MD_ATTACHMENTS-x' (I will append a unique number)"
-                             % (MYPYTHON_DOWNLOAD_URL),
+                             "I will create a sub-directory called 'EXTRACT_MD_ATTACHMENTS-x' (I will append a unique number)",
                              theWidth=225,
                              theTitle="EXTRACT ATTACHMENTS",
                              OKButtonText="PROCEED", lCancelButton=True)
@@ -17445,17 +17467,18 @@ Now you will have a text readable version of the file you can open in a text edi
                 myModule = myExtensions.get("id")
                 if myModule == checkModule:
                     availableFromGitHubVersion = int(myExtensions.get("module_build"))
-                    if availableFromGitHubVersion > int(version_build):
-                        myPrint("DB","Toolbox upgrade to version %s is available from GitHub to download...." %(availableFromGitHubVersion))
-                        theStr = "You are running version %s\n" %version_build
-                        if _tb_extn_avail_version > int(version_build):
-                            theStr += "Extension version %s is available from Moneydance Menu>Manage Extensions Menu\n" %_tb_extn_avail_version
-                        if availableFromGitHubVersion > _tb_extn_avail_version:
-                            theStr += "Version %s is available from %s" %(availableFromGitHubVersion, MYPYTHON_DOWNLOAD_URL)
 
+                    if _tb_extn_avail_version > int(version_build):
+                        myPrint("B","@@ Extension version %s (signed) is available from Moneydance Menu>>Manage Extensions Menu @@" %_tb_extn_avail_version)
+                        theStr = "You are running version %s\n" %version_build
+                        theStr += "Extension version %s (signed) is available from Moneydance Menu>>Manage Extensions Menu\n" %_tb_extn_avail_version
                         MyPopUpDialogBox(toolbox_frame_,"Toolbox Version:",theStr,200,"UPGRADE AVAILABLE",OKButtonText="Acknowledge").go()
+
+                    elif availableFromGitHubVersion > int(version_build) and availableFromGitHubVersion > _tb_extn_avail_version:
+                        myPrint("DB","@@ FYI - Toolbox upgrade to version %s (unsigned) is available from Author's code site.... @@" %(availableFromGitHubVersion))
+
                     else:
-                        myPrint("DB","I've checked GitHub and Toolbox is running latest version: %s" %availableFromGitHubVersion)
+                        myPrint("DB","I've checked and Toolbox is running latest version available: %s" %max(version_build,availableFromGitHubVersion))
 
             checkForREADONLY(statusLabel)
 
