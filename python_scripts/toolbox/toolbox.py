@@ -2970,7 +2970,7 @@ Visit: %s (Author's site)
                 isUpdatable= "(latest version)"
                 updateInfo = theUpdateList.get(y.getIDStr().lower())
                 if updateInfo:
-                    isUpdatable+= "\t******* Updatable to version: %s *******" % (updateInfo[0].getBuild()).upper()
+                    isUpdatable = ("\t******* Updatable to version: %s *******" % (updateInfo[0].getBuild())).upper()
                 theData.append("Extension ID:           %s" %y.getIDStr())
                 theData.append("Extension Name:         %s" %y.getName())
                 theData.append("Extension Display Name: %s" %y.getDisplayName())
