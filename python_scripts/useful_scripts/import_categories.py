@@ -1,8 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# orphan_attachments.py - build: 16 - January 2021 - Stuart Beesley
+# import_categories.py (build 3) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
+# READ THIS FIRST:
+#
+# DISCLAIMER >> PLEASE ALWAYS BACKUP YOUR DATA BEFORE MAKING CHANGES (Menu>Export Backup will achieve this)
+#               You use this at your own risk. I take no responsibility for its usage..!
+#
+# Usage:    Run the script in Moneybot. It will ask you for the filename, various options.
+#           It will validate the data first and abort with any errors.
+#           Once validation is complete, it will ask you to confirm to proceed with category additions
+#           CSV file format is: "IE","Category","Currency","TaxRelated","Inactive","Comments"
+#           You can either use a header first row (fields in any order); or no header, but field order must be followed.
+#           You can omit optional fields
+#           IE(Income or Expense):  Mandatory - set to I or E
+#           Category:               Mandatory - format cat:subcat:subcat etc
+#           Currency:               Optional - Will use Base currency if not specified. Use the Currency ID or Name
+#           TaxRelated:             Optional - Y or N. Will default to No
+#           Inactive:               Optional - Y or N. Will default to No
+#           Comments:               Optional
+#
 ###############################################################################
 # MIT License
 #
@@ -27,26 +45,20 @@
 # SOFTWARE.
 ###############################################################################
 # Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
-# Stuart Beesley Created 2020-12-24 tested on MacOS - MD2021 (3034) onwards - StuWareSoftSystems....
-# Build: 1 - beta - Initial release
-# Build: 2 - Fix windows \s for /s
-# Build: 3 - Display enhancements
-# Build: 6 - Changes to common code
-# Build: 10 - Small internal tweak
-# build: 11 - Internal common code tweaks - nothing to do with the core functionality
-# build: 12 - Build 3051 of Moneydance... fix references to moneydance_* variables;
-# build: 13 - Build 3056 of Moneydance...
-# build: 14 - Common code tweaks
-# build: 15 - Common code tweaks
-# build: 16 - Common code tweaks
+
+# build: 1 - Initial preview release.....
+# build: 2 - Tweaks; replaced Account.getAccountByName() with own function as it doesn't work properly
+# build: 2 - Only set TaxRelated, Inactive, Comments on final category being created (not its parent levels)
+# build: 3 - Common code tweaks
+
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
-myModuleID = u"orphan_transactions"
-version_build = "16"
+myModuleID = u"import_categories"
+version_build = "3"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -54,7 +66,7 @@ if u"debug" in globals():
     global debug
 else:
     debug = False
-global orphan_transactions_frame_
+global import_categories_frame_
 # SET LINES ABOVE ^^^^
 
 # COPY >> START
@@ -134,9 +146,9 @@ frameToResurrect = None
 try:
     # So we check own namespace first for same frame variable...
     if (u"%s_frame_"%myModuleID in globals()
-            and isinstance(orphan_transactions_frame_, MyJFrame)        # EDIT THIS
-            and orphan_transactions_frame_.isActiveInMoneydance):       # EDIT THIS
-        frameToResurrect = orphan_transactions_frame_                   # EDIT THIS
+            and isinstance(import_categories_frame_, MyJFrame)        # EDIT THIS
+            and import_categories_frame_.isActiveInMoneydance):       # EDIT THIS
+        frameToResurrect = import_categories_frame_                   # EDIT THIS
     else:
         # Now check all frames in the JVM...
         getFr = getMyJFrame( myModuleID )
@@ -262,7 +274,6 @@ else:
     # END COMMON GLOBALS ###################################################################################################
     # COPY >> END
 
-
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
     myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
     myParameters = {}                                                                                                   # noqa
@@ -283,8 +294,7 @@ else:
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
-    from java.awt import Desktop
-    # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
+    from com.infinitekind.moneydance.model import Legacy
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
@@ -2159,339 +2169,520 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    class GLOB_VARS:                                                                                                    # noqa
+        DELIMITERS = [",",";","|"]
+        ACCT_DELIMITERS = [":","/","*","@",";","|"]
+        theFieldDelimiter = ","
+        theAccountDelimiter = ":"
+        theFile = "import_categories.csv"
+        csv_header_present = None
+        data = []
+
+        FIELD_NAMES = ["IE","Category","Currency", "TaxRelated","Inactive","Comments"]
+        # File Import format: "IE","Category","Currency","TaxRelated","Inactive","Comments"
+        INDEX_IE = 0
+        INDEX_CAT = 1
+        INDEX_CURR = 2
+        INDEX_TAX = 3
+        INDEX_INACT = 4
+        INDEX_COMMENTS = 5
+        INDEX_END = 5
+
+        BASE = None
+        allCurrencies = []
+
+        accountsToCreate = []
+
+        def __init__(self): pass
+
+
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
-    scanningMsg = MyPopUpDialogBox(None,"Please wait: searching Database and filesystem for attachments..",theTitle="ATTACHMENT(S) SEARCH", theWidth=100, lModal=False,OKButtonText="WAIT")
-    scanningMsg.go()
+    def find_account(searchAcctString, searchAcctType=None, stripSpareSpaces=True, disregardCase=True, yourDelimiter=":"):
 
-    myPrint("P", "Scanning database for attachment data..")
-    book = MD_REF.getCurrentAccount().getBook()
+        filterAccountType = (searchAcctType is not None)
 
-    attachmentList={}
-    attachmentLocations={}
+        # noinspection PyUnresolvedReferences
+        if filterAccountType and not isinstance(searchAcctType, Account.AccountType):
+            myPrint("B","Error - searchAcctType must be of type Account.AccountType")
+            return None
 
-    iObjectsScanned=0
-    iTxnsScanned=0
+        root = MD_REF.getRootAccount()
 
-    iTxnsWithAttachments = 0
-    iAttachmentsFound = 0
-    iAttachmentsNotInLS = 0
-    iDuplicateKeys = 0
-    attachmentsNotInLS=[]
+        splitAcctString = searchAcctString.split(yourDelimiter)
+        if len(splitAcctString) < 1:
+            myPrint("B","Error - length of split searchAcctString (%s) returned zero?" %(searchAcctString))
+            return None
 
-    diagDisplay="ANALYSIS OF ATTACHMENTS\n\n"
+        if searchAcctString.startswith(yourDelimiter) or searchAcctString.endswith(yourDelimiter):
+            myPrint("B","Error - searchAcctString (%s) should not start or end with your delimiter (%s)" %(searchAcctString, yourDelimiter))
+            return None
 
-    attachmentFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe", MD_REF.getCurrentAccountBook().getAttachmentsFolder())
+        if stripSpareSpaces or disregardCase:
+            for i in range(0,len(splitAcctString)):
+                if stripSpareSpaces:
+                    splitAcctString[i] = splitAcctString[i].strip()
+                if disregardCase:
+                    splitAcctString[i] = splitAcctString[i].lower()
+                if splitAcctString[i] == "":
+                    myPrint("B","Error - searchAcctString (%s) seems to contain empty account strings?"  %(searchAcctString))
+                    return None
 
-    LS = MD_REF.getCurrentAccountBook().getLocalStorage()
+        def accountSearch(parentAccount, onLevel=0):
 
-    txnSet = book.getTransactionSet()
-    for _mdItem in txnSet.iterableTxns():
-        iObjectsScanned+=1
+            if onLevel > len(splitAcctString)-1:
+                return None
 
-        iTxnsScanned+=1
+            subAccts = parentAccount.getSubAccounts()
+            for foundAcct in subAccts:
+                if filterAccountType and foundAcct.getAccountType() !=  searchAcctType:
+                    continue
+                foundAcctName = foundAcct.getAccountName()
+                if stripSpareSpaces: foundAcctName = foundAcctName.strip()
+                if disregardCase: foundAcctName = foundAcctName.lower()
+                if foundAcctName == splitAcctString[onLevel]:
+                    if onLevel == len(splitAcctString)-1:
+                        return foundAcct
+                    else:
+                        result = accountSearch(foundAcct, onLevel+1)
+                        if result: return result
+            return None
 
-        if not (_mdItem.hasAttachments() or len(_mdItem.getAttachmentKeys())>0):
-            continue
+        foundAccount = accountSearch(root)
 
-        iTxnsWithAttachments+=1
-        miniMsg= "Found Record with %s Attachment(s): %s" % (len(_mdItem.getAttachmentKeys()), _mdItem)
-        myPrint("D", miniMsg)
-        if debug: diagDisplay+=(miniMsg + "\n")
+        return foundAccount
 
-        if attachmentList.get(_mdItem.getUUID()):
-            iDuplicateKeys += 1
-            miniMsg= "@@ Error %s already exists in my attachment list...!?" % _mdItem.getUUID()
-            myPrint("DB", miniMsg)
-            if debug: diagDisplay+=(miniMsg + "\n")
+    def grabTheFile():
+        global debug, myScriptName
 
-        attachmentList[_mdItem.getUUID()] = [
-                                            _mdItem.getUUID(),
-                                            _mdItem.getAccount().getAccountName(),
-                                            _mdItem.getAccount().getAccountType(),
-                                            _mdItem.getDateInt(),
-                                            _mdItem.getValue(),
-                                            _mdItem.getAttachmentKeys()
-                                            ]
-        miniMsg= "Attachment keys: %s" % _mdItem.getAttachmentKeys()
-        myPrint("D", miniMsg)
-        if debug: diagDisplay+=(miniMsg + "\n")
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        for _key in _mdItem.getAttachmentKeys():
-            iAttachmentsFound+=1
-            if attachmentLocations.get(_mdItem.getAttachmentTag(_key)):
-                iDuplicateKeys += 1
-                miniMsg= "@@ Error %s already exists in my attachment location list...!?" % _mdItem.getUUID()
-                myPrint("B", )
-                if debug: diagDisplay+=(miniMsg + "\n")
+        scriptpath = myDir()
 
-            attachmentLocations[_mdItem.getAttachmentTag(_key)] = [
-                                                                    _mdItem.getAttachmentTag(_key),
-                                                                    _key,
-                                                                    _mdItem.getUUID(),
-                                                                    LS.exists(_mdItem.getAttachmentTag(_key))
-                                                                    ]
-            if not LS.exists(_mdItem.getAttachmentTag(_key)):
-                iAttachmentsNotInLS+=1
-                attachmentsNotInLS.append([
-                                            _mdItem.getUUID(),
-                                            _mdItem.getAccount().getAccountName(),
-                                            _mdItem.getAccount().getAccountType(),
-                                            _mdItem.getDateInt(),
-                                            _mdItem.getValue(),
-                                            _mdItem.getAttachmentKeys()
-                                            ])
+        myPrint("DB", "Default file export output path is....:", scriptpath)
 
-                miniMsg= "@@ Error - Attachment for Txn DOES NOT EXIST! - Attachment tag: %s" % _mdItem.getAttachmentTag(_key)
-                myPrint("B", miniMsg)
-                diagDisplay+=(miniMsg + "\n")
-            else:
-                miniMsg= "Attachment tag: %s" % _mdItem.getAttachmentTag(_key)
-                myPrint("D", miniMsg)
-                if debug: diagDisplay+=(miniMsg + "\n")
+        if Platform.isOSX():
+            System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
+            System.setProperty("apple.awt.fileDialogForDirectories", "false")
 
+        filename = FileDialog(None, "Select the CSV file to import (CANCEL=ABORT)")
 
-    # Now scan the file system for attachments
-    myPrint("P", "Now scanning attachment directory(s) and files...:")
+        filename.setMultipleMode(False)
+        filename.setMode(FileDialog.LOAD)
 
-    attachmentsRawListFound = []
+        filename.setFile(GLOB_VARS.theFile)
+        if (scriptpath is not None and scriptpath != ""): filename.setDirectory(scriptpath)
 
-    typesFound={}
+        # Copied from MD code... File filters only work on non Macs (or Macs below certain versions)
+        if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            filename.setFilenameFilter(ExtFilenameFilter("csv"))
 
-    for root, dirs, files in os.walk(attachmentFullPath):
+        filename.setVisible(True)
+        csvfilename = filename.getFile()
 
-        for name in files:
-            theFile = os.path.join(root,name)[len(attachmentFullPath)-len(MD_REF.getCurrentAccountBook().getAttachmentsFolder()):]
-            byteSize = os.path.getsize(os.path.join(root,name))
-            modified = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S')
-            attachmentsRawListFound.append([theFile, byteSize, modified])
-            theExtension = os.path.splitext(theFile)[1].lower()
+        if (csvfilename is None) or csvfilename == "":
+            myPrint("B", "User chose to cancel or no file selected >>  So no Import will be performed... ")
+            myPopupInformationBox(None, "User chose to cancel or no file selected >>  So no Import will be performed... ", "FILE IMPORT")
+            return False
+        elif str(csvfilename).endswith(".moneydance"):
+            myPrint("B", "User selected file:", csvfilename)
+            myPrint("B", "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Import will be performed...")
+            myPopupInformationBox(None, "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Import will be performed...", "FILE IMPORT")
+            return False
 
-            iCountExtensions = 0
-            iBytes = 0
-            if typesFound.get(theExtension):
-                iCountExtensions = typesFound.get(theExtension)[1]
-                iBytes = typesFound.get(theExtension)[2]
-            typesFound[theExtension] = [theExtension, iCountExtensions+1, iBytes+byteSize ]
+        csvfilename = os.path.join(filename.getDirectory(), filename.getFile())
+        if not os.path.exists(csvfilename):
+            myPrint("B", "User selected file:", csvfilename)
+            myPrint("B", "Sorry - file does not exists so no Import will be performed...")
+            myPopupInformationBox(None, "Sorry - file does not exists so no Import will be performed...", "FILE IMPORT")
+            return False
 
-            miniMsg= "Found Attachment File: %s" % theFile
-            myPrint("D", miniMsg)
-            if debug: diagDisplay+=(miniMsg + "\n")
+        GLOB_VARS.theFile = csvfilename
+        myPrint("B","Import file set to: %s" %GLOB_VARS.theFile)
+        return True
 
-    # Now match file system to the list from the database
-    iOrphans=0
-    iOrphanBytes=0
+    def get_field_delimiter():
+        selectedDelimiter = JOptionPane.showInputDialog(None,
+                                                        "Select the CSV Field Delimiter being used",
+                                                        "DELIMITER",
+                                                        JOptionPane.QUESTION_MESSAGE,
+                                                        None,
+                                                        GLOB_VARS.DELIMITERS,
+                                                        GLOB_VARS.DELIMITERS[0])
+        if not selectedDelimiter:
+            raise Exception("ERROR: No delimiter was selected!")
 
-    orphanList=[]
+        GLOB_VARS.theFieldDelimiter = selectedDelimiter
+        myPrint("B","CSV field delimiter set to: %s" %GLOB_VARS.theFieldDelimiter)
+        return
 
-    for fileDetails in attachmentsRawListFound:
-        deriveTheKey = fileDetails[0]
-        deriveTheBytes = fileDetails[1]
-        deriveTheModified = fileDetails[2]
-        if attachmentLocations.get(deriveTheKey.replace(os.path.sep,"/")):
-            miniMsg= "Attachment file system link found in Moneydance database"
-            myPrint("D", miniMsg)
-            if debug: diagDisplay+=(miniMsg + "\n")
+    def get_account_delimiter():
+        selectedAcctDelimiter = JOptionPane.showInputDialog(None,
+                                                        "Select the account name delimiter being used in the CSV file",
+                                                        "ACCOUNT NAME DELIMITER",
+                                                        JOptionPane.QUESTION_MESSAGE,
+                                                        None,
+                                                        GLOB_VARS.ACCT_DELIMITERS,
+                                                        GLOB_VARS.ACCT_DELIMITERS[0])
+        if not selectedAcctDelimiter:
+            raise Exception("ERROR: No account delimiter was selected!")
+
+        if selectedAcctDelimiter == GLOB_VARS.theFieldDelimiter:
+            raise Exception("ERROR: Sorry... The CSV account name delimiter can NOT be the same as the field delimiter!")
+
+        GLOB_VARS.theAccountDelimiter = selectedAcctDelimiter
+        myPrint("B","CSV account name delimiter set to: %s" %GLOB_VARS.theAccountDelimiter)
+        return
+
+    def get_import_data():
+
+        iRows = 0
+
+        try:
+            with open(GLOB_VARS.theFile,"r") as csvfile:
+                reader = csv.reader(csvfile, dialect='excel', delimiter=fix_delimiter(GLOB_VARS.theFieldDelimiter))
+                for row in reader:
+                    GLOB_VARS.data.append(row)
+                    iRows += 1
+        except:
+            dump_sys_error_to_md_console_and_errorlog()
+            _msg = "ERROR trying to preload data!"
+            myPrint("B", _msg)
+            myPopupInformationBox(None, _msg, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(_msg)
+
+        if iRows < 1:
+            _msg = "ERROR - no rows of data found?"
+            myPrint("B", _msg)
+            myPopupInformationBox(None, _msg, theMessageType=JOptionPane.ERROR_MESSAGE)
+            raise Exception(_msg)
+        return
+
+    def load_currencies():
+        ct = MD_REF.getCurrentAccountBook().getCurrencies()
+        baseCurrency = ct.getBaseType()
+        myPrint("B", "Base Currency: ", baseCurrency.getIDString(), " : ", baseCurrency.getName())
+        allCurrencies = ct.getAllCurrencies()
+        for curr in allCurrencies:
+            if curr.getCurrencyType() != CurrencyType.Type.CURRENCY:                                                    # noqa
+                continue
+            GLOB_VARS.allCurrencies.append(curr)
+
+        GLOB_VARS.BASE = baseCurrency
+
+    def lookup_account_type(atype):
+        if atype.lower().strip() == "e":
+            return Account.AccountType.EXPENSE                                                                          # noqa
+        elif atype.lower().strip() == "i":
+            return Account.AccountType.INCOME                                                                           # noqa
         else:
-            miniMsg= "Error: Attachment filesystem link missing in Moneydance database: %s" % deriveTheKey
-            myPrint("DB", miniMsg)
-            if debug: diagDisplay+=(miniMsg + "\n")
-            iOrphans+=1
-            iOrphanBytes+=deriveTheBytes
-            orphanList.append([deriveTheKey,deriveTheBytes, deriveTheModified])
+            return None
 
-    msgStr=""
+    def validate_csv_data():
 
-    myPrint("P","\n"*5)
+        data = GLOB_VARS.data
+        row = data[0]
 
-    miniMsg= "----------------------------------"
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n")
+        lIE = lCategory = lCurrency = lTax = lInactive = lComments = False
 
-    miniMsg = "Objects scanned: %s" % iObjectsScanned
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n")
+        iColumn = 0
+        for field in row:
+            if field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_IE].lower():
+                lIE = True
+                GLOB_VARS.INDEX_IE = iColumn
+                myPrint("B","Header: I/E present @ %s" %(iColumn+1))
+            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_CAT].lower():
+                lCategory = True
+                GLOB_VARS.INDEX_CAT = iColumn
+                myPrint("B","Header: Category present @ %s" %(iColumn+1))
+            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_CURR].lower():
+                lCurrency = True
+                GLOB_VARS.INDEX_CURR = iColumn
+                myPrint("B","Header: Currency present @ %s" %(iColumn+1))
+            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_TAX].lower():
+                lTax = True
+                GLOB_VARS.INDEX_TAX = iColumn
+                myPrint("B","Header: TaxRelated present @ %s" %(iColumn+1))
+            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_INACT].lower():
+                lInactive = True
+                GLOB_VARS.INDEX_INACT = iColumn
+                myPrint("B","Header: Inactive present @ %s" %(iColumn+1))
+            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_COMMENTS].lower():
+                lComments = True
+                GLOB_VARS.INDEX_COMMENTS = iColumn
+                myPrint("B","Header: Comments present @ %s" %(iColumn+1))
+            else:
+                pass
 
-    miniMsg= "Transactions scanned: %s" % iTxnsScanned
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n")
-    miniMsg= "Transactions with attachments: %s" % iTxnsWithAttachments
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n")
-    miniMsg= "Total Attachments referenced in Moneydance database (a txn may have multi-attachments): %s" % iAttachmentsFound
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n")
-    miniMsg= "Attachments missing from Local Storage: %s" % iAttachmentsNotInLS
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n")
-    miniMsg= "Total Attachments found in file system: %s (difference %s)" % (len(attachmentsRawListFound), len(attachmentsRawListFound) - iAttachmentsFound)
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n")
+            iColumn += 1
+
+        iStartRow = 0
+        if lIE and lCategory:
+            myPrint("B","CSV header row present")
+            GLOB_VARS.csv_header_present = True
+            if not lCurrency: GLOB_VARS.INDEX_CURR = False
+            if not lTax: GLOB_VARS.INDEX_TAX = False
+            if not lInactive: GLOB_VARS.INDEX_INACT = False
+            if not lComments: GLOB_VARS.INDEX_COMMENTS = False
+            iStartRow += 1
+        else:
+            myPrint("B","No CSV header detected")
+            GLOB_VARS.csv_header_present = False
+
+        if len(data) - iStartRow < 1:
+            _msg = "ERROR: No rows of actual data detected?!"
+            myPrint("B",_msg)
+            raise Exception(_msg)
+
+        myPrint("B","Detected %s rows of data... Now analysing..." %(len(data)-iStartRow))
+
+        for i in range(iStartRow,len(data)):
+
+            if len(data[i]) < 1: continue
+
+            if not GLOB_VARS.csv_header_present:
+                for iFields in reversed(range(GLOB_VARS.INDEX_END,len(data[i]))):
+                    if data[i][iFields] is None or data[i][iFields].strip() == "":
+                        data[i].pop(iFields)
+                        break
+                if len(data[i]) < GLOB_VARS.INDEX_CAT+1 or len(data[i]) > GLOB_VARS.INDEX_END+1:
+                    _msg = "Error: (headless CSV) Row %s has %s columns (min %s, max %s)?" %(i+1,len(data[i]),GLOB_VARS.INDEX_CAT+1,GLOB_VARS.INDEX_END+1)
+                    myPrint("B", _msg); raise Exception(_msg)
+
+                while len(data[i]) < GLOB_VARS.INDEX_END+1:
+                    data[i].append("")
+
+            data[i][GLOB_VARS.INDEX_IE] = data[i][GLOB_VARS.INDEX_IE].lower().strip()
+            if data[i][GLOB_VARS.INDEX_IE] != "i" and data[i][GLOB_VARS.INDEX_IE] != "e":
+                _msg = "ERROR: Row %s, I/E mandatory field incorrect - must be 'I' or 'E'" %(i+1)
+                myPrint("B", _msg); raise Exception(_msg)
+            else:
+                data[i][GLOB_VARS.INDEX_IE] = lookup_account_type(data[i][GLOB_VARS.INDEX_IE])
+
+            if data[i][GLOB_VARS.INDEX_CAT].strip() is None or len(data[i][GLOB_VARS.INDEX_CAT].strip()) < 1:
+                _msg = "ERROR: Row %s, mandatory Category Name field empty?" %(i+1)
+                myPrint("B", _msg); raise Exception(_msg)
+            elif GLOB_VARS.theAccountDelimiter != GLOB_VARS.ACCT_DELIMITERS[0] and GLOB_VARS.ACCT_DELIMITERS[0] in data[i][GLOB_VARS.INDEX_CAT]:
+                _msg = "ERROR: Row %s, Category cannot contain ':' when it's not the delimiter!" %(i+1)
+                myPrint("B", _msg); raise Exception(_msg)
+            elif data[i][GLOB_VARS.INDEX_CAT].startswith(GLOB_VARS.theAccountDelimiter) or data[i][GLOB_VARS.INDEX_CAT].endswith(GLOB_VARS.theAccountDelimiter):
+                _msg = "ERROR: Row %s, Category (%s) cannot start or end with your account delimiter (%s)!" %(i+1,data[i][GLOB_VARS.INDEX_CAT],GLOB_VARS.theAccountDelimiter)
+                myPrint("B", _msg); raise Exception(_msg)
+            else:
+                split_cat = data[i][GLOB_VARS.INDEX_CAT].split(GLOB_VARS.theAccountDelimiter)
+                for iSplit in range(0,len(split_cat)):
+                    split_cat[iSplit] = split_cat[iSplit].strip()
+                    if split_cat[iSplit] == "":
+                        _msg = "ERROR: Row %s, Category (%s) cannot contain empty account strings in between your delimiters (%s)!" %(i+1,data[i][GLOB_VARS.INDEX_CAT],GLOB_VARS.theAccountDelimiter)
+                        myPrint("B", _msg); raise Exception(_msg)
+
+                data[i][GLOB_VARS.INDEX_CAT] = GLOB_VARS.ACCT_DELIMITERS[0].join(split_cat)  # Rejoin the string with :'s (the MD default)
+
+                # if MD_REF.getRootAccount().getAccountByName(split_cat[0],data[i][GLOB_VARS.INDEX_IE]):
+                if find_account(split_cat[0], searchAcctType=data[i][GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter):
+                    # OK - The parent Account seems to exist already with the right Account Type
+                    pass
+                else:
+                    # acct = MD_REF.getRootAccount().getAccountByName(split_cat[0])
+                    acct = find_account(split_cat[0], searchAcctType=None, stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter)
+                    if acct and acct.getAccountType() != data[i][GLOB_VARS.INDEX_IE]:
+                        _msg = "WARNING: Row %s, Parent Category %s already exists in MD, but it's set to %s. I am not allowing duplicate names" %(i+1,split_cat[0],acct.getAccountType())
+                        myPrint("B", _msg); raise Exception(_msg)
+
+                # acct = MD_REF.getRootAccount().getAccountByName(data[i][GLOB_VARS.INDEX_CAT],data[i][GLOB_VARS.INDEX_IE])   # Doesn't work properly?!
+                acct = find_account(data[i][GLOB_VARS.INDEX_CAT], searchAcctType=data[i][GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter)
+                if acct is not None and acct.getAccountType() == data[i][GLOB_VARS.INDEX_IE]:
+                    myPrint("B","Row %s Category Structure %s already exists..." %(i+1, data[i][GLOB_VARS.INDEX_CAT]))
+                elif acct is not None:
+                    _msg = "WARNING: Row %s, Category structure %s already exists in MD, but it's set to %s. I am not allowing duplicate names/structures" %(i+1,data[i][GLOB_VARS.INDEX_CAT],acct.getAccountType())
+                    myPrint("B", _msg); raise Exception(_msg)
+                else:
+                    myPrint("B","Row %s Account structure %s does not exist - Will be created..." %(i+1, data[i][GLOB_VARS.INDEX_CAT]))
+                    GLOB_VARS.accountsToCreate.append(data[i][GLOB_VARS.INDEX_CAT])
+
+            currToUseForCat = GLOB_VARS.BASE
+            if GLOB_VARS.INDEX_CURR:
+                lFoundCurr = False
+                if len(data[i][GLOB_VARS.INDEX_CURR].strip()) < 1:
+                    lFoundCurr = True
+                    data[i][GLOB_VARS.INDEX_CURR] = GLOB_VARS.BASE
+                    myPrint("B","Row %s, no currency specified, using base: %s" %(i+1,GLOB_VARS.BASE))
+                else:
+                    for curr in GLOB_VARS.allCurrencies:
+                        if (data[i][GLOB_VARS.INDEX_CURR].lower() == curr.getIDString().lower() or
+                                data[i][GLOB_VARS.INDEX_CURR].lower() == curr.getName().lower()):
+                            lFoundCurr = True
+                            data[i][GLOB_VARS.INDEX_CURR] = curr
+                            currToUseForCat = curr
+                            myPrint("B","Row %s, currency of matched: %s" %(i+1,curr))
+                            break
+                if not lFoundCurr:
+                    _msg = "ERROR: Row %s, Currency of %s not matched in Moneydance?" %(i+1, data[i][GLOB_VARS.INDEX_CURR])
+                    myPrint("B", _msg); raise Exception(_msg)
+
+            if acct is not None and acct.getCurrencyType() != currToUseForCat:
+                _msg = "ERROR: Row %s, Category %s already exists, but is set to different Currency (%s); you asked for %s!?" %(i+1, data[i][GLOB_VARS.INDEX_CAT],acct.getCurrencyType(), data[i][GLOB_VARS.INDEX_CURR])
+                myPrint("B", _msg); raise Exception(_msg)
 
 
-    myPrint("P","\n"*1)
+            if GLOB_VARS.INDEX_TAX:
+                data[i][GLOB_VARS.INDEX_TAX] = data[i][GLOB_VARS.INDEX_TAX].lower().strip()
+                if len(data[i][GLOB_VARS.INDEX_TAX].strip()) < 1:
+                    data[i][GLOB_VARS.INDEX_TAX] = False
+                else:
+                    if data[i][GLOB_VARS.INDEX_TAX] != "y" and data[i][GLOB_VARS.INDEX_TAX] != "n":
+                        _msg = "ERROR: Row %s, optional TaxRelated field incorrect - must be 'Y' or 'N'" %(i+1)
+                        myPrint("B", _msg); raise Exception(_msg)
+                    if data[i][GLOB_VARS.INDEX_TAX] == "y":
+                        data[i][GLOB_VARS.INDEX_TAX] = True
+                    else:
+                        data[i][GLOB_VARS.INDEX_TAX] = False
 
-    miniMsg= "Attachment extensions found: %s" % len(typesFound)
-    myPrint("B", miniMsg)
-    diagDisplay+=("\n" + miniMsg + "\n")
+            if GLOB_VARS.INDEX_INACT:
+                data[i][GLOB_VARS.INDEX_INACT] = data[i][GLOB_VARS.INDEX_INACT].lower().strip()
+                if len(data[i][GLOB_VARS.INDEX_INACT].strip()) < 1:
+                    data[i][GLOB_VARS.INDEX_INACT] = False
+                else:
+                    if data[i][GLOB_VARS.INDEX_INACT] != "y" and data[i][GLOB_VARS.INDEX_INACT] != "n":
+                        _msg = "ERROR: Row %s, optional Inactive field incorrect - must be 'Y' or 'N'" %(i+1)
+                        myPrint("B", data[i][GLOB_VARS.INDEX_INACT])
+                        myPrint("B", data[i])
+                        myPrint("B", _msg); raise Exception(_msg)
+                    if data[i][GLOB_VARS.INDEX_INACT] == "y":
+                        data[i][GLOB_VARS.INDEX_INACT] = True
+                    else:
+                        data[i][GLOB_VARS.INDEX_INACT] = False
 
-    iTotalBytes = 0
-    sortedExtensions = sorted(typesFound.values(), key=lambda _x: (_x[2]), reverse=True)
+            if GLOB_VARS.INDEX_COMMENTS:
+                pass
 
-    for miniMsg in sortedExtensions:
-        iTotalBytes+=miniMsg[2]
+    def create_categories():
 
-        miniMsg= "Extension: %s Number: %s Size: %sMB" % (pad(miniMsg[0], 6), rpad(miniMsg[1], 12), rpad(round(miniMsg[2] / (1024.0 * 1024.0), 2), 12))
-        myPrint("B", miniMsg)
-        diagDisplay+=(miniMsg + "\n")
+        myPrint("B", "Sorting CSV import table....")
+        new_data = []
 
-    miniMsg= "Attachments on disk are taking: %sMB" % (round(iTotalBytes / (1024.0 * 1024.0), 2))
-    myPrint("B", miniMsg)
-    diagDisplay+=(miniMsg + "\n")
-    msgStr+=(miniMsg + "\n")
-    miniMsg= "----------------------------------"
-    myPrint("B", miniMsg)
-    msgStr+=(miniMsg + "\n")
-    diagDisplay+=(miniMsg + "\n\n")
+        iStart = 0
+        if GLOB_VARS.csv_header_present: iStart += 1
 
-    lErrors=False
-    if iAttachmentsNotInLS:
-        miniMsg = "@@ ERROR: You have %s missing attachment(s) referenced on Moneydance Txns!" % (iAttachmentsNotInLS)
-        msgStr+= miniMsg + "\n"
-        diagDisplay+=(miniMsg + "\n\n")
-        myPrint("P","")
-        myPrint("B", miniMsg)
-        lErrors=True
+        # Preserve the row numbers and shift the field indexes... Skip blank rows
+        for i in range(iStart,len(GLOB_VARS.data)):
+            if len(GLOB_VARS.data[i]) > 0:
+                new_row = list(GLOB_VARS.data[i])
+                new_row.insert(0,i)
+                new_data.append(new_row)
 
-        attachmentsNotInLS=sorted(attachmentsNotInLS, key=lambda _x: (_x[3]), reverse=False)
-        for theOrphanRecord in attachmentsNotInLS:
-            miniMsg= "Attachment is missing from this Txn: AcctType: %s Account: %s Date: %s Value: %s AttachKey: %s" % (theOrphanRecord[1],
-                                                                                                                         theOrphanRecord[2],
-                                                                                                                         theOrphanRecord[3],
-                                                                                                                         theOrphanRecord[4],
-                                                                                                                         theOrphanRecord[5])
-            myPrint("B", miniMsg)
-            diagDisplay+=(miniMsg + "\n")
-        diagDisplay+="\n"
+        GLOB_VARS.INDEX_IE += 1
+        GLOB_VARS.INDEX_CAT += 1
+        if GLOB_VARS.INDEX_CURR: GLOB_VARS.INDEX_CURR += 1
+        if GLOB_VARS.INDEX_TAX: GLOB_VARS.INDEX_TAX += 1
+        if GLOB_VARS.INDEX_INACT: GLOB_VARS.INDEX_INACT += 1
+        if GLOB_VARS.INDEX_COMMENTS: GLOB_VARS.INDEX_COMMENTS += 1
+        if GLOB_VARS.INDEX_END: GLOB_VARS.INDEX_END += 1
 
-    if iOrphans:
-        miniMsg = "@@ ERROR: %s Orphan attachment(s) found, taking up %sMBs" % (iOrphans, round(iOrphanBytes / (1024.0 * 1024.0), 2))
-        msgStr+= miniMsg + "\n"
-        diagDisplay+=(miniMsg + "\n\n")
-        myPrint("P","")
-        myPrint("B", miniMsg)
-        miniMsg= "Base Attachment Directory is: %s" % os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe", "")
-        myPrint("P", miniMsg)
-        diagDisplay+=(miniMsg + "\n")
-        lErrors=True
-        orphanList=sorted(orphanList, key=lambda _x: (_x[2]), reverse=False)
-        for theOrphanRecord in orphanList:
+        new_data = sorted(new_data, key=lambda x: (x[GLOB_VARS.INDEX_CAT].upper()))
 
-            miniMsg= "Orphaned Attachment >> Txn Size: %sKB Modified %s for file: %s" % (rpad(round(theOrphanRecord[1] / (1024.0), 1), 6),
-                                                                                         pad(theOrphanRecord[2],19),
-                                                                                         theOrphanRecord[0])
-            diagDisplay+=(miniMsg + "\n")
-            myPrint("B", miniMsg)
+        saveCreated = ""
 
-    if not lErrors:
-        miniMsg= "Congratulations! - No orphan attachments detected!".upper()
-        myPrint("B", miniMsg)
-        diagDisplay+=(miniMsg + "\n")
+        for row in new_data:
+
+            split_cat = row[GLOB_VARS.INDEX_CAT].split(GLOB_VARS.ACCT_DELIMITERS[0])
+
+            defaultParent = MD_REF.getRootAccount()
+
+            onLevel = 0
+            catBuilder = ""
+            for createCat in split_cat:
+                catBuilder += createCat
+
+                # acct = defaultParent.getAccountByName(catBuilder,row[GLOB_VARS.INDEX_IE])     # Does not work properly?
+                acct = find_account(catBuilder, searchAcctType=row[GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.ACCT_DELIMITERS[0])
+                if acct is not None and acct.getAccountType() != row[GLOB_VARS.INDEX_IE]: acct = None
+
+                if acct:
+                    defaultParent = acct
+
+                else:
+
+                    curr = GLOB_VARS.BASE
+                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_CURR: curr = row[GLOB_VARS.INDEX_CURR]
+
+                    inactive = False
+                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_INACT: inactive = row[GLOB_VARS.INDEX_INACT]
+
+                    taxR = False
+                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_TAX: taxR = row[GLOB_VARS.INDEX_TAX]
+
+                    comments = ""
+                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_COMMENTS: comments = row[GLOB_VARS.INDEX_COMMENTS]
+
+                    newCat = Legacy.makeAccount(MD_REF.getCurrentAccountBook(),                                         # noqa
+                                                createCat,
+                                                -1,
+                                                row[GLOB_VARS.INDEX_IE],
+                                                curr,
+                                                None,
+                                                None,
+                                                defaultParent,
+                                                0L)
+
+                    # Only set these flags on the final level.. Assume the parent levels do not need these...
+                    if onLevel >= len(split_cat)-1:
+                        if inactive: newCat.setAccountIsInactive(inactive)
+                        if taxR: newCat.setTaxRelated(taxR)
+                        if comments != "": newCat.setComment(comments)
+
+                    newCat.syncItem()
+                    defaultParent = newCat                                                                              # noqa
+
+                    myPrint("B","Created %s Category: %s (%s)" %(row[GLOB_VARS.INDEX_IE], newCat.getFullAccountName(), curr))
+                    saveCreated += "Created %s Category: %s (%s)\n" %(row[GLOB_VARS.INDEX_IE], newCat.getFullAccountName(), curr)
+
+                onLevel += 1
+                catBuilder += GLOB_VARS.ACCT_DELIMITERS[0]
+
+        return saveCreated
 
 
-    if iAttachmentsFound:
-        diagDisplay+="\n\nLISTING VALID ATTACHMENTS FOR REFERENCE\n"
-        diagDisplay+="=======================================\n"
-        miniMsg= "\nBase Attachment Directory is: %s" % os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe", "")
-        diagDisplay+=(miniMsg + "\n-----------\n")
+    if not myPopupAskQuestion(None, "BACKUP", "IMPORT CATEGORIES FROM CSV >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
+        alert = "BACKUP FIRST! PLEASE USE FILE>EXPORT BACKUP then come back!! - No changes made."
+        myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise Exception(alert)
 
-        for validLocation in attachmentLocations:
-            locationRecord = attachmentLocations[validLocation]
-            record = attachmentList[locationRecord[2]]
-            diagDisplay+="AT: %s ACT: %s DT: %s Val: %s FILE: %s\n" \
-                         %(pad(repr(record[2]),12),
-                           pad(str(record[1]),20),
-                           record[3],
-                           rpad(record[4]/100.0,10),
-                           validLocation)
+    theFile = grabTheFile()
+    if not theFile:
+        raise Exception("No valid file selected or user aborted....")
 
-    diagDisplay+='\n<END>'
-    jif = QuickJFrame("ATTACHMENT ANALYSIS",diagDisplay).show_the_frame()
+    get_field_delimiter()
+    get_account_delimiter()
 
-    if iOrphans:
-        msg = MyPopUpDialogBox(jif,
-                               "You have %s Orphan attachment(s) found, taking up %sMBs" %(iOrphans,round(iOrphanBytes/(1024.0 * 1024.0),2)),
-                               msgStr+"CLICK TO VIEW ORPHANS, or CANCEL TO EXIT",
-                               200,"ORPHANED ATTACHMENTS",
-                               lCancelButton=True,
-                               OKButtonText="CLICK TO VIEW",
-                               lAlertLevel=1)
-    elif iAttachmentsNotInLS:
-        msg = MyPopUpDialogBox(jif,
-                               "You have %s missing attachment(s) referenced on Moneydance Txns!" %(iAttachmentsNotInLS),
-                               msgStr,
-                               200,"MISSING ATTACHMENTS",
-                               lCancelButton=False,
-                               OKButtonText="OK",
-                               lAlertLevel=1)
+    get_import_data()
 
-    if lErrors:
-        MD_REF.getUI().setStatus(">> StuWareSoftSystems: %s - ERRORS DETECTED!" %(myScriptName),0)
+    load_currencies()
+    validate_csv_data()
+
+    if len(GLOB_VARS.accountsToCreate) < 1:
+        msg = "There are no Categories to be created.... Will exit..."
+        myPrint("B", msg); myPopupInformationBox(None, msg, theMessageType=JOptionPane.WARNING_MESSAGE)
+
     else:
-        MD_REF.getUI().setStatus(">> StuWareSoftSystems " + miniMsg, 0)
-        msg = MyPopUpDialogBox(jif,
-                               miniMsg,
-                               msgStr,
-                               200,"ATTACHMENTS STATUS",
-                               lCancelButton=False,
-                               OKButtonText="OK",
-                               lAlertLevel=0)
+        myPrint("B","%s Category structures will be created if user proceeds..." %(len(GLOB_VARS.accountsToCreate)))
+        msg = "%s Category structures will be created - do you wish to continue?" %(len(GLOB_VARS.accountsToCreate))
+        if myPopupAskQuestion(None, "PROCEED?", msg):
 
-    myPrint("P","\n"*2)
+            outputX = "IMPORT_CATEGORIES:\n" \
+                     "------------------\n\n" \
+                     "The following categories have been created:\n\n"
 
-    scanningMsg.kill()
+            outputX += create_categories()
 
-    if iOrphans:
-        if msg.go():        # noqa
-            while True:
-                selectedOrphan = JOptionPane.showInputDialog(jif,
-                                                             "Select an Orphan to View",
-                                                             "VIEW ORPHAN (Escape or Cancel to exit)",
-                                                             JOptionPane.WARNING_MESSAGE,
-                                                             None,
-                                                             orphanList,
-                                                             None)
-                if not selectedOrphan:
-                    break
+            outputX += "\n<END>\n"
 
-                try:
-                    tmpDir = File(MD_REF.getCurrentAccount().getBook().getRootFolder(), "tmp")
-                    tmpDir.mkdirs()
-                    attachFileName = (File(tmpDir, selectedOrphan[0])).getName()            # noqa
-                    tmpFile = File.createTempFile(str(System.currentTimeMillis() % 10000L), attachFileName, tmpDir)
-                    tmpFile.deleteOnExit()
-                    fout = FileOutputStream(tmpFile)
-                    LS.readFile(selectedOrphan[0], fout)                                    # noqa
-                    fout.close()
-                    Desktop.getDesktop().open(tmpFile)
+            jif = QuickJFrame("IMPORT_CATEGORIES", outputX).show_the_frame()
+            msg = "SUCCESS. REVIEW OUTPUT - Then check your categories"
+            myPrint("B", msg); myPopupInformationBox(jif, msg, theMessageType=JOptionPane.INFORMATION_MESSAGE)
 
-                except:
-                    myPrint("B","Sorry, could not open attachment file....: %s" %selectedOrphan[0])     # noqa
-
-    else:
-        msg.go()        # noqa
-
-    del attachmentList
-    del attachmentLocations
-    del typesFound
-    del attachmentsRawListFound
-    del attachmentsNotInLS
+        else:
+            msg = "User declined to proceed to create %s Categories - Exiting...." %(len(GLOB_VARS.accountsToCreate))
+            myPrint("B", msg); myPopupInformationBox(None, msg, theMessageType=JOptionPane.ERROR_MESSAGE)
 
     cleanup_actions()

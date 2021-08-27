@@ -1,6 +1,6 @@
 The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
 
-Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru Feb 2021 - a lockdown project ~500 programming hours)
+Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru August 2021 - a lockdown project ~600 programming hours)
 Credit: Derek Kent(23) for his extensive texting and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
@@ -96,8 +96,13 @@ TOOLBAR / MENU BAR Contains the following:
     - Help menu
     - Button: Launch Console Window (opens the Moneydance Help>Show Console Window)
     - Button: Save Console Log (to a file of your choosing)
-    - Button: Open MD Folder (Preferences, Themes, Console log, Dataset, Extensions, Auto-backup folder, last backup folder[, Install Dir])
-    - Button: Copy Diagnostics below to Clipboard (copies the main screen output to clipboard)
+    - Button: Open MD Folder (Preferences, Themes, Console log, Dataset, Extensions, Auto-backup folder, last backup folder[, Sync Dir][, Install Dir])
+    - Button: Copy/Save/Print Diagnostics below (to Clipboard (copies the main screen output to clipboard), or save to file, or print)
+
+POPUP Output/Report Window(s):
+    - Top, Bottom: Jump to beginning or end of display
+    - Wrap Contents: Turns on line wrap. Also enables print 'fit-to-width'
+    - Print, Save to file: Prints the contents or saves to file.
 
 ALT-B - Basic Mode
 - Basic mode: Buttons
@@ -114,34 +119,38 @@ ALT-B - Basic Mode
         - View memorised reports (parameters and default settings)
         - Find my Sync Encryption password(s) in iOS Backup(s)
         - Execute the 'older' Import QIF file and set parameters for import (useful if you want to import Account Structure Only)
+        - Convert a TimeStamp number into a readable date/time (display only)
     - MENU: Online (OFX) Banking Tools:
         - Search for stored OFX related data
         - View your installed Service / Bank logon profiles
         - View full list of all MD's Bank dynamic setup profiles (and then select one to view specific details)
+        - View your Security's hidden CUSIP settings (These link your downloads on Investment Securities to MD Securities)
         - View your Online saved Txns, Payees, Payments
         - View all your OFX last download txn dates (for all accounts)
         - Toggle Moneydance DEBUG (turns ON all MD internal Debug messages - same as view console)
     - MENU: Accounts & Categories tools
         - View Check number settings
         - DIAGnostics - View Categories with zero balance. You can also inactivate using Advanced mode.
+        - DIAGnostics - View Accounts' shouldBeIncludedInNetWorth() settings...
     - MENU: Currency & Security tools:
+        - DIAGnostics - Diagnose currencies / securities (including relative currencies) If errors, then go to FIX below
         - DIAGnostics - Can I delete a Security (tells you whether a security/stock is being used - and where)
         - DIAGnostics - Can I delete a Currency (tells you whether a currency is being used - and where)
-        - DIAGnostics - List decimal places (currency & security). Shows you hidden settings etc.
+        - DIAGnostics - List decimal places (currency & security). Shows you the hidden setting and related data.
         - DIAGnostics - Show your open LOTs on stocks/shares (when using LOT control) (show_open_tax_lots.py)
-        - DIAGnostics - Diagnose relative currencies (currency & security's key settings). If errors, then go to FIX below
+        - DIAGnostics - Diagnose currency / security's current price hidden 'price_date' field. If warnings, then go to FIX below
     - MENU: Transactions tools
         - View Register Txn Sort Orders
         - Extract your Attachments (this decrypts and extracts your attachments to a directory of your choice) (export_all_attachments.py)
         - DIAGnostics - Analise your  attachments (and Detect Orphans)
 
-ALT-M - Advanced Mode
+ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / security data issues detected. Some only available from 2021.2 onwards)
     - These first four buttons will appear only if they are necessary / possible in your system
         - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync)) (convert_secondary_to_primary_data_set.py)
         - FIX - Create Dropbox Sync Folder (creates the missing .moneydancesync folder if missing from Dropbox)
         - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
                 More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
-        - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix). Removes key "migrated.netsync.dropbox.fileid"
+        - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
         - FIX - Change Moneydance Fonts
         - FIX - Delete Custom Theme file
@@ -165,20 +174,28 @@ ALT-M - Advanced Mode
         - OFX Authentication Management (some options also required Hacker mode)
     - MENU: Accounts & Categories tools
         - FIX - Inactivate all Categories with Zero Balance
+        - FIX - Edit an Account's shouldBeIncludedInNetWorth() setting
         - FIX - FORCE change an Account's Type (use with care. Does not update any transactions) (set_account_type.py)
         - FIX - FORCE change an Account's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)
         - FIX - FORCE change ALL Account's currencies (use with care. Does not update any transactions) (force_change_all_currencies.py)
         - FIX - Account's Invalid Parent Account (script fix_account_parent.py)
         - FIX - Correct the Name of Root to match Dataset
     - MENU: Currency & Security tools:
-        - FIX - Fix relative currencies (fixes your currency & security's key settings) (reset_relative_currencies.py)
+        - FIX - Fix currencies / securities (including relative currencies) (fixes your currency & security's key settings) (reset_relative_currencies.py)
+        - FIX - Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly). >> 2021.2 onwards
+        - FIX - Merge 'duplicate' securities (and related Investment txns) into one master security record (by TickerSymbol).       >> 2021.2 onwards
+        - FIX - Fix currency / security's current price hidden 'price_date' field. Also corrects current price whilst fixing too..  >> 2021.2 onwards
+        - FIX - Manually edit a Security/Currency's current price hidden 'price_date' field
         - FIX - Convert Stock to LOT Controlled and Allocate LOTs using FiFo method (MakeFifoCost.py)
         - FIX - Convert Stock to Average Cost Control (and wipe any LOT control records)
+        - FIX - Detect and fix Investment Security records not properly linked to Security Master records
         - FIX - Thin/Purge Price History (allows you to thin/prune your price history based on parameters you input; also fix 'orphans') (price_history_thinner.py)
-        - FIX - Fix invalid relative currency (& security) rates (fixes relative rates where <0 or >9999999999) (fix_invalid_currency_rates.py)
-        - FIX - FORCE change an Account's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)
-        - FIX - FORCE change ALL Account's currencies (use with care. Does not update any transactions) (force_change_all_currencies.py)
+        - FIX - Fix invalid relative currency (& security) rates >> fixes relative rates where <= (1.0/9999999999) or >= 9999999999) (fix_invalid_currency_rates.py)
+        - FIX - Delete invalid price history records where rate <= (1.0/9999999999) or >= 9999999999.
+        - FIX - FORCE change an Account's Currency (use with care). (Does not update any transactions) (force_change_account_currency.py)
+        - FIX - FORCE change ALL Account's currencies (use with care). (Does not update any transactions) (force_change_all_currencies.py)
     - MENU: Transactions tools
+        - Move/Merge Investment transactions from one account into another.                                                         >> 2021.2 onwards
         - FIX - Non Hierarchical Security Account Txns (cross-linked securities) (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)
         - FIX - Delete One-Sided Txns (delete_invalid_txns.py)
         - FIX - Reverse Transaction Amounts between dates (reverse_txn_amounts.py)
@@ -202,14 +219,15 @@ Menu - HACKER MODE
     >> VERY TECHNICAL - DO NOT USE UNLESS YOU KNOW WHAT YOU ARE DOING
     - Toggle other known DEBUG settings on (extra messages in Console)
     - Toggle all internal Moneydance DEBUG settings ON/OFF (same as viewing console)
-    - Extract (a single) File from within LocalStorage. Decrypts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
+    - Extract a (single) file from within LocalStorage. Decrypts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
+    - Peek at an encrypted file located in your Sync Folder.... Decrypts a Sync (e.g. Dropbox) file and shows it to you...
     - Import (a single) File back into LocalStorage. Encrypts a file of your choosing and puts it into LocalStorage/safe/TMP...
     - Allows User to Add/Change/Delete Settings/Prefs >> key/value in config.dict or LocalStorage() (./safe/settings)
     - Edit/Change/Delete an Object's Parameter keys (this can change data in your dataset/database directly)
     - Remove Int/Ext Files from File-list.
         >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
         >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
-    - Call Save Trunk File option....
+    - Call Save Trunk File option.... Immediately flushes all in memory changes to disk, including your dataset (rather than wait for restart)
     - DEMOTE your Primary Sync dataset/node back to a Secondary Node..
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
 

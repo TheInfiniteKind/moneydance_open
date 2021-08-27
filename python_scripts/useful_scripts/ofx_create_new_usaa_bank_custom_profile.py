@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_create_new_usaa_bank_custom_profile.py (build 12) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_create_new_usaa_bank_custom_profile.py (build 13) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
 # https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf
@@ -62,6 +62,7 @@
 # build: 10 - Popup at end to show existing last txn download dates...
 # build: 11 - Common code tweaks
 # build: 12 - Common code tweaks
+# build: 13 - Common code tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -69,7 +70,7 @@
 
 # SET THESE LINES
 myModuleID = u"ofx_create_new_usaa_bank_profile_custom"
-version_build = "12"
+version_build = "13"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -226,6 +227,7 @@ else:
     import platform
     import csv
     import datetime
+    import traceback
 
     from org.python.core.util import FileUtil
 
@@ -246,6 +248,10 @@ else:
     from javax.swing.text import PlainDocument
     from javax.swing.border import EmptyBorder
 
+    exec("from javax.print import attribute")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
+    exec("from java.awt.print import PrinterJob")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
+    global attribute, PrinterJob
+
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
 
@@ -254,7 +260,7 @@ else:
     from java.awt.event import KeyEvent, WindowAdapter, InputEvent
     from java.util import Date
 
-    from java.text import DecimalFormat, SimpleDateFormat
+    from java.text import DecimalFormat, SimpleDateFormat, MessageFormat
     from java.util import Calendar, ArrayList
     from java.lang import Double, Math, Character
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
@@ -288,6 +294,15 @@ else:
     lIamAMac = False                                                                                                    # noqa
     lGlobalErrorDetected = False																						# noqa
     MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
+
+    class GlobalVars:        # Started using this method for storing global variables from August 2021
+        defaultPrintService = None
+        defaultPrinterAttributes = None
+        defaultPrintFontSize = None
+        defaultPrintLandscape = None
+        defaultDPI = 72     # NOTE: 72dpi is Java2D default for everything; just go with it. No easy way to change
+        def __init__(self): pass    # Leave empty
+
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
@@ -320,6 +335,7 @@ The author has other useful Extensions / Moneybot Python scripts available...:
 Extension (.mxt) format only:
 toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
 net_account_balances:                   Homepage / summary screen widget. Display the total of selected Account Balances
+total_selected_transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 Extension (.mxt) and Script (.py) Versions available:
 extract_data                            Extract various data to screen and/or csv.. Consolidation of:
@@ -414,21 +430,17 @@ Visit: %s (Author's site)
                 dump_sys_error_to_md_console_and_errorlog()
         return
 
-    def dump_sys_error_to_md_console_and_errorlog( lReturnText=False ):
+    def dump_sys_error_to_md_console_and_errorlog(lReturnText=False):
 
-        theText = ""
-        myPrint("B","Unexpected error caught: %s" %(sys.exc_info()[0]))
-        myPrint("B","Unexpected error caught: %s" %(sys.exc_info()[1]))
-        myPrint("B","Error on Script Line Number: %s" %(sys.exc_info()[2].tb_lineno))
-
-        if lReturnText:
-            theText += "\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
-            theText += "Unexpected error caught: %s\n" %(sys.exc_info()[0])
-            theText += "Unexpected error caught: %s\n" %(sys.exc_info()[1])
-            theText += "Error on Script Line Number: %s\n" %(sys.exc_info()[2].tb_lineno)
-            theText += "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
-            return theText
-
+        tb = traceback.format_exc()
+        trace = traceback.format_stack()
+        theText =  "\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+        theText += "@@ Unexpected error caught @@\n".upper()
+        theText += tb
+        for trace_line in trace: theText += trace_line
+        theText += "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+        myPrint("B", theText)
+        if lReturnText: return theText
         return
 
     def pad(theText, theLength):
@@ -1187,10 +1199,15 @@ Visit: %s (Author's site)
             myPrint("DB", "Parameter file", migratedFilename, "exists..")
             # Open the file
             try:
+                # Really we should open() the file in binary mode and read/write as binary, then we wouldn't get platform differences!
                 istr = FileInputStream(migratedFilename)
                 load_file = FileUtil.wrap(istr)
-                # noinspection PyTypeChecker
-                myParameters = pickle.load(load_file)
+                if not Platform.isWindows():
+                    load_string = load_file.read().replace('\r', '')    # This allows for files migrated from windows (strip the extra CR)
+                else:
+                    load_string = load_file.read()
+
+                myParameters = pickle.loads(load_string)
                 load_file.close()
             except FileNotFoundException:
                 myPrint("B", "Error: failed to find parameter file...")
@@ -1272,8 +1289,7 @@ Visit: %s (Author's site)
 
         try:
             save_file = FileUtil.wrap(ostr)
-            # noinspection PyTypeChecker
-            pickle.dump(myParameters, save_file)
+            pickle.dump(myParameters, save_file, protocol=0)
             save_file.close()
 
             myPrint("DB","myParameters now contains...:")
@@ -1431,14 +1447,340 @@ Visit: %s (Author's site)
 
             return
 
+    def saveOutputFile(_theFrame, _theTitle, _fileName, _theText, _statusLabel=None):
+
+        if Platform.isOSX():
+            System.setProperty("com.apple.macos.use-file-dialog-packages", "true")
+            System.setProperty("apple.awt.fileDialogForDirectories", "false")
+
+        filename = FileDialog(_theFrame, "Select location to save the current displayed output... (CANCEL=ABORT)")
+        filename.setDirectory(get_home_dir())
+        filename.setMultipleMode(False)
+        filename.setMode(FileDialog.SAVE)
+        filename.setFile(_fileName)
+
+        if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            extFilter = ExtFilenameFilter("txt")
+            filename.setFilenameFilter(extFilter)
+
+        filename.setVisible(True)
+        copyToFile = filename.getFile()
+
+        if Platform.isOSX():
+            System.setProperty("com.apple.macos.use-file-dialog-packages","true")
+            System.setProperty("apple.awt.fileDialogForDirectories", "false")
+
+        if (copyToFile is None) or copyToFile == "":
+            filename.dispose(); del filename
+            return
+        elif not str(copyToFile).endswith(".txt"):
+            myPopupInformationBox(_theFrame, "Sorry - please use a .txt file extension when saving output txt")
+            filename.dispose(); del filename
+            return
+        elif ".moneydance" in filename.getDirectory():
+            myPopupInformationBox(_theFrame, "Sorry, please choose a location outside of the Moneydance location")
+            filename.dispose();del filename
+            return
+
+        copyToFile = os.path.join(filename.getDirectory(), filename.getFile())
+
+        if not check_file_writable(copyToFile):
+            myPopupInformationBox(_theFrame, "Sorry, that file/location does not appear allowed by the operating system!?")
+
+        toFile = None
+        try:
+            toFile = os.path.join(filename.getDirectory(), filename.getFile())
+            with open(toFile, 'w') as f: f.write(_theText)
+            myPrint("B", "%s: text output copied to: %s" %(_theTitle, toFile))
+
+            # noinspection PyTypeChecker
+            if os.path.exists(toFile):
+                play_the_money_sound()
+                txt = "%s: Output text saved as requested to: %s" %(_theTitle, toFile)
+                if _statusLabel:
+                    _statusLabel.setText((txt).ljust(800, " ")); _statusLabel.setForeground(Color.BLUE)
+                myPopupInformationBox(_theFrame, txt)
+            else:
+                txt = "ERROR - failed to write output text to file: %s" %(toFile)
+                myPrint("B", txt)
+                myPopupInformationBox(_theFrame, txt)
+        except:
+            txt = "ERROR - failed to write output text to file: %s" %(toFile)
+            dump_sys_error_to_md_console_and_errorlog()
+            myPopupInformationBox(_theFrame, txt)
+
+        filename.dispose(); del filename
+
+    try: GlobalVars.defaultPrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")   # Do this here as MD_REF disappears after script ends...
+    except: GlobalVars.defaultPrintFontSize = 12
+
+    ####################################################################################################################
+    # PRINTING UTILITIES...: Points to MM, to Inches, to Resolution: Conversion routines etc
+    _IN2MM = 25.4; _IN2CM = 2.54; _IN2PT = 72
+    def pt2dpi(_pt,_resolution):    return _pt * _resolution / _IN2PT
+    def mm2pt(_mm):                 return _mm * _IN2PT / _IN2MM
+    def mm2mpt(_mm):                return _mm * 1000 * _IN2PT / _IN2MM
+    def pt2mm(_pt):                 return round(_pt * _IN2MM / _IN2PT, 1)
+    def mm2in(_mm):                 return _mm / _IN2MM
+    def in2mm(_in):                 return _in * _IN2MM
+    def in2mpt(_in):                return _in * _IN2PT * 1000
+    def in2pt(_in):                 return _in * _IN2PT
+    def mpt2in(_mpt):               return _mpt / _IN2PT / 1000
+    def mm2px(_mm, _resolution):    return mm2in(_mm) * _resolution
+    def mpt2px(_mpt, _resolution):  return mpt2in(_mpt) * _resolution
+
+    def printDeducePrintableWidth(_thePageFormat, _pAttrs):
+
+        _BUFFER_PCT = 0.95
+
+        myPrint("DB", "PageFormat after user dialog: Portrait=%s Landscape=%s W: %sMM(%spts) H: %sMM(%spts) Paper: %s Paper W: %sMM(%spts) H: %sMM(%spts)"
+                %(_thePageFormat.getOrientation()==_thePageFormat.PORTRAIT, _thePageFormat.getOrientation()==_thePageFormat.LANDSCAPE,
+                  pt2mm(_thePageFormat.getWidth()),_thePageFormat.getWidth(), pt2mm(_thePageFormat.getHeight()),_thePageFormat.getHeight(),
+                  _thePageFormat.getPaper(),
+                  pt2mm(_thePageFormat.getPaper().getWidth()), _thePageFormat.getPaper().getWidth(), pt2mm(_thePageFormat.getPaper().getHeight()), _thePageFormat.getPaper().getHeight()))
+
+        if _pAttrs.get(attribute.standard.MediaSizeName):
+            myPrint("DB", "Requested Media: %s" %(_pAttrs.get(attribute.standard.MediaSizeName)))
+
+        if not _pAttrs.get(attribute.standard.MediaPrintableArea):
+            raise Exception("ERROR: MediaPrintableArea not present in pAttrs!?")
+
+        mediaPA = _pAttrs.get(attribute.standard.MediaPrintableArea)
+        myPrint("DB", "MediaPrintableArea settings from Printer Attributes..: w%sMM h%sMM MediaPrintableArea: %s, getPrintableArea: %s "
+                % (mediaPA.getWidth(attribute.standard.MediaPrintableArea.MM),
+                   mediaPA.getHeight(attribute.standard.MediaPrintableArea.MM),
+                   mediaPA, mediaPA.getPrintableArea(attribute.standard.MediaPrintableArea.MM)))
+
+        if (_thePageFormat.getOrientation()==_thePageFormat.PORTRAIT):
+            deducedWidthMM = mediaPA.getWidth(attribute.standard.MediaPrintableArea.MM)
+        elif (_thePageFormat.getOrientation()==_thePageFormat.LANDSCAPE):
+            deducedWidthMM = mediaPA.getHeight(attribute.standard.MediaPrintableArea.MM)
+        else:
+            raise Exception("ERROR: thePageFormat.getOrientation() was not PORTRAIT or LANDSCAPE!?")
+
+        myPrint("DB","Paper Orientation: %s" %("LANDSCAPE" if _thePageFormat.getOrientation()==_thePageFormat.LANDSCAPE else "PORTRAIT"))
+
+        _maxPaperWidthPTS = mm2px(deducedWidthMM, GlobalVars.defaultDPI)
+        _maxPaperWidthPTS_buff = _maxPaperWidthPTS * _BUFFER_PCT
+
+        myPrint("DB", "MediaPrintableArea: deduced printable width: %sMM(%sPTS) (using factor of *%s = %sPTS)" %(round(deducedWidthMM,1), round(_maxPaperWidthPTS,1), _BUFFER_PCT, _maxPaperWidthPTS_buff))
+        return deducedWidthMM, _maxPaperWidthPTS, _maxPaperWidthPTS_buff
+
+    def loadDefaultPrinterAttributes(_pAttrs=None):
+
+        if _pAttrs is None:
+            _pAttrs = attribute.HashPrintRequestAttributeSet()
+        else:
+            _pAttrs.clear()
+
+        # Refer: https://docs.oracle.com/javase/7/docs/api/javax/print/attribute/standard/package-summary.html
+        _pAttrs.add(attribute.standard.DialogTypeSelection.NATIVE)
+        if GlobalVars.defaultPrintLandscape:
+            _pAttrs.add(attribute.standard.OrientationRequested.LANDSCAPE)
+        else:
+            _pAttrs.add(attribute.standard.OrientationRequested.PORTRAIT)
+        _pAttrs.add(attribute.standard.Chromaticity.MONOCHROME)
+        _pAttrs.add(attribute.standard.JobSheets.NONE)
+        _pAttrs.add(attribute.standard.Copies(1))
+        _pAttrs.add(attribute.standard.PrintQuality.NORMAL)
+
+        return _pAttrs
+
+    def printOutputFile(_callingClass=None, _theTitle=None, _theJText=None, _theString=None):
+
+        # Possible future modification, leverage MDPrinter, and it's classes / methods to save/load preferences and create printers
+        try:
+            if _theJText is None and _theString is None: return
+            if _theJText is not None and len(_theJText.getText()) < 1: return
+            if _theString is not None and len(_theString) < 1: return
+
+            # Make a new one for printing
+            if _theJText is not None:
+                printJTextArea = JTextArea(_theJText.getText())
+            else:
+                printJTextArea = JTextArea(_theString)
+
+            printJTextArea.setEditable(False)
+            printJTextArea.setLineWrap(True)    # As we are reducing the font size so that the width fits the page width, this forces any remainder to wrap
+            # if _callingClass is not None: printJTextArea.setLineWrap(_callingClass.lWrapText)  # Mirror the word wrap set by user
+            printJTextArea.setWrapStyleWord(False)
+            printJTextArea.setOpaque(False); printJTextArea.setBackground(Color(0,0,0,0)); printJTextArea.setForeground(Color.BLACK)
+            printJTextArea.setBorder(EmptyBorder(0, 0, 0, 0))
+
+            # IntelliJ doesnt like the use of 'print' (as it's a keyword)
+            try:
+                if "MD_REF" in globals():
+                    usePrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")
+                elif "moneydance" in globals():
+                    usePrintFontSize = eval("moneydance.getUI().getFonts().print.getSize()")
+                else:
+                    usePrintFontSize = GlobalVars.defaultPrintFontSize  # Just in case cleanup_references() has tidied up once script ended
+            except:
+                usePrintFontSize = 12   # Font print did not exist before build 3036
+
+            theFontToUse = getMonoFont()       # Need Monospaced font, but with the font set in MD preferences for print
+            theFontToUse = theFontToUse.deriveFont(float(usePrintFontSize))
+            printJTextArea.setFont(theFontToUse)
+
+            def computeFontSize(_theComponent, _maxPaperWidth, _dpi):
+
+                # Auto shrink font so that text fits on one line when printing
+                # Note: Java seems to operate it's maths at 72DPI (so must factor that into the maths)
+                try:
+                    _DEFAULT_MIN_WIDTH = mm2px(100, _dpi)   # 100MM
+                    _minFontSize = 5                        # Below 5 too small
+                    theString = _theComponent.getText()
+                    _startingComponentFont = _theComponent.getFont()
+
+                    if not theString or len(theString) < 1: return -1
+
+                    fm = _theComponent.getFontMetrics(_startingComponentFont)
+                    _maxFontSize = curFontSize = _startingComponentFont.getSize()   # Max out at the MD default for print font size saved in preferences
+                    myPrint("DB","Print - starting font:", _startingComponentFont)
+                    myPrint("DB","... calculating.... The starting/max font size is:", curFontSize)
+
+                    maxLineWidthInFile = _DEFAULT_MIN_WIDTH
+                    longestLine = ""
+                    for line in theString.split("\n"):              # Look for the widest line adjusted for font style
+                        _w = pt2dpi(fm.stringWidth(line), _dpi)
+                        # myPrint("DB", "Found line (len: %s):" %(len(line)), line)
+                        # myPrint("DB", "...calculated length metrics: %s/%sPTS (%sMM)" %(fm.stringWidth(line), _w, pt2mm(_w)))
+                        if _w > maxLineWidthInFile:
+                            longestLine = line
+                            maxLineWidthInFile = _w
+                    myPrint("DB","longest line width %s chars; maxLineWidthInFile now: %sPTS (%sMM)" %(len(longestLine),maxLineWidthInFile, pt2mm(maxLineWidthInFile)))
+
+                    # Now shrink the font size to fit.....
+                    while (pt2dpi(fm.stringWidth(longestLine) + 5,_dpi) > _maxPaperWidth):
+                        myPrint("DB","At font size: %s; (pt2dpi(fm.stringWidth(longestLine) + 5,_dpi):" %(curFontSize), (pt2dpi(fm.stringWidth(longestLine) + 5,_dpi)), pt2mm(pt2dpi(fm.stringWidth(longestLine) + 5,_dpi)), "MM", " >> max width:", _maxPaperWidth)
+                        curFontSize -= 1
+                        fm = _theComponent.getFontMetrics(Font(_startingComponentFont.getName(), _startingComponentFont.getStyle(), curFontSize))
+                        myPrint("DB","... next will be: at font size: %s; (pt2dpi(fm.stringWidth(longestLine) + 5,_dpi):" %(curFontSize), (pt2dpi(fm.stringWidth(longestLine) + 5,_dpi)), pt2mm(pt2dpi(fm.stringWidth(longestLine) + 5,_dpi)), "MM")
+
+                        myPrint("DB","... calculating.... length of line still too long... reducing font size to:", curFontSize)
+                        if curFontSize < _minFontSize:
+                            myPrint("DB","... calculating... Next font size is too small... exiting the reduction loop...")
+                            break
+
+                    if not Platform.isMac():
+                        curFontSize -= 1   # For some reason, sometimes on Linux/Windows still too big....
+                        myPrint("DB","..knocking 1 off font size for good luck...! Now: %s" %(curFontSize))
+
+                    # Code to increase width....
+                    # while (pt2dpi(fm.stringWidth(theString) + 5,_dpi) < _maxPaperWidth):
+                    #     curSize += 1
+                    #     fm = _theComponent.getFontMetrics(Font(_startingComponentFont.getName(), _startingComponentFont.getStyle(), curSize))
+
+                    curFontSize = max(_minFontSize, curFontSize); curFontSize = min(_maxFontSize, curFontSize)
+                    myPrint("DB","... calculating.... Adjusted final font size to:", curFontSize)
+
+                except:
+                    myPrint("B", "ERROR: computeFontSize() crashed?"); dump_sys_error_to_md_console_and_errorlog()
+                    return -1
+                return curFontSize
+
+            myPrint("DB", "Creating new PrinterJob...")
+            printer_job = PrinterJob.getPrinterJob()
+
+            if GlobalVars.defaultPrintService is not None:
+                printer_job.setPrintService(GlobalVars.defaultPrintService)
+                myPrint("DB","Assigned remembered PrintService...: %s" %(printer_job.getPrintService()))
+
+            if GlobalVars.defaultPrinterAttributes is not None:
+                pAttrs = attribute.HashPrintRequestAttributeSet(GlobalVars.defaultPrinterAttributes)
+            else:
+                pAttrs = loadDefaultPrinterAttributes(None)
+
+            pAttrs.remove(attribute.standard.JobName)
+            pAttrs.add(attribute.standard.JobName("%s: %s" %(myModuleID.capitalize(), _theTitle), None))
+
+            if GlobalVars.defaultDPI != 72:
+                pAttrs.remove(attribute.standard.PrinterResolution)
+                pAttrs.add(attribute.standard.PrinterResolution(GlobalVars.defaultDPI, GlobalVars.defaultDPI, attribute.standard.PrinterResolution.DPI))
+
+            for atr in pAttrs.toArray(): myPrint("DB", "Printer attributes before user dialog: %s:%s" %(atr.getName(), atr))
+
+            if not printer_job.printDialog(pAttrs):
+                myPrint("DB","User aborted the Print Dialog setup screen, so exiting...")
+                return
+
+            selectedPrintService = printer_job.getPrintService()
+            myPrint("DB", "User selected print service:", selectedPrintService)
+
+            thePageFormat = printer_job.getPageFormat(pAttrs)
+
+            # .setPrintable() seems to modify pAttrs & adds MediaPrintableArea. Do this before printDeducePrintableWidth()
+            header = MessageFormat(_theTitle)
+            footer = MessageFormat("- page {0} -")
+            printer_job.setPrintable(printJTextArea.getPrintable(header, footer), thePageFormat)
+
+            for atr in pAttrs.toArray(): myPrint("DB", "Printer attributes **AFTER** user dialog (and setPrintable): %s:%s" %(atr.getName(), atr))
+
+            deducedWidthMM, maxPaperWidthPTS, maxPaperWidthPTS_buff = printDeducePrintableWidth(thePageFormat, pAttrs)
+
+            if _callingClass is None or not _callingClass.lWrapText:
+
+                newFontSize = computeFontSize(printJTextArea, int(maxPaperWidthPTS), GlobalVars.defaultDPI)
+
+                if newFontSize > 0:
+                    theFontToUse = theFontToUse.deriveFont(float(newFontSize))
+                    printJTextArea.setFont(theFontToUse)
+
+            # avoiding Intellij errors
+            eval("printJTextArea.print(header, footer, False, selectedPrintService, pAttrs, True)")
+            del printJTextArea
+
+            myPrint("DB", "Saving current print service:", printer_job.getPrintService())
+            GlobalVars.defaultPrinterAttributes = attribute.HashPrintRequestAttributeSet(pAttrs)
+            GlobalVars.defaultPrintService = printer_job.getPrintService()
+
+        except:
+            myPrint("B", "ERROR in printing routines.....:"); dump_sys_error_to_md_console_and_errorlog()
+        return
+
+    def pageSetup():
+
+        myPrint("DB","Printer Page setup routines..:")
+
+        myPrint("DB", 'NOTE: A4        210mm x 297mm	8.3" x 11.7"	Points: w595 x h842')
+        myPrint("DB", 'NOTE: Letter    216mm x 279mm	8.5" x 11.0"	Points: w612 x h791')
+
+        pj = PrinterJob.getPrinterJob()
+
+        # Note: PrintService is not used/remembered/set by .pageDialog
+
+        if GlobalVars.defaultPrinterAttributes is not None:
+            pAttrs = attribute.HashPrintRequestAttributeSet(GlobalVars.defaultPrinterAttributes)
+        else:
+            pAttrs = loadDefaultPrinterAttributes(None)
+
+        for atr in pAttrs.toArray(): myPrint("DB", "Printer attributes before Page Setup: %s:%s" %(atr.getName(), atr))
+
+        if not pj.pageDialog(pAttrs):
+            myPrint("DB", "User cancelled Page Setup - exiting...")
+            return
+
+        for atr in pAttrs.toArray(): myPrint("DB", "Printer attributes **AFTER** Page Setup: %s:%s" %(atr.getName(), atr))
+
+        if debug: printDeducePrintableWidth(pj.getPageFormat(pAttrs), pAttrs)
+
+        myPrint("DB", "Printer selected: %s" %(pj.getPrintService()))
+
+        GlobalVars.defaultPrinterAttributes = attribute.HashPrintRequestAttributeSet(pAttrs)
+        myPrint("DB", "Printer Attributes saved....")
+
+        return
+
     class QuickJFrame():
 
-        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False):
+        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True):
             self.title = title
             self.output = output
             self.lAlertLevel = lAlertLevel
             self.returnFrame = None
             self.copyToClipboard = copyToClipboard
+            self.lJumpToEnd = lJumpToEnd
+            self.lWrapText = lWrapText
 
         class CloseAction(AbstractAction):
 
@@ -1452,7 +1794,63 @@ Visit: %s (Author's site)
 
                 # Already within the EDT
                 self.theFrame.dispose()
-                return
+
+        class ToggleWrap(AbstractAction):
+
+            def __init__(self, theCallingClass, theJText):
+                self.theCallingClass = theCallingClass
+                self.theJText = theJText
+
+            def actionPerformed(self, event):
+                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+                self.theCallingClass.lWrapText = not self.theCallingClass.lWrapText
+                self.theJText.setLineWrap(self.theCallingClass.lWrapText)
+
+        class QuickJFrameNavigate(AbstractAction):
+
+            def __init__(self, theJText, lTop=False, lBottom=False):
+                self.theJText = theJText
+                self.lTop = lTop
+                self.lBottom = lBottom
+
+            def actionPerformed(self, event):
+                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+                if self.lBottom: self.theJText.setCaretPosition(self.theJText.getDocument().getLength())
+                if self.lTop:    self.theJText.setCaretPosition(0)
+
+        class QuickJFramePrint(AbstractAction):
+
+            def __init__(self, theCallingClass, theJText, theTitle=""):
+                self.theCallingClass = theCallingClass
+                self.theJText = theJText
+                self.theTitle = theTitle
+
+            def actionPerformed(self, event):
+                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+                printOutputFile(_callingClass=self.theCallingClass, _theTitle=self.theTitle, _theJText=self.theJText)
+
+        class QuickJFramePageSetup(AbstractAction):
+
+            def __init__(self): pass
+
+            # noinspection PyMethodMayBeStatic
+            def actionPerformed(self, event):
+                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+                pageSetup()
+
+        class QuickJFrameSaveTextToFile(AbstractAction):
+
+            def __init__(self, theText, callingFrame):
+                self.theText = theText
+                self.callingFrame = callingFrame
+
+            def actionPerformed(self, event):
+                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+                saveOutputFile(self.callingFrame, "QUICKJFRAME", "toolbox_output.txt", self.theText)
 
         def show_the_frame(self):
             global debug
@@ -1484,15 +1882,17 @@ Visit: %s (Author's site)
                     jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
                     jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F,  shortcut), "search-window")
                     jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+                    jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut), "print-me")
 
                     theJText = JTextArea(self.callingClass.output)
                     theJText.setEditable(False)
-                    theJText.setLineWrap(True)
-                    theJText.setWrapStyleWord(True)
+                    theJText.setLineWrap(self.callingClass.lWrapText)
+                    theJText.setWrapStyleWord(False)
                     theJText.setFont( getMonoFont() )
 
                     jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
                     jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
+                    jInternalFrame.getRootPane().getActionMap().put("print-me", self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
 
                     internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
@@ -1507,13 +1907,86 @@ Visit: %s (Author's site)
 
                     jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
+                    printButton = JButton("Print")
+                    printButton.setToolTipText("Prints the output displayed in this window to your printer")
+                    printButton.setOpaque(True)
+                    printButton.setBackground(Color.WHITE); printButton.setForeground(Color.BLACK)
+                    printButton.addActionListener(self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
+
+                    if GlobalVars.defaultPrinterAttributes is None:
+                        printPageSetup = JButton("Page Setup")
+                        printPageSetup.setToolTipText("Printer Page Setup")
+                        printPageSetup.setOpaque(True)
+                        printPageSetup.setBackground(Color.WHITE); printPageSetup.setForeground(Color.BLACK)
+                        printPageSetup.addActionListener(self.callingClass.QuickJFramePageSetup())
+
+                    saveButton = JButton("Save to file")
+                    saveButton.setToolTipText("Saves the output displayed in this window to a file")
+                    saveButton.setOpaque(True)
+                    saveButton.setBackground(Color.WHITE); saveButton.setForeground(Color.BLACK)
+                    saveButton.addActionListener(self.callingClass.QuickJFrameSaveTextToFile(self.callingClass.output, jInternalFrame))
+
+                    wrapOption = JCheckBox("Wrap Contents (Screen & Print)", self.callingClass.lWrapText)
+                    wrapOption.addActionListener(self.callingClass.ToggleWrap(self.callingClass, theJText))
+
+                    topButton = JButton("Top")
+                    topButton.setOpaque(True)
+                    topButton.setBackground(Color.WHITE); topButton.setForeground(Color.BLACK)
+                    topButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lTop=True))
+
+                    botButton = JButton("Bottom")
+                    botButton.setOpaque(True)
+                    botButton.setBackground(Color.WHITE); botButton.setForeground(Color.BLACK)
+                    botButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lBottom=True))
+
+                    closeButton = JButton("Close")
+                    closeButton.setOpaque(True)
+                    closeButton.setBackground(Color.WHITE); botButton.setForeground(Color.BLACK)
+                    closeButton.addActionListener(self.callingClass.CloseAction(jInternalFrame))
+
+                    if Platform.isOSX():
+                        save_useScreenMenuBar= System.getProperty("apple.laf.useScreenMenuBar")
+                        if save_useScreenMenuBar is None or save_useScreenMenuBar == "":
+                            save_useScreenMenuBar= System.getProperty("com.apple.macos.useScreenMenuBar")
+                        System.setProperty("apple.laf.useScreenMenuBar", "false")
+                        System.setProperty("com.apple.macos.useScreenMenuBar", "false")
+                    else:
+                        save_useScreenMenuBar = "true"
+
+                    mb = JMenuBar()
+                    mb.setBorder(EmptyBorder(0, 0, 0, 0))
+                    mb.add(Box.createRigidArea(Dimension(10, 0)))
+                    mb.add(topButton)
+                    mb.add(Box.createRigidArea(Dimension(10, 0)))
+                    mb.add(botButton)
+                    mb.add(Box.createHorizontalGlue())
+                    mb.add(wrapOption)
+
+                    if GlobalVars.defaultPrinterAttributes is None:
+                        mb.add(Box.createRigidArea(Dimension(10, 0)))
+                        mb.add(printPageSetup)                                                                          # noqa
+
+                    mb.add(Box.createHorizontalGlue())
+                    mb.add(printButton)
+                    mb.add(Box.createRigidArea(Dimension(10, 0)))
+                    mb.add(saveButton)
+                    mb.add(Box.createRigidArea(Dimension(10, 0)))
+                    mb.add(closeButton)
+                    mb.add(Box.createRigidArea(Dimension(30, 0)))
+
+                    jInternalFrame.setJMenuBar(mb)
+
                     jInternalFrame.add(internalScrollPane)
 
                     jInternalFrame.pack()
                     jInternalFrame.setLocationRelativeTo(None)
                     jInternalFrame.setVisible(True)
 
-                    if "errlog.txt" in self.callingClass.title:
+                    if Platform.isOSX():
+                        System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)
+                        System.setProperty("com.apple.macos.useScreenMenuBar", save_useScreenMenuBar)
+
+                    if "errlog.txt" in self.callingClass.title or self.callingClass.lJumpToEnd:
                         theJText.setCaretPosition(theJText.getDocument().getLength())
 
                     try:
@@ -1623,6 +2096,47 @@ Visit: %s (Author's site)
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
+    def isGoodRate(theRate):
+
+        if Double.isNaN(theRate) or Double.isInfinite(theRate) or theRate == 0:
+            return False
+
+        return True
+
+    def safeInvertRate(theRate):
+
+        if not isGoodRate(theRate):
+            return theRate
+
+        return (1.0 / theRate)
+
+    def checkCurrencyRawRatesOK(theCurr):
+
+        checkRate = theCurr.getParameter("rate", None)
+        checkRateDouble = theCurr.getDoubleParameter("rate", 0.0)
+        checkRRate = theCurr.getParameter("rrate", None)
+        checkRRateDouble = theCurr.getDoubleParameter("rrate", 0.0)
+
+        if checkRate is None or not isGoodRate(checkRateDouble):
+            myPrint("DB", "WARNING: checkCurrencyRawRatesOK() 'rate' check failed on %s - checking stopped here" %(theCurr))
+            return False
+
+        if checkRRate is None or not isGoodRate(checkRRateDouble):
+            myPrint("DB", "WARNING: checkCurrencyRawRatesOK() 'rrate' check failed on %s - checking stopped here" %(theCurr))
+            return False
+
+        return True
+
+    def check_all_currency_raw_rates_ok(filterType=None):
+
+        _currs = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        for _curr in _currs:
+            if filterType and _curr.getCurrencyType() != filterType: continue
+            if not checkCurrencyRawRatesOK(_curr):
+                return False
+
+        return True
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -1640,7 +2154,7 @@ Visit: %s (Author's site)
         pass
         return
 
-    # get_StuWareSoftSystems_parameters_from_file()
+    get_StuWareSoftSystems_parameters_from_file()
 
     # clear up any old left-overs....
     destroyOldFrames(myModuleID)
@@ -1668,6 +2182,7 @@ Visit: %s (Author's site)
 
         cleanup_references()
 
+    GlobalVars.defaultPrintLandscape = True
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################

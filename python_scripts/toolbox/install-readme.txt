@@ -24,8 +24,9 @@ HOW DO YOU CHOOSE?
 - If you want the functionality always available from the Moneydance extensions menu, choose Extension
 
 To install/run Extensions:
-1) Load Moneydance
-2) Drag and drop the .mxt file onto the Moneydance left side bar
+1) Launch the Moneydance application
+2) Double-click the .mxt file
+   .. or drag and drop the .mxt file onto the Moneydance left side bar
    .. or Menu>Extensions>add from file>choose <extension_name>.mxt file, then click open/install
 3) Accept the warning that the extension is unsigned / missing (this simply means that Moneydance have not signed / verified my extension). Click Install Extension.
 4) Once its installed, restart Moneydance.
@@ -38,7 +39,7 @@ To run Scripts:
 4) That's it.... Repeat these steps each time.
 
 All Extensions/Scripts available:
-toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more...
+toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
 
 extract_data:                           Extract various data to screen and/or csv.. Consolidation of:
 - stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv
@@ -49,8 +50,9 @@ extract_data:                           Extract various data to screen and/or cs
 
 list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
 
-net_account_balances:                   Puts a small 'widget' on the Home Page. Displays the total of selected account balances
-                                        It's also a demo of how to create a true runtime Python extension and a HomePageView widget
+net_account_balances:                   Homepage / summary screen widget. Display the total of selected Account Balances
+
+total_selected_transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 extension_tester:                       Demo extension/scripts for coders wanting to build Moneydance Python extensions
 
@@ -61,3 +63,4 @@ useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzi
 - demo_account_currency_rates.py: demo script for beginner coders with some simple Moneydance API calls etc...
 - demo_calling_import_functions.py: demo script to show how to call deep API importFile() method and bypass UI popups
 - ofx_create_new_usaa_bank_custom_profile.py: script that creates a new custom USAA bank logon profile so that it can connect within Moneydance
+- import_categories.py: script that allows you to import from a CSV file to create new Categories

@@ -4,7 +4,7 @@
 # demo_calling_import_functions.py - Build: 4
 # A basic demo Python (Jython) script to get you started - Stuart Beesley - StuWareSoftSystems - Feb 2021
 # Allows you to call the Moneydance Import File function, set parameters, and bypass the popup screens
-# It's written with code to demo what it possible.. YOu should taylor the flow/setup accordingly....
+# It's written with code to demo what it possible.. You should taylor the flow/setup accordingly....
 
 # Reverse engineered from:
 # com.moneydance.apps.md.view.gui.MoneydanceGUI.importFile(fileToImport, newAccountSet=False, contextAccount=moneydance_ui.firstMainFrame.getSelectedAccount())
@@ -233,7 +233,7 @@ try:
         book = None
         print "ERROR", fileToImport.getName(), "Unsupported import type"
 except:
-    print "ERROR: read error"
+    print "ERROR: read error."
 
 finally:
     if importWasSuccessful and book is not None:
