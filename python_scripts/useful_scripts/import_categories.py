@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# import_categories.py (build 3) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# import_categories.py (build 4) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
 #
@@ -50,6 +50,7 @@
 # build: 2 - Tweaks; replaced Account.getAccountByName() with own function as it doesn't work properly
 # build: 2 - Only set TaxRelated, Inactive, Comments on final category being created (not its parent levels)
 # build: 3 - Common code tweaks
+# build: 4 - Common code tweaks; use file chooser wrapper
 
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -58,7 +59,7 @@
 
 # SET THESE LINES
 myModuleID = u"import_categories"
-version_build = "3"
+version_build = "4"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -235,6 +236,7 @@ else:
     from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox, JRadioButton, ButtonGroup
     from javax.swing.text import PlainDocument
     from javax.swing.border import EmptyBorder
+    from javax.swing.filechooser import FileFilter
 
     exec("from javax.print import attribute")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
     exec("from java.awt.print import PrinterJob")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
@@ -289,6 +291,8 @@ else:
         defaultPrintFontSize = None
         defaultPrintLandscape = None
         defaultDPI = 72     # NOTE: 72dpi is Java2D default for everything; just go with it. No easy way to change
+        STATUS_LABEL = None
+        DARK_GREEN = Color(0, 192, 0)
         def __init__(self): pass    # Leave empty
 
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
@@ -300,9 +304,9 @@ else:
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
     # COPY >> START
-    # COMMON CODE ##########################################################################################################
-    # COMMON CODE ##########################################################################################################
-    # COMMON CODE ##########################################################################################################
+    # COMMON CODE ######################################################################################################
+    # COMMON CODE ################# VERSION 100 ########################################################################
+    # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
         myScriptName = os.path.basename(__file__)
@@ -360,7 +364,7 @@ Visit: %s (Author's site)
             while True:
                 line = bufr.readLine()
                 if line is not None:
-                    line += "\n"
+                    line += "\n"                   # not very efficient - should convert this to "\n".join() to contents
                     fileContents+=line
                     continue
                 break
@@ -416,38 +420,36 @@ Visit: %s (Author's site)
 
         tb = traceback.format_exc()
         trace = traceback.format_stack()
-        theText =  "\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
-        theText += "@@ Unexpected error caught @@\n".upper()
+        theText =  ".\n" \
+                   "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n" \
+                   "@@@@@ Unexpected error caught!\n".upper()
         theText += tb
         for trace_line in trace: theText += trace_line
-        theText += "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+        theText += "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
         myPrint("B", theText)
         if lReturnText: return theText
         return
 
+    def safeStr(_theText): return ("%s" %(_theText))
+
     def pad(theText, theLength):
+        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
         theText = theText[:theLength].ljust(theLength, u" ")
         return theText
 
     def rpad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)):
-            theText = str(theText)
-
+        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
         theText = theText[:theLength].rjust(theLength, u" ")
         return theText
 
     def cpad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)):
-            theText = str(theText)
-
+        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
         if len(theText)>=theLength: return theText[:theLength]
-
         padLength = int((theLength - len(theText)) / 2)
         theText = theText[:theLength]
         theText = ((" "*padLength)+theText+(" "*padLength))[:theLength]
 
         return theText
-
 
     myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
@@ -462,11 +464,6 @@ Visit: %s (Author's site)
             if debug: myPrint("B","Failed to Font set to Moneydance code - So using: %s" %theFont)
 
         return theFont
-
-    def getTheSetting(what):
-        x = MD_REF.getPreferences().getSetting(what, None)
-        if not x or x == u"": return None
-        return what + u": %s" %(x)
 
     def get_home_dir():
         homeDir = None
@@ -625,15 +622,15 @@ Visit: %s (Author's site)
         else:
             field = JTextField(defaultText)
 
-        x = 0
+        _x = 0
         if theFieldLabel:
-            p.add(JLabel(theFieldLabel), GridC.getc(x, 0).east())
-            x+=1
+            p.add(JLabel(theFieldLabel), GridC.getc(_x, 0).east())
+            _x+=1
 
-        p.add(field, GridC.getc(x, 0).field())
-        p.add(Box.createHorizontalStrut(244), GridC.getc(x, 0))
+        p.add(field, GridC.getc(_x, 0).field())
+        p.add(Box.createHorizontalStrut(244), GridC.getc(_x, 0))
         if theFieldDescription:
-            p.add(JTextPanel(theFieldDescription), GridC.getc(x, 1).field().colspan(x + 1))
+            p.add(JTextPanel(theFieldDescription), GridC.getc(_x, 1).field().colspan(_x + 1))
         if (JOptionPane.showConfirmDialog(theParent,
                                           p,
                                           theTitle,
@@ -943,15 +940,22 @@ Visit: %s (Author's site)
         return os.access(pdir, os.W_OK)
 
     class ExtFilenameFilter(FilenameFilter):
-        ext = ""
-
-        def __init__(self, ext):
-            self.ext = "." + ext.upper()
+        """File extension filter for FileDialog"""
+        def __init__(self, ext): self.ext = "." + ext.upper()                                                           # noqa
 
         def accept(self, thedir, filename):                                                                             # noqa
-            if filename is not None and filename.upper().endswith(self.ext):
-                return True
+            if filename is not None and filename.upper().endswith(self.ext): return True
             return False
+
+    class ExtFileFilterJFC(FileFilter):
+        """File extension filter for JFileChooser"""
+        def __init__(self, ext): self.ext = "." + ext.upper()
+
+        def getDescription(self): return "*"+self.ext                                                                   # noqa
+
+        def accept(self, _theFile):                                                                                     # noqa
+            if _theFile is None: return False
+            return _theFile.getName().upper().endswith(self.ext)
 
     try:
         moneydanceIcon = MDImages.getImage(MD_REF.getSourceInformation().getIconResource())
@@ -1334,6 +1338,229 @@ Visit: %s (Author's site)
             text = "Error in classPrinter(): %s: %s" %(className, theObject)
         return text
 
+    def setDisplayStatus(_theStatus, _theColor="G"):
+        """Sets the Display / Status label on the main diagnostic display: G=Green, B=Blue, R=Red, DG=Dark Green"""
+
+        if GlobalVars.STATUS_LABEL is None or not isinstance(GlobalVars.STATUS_LABEL, JLabel): return
+
+        GlobalVars.STATUS_LABEL.setText((_theStatus).ljust(800, " "))
+
+        if _theColor is None or _theColor == "": _theColor = "G"
+        _theColor = _theColor.upper()
+        if _theColor == "R":    GlobalVars.STATUS_LABEL.setForeground(Color.RED)
+        elif _theColor == "B":  GlobalVars.STATUS_LABEL.setForeground(Color.BLUE)
+        elif _theColor == "DG": GlobalVars.STATUS_LABEL.setForeground(GlobalVars.DARK_GREEN)
+        else:                   GlobalVars.STATUS_LABEL.setForeground(Color.GREEN)
+        return
+
+    def setJFileChooserParameters(_jf, lReportOnly=False, lDefaults=False, lPackagesT=None, lApplicationsT=None, lOptionsButton=None, lNewFolderButton=None):
+        """sets up Client Properties for JFileChooser() to behave as required >> Mac only"""
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        if not Platform.isOSX(): return
+        if not isinstance(_jf, JFileChooser): return
+
+        _PKG = "JFileChooser.packageIsTraversable"
+        _APP = "JFileChooser.appBundleIsTraversable"
+        _OPTIONS = "JFileChooser.optionsPanelEnabled"
+        _NEWFOLDER = "JFileChooser.canCreateDirectories"
+
+        # JFileChooser defaults: https://violetlib.org/vaqua/filechooser.html
+        # "JFileChooser.packageIsTraversable"   default False   >> set "true" to allow Packages to be traversed
+        # "JFileChooser.appBundleIsTraversable" default False   >> set "true" to allow App Bundles to be traversed
+        # "JFileChooser.optionsPanelEnabled"    default False   >> set "true" to allow Options button
+        # "JFileChooser.canCreateDirectories"   default False   >> set "true" to allow New Folder button
+
+        if debug or lReportOnly:
+            myPrint("B", "Parameters set: ReportOnly: %s, Defaults:%s, PackagesT: %s, ApplicationsT:%s, OptionButton:%s, NewFolderButton: %s" %(lReportOnly, lDefaults, lPackagesT, lApplicationsT, lOptionsButton, lNewFolderButton))
+            txt = ("Before setting" if not lReportOnly else "Reporting only")
+            for setting in [_PKG, _APP, _OPTIONS, _NEWFOLDER]: myPrint("DB", "%s: '%s': '%s'" %(pad(txt,14), pad(setting,50), _jf.getClientProperty(setting)))
+            if lReportOnly: return
+
+        if lDefaults:
+            _jf.putClientProperty(_PKG, None)
+            _jf.putClientProperty(_APP, None)
+            _jf.putClientProperty(_OPTIONS, None)
+            _jf.putClientProperty(_NEWFOLDER, None)
+        else:
+            if lPackagesT       is not None: _jf.putClientProperty(_PKG, lPackagesT)
+            if lApplicationsT   is not None: _jf.putClientProperty(_APP, lApplicationsT)
+            if lOptionsButton   is not None: _jf.putClientProperty(_OPTIONS, lOptionsButton)
+            if lNewFolderButton is not None: _jf.putClientProperty(_NEWFOLDER, lNewFolderButton)
+
+        for setting in [_PKG, _APP, _OPTIONS, _NEWFOLDER]: myPrint("DB", "%s: '%s': '%s'" %(pad("After setting",14), pad(setting,50), _jf.getClientProperty(setting)))
+
+        return
+
+    def setFileDialogParameters(lReportOnly=False, lDefaults=False, lSelectDirectories=None, lPackagesT=None):
+        """sets up System Properties for FileDialog() to behave as required >> Mac only"""
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        if not Platform.isOSX(): return
+
+        _TRUE = "true"
+        _FALSE = "false"
+
+        _DIRS_FD = "apple.awt.fileDialogForDirectories"        # Changes Behaviour. When True you can select a Folder (rather than a file)
+        _PKGS_FD = "com.apple.macos.use-file-dialog-packages"
+
+        # FileDialog defaults
+        # "apple.awt.fileDialogForDirectories"       default "false" >> set "true"  to allow Directories to be selected
+        # "com.apple.macos.use-file-dialog-packages" default "true"  >> set "false" to allow access to Mac 'packages'
+
+        if debug or lReportOnly:
+            myPrint("B", "Parameters set: ReportOnly: %s, Defaults:%s, SelectDirectories:%s, PackagesT:%s" % (lReportOnly, lDefaults, lSelectDirectories, lPackagesT))
+            txt = ("Before setting" if not lReportOnly else "Reporting only")
+            for setting in [_DIRS_FD, _PKGS_FD]: myPrint("DB", "%s: '%s': '%s'" %(pad(txt,14), pad(setting,50), System.getProperty(setting)))
+            if lReportOnly: return
+
+        if lDefaults:
+            System.setProperty(_DIRS_FD,_FALSE)
+            System.setProperty(_PKGS_FD,_TRUE)
+        else:
+            if lSelectDirectories is not None: System.setProperty(_DIRS_FD, (_TRUE if lSelectDirectories   else _FALSE))
+            if lPackagesT         is not None: System.setProperty(_PKGS_FD, (_TRUE if lPackagesT           else _FALSE))
+
+        for setting in [_DIRS_FD, _PKGS_FD]: myPrint("DB", "After setting:  '%s': '%s'" %(pad(setting,50), System.getProperty(setting)))
+
+        return
+
+    def getFileFromFileChooser(fileChooser_parent,                  # The Parent Frame, or None
+                               fileChooser_starting_dir,            # The Starting Dir
+                               fileChooser_filename,                # Default filename (or None)
+                               fileChooser_title,                   # The Title (with FileDialog, only works on SAVE)
+                               fileChooser_multiMode,               # Normally False (True has not been coded!)
+                               fileChooser_open,                    # True for Open/Load, False for Save
+                               fileChooser_selectFiles,             # True for files, False for Directories
+                               fileChooser_OK_text,                 # Normally None, unless set - use text
+                               fileChooser_fileFilterText=None,     # E.g. "txt" or "qif"
+                               lForceJFC=False,
+                               lForceFD=False,
+                               lAllowTraversePackages=None,
+                               lAllowTraverseApplications=None,     # JFileChooser only..
+                               lAllowNewFolderButton=True,          # JFileChooser only..
+                               lAllowOptionsButton=None):           # JFileChooser only..
+        """Launches FileDialog on Mac, or JFileChooser on other platforms... NOTE: Do not use Filter on Macs!"""
+
+        _THIS_METHOD_NAME = "Dynamic File Chooser"
+
+        if fileChooser_multiMode:
+            myPrint("B","@@ SORRY Multi File Selection Mode has not been coded! Exiting...")
+            return None
+
+        if fileChooser_starting_dir is None or fileChooser_starting_dir == "" or not os.path.exists(fileChooser_starting_dir):
+            fileChooser_starting_dir = MD_REF.getPreferences().getSetting("gen.data_dir", None)
+
+        if fileChooser_starting_dir is None or not os.path.exists(fileChooser_starting_dir):
+            fileChooser_starting_dir = None
+            myPrint("B","ERROR: Starting Path does not exist - will start with no starting path set..")
+
+        else:
+            myPrint("DB", "Preparing the Dynamic File Chooser with path: %s" %(fileChooser_starting_dir))
+            if Platform.isOSX() and "/Library/Containers/" in fileChooser_starting_dir:
+                myPrint("DB", "WARNING: Folder will be restricted by MacOSx...")
+                if not lForceJFC:
+                    txt = ("FileDialog: MacOSx restricts Java Access to 'special' locations like 'Library\n"
+                          "Folder: %s\n"
+                          "Please navigate to this location manually in the next popup. This grants permission"
+                          %(fileChooser_starting_dir))
+                else:
+                    txt = ("JFileChooser: MacOSx restricts Java Access to 'special' locations like 'Library\n"
+                          "Folder: %s\n"
+                          "Your files will probably be hidden.. If so, switch to FileDialog()...(contact author)"
+                          %(fileChooser_starting_dir))
+                MyPopUpDialogBox(fileChooser_parent,
+                                 "NOTE: Mac Security Restriction",
+                                 txt,
+                                 theTitle=_THIS_METHOD_NAME,
+                                 lAlertLevel=1).go()
+
+        if (Platform.isOSX() and not lForceJFC) or lForceFD:
+
+            setFileDialogParameters(lPackagesT=lAllowTraversePackages, lSelectDirectories=(not fileChooser_selectFiles))
+
+            myPrint("DB", "Preparing FileDialog() with path: %s" %(fileChooser_starting_dir))
+            if fileChooser_filename is not None: myPrint("DB", "... and filename:                 %s" %(fileChooser_filename))
+
+            fileDialog = FileDialog(fileChooser_parent, fileChooser_title)
+
+            fileDialog.setTitle(fileChooser_title)
+
+            if fileChooser_starting_dir is not None:    fileDialog.setDirectory(fileChooser_starting_dir)
+            if fileChooser_filename is not None:        fileDialog.setFile(fileChooser_filename)
+
+            fileDialog.setMultipleMode(fileChooser_multiMode)
+
+            if fileChooser_open:
+                fileDialog.setMode(FileDialog.LOAD)
+            else:
+                fileDialog.setMode(FileDialog.SAVE)
+
+            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+                myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
+                fileDialog.setFilenameFilter(ExtFilenameFilter(fileChooser_fileFilterText))
+
+            fileDialog.setVisible(True)
+
+            setFileDialogParameters(lDefaults=True)
+
+            myPrint("DB", "FileDialog returned File:      %s" %(fileDialog.getFile()))
+            myPrint("DB", "FileDialog returned Directory: %s" %(fileDialog.getDirectory()))
+
+            if fileDialog.getFile() is None or fileDialog.getFile() == "": return None
+
+            _theFile = os.path.join(fileDialog.getDirectory(), fileDialog.getFile())
+
+        else:
+
+            myPrint("DB", "Preparing JFileChooser() with path: %s" %(fileChooser_starting_dir))
+            if fileChooser_filename is not None: myPrint("DB", "... and filename:                   %s" %(fileChooser_filename))
+
+            if fileChooser_starting_dir is not None:
+                jfc = JFileChooser(fileChooser_starting_dir)
+            else:
+                jfc = JFileChooser()
+
+            if fileChooser_filename is not None: jfc.setSelectedFile(File(fileChooser_filename))
+            setJFileChooserParameters(jfc,
+                                      lPackagesT=lAllowTraversePackages,
+                                      lApplicationsT=lAllowTraverseApplications,
+                                      lNewFolderButton=lAllowNewFolderButton,
+                                      lOptionsButton=lAllowOptionsButton)
+
+            jfc.setDialogTitle(fileChooser_title)
+            jfc.setMultiSelectionEnabled(fileChooser_multiMode)
+
+            if fileChooser_selectFiles:
+                jfc.setFileSelectionMode(JFileChooser.FILES_ONLY)         # FILES_ONLY, DIRECTORIES_ONLY, FILES_AND_DIRECTORIES
+            else:
+                jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY)   # FILES_ONLY, DIRECTORIES_ONLY, FILES_AND_DIRECTORIES
+
+            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+                myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
+                jfc.setFileFilter(ExtFileFilterJFC(fileChooser_fileFilterText))
+
+            if fileChooser_OK_text is not None:
+                returnValue = jfc.showDialog(fileChooser_parent, fileChooser_OK_text)
+            else:
+                if fileChooser_open:
+                    returnValue = jfc.showOpenDialog(fileChooser_parent)
+                else:
+                    returnValue = jfc.showSaveDialog(fileChooser_parent)
+
+            if returnValue == JFileChooser.CANCEL_OPTION \
+                    or (jfc.getSelectedFile() is None or jfc.getSelectedFile().getName()==""):
+                myPrint("DB","JFileChooser was cancelled by user, or no file was selected...")
+                return None
+
+            _theFile = jfc.getSelectedFile().getAbsolutePath()
+            myPrint("DB","JFileChooser returned File/path..: %s" %(_theFile))
+
+        myPrint("DB","...File/path exists..: %s" %(os.path.exists(_theFile)))
+        return _theFile
+
     class SearchAction(AbstractAction):
 
         def __init__(self, theFrame, searchJText):
@@ -1429,58 +1656,45 @@ Visit: %s (Author's site)
 
             return
 
-    def saveOutputFile(_theFrame, _theTitle, _fileName, _theText, _statusLabel=None):
+    def saveOutputFile(_theFrame, _theTitle, _fileName, _theText):
 
-        if Platform.isOSX():
-            System.setProperty("com.apple.macos.use-file-dialog-packages", "true")
-            System.setProperty("apple.awt.fileDialogForDirectories", "false")
+        theTitle = "Select location to save the current displayed output... (CANCEL=ABORT)"
+        copyToFile = getFileFromFileChooser(_theFrame,          # Parent frame or None
+                                            get_home_dir(),     # Starting path
+                                            _fileName,          # Default Filename
+                                            theTitle,           # Title
+                                            False,              # Multi-file selection mode
+                                            False,              # True for Open/Load, False for Save
+                                            True,               # True = Files, else Dirs
+                                            None,               # Load/Save button text, None for defaults
+                                            "txt",              # File filter (non Mac only). Example: "txt" or "qif"
+                                            lAllowTraversePackages=False,
+                                            lForceJFC=False,
+                                            lForceFD=True,
+                                            lAllowNewFolderButton=True,
+                                            lAllowOptionsButton=True)
 
-        filename = FileDialog(_theFrame, "Select location to save the current displayed output... (CANCEL=ABORT)")
-        filename.setDirectory(get_home_dir())
-        filename.setMultipleMode(False)
-        filename.setMode(FileDialog.SAVE)
-        filename.setFile(_fileName)
-
-        if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
-            extFilter = ExtFilenameFilter("txt")
-            filename.setFilenameFilter(extFilter)
-
-        filename.setVisible(True)
-        copyToFile = filename.getFile()
-
-        if Platform.isOSX():
-            System.setProperty("com.apple.macos.use-file-dialog-packages","true")
-            System.setProperty("apple.awt.fileDialogForDirectories", "false")
-
-        if (copyToFile is None) or copyToFile == "":
-            filename.dispose(); del filename
+        if copyToFile is None or copyToFile == "":
             return
-        elif not str(copyToFile).endswith(".txt"):
+        elif not safeStr(copyToFile).endswith(".txt"):
             myPopupInformationBox(_theFrame, "Sorry - please use a .txt file extension when saving output txt")
-            filename.dispose(); del filename
             return
-        elif ".moneydance" in filename.getDirectory():
+        elif ".moneydance" in os.path.dirname(copyToFile):
             myPopupInformationBox(_theFrame, "Sorry, please choose a location outside of the Moneydance location")
-            filename.dispose();del filename
             return
-
-        copyToFile = os.path.join(filename.getDirectory(), filename.getFile())
 
         if not check_file_writable(copyToFile):
             myPopupInformationBox(_theFrame, "Sorry, that file/location does not appear allowed by the operating system!?")
 
-        toFile = None
+        toFile = copyToFile
         try:
-            toFile = os.path.join(filename.getDirectory(), filename.getFile())
             with open(toFile, 'w') as f: f.write(_theText)
             myPrint("B", "%s: text output copied to: %s" %(_theTitle, toFile))
 
-            # noinspection PyTypeChecker
             if os.path.exists(toFile):
                 play_the_money_sound()
                 txt = "%s: Output text saved as requested to: %s" %(_theTitle, toFile)
-                if _statusLabel:
-                    _statusLabel.setText((txt).ljust(800, " ")); _statusLabel.setForeground(Color.BLUE)
+                setDisplayStatus(txt, "B")
                 myPopupInformationBox(_theFrame, txt)
             else:
                 txt = "ERROR - failed to write output text to file: %s" %(toFile)
@@ -1491,7 +1705,7 @@ Visit: %s (Author's site)
             dump_sys_error_to_md_console_and_errorlog()
             myPopupInformationBox(_theFrame, txt)
 
-        filename.dispose(); del filename
+        return
 
     try: GlobalVars.defaultPrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")   # Do this here as MD_REF disappears after script ends...
     except: GlobalVars.defaultPrintFontSize = 12
@@ -1811,7 +2025,6 @@ Visit: %s (Author's site)
 
             def actionPerformed(self, event):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
-
                 printOutputFile(_callingClass=self.theCallingClass, _theTitle=self.theTitle, _theJText=self.theJText)
 
         class QuickJFramePageSetup(AbstractAction):
@@ -1831,7 +2044,6 @@ Visit: %s (Author's site)
 
             def actionPerformed(self, event):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
-
                 saveOutputFile(self.callingFrame, "QUICKJFRAME", "toolbox_output.txt", self.theText)
 
         def show_the_frame(self):
@@ -1844,17 +2056,14 @@ Visit: %s (Author's site)
 
                 def run(self):                                                                                                      # noqa
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
-
                     frame_width = min(screenSize.width-20, max(1024,int(round(MD_REF.getUI().firstMainFrame.getSize().width *.9,0))))
                     frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
 
                     JFrame.setDefaultLookAndFeelDecorated(True)
-
                     jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)" %(MD_REF.getUI().ACCELERATOR_MASK_STR))
                     jInternalFrame.setName(u"%s_quickjframe" %myModuleID)
 
-                    if not Platform.isOSX():
-                        jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+                    if not Platform.isOSX(): jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
 
                     jInternalFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
                     jInternalFrame.setResizable(True)
@@ -1863,8 +2072,8 @@ Visit: %s (Author's site)
                     jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W,  shortcut), "close-window")
                     jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
                     jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F,  shortcut), "search-window")
+                    jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut),  "print-me")
                     jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
-                    jInternalFrame.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut), "print-me")
 
                     theJText = JTextArea(self.callingClass.output)
                     theJText.setEditable(False)
@@ -2082,42 +2291,47 @@ Visit: %s (Author's site)
 
         if Double.isNaN(theRate) or Double.isInfinite(theRate) or theRate == 0:
             return False
-
         return True
 
     def safeInvertRate(theRate):
 
         if not isGoodRate(theRate):
             return theRate
-
         return (1.0 / theRate)
 
-    def checkCurrencyRawRatesOK(theCurr):
+    def convertBytesMBs(_size): return round((_size/(1000.0*1000.0)),1)
 
-        checkRate = theCurr.getParameter("rate", None)
-        checkRateDouble = theCurr.getDoubleParameter("rate", 0.0)
-        checkRRate = theCurr.getParameter("rrate", None)
-        checkRRateDouble = theCurr.getDoubleParameter("rrate", 0.0)
+    def convertBytesKBs(_size): return round((_size/(1000.0)),1)
 
-        if checkRate is None or not isGoodRate(checkRateDouble):
-            myPrint("DB", "WARNING: checkCurrencyRawRatesOK() 'rate' check failed on %s - checking stopped here" %(theCurr))
-            return False
+    def getHumanReadableDateTimeFromTimeStamp(_theTimeStamp):
+        return datetime.datetime.fromtimestamp(_theTimeStamp).strftime('%Y-%m-%d %H:%M:%S')
 
-        if checkRRate is None or not isGoodRate(checkRRateDouble):
-            myPrint("DB", "WARNING: checkCurrencyRawRatesOK() 'rrate' check failed on %s - checking stopped here" %(theCurr))
-            return False
+    def getHumanReadableModifiedDateTimeFromFile(_theFile):
+        return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile))
 
-        return True
+    def convertStrippedIntDateFormattedText( strippedDateInt ):
 
-    def check_all_currency_raw_rates_ok(filterType=None):
+        prettyDate = ""
+        try:
+            c = Calendar.getInstance()
+            dateFromInt = DateUtil.convertIntDateToLong(strippedDateInt)
+            c.setTime(dateFromInt)
+            dateFormatter = SimpleDateFormat("yyyy/MM/dd")
+            prettyDate = dateFormatter.format(c.getTime())
+        except:
+            pass
 
-        _currs = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
-        for _curr in _currs:
-            if filterType and _curr.getCurrencyType() != filterType: continue
-            if not checkCurrencyRawRatesOK(_curr):
-                return False
+        return prettyDate
 
-        return True
+    def selectHomeScreen():
+
+        try:
+            currentViewAccount = MD_REF.getUI().firstMainFrame.getSelectedAccount()
+            if currentViewAccount != MD_REF.getRootAccount():
+                myPrint("DB","Switched to Home Page Summary Screen (from: %s)" %(currentViewAccount))
+                MD_REF.getUI().firstMainFrame.selectAccount(MD_REF.getRootAccount())
+        except:
+            myPrint("B","Error switching to Home Page Summary Screen")
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -2258,47 +2472,45 @@ Visit: %s (Author's site)
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         scriptpath = myDir()
+        if scriptpath == "" or scriptpath is None:  # No parameter saved / loaded from disk
+            scriptpath = get_home_dir()
 
-        myPrint("DB", "Default file export output path is....:", scriptpath)
+        myPrint("DB", "Default file export output path is....: %s" %(scriptpath))
 
-        if Platform.isOSX():
-            System.setProperty("com.apple.macos.use-file-dialog-packages","true")  # In theory prevents access to app file structure (but doesnt seem to work)
-            System.setProperty("apple.awt.fileDialogForDirectories", "false")
+        theTitle = "Select the CSV file to import (CANCEL=ABORT)"
+        csvfilename = getFileFromFileChooser(None,                  # Parent frame or None
+                                            scriptpath,             # Starting path
+                                            GLOB_VARS.theFile,      # Default Filename
+                                            theTitle,               # Title
+                                            False,                  # Multi-file selection mode
+                                            True,                   # True for Open/Load, False for Save
+                                            True,                   # True = Files, else Dirs
+                                            None,                   # Load/Save button text, None for defaults
+                                            "csv",                  # File filter (non Mac only). Example: "txt" or "qif"
+                                            lAllowTraversePackages=True,
+                                            lForceJFC=False,
+                                            lForceFD=True,
+                                            lAllowNewFolderButton=True,
+                                            lAllowOptionsButton=True)
 
-        filename = FileDialog(None, "Select the CSV file to import (CANCEL=ABORT)")
-
-        filename.setMultipleMode(False)
-        filename.setMode(FileDialog.LOAD)
-
-        filename.setFile(GLOB_VARS.theFile)
-        if (scriptpath is not None and scriptpath != ""): filename.setDirectory(scriptpath)
-
-        # Copied from MD code... File filters only work on non Macs (or Macs below certain versions)
-        if (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
-            filename.setFilenameFilter(ExtFilenameFilter("csv"))
-
-        filename.setVisible(True)
-        csvfilename = filename.getFile()
-
-        if (csvfilename is None) or csvfilename == "":
-            myPrint("B", "User chose to cancel or no file selected >>  So no Import will be performed... ")
-            myPopupInformationBox(None, "User chose to cancel or no file selected >>  So no Import will be performed... ", "FILE IMPORT")
+        if csvfilename is None or csvfilename == "":
+            txt = "User chose to cancel or no file selected >>  So no Import will be performed... "
+            myPrint("B", txt); myPopupInformationBox(None, txt, "FILE IMPORT")
             return False
-        elif str(csvfilename).endswith(".moneydance"):
+        elif safeStr(csvfilename).endswith(".moneydance"):
             myPrint("B", "User selected file:", csvfilename)
-            myPrint("B", "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Import will be performed...")
-            myPopupInformationBox(None, "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Import will be performed...", "FILE IMPORT")
+            txt = "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Import will be performed..."
+            myPrint("B", txt); myPopupInformationBox(None, txt, "FILE IMPORT")
             return False
 
-        csvfilename = os.path.join(filename.getDirectory(), filename.getFile())
         if not os.path.exists(csvfilename):
             myPrint("B", "User selected file:", csvfilename)
-            myPrint("B", "Sorry - file does not exists so no Import will be performed...")
-            myPopupInformationBox(None, "Sorry - file does not exists so no Import will be performed...", "FILE IMPORT")
+            txt = "Sorry - file does not exists so no Import will be performed..."
+            myPrint("B", txt);  myPopupInformationBox(None, txt, "FILE IMPORT")
             return False
 
         GLOB_VARS.theFile = csvfilename
-        myPrint("B","Import file set to: %s" %GLOB_VARS.theFile)
+        myPrint("B","Import file set to: %s" %(GLOB_VARS.theFile))
         return True
 
     def get_field_delimiter():

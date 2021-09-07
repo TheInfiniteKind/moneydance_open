@@ -1,6 +1,6 @@
 The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
 
-Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru August 2021 - a lockdown project ~600 programming hours)
+Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru August 2021 - a lockdown project ~1000 coding hours)
 Credit: Derek Kent(23) for his extensive texting and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
@@ -77,6 +77,10 @@ NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND
 # MakeFifoCost.py                                       (author unknown)
 # change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
 
+Toolbox uses the the internal MD 'code' font for display and outputs. Typically a Monospaced font so text columns align.
+>> If your language's double-byte characters do not display properly, then change in advanced mode; General Tools>Set MD Fonts
+>> Change 'code' font. Please only use a fixed-width Monospaced sol that column alignments are maintained (but your choice).
+
 Features:
 - Main window shows various diagnostic data and MD Preferences
 
@@ -146,7 +150,7 @@ ALT-B - Basic Mode
 
 ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / security data issues detected. Some only available from 2021.2 onwards)
     - These first four buttons will appear only if they are necessary / possible in your system
-        - FIX - Make me a Primary Dataset (convert from secondary dataset to enable Sync)) (convert_secondary_to_primary_data_set.py)
+        - FIX - Make me a Primary Dataset (convert from Secondary dataset to enable Sync) (convert_secondary_to_primary_data_set.py)
         - FIX - Create Dropbox Sync Folder (creates the missing .moneydancesync folder if missing from Dropbox)
         - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
                 More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
@@ -196,6 +200,7 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
         - FIX - FORCE change ALL Account's currencies (use with care). (Does not update any transactions) (force_change_all_currencies.py)
     - MENU: Transactions tools
         - Move/Merge Investment transactions from one account into another.                                                         >> 2021.2 onwards
+        - FIX - Diagnose Attachments - DELETE Orphan attachments (allows you to delete Orphan attachments from Disk ** Syncing must be disabled **)
         - FIX - Non Hierarchical Security Account Txns (cross-linked securities) (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)
         - FIX - Delete One-Sided Txns (delete_invalid_txns.py)
         - FIX - Reverse Transaction Amounts between dates (reverse_txn_amounts.py)
@@ -221,6 +226,7 @@ Menu - HACKER MODE
     - Toggle all internal Moneydance DEBUG settings ON/OFF (same as viewing console)
     - Extract a (single) file from within LocalStorage. Decrypts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
     - Peek at an encrypted file located in your Sync Folder.... Decrypts a Sync (e.g. Dropbox) file and shows it to you...
+    - Shrink Dataset. This function deletes MD's log files of all prior changes (not needed).. Typically these are .txn, .mdtxn files...
     - Import (a single) File back into LocalStorage. Encrypts a file of your choosing and puts it into LocalStorage/safe/TMP...
     - Allows User to Add/Change/Delete Settings/Prefs >> key/value in config.dict or LocalStorage() (./safe/settings)
     - Edit/Change/Delete an Object's Parameter keys (this can change data in your dataset/database directly)
@@ -228,7 +234,9 @@ Menu - HACKER MODE
         >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
         >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
     - Call Save Trunk File option.... Immediately flushes all in memory changes to disk, including your dataset (rather than wait for restart)
-    - DEMOTE your Primary Sync dataset/node back to a Secondary Node..
+    - Force a refresh/PUSH of your local dataset to Sync. Push new Sync data (and rebuild remote copies). Use with extreme care!
+    - Force disable/turn Sync OFF (This just sets your Sync method to None - all other settings are preserved. You can turn it back on again)
+    - DEMOTE your Primary Sync dataset/node back to a Secondary Node
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
 
 CMD-P - View parameters file (StuWareSoftSystems). Also allows user to Delete all, and/or change/delete single saved parameters
