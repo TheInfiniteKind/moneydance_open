@@ -2079,7 +2079,7 @@ Visit: %s (Author's site)
             # .setPrintable() seems to modify pAttrs & adds MediaPrintableArea. Do this before printDeducePrintableWidth()
             header = MessageFormat(_theTitle)
             footer = MessageFormat("- page {0} -")
-            printer_job.setPrintable(printJTextArea.getPrintable(header, footer), thePageFormat)
+            printer_job.setPrintable(printJTextArea.getPrintable(header, footer), thePageFormat)    # Yes - we do this twice
 
             for atr in pAttrs.toArray(): myPrint("DB", "Printer attributes **AFTER** user dialog (and setPrintable): %s:%s" %(atr.getName(), atr))
 
@@ -2094,7 +2094,12 @@ Visit: %s (Author's site)
                     printJTextArea.setFont(theFontToUse)
 
             # avoiding Intellij errors
-            eval("printJTextArea.print(header, footer, False, selectedPrintService, pAttrs, True)")
+            # eval("printJTextArea.print(header, footer, False, selectedPrintService, pAttrs, True)")  # If you do this, then native features like print to PDF will get ignored - so print via PrinterJob
+
+            # Yup - calling .setPrintable() twice - before and after .computeFontSize()
+            printer_job.setPrintable(printJTextArea.getPrintable(header, footer), thePageFormat)
+            eval("printer_job.print(pAttrs)")
+
             del printJTextArea
 
             myPrint("DB", "Saving current print service:", printer_job.getPrintService())
