@@ -291,7 +291,7 @@ else:
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 100 ########################################################################
+    # COMMON CODE ################# VERSION 101 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -2030,7 +2030,7 @@ Visit: %s (Author's site)
 
             def actionPerformed(self, event):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
-                saveOutputFile(self.callingFrame, "QUICKJFRAME", "toolbox_output.txt", self.theText)
+                saveOutputFile(self.callingFrame, "QUICKJFRAME", "%s_output.txt" %(myModuleID), self.theText)
 
         def show_the_frame(self):
             global debug
@@ -2621,7 +2621,7 @@ Visit: %s (Author's site)
                              % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime('%Y-%m-%d %H:%M:%S'), 11), fullPath))
         del dropboxPath
 
-        output+="\n\n(for a more extensive search please use Toolbox - Find my Datasets and Backups button\n\n"
+        output+="\n\n(for a more extensive search please use Toolbox extension - 'Find my Datasets and Backups' button\n\n"
 
         return output
 
