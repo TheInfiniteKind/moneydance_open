@@ -18982,8 +18982,8 @@ Now you will have a text readable version of the file you can open in a text edi
         ConsoleWindow.showConsoleWindow(MD_REF.getUI())
         MyPopUpDialogBox(toolbox_frame_,
                          "%s" %(txt),
-                         "Check the Console Window, WAIT for (Re)Sync, then restart MD\n"
-                         "Wait a few minutes and look for the following entries in the console log....:\n"
+                         "Check the Help>Console Window...\n"
+                         "Wait (up to) a few minutes and look for the following entries in the console log....:\n"
                          "...'Toolbox.... @@ Called .getSyncer().forceResyncFromLocal() to Force Push (Re)Sync to remotes...'\n"
                          "...'uploading new trunk file v3/trunk-nnnnnnnnnnnn.mdtxn to syncFolder'\n"
                          "...'deleting stale sync log file: v3/nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn.mdtxn'\n"
