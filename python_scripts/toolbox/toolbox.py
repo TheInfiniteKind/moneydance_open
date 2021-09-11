@@ -18976,9 +18976,22 @@ Now you will have a text readable version of the file you can open in a text edi
         MD_REF.getUI().getMain().saveCurrentAccount()
         play_the_money_sound()
 
-        txt = "%s: I have executed the requested Sync Push/Pull action, please wait for (Re)Sync and then restart MD (check console log)" %(_THIS_METHOD_NAME)
+        txt = "%s: Force Sync Push/Pull requested." %(_THIS_METHOD_NAME)
         setDisplayStatus(txt, "R")
-        myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
+
+        ConsoleWindow.showConsoleWindow(MD_REF.getUI())
+        MyPopUpDialogBox(toolbox_frame_,
+                         "%s" %(txt),
+                         "Check the Console Window, WAIT for (Re)Sync, then restart MD\n"
+                         "Wait a few minutes and look for the following entries in the console log....:\n"
+                         "...'Toolbox.... @@ Called .getSyncer().forceResyncFromLocal() to Force Push (Re)Sync to remotes...'\n"
+                         "...'uploading new trunk file v3/trunk-nnnnnnnnnnnn.mdtxn to syncFolder'\n"
+                         "...'deleting stale sync log file: v3/nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn.mdtxn'\n"
+                         "(the above line may repeat several times)...\n"
+                         "... and then 'checking for txn logs...'....\n"
+                         "When it's finished, hopefully with no errors, then RESTART MD. <GOOD LUCK!>",
+                         theTitle=_THIS_METHOD_NAME,
+                         theWidth=160, lModal=True,OKButtonText="ACKNOWLEDGE").go()
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
