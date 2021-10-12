@@ -8,5 +8,5 @@
   "module_name" = "Toolbox"
   "module_desc" = "Infinite Kind support tool: Displays Moneydance settings, diagnoses issues, run fixes, and much more....."
   "mac_sandbox_friendly" = "false"
-  "news" = "Enabling MD2022 (the subscription version)"
+  "news" = "Enabling MD2022 (with Moneydance+)"
 }
