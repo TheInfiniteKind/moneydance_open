@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_create_new_usaa_bank_custom_profile.py (build 13) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_create_new_usaa_bank_custom_profile.py (build 17) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
 # https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf
@@ -63,6 +63,10 @@
 # build: 11 - Common code tweaks
 # build: 12 - Common code tweaks
 # build: 13 - Common code tweaks
+# build: 14 - Disable script for 2022.0(4040) onwards - new mapping table
+# build: 15 - Fixing to deal with 4040+... Adding custom "tik_fi_id" as "md:custom-1295"
+# build: 16 - Updating common code - QuickJFrame()
+# build: 17 - Update message on view last download dates window
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -70,7 +74,7 @@
 
 # SET THESE LINES
 myModuleID = u"ofx_create_new_usaa_bank_profile_custom"
-version_build = "13"
+version_build = "17"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -317,12 +321,13 @@ else:
     from com.infinitekind.moneydance.model import OnlineTxnList
     from com.infinitekind.tiksync import SyncableItem
 
-    # >>> THIS SCRIPT'S GLOBALS ############################################################################################
-    # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
+    # >>> THIS SCRIPT'S GLOBALS ########################################################################################
+    MD_MDPLUS_BUILD = 4040
+    # >>> END THIS SCRIPT'S GLOBALS ####################################################################################
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 101 ########################################################################
+    # COMMON CODE ################# VERSION 102 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -1991,7 +1996,7 @@ Visit: %s (Author's site)
 
     class QuickJFrame():
 
-        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True):
+        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True, lQuitMDAfterClose=False):
             self.title = title
             self.output = output
             self.lAlertLevel = lAlertLevel
@@ -1999,6 +2004,33 @@ Visit: %s (Author's site)
             self.copyToClipboard = copyToClipboard
             self.lJumpToEnd = lJumpToEnd
             self.lWrapText = lWrapText
+            self.lQuitMDAfterClose = lQuitMDAfterClose
+
+        class QJFWindowListener(WindowAdapter):
+
+            def __init__(self, theFrame, lQuitMDAfterClose=False):
+                self.theFrame = theFrame
+                self.lQuitMDAfterClose = lQuitMDAfterClose
+                self.saveMD_REF = MD_REF
+
+            def windowClosing(self, WindowEvent):                                                                       # noqa
+                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
+                myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+
+                myPrint("DB", "QuickJFrame() Frame shutting down.... Calling .dispose()")
+                self.theFrame.dispose()
+
+                myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+            def windowClosed(self, WindowEvent):                                                                       # noqa
+                myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
+                myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
+
+                if self.lQuitMDAfterClose:
+                    myPrint("B", "Quit MD after Close triggered... Now quitting MD")
+                    self.saveMD_REF.getUI().exit()   # NOTE: This method should already detect whether MD is already shutting down.... (also, MD Shut down just kills extensions dead)
+                else:
+                    myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing")
 
         class CloseAction(AbstractAction):
 
@@ -2006,12 +2038,18 @@ Visit: %s (Author's site)
                 self.theFrame = theFrame
 
             def actionPerformed(self, event):
-                global debug
                 myPrint("D","in CloseAction(), Event: ", event)
                 myPrint("DB", "QuickJFrame() Frame shutting down....")
 
-                # Already within the EDT
-                self.theFrame.dispose()
+                try:
+                    if not SwingUtilities.isEventDispatchThread():
+                        SwingUtilities.invokeLater(GenericDisposeRunnable(self.theFrame))
+                    else:
+                        self.theFrame.dispose()
+                except:
+                    myPrint("B","Error. QuickJFrame dispose failed....?")
+                    dump_sys_error_to_md_console_and_errorlog()
+
 
         class ToggleWrap(AbstractAction):
 
@@ -2053,7 +2091,6 @@ Visit: %s (Author's site)
 
             def __init__(self): pass
 
-            # noinspection PyMethodMayBeStatic
             def actionPerformed(self, event):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
                 pageSetup()
@@ -2069,7 +2106,6 @@ Visit: %s (Author's site)
                 saveOutputFile(self.callingFrame, "QUICKJFRAME", "%s_output.txt" %(myModuleID), self.theText)
 
         def show_the_frame(self):
-            global debug
 
             class MyQuickJFrameRunnable(Runnable):
 
@@ -2082,12 +2118,15 @@ Visit: %s (Author's site)
                     frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
 
                     JFrame.setDefaultLookAndFeelDecorated(True)
-                    jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)" %(MD_REF.getUI().ACCELERATOR_MASK_STR))
+                    jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)%s"
+                                              %( MD_REF.getUI().ACCELERATOR_MASK_STR,
+                                                ("" if not self.callingClass.lQuitMDAfterClose else  " >> MD WILL QUIT AFTER VIEWING THIS <<")))
+
                     jInternalFrame.setName(u"%s_quickjframe" %myModuleID)
 
                     if not Platform.isOSX(): jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
 
-                    jInternalFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+                    jInternalFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
                     jInternalFrame.setResizable(True)
 
                     shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
@@ -2106,6 +2145,7 @@ Visit: %s (Author's site)
                     jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
                     jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
                     jInternalFrame.getRootPane().getActionMap().put("print-me", self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
+                    jInternalFrame.addWindowListener(self.callingClass.QJFWindowListener(jInternalFrame, self.callingClass.lQuitMDAfterClose))
 
                     internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
@@ -2407,6 +2447,27 @@ Visit: %s (Author's site)
 
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
+    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_BUILD)
+
+    book = MD_REF.getCurrentAccountBook()
+
+    mappingObject = None
+
+    if isMDPlusEnabledBuild():
+        myPrint("B", "MD2022+ build detected.. Enabling new features....")
+        from com.infinitekind.moneydance.model import OnlineAccountMapping
+        mappingObject = book.getItemForID("online_acct_mapping")
+        if mappingObject is not None:
+            myPrint("B", "Online Account Mapping object found and reference stored....")
+        else:
+            myPrint("B", "No Online Account mapping object found...")
+
+    if not isMDPlusEnabledBuild() and book.getItemForID("online_acct_mapping") is not None:
+        alert = "MD version older than MD2022 detected, but you have an Online Account mapping object.. Have you downgraded? SORRY >> CANNOT PROCEED!"
+        myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise Exception(alert)
+
+
     def isUserEncryptionPassphraseSet():
 
         try:
@@ -2477,6 +2538,11 @@ Visit: %s (Author's site)
                 return "Invalid Acct Obj or None"
             return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
 
+    # if isMDPlusEnabledBuild():
+    #     alert = "SORRY - THIS FIX SCRIPT HAS BEEN DISABLED FOR MD2022 ONWARDS DUE TO UNDERLYING TECHNICAL CHANGES..."
+    #     myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+    #     raise Exception(alert)
+    #
     if not myPopupAskQuestion(None, "BACKUP", "CREATE A NEW (CUSTOM) USAA PROFILE >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
         alert = "BACKUP FIRST! PLEASE USE FILE>EXPORT BACKUP then come back!! - No changes made."
         myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
@@ -2558,6 +2624,7 @@ Visit: %s (Author's site)
     USAA_FI_ORG = "USAA Federal Savings Bank"
     USAA_PROFILE_NAME = "USAA Custom Profile (ofx_create_new_usaa_bank_profile_custom.py)"
     OLD_TIK_FI_ID = "md:1295"
+    NEW_TIK_FI_ID = "md:custom-1295"
 
     authKeyPrefix = "ofx.client_uid"
 
@@ -2566,7 +2633,7 @@ Visit: %s (Author's site)
     ####################################################################################################################
     deleteServices = []
     for svc in serviceList:
-        if (svc.getTIKServiceID() == OLD_TIK_FI_ID
+        if (svc.getTIKServiceID() == OLD_TIK_FI_ID or svc.getTIKServiceID() == NEW_TIK_FI_ID
                 or svc.getServiceId() == ":%s:%s" %(USAA_FI_ORG, USAA_FI_ID)
                 or "USAA" in svc.getFIOrg()
                 or "USAA" in svc.getFIName()):
@@ -2576,6 +2643,10 @@ Visit: %s (Author's site)
     root = MD_REF.getRootAccount()
     rootKeys = list(root.getParameterKeys())
     lRootNeedsSync = False
+
+    mappingKeys = None
+    if mappingObject is not None: mappingKeys = list(mappingObject.getParameterKeys())
+    lMappingNeedsSync = False
 
     if len(deleteServices) < 1:
         myPrint("B", "No USAA services / profile found to delete...")
@@ -2594,24 +2665,32 @@ Visit: %s (Author's site)
                         myPrint("B", "clearing service link flag from account %s (%s)" %(a,s))
                         a.setEditingMode()
                         a.setBankingFI(None)
+                        if isMDPlusEnabledBuild(): a.setOnlineIDForServiceID(s.getTIKServiceID(), None)
                         a.setBillPayFI(None)
                         a.syncItem()
                 myPrint("B", "Clearing authentication cache from %s" %s)
                 s.clearAuthenticationCache()
 
                 # Clean up root here - as with custom profiles the UUID sets stored instead of the TIK ID which can be identified later....
-                if s.getTIKServiceID() != OLD_TIK_FI_ID:  # Thus we presume it's our own custom profile
+                if s.getTIKServiceID() != OLD_TIK_FI_ID and s.getTIKServiceID() != NEW_TIK_FI_ID:  # Thus we presume it's our own custom profile, older script using uuid...
                     for i in range(0,len(rootKeys)):
                         rk = rootKeys[i]
                         if rk.startswith(authKeyPrefix) and (s.getTIKServiceID() in rk):
                             myPrint("B", "Deleting old authKey associated with this profile (from Root) %s: %s" %(rk,root.getParameter(rk)))
-
-                            if not lRootNeedsSync:
-                                myPrint("B",".. triggering .setEditingMode() on root...")
-                                root.setEditingMode()
-
+                            if not lRootNeedsSync: root.setEditingMode()
                             root.setParameter(rk, None)
                             lRootNeedsSync = True
+                        i+=1
+
+                if mappingObject is not None:
+                    myPrint("B", "Checking Online Account Mapping object for references to old profile...")
+                    for i in range(0, len(mappingKeys)):
+                        pk = mappingKeys[i]
+                        if pk.startswith("map.") and (OLD_TIK_FI_ID in pk or NEW_TIK_FI_ID in pk):
+                            myPrint("B", "Deleting old Account Mapping %s: %s" %(pk, mappingObject.getParameter(pk)))
+                            if not lMappingNeedsSync: mappingObject.setEditingMode()
+                            mappingObject.setParameter(pk, None)
+                            lMappingNeedsSync = True
                         i+=1
 
                 myPrint("B", "Deleting profile %s" %s)
@@ -2619,10 +2698,10 @@ Visit: %s (Author's site)
                 myPopupInformationBox(None,"I have deleted Bank logon profile / service: %s and forgotten associated credentials (%s accounts were de-linked)" %(s,iCount))
             del accounts
 
-    if lRootNeedsSync:
-        root.syncItem()
+    if lRootNeedsSync: root.syncItem()
+    if lMappingNeedsSync: mappingObject.syncItem()
 
-    del serviceList, deleteServices, lRootNeedsSync, rootKeys
+    del serviceList, deleteServices, lRootNeedsSync, rootKeys, mappingObject
 
 
     ####################################################################################################################
@@ -2633,15 +2712,15 @@ Visit: %s (Author's site)
     for a in accounts:
         if a.getBankingFI() is None and a.getParameter("olbfi", "") != "":
             invalidBankingLinks.append(a)
-            myPrint("B","... Found account %s with a banking link (to %s), but no service profile exists (thus dead)..." %(a,a.getParameter("olbfi", "")))
+            myPrint("B","... Found account '%s' with a banking link (to %s), but no service profile exists (thus dead)..." %(a,a.getParameter("olbfi", "")))
 
         if a.getBillPayFI() is None and a.getParameter("bpfi", "") != "":
             invalidBillPayLinks.append(a)
-            myPrint("B","... Found account %s with a BillPay link (to %s), but no service profile exists (thus dead)..." %(a,a.getParameter("bpfi", "")))
+            myPrint("B","... Found account '%s' with a BillPay link (to %s), but no service profile exists (thus dead)..." %(a,a.getParameter("bpfi", "")))
 
     if len(invalidBankingLinks) or len(invalidBillPayLinks):
         if myPopupAskQuestion(None,
-                              "ACCOUNT TO DEAD SERVICE PROFILE LINKS",
+                              "ACCOUNT WITH DEAD SERVICE PROFILE LINKS",
                               "ALERT: I found %s Banking and %s BillPay links to 'dead' / missing Service / Connection profiles - Shall I remove these links?"
                               %(len(invalidBankingLinks),len(invalidBillPayLinks)),
                               theMessageType=JOptionPane.INFORMATION_MESSAGE):
@@ -2898,11 +2977,11 @@ Visit: %s (Author's site)
 
     ####################################################################################################################
 
-    myPrint("B", "creating new service profile")
-    book = MD_REF.getCurrentAccountBook()
+    myPrint("B", "Creating new Online Banking OFX Service Profile")
     manualFIInfo = StreamTable()     # type: StreamTable
     manualFIInfo.put("obj_type",                                 "olsvc")
     manualFIInfo.put("access_type",                              "OFX")
+    manualFIInfo.put("tik_fi_id",                                NEW_TIK_FI_ID)
     manualFIInfo.put("app_id",                                   "QMOFX")
     manualFIInfo.put("app_ver",                                  "2300")
     manualFIInfo.put("bank_closing_avail",                       "0")
@@ -2988,7 +3067,6 @@ Visit: %s (Author's site)
     manualFIInfo.put("syncmode_default",                         "LITE")
     manualFIInfo.put("syncmode_fiprofile",                       "LITE")
     manualFIInfo.put("syncmode_signup",                          "LITE")
-    # manualFIInfo.put("tik_fi_id",                                OLD_TIK_FI_ID)
     manualFIInfo.put("user-agent",                               "InetClntApp/3.0")
     manualFIInfo.put("uses_fi_tag",                              "y")
     manualFIInfo.put("version_banking",                          "1")
@@ -3042,6 +3120,23 @@ Visit: %s (Author's site)
     newService = OnlineService(book, manualFIInfo)
     newService.syncItem()
 
+    mappingObject = None
+    if isMDPlusEnabledBuild():
+        myPrint("B", "Grabbing reference to OnlineAccountMapping() with new service profile...")
+        mappingObject =  OnlineAccountMapping(book, newService)
+
+        if selectedBankAccount:
+            myPrint("B", ".. setting bank account %s into map for: %s" %(bankID, selectedBankAccount))
+            mappingObject.setMapping(str(bankID).zfill(10), selectedBankAccount)
+
+        if selectedCCAccount:
+            myPrint("B", ".. setting cc account %s into map for: %s" %(ccID, selectedCCAccount))
+            mappingObject.setMapping(str(ccID), selectedCCAccount)
+
+        mappingObject.syncItem()
+
+    del mappingObject
+
     ####################################################################################################################
 
     service = newService
@@ -3064,6 +3159,7 @@ Visit: %s (Author's site)
 
         myPrint("B", ">> Setting up the Banking Acct %s link to new bank service / profile %s" %(selectedBankAccount, newService))
         selectedBankAccount.setBankingFI(newService)                    # noqa
+        # MD2022 - can use setOnlineIDForServiceID() but for this, the old method should be OK...
 
         selectedBankAccount.syncItem()                                  # noqa
         selectedBankAccount.getDownloadedTxns()                         # noqa
@@ -3083,6 +3179,7 @@ Visit: %s (Author's site)
 
         myPrint("B", ">> Settings up the CC Acct %s link to new profile %s" %(selectedCCAccount, newService))
         selectedCCAccount.setBankingFI(newService)                      # noqa
+        # MD2022 - can use setOnlineIDForServiceID() but for this, the old method should be OK...
 
         selectedCCAccount.syncItem()                                    # noqa
         selectedCCAccount.getDownloadedTxns()                           # noqa
@@ -3093,7 +3190,6 @@ Visit: %s (Author's site)
     myPrint("B", "Updating root with userID and uuid")
     root = MD_REF.getRootAccount()
 
-    myPrint("B","... calling .setEditingMode() on root...")
     root.setEditingMode()
 
     if lOverrideRootUUID:
@@ -3104,17 +3200,17 @@ Visit: %s (Author's site)
     rootKeys = list(root.getParameterKeys())
     for i in range(0,len(rootKeys)):
         rk = rootKeys[i]
-        if rk.startswith(authKeyPrefix) and (service.getTIKServiceID() in rk or OLD_TIK_FI_ID in rk):
+        if rk.startswith(authKeyPrefix) and (service.getTIKServiceID() in rk or OLD_TIK_FI_ID in rk or NEW_TIK_FI_ID in rk):
             myPrint("B", "Deleting old authKey %s: %s" %(rk,root.getParameter(rk)))
             root.setParameter(rk, None)
         i+=1
 
-    root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + userID,   uuid)          # noqa
-    root.setParameter(authKeyPrefix+"_default_user"+"::" + service.getTIKServiceID(), userID)         # noqa
+    root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + userID,   uuid)                           # noqa
+    root.setParameter(authKeyPrefix+"_default_user"+"::" + service.getTIKServiceID(), userID)                           # noqa
     myPrint("B", "Root UserID and uuid updated...")
 
     if lMultiAccountSetup:
-        root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + userID2,   uuid2)       # noqa
+        root.setParameter(authKeyPrefix+"::" + service.getTIKServiceID() + "::" + userID2,   uuid2)                     # noqa
         myPrint("B", "Root UserID TWO and uuid TWO primed - ready for Online Banking Setup...")
 
     root.syncItem()
@@ -3230,7 +3326,7 @@ Visit: %s (Author's site)
                 if theCurrentDate > 0:
                     prettyLastTxnDate = get_time_stamp_as_nice_text(theCurrentDate)
                 else:
-                    prettyLastTxnDate = "IS SET TO ZERO = 'Download all available dates'"
+                    prettyLastTxnDate = "IS SET TO ZERO = 'Download all available dates' (if on MD2022 onwards, MD will prompt you for a start date)"
 
             outputDates += "%s %s %s\n" %(pad(repr(acct.getAccountType()),12), pad(acct.getFullAccountName(),40), prettyLastTxnDate)
 
@@ -3243,7 +3339,7 @@ Visit: %s (Author's site)
                        %(MYPYTHON_DOWNLOAD_URL)
 
         outputDates += "\n<END>"
-        jif =QuickJFrame("LAST DOWNLOAD DATES", outputDates).show_the_frame()
+        jif = QuickJFrame("LAST DOWNLOAD DATES", outputDates, lWrapText=False, copyToClipboard=True).show_the_frame()
         myPopupInformationBox(jif, "REVIEW OUTPUT. Use Toolbox first if you need to change any last download txn dates.....", theMessageType=JOptionPane.INFORMATION_MESSAGE)
 
     myPopupInformationBox(None, "SUCCESS. REVIEW OUTPUT - Then RESTART Moneydance.", theMessageType=JOptionPane.ERROR_MESSAGE)

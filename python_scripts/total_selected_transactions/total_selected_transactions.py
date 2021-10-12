@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# total_selected_transactions.py build: 1002 - August 2021 - Stuart Beesley StuWareSoftSystems
+# total_selected_transactions.py build: 1003 - August 2021 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -32,6 +32,7 @@
 # build: 1001 - Enhanced the popup with extra info (e.g. average, fx)
 # build: 1001 - Common code tweaks
 # build: 1002 - Extra investment totals
+# build: 1003 - Common code tweaks
 
 # Looks for an Account register that has focus and then totals the selected transactions. If any found, displays on screen
 # NOTE: 1st Aug 2021 - As a result of creating this extension, IK stated this would be core functionality in preview build 3070+
@@ -42,7 +43,7 @@
 
 # SET THESE LINES
 myModuleID = u"total_selected_transactions"
-version_build = "1002"
+version_build = "1003"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -294,7 +295,7 @@ else:
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 101 ########################################################################
+    # COMMON CODE ################# VERSION 102 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -1963,7 +1964,7 @@ Visit: %s (Author's site)
 
     class QuickJFrame():
 
-        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True):
+        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True, lQuitMDAfterClose=False):
             self.title = title
             self.output = output
             self.lAlertLevel = lAlertLevel
@@ -1971,6 +1972,33 @@ Visit: %s (Author's site)
             self.copyToClipboard = copyToClipboard
             self.lJumpToEnd = lJumpToEnd
             self.lWrapText = lWrapText
+            self.lQuitMDAfterClose = lQuitMDAfterClose
+
+        class QJFWindowListener(WindowAdapter):
+
+            def __init__(self, theFrame, lQuitMDAfterClose=False):
+                self.theFrame = theFrame
+                self.lQuitMDAfterClose = lQuitMDAfterClose
+                self.saveMD_REF = MD_REF
+
+            def windowClosing(self, WindowEvent):                                                                       # noqa
+                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
+                myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+
+                myPrint("DB", "QuickJFrame() Frame shutting down.... Calling .dispose()")
+                self.theFrame.dispose()
+
+                myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+            def windowClosed(self, WindowEvent):                                                                       # noqa
+                myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
+                myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
+
+                if self.lQuitMDAfterClose:
+                    myPrint("B", "Quit MD after Close triggered... Now quitting MD")
+                    self.saveMD_REF.getUI().exit()   # NOTE: This method should already detect whether MD is already shutting down.... (also, MD Shut down just kills extensions dead)
+                else:
+                    myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing")
 
         class CloseAction(AbstractAction):
 
@@ -1978,12 +2006,18 @@ Visit: %s (Author's site)
                 self.theFrame = theFrame
 
             def actionPerformed(self, event):
-                global debug
                 myPrint("D","in CloseAction(), Event: ", event)
                 myPrint("DB", "QuickJFrame() Frame shutting down....")
 
-                # Already within the EDT
-                self.theFrame.dispose()
+                try:
+                    if not SwingUtilities.isEventDispatchThread():
+                        SwingUtilities.invokeLater(GenericDisposeRunnable(self.theFrame))
+                    else:
+                        self.theFrame.dispose()
+                except:
+                    myPrint("B","Error. QuickJFrame dispose failed....?")
+                    dump_sys_error_to_md_console_and_errorlog()
+
 
         class ToggleWrap(AbstractAction):
 
@@ -2025,7 +2059,6 @@ Visit: %s (Author's site)
 
             def __init__(self): pass
 
-            # noinspection PyMethodMayBeStatic
             def actionPerformed(self, event):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
                 pageSetup()
@@ -2041,7 +2074,6 @@ Visit: %s (Author's site)
                 saveOutputFile(self.callingFrame, "QUICKJFRAME", "%s_output.txt" %(myModuleID), self.theText)
 
         def show_the_frame(self):
-            global debug
 
             class MyQuickJFrameRunnable(Runnable):
 
@@ -2054,12 +2086,15 @@ Visit: %s (Author's site)
                     frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
 
                     JFrame.setDefaultLookAndFeelDecorated(True)
-                    jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)" %(MD_REF.getUI().ACCELERATOR_MASK_STR))
+                    jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)%s"
+                                              %( MD_REF.getUI().ACCELERATOR_MASK_STR,
+                                                ("" if not self.callingClass.lQuitMDAfterClose else  " >> MD WILL QUIT AFTER VIEWING THIS <<")))
+
                     jInternalFrame.setName(u"%s_quickjframe" %myModuleID)
 
                     if not Platform.isOSX(): jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
 
-                    jInternalFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+                    jInternalFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
                     jInternalFrame.setResizable(True)
 
                     shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
@@ -2078,6 +2113,7 @@ Visit: %s (Author's site)
                     jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
                     jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
                     jInternalFrame.getRootPane().getActionMap().put("print-me", self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
+                    jInternalFrame.addWindowListener(self.callingClass.QJFWindowListener(jInternalFrame, self.callingClass.lQuitMDAfterClose))
 
                     internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
