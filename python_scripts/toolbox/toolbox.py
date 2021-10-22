@@ -236,6 +236,7 @@
 # build: 1043 - Enhanced cleanup missing banking links to detect/delete orphaned md+ connections; tweak to GeekOut on OFX Data (Accounts)
 # build: 1043 - New feature: 'Restore an archive file, and RETAIN Sync settings ' (avoids wiping out Sync settings on restore)
 # build: 1043 - New feature: Fix iCloud Sync Crash (same as Fix Dropbox One-Way Crash)
+# build: 1043 - Tweaked OFX Authentication menu... Added change OFX Password feature
 
 # todo - Restore and retain syncid settings....
 # todo - MD Menubar inherits Toolbox buttons (top right) when switching account whilst using Darcula Theme
@@ -557,11 +558,12 @@ else:
     from com.infinitekind.tiksync import Syncer
     from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
     from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory
-    from com.infinitekind.moneydance.online import OnlineTxnMerger
+    from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
     from com.moneydance.apps.md.view.gui import MDAccountProxy
     from java.lang import Integer, String
 
-    from java.net import URL
+
+    from java.net import URL, URLEncoder, URLDecoder                                                                    # noqa
 
     from java.awt.event import ComponentAdapter
 
@@ -2864,6 +2866,16 @@ Visit: %s (Author's site)
         if _padLength < 1: return u"%s: %s" %(what, _x)
         return u"%s%s" %(pad("%s:" %(what),_padLength), _x)
 
+    def isPreviewBuild():
+        if MD_EXTENSION_LOADER is not None:
+            try:
+                stream = MD_EXTENSION_LOADER.getResourceAsStream("/_PREVIEW_BUILD_")
+                if stream is not None:
+                    myPrint("B", "@@ PREVIEW BUILD DETECTED @@")
+                    return True
+            except: pass
+        return False
+
     def isToolboxUnlocked(): return GlobalVars.TOOLBOX_UNLOCK
 
     def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_BUILD)
@@ -3329,6 +3341,8 @@ Visit: %s (Author's site)
     def buildDiagText():
 
         textArray = []                                                                                                  # noqa
+
+        if isPreviewBuild(): textArray.append(u"*** PREVIEW BUILD DETECTED ***\n")
 
         x = getMonoFont()
         textArray.append(u"FONT USED FOR TOOLBOX OUTPUT/DISPLAY(can be changed): %s(%s)" %(x.getFontName(), x.getSize()))
@@ -7853,8 +7867,34 @@ Please update any that you use before proceeding....
         myPrint("B","'%s' - User has been offered opportunity to create a backup and they accepted the DISCLAIMER on Action: %s - PROCEEDING" %(theTitleToDisplay, theAction))
         return True
 
+    def getUserSelectedServiceProfile(_theFrame, _theTitle, _theQuestion, lIncludePlaidWhenUnlocked=False):
+
+        serviceList = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
+        newServiceList = []
+        for sv in serviceList:
+            if lIncludePlaidWhenUnlocked:
+                if not isToolboxUnlocked() and sv.getTIKServiceID() == "md:plaid": continue
+            newServiceList.append(StoreService(sv))
+
+        service = JOptionPane.showInputDialog(_theFrame,
+                                              _theQuestion,
+                                              _theTitle,
+                                              JOptionPane.INFORMATION_MESSAGE,
+                                              MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                              newServiceList,
+                                              None)             # type: StoreService
+
+        if not service:
+            txt = "%s: - No Service was selected - no changes made.." %(_theTitle)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            return None
+        return service.getService()
+
+
     def clearOneServiceAuthCache():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "CLEAR AUTHENTICATION FROM ONE SERVICE"
 
         output = "VIEW ALL CACHED AUTHENTICATION KEYS\n" \
                  " ==================================\n\n"
@@ -7871,51 +7911,30 @@ Please update any that you use before proceeding....
             output += "<NONE>\n"
 
         output+="\n<END>"
-        jif = QuickJFrame("VIEW ALL CACHED AUTHENTICATION KEYS",output,lAlertLevel=2,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+        jif = QuickJFrame("VIEW ALL CACHED AUTHENTICATION KEYS",output,lAlertLevel=1,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
-        serviceList = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
-
-        newServiceList = []
-        for sv in serviceList:
-            if not isToolboxUnlocked() and sv.getTIKServiceID() == "md:plaid": continue
-            newServiceList.append(StoreService(sv))
-
-        service = JOptionPane.showInputDialog(jif,
-                                              "Select a service to delete",
-                                              "CLEAR AUTHENTICATION FROM ONE SERVICE",
-                                              JOptionPane.INFORMATION_MESSAGE,
-                                              MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
-                                              newServiceList,
-                                              None)             # type: StoreService
-
+        service = getUserSelectedServiceProfile(jif, _THIS_METHOD_NAME, "Select a service clear the Authentication Cache", lIncludePlaidWhenUnlocked=False)  # type: OnlineService
         if not service:
-            txt = "CLEAR AUTHENTICATION FROM ONE SERVICE - No Service was selected - no changes made.."
-            setDisplayStatus(txt, "R")
-            jif.dispose()       # already within the EDT
+            jif.dispose()
             return
-
-        service = service.obj                                                                                           # noqa
 
         if not backup_local_storage_settings():
-            txt = "'CLEAR AUTHENTICATION FROM ONE SERVICE': ERROR making backup of LocalStorage() ./safe/settings - no changes made!"
-            myPrint("B", txt)
-            setDisplayStatus(txt, "R")
+            txt = "%s: ERROR making backup of LocalStorage() ./safe/settings - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
             jif.dispose()       # already within the EDT
             return
 
-        if confirm_backup_confirm_disclaimer(jif,"CLEAR AUTHENTICATION FROM ONE SERVICE","Clear Authentication Password(s) for service:%s?" %(service)):
+        if confirm_backup_confirm_disclaimer(jif,_THIS_METHOD_NAME,"Clear Authentication Password(s) for service:%s?" %(service)):
             # noinspection PyUnresolvedReferences
             service.clearAuthenticationCache()
             MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
             play_the_money_sound()
-            txt = "CLEAR AUTHENTICATION FROM ONE SERVICE - Password(s) for %s have been cleared" %(service)
-            setDisplayStatus(txt, "R")
-            myPrint("B", txt)
+            txt = "%s: Password(s) for %s have been cleared" %(_THIS_METHOD_NAME, service)
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
             play_the_money_sound()
-            myPopupInformationBox(jif,"Password(s) for %s have been cleared" %(service),
-                                  "CLEAR AUTHENTICATION FROM ONE SERVICE",JOptionPane.WARNING_MESSAGE)
+            myPopupInformationBox(jif,"Password(s) for %s have been cleared" %(service), _THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
 
-        jif.dispose()       # already within the EDT
+        jif.dispose()
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
@@ -7923,6 +7942,8 @@ Please update any that you use before proceeding....
     def clearAllServicesAuthCache():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
+        _THIS_METHOD_NAME = "CLEAR ALL SERVICE(S)' AUTHENTICATION"
+
         output = "VIEW ALL CACHED AUTHENTICATION KEYS\n" \
                  " ==================================\n\n"
 
@@ -7938,27 +7959,160 @@ Please update any that you use before proceeding....
             output += "<NONE>\n"
 
         output+="\n<END>"
-        jif = QuickJFrame("VIEW ALL EXISTING AUTHENTICATION KEYS",output,lAlertLevel=2,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+        jif = QuickJFrame("VIEW ALL EXISTING AUTHENTICATION KEYS",output,lAlertLevel=1,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
         if not backup_local_storage_settings():
-            txt = "'CLEAR ALL SERVICE(S)' AUTHENTICATION': ERROR making backup of LocalStorage() ./safe/settings - no changes made!"
-            myPrint("B", txt)
-            setDisplayStatus(txt, "R")
+            txt = "%s: ERROR making backup of LocalStorage() ./safe/settings - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
             jif.dispose()       # already within the EDT
             return
 
-        if confirm_backup_confirm_disclaimer(jif,"CLEAR ALL SERVICE(S)' AUTHENTICATION","Clear Authentication All Password(s) for **ALL** service(s)?"):
-
+        if confirm_backup_confirm_disclaimer(jif,_THIS_METHOD_NAME,"Clear Authentication All Password(s) for **ALL** service(s)?"):
             MD_REF.getUI().getOnlineManager().clearAuthenticationCache()
             MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
             play_the_money_sound()
-            txt = "CLEAR ALL SERVICE(S)' AUTHENTICATION - **ALL** Password(s) for ALL Services have been cleared"
-            setDisplayStatus(txt, "R")
-            myPrint("B", txt)
-            myPopupInformationBox(jif,"CLEAR ALL SERVICE(S)' AUTHENTICATION - ALL Password(s) for ALL Services have been cleared!",
-                                  "CLEAR ALL AUTHENTICATION",JOptionPane.WARNING_MESSAGE)
+            txt = "%s: **ALL** Password(s) for ALL Services have been cleared" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+            myPopupInformationBox(jif, txt, _THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
 
         jif.dispose()       # already within the EDT
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+        return
+
+    class MyOFXAuthInfo(OFXAuthInfo):
+        def __init__(self, _user, _pass, _extra, _cookie, _type):
+            self.originalCookie = _cookie
+            self.newPassword = None
+            super(OFXAuthInfo, self).__init__(_user, _pass, _extra, _cookie, _type)                                     # noqa
+
+        def getCookie(self): return self.originalCookie
+
+        def setNewPassword(self, _newPassword):
+            self.newPassword = _newPassword
+
+        def getNewPassword(self): return self.newPassword
+
+        def getNewEncodedAuthObj(self):
+            return MyOFXAuthInfo(self.getUserId(), self.getNewPassword(), self.getExtraAuth(), self.getCookie(), self.getAuthType())
+
+        @staticmethod
+        def fromCacheString(_fromRecord):
+            if _fromRecord is None: return None
+            params = {}
+            StringUtils.parseURLParameters(_fromRecord, params)
+            authTypeStr = params.get("type")
+            authType = 0
+            try: authType = int(authTypeStr)
+            except: pass
+
+            return (MyOFXAuthInfo(params.get("userid"),
+                                  params.get("pass"),
+                                  params.get("extra"),
+                                  params.get("cookie"),
+                                  authType))
+
+
+    def editStoredOFXPasswords():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "EDIT OFX STORED PASSWORDS"
+
+        service = getUserSelectedServiceProfile(toolbox_frame_, _THIS_METHOD_NAME, "Select a service to manage a stored Password", lIncludePlaidWhenUnlocked=False)  # type: OnlineService
+        if not service: return
+
+        output = "VIEW STORED AUTHENTICATION KEYS FOR SERVICE\n" \
+                 " ==========================================\n\n"
+
+        class StoreAuthKeyData:
+            def __init__(self, _theKey, _theData):
+                self.theKey = _theKey
+                self.theData = _theData
+                self.authObj = MyOFXAuthInfo.fromCacheString(_theData)
+                self.thePassword = self.authObj.getPasswd()
+                self.theUserID = self.authObj.getUserId()
+
+            def __str__(self): return "%s User: %s Pswd: %s" %(self.theKey, self.theUserID, self.thePassword)
+            def __repr__(self): return self.__str__()
+
+        saveAuthKeys = []
+        authKeys = getUpdatedAuthenticationKeys()
+        for theAuthKey in sorted(authKeys.keys()):                                                                      # noqa
+            if (service.getFIOrg() + "--" + service.getFIId() + "--") in theAuthKey:
+                saveAuthKeys.append(StoreAuthKeyData(theAuthKey,authKeys.get(theAuthKey)))                                              # noqa
+                tempAuthObj = MyOFXAuthInfo.fromCacheString(authKeys.get(theAuthKey))                                   # noqa
+                output += "Key:%s" %(theAuthKey) + " Value: %s (decoded password: %s)\n" %(authKeys.get(theAuthKey), tempAuthObj.getPasswd())                     # noqa
+        del authKeys
+
+        if len(saveAuthKeys) < 1:
+            txt = "%s: WARNING No stored Authentication records found for this service - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            return
+
+        output+="\n<END>"
+        jif = QuickJFrame("VIEW EXISTING AUTHENTICATION KEYS FOR SERVICE",output,lAlertLevel=1,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+
+        selectedAuthKeyRecord = JOptionPane.showInputDialog(jif,
+                                                     "Select an Authentication Key to edit",
+                                                     _THIS_METHOD_NAME,
+                                                     JOptionPane.INFORMATION_MESSAGE,
+                                                     MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                     saveAuthKeys,
+                                                     None)      # type: StoreAuthKeyData
+        if not selectedAuthKeyRecord:
+            txt = "%s: No Authentication Key selected - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(jif, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            jif.dispose()
+            return
+
+        if isinstance(selectedAuthKeyRecord, StoreAuthKeyData): pass
+        authObj = selectedAuthKeyRecord.authObj
+
+        if authObj is None or authObj.toString() != selectedAuthKeyRecord.theData:
+            txt = "%s: ERROR - Failed to decode Authentication key (refer console) - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(jif, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            jif.dispose()
+            return
+
+        newPassword = myPopupAskForInput(jif,
+                                         _THIS_METHOD_NAME,
+                                         "New password:",
+                                         "Enter new password for user %s" %(authObj.getUserId()),
+                                         defaultValue=authObj.getPasswd())
+        if newPassword is None or newPassword == "" or newPassword == authObj.getPasswd():
+            txt = "%s: User did not enter a new password - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(jif, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            jif.dispose()
+            return
+
+        if not confirm_backup_confirm_disclaimer(jif,_THIS_METHOD_NAME,"Edit password for user %s within this service?" %(authObj.getUserId())):
+            txt = "%s: User did not agree to proceed with changes - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            jif.dispose()
+            return
+
+        if not backup_local_storage_settings():
+            txt = "%s: ERROR making backup of LocalStorage() ./safe/settings - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            jif.dispose()
+            return
+
+        authObj.setNewPassword(newPassword)
+
+        MD_REF.getCurrentAccount().getBook().getLocalStorage()
+        service.cacheAuthentication(selectedAuthKeyRecord.theKey, authObj.getNewEncodedAuthObj().toCacheString())
+
+        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
+        play_the_money_sound()
+        txt = "%s: UserID: %s Password set to: %s" %(_THIS_METHOD_NAME, authObj.getUserId(), authObj.getNewPassword())
+        setDisplayStatus(txt, "B"); myPrint("B", txt)
+        myPopupInformationBox(jif,txt, _THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
+        jif.dispose()
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
@@ -7981,7 +8135,7 @@ Please update any that you use before proceeding....
             myPrint("DB","OFX UserID Data Valid: %r" %(test_str))
             return True
 
-    def manualEditOfUserIDs():
+    def manualEditOfRootUserIDs():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         if MD_REF.getCurrentAccount().getBook() is None: return
@@ -7996,17 +8150,17 @@ Please update any that you use before proceeding....
         _ADDONE     = 3
 
         what = [
-            "Delete One OFX UserID record",
-            "Delete All OFX UserID record(s)",
-            "Edit One OFX UserID record (key and data)",
-            "Add One OFX UserID record (key and data)"]
+            "Delete One OFX UserID/ClientUID record (from root)",
+            "Delete All OFX UserID/ClientUID record(s) (from root)",
+            "Edit One OFX UserID/ClientUID record (key and data) (from root)",
+            "Add One OFX UserID/ClientUID record (key and data) (from root)"]
 
         while True:
 
             lDoIHaveAnyKeys=True
 
-            output = "LIST OF OFX BANK USERIDs STORED ON THE ROOT ACCOUNT\n" \
-                     " ==================================================\n\n"
+            output = "LIST OF OFX BANK USERIDs/ClientUIDs STORED ON THE ROOT ACCOUNT\n" \
+                     " =============================================================\n\n"
             userIDKeys=[]
             rootKeys=sorted(root.getParameterKeys())
             for userKey in rootKeys:
@@ -8017,17 +8171,17 @@ Please update any that you use before proceeding....
             output+="\n<END>"
 
             if len(userIDKeys)<1:
-                txt = "You have no Bank OFX UserIDs stored on the Root Account"
+                txt = "You have no Bank OFX UserIDs/ClientUIDs stored on the Root Account"
                 setDisplayStatus(txt, "R")
-                myPopupInformationBox(toolbox_frame_,txt,"OFX BANK UserIDs",JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(toolbox_frame_,txt,"OFX BANK UserIDs/ClientUIDs",JOptionPane.WARNING_MESSAGE)
                 lDoIHaveAnyKeys=False
 
-            jif=QuickJFrame("REVIEW OFX BANK USERIDs (stored on ROOT) BEFORE CHANGES",output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            jif=QuickJFrame("REVIEW OFX BANK USERIDs/ClientUIDs (stored on ROOT) BEFORE CHANGES",output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
             if lDoIHaveAnyKeys:
                 selectedWhat = JOptionPane.showInputDialog(jif,
                                                            "What you want to do?",
-                                                           "OFX USERID MANAGEMENT",
+                                                           "OFX USERID/ClientUID MANAGEMENT",
                                                            JOptionPane.INFORMATION_MESSAGE,
                                                            MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
                                                            what,
@@ -8035,7 +8189,7 @@ Please update any that you use before proceeding....
             else:
                 selectedWhat = JOptionPane.showInputDialog(jif,
                                                            "What you want to do?",
-                                                           "OFX USERID MANAGEMENT",
+                                                           "OFX USERID/ClientUIDs MANAGEMENT",
                                                            JOptionPane.INFORMATION_MESSAGE,
                                                            MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
                                                            [what[_ADDONE]],
@@ -8069,8 +8223,8 @@ Please update any that you use before proceeding....
             if lDeleteOne or lEditOne:
 
                 selectedUserIDKey = JOptionPane.showInputDialog(jif,
-                                                             "Select a UserID to %s" %(do_what),
-                                                             "OFX USERID MANAGEMENT",
+                                                             "Select a UserID/ClientUIDs to %s" %(do_what),
+                                                             "OFX USERID/ClientUIDs MANAGEMENT",
                                                              JOptionPane.INFORMATION_MESSAGE,
                                                              MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
                                                              userIDKeys,
@@ -8085,27 +8239,27 @@ Please update any that you use before proceeding....
             chgValue=None
             if lEditOne:
                 chgKey = myPopupAskForInput(jif,
-                                              theTitle="OFX USERID MANAGEMENT",
-                                              theFieldLabel="EDIT USERID PARAMETER KEY [optional]:",
+                                              theTitle="OFX USERID/ClientUID MANAGEMENT",
+                                              theFieldLabel="EDIT USERID/ClientUID PARAMETER KEY [optional]:",
                                               theFieldDescription="Carefully edit/change the key. (JUST ENTER TO KEEP THE SAME))",
                                               defaultValue=selectedUserIDKey,
                                               isPassword=False,
                                               theMessageType=JOptionPane.WARNING_MESSAGE)   # type: str
 
                 if not chgKey or len(chgKey.strip()) <1:
-                    myPopupInformationBox(jif,"ERROR - The edited key was not specified or blank!","OFX USERID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
+                    myPopupInformationBox(jif,"ERROR - The edited key was not specified or blank!","OFX USERID/ClientUID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
                     jif.dispose()       # already within the EDT
                     continue
                 chgKey = chgKey.strip()
                 if not chgKey.startswith(userIDKeyPrefix) or not check_OFX_USERID_Key_valid(chgKey) \
                         or (chgKey != selectedUserIDKey and root.getParameter(chgKey,None) is not None):
-                    myPopupInformationBox(jif,"ERROR - The new key %s was invalid or must start with '%s'" %(chgKey,userIDKeyPrefix),"OFX USERID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
+                    myPopupInformationBox(jif,"ERROR - The new key %s was invalid or must start with '%s'" %(chgKey,userIDKeyPrefix),"OFX USERID/ClientUID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
                     jif.dispose()       # already within the EDT
                     continue
 
                 chgValue = myPopupAskForInput(jif,
-                                              theTitle="OFX USERID MANAGEMENT",
-                                              theFieldLabel="EDIT USERID PARAMETER VALUE:",
+                                              theTitle="OFX USERID/ClientUID MANAGEMENT",
+                                              theFieldLabel="EDIT USERID/ClientUID PARAMETER VALUE:",
                                               theFieldDescription="Carefully edit/change the data. NOTE: There will be little validation...",
                                               defaultValue=UserIDKeyValue,
                                               isPassword=False,
@@ -8115,32 +8269,32 @@ Please update any that you use before proceeding....
                     continue
                 chgValue = chgValue.strip()
                 if not check_OFX_USERID_Key_valid(chgValue):
-                    myPopupInformationBox(jif,"ERROR - The changed key data %s was invalid" %(chgValue),"OFX USERID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
+                    myPopupInformationBox(jif,"ERROR - The changed key data %s was invalid" %(chgValue),"OFX USERID/ClientUID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
                     jif.dispose()       # already within the EDT
                     continue
 
             if lAddOne:
                 chgKey = myPopupAskForInput(jif,
-                                            theTitle="OFX USERID MANAGEMENT",
-                                            theFieldLabel="ADD NEW USERID PARAMETER KEY:",
+                                            theTitle="OFX USERID/ClientUID MANAGEMENT",
+                                            theFieldLabel="ADD NEW USERID/ClientUID PARAMETER KEY:",
                                             theFieldDescription="Carefully complete the new key (must start with '%s')" %(userIDKeyPrefix),
                                             defaultValue=userIDKeyPrefix,
                                             isPassword=False,
                                             theMessageType=JOptionPane.WARNING_MESSAGE)    # type: str
 
                 if not chgKey or len(chgKey.strip()) <1:
-                    myPopupInformationBox(jif,"ERROR - The new key was not specified or blank!","OFX USERID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
+                    myPopupInformationBox(jif,"ERROR - The new key was not specified or blank!","OFX USERID/ClientUID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
                     jif.dispose()       # already within the EDT
                     continue
                 chgKey = chgKey.strip()
                 if not chgKey.startswith(userIDKeyPrefix) or not check_OFX_USERID_Key_valid(chgKey) or root.getParameter(chgKey,None) is not None:
-                    myPopupInformationBox(jif,"ERROR - The new key %s was invalid or must start with '%s'" %(chgKey,userIDKeyPrefix),"OFX USERID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
+                    myPopupInformationBox(jif,"ERROR - The new key %s was invalid or must start with '%s'" %(chgKey,userIDKeyPrefix),"OFX USERID/ClientUID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
                     jif.dispose()       # already within the EDT
                     continue
 
                 chgValue = myPopupAskForInput(jif,
-                                              theTitle="OFX USERID MANAGEMENT",
-                                              theFieldLabel="ADD NEW USERID PARAMETER VALUE:",
+                                              theTitle="OFX USERID/ClientUID MANAGEMENT",
+                                              theFieldLabel="ADD NEW USERID/ClientUID PARAMETER VALUE:",
                                               theFieldDescription="Carefully enter the new data. NOTE: There will be little validation...",
                                               defaultValue=UserIDKeyValue,
                                               isPassword=False,
@@ -8150,11 +8304,11 @@ Please update any that you use before proceeding....
                     continue
                 chgValue = chgValue.strip()
                 if not check_OFX_USERID_Key_valid(chgValue):
-                    myPopupInformationBox(jif,"ERROR - The new key data %s was invalid" %(chgValue),"OFX USERID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
+                    myPopupInformationBox(jif,"ERROR - The new key data %s was invalid" %(chgValue),"OFX USERID/ClientUID MANAGEMENT",JOptionPane.ERROR_MESSAGE)
                     jif.dispose()       # already within the EDT
                     continue
 
-            if not confirm_backup_confirm_disclaimer(jif,"OFX USERID MANAGEMENT","OFX USERIDs %s?" %(do_what)):
+            if not confirm_backup_confirm_disclaimer(jif,"OFX USERID/ClientUID MANAGEMENT","OFX USERIDs/ClientUIDs %s?" %(do_what)):
                 jif.dispose()       # already within the EDT
                 return
 
@@ -8180,21 +8334,21 @@ Please update any that you use before proceeding....
                     root.setParameter(selectedUserIDKey, chgValue)
                     root.syncItem()
                     myPrint("DB", "KEYSAME post %s %s" %(selectedUserIDKey,root.getParameter(selectedUserIDKey)))
-                txt = "OFX UserID Record key %s now %s changed from %s to %s" %(selectedUserIDKey,chgKey,UserIDKeyValue,chgValue)
+                txt = "OFX UserID/ClientUID Record key %s now %s changed from %s to %s" %(selectedUserIDKey,chgKey,UserIDKeyValue,chgValue)
                 setDisplayStatus(txt, "R")
                 myPrint("B", txt)
 
             if lAddOne:
                 root.setParameter(chgKey,chgValue)
                 root.syncItem()
-                txt = "OFX new UserID parameter %s CREATED with data: %s" %(chgKey,chgValue)
+                txt = "OFX new UserID/ClientUID parameter %s CREATED with data: %s" %(chgKey,chgValue)
                 setDisplayStatus(txt, "R")
                 myPrint("B", txt)
 
             if lDeleteOne:
                 root.setParameter(selectedUserIDKey, None)
                 root.syncItem()
-                txt = "OFX UserID parameter %s DELETED (was: %s)" %(selectedUserIDKey,UserIDKeyValue)
+                txt = "OFX UserID/ClientUID parameter %s DELETED (was: %s)" %(selectedUserIDKey,UserIDKeyValue)
                 setDisplayStatus(txt, "R")
                 myPrint("B", txt)
 
@@ -8202,14 +8356,14 @@ Please update any that you use before proceeding....
                 for keyToDelete in userIDKeys:
                     root.setParameter(keyToDelete, None)
                     root.syncItem()
-                    myPrint("B", "DELETED OFX UserID Parameter %s from ROOT!" %(keyToDelete))
-                txt = "ALL OFX UserID records DELETED from ROOT"
+                    myPrint("B", "DELETED OFX UserID/ClientUID Parameter %s from ROOT!" %(keyToDelete))
+                txt = "ALL OFX UserID/ClientUID records DELETED from ROOT"
                 setDisplayStatus(txt, "R")
                 myPrint("B", txt)
 
             del userIDKeys
             play_the_money_sound()
-            myPopupInformationBox(jif,"Your %s changes have been made and saved!" %(do_what),"OFX USERID MANAGEMENT",JOptionPane.WARNING_MESSAGE)
+            myPopupInformationBox(jif,"Your %s changes have been made and saved!" %(do_what),"OFX USERID/ClientUID MANAGEMENT",JOptionPane.WARNING_MESSAGE)
             jif.dispose()       # already within the EDT
             continue
 
@@ -8656,33 +8810,40 @@ Please update any that you use before proceeding....
         return countCachedAccounts, countCachedTxns
 
     def OFX_authentication_management():
-        global lAdvancedMode, lHackerMode
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         if MD_REF.getCurrentAccount().getBook() is None: return
 
         if not isCachingPasswords():
-            myPopupInformationBox(toolbox_frame_,"WARNING: Your system is not setup to cache/store Authentication details. I suggest you exit","Manage OFX Authentication",JOptionPane.ERROR_MESSAGE)
+            myPopupInformationBox(toolbox_frame_,"WARNING: Your system is not setup to cache/store Authentication details!","Manage OFX Authentication",JOptionPane.ERROR_MESSAGE)
 
         user_clearOneServiceAuthCache =         JRadioButton("Clear the Authentication Cache (Passwords) for One Service / Bank Profile", False)
         user_clearAllServicesAuthCache =        JRadioButton("Clear ALL Authentication Cache (Passwords)", False)
+        user_editSetupMultipleUserIDs =         JRadioButton("Edit/Setup (multiple) UserIDs / Passwords", False)
+        user_editStoredOFXPasswords =           JRadioButton("Edit stored passwords within a working OFX Profile (Only in ADV+Hacker mode)", False)
+        user_editStoredOFXPasswords.setEnabled(isUserEncryptionPassphraseSet() and lHackerMode)
+        user_editStoredOFXPasswords.setForeground(getColorRed())
 
-        user_manualEditOfUserIDs =              JRadioButton("Manual Edit of Stored UserIDs (Only in ADV+Hacker mode)", False)
-        user_manualEditOfUserIDs.setEnabled(lHackerMode)
-        user_manualEditOfUserIDs.setForeground(getColorRed())
+        user_manualEditOfRootUserIDs =              JRadioButton("Manual Edit of Stored Root UserIDs/ClientUIDs (Only in ADV+Hacker mode)", False)
+        user_manualEditOfRootUserIDs.setEnabled(lHackerMode)
+        user_manualEditOfRootUserIDs.setForeground(getColorRed())
 
         userFilters = JPanel(GridLayout(0, 1))
 
         bg = ButtonGroup()
         bg.add(user_clearOneServiceAuthCache)
         bg.add(user_clearAllServicesAuthCache)
-        bg.add(user_manualEditOfUserIDs)
+        bg.add(user_editSetupMultipleUserIDs)
+        bg.add(user_editStoredOFXPasswords)
+        bg.add(user_manualEditOfRootUserIDs)
         bg.clearSelection()
 
         userFilters.add(user_clearOneServiceAuthCache)
         userFilters.add(user_clearAllServicesAuthCache)
-        userFilters.add(user_manualEditOfUserIDs)
+        userFilters.add(user_editSetupMultipleUserIDs)
+        userFilters.add(user_editStoredOFXPasswords)
+        userFilters.add(user_manualEditOfRootUserIDs)
 
         while True:
             options = ["EXIT", "PROCEED"]
@@ -8705,8 +8866,22 @@ Please update any that you use before proceeding....
             if user_clearAllServicesAuthCache.isSelected():
                 clearAllServicesAuthCache()
 
-            if user_manualEditOfUserIDs.isSelected():
-                manualEditOfUserIDs()
+            if user_editSetupMultipleUserIDs.isSelected():
+                MyPopUpDialogBox(toolbox_frame_,
+                                 "This is a special process - you will need to run a script (not within Toolbox)",
+                                 "Download the useful_scripts package (zip) from Author's site:\n"
+                                 "%s\n"
+                                 "Unzip and extract 'ofx_populate_multiple_userids.py'\n"
+                                 "Menu: MD>Window>Show MoneyBot Console'\n"
+                                 "Open and then Run the script....\n"
+                                 %(MYPYTHON_DOWNLOAD_URL),
+                                 theTitle="Edit/Setup (multiple) UserIDs / Passwords").go()
+
+            if user_editStoredOFXPasswords.isSelected():
+                editStoredOFXPasswords()
+
+            if user_manualEditOfRootUserIDs.isSelected():
+                manualEditOfRootUserIDs()
 
             continue
 
@@ -9157,6 +9332,10 @@ Please update any that you use before proceeding....
             else:
                 self.obj = None
 
+        def getService(self):
+            # type: () -> OnlineService
+            return (self.obj)
+
         def __str__(self):
             if self.obj is None:
                 return "Invalid OnlineService Obj or None"
@@ -9172,27 +9351,7 @@ Please update any that you use before proceeding....
 
         _THIS_METHOD_NAME = "DELETE ONLINE BANKING SERVICE / PROFILE"
 
-        serviceList = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
-
-        newServiceList = []
-        for sv in serviceList:
-            if not isToolboxUnlocked() and sv.getTIKServiceID() == "md:plaid": continue
-            newServiceList.append(StoreService(sv))
-
-        service = JOptionPane.showInputDialog(toolbox_frame_,
-                                              "Select an Online Banking Service / Profile to delete",
-                                              _THIS_METHOD_NAME.upper(),
-                                              JOptionPane.INFORMATION_MESSAGE,
-                                              MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
-                                              newServiceList,
-                                              None)
-
-        if not service:
-            txt = "%s: No Service was selected - no changes made.." %(_THIS_METHOD_NAME)
-            setDisplayStatus(txt, "B")
-            return
-
-        service = service.obj       # noqa
+        service = getUserSelectedServiceProfile(toolbox_frame_, _THIS_METHOD_NAME, "Select an Online Banking Service / Profile to delete", lIncludePlaidWhenUnlocked=True)  # type: OnlineService
 
         if service.getTIKServiceID() == "md:plaid":
             if not myPopupAskQuestion(toolbox_frame_,
@@ -9217,8 +9376,7 @@ Please update any that you use before proceeding....
 
             play_the_money_sound()
             txt = "Online Banking Service / Logon Profile successfully deleted: %s" %(service)
-            setDisplayStatus(txt, "R")
-            myPrint("B", txt)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
             myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
@@ -9367,12 +9525,13 @@ Please update any that you use before proceeding....
         mdplus_linkages = {}
         if isMDPlusEnabledBuild():
             service = getPlaidService()     # type: OnlineService
-            for availAccount in service.getAvailableAccounts():
-                mdplus_linkages[availAccount.getAccountNumber()] = StoreMDPlusLinkages(service,
-                                                                   availAccount.getAccountNumber(),
-                                                                   availAccount.getMappingKey(),
-                                                                   availAccount.getPlaidItemID(),
-                                                                   availAccount.getDescription())
+            if service is not None:
+                for availAccount in service.getAvailableAccounts():
+                    mdplus_linkages[availAccount.getAccountNumber()] = StoreMDPlusLinkages(service,
+                                                                       availAccount.getAccountNumber(),
+                                                                       availAccount.getMappingKey(),
+                                                                       availAccount.getPlaidItemID(),
+                                                                       availAccount.getDescription())
         return mdplus_linkages
 
     def special_toMultilineHumanReadableString(_object, lSkipSecrets=True, sFilterServiceID=None):
