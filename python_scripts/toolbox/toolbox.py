@@ -2872,6 +2872,7 @@ Visit: %s (Author's site)
                 stream = MD_EXTENSION_LOADER.getResourceAsStream("/_PREVIEW_BUILD_")
                 if stream is not None:
                     myPrint("B", "@@ PREVIEW BUILD DETECTED @@")
+                    stream.close()
                     return True
             except: pass
         return False
