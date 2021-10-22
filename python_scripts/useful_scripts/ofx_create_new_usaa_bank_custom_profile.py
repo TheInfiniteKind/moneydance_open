@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_create_new_usaa_bank_custom_profile.py (build 17) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_create_new_usaa_bank_custom_profile.py (build 19) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # READ THIS FIRST:
 # https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf
@@ -67,6 +67,8 @@
 # build: 15 - Fixing to deal with 4040+... Adding custom "tik_fi_id" as "md:custom-1295"
 # build: 16 - Updating common code - QuickJFrame()
 # build: 17 - Update message on view last download dates window
+# build: 18 - Common code tweaks
+# build: 19 - Tweak to Authentication Cache routine.... Fixed a bug (that didn't matter too much)...
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -74,7 +76,7 @@
 
 # SET THESE LINES
 myModuleID = u"ofx_create_new_usaa_bank_profile_custom"
-version_build = "17"
+version_build = "19"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -232,6 +234,7 @@ else:
     import csv
     import datetime
     import traceback
+    import subprocess
 
     from org.python.core.util import FileUtil
 
@@ -327,7 +330,7 @@ else:
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 102 ########################################################################
+    # COMMON CODE ################# VERSION 104 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -545,6 +548,41 @@ Visit: %s (Author's site)
     decimalCharSep = getDecimalPoint(lGetPoint=True)
     groupingCharSep = getDecimalPoint(lGetGrouping=True)
 
+    def isMacDarkModeDetected():
+        darkResponse = "LIGHT"
+        if Platform.isOSX():
+            try:
+                darkResponse = subprocess.check_output("defaults read -g AppleInterfaceStyle", shell=True)
+                darkResponse = darkResponse.strip().lower()
+            except: pass
+        return ("dark" in darkResponse)
+
+    def isMDThemeDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            try:
+                if currentTheme.isSystemDark(): return True
+            except: pass
+            if "dark" in currentTheme.getThemeID(): return True
+            if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeDarcula():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeVAQua():
+        if Platform.isOSX():
+            try:
+                currentTheme = MD_REF.getUI().getCurrentTheme()
+                if ".vaqua" in safeStr(currentTheme.getClass()).lower(): return True
+            except: pass
+        return False
+
     # JOptionPane.DEFAULT_OPTION, JOptionPane.YES_NO_OPTION, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.OK_CANCEL_OPTION
     # JOptionPane.ERROR_MESSAGE, JOptionPane.INFORMATION_MESSAGE, JOptionPane.WARNING_MESSAGE, JOptionPane.QUESTION_MESSAGE, JOptionPane.PLAIN_MESSAGE
 
@@ -680,6 +718,8 @@ Visit: %s (Author's site)
             self.lResult = [None]
             if not self.theMessage.endswith("\n"): self.theMessage+="\n"
             if self.OKButtonText == "": self.OKButtonText="OK"
+            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         class WindowListener(WindowAdapter):
 
@@ -708,7 +748,6 @@ Visit: %s (Author's site)
                 return
 
         class OKButtonAction(AbstractAction):
-            # noinspection PyMethodMayBeStatic
 
             def __init__(self, theDialog, theFakeFrame, lResult):
                 self.theDialog = theDialog
@@ -733,7 +772,6 @@ Visit: %s (Author's site)
                 return
 
         class CancelButtonAction(AbstractAction):
-            # noinspection PyMethodMayBeStatic
 
             def __init__(self, theDialog, theFakeFrame, lResult):
                 self.theDialog = theDialog
@@ -846,7 +884,7 @@ Visit: %s (Author's site)
 
                     if self.callingClass.theStatus:
                         _label1 = JLabel(pad(self.callingClass.theStatus,self.callingClass.theWidth-20))
-                        _label1.setForeground(Color.BLUE)
+                        _label1.setForeground(getColorBlue())
                         _popupPanel.add(_label1)
 
                     myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
@@ -1360,19 +1398,27 @@ Visit: %s (Author's site)
             text = "Error in classPrinter(): %s: %s" %(className, theObject)
         return text
 
-    def setDisplayStatus(_theStatus, _theColor="G"):
+    def getColorBlue():
+        if not isMDThemeDark() and not isMacDarkModeDetected(): return(Color.BLUE)
+        return (MD_REF.getUI().getColors().defaultTextForeground)
+
+    def getColorRed(): return (MD_REF.getUI().getColors().errorMessageForeground)
+
+    def getColorDarkGreen(): return (MD_REF.getUI().getColors().budgetHealthyColor)
+
+    def setDisplayStatus(_theStatus, _theColor=None):
         """Sets the Display / Status label on the main diagnostic display: G=Green, B=Blue, R=Red, DG=Dark Green"""
 
         if GlobalVars.STATUS_LABEL is None or not isinstance(GlobalVars.STATUS_LABEL, JLabel): return
 
         GlobalVars.STATUS_LABEL.setText((_theStatus).ljust(800, " "))
 
-        if _theColor is None or _theColor == "": _theColor = "G"
+        if _theColor is None or _theColor == "": _theColor = "X"
         _theColor = _theColor.upper()
-        if _theColor == "R":    GlobalVars.STATUS_LABEL.setForeground(Color.RED)
-        elif _theColor == "B":  GlobalVars.STATUS_LABEL.setForeground(Color.BLUE)
-        elif _theColor == "DG": GlobalVars.STATUS_LABEL.setForeground(GlobalVars.DARK_GREEN)
-        else:                   GlobalVars.STATUS_LABEL.setForeground(Color.GREEN)
+        if _theColor == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
+        elif _theColor == "B":  GlobalVars.STATUS_LABEL.setForeground(getColorBlue())
+        elif _theColor == "DG": GlobalVars.STATUS_LABEL.setForeground(getColorDarkGreen())
+        else:                   GlobalVars.STATUS_LABEL.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
         return
 
     def setJFileChooserParameters(_jf, lReportOnly=False, lDefaults=False, lPackagesT=None, lApplicationsT=None, lOptionsButton=None, lNewFolderButton=None):
@@ -2005,6 +2051,8 @@ Visit: %s (Author's site)
             self.lJumpToEnd = lJumpToEnd
             self.lWrapText = lWrapText
             self.lQuitMDAfterClose = lQuitMDAfterClose
+            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         class QJFWindowListener(WindowAdapter):
 
@@ -2117,7 +2165,7 @@ Visit: %s (Author's site)
                     frame_width = min(screenSize.width-20, max(1024,int(round(MD_REF.getUI().firstMainFrame.getSize().width *.9,0))))
                     frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
 
-                    JFrame.setDefaultLookAndFeelDecorated(True)
+                    # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                     jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)%s"
                                               %( MD_REF.getUI().ACCELERATOR_MASK_STR,
                                                 ("" if not self.callingClass.lQuitMDAfterClose else  " >> MD WILL QUIT AFTER VIEWING THIS <<")))
@@ -2160,41 +2208,51 @@ Visit: %s (Author's site)
 
                     jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
+                    mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
+                    mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
+                    if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
+                            or (not isMacDarkModeDetected() and isMDThemeDarcula()):
+                        # Swap the colors round when text (not a button)
+                        mfgtc = MD_REF.getUI().getColors().defaultBackground
+                        mbgtc = MD_REF.getUI().getColors().defaultTextForeground
+                    opq = False
+
                     printButton = JButton("Print")
                     printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                    printButton.setOpaque(True)
-                    printButton.setBackground(Color.WHITE); printButton.setForeground(Color.BLACK)
+                    printButton.setOpaque(opq)
+                    printButton.setBackground(bgc); printButton.setForeground(fgc)
                     printButton.addActionListener(self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
 
                     if GlobalVars.defaultPrinterAttributes is None:
                         printPageSetup = JButton("Page Setup")
                         printPageSetup.setToolTipText("Printer Page Setup")
-                        printPageSetup.setOpaque(True)
-                        printPageSetup.setBackground(Color.WHITE); printPageSetup.setForeground(Color.BLACK)
+                        printPageSetup.setOpaque(opq)
+                        printPageSetup.setBackground(bgc); printPageSetup.setForeground(fgc)
                         printPageSetup.addActionListener(self.callingClass.QuickJFramePageSetup())
 
                     saveButton = JButton("Save to file")
                     saveButton.setToolTipText("Saves the output displayed in this window to a file")
-                    saveButton.setOpaque(True)
-                    saveButton.setBackground(Color.WHITE); saveButton.setForeground(Color.BLACK)
+                    saveButton.setOpaque(opq)
+                    saveButton.setBackground(bgc); saveButton.setForeground(fgc)
                     saveButton.addActionListener(self.callingClass.QuickJFrameSaveTextToFile(self.callingClass.output, jInternalFrame))
 
                     wrapOption = JCheckBox("Wrap Contents (Screen & Print)", self.callingClass.lWrapText)
                     wrapOption.addActionListener(self.callingClass.ToggleWrap(self.callingClass, theJText))
+                    wrapOption.setForeground(mfgtc); wrapOption.setBackground(mbgtc)
 
                     topButton = JButton("Top")
-                    topButton.setOpaque(True)
-                    topButton.setBackground(Color.WHITE); topButton.setForeground(Color.BLACK)
+                    topButton.setOpaque(opq)
+                    topButton.setBackground(bgc); topButton.setForeground(fgc)
                     topButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lTop=True))
 
                     botButton = JButton("Bottom")
-                    botButton.setOpaque(True)
-                    botButton.setBackground(Color.WHITE); botButton.setForeground(Color.BLACK)
+                    botButton.setOpaque(opq)
+                    botButton.setBackground(bgc); botButton.setForeground(fgc)
                     botButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lBottom=True))
 
                     closeButton = JButton("Close")
-                    closeButton.setOpaque(True)
-                    closeButton.setBackground(Color.WHITE); botButton.setForeground(Color.BLACK)
+                    closeButton.setOpaque(opq)
+                    closeButton.setBackground(bgc); closeButton.setForeground(fgc)
                     closeButton.addActionListener(self.callingClass.CloseAction(jInternalFrame))
 
                     if Platform.isOSX():
@@ -2311,15 +2369,15 @@ Visit: %s (Author's site)
                     aboutPanel.setPreferredSize(Dimension(1120, 525))
 
                     _label1 = JLabel(pad("Author: Stuart Beesley", 800))
-                    _label1.setForeground(Color.BLUE)
+                    _label1.setForeground(getColorBlue())
                     aboutPanel.add(_label1)
 
                     _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
-                    _label2.setForeground(Color.BLUE)
+                    _label2.setForeground(getColorBlue())
                     aboutPanel.add(_label2)
 
                     _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
-                    _label3.setForeground(Color.BLUE)
+                    _label3.setForeground(getColorBlue())
                     aboutPanel.add(_label3)
 
                     displayString=scriptExit
@@ -2329,8 +2387,6 @@ Visit: %s (Author's site)
                     displayJText.setLineWrap(False)
                     displayJText.setWrapStyleWord(False)
                     displayJText.setMargin(Insets(8, 8, 8, 8))
-                    # displayJText.setBackground((mdGUI.getColors()).defaultBackground)
-                    # displayJText.setForeground((mdGUI.getColors()).defaultTextForeground)
 
                     aboutPanel.add(displayJText)
 
@@ -2395,6 +2451,26 @@ Visit: %s (Author's site)
         except:
             myPrint("B","Error switching to Home Page Summary Screen")
 
+    def fireMDPreferencesUpdated():
+        """This triggers MD to firePreferencesUpdated().... Hopefully refreshing Home Screen Views too"""
+        myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()" )
+
+        class FPSRunnable(Runnable):
+            def __init__(self): pass
+
+            def run(self):
+                myPrint("DB",".. Inside FPSRunnable() - calling firePreferencesUpdated()...")
+                myPrint("B","Calling firePreferencesUpdated() to update Home Screen View")
+                MD_REF.getPreferences().firePreferencesUpdated()
+
+        if not SwingUtilities.isEventDispatchThread():
+            myPrint("DB",".. Not running within the EDT so calling via FPSRunnable()...")
+            SwingUtilities.invokeLater(FPSRunnable())
+        else:
+            myPrint("DB",".. Already running within the EDT so calling FPSRunnable() naked...")
+            FPSRunnable().run()
+        return
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -2448,6 +2524,8 @@ Visit: %s (Author's site)
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
 
     def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_BUILD)
+
+    PARAMETER_KEY = "ofx_create_new_usaa_bank_custom_profile"
 
     book = MD_REF.getCurrentAccountBook()
 
@@ -2538,11 +2616,6 @@ Visit: %s (Author's site)
                 return "Invalid Acct Obj or None"
             return "%s : %s" %(self.obj.getAccountType(),self.obj.getFullAccountName())
 
-    # if isMDPlusEnabledBuild():
-    #     alert = "SORRY - THIS FIX SCRIPT HAS BEEN DISABLED FOR MD2022 ONWARDS DUE TO UNDERLYING TECHNICAL CHANGES..."
-    #     myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
-    #     raise Exception(alert)
-    #
     if not myPopupAskQuestion(None, "BACKUP", "CREATE A NEW (CUSTOM) USAA PROFILE >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
         alert = "BACKUP FIRST! PLEASE USE FILE>EXPORT BACKUP then come back!! - No changes made."
         myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
@@ -3118,24 +3191,25 @@ Visit: %s (Author's site)
     del sNum
 
     newService = OnlineService(book, manualFIInfo)
+    newService.setParameter(PARAMETER_KEY, "python fix script")
     newService.syncItem()
 
-    mappingObject = None
+    mappingObjectClass = None
     if isMDPlusEnabledBuild():
         myPrint("B", "Grabbing reference to OnlineAccountMapping() with new service profile...")
-        mappingObject =  OnlineAccountMapping(book, newService)
+        mappingObjectClass =  OnlineAccountMapping(book, newService)
 
         if selectedBankAccount:
             myPrint("B", ".. setting bank account %s into map for: %s" %(bankID, selectedBankAccount))
-            mappingObject.setMapping(str(bankID).zfill(10), selectedBankAccount)
+            mappingObjectClass.setMapping(str(bankID).zfill(10), selectedBankAccount)
 
         if selectedCCAccount:
             myPrint("B", ".. setting cc account %s into map for: %s" %(ccID, selectedCCAccount))
-            mappingObject.setMapping(str(ccID), selectedCCAccount)
+            mappingObjectClass.setMapping(str(ccID), selectedCCAccount)
 
-        mappingObject.syncItem()
+        mappingObjectClass.syncItem()
 
-    del mappingObject
+    del mappingObjectClass
 
     ####################################################################################################################
 
@@ -3253,29 +3327,36 @@ Visit: %s (Author's site)
     if "DEFAULT" not in realmsToCheck:
         realmsToCheck.insert(0,"DEFAULT")       # noqa
 
+    newAuthObj = "type=0&userid=%s&pass=%s&extra=" %(URLEncoder.encode(userID),URLEncoder.encode(password))
+
     for realm in realmsToCheck:
-        myPrint("B", "Realm: %s current User ID: %s" %(realm, service.getUserId(realm, None)))        # noqa
+
+        myPrint("B", "Realm: %s current User ID: %s" %(realm, service.getUserId(realm, None)))
+
+        authKey = "ofx:" + realm
+        authObj = service.getCachedAuthentication(authKey)
+        myPrint("B", "Realm: %s old Cached Authentication: %s" %(realm, authObj))
+        myPrint("B", "   >> ** Setting new cached authentication from %s to: %s" %(authKey, newAuthObj))
+        service.cacheAuthentication(authKey, newAuthObj)
 
         for olacct in listAccountMDProxies:
 
-            authKey = "ofx:" + realm
-            authObj = service.getCachedAuthentication(authKey)                              # noqa
-            myPrint("B", "Realm: %s Cached Authentication: %s" %(realm, authObj))
-
-            newAuthObj = "type=0&userid=%s&pass=%s&extra=" %(URLEncoder.encode(userID),URLEncoder.encode(password))
-
-            myPrint("B", "** Setting new cached authentication from %s to: %s" %(authKey, newAuthObj))
-            service.cacheAuthentication(authKey, newAuthObj)        # noqa
-
             authKey = "ofx:" + (realm + "::" + olacct[_ACCOUNT].getAccountKey())
-            authObj = service.getCachedAuthentication(authKey)        # noqa
-            myPrint("B", "Realm: %s Account Key: %s Cached Authentication: %s" %(realm, olacct[_ACCOUNT].getAccountKey(),authObj))
-            myPrint("B", "** Setting new cached authentication from %s to: %s" %(authKey, newAuthObj))
-            service.cacheAuthentication(authKey, newAuthObj)        # noqa
+            authObj = service.getCachedAuthentication(authKey)
+            myPrint("B", "Realm: %s Account Key: %s old Cached Authentication: %s" %(realm, olacct[_ACCOUNT].getAccountKey(),authObj))
+            myPrint("B", "   >>** Setting new cached authentication from %s to: %s" %(authKey, newAuthObj))
+            service.cacheAuthentication(authKey, newAuthObj)
 
-            myPrint("B", "Realm: %s now UserID: %s" %(realm, userID))
+        myPrint("B", "Realm: %s now UserID: %s" %(realm, userID))
+        myPrint("B", "-------------------------")
 
     ####################################################################################################################
+    MD_REF.getCurrentAccount().getBook().getLocalStorage().save()  # Flush settings to disk before changes
+    ####################################################################################################################
+
+    myPrint("B","FINISHED UPDATES")
+    myPrint("B","----------------")
+
 
     last_date_options = ["NO (FINISHED)", "YES - VIEW LAST TXN DOWNLOAD DATES"]
     theResult = JOptionPane.showOptionDialog(None,
@@ -3334,16 +3415,15 @@ Visit: %s (Author's site)
                        "... (Toolbox: Advanced Mode>Online Banking (OFX) Tools Menu>Update the Last Txn Update Date(Downloaded) field)\n" \
                        "\nIf you have a version older than 2021.1(build 2012) you will either have to accept/deal with the volume of downloaded Txns; or upgrade to use Toolbox...\n" \
                        "%s\n\n" \
-                       "RESTART MONEYDANCE, THEN EDIT THE LAST TXN DOWNLOAD DATES BEFORE YOU DOWNLOAD ANYTHING\n" \
-                       "\n\n** PLEASE CLOSE THIS WINDOW AND RESTART MONEYDANCE **\n\n" \
+                       "YOU CAN EDIT THE LAST TXN DOWNLOAD DATE(s) BEFORE YOU DOWNLOAD ANYTHING\n" \
                        %(MYPYTHON_DOWNLOAD_URL)
 
         outputDates += "\n<END>"
         jif = QuickJFrame("LAST DOWNLOAD DATES", outputDates, lWrapText=False, copyToClipboard=True).show_the_frame()
         myPopupInformationBox(jif, "REVIEW OUTPUT. Use Toolbox first if you need to change any last download txn dates.....", theMessageType=JOptionPane.INFORMATION_MESSAGE)
 
-    myPopupInformationBox(None, "SUCCESS. REVIEW OUTPUT - Then RESTART Moneydance.", theMessageType=JOptionPane.ERROR_MESSAGE)
+    myPopupInformationBox(None, "SUCCESS. REVIEW OUTPUT (and console)", theMessageType=JOptionPane.WARNING_MESSAGE)
 
-    myPrint("B", "SUCCESS. Please RESTART Moneydance.")
+    myPrint("B", "SUCCESS!")
 
     cleanup_actions()

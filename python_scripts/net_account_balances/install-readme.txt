@@ -63,4 +63,5 @@ useful_scripts: A zip collection of ad-hoc scripts for specific tasks. Just unzi
 - demo_account_currency_rates.py: demo script for beginner coders with some simple Moneydance API calls etc...
 - demo_calling_import_functions.py: demo script to show how to call deep API importFile() method and bypass UI popups
 - ofx_create_new_usaa_bank_custom_profile.py: script that creates a new custom USAA bank logon profile so that it can connect within Moneydance
+- ofx_populate_multiple_userids.py: script that allows you to modify a working OFX profile and populate with multiple UserIDs
 - import_categories.py: script that allows you to import from a CSV file to create new Categories

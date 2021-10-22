@@ -201,6 +201,7 @@ else:
     import csv
     import datetime
     import traceback
+    import subprocess
 
     from org.python.core.util import FileUtil
 
@@ -295,7 +296,7 @@ else:
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 102 ########################################################################
+    # COMMON CODE ################# VERSION 104 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -513,6 +514,41 @@ Visit: %s (Author's site)
     decimalCharSep = getDecimalPoint(lGetPoint=True)
     groupingCharSep = getDecimalPoint(lGetGrouping=True)
 
+    def isMacDarkModeDetected():
+        darkResponse = "LIGHT"
+        if Platform.isOSX():
+            try:
+                darkResponse = subprocess.check_output("defaults read -g AppleInterfaceStyle", shell=True)
+                darkResponse = darkResponse.strip().lower()
+            except: pass
+        return ("dark" in darkResponse)
+
+    def isMDThemeDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            try:
+                if currentTheme.isSystemDark(): return True
+            except: pass
+            if "dark" in currentTheme.getThemeID(): return True
+            if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeDarcula():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeVAQua():
+        if Platform.isOSX():
+            try:
+                currentTheme = MD_REF.getUI().getCurrentTheme()
+                if ".vaqua" in safeStr(currentTheme.getClass()).lower(): return True
+            except: pass
+        return False
+
     # JOptionPane.DEFAULT_OPTION, JOptionPane.YES_NO_OPTION, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.OK_CANCEL_OPTION
     # JOptionPane.ERROR_MESSAGE, JOptionPane.INFORMATION_MESSAGE, JOptionPane.WARNING_MESSAGE, JOptionPane.QUESTION_MESSAGE, JOptionPane.PLAIN_MESSAGE
 
@@ -648,6 +684,8 @@ Visit: %s (Author's site)
             self.lResult = [None]
             if not self.theMessage.endswith("\n"): self.theMessage+="\n"
             if self.OKButtonText == "": self.OKButtonText="OK"
+            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         class WindowListener(WindowAdapter):
 
@@ -676,7 +714,6 @@ Visit: %s (Author's site)
                 return
 
         class OKButtonAction(AbstractAction):
-            # noinspection PyMethodMayBeStatic
 
             def __init__(self, theDialog, theFakeFrame, lResult):
                 self.theDialog = theDialog
@@ -701,7 +738,6 @@ Visit: %s (Author's site)
                 return
 
         class CancelButtonAction(AbstractAction):
-            # noinspection PyMethodMayBeStatic
 
             def __init__(self, theDialog, theFakeFrame, lResult):
                 self.theDialog = theDialog
@@ -814,7 +850,7 @@ Visit: %s (Author's site)
 
                     if self.callingClass.theStatus:
                         _label1 = JLabel(pad(self.callingClass.theStatus,self.callingClass.theWidth-20))
-                        _label1.setForeground(Color.BLUE)
+                        _label1.setForeground(getColorBlue())
                         _popupPanel.add(_label1)
 
                     myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
@@ -1328,19 +1364,27 @@ Visit: %s (Author's site)
             text = "Error in classPrinter(): %s: %s" %(className, theObject)
         return text
 
-    def setDisplayStatus(_theStatus, _theColor="G"):
+    def getColorBlue():
+        if not isMDThemeDark() and not isMacDarkModeDetected(): return(Color.BLUE)
+        return (MD_REF.getUI().getColors().defaultTextForeground)
+
+    def getColorRed(): return (MD_REF.getUI().getColors().errorMessageForeground)
+
+    def getColorDarkGreen(): return (MD_REF.getUI().getColors().budgetHealthyColor)
+
+    def setDisplayStatus(_theStatus, _theColor=None):
         """Sets the Display / Status label on the main diagnostic display: G=Green, B=Blue, R=Red, DG=Dark Green"""
 
         if GlobalVars.STATUS_LABEL is None or not isinstance(GlobalVars.STATUS_LABEL, JLabel): return
 
         GlobalVars.STATUS_LABEL.setText((_theStatus).ljust(800, " "))
 
-        if _theColor is None or _theColor == "": _theColor = "G"
+        if _theColor is None or _theColor == "": _theColor = "X"
         _theColor = _theColor.upper()
-        if _theColor == "R":    GlobalVars.STATUS_LABEL.setForeground(Color.RED)
-        elif _theColor == "B":  GlobalVars.STATUS_LABEL.setForeground(Color.BLUE)
-        elif _theColor == "DG": GlobalVars.STATUS_LABEL.setForeground(GlobalVars.DARK_GREEN)
-        else:                   GlobalVars.STATUS_LABEL.setForeground(Color.GREEN)
+        if _theColor == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
+        elif _theColor == "B":  GlobalVars.STATUS_LABEL.setForeground(getColorBlue())
+        elif _theColor == "DG": GlobalVars.STATUS_LABEL.setForeground(getColorDarkGreen())
+        else:                   GlobalVars.STATUS_LABEL.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
         return
 
     def setJFileChooserParameters(_jf, lReportOnly=False, lDefaults=False, lPackagesT=None, lApplicationsT=None, lOptionsButton=None, lNewFolderButton=None):
@@ -1973,6 +2017,8 @@ Visit: %s (Author's site)
             self.lJumpToEnd = lJumpToEnd
             self.lWrapText = lWrapText
             self.lQuitMDAfterClose = lQuitMDAfterClose
+            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         class QJFWindowListener(WindowAdapter):
 
@@ -2085,7 +2131,7 @@ Visit: %s (Author's site)
                     frame_width = min(screenSize.width-20, max(1024,int(round(MD_REF.getUI().firstMainFrame.getSize().width *.9,0))))
                     frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
 
-                    JFrame.setDefaultLookAndFeelDecorated(True)
+                    # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                     jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)%s"
                                               %( MD_REF.getUI().ACCELERATOR_MASK_STR,
                                                 ("" if not self.callingClass.lQuitMDAfterClose else  " >> MD WILL QUIT AFTER VIEWING THIS <<")))
@@ -2128,41 +2174,51 @@ Visit: %s (Author's site)
 
                     jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
+                    mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
+                    mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
+                    if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
+                            or (not isMacDarkModeDetected() and isMDThemeDarcula()):
+                        # Swap the colors round when text (not a button)
+                        mfgtc = MD_REF.getUI().getColors().defaultBackground
+                        mbgtc = MD_REF.getUI().getColors().defaultTextForeground
+                    opq = False
+
                     printButton = JButton("Print")
                     printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                    printButton.setOpaque(True)
-                    printButton.setBackground(Color.WHITE); printButton.setForeground(Color.BLACK)
+                    printButton.setOpaque(opq)
+                    printButton.setBackground(bgc); printButton.setForeground(fgc)
                     printButton.addActionListener(self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
 
                     if GlobalVars.defaultPrinterAttributes is None:
                         printPageSetup = JButton("Page Setup")
                         printPageSetup.setToolTipText("Printer Page Setup")
-                        printPageSetup.setOpaque(True)
-                        printPageSetup.setBackground(Color.WHITE); printPageSetup.setForeground(Color.BLACK)
+                        printPageSetup.setOpaque(opq)
+                        printPageSetup.setBackground(bgc); printPageSetup.setForeground(fgc)
                         printPageSetup.addActionListener(self.callingClass.QuickJFramePageSetup())
 
                     saveButton = JButton("Save to file")
                     saveButton.setToolTipText("Saves the output displayed in this window to a file")
-                    saveButton.setOpaque(True)
-                    saveButton.setBackground(Color.WHITE); saveButton.setForeground(Color.BLACK)
+                    saveButton.setOpaque(opq)
+                    saveButton.setBackground(bgc); saveButton.setForeground(fgc)
                     saveButton.addActionListener(self.callingClass.QuickJFrameSaveTextToFile(self.callingClass.output, jInternalFrame))
 
                     wrapOption = JCheckBox("Wrap Contents (Screen & Print)", self.callingClass.lWrapText)
                     wrapOption.addActionListener(self.callingClass.ToggleWrap(self.callingClass, theJText))
+                    wrapOption.setForeground(mfgtc); wrapOption.setBackground(mbgtc)
 
                     topButton = JButton("Top")
-                    topButton.setOpaque(True)
-                    topButton.setBackground(Color.WHITE); topButton.setForeground(Color.BLACK)
+                    topButton.setOpaque(opq)
+                    topButton.setBackground(bgc); topButton.setForeground(fgc)
                     topButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lTop=True))
 
                     botButton = JButton("Bottom")
-                    botButton.setOpaque(True)
-                    botButton.setBackground(Color.WHITE); botButton.setForeground(Color.BLACK)
+                    botButton.setOpaque(opq)
+                    botButton.setBackground(bgc); botButton.setForeground(fgc)
                     botButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lBottom=True))
 
                     closeButton = JButton("Close")
-                    closeButton.setOpaque(True)
-                    closeButton.setBackground(Color.WHITE); botButton.setForeground(Color.BLACK)
+                    closeButton.setOpaque(opq)
+                    closeButton.setBackground(bgc); closeButton.setForeground(fgc)
                     closeButton.addActionListener(self.callingClass.CloseAction(jInternalFrame))
 
                     if Platform.isOSX():
@@ -2279,15 +2335,15 @@ Visit: %s (Author's site)
                     aboutPanel.setPreferredSize(Dimension(1120, 525))
 
                     _label1 = JLabel(pad("Author: Stuart Beesley", 800))
-                    _label1.setForeground(Color.BLUE)
+                    _label1.setForeground(getColorBlue())
                     aboutPanel.add(_label1)
 
                     _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
-                    _label2.setForeground(Color.BLUE)
+                    _label2.setForeground(getColorBlue())
                     aboutPanel.add(_label2)
 
                     _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
-                    _label3.setForeground(Color.BLUE)
+                    _label3.setForeground(getColorBlue())
                     aboutPanel.add(_label3)
 
                     displayString=scriptExit
@@ -2297,8 +2353,6 @@ Visit: %s (Author's site)
                     displayJText.setLineWrap(False)
                     displayJText.setWrapStyleWord(False)
                     displayJText.setMargin(Insets(8, 8, 8, 8))
-                    # displayJText.setBackground((mdGUI.getColors()).defaultBackground)
-                    # displayJText.setForeground((mdGUI.getColors()).defaultTextForeground)
 
                     aboutPanel.add(displayJText)
 
@@ -2362,6 +2416,26 @@ Visit: %s (Author's site)
                 MD_REF.getUI().firstMainFrame.selectAccount(MD_REF.getRootAccount())
         except:
             myPrint("B","Error switching to Home Page Summary Screen")
+
+    def fireMDPreferencesUpdated():
+        """This triggers MD to firePreferencesUpdated().... Hopefully refreshing Home Screen Views too"""
+        myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()" )
+
+        class FPSRunnable(Runnable):
+            def __init__(self): pass
+
+            def run(self):
+                myPrint("DB",".. Inside FPSRunnable() - calling firePreferencesUpdated()...")
+                myPrint("B","Calling firePreferencesUpdated() to update Home Screen View")
+                MD_REF.getPreferences().firePreferencesUpdated()
+
+        if not SwingUtilities.isEventDispatchThread():
+            myPrint("DB",".. Not running within the EDT so calling via FPSRunnable()...")
+            SwingUtilities.invokeLater(FPSRunnable())
+        else:
+            myPrint("DB",".. Already running within the EDT so calling FPSRunnable() naked...")
+            FPSRunnable().run()
+        return
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################

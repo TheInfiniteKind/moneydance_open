@@ -155,6 +155,7 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
         - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
                 More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
         - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
+        - FIX - Fix iCloud Sync Crash (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
         - FIX - Change Moneydance Fonts
         - FIX - Delete Custom Theme file
@@ -241,6 +242,7 @@ Menu - HACKER MODE
     - Force a refresh/PUSH of your local dataset to Sync. Push new Sync data (and rebuild remote copies). Use with extreme care!
     - Force disable/turn Sync OFF (This just sets your Sync method to None - all other settings are preserved. You can turn it back on again)
     - Force reset Sync settings (This resets all Sync settings, changes your Sync ID, and turns Sync off. You can then re-enable it for a fresh Sync)
+    - Restore an archive file, and RETAIN Sync settings (the default File/Restore will wipe out your Sync settings)
     - DEMOTE your Primary Sync dataset/node back to a Secondary Node
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
 
