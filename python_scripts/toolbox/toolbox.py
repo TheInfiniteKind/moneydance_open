@@ -605,7 +605,7 @@ else:
     MD_MDPLUS_BUILD = 4040                                                                                              # noqa
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.1                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4058                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4059                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
