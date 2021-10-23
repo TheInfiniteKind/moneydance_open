@@ -154,8 +154,7 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
         - FIX - Create Dropbox Sync Folder (creates the missing .moneydancesync folder if missing from Dropbox)
         - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
                 More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
-        - FIX - Fix Dropbox One Way Syncing (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
-        - FIX - Fix iCloud Sync Crash (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
+        - FIX - Fix Remove legacy Dropbox Migrated Sync Key (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
         - FIX - Change Moneydance Fonts
         - FIX - Delete Custom Theme file

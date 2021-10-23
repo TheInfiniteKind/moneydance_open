@@ -604,8 +604,8 @@ else:
     MD_RRATE_ISSUE_FIXED_BUILD = 3089                                                                                   # noqa
     MD_MDPLUS_BUILD = 4040                                                                                              # noqa
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.0                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4057                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.1                                                                          # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4058                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -22484,9 +22484,8 @@ Now you will have a text readable version of the file you can open in a text edi
 
         class FixDropboxOneWaySyncButtonAction(AbstractAction):
 
-            def __init__(self, myButton, _iCloud=False):
+            def __init__(self, myButton):
                 self.myButton = myButton
-                self.iCloud = _iCloud
 
             def actionPerformed(self, event):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
@@ -22495,8 +22494,8 @@ Now you will have a text readable version of the file you can open in a text edi
                 # reset_sync_and_dropbox_settings.py
                 theKey = "migrated.netsync.dropbox.fileid"
 
-                titleText = "FIX ICLOUD SYNC CRASH"  if self.iCloud else "FIX DROPBOX ONE WAY SYNC"
-                question  = "Fix iCloud Sync Crash?" if self.iCloud else "Fix Dropbox One-Way Syncing?"
+                titleText = "Remove legacy Dropbox Migrated Sync Key".upper()
+                question  = "Remove '%s' key to fix Dropbox one-way & iCloud Sync issues?" %(theKey)
 
                 if not confirm_backup_confirm_disclaimer(toolbox_frame_, titleText, question):
                     return
@@ -24518,22 +24517,14 @@ Now you will have a text readable version of the file you can open in a text edi
                 displayPanel.add(fixTabbingMode_button)
 
             if MD_REF.getCurrentAccount().getBook().getLocalStorage().getStr("migrated.netsync.dropbox.fileid", None):
-                FixDropboxOneWaySync_button = JButton("<html><center><B>FIX: Fix Dropbox<BR>One Way Syncing</B></center></html>")
-                FixDropboxOneWaySync_button.setToolTipText("This removes the key 'migrated.netsync.dropbox.fileid' to fix Dropbox One-way Syncing (reset_sync_and_dropbox_settings.py)")
+                FixDropboxOneWaySync_button = JButton("<html><center><B>FIX: Remove Legacy Dropbox<BR>Migrated Sync Key</B></center></html>")
+                FixDropboxOneWaySync_button.setToolTipText("This removes the key 'migrated.netsync.dropbox.fileid' to fix Dropbox One-way & iCloud Syncing issues (reset_sync_and_dropbox_settings.py)")
                 FixDropboxOneWaySync_button.setBackground(Color.ORANGE)
                 FixDropboxOneWaySync_button.setForeground(Color.WHITE)
-                FixDropboxOneWaySync_button.addActionListener(self.FixDropboxOneWaySyncButtonAction(FixDropboxOneWaySync_button, _iCloud=False))
+                FixDropboxOneWaySync_button.addActionListener(self.FixDropboxOneWaySyncButtonAction(FixDropboxOneWaySync_button))
                 FixDropboxOneWaySync_button.setVisible(False)
                 displayPanel.add(FixDropboxOneWaySync_button)
 
-            if MD_REF.getCurrentAccount().getBook().getLocalStorage().getStr("migrated.netsync.dropbox.fileid", None):
-                Fix_iCloud_Sync_button = JButton("<html><center><B>FIX: Fix iCloud<BR>Sync Crash</B></center></html>")
-                Fix_iCloud_Sync_button.setToolTipText("This removes the key 'migrated.netsync.dropbox.fileid' to fix iCloud Sync crash (reset_sync_and_dropbox_settings.py)")
-                Fix_iCloud_Sync_button.setBackground(Color.ORANGE)
-                Fix_iCloud_Sync_button.setForeground(Color.WHITE)
-                Fix_iCloud_Sync_button.addActionListener(self.FixDropboxOneWaySyncButtonAction(Fix_iCloud_Sync_button, _iCloud=True))
-                Fix_iCloud_Sync_button.setVisible(False)
-                displayPanel.add(Fix_iCloud_Sync_button)
             # end of instant fix buttons
 
             analiseDatasetSize_button = JButton("<html><center>Analyse Dataset<BR>Objs, Size & Files</center></html>")
