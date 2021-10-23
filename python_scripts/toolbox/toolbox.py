@@ -605,7 +605,7 @@ else:
     MD_MDPLUS_BUILD = 4040                                                                                              # noqa
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.0                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4056                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4057                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -22022,11 +22022,15 @@ Now you will have a text readable version of the file you can open in a text edi
         storage.put("_toolbox", "Restored & preserved Sync settings (type was: %s)...." %(saveSyncSetting))
         archiveBook.getLocalStorage().save()
 
-        myPopupInformationBox(toolbox_frame_,"SUCCESS! ABOUT TO OPEN THE RESTORED DATASET (You need to manually set Sync to: '%s'" %(saveSyncSetting),_THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
+        myPopupInformationBox(toolbox_frame_,"SUCCESS! ABOUT TO OPEN THE RESTORED DATASET (You need to set Sync to: '%s') - YOU MAY BE ASKED FOR YOUR PASSWORD AGAIN" %(saveSyncSetting),_THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
         myPrint("B","Opening restored Dataset: %s" %(newBookFile.getCanonicalPath()))
         txt = "%s: SUCCESS: Dataset restored, open manually (and change Sync Method to: %s)" %(_THIS_METHOD_NAME, saveSyncSetting)
         setDisplayStatus(txt, "B"); myPrint("B", txt)
-        MD_REF.getUI().openFile(newBookFile)    # This will trigger Toolbox to close too....
+        if not MD_REF.getUI().openFile(newBookFile):    # This will trigger Toolbox to close too....
+            txt = "%s: ERROR: Failed to open the restored file... Please open the file manually?" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME, theMessageType=JOptionPane.ERROR_MESSAGE)
+        return
 
     def checkForREADONLY():
 
