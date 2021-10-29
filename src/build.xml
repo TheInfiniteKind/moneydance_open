@@ -34,7 +34,7 @@ http://jakarta.apache.org/ant/index.html
     <pathelement path="../lib/mdadmin.jar"/> <!-- Since mdadmin has a StringUtils, it needs to come after moneydance.jar -->
     <pathelement path="../lib/jfreechart-1.0.13.jar"/>
     <pathelement path="../lib/jcommon-1.0.12.jar"/>
-    <pathelement path="../lib/gson-2.5.jar"/>
+    <pathelement path="../lib/gson-2.8.7.jar"/>
   </path>
 
   <target name="init">
