@@ -526,17 +526,26 @@ Visit: %s (Author's site)
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
             try:
-                if currentTheme.isSystemDark(): return True
+                if currentTheme.isSystemDark(): return True     # NOTE: Only VAQua has isSystemDark()
             except: pass
-            if "dark" in currentTheme.getThemeID(): return True
-            if "darcula" in currentTheme.getThemeID(): return True
+            if "dark" in currentTheme.getThemeID().lower(): return True
+            if isMDThemeFlatDark(): return True
+            if isMDThemeDarcula(): return True
         except: pass
         return False
 
     def isMDThemeDarcula():
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
+            if isMDThemeFlatDark(): return False                    # Flat Dark pretends to be Darcula!
             if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeFlatDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
 

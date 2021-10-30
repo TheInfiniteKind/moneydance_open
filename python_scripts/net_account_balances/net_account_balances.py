@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1005 - July 2021 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1006 - July 2021 - Stuart Beesley - StuWareSoftSystems
 
 ###############################################################################
 # This extension creates a Moneydance Home Page View >> a little widget on the Home / Summary Screen dashboard
@@ -58,6 +58,7 @@
 # Build: 1004 - Fixed pickle.dump/load common code to work properly cross-platform (e.g. Windows to Mac) by (stripping \r when needed)
 # Build: 1004 - Common code tweaks
 # Build: 1005 - Common code tweaks; Tweaked colors for Dark themes and to be more MD 'compatible'
+# Build: 1006 - Common code tweaks; Flat Dark Theme
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -65,7 +66,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1005"
+version_build = "1006"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -568,17 +569,26 @@ Visit: %s (Author's site)
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
             try:
-                if currentTheme.isSystemDark(): return True
+                if currentTheme.isSystemDark(): return True     # NOTE: Only VAQua has isSystemDark()
             except: pass
-            if "dark" in currentTheme.getThemeID(): return True
-            if "darcula" in currentTheme.getThemeID(): return True
+            if "dark" in currentTheme.getThemeID().lower(): return True
+            if isMDThemeFlatDark(): return True
+            if isMDThemeDarcula(): return True
         except: pass
         return False
 
     def isMDThemeDarcula():
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
+            if isMDThemeFlatDark(): return False                    # Flat Dark pretends to be Darcula!
             if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeFlatDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1012)
+# list_future_reminders.py (build: 1013)
 
 ###############################################################################
 # MIT License
@@ -42,6 +42,7 @@
 # build: 1010 - Common code tweaks
 # build: 1011 - Added printing support
 # build: 1012 - Common code tweaks; Tweaked colors for Dark themes and to be more MD 'compatible'
+# build: 1013 - Common code tweaks; Flat Dark Theme
 
 # Displays Moneydance future reminders
 
@@ -51,7 +52,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1012"
+version_build = "1013"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -564,17 +565,26 @@ Visit: %s (Author's site)
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
             try:
-                if currentTheme.isSystemDark(): return True
+                if currentTheme.isSystemDark(): return True     # NOTE: Only VAQua has isSystemDark()
             except: pass
-            if "dark" in currentTheme.getThemeID(): return True
-            if "darcula" in currentTheme.getThemeID(): return True
+            if "dark" in currentTheme.getThemeID().lower(): return True
+            if isMDThemeFlatDark(): return True
+            if isMDThemeDarcula(): return True
         except: pass
         return False
 
     def isMDThemeDarcula():
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
+            if isMDThemeFlatDark(): return False                    # Flat Dark pretends to be Darcula!
             if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeFlatDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
 

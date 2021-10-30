@@ -176,10 +176,19 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
         - Delete single cached OnlineTxnList record/Txns
         - Delete ALL cached OnlineTxnList record/Txns (delete_intermediate_downloaded_transaction_caches.py)
         - OFX Cookie Management (some options also required Hacker mode)
-        - OFX Authentication Management (some options also required Hacker mode)
+        - OFX Authentication Management (various functions to manage authentication, UserIDs, ClientUIDs)
+            - SUBMENU: OFX Authentication Management
+                - Clear the Authentication Cache (Passwords) for One Service / Bank Profile
+                - Clear ALL Authentication Cache (Passwords)
+                - Edit/Setup (multiple) UserIDs / Passwords (executes a special script) (ofx_populate_multiple_userids.py)
+                - Edit stored authentication passwords linked to a working OFX Profile
+                - Manual Edit of stored Root UserIDs/ClientUIDs
         - Export your Moneydance+ (Plaid) settings to a file (for 'transplant') - MD Version 2022 onwards. READONLY
         - Import ('transplant') your Moneydance+ (Plaid) settings from a file (exported by Toolbox) - MD Version 2022 onwards. USE WITH CARE.
         - ZAP Dataset's Moneydance+ (Plaid) settings (also required Hacker mode) - MD Version 2022 onwards. USE WITH CARE. WILL REQUIRE RE-REGISTRATION!
+        - USAA ONLY: Manually 'prime' / overwrite stored Root UserIDs/ClientUIDs
+        - USAA Only: Executes the special script to create a working USAA OFX Profile (ofx_create_new_usaa_bank_custom_profile.py)
+
     - MENU: Accounts & Categories tools
         - FIX - Inactivate all Categories with Zero Balance
         - FIX - Edit an Account's shouldBeIncludedInNetWorth() setting

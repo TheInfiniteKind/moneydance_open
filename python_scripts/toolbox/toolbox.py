@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1043 - November 2020 thru July 2021+ - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1044 - November 2020 thru Oct 2021+ - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance and they retain all copyright over Moneydance internal code
@@ -237,13 +237,16 @@
 # build: 1043 - New feature: 'Restore an archive file, and RETAIN Sync settings ' (avoids wiping out Sync settings on restore)
 # build: 1043 - New feature: Fix iCloud Sync Crash (same as Fix Dropbox One-Way Crash)
 # build: 1043 - Tweaked OFX Authentication menu... Added change OFX Password feature
+# build: 1044 - Enhanced OFX Authentication Menu. Added option to prime USAA UserID/ClientUID...; tweaked open md folder, for open system locations to work
+# build: 1044 - Added execution of ofx_populate_multiple_userids.py script...
+# build: 1044 - Added execution of ofx_create_new_usaa_bank_custom_profile.py script...
+# build: 1044 - Tweaks for new Dark Flat theme in build 4059
+# build: 1044 - Fix 'FIX - Non Hierarchical Security Account Txns' for None Account issue... (this is where User force removed a Security from Investment Account)
 
-# todo - Restore and retain syncid settings....
 # todo - MD Menubar inherits Toolbox buttons (top right) when switching account whilst using Darcula Theme
 # todo - check/fix QuickJFrame() alert colours since VAqua....!?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - Known  issue  on Linux: Any drag to  resize main window, causes width to maximise. No issue on Mac or Windows..
-# todo - OFX: Generic and specific UUID; set/edit UserID
 
 # NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM. This is why:
 # 1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
@@ -260,7 +263,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1043"
+version_build = "1044"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -506,6 +509,7 @@ else:
     import fnmatch
     import time
     import shutil
+    import threading
     from collections import OrderedDict
 
     from org.python.core import PySystemState
@@ -587,6 +591,7 @@ else:
     global MD_RRATE_ISSUE_FIXED_BUILD, MD_ICLOUD_ENABLED, MD_MDPLUS_BUILD
 
     GlobalVars.TOOLBOX_UNLOCK = False
+    GlobalVars.SCRIPT_RUNNING_LOCK = threading.Lock()
 
     lCopyAllToClipBoard_TB = False                                                                                      # noqa
     lGeekOutModeEnabled_TB = False                                                                                      # noqa
@@ -847,17 +852,26 @@ Visit: %s (Author's site)
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
             try:
-                if currentTheme.isSystemDark(): return True
+                if currentTheme.isSystemDark(): return True     # NOTE: Only VAQua has isSystemDark()
             except: pass
-            if "dark" in currentTheme.getThemeID(): return True
-            if "darcula" in currentTheme.getThemeID(): return True
+            if "dark" in currentTheme.getThemeID().lower(): return True
+            if isMDThemeFlatDark(): return True
+            if isMDThemeDarcula(): return True
         except: pass
         return False
 
     def isMDThemeDarcula():
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
+            if isMDThemeFlatDark(): return False                    # Flat Dark pretends to be Darcula!
             if "darcula" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeFlatDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
 
@@ -7873,8 +7887,9 @@ Please update any that you use before proceeding....
         serviceList = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
         newServiceList = []
         for sv in serviceList:
-            if lIncludePlaidWhenUnlocked:
-                if not isToolboxUnlocked() and sv.getTIKServiceID() == "md:plaid": continue
+            if sv.getTIKServiceID() == "md:plaid":
+                if not lIncludePlaidWhenUnlocked:   continue
+                if not isToolboxUnlocked():         continue
             newServiceList.append(StoreService(sv))
 
         service = JOptionPane.showInputDialog(_theFrame,
@@ -7890,6 +7905,35 @@ Please update any that you use before proceeding....
             setDisplayStatus(txt, "R"); myPrint("B", txt)
             return None
         return service.getService()
+
+    class StoreUserID():
+        def __init__(self, _userID, _password="NOT SET"):
+            self.userID = _userID.strip()
+            self.password = _password
+            self.clientUID = None
+            self.accounts = []
+
+        @staticmethod
+        def findUserID(findUserID, listOfUserIDs):
+            # type: (str, [StoreUserID]) -> StoreUserID
+            """
+            Static Method to search a [list] of StoreUserID()
+            """
+            for userIDFromList in listOfUserIDs:
+                if findUserID.lower().strip() == userIDFromList.getUserID().lower().strip(): return userIDFromList
+            return None
+
+        def setPassword(self, _password):       self.password = _password
+        def setClientUID(self, _clientUID):     self.clientUID = _clientUID
+        def setAccounts(self, _accounts):       self.accounts = _accounts
+
+        def getUserID(self):    return self.userID
+        def getPassword(self):  return self.password
+        def getClientUID(self): return self.clientUID
+        def getAccounts(self):  return self.accounts
+
+        def __str__(self): return "UserID: %s Password: <%s>" %(self.getUserID(), ("*"*len(self.getPassword())))
+        def __repr__(self): return self.__str__()
 
 
     def clearOneServiceAuthCache():
@@ -8118,6 +8162,150 @@ Please update any that you use before proceeding....
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
+    def my_createNewClientUID():
+        # com.moneydance.apps.md.view.gui.DefaultOnlineUIProxy.createNewClientUID()
+        _uid = UUID.randomUUID().toString()
+        _uid = StringUtils.replaceAll(_uid, "-", "").strip()
+        if len(_uid) > 32: _uid = String(_uid).substring(0, 32)
+        return _uid
+
+    def manuallyPrimeUSAARootUserIDClientIDs():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "USAA: Manually 'prime' Root UserIDs/ClientUIDs".upper()
+
+        if isMDPlusEnabledBuild() and float(MD_REF.getBuild()) < 4059:
+            txt = ("WARNING: You need to upgrade to at least version MD2022.1(4059) for USAA Connections to work properly! - No changes made!")
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_,txt, _THIS_METHOD_NAME,JOptionPane.ERROR_MESSAGE)
+            return
+
+        NEW_TIK_FI_ID = "md:custom-1295"    # as of 23rd Oct, the 'official' custom profile ID
+
+        authKeyPrefix="ofx.client_uid"
+        specificAuthKeyPrefix = authKeyPrefix+"::" + NEW_TIK_FI_ID + "::"
+        defaultUserPrefix = authKeyPrefix+"_default_user"+"::" + NEW_TIK_FI_ID
+
+        root = MD_REF.getCurrentAccount().getBook().getRootAccount()
+        rootKeys = list(sorted(root.getParameterKeys()))
+
+        output = "LIST OF OFX USAA USERIDs/ClientUIDs STORED ON THE ROOT ACCOUNT\n" \
+                 " =============================================================\n\n"
+
+        harvestedDefaultUserID = None
+        harvestedUserIDList = []
+        for i in range(0,len(rootKeys)):
+            rk = rootKeys[i]
+            rk_value = root.getParameter(rk)
+            if rk.startswith(specificAuthKeyPrefix):
+                harvestedUID = StoreUserID(rk[len(specificAuthKeyPrefix):])
+                output+="Harvested existing authKey %s: ClientUID: %s\n" %(rk,rk_value)
+                if harvestedUID.getUserID() != "null":
+                    harvestedUID.setClientUID(rk_value)
+                    harvestedUserIDList.append(harvestedUID)
+            elif rk.startswith(defaultUserPrefix):
+                output+="Harvested existing Default UserID: %s\n" %(rk_value)
+                harvestedDefaultUserID = rk_value
+
+        if len(harvestedUserIDList)<1: output+="\n<NONE PRE-EXISTING>\n"
+
+        output += "\n<END>"
+
+        jif = QuickJFrame("REVIEW EXISTING USAA USERIDs/ClientUIDs (stored on ROOT) BEFORE CHANGES",output,copyToClipboard=lCopyAllToClipBoard_TB,lWrapText=False).show_the_frame()
+
+        defaultEntry = "UserID"
+        while True:
+            userID = myPopupAskForInput(jif, "PRIME USERID/CLIENTUID SUPPLIED BY USAA", "UserID", "Type/Paste the UserID to prime very carefully (this will overwrite existing)", defaultEntry)
+            myPrint("DB", "userID entered: %s" %userID)
+            if userID is None:
+                txt = "ERROR - No userID supplied to prime! Aborting"
+                setDisplayStatus(txt, "R"); myPrint("B", txt)
+                myPopupInformationBox(jif,txt, _THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
+                jif.dispose()
+                return
+            defaultEntry = userID
+            if userID is None or userID == "" or userID == "UserID" or len(userID)<4:
+                myPrint("DB", "\n ** ERROR - No valid UserID supplied to prime - try again ** \n")
+                continue
+            break
+        del defaultEntry
+
+        findStoredUser = StoreUserID(userID)
+        if len(harvestedUserIDList) > 0:
+            foundHarvestedStoredUser = StoreUserID.findUserID(findStoredUser.getUserID(),harvestedUserIDList)    # type: StoreUserID
+            if foundHarvestedStoredUser is not None:
+                if foundHarvestedStoredUser.getClientUID() is not None:
+                    findStoredUser.setClientUID(foundHarvestedStoredUser.getClientUID())
+                else:
+                    raise Exception("LOGIC ERROR: Found harvested UserID (%s) with no ClientUID?! Aborting" %(findStoredUser))
+            del foundHarvestedStoredUser
+            myPrint("DB", "UserID entered: %s (Harvested ClientUID: %s)" %(userID, findStoredUser.getClientUID()))
+        else:
+            myPrint("DB","Skipping matching ClientUID into UserID as did not harvest any UserIDs from USAA root record(s)...")
+
+        myPrint("B","")
+
+        if findStoredUser.getClientUID() is not None:
+            defaultEntry = findStoredUser.getClientUID()
+        else:
+            defaultEntry = "nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn"
+        del findStoredUser
+
+        while True:
+            uuid = myPopupAskForInput(jif, "PRIME CLIENT UUID FOR USERID: %s (SUPPLIED BY USAA)" %(userID), "PRIME UUID", "Paste USAA's Supplied UUID 36 digits 8-4-4-4-12 very carefully", defaultEntry)
+            myPrint("DB", "UUID entered: %s" %uuid)
+            if uuid is None:
+                txt = "ERROR - No uuid entered! Aborting"
+                setDisplayStatus(txt, "R"); myPrint("B", txt)
+                myPopupInformationBox(jif,txt, _THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
+                jif.dispose()
+                return
+            defaultEntry = uuid
+            if (uuid is None or uuid == "" or len(uuid) != 36 or uuid == "nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn" or
+                    (str(uuid)[8]+str(uuid)[13]+str(uuid)[18]+str(uuid)[23]) != "----"):
+                myPrint("DB", "\n ** ERROR - no valid uuid supplied - try again ** \n")
+                continue
+            break
+        del defaultEntry
+
+        lSetDefaultUserID = False
+        if myPopupAskQuestion(jif,_THIS_METHOD_NAME, "Do you want to make UserID: %s the DEFAULT (current default: %s)" %(userID, harvestedDefaultUserID)):
+            myPrint("DB","UserID: %s will be primed as the default in root (replacing: %s as default)" %(userID, harvestedDefaultUserID))
+            lSetDefaultUserID = True
+
+        if not confirm_backup_confirm_disclaimer(jif,_THIS_METHOD_NAME,"Prime UserID: %s with ClientUID: %s?" %(userID, uuid)):
+            txt = "%s: User did not agree to proceed with changes - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            jif.dispose()
+            return
+
+        root.setEditingMode()
+        root.setParameter(specificAuthKeyPrefix+userID, uuid)
+
+        if lSetDefaultUserID:
+            root.setParameter(defaultUserPrefix, userID)
+            root.setParameter(specificAuthKeyPrefix+"null", uuid)
+
+        lOverrideRootUUID = False
+        theDefaultUUID = root.getParameter(authKeyPrefix, "")
+        if lOverrideRootUUID or theDefaultUUID == "":
+            theDefaultUUID = my_createNewClientUID()
+            myPrint("B","Overriding Root's default UUID. Was: '%s' >> changing to >> '%s'" %(root.getParameter(authKeyPrefix, ""),theDefaultUUID))
+            root.setParameter(authKeyPrefix, theDefaultUUID)
+        del theDefaultUUID, lOverrideRootUUID
+
+        root.syncItem()
+
+        play_the_money_sound()
+        txt = "%s: UserID: %s ClientUID primed to: %s (Default: %s)" %(_THIS_METHOD_NAME, userID, uuid, lSetDefaultUserID)
+        setDisplayStatus(txt, "B"); myPrint("B", txt)
+        myPopupInformationBox(jif,txt, _THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
+        jif.dispose()
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+        return
+
     def check_OFX_USERID_Key_valid(test_str):
         pattern = r'[^a-zA-Z0-9-_.:]'
         if re.search(pattern, test_str):
@@ -8142,7 +8330,6 @@ Please update any that you use before proceeding....
         if MD_REF.getCurrentAccount().getBook() is None: return
 
         userIDKeyPrefix="ofx.client_uid"
-
         root = MD_REF.getCurrentAccount().getBook().getRootAccount()
 
         _DELETEONE  = 0
@@ -8370,6 +8557,106 @@ Please update any that you use before proceeding....
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
+
+    def scriptRunner(_runThisScript, _method):
+
+        if MD_EXTENSION_LOADER is None:
+            txt = "%s: Sorry - You must be running Toolbox as an extension to run this extra script...." %(_method)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+            return False
+
+        if GlobalVars.SCRIPT_RUNNING_LOCK.locked():
+            txt = "%s: Sorry - a script is already running with an active Lock" %(_method)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+            return False
+
+        with GlobalVars.SCRIPT_RUNNING_LOCK:
+            myPrint("B","**********************************************************")
+            myPrint("B","**********************************************************")
+            myPrint("B","**********************************************************")
+            py = MD_REF.getPythonInterpreter()
+            py.set("toolbox_script_runner", _runThisScript)
+            # py.getSystemState().setClassLoader(MD_EXTENSION_LOADER)
+            # py.set("moneydance_extension_loader", MD_EXTENSION_LOADER)
+
+            class ScriptRunnable(Runnable):
+
+                def __init__(self, _context, _python, _scriptStream, _scriptToRun):
+                    self.context = _context
+                    self.python = _python
+                    self.scriptStream = _scriptStream
+                    self.scriptToRun = _scriptToRun
+
+                def run(self):  # NOTE: This will not start in the EDT (the same as Moneybot Console)
+                    myPrint("B","..About to execfile(%s)" %(self.scriptToRun))
+                    self.python.execfile(self.scriptStream,"Toolbox:Executing_Script_%s" %(self.scriptToRun))
+                    myPrint("DB", "....I am back from script, within the special Thread().....")
+                    self.scriptStream.close()
+                    self.context.resetPythonInterpreter(self.python)
+
+            scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_runThisScript))
+
+            t = Thread(ScriptRunnable(MD_REF, py, scriptStream, _runThisScript))
+            t.start()
+
+            myPrint("DB", ".... post calling Thread().....")
+
+            del py, t
+            myPrint("B","**********************************************************")
+            myPrint("B","**********************************************************")
+            myPrint("B","**********************************************************")
+
+        return True
+
+    def editSetupMultipleUserIDs():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "Edit/Setup (multiple) UserIDs / Passwords".upper()
+
+        scriptToRun = "ofx_populate_multiple_userids.py"
+
+        # ask = MyPopUpDialogBox(toolbox_frame_,
+        #                  "This is a special process that will run a script",
+        #                  "You do not need to leave Toolbox....\n"
+        #                  "Script: %s" %(scriptToRun),
+        #                  theTitle=_THIS_METHOD_NAME, lCancelButton=True, OKButtonText="Proceed?")
+        #
+        # if not ask.go():
+        #     txt = "%s: User abandoned script execution (%s)" %(_THIS_METHOD_NAME, scriptToRun)
+        #     setDisplayStatus(txt, "B"); myPrint("B", txt)
+        #     myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+        #     return False
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME,"Execute the script: %s?" %(scriptToRun)):
+            return False
+
+        return scriptRunner(scriptToRun, _THIS_METHOD_NAME)
+
+    def createUSAAProfile():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "Create USAA OFX Profile".upper()
+
+        scriptToRun = "ofx_create_new_usaa_bank_custom_profile.py"
+
+        # ask = MyPopUpDialogBox(toolbox_frame_,
+        #                  "This is a special process that will run a script",
+        #                  "You do not need to leave Toolbox....\n"
+        #                  "Script: %s" %(scriptToRun),
+        #                  theTitle=_THIS_METHOD_NAME, lCancelButton=True, OKButtonText="Proceed?")
+        #
+        # if not ask.go():
+        #     txt = "%s: User abandoned script execution (%s)" %(_THIS_METHOD_NAME, scriptToRun)
+        #     setDisplayStatus(txt, "B"); myPrint("B", txt)
+        #     myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+        #     return False
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME,"Execute the script: %s?" %(scriptToRun)):
+            return False
+
+        return scriptRunner(scriptToRun, _THIS_METHOD_NAME)
 
     class StoreAccountList():
         def __init__(self, obj):
@@ -8819,16 +9106,20 @@ Please update any that you use before proceeding....
         if not isCachingPasswords():
             myPopupInformationBox(toolbox_frame_,"WARNING: Your system is not setup to cache/store Authentication details!","Manage OFX Authentication",JOptionPane.ERROR_MESSAGE)
 
-        user_clearOneServiceAuthCache =         JRadioButton("Clear the Authentication Cache (Passwords) for One Service / Bank Profile", False)
-        user_clearAllServicesAuthCache =        JRadioButton("Clear ALL Authentication Cache (Passwords)", False)
-        user_editSetupMultipleUserIDs =         JRadioButton("Edit/Setup (multiple) UserIDs / Passwords", False)
-        user_editStoredOFXPasswords =           JRadioButton("Edit stored passwords within a working OFX Profile (Only in ADV+Hacker mode)", False)
-        user_editStoredOFXPasswords.setEnabled(isUserEncryptionPassphraseSet() and lHackerMode)
-        user_editStoredOFXPasswords.setForeground(getColorRed())
+        user_clearOneServiceAuthCache = JRadioButton("Clear the Authentication Cache (Passwords) for One Service / Bank Profile", False)
+        user_clearOneServiceAuthCache.setToolTipText("Clears all remembered passwords for the OFX Service profile you select - THIS WILL CHANGE DATA!")
 
-        user_manualEditOfRootUserIDs =              JRadioButton("Manual Edit of Stored Root UserIDs/ClientUIDs (Only in ADV+Hacker mode)", False)
-        user_manualEditOfRootUserIDs.setEnabled(lHackerMode)
-        user_manualEditOfRootUserIDs.setForeground(getColorRed())
+        user_clearAllServicesAuthCache = JRadioButton("Clear ALL Authentication Cache (Passwords)", False)
+        user_clearAllServicesAuthCache.setToolTipText("Clears all remembered passwords for all OFX Service profiles - THIS WILL CHANGE DATA!")
+
+        user_editSetupMultipleUserIDs = JRadioButton("Edit/Setup (multiple) UserIDs / Passwords (executes a special script)", False)
+        user_editSetupMultipleUserIDs.setToolTipText("Allows setup of multiple UserIDs/Passwords on an OFX service profile - executes: ofx_populate_multiple_userids.py")
+
+        user_editStoredOFXPasswords = JRadioButton("Edit stored authentication passwords linked to a working OFX Profile", False)
+        user_editStoredOFXPasswords.setToolTipText("Manual edit of remembered OFX passwords linked to an OFX profile...")
+
+        user_manualEditOfRootUserIDs = JRadioButton("Manual Edit of stored Root UserIDs/ClientUIDs", False)
+        user_manualEditOfRootUserIDs.setToolTipText("Manual edit of any stored UserID/ClientUID raw record (from root account)")
 
         userFilters = JPanel(GridLayout(0, 1))
 
@@ -8859,7 +9150,7 @@ Please update any that you use before proceeding....
             if userAction != 1:
                 txt = "Online Banking (OFX) AUTHENTICATION MANAGEMENT - No changes made....."
                 setDisplayStatus(txt, "B")
-                return
+                return False
 
             if user_clearOneServiceAuthCache.isSelected():
                 clearOneServiceAuthCache()
@@ -8868,15 +9159,8 @@ Please update any that you use before proceeding....
                 clearAllServicesAuthCache()
 
             if user_editSetupMultipleUserIDs.isSelected():
-                MyPopUpDialogBox(toolbox_frame_,
-                                 "This is a special process - you will need to run a script (not within Toolbox)",
-                                 "Download the useful_scripts package (zip) from Author's site:\n"
-                                 "%s\n"
-                                 "Unzip and extract 'ofx_populate_multiple_userids.py'\n"
-                                 "Menu: MD>Window>Show MoneyBot Console'\n"
-                                 "Open and then Run the script....\n"
-                                 %(MYPYTHON_DOWNLOAD_URL),
-                                 theTitle="Edit/Setup (multiple) UserIDs / Passwords").go()
+                if editSetupMultipleUserIDs():
+                    return True
 
             if user_editStoredOFXPasswords.isSelected():
                 editStoredOFXPasswords()
@@ -11641,6 +11925,9 @@ Please update any that you use before proceeding....
                             #     # Sean advised that always take the first item (there are duplicates in the list, but it is sorted)
                             #     output += pad(">> Banking Services first candidate:",50)+safeStr(acct.getBankingServices()[0].getService())+"\n"
                             #
+                            if acct.getOFXAccountNumber() is not None and acct.getOFXAccountNumber() != "":
+                                output += pad(">> OFX Account Number:",50)+safeStr(acct.getOFXAccountNumber())+"\n"
+
                             if acct.getBankingFI() is not None:
                                 output += pad(">> Bank Service/Logon profile:",50)+safeStr(acct.getBankingFI())+"\n"
                                 if my_get_account_key(acct):
@@ -15349,8 +15636,8 @@ now after saving the file, restart Moneydance
 
         MD_decimal = MD_REF.getPreferences().getDecimalChar()
 
-        if detect_non_hier_sec_acct_txns() > 0:
-            txt = "%s: ERROR - Cross-linked security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -15911,8 +16198,8 @@ now after saving the file, restart Moneydance
         today = Calendar.getInstance()                                                                                  # noqa
         MD_decimal = MD_REF.getPreferences().getDecimalChar()
 
-        if detect_non_hier_sec_acct_txns() > 0:
-            txt = "%s: ERROR - Cross-linked security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -17012,8 +17299,8 @@ now after saving the file, restart Moneydance
         PARAMETER_KEY = "toolbox_txn_merge"
         today = Calendar.getInstance()                                                                                  # noqa
 
-        if detect_non_hier_sec_acct_txns() > 0:
-            txt = "%s: ERROR - Cross-linked security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -17660,7 +17947,10 @@ now after saving the file, restart Moneydance
         return
 
     def fix_non_hier_sec_acct_txns():
-        global toolbox_frame_, debug
+
+        _THIS_METHOD_NAME = "FIX: Non-Hierarchical Security Acct Txn".upper()
+
+        PARAMETER_KEY = "toolbox_fix_non_hier_sec_acct_txns"
 
         # fix_non-hierarchical_security_account_txns.py
         # (replaces fix_investment_txns_to_wrong_security.py)
@@ -17673,116 +17963,200 @@ now after saving the file, restart Moneydance
         output = "FIX Investment Transactions where Security's Account is not linked properly to the Parent Txn's Acct:\n" \
                  " =====================================================================================================\n\n"
 
-        txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
-        txns = txnSet.iterableTxns()
-        fields = InvestFields()
+        try:
+            txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+            txns = txnSet.iterableTxns()
+            fields = InvestFields()
 
-        def review_security_accounts(FIX_MODE=False):
+            iOrphans = 0
+            txt = "Scanning for Security Orphans...:"
+            output += "\n%s\n" %(txt); myPrint("B",txt)
+            for _txn in txns:
+                if not isinstance(_txn, ParentTxn): continue   # only work with parent transactions
+                _acct = _txn.getAccount()
+                if _acct.getAccountType() != Account.AccountType.INVESTMENT: continue                                    # noqa
+                fields.setFieldStatus(_txn)
 
-            count_the_errors = 0
-            count_unfixable_yet = 0
-            errors_fixed = 0
-            text = ""
-            for txn in txns:
-                if txn.getParentTxn() != txn: continue   # only work with parent transactions
+                if fields.hasSecurity and fields.security is None:
+                    iOrphans += 1
+                    txt = "ERROR: Txn for 'Orphaned' Security %s found within Investment Account %s! (Have you force removed a Security with linked TXNs?\n" \
+                          "txn:\n%s\n" %(fields.security, _acct, _txn.getSyncInfo().toMultilineHumanReadableString())
+                    output += "\n%s\n" %(txt); myPrint("B",txt)
 
-                acct = txn.getAccount()
-                # noinspection PyUnresolvedReferences
-                if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
+            if iOrphans:
+                txt = "ERROR: %s investment txn(s) with 'Orphaned'securities detected (probably User Force Removal of Security from Investment Account)" %(iOrphans)
+                output += "\n%s\n" %(txt); myPrint("B",txt)
+                output += "\n<ABORTED>"
+                setDisplayStatus(txt, "R")
+                jif = QuickJFrame(_THIS_METHOD_NAME,output,lAlertLevel=1,copyToClipboard=lCopyAllToClipBoard_TB,lWrapText=False).show_the_frame()
+                MyPopUpDialogBox(jif,txt,
+                                 "It's highly likely that you have clicked 'Actions' > 'Remove Security' from an Investment Account..\n"
+                                 ".. and that this Security had linked Transactions... You would have been warned and asked to respond 'yes'\n"
+                                 ".. this will have deleted Buy/Sell TXNs and partially removed the Security from other TXNs like buy/Sell/Xfr etc\n"
+                                 ".. these are now illogical and damaged records.... The data is lost and not recoverable. Toolbox CANNOT REPAIR!\n"
+                                 ">> You will need to restore, and or manually edit and repair the TXNs with your own knowledge of what was lost...",
+                                 theTitle=_THIS_METHOD_NAME,OKButtonText="ACKNOWLEDGED",lAlertLevel=1).go()
+                return
 
-                # at this point we are only dealing with investment parent txns
-                fields.setFieldStatus(txn)
+            else:
+                txt = ">> No investment txn(s) with Orphaned securities were detected - phew!"
+                output += "\n%s\n" %(txt); myPrint("B",txt)
 
-                if fields.hasSecurity and not acct.isAncestorOf(fields.security):
-                    count_the_errors += 1
-                    txnTxt = txn.toMultilineString().replace(";",";\n")
-                    text+=("Must fix txn %s\n"
-                           "%s\n"
-                           " > in %s with sec acct %s\n" %(fields.txnType, txnTxt, acct, fields.security.getFullAccountName()))
-                    # This fix assumes that the split / security bit should sit within the txn's parent account. It seeks for the same
-                    # security in this account and reattaches it.
+            output += "\n\n"
 
-                    # Alternatively you could txn.setAccount() to be the split security's parent account
-                    # e.g. txn.setAccount(fields.security.getParentAccount())
+            def review_security_accounts(_txns, FIX_MODE=False):
 
-                    secCurr = fields.security.getCurrencyType()
-                    correctSecAcct = None
-                    for subacct in AccountUtil.getAccountIterator(acct):
-                        if subacct.getCurrencyType() == secCurr:
-                            correctSecAcct = subacct
-                            break
-                    if correctSecAcct:
-                        if FIX_MODE:
-                            errors_fixed += 1
-                            text+=(" -> ASSIGNING txn to %s\n" %(correctSecAcct.getFullAccountName()))
-                            fields.security = correctSecAcct
-                            fields.storeFields(txn)
-                            txn.syncItem()
-                        else:
-                            text+=(" -> need to assign txn to %s\n" %(correctSecAcct.getFullAccountName()))
-                    else:
-                        count_unfixable_yet += 1
-                        text+=(" !!! You need to manually create a security sub-account by adding the security %s to the investment account %s\n" %(secCurr.getName(), acct.getFullAccountName()))
+                count_the_errors = 0
+                count_unfixable_yet = 0
+                errors_fixed = 0
+                text = ""
+                for txn in _txns:
+                    if txn.getParentTxn() != txn: continue   # only work with parent transactions
 
-            return text, count_the_errors, count_unfixable_yet, errors_fixed
+                    acct = txn.getAccount()
+                    # noinspection PyUnresolvedReferences
+                    if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
 
-        x, iCountErrors, iCountUnfixable, iErrorsFixed = review_security_accounts(False)
-        output += x
+                    # at this point we are only dealing with investment parent txns
+                    fields.setFieldStatus(txn)
 
-        output += "\n\nYou have %s errors, with %s needing manual fixes first... I have fixed %s\n\n" %(iCountErrors, iCountUnfixable, iErrorsFixed)
+                    if fields.hasSecurity and not acct.isAncestorOf(fields.security):
+                        count_the_errors += 1
+                        txnTxt = txn.toMultilineString().replace(";",";\n")
+                        text+=("Must fix txn %s\n"
+                               "%s\n"
+                               " > in %s with sec acct %s\n" %(fields.txnType, txnTxt, acct, fields.security.getFullAccountName()))
+                        # This fix assumes that the split / security bit should sit within the txn's parent account. It seeks for the same
+                        # security in this account and reattaches it.
 
-        if iCountErrors<1:
-            txt = "FIX: Investment Security Txns with Invalid Parent Accounts - CONGRATULATIONS - I found no Invalid txns......."
-            setDisplayStatus(txt, "B")
-            myPrint("B", txt)
-            myPopupInformationBox(toolbox_frame_,txt)
-            return
+                        # Alternatively you could txn.setAccount() to be the split security's parent account
+                        # e.g. txn.setAccount(fields.security.getParentAccount())
 
-        myPrint("B","FIX: Investment Security Txns with Invalid Parent Accounts' - found %s errors... with %s needing manual fixes" %(iCountErrors, iCountUnfixable))
+                        secCurr = fields.security.getCurrencyType()
+                        correctSecAcct = None
+                        for subacct in AccountUtil.getAccountIterator(acct):
+                            if subacct.getCurrencyType() == secCurr:
+                                correctSecAcct = subacct
+                                break
 
-        jif = QuickJFrame("VIEW Investment Security Txns with Invalid Parent Accounts".upper(), output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+                        if not correctSecAcct:
+                            if FIX_MODE:
+                                _txt = ".. Security sub-acct '%s' not found within this Investment account '%s' - so manually creating/adding..." %(secCurr.getName(), acct)
+                                text += "%s\n" %(_txt); myPrint("B",_txt)
 
-        if iCountUnfixable>0:
-            txt = "'FIX: Investment Security Txns with Invalid Parent Accounts' - You have %s errors to manually first first!" %(iCountUnfixable)
-            setDisplayStatus(txt, "R")
-            myPrint("B", txt)
-            myPopupInformationBox(jif,"You have %s errors to manually first first!" %(iCountUnfixable), "FIX: Investment Security Txns with Invalid Parent Accounts",JOptionPane.ERROR_MESSAGE)
-            return
+                                # need to create the Security sub-account in this Investment Account....
+                                newSecurityAcct = Account.makeAccount(MD_REF.getCurrentAccountBook(), Account.AccountType.SECURITY, acct)   # noqa
+                                newSecurityAcct.setEditingMode()
+                                newSecurityAcct.getUUID()
+                                newSecurityAcct.setAccountName(fields.security.getAccountName())
+                                newSecurityAcct.setCurrencyType(fields.security.getCurrencyType())
+                                newSecurityAcct.setStartBalance(0)
 
-        if not confirm_backup_confirm_disclaimer(jif, "FIX %s SECURITY TXNS INVALID PARENT ACCTS" %(iCountErrors),"FIX %s Security Txns with Invalid Parent Accts?" %(iCountErrors)):
-            return
+                                newSecurityAcct.setUsesAverageCost(fields.security.getUsesAverageCost())
+                                newSecurityAcct.setBroker(fields.security.getBroker())
+                                newSecurityAcct.setBrokerPhone(fields.security.getBrokerPhone())
+                                newSecurityAcct.setAPR(fields.security.getAPR())
+                                newSecurityAcct.setBondType(fields.security.getBondType())
+                                newSecurityAcct.setComment(fields.security.getComment())
+                                newSecurityAcct.setCompounding(fields.security.getCompounding())
+                                newSecurityAcct.setFaceValue(fields.security.getFaceValue())
+                                newSecurityAcct.setMaturity(fields.security.getMaturity())
+                                newSecurityAcct.setMonth(fields.security.getMonth())
+                                newSecurityAcct.setNumYears(fields.security.getNumYears())
+                                newSecurityAcct.setPut(fields.security.getPut())
+                                newSecurityAcct.setOptionPrice(fields.security.getOptionPrice())
+                                newSecurityAcct.setDividend(fields.security.getDividend())
+                                newSecurityAcct.setExchange(fields.security.getExchange())
+                                newSecurityAcct.setSecurityType(fields.security.getSecurityType())
+                                newSecurityAcct.setSecuritySubType(fields.security.getSecuritySubType())
+                                newSecurityAcct.setStrikePrice(fields.security.getStrikePrice())
 
-        jif.dispose()       # already within the EDT
-        myPrint("B", "User accepted disclaimer to FIX Investment Security Txns with Invalid Parent Accounts. Proceeding.....")
+                                for param in ["hide","hide_on_hp","ol.haspendingtxns", "ol.new_txn_count"]:
+                                    newSecurityAcct.setParameter(param, fields.security.getParameter(param))
 
-        output += "\n\nRUNNING FIX ON SECURITY TXNS TO RE-LINK PARENT ACCOUNTS\n" \
-                  "------------------------------------------------------------\n\n"
+                                newSecurityAcct.setParameter(PARAMETER_KEY,True)
+                                newSecurityAcct.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the move/changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
-        MD_REF.getUI().setSuspendRefresh(True)
+                                correctSecAcct = newSecurityAcct
+                            else:
+                                text+=(" -> will need to auto-create/add Security and then assign txn to %s\n" %(acct))
 
-        x, iCountErrors, iCountUnfixable, iErrorsFixed = review_security_accounts(FIX_MODE=True)
+                        if correctSecAcct:
+                            if FIX_MODE:
+                                errors_fixed += 1
+                                text+=(" -> ASSIGNING txn to %s\n" %(correctSecAcct.getFullAccountName()))
+                                fields.security = correctSecAcct
+                                fields.storeFields(txn)
+                                txn.syncItem()
+                            else:
+                                text+=(" -> need to assign txn to %s\n" %(correctSecAcct.getFullAccountName()))
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
-        MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
+                del _txns
+                return text, count_the_errors, count_unfixable_yet, errors_fixed
 
-        output += x
-        output += "\n\nYou had %s errors, with %s needing manual fixes first... I HAVE FIXED %s\n\n" %(iCountErrors, iCountUnfixable, iErrorsFixed)
-        output += "\n<END>"
+            x, iCountErrors, iCountUnfixable, iErrorsFixed = review_security_accounts(txns, FIX_MODE=False)
+            output += x
 
-        play_the_money_sound()
-        txt = "FIXED %s Investment Security Txns with Invalid Parent Accounts" %(iErrorsFixed)
-        setDisplayStatus(txt, "DG")
-        myPrint("B", txt)
-        jif = QuickJFrame("VIEW Investment Security Txns with Invalid Parent Accounts".upper(), output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
-        myPopupInformationBox(jif,txt, "FIX Investment Security Txns with Invalid Parent Accounts", JOptionPane.WARNING_MESSAGE)
+            output += "\n\nYou have %s errors, with %s needing manual fixes first... I have fixed %s\n\n" %(iCountErrors, iCountUnfixable, iErrorsFixed)
+
+            if iCountErrors<1:
+                txt = "%s: CONGRATULATIONS - I found no Invalid txns......." %(_THIS_METHOD_NAME)
+                setDisplayStatus(txt, "B"); myPrint("B", txt)
+                myPopupInformationBox(toolbox_frame_,txt)
+                return
+
+            myPrint("B","%s: found %s errors... with %s needing manual fixes" %(_THIS_METHOD_NAME, iCountErrors, iCountUnfixable))
+
+            jif = QuickJFrame("VIEW Investment Security Txns with Invalid Parent Accounts".upper(), output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+
+            if iCountUnfixable>0:
+                txt = "%s: You have %s errors to manually first first!" %(_THIS_METHOD_NAME, iCountUnfixable)
+                setDisplayStatus(txt, "R"); myPrint("B", txt)
+                myPopupInformationBox(jif,"You have %s errors to manually first first!" %(iCountUnfixable), _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
+                return
+
+            if not confirm_backup_confirm_disclaimer(jif, _THIS_METHOD_NAME,"FIX %s Security Txns with Invalid Parent Accts?" %(iCountErrors)):
+                return
+
+            jif.dispose()       # already within the EDT
+            myPrint("B", "User accepted disclaimer to FIX Investment Security Txns with Invalid Parent Accounts. Proceeding.....")
+
+            output += "\n\nRUNNING FIX ON SECURITY TXNS TO RE-LINK PARENT ACCOUNTS\n" \
+                      "------------------------------------------------------------\n\n"
+
+            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the move/changes..
+            MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+            MD_REF.getUI().setSuspendRefresh(True)
+
+            x, iCountErrors, iCountUnfixable, iErrorsFixed = review_security_accounts(txns, FIX_MODE=True)
+            del txns, txnSet
+
+            MD_REF.getUI().getMain().saveCurrentAccount()
+            MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+            MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
+
+            output += x
+            output += "\n\nYou had %s errors, with %s needing manual fixes first... I HAVE FIXED %s\n\n" %(iCountErrors, iCountUnfixable, iErrorsFixed)
+            output += "\n<END>"
+
+            play_the_money_sound()
+            txt = "FIXED %s Investment Security Txns with Invalid Parent Accounts" %(iErrorsFixed)
+            setDisplayStatus(txt, "DG"); myPrint("B", txt)
+            jif = QuickJFrame(_THIS_METHOD_NAME, output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            myPopupInformationBox(jif,txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+
+        except:
+            output += dump_sys_error_to_md_console_and_errorlog(True)
+            txt = "%s: ERROR - Script has crashed. Review screen and console!" %(_THIS_METHOD_NAME)
+            output += txt + "\n"
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            jif = QuickJFrame(_THIS_METHOD_NAME, output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            myPopupInformationBox(jif,txt, _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
-    def detect_non_hier_sec_acct_txns():
+    def detect_non_hier_sec_acct_or_orphan_txns():
 
         txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
         txns = txnSet.iterableTxns()
@@ -17792,29 +18166,26 @@ now after saving the file, restart Moneydance
 
         for txn in txns:
 
-            if not isinstance(txn, ParentTxn):
-                continue   # only work with parent transactions
+            if not isinstance(txn, ParentTxn): continue   # only work with parent transactions
 
             acct = txn.getAccount()
 
             # noinspection PyUnresolvedReferences
-            if acct.getAccountType() != Account.AccountType.INVESTMENT:
-                continue
+            if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
 
             # at this point we are only dealing with investment parent txns
             fields.setFieldStatus(txn)
 
             if fields.hasSecurity and not acct.isAncestorOf(fields.security):
                 count_the_errors += 1
-                myPrint("B", "ERROR: Txn for Security %s found within Investment Account %s that is cross linked to another account!\n"
-                             "txn: %s\n" %(fields.security, acct, txn.getSyncInfo().toMultilineHumanReadableString()))
-
+                myPrint("B", "ERROR: Txn for Security %s found within Investment Account %s that is cross linked to another account (or Security is orphaned)!\n"
+                             "txn:\n%s\n" %(fields.security, acct, txn.getSyncInfo().toMultilineHumanReadableString()))
         del txnSet, txns
 
         if count_the_errors:
-            myPrint("DB", "ERROR: %s investment txns with cross-linked securities detected" %(count_the_errors))
+            myPrint("B", "ERROR: %s investment txn(s) with cross-linked securities detected" %(count_the_errors))
         else:
-            myPrint("DB", "NOTE: No investment txns with cross-linked securities were detected - phew!")
+            myPrint("DB", "NOTE: No investment txn(s) with cross-linked securities were detected - phew!")
 
         return count_the_errors
 
@@ -17895,8 +18266,8 @@ now after saving the file, restart Moneydance
 
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
-        if detect_non_hier_sec_acct_txns() > 0:
-            txt = "CONVERT ACCT/STOCK TO Avg Cst Ctrl: ERROR - Cross-linked security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made"
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            txt = "CONVERT ACCT/STOCK TO Avg Cst Ctrl: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made"
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -17996,8 +18367,8 @@ now after saving the file, restart Moneydance
 
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
-        if detect_non_hier_sec_acct_txns() > 0:
-            txt = "CONVERT ACCT/STOCK TO LOT/FIFO: ERROR - Cross-linked security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made"
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            txt = "CONVERT ACCT/STOCK TO LOT/FIFO: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made"
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -18385,7 +18756,7 @@ now after saving the file, restart Moneydance
 
             locations = [
                 "Show Preferences (config.dict) Folder",
-                "Show custom themes Folder",
+                "Show Custom themes Folder",
                 "Show Console (error) log Folder",
                 "Show Contents of your current Dataset Folder",
                 "Show Extensions Folder",
@@ -18432,11 +18803,14 @@ now after saving the file, restart Moneydance
                 setDisplayStatus(txt, "R")
                 return
 
-            if Platform.isOSX() and int(MD_REF.getBuild()) >= MD_ICLOUD_ENABLED \
-                    and grabSyncFolder and "iCloud~com~infinitekind~moneydancesync" in locationsDirs[locations.index(selectedFolder)].getCanonicalPath():
-                txt = "iCloud Sync Folder location: %s (copied to clipboard)" %(locationsDirs[locations.index(selectedFolder)].getCanonicalPath())
-                setDisplayStatus(txt, "R")
-                myPopupInformationBox(toolbox_frame_,"Permissions: Cannot open location: %s" %(locationsDirs[locations.index(selectedFolder)].getCanonicalPath()))
+            thePathString = locationsDirs[locations.index(selectedFolder)].getCanonicalPath()   # type: str
+
+            if (Platform.isOSX() and grabSyncFolder and
+                    ("iCloud~com~infinitekind~moneydancesync" in thePathString or "dropbox" in thePathString.lower())):
+                # Bypass system security preventing access to certain folders....
+                openResponse = subprocess.check_output('open "%s"' %(thePathString), shell=True)                        # noqa
+                txt = "Sync Folder location: %s (copied to clipboard) & opened" %(thePathString)
+                setDisplayStatus(txt, "B")
             else:
                 helper.openDirectory(locationsDirs[locations.index(selectedFolder)])
                 txt = "Folder %s opened..: %s  (path copied to clipboard)" %(selectedFolder, locationsDirs[locations.index(selectedFolder)])
@@ -22268,8 +22642,8 @@ Now you will have a text readable version of the file you can open in a text edi
                 user_cleanupMissingOnlineBankingLinks.setEnabled(lAdvancedMode)
                 user_cleanupMissingOnlineBankingLinks.setForeground(getColorRed())
 
-                user_authenticationManagement = JRadioButton("OFX Authentication Management", False)
-                user_authenticationManagement.setToolTipText("Brings up the sub menu. Allows you to clear your authentication cache (single or all) and edit user IDs. THIS CAN CHANGE DATA!")
+                user_authenticationManagement = JRadioButton("OFX Authentication Management (various functions to manage authentication, UserIDs, ClientUIDs)", False)
+                user_authenticationManagement.setToolTipText("Brings up the sub menu. Allows you to clear your authentication cache (single or all) and edit user IDs/ClientUIDs. THIS CAN CHANGE DATA!")
                 user_authenticationManagement.setEnabled(lAdvancedMode)
                 user_authenticationManagement.setForeground(getColorRed())
 
@@ -22303,6 +22677,16 @@ Now you will have a text readable version of the file you can open in a text edi
                 user_zapMDPlusProfile.setEnabled((lAdvancedMode and lHackerMode) and (not isMDPlusLicenseActivated() or isToolboxUnlocked()))
                 user_zapMDPlusProfile.setForeground(getColorRed())
 
+                user_manuallyPrimeUSAARootUserIDClientIDs = JRadioButton("USAA ONLY: (NEW METHOD) Manually 'prime' / overwrite stored Root UserIDs/ClientUIDs", False)
+                user_manuallyPrimeUSAARootUserIDClientIDs.setToolTipText("USAA Only: Allows you to 'prime' / overwrite stored UserIDs/ClientUIDs for USSA")
+                user_manuallyPrimeUSAARootUserIDClientIDs.setEnabled(lAdvancedMode)
+                user_manuallyPrimeUSAARootUserIDClientIDs.setForeground(getColorRed())
+
+                user_createUSAAProfile = JRadioButton("USAA Only: (DEPRECATED METHOD) Executes the special script to create a working USAA OFX Profile", False)
+                user_createUSAAProfile.setToolTipText("Executes: ofx_create_new_usaa_bank_custom_profile.py - THIS CHANGES DATA!")
+                user_createUSAAProfile.setEnabled(lAdvancedMode)
+                user_createUSAAProfile.setForeground(getColorRed())
+
                 labelFYI2 = JLabel("       ** to activate Exit, Select Toolbox Options, Advanced mode **")
                 labelFYI2.setForeground(getColorRed())
 
@@ -22329,6 +22713,8 @@ Now you will have a text readable version of the file you can open in a text edi
                 bg.add(user_authenticationManagement)
                 bg.add(user_deleteOnlineTxns)
                 bg.add(user_deleteALLOnlineTxns)
+                bg.add(user_manuallyPrimeUSAARootUserIDClientIDs)
+                bg.add(user_createUSAAProfile)
                 bg.add(user_updateOFXLastTxnUpdate)
                 bg.add(user_viewListALLMDServices)
                 # bg.add(user_toggleOFXDebug)
@@ -22372,6 +22758,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_exportMDPlusProfile)
                     userFilters.add(user_importMDPlusProfile)
                     userFilters.add(user_zapMDPlusProfile)
+
+                userFilters.add(JLabel(" "))
+                userFilters.add(JLabel("---- USAA ONLY  -----"))
+                userFilters.add(user_manuallyPrimeUSAARootUserIDClientIDs)
+                userFilters.add(user_createUSAAProfile)
 
                 while True:
                     options = ["EXIT", "PROCEED"]
@@ -22423,7 +22814,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         return
 
                     if user_authenticationManagement.isSelected():
-                        OFX_authentication_management()
+                        if OFX_authentication_management(): return
 
                     if user_exportMDPlusProfile.isSelected():
                         export_MDPlus_Profile()
@@ -22473,6 +22864,12 @@ Now you will have a text readable version of the file you can open in a text edi
                     if user_deleteALLOnlineTxns.isSelected():
                         OFX_delete_ALL_saved_online_txns()
                         return
+
+                    if user_manuallyPrimeUSAARootUserIDClientIDs.isSelected():
+                        manuallyPrimeUSAARootUserIDClientIDs()
+
+                    if user_createUSAAProfile.isSelected():
+                        if createUSAAProfile(): return
 
                     if user_updateOFXLastTxnUpdate.isSelected():
                         OFX_update_OFXLastTxnUpdate()
@@ -23431,7 +23828,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 user_move_invest_txns.setEnabled(lAdvancedMode)
                 user_move_invest_txns.setForeground(getColorRed())
 
-                user_fix_non_hier_sec_acct_txns = JRadioButton("FIX: Non-Hierarchical Security Acct Txns (fix_non-hierarchical_security_account_txns.py)", False)
+                user_fix_non_hier_sec_acct_txns = JRadioButton("FIX: Non-Hierarchical Security Acct Txns (& detect Orphans) (fix_non-hierarchical_security_account_txns.py)", False)
                 user_fix_non_hier_sec_acct_txns.setToolTipText("This reviews your Investment Security Txns and fixes where the Account reference is cross-linked and incorrect (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)")
                 user_fix_non_hier_sec_acct_txns.setEnabled(lAdvancedMode)
                 user_fix_non_hier_sec_acct_txns.setForeground(getColorRed())
