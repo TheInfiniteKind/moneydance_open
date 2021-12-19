@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1016 - August 2021 - Stuart Beesley
+# extract_data.py - build: 1020 - August 2021 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -78,8 +78,13 @@
 # build: 1013 - Common code tweaks
 # build: 1014 - Trap ZeroDivisionError: when cost basis is zero. Also trap all errors with a user popup
 # build: 1014 - New print options for StockGlance2020 and Extract_Data
-# build: 1015 - Common code tweaks; fixed colors for Dark themese and to be more MD 'compatible'
+# build: 1015 - Common code tweaks; fixed colors for Dark themes and to be more MD 'compatible'
 # build: 1016 - Common code tweaks; Flat Dark Theme
+# build: 1017 - SG2020: Fix print to PDF to make 2 parts to avoid overwriting the same pdf file....
+# build: 1018 - Common code tweaks
+# build: 1019 - Common code tweaks; catch error in myPrint() on Asian double-byte characters; Other Asian Double-Byte fixes (more str() issues!!)
+# build: 1019 - Fix JMenu()s - remove <html> tags (affects colors on older Macs); newer MyJFrame().dispose()
+# build: 1020 - Tweak extract reminders - Monkey Patched the display / sort / extract date format....
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -87,7 +92,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1016"
+version_build = "1020"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -116,11 +121,26 @@ class MyJFrame(JFrame):
 
     def __init__(self, frameTitle=None):
         super(JFrame, self).__init__(frameTitle)
-        self.myJFrameVersion = 2
+        self.disposing = False
+        self.myJFrameVersion = 3
         self.isActiveInMoneydance = False
         self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
         self.HomePageViewObj = None
+
+    def dispose(self):
+        # This removes all content as VAqua retains the JFrame reference in memory...
+        if self.disposing: return
+        try:
+            self.disposing = True
+            self.removeAll()
+            if self.getJMenuBar() is not None: self.setJMenuBar(None)
+            super(self.__class__, self).dispose()
+        except:
+            _msg = "%s: ERROR DISPOSING OF FRAME: %s\n" %(myModuleID, self)
+            print(_msg); System.err.write(_msg)
+        finally:
+            self.disposing = False
 
 class GenericWindowClosingRunnable(Runnable):
 
@@ -232,6 +252,8 @@ else:
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
+
+    # NOTE: As of MD2022(4040) python.getSystemState().setdefaultencoding("utf8") is called on the python interpreter at launch...
     import sys
     reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
     sys.setdefaultencoding('utf8')  # Dirty hack to eliminate UTF-8 coding errors. Without this str() fails on unicode strings...
@@ -250,6 +272,7 @@ else:
     from org.python.core.util import FileUtil
 
     from java.lang import Thread
+    from java.lang import IllegalArgumentException
 
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
@@ -273,6 +296,7 @@ else:
 
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
+    from javax.swing.event import AncestorListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets
@@ -315,6 +339,7 @@ else:
     MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
 
     class GlobalVars:        # Started using this method for storing global variables from August 2021
+        CONTEXT = MD_REF
         defaultPrintService = None
         defaultPrinterAttributes = None
         defaultPrintFontSize = None
@@ -410,8 +435,6 @@ else:
     global csvlines, csvheaderline, headerFormats
     global table, focus, row, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 
-    # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
-
     # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
     # NOTE: You  can override in the pop-up screen
 
@@ -479,7 +502,7 @@ else:
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 104 ########################################################################
+    # COMMON CODE ################# VERSION 106 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -493,19 +516,19 @@ Thank you for using %s!
 The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
-net_account_balances:                   Homepage / summary screen widget. Display the total of selected Account Balances
-total_selected_transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
+Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
+Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
+Total selected transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 Extension (.mxt) and Script (.py) Versions available:
-extract_data                            Extract various data to screen and/or csv.. Consolidation of:
+Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
 - stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv 
 - extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
 - extract_currency_history_csv          Extract currency history to csv
 - extract_investment_transactions_csv   Extract investment transactions to csv
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
-list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
+List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -566,28 +589,34 @@ Visit: %s (Author's site)
 
         if where[0] == "D" and not debug: return
 
-        printString = ""
-        for what in args:
-            printString += "%s " %what
-        printString = printString.strip()
+        try:
+            printString = ""
+            for what in args:
+                printString += "%s " %what
+            printString = printString.strip()
 
-        if where == "P" or where == "B" or where[0] == "D":
-            if not i_am_an_extension_so_run_headless:
+            if where == "P" or where == "B" or where[0] == "D":
+                if not i_am_an_extension_so_run_headless:
+                    try:
+                        print(printString)
+                    except:
+                        print("Error writing to screen...")
+                        dump_sys_error_to_md_console_and_errorlog()
+
+            if where == "J" or where == "B" or where == "DB":
+                dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
                 try:
-                    print(printString)
+                    System.err.write(myScriptName + ":" + dt + ": ")
+                    System.err.write(printString)
+                    System.err.write("\n")
                 except:
-                    print("Error writing to screen...")
+                    System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
                     dump_sys_error_to_md_console_and_errorlog()
 
-        if where == "J" or where == "B" or where == "DB":
-            dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
-            try:
-                System.err.write(myScriptName + ":" + dt + ": ")
-                System.err.write(printString)
-                System.err.write("\n")
-            except:
-                System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
-                dump_sys_error_to_md_console_and_errorlog()
+        except IllegalArgumentException:
+            myPrint("B","ERROR - Probably on a multi-byte character..... Will ignore as code should just continue (PLEASE REPORT TO DEVELOPER).....")
+            dump_sys_error_to_md_console_and_errorlog()
+
         return
 
     def dump_sys_error_to_md_console_and_errorlog(lReturnText=False):
@@ -839,6 +868,7 @@ Visit: %s (Author's site)
             field = JPasswordField(defaultText)
         else:
             field = JTextField(defaultText)
+        field.addAncestorListener(RequestFocusListener())
 
         _x = 0
         if theFieldLabel:
@@ -1363,7 +1393,7 @@ Visit: %s (Author's site)
                     or (self.what == "1234" and (myString in "1234")) \
                     or (self.what == "CURR"):
                 if ((self.getLength() + len(myString)) <= self.limit):
-                    super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
+                    super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                             # noqa
 
     def fix_delimiter( theDelimiter ):
 
@@ -1534,7 +1564,7 @@ Visit: %s (Author's site)
         myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
         frames = JFrame.getFrames()
         for fr in frames:
-            if fr.getName().lower().startswith(moduleName):
+            if fr.getName().lower().startswith(moduleName+"_"):
                 myPrint("DB","Found old frame %s and active status is: %s" %(fr.getName(),fr.isActiveInMoneydance))
                 try:
                     fr.isActiveInMoneydance = False
@@ -1787,6 +1817,21 @@ Visit: %s (Author's site)
         myPrint("DB","...File/path exists..: %s" %(os.path.exists(_theFile)))
         return _theFile
 
+    class RequestFocusListener(AncestorListener):
+        """Add this Listener to a JTextField by using .addAncestorListener(RequestFocusListener()) before calling JOptionPane.showOptionDialog()"""
+
+        def __init__(self, removeListener=True):
+            self.removeListener = removeListener
+
+        def ancestorAdded(self, e):
+            component = e.getComponent()
+            component.requestFocusInWindow()
+            component.selectAll()
+            if (self.removeListener): component.removeAncestorListener(self)
+
+        def ancestorMoved(self, e): pass
+        def ancestorRemoved(self, e): pass
+
     class SearchAction(AbstractAction):
 
         def __init__(self, theFrame, searchJText):
@@ -1805,6 +1850,8 @@ Visit: %s (Author's site)
             tf = JTextField(self.lastSearch,20)
             p.add(lbl)
             p.add(tf)
+
+            tf.addAncestorListener(RequestFocusListener())
 
             _search_options = [ "Next", "Previous", "Cancel" ]
 
@@ -2198,6 +2245,33 @@ Visit: %s (Author's site)
 
         return
 
+    class SetupMDColors:
+
+        OPAQUE = None
+        FOREGROUND = None
+        FOREGROUND_REVERSED = None
+        BACKGROUND = None
+        BACKGROUND_REVERSED = None
+
+        def __init__(self): raise Exception("ERROR - Should not create instance of this class!")
+
+        @staticmethod
+        def updateUI():
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+
+            SetupMDColors.OPAQUE = False
+
+            SetupMDColors.FOREGROUND = GlobalVars.CONTEXT.getUI().getColors().defaultTextForeground
+            SetupMDColors.FOREGROUND_REVERSED = SetupMDColors.FOREGROUND
+
+            SetupMDColors.BACKGROUND = GlobalVars.CONTEXT.getUI().getColors().defaultBackground
+            SetupMDColors.BACKGROUND_REVERSED = SetupMDColors.BACKGROUND
+
+            if ((not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())
+                    or (not isMacDarkModeDetected() and isMDThemeDarcula())):
+                SetupMDColors.FOREGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultBackground
+                SetupMDColors.BACKGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
+
     class QuickJFrame():
 
         def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True, lQuitMDAfterClose=False):
@@ -2366,51 +2440,44 @@ Visit: %s (Author's site)
 
                     jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
-                    mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
-                    mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
-                    if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
-                            or (not isMacDarkModeDetected() and isMDThemeDarcula()):
-                        # Swap the colors round when text (not a button)
-                        mfgtc = MD_REF.getUI().getColors().defaultBackground
-                        mbgtc = MD_REF.getUI().getColors().defaultTextForeground
-                    opq = False
+                    SetupMDColors.updateUI()
 
                     printButton = JButton("Print")
                     printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                    printButton.setOpaque(opq)
-                    printButton.setBackground(bgc); printButton.setForeground(fgc)
+                    printButton.setOpaque(SetupMDColors.OPAQUE)
+                    printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
                     printButton.addActionListener(self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
 
                     if GlobalVars.defaultPrinterAttributes is None:
                         printPageSetup = JButton("Page Setup")
                         printPageSetup.setToolTipText("Printer Page Setup")
-                        printPageSetup.setOpaque(opq)
-                        printPageSetup.setBackground(bgc); printPageSetup.setForeground(fgc)
+                        printPageSetup.setOpaque(SetupMDColors.OPAQUE)
+                        printPageSetup.setBackground(SetupMDColors.BACKGROUND); printPageSetup.setForeground(SetupMDColors.FOREGROUND)
                         printPageSetup.addActionListener(self.callingClass.QuickJFramePageSetup())
 
                     saveButton = JButton("Save to file")
                     saveButton.setToolTipText("Saves the output displayed in this window to a file")
-                    saveButton.setOpaque(opq)
-                    saveButton.setBackground(bgc); saveButton.setForeground(fgc)
+                    saveButton.setOpaque(SetupMDColors.OPAQUE)
+                    saveButton.setBackground(SetupMDColors.BACKGROUND); saveButton.setForeground(SetupMDColors.FOREGROUND)
                     saveButton.addActionListener(self.callingClass.QuickJFrameSaveTextToFile(self.callingClass.output, jInternalFrame))
 
                     wrapOption = JCheckBox("Wrap Contents (Screen & Print)", self.callingClass.lWrapText)
                     wrapOption.addActionListener(self.callingClass.ToggleWrap(self.callingClass, theJText))
-                    wrapOption.setForeground(mfgtc); wrapOption.setBackground(mbgtc)
+                    wrapOption.setForeground(SetupMDColors.FOREGROUND_REVERSED); wrapOption.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                     topButton = JButton("Top")
-                    topButton.setOpaque(opq)
-                    topButton.setBackground(bgc); topButton.setForeground(fgc)
+                    topButton.setOpaque(SetupMDColors.OPAQUE)
+                    topButton.setBackground(SetupMDColors.BACKGROUND); topButton.setForeground(SetupMDColors.FOREGROUND)
                     topButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lTop=True))
 
                     botButton = JButton("Bottom")
-                    botButton.setOpaque(opq)
-                    botButton.setBackground(bgc); botButton.setForeground(fgc)
+                    botButton.setOpaque(SetupMDColors.OPAQUE)
+                    botButton.setBackground(SetupMDColors.BACKGROUND); botButton.setForeground(SetupMDColors.FOREGROUND)
                     botButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lBottom=True))
 
                     closeButton = JButton("Close")
-                    closeButton.setOpaque(opq)
-                    closeButton.setBackground(bgc); closeButton.setForeground(fgc)
+                    closeButton.setOpaque(SetupMDColors.OPAQUE)
+                    closeButton.setBackground(SetupMDColors.BACKGROUND); closeButton.setForeground(SetupMDColors.FOREGROUND)
                     closeButton.addActionListener(self.callingClass.CloseAction(jInternalFrame))
 
                     if Platform.isOSX():
@@ -2585,29 +2652,31 @@ Visit: %s (Author's site)
     def getHumanReadableModifiedDateTimeFromFile(_theFile):
         return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile))
 
-    def convertStrippedIntDateFormattedText( strippedDateInt ):
+    def convertStrippedIntDateFormattedText(strippedDateInt, _format=None):
 
-        prettyDate = ""
+        if _format is None: _format = "yyyy/MM/dd"
+
+        convertedDate = ""
         try:
             c = Calendar.getInstance()
             dateFromInt = DateUtil.convertIntDateToLong(strippedDateInt)
             c.setTime(dateFromInt)
-            dateFormatter = SimpleDateFormat("yyyy/MM/dd")
-            prettyDate = dateFormatter.format(c.getTime())
+            dateFormatter = SimpleDateFormat(_format)
+            convertedDate = dateFormatter.format(c.getTime())
         except:
             pass
 
-        return prettyDate
+        return convertedDate
 
     def selectHomeScreen():
 
         try:
             currentViewAccount = MD_REF.getUI().firstMainFrame.getSelectedAccount()
             if currentViewAccount != MD_REF.getRootAccount():
-                myPrint("DB","Switched to Home Page Summary Screen (from: %s)" %(currentViewAccount))
+                myPrint("DB","Switched to Home Page Summary Page (from: %s)" %(currentViewAccount))
                 MD_REF.getUI().firstMainFrame.selectAccount(MD_REF.getRootAccount())
         except:
-            myPrint("B","Error switching to Home Page Summary Screen")
+            myPrint("B","@@ Error switching to Summary Page (Home Page)")
 
     def fireMDPreferencesUpdated():
         """This triggers MD to firePreferencesUpdated().... Hopefully refreshing Home Screen Views too"""
@@ -2618,7 +2687,7 @@ Visit: %s (Author's site)
 
             def run(self):
                 myPrint("DB",".. Inside FPSRunnable() - calling firePreferencesUpdated()...")
-                myPrint("B","Calling firePreferencesUpdated() to update Home Screen View")
+                myPrint("B","Triggering an update to the Summary/Home Page View")
                 MD_REF.getPreferences().firePreferencesUpdated()
 
         if not SwingUtilities.isEventDispatchThread():
@@ -2974,7 +3043,23 @@ Visit: %s (Author's site)
                     return
 
                 selectedPrintService = printer_job.getPrintService()
-                myPrint("DB", "User selected print service:", selectedPrintService)
+
+                toFile = pAttrs.containsKey(attribute.standard.Destination)
+
+                # noinspection PyUnusedLocal
+                printURI = printFile = printFilePath = printFileSplit = None
+                if toFile:
+                    printURI = pAttrs.get(attribute.standard.Destination).getURI()
+                    myPrint("B", "User has selected to print to destination: %s (may be split into two files/parts)" %(printURI))
+                    if printURI.getScheme().lower().startswith("file"):
+                        printFile = File(printURI)
+                        printFilePath = printFile.getCanonicalPath()
+                        printFileSplit = list(os.path.splitext(printFilePath))
+                        if printFileSplit[0].endswith("."): printFileSplit[0] = printFileSplit[0][:-1]                  # noqa
+                    else:
+                        toFile = False
+                else:
+                    myPrint("DB", "User selected print service:", selectedPrintService)
 
                 thePageFormat = printer_job.getPageFormat(pAttrs)
 
@@ -3006,25 +3091,38 @@ Visit: %s (Author's site)
                         myPrint("DB", "... Updating the JFrame()'s component tree to the temporary LAF....")
                         SwingUtilities.updateComponentTreeUI(_theFrame)
 
-
                     if _secondJTable is None:
-                        printer_job.setPrintable(_theJTable.getPrintable(JTable.PrintMode.FIT_WIDTH, header, footer), thePageFormat)    # noqa
+                        printer_job.setPrintable(_theJTable.getPrintable(JTable.PrintMode.FIT_WIDTH, header, footer), thePageFormat)        # noqa
                         eval("printer_job.print(pAttrs)")
                     else:
+
                         # java.awt.print.Book() won't work as it passes the book page number instead of the Printable's page number...
                         footer = MessageFormat("<page {0} : continued on the next page>")
-                        printer_job.setPrintable(_theJTable.getPrintable(JTable.PrintMode.FIT_WIDTH, header, footer), thePageFormat)    # noqa
+                        if toFile:
+                            pAttrs.remove(attribute.standard.Destination)
+                            newPath = printFileSplit[0]+"_part1" + printFileSplit[1]
+                            myPrint("DB","Print to file (main section) changed to %s" %(newPath))
+                            pAttrs.add(attribute.standard.Destination(File(newPath).toURI()))
+                        printer_job.setPrintable(_theJTable.getPrintable(JTable.PrintMode.FIT_WIDTH, header, footer), thePageFormat)        # noqa
                         eval("printer_job.print(pAttrs)")
+                        # for atr in pAttrs.toArray(): myPrint("DB", "Printer attributes after .print()1: %s:%s" %(atr.getName(), atr))
 
                         header = MessageFormat(_theTitle+" (Total/Summary Table)")
                         footer = MessageFormat("<END>")
 
+                        if toFile:
+                            pAttrs.remove(attribute.standard.Destination)
+                            newPath = printFileSplit[0]+"_part2" + printFileSplit[1]
+                            myPrint("DB","Print to file (summary table) changed to %s" %(newPath))
+                            pAttrs.add(attribute.standard.Destination(File(newPath).toURI()))
                         printer_job.setPrintable(_secondJTable.getPrintable(JTable.PrintMode.FIT_WIDTH, header, footer), thePageFormat)    # noqa
                         eval("printer_job.print(pAttrs)")
+                        # for atr in pAttrs.toArray(): myPrint("DB", "Printer attributes after .print()2: %s:%s" %(atr.getName(), atr))
 
                 except:
                     myPrint("B", "ERROR: Printing routines failed?")
                     dump_sys_error_to_md_console_and_errorlog()
+                    toFile = False                                                                                      # noqa
                     raise
 
                 finally:
@@ -3036,16 +3134,24 @@ Visit: %s (Author's site)
                         SwingUtilities.updateComponentTreeUI(_theFrame)
 
                         # Without this the JMenuBar gets screwed up
-                        System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)                             # noqa
-                        System.setProperty("com.apple.macos.useScreenMenuBar", save_useScreenMenuBar)                       # noqa
+                        System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)                         # noqa
+                        System.setProperty("com.apple.macos.useScreenMenuBar", save_useScreenMenuBar)                   # noqa
+
+                while pAttrs.containsKey(attribute.standard.JobName): pAttrs.remove(attribute.standard.JobName)
+                while pAttrs.containsKey(attribute.standard.Destination): pAttrs.remove(attribute.standard.Destination)
 
                 myPrint("DB", "Saving current print service:", printer_job.getPrintService())
                 GlobalVars.defaultPrinterAttributes = attribute.HashPrintRequestAttributeSet(pAttrs)
                 GlobalVars.defaultPrintService = printer_job.getPrintService()
 
+                if toFile: myPopupInformationBox(_theFrame,"NOTE: Output destination changed: '_part1' & '_part2' appended to filename")
+
             except:
                 myPrint("B", "ERROR in printing routines.....:"); dump_sys_error_to_md_console_and_errorlog()
+
             return
+
+
 
         csvfilename = None
 
@@ -4452,8 +4558,9 @@ Visit: %s (Author's site)
                 # EXTRACT_REMINDERS_CSV PARAMETER SCREEN
                 # ####################################################
 
-                dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
                 # 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
+                dateStrings = ["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+
                 label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
                 user_dateformat = JComboBox(dateStrings)
 
@@ -6018,6 +6125,11 @@ Visit: %s (Author's site)
                             self.table.setRowHeight(fontSize)
                             self.table.setRowMargin(0)
                             myPrint("DB","Setting main table row height to %s and intercellspacing to 0" %fontSize)
+                            myPrint("DB","\n\t\tTable Font: %s,\n\t\tMD.defaultSystemFont: %s,\n\t\tMD.defaultText: %s,\n\t\tMD.register: %s\n"
+                                    %(self.table.getFont(),
+                                      MD_REF.getUI().getFonts().defaultSystemFont,
+                                      MD_REF.getUI().getFonts().defaultText,
+                                      MD_REF.getUI().getFonts().register))
 
                             fontSize = self.footerTable.getFont().getSize()+5
                             self.footerTable.setRowHeight(fontSize)
@@ -6182,24 +6294,18 @@ Visit: %s (Author's site)
                             else:
                                 save_useScreenMenuBar = "true"
 
-                            mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
-                            mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
-                            if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
-                                    or (not isMacDarkModeDetected() and isMDThemeDarcula()):
-                                # Swap the colors round when text (not a button)
-                                mfgtc = MD_REF.getUI().getColors().defaultBackground
-                                mbgtc = MD_REF.getUI().getColors().defaultTextForeground
-                            opq = False
+                            SetupMDColors.updateUI()
 
                             printButton = JButton("Print")
                             printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                            printButton.setOpaque(opq)
-                            printButton.setBackground(bgc); printButton.setForeground(fgc)
+                            printButton.setOpaque(SetupMDColors.OPAQUE)
+                            printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
                             printButton.addActionListener(self.PrintJTable(extract_data_frame_, self.table, "StockGlance2020", self.footerTable))
 
                             mb = JMenuBar()
-                            menuH = JMenu("<html><B>ABOUT</b></html>")
-                            menuH.setForeground(mfgtc); menuH.setBackground(mbgtc)
+                            # menuH = JMenu("<html><B>ABOUT</b></html>")
+                            menuH = JMenu("ABOUT")
+                            menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                             menuItemA = JMenuItem("About")
                             menuItemA.setToolTipText("About...")
@@ -6501,6 +6607,27 @@ Visit: %s (Author's site)
                 # EXTRACT_REMINDERS_CSV EXECUTION
                 # ####################################################
 
+                class StoreDateInt:
+                    def __init__(self, dateInt, dateFormat):
+                        self.dateInt        = dateInt
+                        self.dateFormat     = dateFormat
+                        self.expired        = False
+
+                    def setExpired(self, lExpired): self.expired = lExpired
+                    def getDateInt(self):           return self.dateInt
+
+                    def getDateIntFormatted(self):
+                        if self.expired: return "EXPIRED"
+                        if self.getDateInt() == 0 or self.getDateInt() == 19700101: return ""
+
+                        dateasdate = datetime.datetime.strptime(str(self.getDateInt()), "%Y%m%d")  # Convert to Date field
+                        return dateasdate.strftime(self.dateFormat)
+
+                    def __str__(self):      return self.getDateIntFormatted()
+                    def __repr__(self):     return self.__str__()                                                       # noqa
+                    def toString(self):     return self.__str__()                                                       # noqa
+
+
                 def do_extract_reminders():
                     global debug
                     global decimalCharSep, lDidIUseAttachmentDir, csvfilename, myScriptName, lGlobalErrorDetected, lExit, lDisplayOnly
@@ -6577,19 +6704,6 @@ Visit: %s (Author's site)
                             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
                             return
 
-                    # Moneydance dates  are int yyyymmddd - convert to locale date string for CSV format
-                    def dateoutput(dateinput, theformat):
-
-                        if dateinput == "EXPIRED": _dateoutput = dateinput
-                        elif dateinput == "": _dateoutput = ""
-                        elif dateinput == 0: _dateoutput = ""
-                        elif dateinput == "0": _dateoutput = ""
-                        else:
-                            dateasdate = datetime.datetime.strptime(str(dateinput), "%Y%m%d")  # Convert to Date field
-                            _dateoutput = dateasdate.strftime(theformat)
-
-                        return _dateoutput
-
                     def build_the_data_file(ind):
                         global sdf, userdateformat, csvlines, csvheaderline, myScriptName, baseCurrency, headerFormats
                         global debug, ExtractDetails_Count
@@ -6660,8 +6774,8 @@ Visit: %s (Author's site)
 
                             remtype = rem.getReminderType()  # NOTE or TRANSACTION
                             desc = rem.getDescription().replace(",", " ")  # remove commas to keep csv format happy
-                            memo = str(rem.getMemo()).replace(",", " ").strip()  # remove commas to keep csv format happy
-                            memo = str(memo).replace("\n", "*").strip()  # remove newlines to keep csv format happy
+                            memo = rem.getMemo().replace(",", " ").strip()  # remove commas to keep csv format happy
+                            memo = memo.replace("\n", "*").strip()  # remove newlines to keep csv format happy
 
                             myPrint("P", "Reminder: ", index + 1, rem.getDescription())  # Name of Reminder
 
@@ -6726,21 +6840,21 @@ Visit: %s (Author's site)
                                 remfreq += 'YEARLY'
                                 countfreqs += 1
 
-                            if len(
-                                    remfreq) < 1 or countfreqs == 0:         remfreq = '!ERROR! NO ACTUAL FREQUENCY OPTIONS SET PROPERLY ' + remfreq
-                            if countfreqs > 1: remfreq = "**MULTI** " + remfreq
+                            if len(remfreq) < 1 or countfreqs == 0:
+                                remfreq = '!ERROR! NO ACTUAL FREQUENCY OPTIONS SET PROPERLY ' + remfreq
+
+                            if countfreqs > 1:
+                                remfreq = "**MULTI** " + remfreq
 
                             lastdate = rem.getLastDateInt()
                             if lastdate < 1:  # Detect if an enddate is set
-                                remdate = str(rem.getNextOccurance(20991231))  # Use cutoff  far into the future
-                            else:        remdate = str(rem.getNextOccurance(rem.getLastDateInt()))  # Stop at enddate
+                                # remdate = rem.getNextOccurance(20991231)                                              # Use cutoff  far into the future
+                                remdate = StoreDateInt(rem.getNextOccurance(20991231), userdateformat)                  # Use cutoff  far into the future
+                            else:
+                                # remdate = rem.getNextOccurance(rem.getLastDateInt())                                  # Stop at enddate
+                                remdate = StoreDateInt(rem.getNextOccurance(rem.getLastDateInt()), userdateformat)      # Stop at enddate
 
-                            if lastdate < 1: lastdate = ''
-
-                            if remdate == '0': remdate = "EXPIRED"
-
-                            lastack = rem.getDateAcknowledgedInt()
-                            if lastack == 0 or lastack == 19700101: lastack = ''
+                            if remdate.getDateInt() == 0: remdate.setExpired(True)
 
                             auto = rem.getAutoCommitDays()
                             if auto >= 0:    auto = 'YES: (' + str(auto) + ' days before scheduled)'
@@ -6749,13 +6863,13 @@ Visit: %s (Author's site)
                             if str(remtype) == 'NOTE':
                                 csvline = []
                                 csvline.append(index + 1)
-                                csvline.append(dateoutput(remdate, userdateformat))
-                                csvline.append(str(rem.getReminderType()))
+                                csvline.append(remdate)
+                                csvline.append(safeStr(rem.getReminderType()))
                                 csvline.append(remfreq)
                                 csvline.append(auto)
-                                csvline.append(dateoutput(lastack, userdateformat))
-                                csvline.append(dateoutput(rem.getInitialDateInt(), userdateformat))
-                                csvline.append(dateoutput(lastdate, userdateformat))
+                                csvline.append(StoreDateInt(rem.getDateAcknowledgedInt(), userdateformat))
+                                csvline.append(StoreDateInt(rem.getInitialDateInt(), userdateformat))
+                                csvline.append(StoreDateInt(lastdate, userdateformat))
                                 csvline.append(desc)
                                 csvline.append('')  # NetAmount
                                 csvline.append('')  # TxfrType
@@ -6779,19 +6893,21 @@ Visit: %s (Author's site)
 
                                     if index2 > 0: amount = ''  # Don't repeat the new amount on subsequent split lines (so you can total column). The split amount will be correct
 
-                                    stripacct = str(txnparent.getAccount()).replace(",",
-                                                                                    " ").strip()  # remove commas to keep csv format happy
-                                    stripcat = str(txnparent.getOtherTxn(index2).getAccount()).replace(","," ").strip()  # remove commas to keep csv format happy
+                                    # stripacct = str(txnparent.getAccount()).replace(",", " ").strip()  # remove commas to keep csv format happy
+                                    stripacct = txnparent.getAccount().getFullAccountName().replace(",", " ").strip()  # remove commas to keep csv format happy
+
+                                    # stripcat = str(txnparent.getOtherTxn(index2).getAccount()).replace(","," ").strip()  # remove commas to keep csv format happy
+                                    stripcat = txnparent.getOtherTxn(index2).getAccount().getFullAccountName().replace(","," ").strip()  # remove commas to keep csv format happy
 
                                     csvline = []
                                     csvline.append(index + 1)
-                                    csvline.append(dateoutput(remdate, userdateformat))
-                                    csvline.append(str(rem.getReminderType()))
+                                    csvline.append(remdate)
+                                    csvline.append(safeStr(rem.getReminderType()))
                                     csvline.append(remfreq)
                                     csvline.append(auto)
-                                    csvline.append(dateoutput(lastack, userdateformat))
-                                    csvline.append(dateoutput(rem.getInitialDateInt(), userdateformat))
-                                    csvline.append(dateoutput(lastdate, userdateformat))
+                                    csvline.append(StoreDateInt(rem.getDateAcknowledgedInt(), userdateformat))
+                                    csvline.append(StoreDateInt(rem.getInitialDateInt(), userdateformat))
+                                    csvline.append(StoreDateInt(lastdate, userdateformat))
                                     csvline.append(desc)
                                     csvline.append((amount))
                                     csvline.append(txnparent.getTransferType())
@@ -7116,6 +7232,7 @@ Visit: %s (Author's site)
 
                             if column == 0:
                                 renderer = MyPlainNumberRenderer()
+
                             elif headerFormats[column][0] == Number:
                                 renderer = MyNumberRenderer()
                             else:
@@ -7141,7 +7258,13 @@ Visit: %s (Author's site)
                                 global decimalCharSep
                                 validString = "-0123456789" + decimalCharSep  # Yes this will strip % sign too, but that still works
 
-                                # if debug: print str1, str2, self.lSortNumber, self.lSortRealNumber, type(str1), type(str2)
+                                if isinstance(str1, StoreDateInt) or isinstance(str2, StoreDateInt):
+                                    if str1.getDateInt() > str2.getDateInt():
+                                        return 1
+                                    elif str1.getDateInt() == str2.getDateInt():
+                                        return 0
+                                    else:
+                                        return -1
 
                                 if isinstance(str1, (float,int)) or isinstance(str2,(float,int)):
                                     if str1 is None or str1 == "": str1 = 0
@@ -7234,22 +7357,22 @@ Visit: %s (Author's site)
                                     self.setForeground(MD_REF.getUI().getColors().budgetHealthyColor)
                                 self.setText(baseCurrency.formatFancy(int(value*100), decimalCharSep, True))
                             else:
-                                self.setText(str(value))
+                                if isinstance(value, StoreDateInt):
+                                    self.setText(value.getDateIntFormatted())
+                                else:
+                                    self.setText(str(value))
 
                             return
 
-                    # noinspection PyArgumentList
                     class MyPlainNumberRenderer(DefaultTableCellRenderer):
-                        global baseCurrency
-
                         def __init__(self):
-                            super(DefaultTableCellRenderer, self).__init__()
+                            super(DefaultTableCellRenderer, self).__init__()                                            # noqa
 
                         def setValue(self, value):
-
-                            self.setText(str(value))
-
-                            return
+                            if isinstance(value, StoreDateInt):
+                                self.setText(value.getDateIntFormatted())
+                            else:
+                                self.setText(str(value))
 
                     def ReminderTable(tabledata, ind):
                         global extract_data_frame_, scrollpane, table, row, debug, ReminderTable_Count, csvheaderline, lDisplayOnly
@@ -7342,25 +7465,19 @@ Visit: %s (Author's site)
                             else:
                                 save_useScreenMenuBar = "true"
 
-                            mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
-                            mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
-                            if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
-                                    or (not isMacDarkModeDetected() and isMDThemeDarcula()):
-                                # Swap the colors round when text (not a button)
-                                mfgtc = MD_REF.getUI().getColors().defaultBackground
-                                mbgtc = MD_REF.getUI().getColors().defaultTextForeground
-                            opq = False
+                            SetupMDColors.updateUI()
 
                             printButton = JButton("Print")
                             printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                            printButton.setOpaque(opq)
-                            printButton.setBackground(bgc); printButton.setForeground(fgc)
+                            printButton.setOpaque(SetupMDColors.OPAQUE)
+                            printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
                             printButton.addActionListener(PrintJTable(extract_data_frame_, table, "Extract Reminders"))
 
                             mb = JMenuBar()
 
-                            menuO = JMenu("<html><B>OPTIONS</b></html>")
-                            menuO.setForeground(mfgtc); menuO.setBackground(mbgtc)
+                            # menuO = JMenu("<html><B>OPTIONS</b></html>")
+                            menuO = JMenu("OPTIONS")
+                            menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                             menuItemR = JMenuItem("Refresh Data/Default Sort")
                             menuItemR.setToolTipText("Refresh (re-extract) the data, revert to default sort  order....")
@@ -7385,8 +7502,9 @@ Visit: %s (Author's site)
 
                             mb.add(menuO)
 
-                            menuH = JMenu("<html><B>ABOUT</b></html>")
-                            menuH.setForeground(mfgtc); menuH.setBackground(mbgtc)
+                            # menuH = JMenu("<html><B>ABOUT</b></html>")
+                            menuH = JMenu("ABOUT")
+                            menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                             menuItemA = JMenuItem("About")
                             menuItemA.setToolTipText("About...")
@@ -7519,15 +7637,27 @@ Visit: %s (Author's site)
                                         for _iii in range(0, len(csvlines)):
                                             # Write the table, but swap in the raw numbers (rather than formatted number strings)
                                             try:
+
+                                                if _iii == 0:
+                                                    f1 = fixFormatsStr(csvlines[_iii][1], True)
+                                                    f5 = fixFormatsStr(csvlines[_iii][5], True)
+                                                    f6 = fixFormatsStr(csvlines[_iii][6], True)
+                                                    f7 = fixFormatsStr(csvlines[_iii][7], True)
+                                                else:
+                                                    f1 = csvlines[_iii][1].getDateIntFormatted()
+                                                    f5 = csvlines[_iii][5].getDateIntFormatted()
+                                                    f6 = csvlines[_iii][6].getDateIntFormatted()
+                                                    f7 = csvlines[_iii][7].getDateIntFormatted()
+
                                                 writer.writerow([
                                                     fixFormatsStr(csvlines[_iii][0], False),
-                                                    fixFormatsStr(csvlines[_iii][1], True),
+                                                    f1,
                                                     fixFormatsStr(csvlines[_iii][2], False),
                                                     fixFormatsStr(csvlines[_iii][3], False),
                                                     fixFormatsStr(csvlines[_iii][4], False),
-                                                    fixFormatsStr(csvlines[_iii][5], False),
-                                                    fixFormatsStr(csvlines[_iii][6], False),
-                                                    fixFormatsStr(csvlines[_iii][7], False),
+                                                    f5,
+                                                    f6,
+                                                    f7,
                                                     fixFormatsStr(csvlines[_iii][8], False),
                                                     fixFormatsStr(csvlines[_iii][9], True),
                                                     fixFormatsStr(csvlines[_iii][10], False),
@@ -7863,7 +7993,7 @@ Visit: %s (Author's site)
                                             iBal+=1
                                             _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
                                             _row[dataKeys["_KEY"][_COLUMN]] = txnAcct.getUUID()
-                                            _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = str(txnAcct.getAccountType())
+                                            _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(txnAcct.getAccountType())
                                             _row[dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
                                             _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
                                             _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL OPENING BALANCE"
@@ -7889,7 +8019,7 @@ Visit: %s (Author's site)
                             txnKey = txn.getUUID()
                             _row[dataKeys["_KEY"][_COLUMN]] = txnKey + "-" + str(keyIndex).zfill(3)
 
-                            _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = str(txnAcct.getAccountType())
+                            _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(txnAcct.getAccountType())
                             _row[dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
                             _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
                             _row[dataKeys["_DATE"][_COLUMN]] = txn.getDateInt()
@@ -7918,7 +8048,7 @@ Visit: %s (Author's site)
                                     _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = acctCurr.getDoubleValue(txn.getAmount())
 
                             _row[dataKeys["_PARENTHASATTACHMENTS"][_COLUMN]] = parent_Txn.hasAttachments()
-                            if str(parent_Txn.getKeywords()) != "[]": _row[dataKeys["_PARENTTAGS"][_COLUMN]] = str(parent_Txn.getKeywords())
+                            if str(parent_Txn.getKeywords()) != "[]": _row[dataKeys["_PARENTTAGS"][_COLUMN]] = safeStr(parent_Txn.getKeywords())
 
                             lNeedToPrintTotalAmount = True
 
@@ -7952,7 +8082,7 @@ Visit: %s (Author's site)
                                             continue
 
                                     splitMemo = parent_Txn.getOtherTxn(_ii).getDescription()
-                                    splitTags = str(parent_Txn.getOtherTxn(_ii).getKeywords())
+                                    splitTags = safeStr(parent_Txn.getOtherTxn(_ii).getKeywords())
                                     splitCat = parent_Txn.getOtherTxn(_ii).getAccount().getFullAccountName()
                                     splitHasAttachments = parent_Txn.getOtherTxn(_ii).hasAttachments()
 
@@ -8004,7 +8134,7 @@ Visit: %s (Author's site)
                                             break
 
                                     splitMemo = txn.getDescription()
-                                    splitTags = str(txn.getKeywords())
+                                    splitTags = safeStr(txn.getKeywords())
                                     splitCat = parent_Txn.getAccount().getFullAccountName()
                                     splitHasAttachments = txn.hasAttachments()
 
@@ -8067,7 +8197,7 @@ Visit: %s (Author's site)
 
                                 if not lExtractAttachments_EAR or not holdTheKeys:
                                     if holdTheKeys:
-                                        splitRowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = str(holdTheKeys)
+                                        splitRowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = safeStr(holdTheKeys)
                                     myPrint("D", splitRowCopy)
                                     transactionTable.append(splitRowCopy)
                                     # abort
@@ -8140,7 +8270,7 @@ Visit: %s (Author's site)
                                 iBal+=1
                                 _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
                                 _row[dataKeys["_KEY"][_COLUMN]] = acctBal.getUUID()
-                                _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = str(acctBal.getAccountType())
+                                _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(acctBal.getAccountType())
                                 _row[dataKeys["_ACCOUNT"][_COLUMN]] = acctBal.getFullAccountName()
                                 _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
                                 _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL OPENING BALANCE"
@@ -8863,9 +8993,9 @@ Visit: %s (Author's site)
 
 
                             if securityTxn:
-                                _row[dataKeys["_SECURITY"][_COLUMN]] = str(securityCurr.getName())
-                                _row[dataKeys["_SECCURR"][_COLUMN]] = str(securityCurr.getRelativeCurrency().getIDString())
-                                _row[dataKeys["_TICKER"][_COLUMN]] = str(securityCurr.getTickerSymbol())
+                                _row[dataKeys["_SECURITY"][_COLUMN]] = safeStr(securityCurr.getName())
+                                _row[dataKeys["_SECCURR"][_COLUMN]] = safeStr(securityCurr.getRelativeCurrency().getIDString())
+                                _row[dataKeys["_TICKER"][_COLUMN]] = safeStr(securityCurr.getTickerSymbol())
                                 _row[dataKeys["_SHARES"][_COLUMN]] = securityCurr.getDoubleValue(securityTxn.getValue())
                                 _row[dataKeys["_PRICE"][_COLUMN]] = acctCurr.getDoubleValue(securityTxn.getAmount())
                                 _row[dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
@@ -8901,14 +9031,14 @@ Visit: %s (Author's site)
                                         continue
 
 
-                            _row[dataKeys["_DESC"][_COLUMN]] = str(txn.getDescription())
-                            _row[dataKeys["_ACTION"][_COLUMN]] = str(txn.getTransferType())
+                            _row[dataKeys["_DESC"][_COLUMN]] = safeStr(txn.getDescription())
+                            _row[dataKeys["_ACTION"][_COLUMN]] = safeStr(txn.getTransferType())
                             if lParent:
-                                _row[dataKeys["_TT"][_COLUMN]] = str(txn.getInvestTxnType())
+                                _row[dataKeys["_TT"][_COLUMN]] = safeStr(txn.getInvestTxnType())
                             else:
-                                _row[dataKeys["_TT"][_COLUMN]] = str(txn.getParentTxn().getInvestTxnType())
+                                _row[dataKeys["_TT"][_COLUMN]] = safeStr(txn.getParentTxn().getInvestTxnType())
 
-                            _row[dataKeys["_CLEARED"][_COLUMN]] = str(txn.getStatusChar())
+                            _row[dataKeys["_CLEARED"][_COLUMN]] = safeStr(txn.getStatusChar())
 
                             if lParent:
                                 if xfrTxn:
@@ -8931,11 +9061,11 @@ Visit: %s (Author's site)
                             elif expTxn:
                                 _row[dataKeys["_AMOUNT"][_COLUMN]] = (acctCurr.getDoubleValue(expTxn.getAmount())) * -1
 
-                            _row[dataKeys["_CHEQUE"][_COLUMN]] = str(txn.getCheckNumber())
+                            _row[dataKeys["_CHEQUE"][_COLUMN]] = safeStr(txn.getCheckNumber())
                             if lParent:
-                                _row[dataKeys["_MEMO"][_COLUMN]] = str(txn.getMemo())
+                                _row[dataKeys["_MEMO"][_COLUMN]] = safeStr(txn.getMemo())
                             else:
-                                _row[dataKeys["_MEMO"][_COLUMN]] = str(txn.getParentTxn().getMemo())
+                                _row[dataKeys["_MEMO"][_COLUMN]] = safeStr(txn.getParentTxn().getMemo())
 
                             if expTxn:
                                 _row[dataKeys["_CAT"][_COLUMN]] = expAcct.getFullAccountName()
@@ -9521,7 +9651,7 @@ Visit: %s (Author's site)
 
                             # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
                             if True:
-                                theTable = sorted(theTable, key=lambda x: (str(x[_CURRNAME]).upper(),x[_SNAPDATE]))
+                                theTable = sorted(theTable, key=lambda x: (safeStr(x[_CURRNAME]).upper(),x[_SNAPDATE]))
 
                             myPrint("P", "Now pre-processing the file to convert integer dates to 'formatted' dates....")
                             for row in theTable:                                                                                # noqa

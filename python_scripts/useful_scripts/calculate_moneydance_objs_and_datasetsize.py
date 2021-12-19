@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# calculate_moneydance_objs_and_datasetsize.py build: 15 - Feb 2021 - Stuart Beesley StuWareSoftSystems
+# calculate_moneydance_objs_and_datasetsize.py build: 17 - Feb 2021 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -33,6 +33,8 @@
 # build: 13 - Common code tweaks
 # build: 14 - Common code tweaks
 # build: 15 - Common code tweaks
+# build: 16 - Common code tweaks
+# build: 17 - Common code tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -40,7 +42,7 @@
 
 # SET THESE LINES
 myModuleID = u"calculate_moneydance_objs_and_datasetsize"
-version_build = "15"
+version_build = "17"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -69,11 +71,26 @@ class MyJFrame(JFrame):
 
     def __init__(self, frameTitle=None):
         super(JFrame, self).__init__(frameTitle)
-        self.myJFrameVersion = 2
+        self.disposing = False
+        self.myJFrameVersion = 3
         self.isActiveInMoneydance = False
         self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
         self.HomePageViewObj = None
+
+    def dispose(self):
+        # This removes all content as VAqua retains the JFrame reference in memory...
+        if self.disposing: return
+        try:
+            self.disposing = True
+            self.removeAll()
+            if self.getJMenuBar() is not None: self.setJMenuBar(None)
+            super(self.__class__, self).dispose()
+        except:
+            _msg = "%s: ERROR DISPOSING OF FRAME: %s\n" %(myModuleID, self)
+            print(_msg); System.err.write(_msg)
+        finally:
+            self.disposing = False
 
 class GenericWindowClosingRunnable(Runnable):
 
@@ -185,6 +202,8 @@ else:
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
+
+    # NOTE: As of MD2022(4040) python.getSystemState().setdefaultencoding("utf8") is called on the python interpreter at launch...
     import sys
     reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
     sys.setdefaultencoding('utf8')  # Dirty hack to eliminate UTF-8 coding errors. Without this str() fails on unicode strings...
@@ -203,6 +222,7 @@ else:
     from org.python.core.util import FileUtil
 
     from java.lang import Thread
+    from java.lang import IllegalArgumentException
 
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
@@ -220,12 +240,13 @@ else:
     from javax.swing.border import EmptyBorder
     from javax.swing.filechooser import FileFilter
 
-    exec("from javax.print import attribute")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
+    exec("from javax.print import attribute")       # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
     exec("from java.awt.print import PrinterJob")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
     global attribute, PrinterJob
 
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
+    from javax.swing.event import AncestorListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets
@@ -269,6 +290,7 @@ else:
     MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
 
     class GlobalVars:        # Started using this method for storing global variables from August 2021
+        CONTEXT = MD_REF
         defaultPrintService = None
         defaultPrinterAttributes = None
         defaultPrintFontSize = None
@@ -286,13 +308,15 @@ else:
     from com.moneydance.apps.md.controller import Common
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
     from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
+    # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
+
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 104 ########################################################################
+    # COMMON CODE ################# VERSION 106 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -306,19 +330,19 @@ Thank you for using %s!
 The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
-net_account_balances:                   Homepage / summary screen widget. Display the total of selected Account Balances
-total_selected_transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
+Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
+Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
+Total selected transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 Extension (.mxt) and Script (.py) Versions available:
-extract_data                            Extract various data to screen and/or csv.. Consolidation of:
+Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
 - stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv 
 - extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
 - extract_currency_history_csv          Extract currency history to csv
 - extract_investment_transactions_csv   Extract investment transactions to csv
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
-list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
+List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -379,28 +403,34 @@ Visit: %s (Author's site)
 
         if where[0] == "D" and not debug: return
 
-        printString = ""
-        for what in args:
-            printString += "%s " %what
-        printString = printString.strip()
+        try:
+            printString = ""
+            for what in args:
+                printString += "%s " %what
+            printString = printString.strip()
 
-        if where == "P" or where == "B" or where[0] == "D":
-            if not i_am_an_extension_so_run_headless:
+            if where == "P" or where == "B" or where[0] == "D":
+                if not i_am_an_extension_so_run_headless:
+                    try:
+                        print(printString)
+                    except:
+                        print("Error writing to screen...")
+                        dump_sys_error_to_md_console_and_errorlog()
+
+            if where == "J" or where == "B" or where == "DB":
+                dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
                 try:
-                    print(printString)
+                    System.err.write(myScriptName + ":" + dt + ": ")
+                    System.err.write(printString)
+                    System.err.write("\n")
                 except:
-                    print("Error writing to screen...")
+                    System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
                     dump_sys_error_to_md_console_and_errorlog()
 
-        if where == "J" or where == "B" or where == "DB":
-            dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
-            try:
-                System.err.write(myScriptName + ":" + dt + ": ")
-                System.err.write(printString)
-                System.err.write("\n")
-            except:
-                System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
-                dump_sys_error_to_md_console_and_errorlog()
+        except IllegalArgumentException:
+            myPrint("B","ERROR - Probably on a multi-byte character..... Will ignore as code should just continue (PLEASE REPORT TO DEVELOPER).....")
+            dump_sys_error_to_md_console_and_errorlog()
+
         return
 
     def dump_sys_error_to_md_console_and_errorlog(lReturnText=False):
@@ -652,6 +682,7 @@ Visit: %s (Author's site)
             field = JPasswordField(defaultText)
         else:
             field = JTextField(defaultText)
+        field.addAncestorListener(RequestFocusListener())
 
         _x = 0
         if theFieldLabel:
@@ -1176,7 +1207,7 @@ Visit: %s (Author's site)
                     or (self.what == "1234" and (myString in "1234")) \
                     or (self.what == "CURR"):
                 if ((self.getLength() + len(myString)) <= self.limit):
-                    super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
+                    super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                             # noqa
 
     def fix_delimiter( theDelimiter ):
 
@@ -1347,7 +1378,7 @@ Visit: %s (Author's site)
         myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
         frames = JFrame.getFrames()
         for fr in frames:
-            if fr.getName().lower().startswith(moduleName):
+            if fr.getName().lower().startswith(moduleName+"_"):
                 myPrint("DB","Found old frame %s and active status is: %s" %(fr.getName(),fr.isActiveInMoneydance))
                 try:
                     fr.isActiveInMoneydance = False
@@ -1600,6 +1631,21 @@ Visit: %s (Author's site)
         myPrint("DB","...File/path exists..: %s" %(os.path.exists(_theFile)))
         return _theFile
 
+    class RequestFocusListener(AncestorListener):
+        """Add this Listener to a JTextField by using .addAncestorListener(RequestFocusListener()) before calling JOptionPane.showOptionDialog()"""
+
+        def __init__(self, removeListener=True):
+            self.removeListener = removeListener
+
+        def ancestorAdded(self, e):
+            component = e.getComponent()
+            component.requestFocusInWindow()
+            component.selectAll()
+            if (self.removeListener): component.removeAncestorListener(self)
+
+        def ancestorMoved(self, e): pass
+        def ancestorRemoved(self, e): pass
+
     class SearchAction(AbstractAction):
 
         def __init__(self, theFrame, searchJText):
@@ -1618,6 +1664,8 @@ Visit: %s (Author's site)
             tf = JTextField(self.lastSearch,20)
             p.add(lbl)
             p.add(tf)
+
+            tf.addAncestorListener(RequestFocusListener())
 
             _search_options = [ "Next", "Previous", "Cancel" ]
 
@@ -2011,6 +2059,33 @@ Visit: %s (Author's site)
 
         return
 
+    class SetupMDColors:
+
+        OPAQUE = None
+        FOREGROUND = None
+        FOREGROUND_REVERSED = None
+        BACKGROUND = None
+        BACKGROUND_REVERSED = None
+
+        def __init__(self): raise Exception("ERROR - Should not create instance of this class!")
+
+        @staticmethod
+        def updateUI():
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+
+            SetupMDColors.OPAQUE = False
+
+            SetupMDColors.FOREGROUND = GlobalVars.CONTEXT.getUI().getColors().defaultTextForeground
+            SetupMDColors.FOREGROUND_REVERSED = SetupMDColors.FOREGROUND
+
+            SetupMDColors.BACKGROUND = GlobalVars.CONTEXT.getUI().getColors().defaultBackground
+            SetupMDColors.BACKGROUND_REVERSED = SetupMDColors.BACKGROUND
+
+            if ((not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())
+                    or (not isMacDarkModeDetected() and isMDThemeDarcula())):
+                SetupMDColors.FOREGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultBackground
+                SetupMDColors.BACKGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
+
     class QuickJFrame():
 
         def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True, lQuitMDAfterClose=False):
@@ -2179,51 +2254,44 @@ Visit: %s (Author's site)
 
                     jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
-                    mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
-                    mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
-                    if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
-                            or (not isMacDarkModeDetected() and isMDThemeDarcula()):
-                        # Swap the colors round when text (not a button)
-                        mfgtc = MD_REF.getUI().getColors().defaultBackground
-                        mbgtc = MD_REF.getUI().getColors().defaultTextForeground
-                    opq = False
+                    SetupMDColors.updateUI()
 
                     printButton = JButton("Print")
                     printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                    printButton.setOpaque(opq)
-                    printButton.setBackground(bgc); printButton.setForeground(fgc)
+                    printButton.setOpaque(SetupMDColors.OPAQUE)
+                    printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
                     printButton.addActionListener(self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
 
                     if GlobalVars.defaultPrinterAttributes is None:
                         printPageSetup = JButton("Page Setup")
                         printPageSetup.setToolTipText("Printer Page Setup")
-                        printPageSetup.setOpaque(opq)
-                        printPageSetup.setBackground(bgc); printPageSetup.setForeground(fgc)
+                        printPageSetup.setOpaque(SetupMDColors.OPAQUE)
+                        printPageSetup.setBackground(SetupMDColors.BACKGROUND); printPageSetup.setForeground(SetupMDColors.FOREGROUND)
                         printPageSetup.addActionListener(self.callingClass.QuickJFramePageSetup())
 
                     saveButton = JButton("Save to file")
                     saveButton.setToolTipText("Saves the output displayed in this window to a file")
-                    saveButton.setOpaque(opq)
-                    saveButton.setBackground(bgc); saveButton.setForeground(fgc)
+                    saveButton.setOpaque(SetupMDColors.OPAQUE)
+                    saveButton.setBackground(SetupMDColors.BACKGROUND); saveButton.setForeground(SetupMDColors.FOREGROUND)
                     saveButton.addActionListener(self.callingClass.QuickJFrameSaveTextToFile(self.callingClass.output, jInternalFrame))
 
                     wrapOption = JCheckBox("Wrap Contents (Screen & Print)", self.callingClass.lWrapText)
                     wrapOption.addActionListener(self.callingClass.ToggleWrap(self.callingClass, theJText))
-                    wrapOption.setForeground(mfgtc); wrapOption.setBackground(mbgtc)
+                    wrapOption.setForeground(SetupMDColors.FOREGROUND_REVERSED); wrapOption.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                     topButton = JButton("Top")
-                    topButton.setOpaque(opq)
-                    topButton.setBackground(bgc); topButton.setForeground(fgc)
+                    topButton.setOpaque(SetupMDColors.OPAQUE)
+                    topButton.setBackground(SetupMDColors.BACKGROUND); topButton.setForeground(SetupMDColors.FOREGROUND)
                     topButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lTop=True))
 
                     botButton = JButton("Bottom")
-                    botButton.setOpaque(opq)
-                    botButton.setBackground(bgc); botButton.setForeground(fgc)
+                    botButton.setOpaque(SetupMDColors.OPAQUE)
+                    botButton.setBackground(SetupMDColors.BACKGROUND); botButton.setForeground(SetupMDColors.FOREGROUND)
                     botButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lBottom=True))
 
                     closeButton = JButton("Close")
-                    closeButton.setOpaque(opq)
-                    closeButton.setBackground(bgc); closeButton.setForeground(fgc)
+                    closeButton.setOpaque(SetupMDColors.OPAQUE)
+                    closeButton.setBackground(SetupMDColors.BACKGROUND); closeButton.setForeground(SetupMDColors.FOREGROUND)
                     closeButton.addActionListener(self.callingClass.CloseAction(jInternalFrame))
 
                     if Platform.isOSX():
@@ -2398,29 +2466,31 @@ Visit: %s (Author's site)
     def getHumanReadableModifiedDateTimeFromFile(_theFile):
         return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile))
 
-    def convertStrippedIntDateFormattedText( strippedDateInt ):
+    def convertStrippedIntDateFormattedText(strippedDateInt, _format=None):
 
-        prettyDate = ""
+        if _format is None: _format = "yyyy/MM/dd"
+
+        convertedDate = ""
         try:
             c = Calendar.getInstance()
             dateFromInt = DateUtil.convertIntDateToLong(strippedDateInt)
             c.setTime(dateFromInt)
-            dateFormatter = SimpleDateFormat("yyyy/MM/dd")
-            prettyDate = dateFormatter.format(c.getTime())
+            dateFormatter = SimpleDateFormat(_format)
+            convertedDate = dateFormatter.format(c.getTime())
         except:
             pass
 
-        return prettyDate
+        return convertedDate
 
     def selectHomeScreen():
 
         try:
             currentViewAccount = MD_REF.getUI().firstMainFrame.getSelectedAccount()
             if currentViewAccount != MD_REF.getRootAccount():
-                myPrint("DB","Switched to Home Page Summary Screen (from: %s)" %(currentViewAccount))
+                myPrint("DB","Switched to Home Page Summary Page (from: %s)" %(currentViewAccount))
                 MD_REF.getUI().firstMainFrame.selectAccount(MD_REF.getRootAccount())
         except:
-            myPrint("B","Error switching to Home Page Summary Screen")
+            myPrint("B","@@ Error switching to Summary Page (Home Page)")
 
     def fireMDPreferencesUpdated():
         """This triggers MD to firePreferencesUpdated().... Hopefully refreshing Home Screen Views too"""
@@ -2431,7 +2501,7 @@ Visit: %s (Author's site)
 
             def run(self):
                 myPrint("DB",".. Inside FPSRunnable() - calling firePreferencesUpdated()...")
-                myPrint("B","Calling firePreferencesUpdated() to update Home Screen View")
+                myPrint("B","Triggering an update to the Summary/Home Page View")
                 MD_REF.getPreferences().firePreferencesUpdated()
 
         if not SwingUtilities.isEventDispatchThread():
@@ -2622,129 +2692,160 @@ Visit: %s (Author's site)
         output+=("\nQUICK SEARCH FOR OTHER DATASETS:\n"
                  "---------------------------------\n")
 
-        md_extn = ".moneydance"
-        md_archive = ".moneydancearchive"
+        try:
+            md_extn = ".moneydance"
+            md_archive = ".moneydancearchive"
 
-        saveFiles={}
-        saveArchiveFiles={}
+            saveFiles = {}
+            saveArchiveFiles = {}
 
-        myDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+            myDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
 
-        internalDir = Common.getDocumentsDirectory().getCanonicalPath()
-        dirList =  os.listdir(internalDir)
-        for fileName in dirList:
-            fullPath = os.path.join(internalDir,fileName)
-            if fileName.endswith(md_extn):
-                saveFiles[fullPath] = True
-            elif fileName.endswith(md_archive):
-                saveArchiveFiles[fullPath] = True
-        del internalDir, dirList
+            errorDirs = []
 
-        parentofDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getParent()
-        if os.path.exists(parentofDataset):
-            dirList =  os.listdir(parentofDataset)
-            for fileName in dirList:
-                fullPath = os.path.join(parentofDataset,fileName)
-                if fileName.endswith(md_extn):
-                    saveFiles[fullPath] = True
-                elif fileName.endswith(md_archive):
-                    saveArchiveFiles[fullPath] = True
-            del dirList
-        del parentofDataset
-
-        externalFiles = AccountBookUtil.getExternalAccountBooks()
-        for wrapper in externalFiles:
-            saveFiles[wrapper.getBook().getRootFolder().getCanonicalPath()] = True
-            externalDir = wrapper.getBook().getRootFolder().getParent()
-            if os.path.exists(externalDir):
-                dirList =  os.listdir(externalDir)
+            internalDir = Common.getDocumentsDirectory().getCanonicalPath()
+            try:
+                dirList =  os.listdir(internalDir)
                 for fileName in dirList:
-                    fullPath = os.path.join(externalDir,fileName)
+                    fullPath = os.path.join(internalDir,fileName)
                     if fileName.endswith(md_extn):
                         saveFiles[fullPath] = True
                     elif fileName.endswith(md_archive):
                         saveArchiveFiles[fullPath] = True
                 del dirList
-        del externalFiles
+            except OSError:
+                myPrint("B","@@ Error accessing internalDir: '%s' - skipping...." %(internalDir))
+                errorDirs.append(internalDir)
 
-        for backupLocation in [ FileUtils.getBackupDir(MD_REF.getPreferences()).getCanonicalPath(),
-                                MD_REF.getUI().getPreferences().getSetting("backup.location",""),
-                                MD_REF.getUI().getPreferences().getSetting("backup.last_saved",""),
-                                MD_REF.getUI().getPreferences().getSetting("backup.last_browsed","")]:
-            if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
-                dirList =  os.listdir(backupLocation)
-                for fileName in dirList:
-                    fullPath = os.path.join(backupLocation,fileName)
-                    if fileName.endswith(md_extn):
-                        if saveFiles.get(fileName) is not None:
+            parentofDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getParent()
+            if os.path.exists(parentofDataset):
+                try:
+                    dirList =  os.listdir(parentofDataset)
+                    for fileName in dirList:
+                        fullPath = os.path.join(parentofDataset,fileName)
+                        if fileName.endswith(md_extn):
                             saveFiles[fullPath] = True
-                    elif fileName.endswith(md_archive):
-                        saveArchiveFiles[fullPath] = True
-                del dirList
-        del backupLocation
+                        elif fileName.endswith(md_archive):
+                            saveArchiveFiles[fullPath] = True
+                    del dirList
+                except OSError:
+                    myPrint("B","@@ Error accessing dataset's folder: '%s' - skipping...." %(parentofDataset))
+                    errorDirs.append(parentofDataset)
+            del parentofDataset
 
-        saveFiles[myDataset] = None
+            externalFiles = AccountBookUtil.getExternalAccountBooks()
+            for wrapper in externalFiles:
+                saveFiles[wrapper.getBook().getRootFolder().getCanonicalPath()] = True
+                externalDir = wrapper.getBook().getRootFolder().getParent()
+                if os.path.exists(externalDir):
+                    try:
+                        dirList =  os.listdir(externalDir)
+                        for fileName in dirList:
+                            fullPath = os.path.join(externalDir,fileName)
+                            if fileName.endswith(md_extn):
+                                saveFiles[fullPath] = True
+                            elif fileName.endswith(md_archive):
+                                saveArchiveFiles[fullPath] = True
+                        del dirList
+                    except OSError:
+                        myPrint("B","@@ Error accessing externalDir: '%s' - skipping...." %(externalDir))
+                        errorDirs.append(externalDir)
 
-        listTheFiles=sorted(saveFiles.keys())
-        listTheArchiveFiles=sorted(saveArchiveFiles.keys())
+            del externalFiles
 
-        for _f in listTheFiles:
-            if saveFiles[_f] is not None:
-                output+=("Dataset: Mod: %s %s\n"
-                         % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime('%Y-%m-%d %H:%M:%S'), 11), _f))
-        del listTheFiles
+            for backupLocation in [ FileUtils.getBackupDir(MD_REF.getPreferences()).getCanonicalPath(),
+                                    MD_REF.getUI().getPreferences().getSetting("backup.location",""),
+                                    MD_REF.getUI().getPreferences().getSetting("backup.last_saved",""),
+                                    MD_REF.getUI().getPreferences().getSetting("backup.last_browsed","")]:
+                if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
+                    try:
+                        dirList =  os.listdir(backupLocation)
+                        for fileName in dirList:
+                            fullPath = os.path.join(backupLocation,fileName)
+                            if fileName.endswith(md_extn):
+                                if saveFiles.get(fileName) is not None:
+                                    saveFiles[fullPath] = True
+                            elif fileName.endswith(md_archive):
+                                saveArchiveFiles[fullPath] = True
+                        del dirList
+                    except OSError:
+                        myPrint("B","@@ Error accessing backupLocationDir: '%s' - skipping...." %(backupLocation))
+                        errorDirs.append(backupLocation)
+            del backupLocation
 
-        output+=("\nBACKUP FILES\n"
-                 "-------------\n")
+            saveFiles[myDataset] = None
 
-        for _f in listTheArchiveFiles:
-            if saveArchiveFiles[_f] is not None:
-                output+=("Archive: Mod: %s %s\n"
-                         % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime('%Y-%m-%d %H:%M:%S'), 11), _f))
-        del listTheArchiveFiles
+            listTheFiles=sorted(saveFiles.keys())
+            listTheArchiveFiles=sorted(saveArchiveFiles.keys())
 
-        output+=("\nSYNC FOLDERS FOUND:\n"
-                 "---------------------\n")
+            for _f in listTheFiles:
+                if saveFiles[_f] is not None:
+                    output+=("Dataset: Mod: %s %s\n"
+                             % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime('%Y-%m-%d %H:%M:%S'), 11), _f))
+            del listTheFiles
 
-        saveSyncFolder=None
-        try:
-            syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts())
-            syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
+            output+=("\nBACKUP FILES\n"
+                     "-------------\n")
 
-            if syncMethod is not None and syncMethod.getSyncFolder() is not None:
-                # noinspection PyUnresolvedReferences
-                syncBaseFolder = syncMethod.getSyncFolder().getSyncBaseFolder()
+            for _f in listTheArchiveFiles:
+                if saveArchiveFiles[_f] is not None:
+                    output+=("Archive: Mod: %s %s\n"
+                             % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime('%Y-%m-%d %H:%M:%S'), 11), _f))
+            del listTheArchiveFiles
 
-                saveSyncFolder = syncBaseFolder.getCanonicalPath()
-                dirList =  os.listdir(saveSyncFolder)
+            output+=("\nSYNC FOLDERS FOUND:\n"
+                     "---------------------\n")
+
+            saveSyncFolder=None
+            try:
+                # NOTE: If there is a problem with Dropbox, then .getSyncFolder() will crash
+                # Also, MD2021.2 Build 3088 adds iCloud Sync which crashes if launched from command line....
+                syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts())
+                syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
+
+                if syncMethod is not None and syncMethod.getSyncFolder() is not None:
+                    # noinspection PyUnresolvedReferences
+                    syncBaseFolder = syncMethod.getSyncFolder().getSyncBaseFolder()
+
+                    saveSyncFolder = syncBaseFolder.getCanonicalPath()
+                    dirList =  os.listdir(saveSyncFolder)
+
+                    for fileName in dirList:
+                        fullPath = os.path.join(saveSyncFolder,fileName)
+                        if len(fileName)>32:
+                            output+=("Sync Folder: %s %s\n"
+                                     % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime('%Y-%m-%d %H:%M:%S'), 11), fullPath))
+                else:
+                    output+=("<NONE FOUND>\n")
+
+                del syncMethod, syncMethods
+            except:
+                pass
+
+            dropboxPath = tell_me_if_dropbox_folder_exists()
+            if dropboxPath and dropboxPath is not None and dropboxPath != saveSyncFolder:
+
+                output+=("\nDROPBOX FOLDERS FOUND:\n"
+                         "-----------------------\n")
+                dirList =  os.listdir(dropboxPath)
 
                 for fileName in dirList:
-                    fullPath = os.path.join(saveSyncFolder,fileName)
+                    fullPath = os.path.join(dropboxPath,fileName)
                     if len(fileName)>32:
-                        output+=("Sync Folder: %s %s\n"
+                        output+=("Dropbox Sync Folder: %s %s\n"
                                  % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime('%Y-%m-%d %H:%M:%S'), 11), fullPath))
-            else:
-                output+=("<NONE FOUND>\n")
+            del dropboxPath
 
-            del syncMethod, syncMethods
+            if len(errorDirs) > 0:
+                output += ("\nERROR ACCESSING DIRECTORY:\n"
+                           "---------------------------\n")
+                for errorDir in errorDirs: output += (" @@ %s\n" %(errorDir))
+
+            output+="\n\n(for a more extensive search please use Toolbox - Find my Datasets and Backups button\n\n"
+
         except:
-            pass
-
-        dropboxPath = tell_me_if_dropbox_folder_exists()
-        if dropboxPath and dropboxPath is not None and dropboxPath != saveSyncFolder:
-
-            output+=("\nDROPBOX FOLDERS FOUND:\n"
-                     "-----------------------\n")
-            dirList =  os.listdir(dropboxPath)
-
-            for fileName in dirList:
-                fullPath = os.path.join(dropboxPath,fileName)
-                if len(fileName)>32:
-                    output+=("Dropbox Sync Folder: %s %s\n"
-                             % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime('%Y-%m-%d %H:%M:%S'), 11), fullPath))
-        del dropboxPath
-
-        output+="\n\n(for a more extensive search please use Toolbox extension - 'Find my Datasets and Backups' button\n\n"
+            myPrint("B","@@ ERROR: Failed in find_other_datasets()?")
+            output += dump_sys_error_to_md_console_and_errorlog(lReturnText=True)
 
         return output
 

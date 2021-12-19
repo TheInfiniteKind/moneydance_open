@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1013)
+# list_future_reminders.py (build: 1015)
 
 ###############################################################################
 # MIT License
@@ -43,6 +43,9 @@
 # build: 1011 - Added printing support
 # build: 1012 - Common code tweaks; Tweaked colors for Dark themes and to be more MD 'compatible'
 # build: 1013 - Common code tweaks; Flat Dark Theme
+# build: 1014 - Common code tweaks
+# build: 1015 - Common code tweaks; Fix JMenu()s - remove <html> tags (affects colors on older Macs); newer MyJFrame.dispose()
+# build: 1015 - Tweaked date format to use MD Preferences set by user
 
 # Displays Moneydance future reminders
 
@@ -52,7 +55,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1013"
+version_build = "1015"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -81,11 +84,26 @@ class MyJFrame(JFrame):
 
     def __init__(self, frameTitle=None):
         super(JFrame, self).__init__(frameTitle)
-        self.myJFrameVersion = 2
+        self.disposing = False
+        self.myJFrameVersion = 3
         self.isActiveInMoneydance = False
         self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
         self.HomePageViewObj = None
+
+    def dispose(self):
+        # This removes all content as VAqua retains the JFrame reference in memory...
+        if self.disposing: return
+        try:
+            self.disposing = True
+            self.removeAll()
+            if self.getJMenuBar() is not None: self.setJMenuBar(None)
+            super(self.__class__, self).dispose()
+        except:
+            _msg = "%s: ERROR DISPOSING OF FRAME: %s\n" %(myModuleID, self)
+            print(_msg); System.err.write(_msg)
+        finally:
+            self.disposing = False
 
 class GenericWindowClosingRunnable(Runnable):
 
@@ -197,6 +215,8 @@ else:
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
+
+    # NOTE: As of MD2022(4040) python.getSystemState().setdefaultencoding("utf8") is called on the python interpreter at launch...
     import sys
     reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
     sys.setdefaultencoding('utf8')  # Dirty hack to eliminate UTF-8 coding errors. Without this str() fails on unicode strings...
@@ -215,6 +235,7 @@ else:
     from org.python.core.util import FileUtil
 
     from java.lang import Thread
+    from java.lang import IllegalArgumentException
 
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
@@ -232,12 +253,13 @@ else:
     from javax.swing.border import EmptyBorder
     from javax.swing.filechooser import FileFilter
 
-    exec("from javax.print import attribute")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
+    exec("from javax.print import attribute")       # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
     exec("from java.awt.print import PrinterJob")   # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
     global attribute, PrinterJob
 
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
+    from javax.swing.event import AncestorListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets
@@ -280,6 +302,7 @@ else:
     MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
 
     class GlobalVars:        # Started using this method for storing global variables from August 2021
+        CONTEXT = MD_REF
         defaultPrintService = None
         defaultPrinterAttributes = None
         defaultPrintFontSize = None
@@ -309,32 +332,27 @@ else:
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
 
     # Saved to parameters file
-    global __list_future_reminders
-    global userdateformat, lStripASCII, csvDelimiter, _column_widths_LFR, scriptpath, daysToLookForward_LFR
-    global lWriteBOMToExportFile_SWSS
+    global __list_future_reminders, _column_widths_LFR, daysToLookForward_LFR
 
     # Other used by this program
-    global csvfilename, lDisplayOnly
+    global lDisplayOnly
     global baseCurrency, sdf, csvlines, csvheaderline, headerFormats
     global table, focus, row, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
     global saveStatusLabel
+
+    GlobalVars.md_dateFormat = None
+
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
     # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
     # NOTE: You  can override in the pop-up screen
-    userdateformat = "%Y/%m/%d"																							# noqa
-    lStripASCII = False																									# noqa
-    csvDelimiter = ","																									# noqa
-    scriptpath = ""																										# noqa
     _column_widths_LFR = []                                                                                          	# noqa
     daysToLookForward_LFR = 365                                                                                         # noqa
-    lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
-    extract_filename="%s.csv" %(myModuleID)
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 104 ########################################################################
+    # COMMON CODE ################# VERSION 106 ########################################################################
     # COMMON CODE ######################################################################################################
     i_am_an_extension_so_run_headless = False                                                                           # noqa
     try:
@@ -348,19 +366,19 @@ Thank you for using %s!
 The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-toolbox                                 View Moneydance settings, diagnostics, fix issues, change settings and much more
-net_account_balances:                   Homepage / summary screen widget. Display the total of selected Account Balances
-total_selected_transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
+Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
+Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
+Total selected transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 Extension (.mxt) and Script (.py) Versions available:
-extract_data                            Extract various data to screen and/or csv.. Consolidation of:
+Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
 - stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv 
 - extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
 - extract_currency_history_csv          Extract currency history to csv
 - extract_investment_transactions_csv   Extract investment transactions to csv
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
-list_future_reminders:                  View future reminders on screen. Allows you to set the days to look forward
+List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -421,28 +439,34 @@ Visit: %s (Author's site)
 
         if where[0] == "D" and not debug: return
 
-        printString = ""
-        for what in args:
-            printString += "%s " %what
-        printString = printString.strip()
+        try:
+            printString = ""
+            for what in args:
+                printString += "%s " %what
+            printString = printString.strip()
 
-        if where == "P" or where == "B" or where[0] == "D":
-            if not i_am_an_extension_so_run_headless:
+            if where == "P" or where == "B" or where[0] == "D":
+                if not i_am_an_extension_so_run_headless:
+                    try:
+                        print(printString)
+                    except:
+                        print("Error writing to screen...")
+                        dump_sys_error_to_md_console_and_errorlog()
+
+            if where == "J" or where == "B" or where == "DB":
+                dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
                 try:
-                    print(printString)
+                    System.err.write(myScriptName + ":" + dt + ": ")
+                    System.err.write(printString)
+                    System.err.write("\n")
                 except:
-                    print("Error writing to screen...")
+                    System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
                     dump_sys_error_to_md_console_and_errorlog()
 
-        if where == "J" or where == "B" or where == "DB":
-            dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
-            try:
-                System.err.write(myScriptName + ":" + dt + ": ")
-                System.err.write(printString)
-                System.err.write("\n")
-            except:
-                System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
-                dump_sys_error_to_md_console_and_errorlog()
+        except IllegalArgumentException:
+            myPrint("B","ERROR - Probably on a multi-byte character..... Will ignore as code should just continue (PLEASE REPORT TO DEVELOPER).....")
+            dump_sys_error_to_md_console_and_errorlog()
+
         return
 
     def dump_sys_error_to_md_console_and_errorlog(lReturnText=False):
@@ -694,6 +718,7 @@ Visit: %s (Author's site)
             field = JPasswordField(defaultText)
         else:
             field = JTextField(defaultText)
+        field.addAncestorListener(RequestFocusListener())
 
         _x = 0
         if theFieldLabel:
@@ -1218,7 +1243,7 @@ Visit: %s (Author's site)
                     or (self.what == "1234" and (myString in "1234")) \
                     or (self.what == "CURR"):
                 if ((self.getLength() + len(myString)) <= self.limit):
-                    super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                         # noqa
+                    super(JTextFieldLimitYN, self).insertString(myOffset, myString, myAttr)                             # noqa
 
     def fix_delimiter( theDelimiter ):
 
@@ -1389,7 +1414,7 @@ Visit: %s (Author's site)
         myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
         frames = JFrame.getFrames()
         for fr in frames:
-            if fr.getName().lower().startswith(moduleName):
+            if fr.getName().lower().startswith(moduleName+"_"):
                 myPrint("DB","Found old frame %s and active status is: %s" %(fr.getName(),fr.isActiveInMoneydance))
                 try:
                     fr.isActiveInMoneydance = False
@@ -1642,6 +1667,21 @@ Visit: %s (Author's site)
         myPrint("DB","...File/path exists..: %s" %(os.path.exists(_theFile)))
         return _theFile
 
+    class RequestFocusListener(AncestorListener):
+        """Add this Listener to a JTextField by using .addAncestorListener(RequestFocusListener()) before calling JOptionPane.showOptionDialog()"""
+
+        def __init__(self, removeListener=True):
+            self.removeListener = removeListener
+
+        def ancestorAdded(self, e):
+            component = e.getComponent()
+            component.requestFocusInWindow()
+            component.selectAll()
+            if (self.removeListener): component.removeAncestorListener(self)
+
+        def ancestorMoved(self, e): pass
+        def ancestorRemoved(self, e): pass
+
     class SearchAction(AbstractAction):
 
         def __init__(self, theFrame, searchJText):
@@ -1660,6 +1700,8 @@ Visit: %s (Author's site)
             tf = JTextField(self.lastSearch,20)
             p.add(lbl)
             p.add(tf)
+
+            tf.addAncestorListener(RequestFocusListener())
 
             _search_options = [ "Next", "Previous", "Cancel" ]
 
@@ -2053,6 +2095,33 @@ Visit: %s (Author's site)
 
         return
 
+    class SetupMDColors:
+
+        OPAQUE = None
+        FOREGROUND = None
+        FOREGROUND_REVERSED = None
+        BACKGROUND = None
+        BACKGROUND_REVERSED = None
+
+        def __init__(self): raise Exception("ERROR - Should not create instance of this class!")
+
+        @staticmethod
+        def updateUI():
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+
+            SetupMDColors.OPAQUE = False
+
+            SetupMDColors.FOREGROUND = GlobalVars.CONTEXT.getUI().getColors().defaultTextForeground
+            SetupMDColors.FOREGROUND_REVERSED = SetupMDColors.FOREGROUND
+
+            SetupMDColors.BACKGROUND = GlobalVars.CONTEXT.getUI().getColors().defaultBackground
+            SetupMDColors.BACKGROUND_REVERSED = SetupMDColors.BACKGROUND
+
+            if ((not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())
+                    or (not isMacDarkModeDetected() and isMDThemeDarcula())):
+                SetupMDColors.FOREGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultBackground
+                SetupMDColors.BACKGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
+
     class QuickJFrame():
 
         def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True, lQuitMDAfterClose=False):
@@ -2221,51 +2290,44 @@ Visit: %s (Author's site)
 
                     jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
-                    mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
-                    mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
-                    if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
-                            or (not isMacDarkModeDetected() and isMDThemeDarcula()):
-                        # Swap the colors round when text (not a button)
-                        mfgtc = MD_REF.getUI().getColors().defaultBackground
-                        mbgtc = MD_REF.getUI().getColors().defaultTextForeground
-                    opq = False
+                    SetupMDColors.updateUI()
 
                     printButton = JButton("Print")
                     printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                    printButton.setOpaque(opq)
-                    printButton.setBackground(bgc); printButton.setForeground(fgc)
+                    printButton.setOpaque(SetupMDColors.OPAQUE)
+                    printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
                     printButton.addActionListener(self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
 
                     if GlobalVars.defaultPrinterAttributes is None:
                         printPageSetup = JButton("Page Setup")
                         printPageSetup.setToolTipText("Printer Page Setup")
-                        printPageSetup.setOpaque(opq)
-                        printPageSetup.setBackground(bgc); printPageSetup.setForeground(fgc)
+                        printPageSetup.setOpaque(SetupMDColors.OPAQUE)
+                        printPageSetup.setBackground(SetupMDColors.BACKGROUND); printPageSetup.setForeground(SetupMDColors.FOREGROUND)
                         printPageSetup.addActionListener(self.callingClass.QuickJFramePageSetup())
 
                     saveButton = JButton("Save to file")
                     saveButton.setToolTipText("Saves the output displayed in this window to a file")
-                    saveButton.setOpaque(opq)
-                    saveButton.setBackground(bgc); saveButton.setForeground(fgc)
+                    saveButton.setOpaque(SetupMDColors.OPAQUE)
+                    saveButton.setBackground(SetupMDColors.BACKGROUND); saveButton.setForeground(SetupMDColors.FOREGROUND)
                     saveButton.addActionListener(self.callingClass.QuickJFrameSaveTextToFile(self.callingClass.output, jInternalFrame))
 
                     wrapOption = JCheckBox("Wrap Contents (Screen & Print)", self.callingClass.lWrapText)
                     wrapOption.addActionListener(self.callingClass.ToggleWrap(self.callingClass, theJText))
-                    wrapOption.setForeground(mfgtc); wrapOption.setBackground(mbgtc)
+                    wrapOption.setForeground(SetupMDColors.FOREGROUND_REVERSED); wrapOption.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                     topButton = JButton("Top")
-                    topButton.setOpaque(opq)
-                    topButton.setBackground(bgc); topButton.setForeground(fgc)
+                    topButton.setOpaque(SetupMDColors.OPAQUE)
+                    topButton.setBackground(SetupMDColors.BACKGROUND); topButton.setForeground(SetupMDColors.FOREGROUND)
                     topButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lTop=True))
 
                     botButton = JButton("Bottom")
-                    botButton.setOpaque(opq)
-                    botButton.setBackground(bgc); botButton.setForeground(fgc)
+                    botButton.setOpaque(SetupMDColors.OPAQUE)
+                    botButton.setBackground(SetupMDColors.BACKGROUND); botButton.setForeground(SetupMDColors.FOREGROUND)
                     botButton.addActionListener(self.callingClass.QuickJFrameNavigate(theJText, lBottom=True))
 
                     closeButton = JButton("Close")
-                    closeButton.setOpaque(opq)
-                    closeButton.setBackground(bgc); closeButton.setForeground(fgc)
+                    closeButton.setOpaque(SetupMDColors.OPAQUE)
+                    closeButton.setBackground(SetupMDColors.BACKGROUND); closeButton.setForeground(SetupMDColors.FOREGROUND)
                     closeButton.addActionListener(self.callingClass.CloseAction(jInternalFrame))
 
                     if Platform.isOSX():
@@ -2440,29 +2502,31 @@ Visit: %s (Author's site)
     def getHumanReadableModifiedDateTimeFromFile(_theFile):
         return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile))
 
-    def convertStrippedIntDateFormattedText( strippedDateInt ):
+    def convertStrippedIntDateFormattedText(strippedDateInt, _format=None):
 
-        prettyDate = ""
+        if _format is None: _format = "yyyy/MM/dd"
+
+        convertedDate = ""
         try:
             c = Calendar.getInstance()
             dateFromInt = DateUtil.convertIntDateToLong(strippedDateInt)
             c.setTime(dateFromInt)
-            dateFormatter = SimpleDateFormat("yyyy/MM/dd")
-            prettyDate = dateFormatter.format(c.getTime())
+            dateFormatter = SimpleDateFormat(_format)
+            convertedDate = dateFormatter.format(c.getTime())
         except:
             pass
 
-        return prettyDate
+        return convertedDate
 
     def selectHomeScreen():
 
         try:
             currentViewAccount = MD_REF.getUI().firstMainFrame.getSelectedAccount()
             if currentViewAccount != MD_REF.getRootAccount():
-                myPrint("DB","Switched to Home Page Summary Screen (from: %s)" %(currentViewAccount))
+                myPrint("DB","Switched to Home Page Summary Page (from: %s)" %(currentViewAccount))
                 MD_REF.getUI().firstMainFrame.selectAccount(MD_REF.getRootAccount())
         except:
-            myPrint("B","Error switching to Home Page Summary Screen")
+            myPrint("B","@@ Error switching to Summary Page (Home Page)")
 
     def fireMDPreferencesUpdated():
         """This triggers MD to firePreferencesUpdated().... Hopefully refreshing Home Screen Views too"""
@@ -2473,7 +2537,7 @@ Visit: %s (Author's site)
 
             def run(self):
                 myPrint("DB",".. Inside FPSRunnable() - calling firePreferencesUpdated()...")
-                myPrint("B","Calling firePreferencesUpdated() to update Home Screen View")
+                myPrint("B","Triggering an update to the Summary/Home Page View")
                 MD_REF.getPreferences().firePreferencesUpdated()
 
         if not SwingUtilities.isEventDispatchThread():
@@ -2496,29 +2560,17 @@ Visit: %s (Author's site)
         global debug, myParameters, lPickle_version_warning, version_build
 
         # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD
-        global __list_future_reminders, lStripASCII, csvDelimiter, scriptpath, userdateformat, _column_widths_LFR
-        global lWriteBOMToExportFile_SWSS, daysToLookForward_LFR                                                                              # noqa
+        global __list_future_reminders, _column_widths_LFR, daysToLookForward_LFR
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
         myPrint("DB", "Loading variables into memory...")
 
         if myParameters is None: myParameters = {}
 
-        if myParameters.get("__list_future_reminders") is not None:
-            __list_future_reminders = myParameters.get("__list_future_reminders")
+        if myParameters.get("__list_future_reminders") is not None: __list_future_reminders = myParameters.get("__list_future_reminders")
 
-        if myParameters.get("userdateformat") is not None: userdateformat = myParameters.get("userdateformat")
-        if myParameters.get("lStripASCII") is not None: lStripASCII = myParameters.get("lStripASCII")
-        if myParameters.get("csvDelimiter") is not None: csvDelimiter = myParameters.get("csvDelimiter")
         if myParameters.get("_column_widths_LFR") is not None: _column_widths_LFR = myParameters.get("_column_widths_LFR")
         if myParameters.get("daysToLookForward_LFR") is not None: daysToLookForward_LFR = myParameters.get("daysToLookForward_LFR")
-        if myParameters.get("lWriteBOMToExportFile_SWSS") is not None: lWriteBOMToExportFile_SWSS = myParameters.get("lWriteBOMToExportFile_SWSS")                                                                                  # noqa
-
-        if myParameters.get("scriptpath") is not None:
-            scriptpath = myParameters.get("scriptpath")
-            if not os.path.isdir(scriptpath):
-                myPrint("B", "Warning: loaded parameter scriptpath does not appear to be a valid directory:", scriptpath, "will ignore")
-                scriptpath = ""
 
         myPrint("DB","myParameters{} set into memory (as variables).....")
 
@@ -2527,10 +2579,9 @@ Visit: %s (Author's site)
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     def dump_StuWareSoftSystems_parameters_from_memory():
         global debug, myParameters, lPickle_version_warning, version_build
-        global lWriteBOMToExportFile_SWSS                                                                                  # noqa
 
         # >>> THESE ARE THIS SCRIPT's PARAMETERS TO SAVE
-        global __list_future_reminders, lStripASCII, csvDelimiter, scriptpath, lDisplayOnly, userdateformat, _column_widths_LFR, daysToLookForward_LFR
+        global __list_future_reminders, _column_widths_LFR, daysToLookForward_LFR
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
@@ -2540,15 +2591,8 @@ Visit: %s (Author's site)
         if myParameters is None: myParameters = {}
 
         myParameters["__list_future_reminders"] = version_build
-        myParameters["userdateformat"] = userdateformat
-        myParameters["lStripASCII"] = lStripASCII
-        myParameters["csvDelimiter"] = csvDelimiter
         myParameters["_column_widths_LFR"] = _column_widths_LFR
         myParameters["daysToLookForward_LFR"] = daysToLookForward_LFR
-        myParameters["lWriteBOMToExportFile_SWSS"] = lWriteBOMToExportFile_SWSS
-
-        if not lDisplayOnly and scriptpath != "" and os.path.isdir(scriptpath):
-            myParameters["scriptpath"] = scriptpath
 
         myPrint("DB","variables dumped from memory back into myParameters{}.....")
 
@@ -2588,6 +2632,8 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
 
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
+
+    GlobalVars.md_dateFormat = MD_REF.getPreferences().getShortDateFormat()
 
     class MainAppRunnable(Runnable):
         def __init__(self):
@@ -2668,10 +2714,6 @@ Visit: %s (Author's site)
                 RefreshMenuAction().refresh()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("extract") or event.getActionCommand().lower().startswith("close"):
-                ExtractMenuAction().extract_or_close()
-
-            # ##########################################################################################################
             if event.getActionCommand() == "About":
                 AboutThisScript(list_future_reminders_frame_).go()
 
@@ -2679,7 +2721,6 @@ Visit: %s (Author's site)
             if (event.getActionCommand().lower().startswith("change look")
                     or event.getActionCommand().lower().startswith("debug")
                     or event.getActionCommand().lower().startswith("reset")
-                    or event.getActionCommand().lower().startswith("extract")
                     or event.getActionCommand().lower().startswith("close")):
 
                 try:
@@ -2692,8 +2733,6 @@ Visit: %s (Author's site)
             return
 
     def terminate_script():
-        global debug, list_future_reminders_frame_, lDisplayOnly, lGlobalErrorDetected
-
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
         myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -2820,132 +2859,18 @@ Visit: %s (Author's site)
                 myPrint("B", "ERROR in printing routines.....:"); dump_sys_error_to_md_console_and_errorlog()
             return
 
-        csvfilename = None
-
-        if decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ";"  # Override for EU countries or where decimal point is actually a comma...
-        myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCharSep, "CSV Delimiter set to:", csvDelimiter)
+        myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCharSep)
 
         sdf = SimpleDateFormat("dd/MM/yyyy")
 
-        dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
-        # 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
-        label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
-        user_dateformat = JComboBox(dateStrings)
-
-        if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
-        elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
-        elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
-        else: user_dateformat.setSelectedItem("yyyy/mm/dd")
-
-        labelRC = JLabel("Reset Column Widths to Defaults?")
-        user_selectResetColumns = JCheckBox("", False)
-
-        label2 = JLabel("Strip non ASCII characters from CSV export?")
-        user_selectStripASCII = JCheckBox("", lStripASCII)
-
-        delimStrings = [";","|",","]
-        label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-        user_selectDELIMITER = JComboBox(delimStrings)
-        user_selectDELIMITER.setSelectedItem(csvDelimiter)
-
-        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
-        user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
-
-        label4 = JLabel("Turn DEBUG Verbose messages on?")
-        user_selectDEBUG = JCheckBox("", debug)
-
-
-        userFilters = JPanel(GridLayout(0, 2))
-        userFilters.add(label1)
-        userFilters.add(user_dateformat)
-        userFilters.add(labelRC)
-        userFilters.add(user_selectResetColumns)
-        userFilters.add(label2)
-        userFilters.add(user_selectStripASCII)
-        userFilters.add(label3)
-        userFilters.add(user_selectDELIMITER)
-        userFilters.add(labelBOM)
-        userFilters.add(user_selectBOM)
-        userFilters.add(label4)
-        userFilters.add(user_selectDEBUG)
-
         lExit = False
-        # lDisplayOnly = False
-
         lDisplayOnly = True
-        # options = ["Abort", "Display & CSV Export", "Display Only"]
-        # userAction = (JOptionPane.showOptionDialog(list_future_reminders_frame_,
-        # 											userFilters,
-        # 											"%s(build: %s) Set Script Parameters...." % (myScriptName, version_build),
-        # 											JOptionPane.OK_CANCEL_OPTION,
-        # 											JOptionPane.QUESTION_MESSAGE,
-        # 											MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
-        # 											options,
-        # 											options[2])
-        # 											)
-        # if userAction == 1:  # Display & Export
-        # 	myPrint("DB", "Display and export chosen")
-        # 	lDisplayOnly = False
-        # elif userAction == 2:  # Display Only
-        # 	lDisplayOnly = True
-        # 	myPrint("DB", "Display only with no export chosen")
-        # else:
-        # 	# Abort
-        # 	myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
-        # 	myPopupInformationBox(list_future_reminders_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
-        # 	lDisplayOnly = False
-        # 	lExit = True
-
         if lExit:
-            # Cleanup and terminate
             cleanup_actions(list_future_reminders_frame_)
 
         else:
 
-            debug = user_selectDEBUG.isSelected()
             myPrint("DB", "DEBUG turned on")
-
-            if debug:
-                myPrint("DB","Parameters Captured",
-                        "User Date Format:", user_dateformat.getSelectedItem(),
-                        "Reset Columns", user_selectResetColumns.isSelected(),
-                        "Strip ASCII:", user_selectStripASCII.isSelected(),
-                        "Write BOM to file:", user_selectBOM.isSelected(),
-                        "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
-                        "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
-            # endif
-
-            if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
-            elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
-            elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
-            elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
-            else:
-                # PROBLEM /  default
-                userdateformat = "%Y/%m/%d"
-
-            if user_selectResetColumns.isSelected():
-                myPrint("B","User asked to reset columns.... Resetting Now....")
-                _column_widths_LFR=[]  # This will invalidate them
-
-            lStripASCII = user_selectStripASCII.isSelected()
-
-            csvDelimiter = user_selectDELIMITER.getSelectedItem()
-            if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-                myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
-                csvDelimiter = ","
-            if decimalCharSep == csvDelimiter:
-                myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
-                lDisplayOnly = True
-                myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                            "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, decimalCharSep),
-                                      "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
-
-            lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
-
-            myPrint("B", "User Parameters...")
-            myPrint("B", "user date format....:", userdateformat)
-
-            csvfilename = None
 
             # save here instead of at the end.
             save_StuWareSoftSystems_parameters_to_file()
@@ -2978,11 +2903,8 @@ Visit: %s (Author's site)
                     cal.add(Calendar.DAY_OF_MONTH, 1)
 
             def build_the_data_file(ind):
-                global sdf, userdateformat, csvlines, csvheaderline, myScriptName, baseCurrency, headerFormats
+                global sdf, csvlines, csvheaderline, myScriptName, baseCurrency, headerFormats
                 global debug, ExtractDetails_Count, daysToLookForward_LFR
-
-                # Just override it as the sort is broken as it's sorting on strings and dd/mm/yy won't work etc - fix later
-                overridedateformat = "%Y/%m/%d"
 
                 ExtractDetails_Count += 1
 
@@ -3151,7 +3073,8 @@ Visit: %s (Author's site)
                         if calcNext < 1:
                             break
 
-                        remdate = str(calcNext)
+                        remdate = calcNext
+
                         # nextDate = DateUtil.incrementDate(calcNext, 0, 0, 1)
                         nextDate = DateUtil.incrementDate(calcNext, 0, 0, 1)
 
@@ -3165,7 +3088,7 @@ Visit: %s (Author's site)
                         if str(remtype) == 'NOTE':
                             csvline = []
                             csvline.append(index + 1)
-                            csvline.append(dateoutput(remdate, overridedateformat))
+                            csvline.append(remdate)
                             # csvline.append(str(rem.getReminderType()))
                             # csvline.append(remfreq)
                             # csvline.append(auto)
@@ -3202,7 +3125,7 @@ Visit: %s (Author's site)
 
                                 csvline = []
                                 csvline.append(index + 1)
-                                csvline.append(dateoutput(remdate, overridedateformat))
+                                csvline.append(remdate)
                                 # csvline.append(str(rem.getReminderType()))
                                 # csvline.append(remfreq)
                                 # csvline.append(auto)
@@ -3627,6 +3550,8 @@ Visit: %s (Author's site)
 
                     if column == 0:
                         renderer = MyPlainNumberRenderer()
+                    elif column == 1:
+                        renderer = MyDateRenderer()
                     elif headerFormats[column][0] == Number:
                         renderer = MyNumberRenderer()
                     else:
@@ -3750,6 +3675,14 @@ Visit: %s (Author's site)
                     return
 
             # noinspection PyArgumentList
+            class MyDateRenderer(DefaultTableCellRenderer):
+                def __init__(self):
+                    super(DefaultTableCellRenderer, self).__init__()
+
+                def setValue(self, value):
+                    self.setText(convertStrippedIntDateFormattedText(value, GlobalVars.md_dateFormat))
+
+            # noinspection PyArgumentList
             class MyPlainNumberRenderer(DefaultTableCellRenderer):
                 global baseCurrency
 
@@ -3757,10 +3690,7 @@ Visit: %s (Author's site)
                     super(DefaultTableCellRenderer, self).__init__()
 
                 def setValue(self, value):
-
                     self.setText(str(value))
-
-                    return
 
             def ReminderTable(tabledata, ind):
                 global list_future_reminders_frame_, scrollpane, table, row, debug, ReminderTable_Count, csvheaderline, lDisplayOnly
@@ -3846,25 +3776,19 @@ Visit: %s (Author's site)
                     else:
                         save_useScreenMenuBar = "true"
 
-                    mfgtc = fgc = MD_REF.getUI().getColors().defaultTextForeground
-                    mbgtc = bgc = MD_REF.getUI().getColors().defaultBackground
-                    if (not isMDThemeVAQua() and not isMDThemeDark() and isMacDarkModeDetected())\
-                            or (not isMacDarkModeDetected() and isMDThemeDarcula()):
-                        # Swap the colors round when text (not a button)
-                        mfgtc = MD_REF.getUI().getColors().defaultBackground
-                        mbgtc = MD_REF.getUI().getColors().defaultTextForeground
-                    opq = False
+                    SetupMDColors.updateUI()
 
                     printButton = JButton("Print")
                     printButton.setToolTipText("Prints the output displayed in this window to your printer")
-                    printButton.setOpaque(opq)
-                    printButton.setBackground(bgc); printButton.setForeground(fgc)
+                    printButton.setOpaque(SetupMDColors.OPAQUE)
+                    printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
                     printButton.addActionListener(PrintJTable(list_future_reminders_frame_, table, "List Future Reminders"))
 
                     mb = JMenuBar()
 
-                    menuO = JMenu("<html><B>OPTIONS</b></html>")
-                    menuO.setForeground(mfgtc); menuO.setBackground(mbgtc)
+                    # menuO = JMenu("<html><B>OPTIONS</b></html>")
+                    menuO = JMenu("OPTIONS")
+                    menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                     menuItemR = JMenuItem("Refresh Data/Default Sort")
                     menuItemR.setToolTipText("Refresh (re-extract) the data, revert to default sort  order....")
@@ -3904,8 +3828,9 @@ Visit: %s (Author's site)
 
                     mb.add(menuO)
 
-                    menuH = JMenu("<html><B>ABOUT</b></html>")
-                    menuH.setForeground(mfgtc); menuH.setBackground(mbgtc)
+                    # menuH = JMenu("<html><B>ABOUT</b></html>")
+                    menuH = JMenu("ABOUT")
+                    menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                     menuItemA = JMenuItem("About")
                     menuItemA.setToolTipText("About...")
@@ -3942,7 +3867,7 @@ Visit: %s (Author's site)
                 list_future_reminders_frame_.getRootPane().getActionMap().remove("print-me")
                 list_future_reminders_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(list_future_reminders_frame_, table, "List Future Reminders"))
 
-                table.getTableHeader().setReorderingAllowed(True)  # no more drag and drop columns, it didn't work (on the footer)
+                table.getTableHeader().setReorderingAllowed(True)
                 table.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
                 table.selectionMode = ListSelectionModel.SINGLE_SELECTION
 

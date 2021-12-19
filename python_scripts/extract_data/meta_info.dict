@@ -2,11 +2,11 @@
   "id" = "extract_data"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1016"
+  "module_build" = "1020"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Extract Data"
   "module_desc" = "Extract data to screen/csv. Options incl: 'StockGlance2020' investments, Reminders, Account / Investment txns, Currency History; Attachments..."
   "mac_sandbox_friendly" = "true"
-  "news" = "StockGlance2020 disabled price rounding to Security.getDecimalPlaces(). Added parameters for Max Decimal Places rounding, and use current price (or latest price history price)"
+  "news" = "Patch the date extract/format/display on Extract Reminders"
 }

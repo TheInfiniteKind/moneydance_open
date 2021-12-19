@@ -2,11 +2,11 @@
   "id" = "total_selected_transactions"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1004"
+  "module_build" = "1006"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Total Selected Transactions"
   "module_desc" = "One-click. Shows a popup total of the visible register's selected transactional amounts on screen"
-  "mac_sandbox_friendly" = "false"
+  "mac_sandbox_friendly" = "true"
   "news" = "Initial Release: Now with extra investment totals..."
 }
