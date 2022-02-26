@@ -207,14 +207,13 @@ public class AlphavantageConnection extends APIKeyConnection
   }
   
   protected String getCurrentPriceHeader() {
-    return "date,open,high,low,close,adjusted_close,volume,dividend_amount,splitdividendevents";
-    //return "date,open,high,low,close,volume";
+    return "date,open,high,low,close,volume";
   }
   
   public String getHistoryURL(String fullTickerSymbol) {
     String apiKey = getAPIKey(false);
     return apiKey==null ? null :
-           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED"+
+           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY"+
            "&symbol="+SQUtil.urlEncode(fullTickerSymbol)+
            "&apikey="+SQUtil.urlEncode(apiKey)+
            "&datatype=csv"+
