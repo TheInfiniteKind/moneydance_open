@@ -2,7 +2,7 @@
 !! As of June 2021, most extensions available via the Moneydance menu >> Manage Extensions - Check there first !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-Author: Stuart Beesley - StuWareSoftSystems 2020-2021
+Author: Stuart Beesley - StuWareSoftSystems 2020-2022
 Visit: https://yogi1967.github.io/MoneydancePythonScripts/ for more downloads and information
 
 THESE ARE EXTENSIONS / SCRIPTS FOR MONEYDANCE WRITTEN IN PYTHON (JYTHON 2.7)
@@ -40,7 +40,7 @@ To run Scripts:
 
 All Extensions/Scripts available:
 Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
-
+                                        + Extension Menus: Total selected transactions & Move Investment Transactions
 Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
 
 Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
@@ -51,8 +51,6 @@ Extract Data:                           Extract various data to screen and/or cs
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
-
-Total selected transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 categories_super_window:                Clones MD Menu> Tools>Categories and adds a Quick Search box/capability
 

@@ -1,4 +1,5 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated Dec 2021
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated April 2022
+Credit: Dan T Davis for his input, testing and sugesstions to make a better product......
 
 >> Display Name changed to 'Custom Balances' (from 'Net Account Balances') Dec 2021.
 

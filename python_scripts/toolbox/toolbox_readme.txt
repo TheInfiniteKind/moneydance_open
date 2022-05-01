@@ -1,7 +1,7 @@
 The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
 
-Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru August 2021 - a lockdown project ~1000 coding hours)
-Credit: Derek Kent(23) for his extensive texting and many hours on this project!
+Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru April 2022 - a lockdown project ~1000 coding hours)
+Credit: Derek Kent(23) for his extensive testing and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
 Get more Scripts/Extensions from: https://yogi1967.github.io/MoneydancePythonScripts/
@@ -16,22 +16,21 @@ The script will never change anything without your permission - and it will alwa
 
 DISCLAIMER: YOU USE THIS SCRIPT AT YOUR OWN RISK AND YOU ACCEPT ANY CONSEQUENCES OF CHANGING YOUR DATA!
 
-PLEASE ALWAYS BACKUP YOUR DATA FIRST! You  can use the Export Backup (green) button top-left in Toolbox to do this.
+PLEASE ALWAYS BACKUP YOUR DATA FIRST! You  can use the Create Backup (green) button top-left in Toolbox to do this.
 
 PURPOSE
 
 To enable the User to self-diagnose problems, or access key diagnostics to enable support to help
-- Basic (default) mode is very safe - it contains view options only
-- Advanced Mode - Allows user to run fixes - THIS CHANGES DATA
-- Geek Mode - Allows user to view technical information/settings in various places (this is readonly)
-- Hacker Mode - Allows the user to manually add/change/delete config.dict and LocalStorage() keys/values - ONLY USE IF YOU KNOW WHAT YOU ARE DOING
-                Also allows you to toggle Moneydance internal settings like DEBUG
+- Basic mode:                       The default mode. Very safe and contains useful / view options only
+- Update Mode:                      Allows running of fixes/updates. CAN CHANGE DATA (you will always be asked to confirm first)
+- Advanced Mode:                    Enables 'advanced' features. USE WITH CARE!
+- Curious? View Internal Settings:  View technical information/settings in various places (this is readonly)
 
 - The Toolbox offers the option to Backup first  - ALWAYS BACKUP (But this is your choice!)
 - The Toolbox will *ALWAYS* make a copy of config.dict, custom theme file, LocalStorage() ./safe/settings before any changes
 >> These backup files will have a unique (timestamp-like) number and _$SAVED$ appended to the end of the filename
 
->> Your dataset backups will be located wherever you choose to save them (USE THE 'EXPORT BACKUP' button (top left in green)
+>> Your dataset backups will be located wherever you choose to save them (USE THE 'CREATE BACKUP' button (top left in green)
 >> Note the normal Moneydance Backup is a complete dataset, but does not include config.dict, custom theme file, extensions etc
 
 - All updates (and other key messages) get written to the Moneydance console error log
@@ -78,7 +77,7 @@ NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND
 # change-security-cusip.py                              (from Finite Mobius, LLC / Jason R. Miller)
 
 Toolbox uses the the internal MD 'code' font for display and outputs. Typically a Monospaced font so text columns align.
->> If your language's double-byte characters do not display properly, then change in advanced mode; General Tools>Set MD Fonts
+>> If your language's double-byte characters do not display properly, then change in update mode; General Tools>Set MD Fonts
 >> Change 'code' font. Please only use a fixed-width Monospaced so that column alignments are maintained (but your choice).
 
 Features:
@@ -89,15 +88,19 @@ Features:
 
 NOTE: Where CMD is specified, this may be CTRL (or ALT) in Windows / Linux
 
-CMD-I - This  Help Instruction Information
+CMD-I           This  Help Instruction Information
+CMD-F           Search for text in display windows
+CMD-O           Copy all outputs to Clipboard
+CMD-SHIFT-U     Examine an object's raw data - enter the Object's UUID
+CMD-SHIFT-+     Unlock Toolbox (Contact Author for password and usage) - (Might be CMD-SHIFT-= on some keyboards)
 
-CMD-F - Search for text in display windows
-
-CMD-O - Copy all outputs to Clipboard
+Toolbox also installs two new Extensions Menu options (which allow the user to select register transactions before running):
+    - Toolbox: Move Investment Transactions
+    - Toolbox: Total Selected Transactions
 
 TOOLBAR / MENU BAR Contains the following:
-    - Toolbox Options Menu
-    - Help menu
+    - Toolbox Options menu
+    - Help/About menu
     - Button: Launch Console Window (opens the Moneydance Help>Show Console Window)
     - Button: Save Console Log (to a file of your choosing)
     - Button: Open MD Folder (Preferences, Themes, Console log, Dataset, Extensions, Auto-backup folder, last backup folder[, Sync Dir][, Install Dir])
@@ -108,9 +111,9 @@ POPUP Output/Report Window(s):
     - Wrap Contents: Turns on line wrap. Also enables print 'fit-to-width'
     - Print, Save to file: Prints the contents or saves to file.
 
-ALT-B - Basic Mode
+Basic Mode (Default at launch) - Use ALT-M to toggle between Basic and Update modes
 - Basic mode: Buttons
-    - EXPORT BACKUP (This calls the Moneydance function to backup your dataset)
+    - CREATE BACKUP (This calls the Moneydance 'Export Backup' function to backup your dataset)
     - Analyse Dataset Objects Size & Files
     - Find my Dataset (Search for *.moneydance & *.moneydancearchive Datasets)
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
@@ -130,11 +133,12 @@ ALT-B - Basic Mode
         - View full list of all MD's Bank dynamic setup profiles (and then select one to view specific details)
         - View your Security's hidden CUSIP settings (These link your downloads on Investment Securities to MD Securities)
         - View your Online saved Txns, Payees, Payments
-        - View all your OFX last download txn dates (for all accounts)
+        - View your active accounts' calculated reconcile window auto 'as of' dates (Bank/Credit Cards/Investment)
+        - View your accounts' calculated reconcile window auto 'as of' date (active accounts only)
         - Toggle Moneydance DEBUG (turns ON all MD internal Debug messages - same as view console)
     - MENU: Accounts & Categories tools
         - View Check number settings
-        - DIAGnostics - View Categories with zero balance. You can also inactivate using Advanced mode.
+        - DIAGnostics - View Categories with zero balance. You can also inactivate using Update mode.
         - DIAGnostics - View Accounts' shouldBeIncludedInNetWorth() settings...
     - MENU: Currency & Security tools:
         - DIAGnostics - Diagnose currencies / securities (including relative currencies) If errors, then go to FIX below
@@ -148,9 +152,25 @@ ALT-B - Basic Mode
         - Extract your Attachments (this decrypts and extracts your attachments to a directory of your choice) (export_all_attachments.py)
         - DIAGnostics - Analise your  attachments (and Detect Orphans)
 
-ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / security data issues detected. Some only available from 2021.2 onwards)
-    - These first four buttons will appear only if they are necessary / possible in your system
+Menu - CURIOUS? VIEW INTERNAL SETTINGS (Read-Only - very safe)
+    >> Allows you to view internal / raw settings / data
+    - Search for a key/data (in most places  - but not txns)
+    - Show ROOT Account's Parameter Keys and data
+    - Show Dataset's Local Storage Keys and data (from ./safe/settings)
+    - Show All User Preferences loaded into Memory (from config.dict)
+    - Show Accounts' Parameter's Keys and Data
+    - Show an Obj's settings/data (Acct, Cat, Curr, Security, Reports, Reminders, Addrs, OFX, by UUID, TXNs)
+    - Show All Sync Settings
+    - Show All Online Banking (Searches for OFX) Settings
+    - Show all Settings relating to Window Locations/Sizes/Widths/Sort Order/Filters/Initial Reg View etc..
+    - Show all Java JVM System Properties
+    - Show all Operating System Environment Variables
+
+ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / security data issues detected. Some only available from 2021.2 onwards)
+    All basic mode settings plus (note the text of buttons turn red when update mode enabled):
+    - These four buttons will only appear if they are necessary / possible in your system, on the last button row
         - FIX - Make me a Primary Dataset (convert from Secondary dataset to enable Sync) (convert_secondary_to_primary_data_set.py)
+        - FIX - Zap Invalid Window Locations (Appears if any of your saved windows are 'off screen')
         - FIX - Create Dropbox Sync Folder (creates the missing .moneydancesync folder if missing from Dropbox)
         - FIX - Check / fix MacOS Tabbing Mode on Big Sur (when set to always). It will allow you to change it to fullscreen or manual/never.
                 More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
@@ -167,15 +187,14 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
                 4. RESET>> Window locations, Size, Sort Orders, One-line, Split Reg, Offset, Column Widths; Dividers, isOpen,
                 isExpanded, isMaximised settings (this does not reset Filters or Initial views)
     - MENU: Online (OFX) Banking Tools:
-        - All basic mode settings plus:
         - Forget OFX Banking Import Link (so it asks which account when importing ofx files) (remove_ofx_account_bindings.py) (MD versions < 2022)
         - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank) (remove_one_service.py)
         - Cleanup missing Online Banking Links (NOTE: This is always called when running 'Delete OFX Banking Logon Profile / Service' above
         - Reset/Fix/Edit/Add CUSIP Banking Link. This is the link for downloaded securities.... (remove_ofx_security_bindings.py and change-security-cusip.py)
-        - Update OFXLastTxnUpdate Last Download Date for Online Txns (MD versions >= 2022 can now use Online menu, Setup Online Banking, Reset Sync Date)
-        - Delete single cached OnlineTxnList record/Txns
+        - Reset ALL OFX Last Txn Update Dates (default, OFX and MD+) (MD build 4074 onwards)
+        - Update OFX Last Txn Update Date (Downloaded) field for an account (MD versions >= 2022 can now use Online menu, Setup Online Banking, Reset Sync Date)
+        - Delete Single cached OnlineTxnList Record/Txns
         - Delete ALL cached OnlineTxnList record/Txns (delete_intermediate_downloaded_transaction_caches.py)
-        - OFX Cookie Management (some options also required Hacker mode)
         - OFX Authentication Management (various functions to manage authentication, UserIDs, ClientUIDs)
             - SUBMENU: OFX Authentication Management
                 - Clear the Authentication Cache (Passwords) for One Service / Bank Profile
@@ -183,9 +202,10 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
                 - Edit/Setup (multiple) UserIDs / Passwords (executes a special script) (ofx_populate_multiple_userids.py)
                 - Edit stored authentication passwords linked to a working OFX Profile
                 - Manual Edit of stored Root UserIDs/ClientUIDs
-        - Export your Moneydance+ (Plaid) settings to a file (for 'transplant') - MD Version 2022 onwards. READONLY
-        - Import ('transplant') your Moneydance+ (Plaid) settings from a file (exported by Toolbox) - MD Version 2022 onwards. USE WITH CARE.
-        - ZAP Dataset's Moneydance+ (Plaid) settings (also required Hacker mode) - MD Version 2022 onwards. USE WITH CARE. WILL REQUIRE RE-REGISTRATION!
+        - OFX Cookie Management (requires Advanced mode)
+        - Export your Moneydance+ (Plaid) settings to a file (for 'transplant') - MD Version 2022 onwards. READONLY (requires Advanced mode)
+        - Import ('transplant') your Moneydance+ (Plaid) settings from a file (exported by Toolbox) - MD Version 2022 onwards. USE WITH CARE. (requires Advanced mode)
+        - ZAP Dataset's Moneydance+ (Plaid) settings (requires Advanced mode) - MD Version 2022 onwards. USE WITH CARE. WILL REQUIRE RE-REGISTRATION!
         - USAA ONLY: Manually 'prime' / overwrite stored Root UserIDs/ClientUIDs
         - USAA Only: Executes the special script to create a working USAA OFX Profile (ofx_create_new_usaa_bank_custom_profile.py)
 
@@ -199,10 +219,11 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
         - FIX - Correct the Name of Root to match Dataset
     - MENU: Currency & Security tools:
         - FIX - Fix currencies / securities (including relative currencies) (fixes your currency & security's key settings) (reset_relative_currencies.py)
-        - FIX - Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly). >> 2021.2 onwards
-        - FIX - Merge 'duplicate' securities (and related Investment txns) into one master security record (by TickerSymbol).       >> 2021.2 onwards
-        - FIX - Fix currency / security's current price hidden 'price_date' field. Also corrects current price whilst fixing too..  >> 2021.2 onwards
+        - FIX - Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly).  >> 2021.2 onwards
+        - FIX - Merge 'duplicate' securities (and related Investment txns) into one master security record (by TickerSymbol).        >> 2021.2 onwards
+        - FIX - Fix currency / security's current price hidden 'price_date' field. Also corrects current price whilst fixing too..   >> 2021.2 onwards
         - FIX - Manually edit a Security/Currency's current price hidden 'price_date' field
+        - FIX - Detect and fix (wipe) LOT records where matched Buy/Sell records are invalid
         - FIX - Convert Stock to LOT Controlled and Allocate LOTs using FiFo method (MakeFifoCost.py)
         - FIX - Convert Stock to Average Cost Control (and wipe any LOT control records)
         - FIX - Detect and fix Investment Security records not properly linked to Security Master records
@@ -212,29 +233,15 @@ ALT-M - Advanced Mode (** NOTE: Some menu items will disable if currency / secur
         - FIX - FORCE change an Account's Currency (use with care). (Does not update any transactions) (force_change_account_currency.py)
         - FIX - FORCE change ALL Account's currencies (use with care). (Does not update any transactions) (force_change_all_currencies.py)
     - MENU: Transactions tools
-        - Move/Merge Investment transactions from one account into another.                                                         >> 2021.2 onwards
+        - Move/Merge Investment transactions from one account into another. DISABLED >> NOW RUN FROM EXTENSIONS MENU (you can pre-select register txns first)
         - FIX - Diagnose Attachments - DELETE Orphan attachments (allows you to delete Orphan attachments from Disk ** Syncing must be disabled **)
-        - FIX - Non Hierarchical Security Account Txns (cross-linked securities) (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)
+        - FIX - Non-Hierarchical Security Acct Txns (& detect Orphans) (fix_non-hierarchical_security_account_txns.py & fix_investment_txns_to_wrong_security.py)
         - FIX - Delete One-Sided Txns (delete_invalid_txns.py)
         - FIX - Reverse Transaction Amounts between dates (reverse_txn_amounts.py)
         - FIX - Reverse Transaction Exchange rates between dates (reverse_txn_amounts.py)
 
-ALT-G - GEEK OUT MODE
-    >> Allows you to view raw settings
-    - Search for keys or key-data containing filter characters (you specify)
-    - ROOT Parameter keys
-    - Local Storage - Settings
-    - User Preferences
-    - All Accounts' preference keys
-    - View single Object's Keys/Data (Account, Category, Currency, Security, Report / Graph, Reminder, Address, OFX Service, by UUID, TXNs)
-    - All Sync Settings
-    - All Online Banking Settings
-    - All Settings related to window sizes/positions/locations etc
-    - All Environment Variables
-    - All Java Properties
-
-Menu - HACKER MODE
-    >> VERY TECHNICAL - DO NOT USE UNLESS YOU KNOW WHAT YOU ARE DOING
+ALT-SHIFT-M - Menu - ADVANCED MODE (button turns red when enabled)
+    >> SPECIAL ADVANCED FEATURES - USE WITH CARE!
     - Toggle other known DEBUG settings on (extra messages in Console)
     - Toggle all internal Moneydance DEBUG settings ON/OFF (same as viewing console)
     - Extract a (single) file from within LocalStorage. Decrypts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
@@ -246,11 +253,11 @@ Menu - HACKER MODE
     - Remove Int/Ext Files from File-list.
         >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
         >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
+    - Clone Dataset's structure (purge transactional data) - Copy dataset keeping structures, purging all transactional data.
     - Call Save Trunk File option.... Immediately flushes all in memory changes to disk, including your dataset (rather than wait for restart)
-    - Force a refresh/PUSH of your local dataset to Sync. Push new Sync data (and rebuild remote copies). Use with extreme care!
+    - Force a refresh/PUSH of your local dataset to Sync. Push new Sync data (and rebuild remote copies). Use carefully!
     - Force disable/turn Sync OFF (This just sets your Sync method to None - all other settings are preserved. You can turn it back on again)
     - Force reset Sync settings (This resets all Sync settings, changes your Sync ID, and turns Sync off. You can then re-enable it for a fresh Sync)
-    - Restore an archive file, and RETAIN Sync settings (the default File/Restore will wipe out your Sync settings)
     - DEMOTE your Primary Sync dataset/node back to a Secondary Node
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
 

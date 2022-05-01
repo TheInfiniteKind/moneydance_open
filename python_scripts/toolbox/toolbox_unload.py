@@ -17,7 +17,8 @@ if ("debug" not in globals()
     System.err.write(msg)
 else:
     myPrint("DB", ".unload() script operational ;->\n")
-    destroyOldFrames(myModuleID)
+    # destroyOldFrames(myModuleID)
+    destroyOldFrames(_THIS_IS_)
     myPrint("DB","... Completed unload routines...")
 
 del _THIS_IS_

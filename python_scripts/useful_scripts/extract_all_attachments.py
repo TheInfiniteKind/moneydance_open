@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_all_attachments.py build: 16 - Jan 2021 - Stuart Beesley StuWareSoftSystems
+# extract_all_attachments.py build: 17 - Jan 2021 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2021-2022 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@
 # build: 14 - Common code tweaks - switch to new dynamic file chooser wrapper
 # build: 15 - Common code tweaks
 # build: 16 - Common code tweaks
+# build: 17 - Common code - eliminating globals
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -43,7 +44,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_all_attachments"
-version_build = "16"
+version_build = "17"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -67,6 +68,8 @@ else:
 from java.lang import System, Runnable
 from javax.swing import JFrame, SwingUtilities, SwingWorker
 from java.awt.event import WindowEvent
+
+class QuickAbortThisScriptException(Exception): pass
 
 class MyJFrame(JFrame):
 
@@ -123,12 +126,12 @@ class GenericVisibleRunnable(Runnable):
                 self.theFrame.setExtendedState(JFrame.NORMAL)
             self.theFrame.toFront()
 
-def getMyJFrame( moduleName ):
+def getMyJFrame(moduleName):
     try:
         frames = JFrame.getFrames()
         for fr in frames:
             if (fr.getName().lower().startswith(u"%s_main" %moduleName)
-                    and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
+                    and (type(fr).__name__ == MyJFrame.__name__ or type(fr).__name__ == u"MyCOAWindow")  # isinstance() won't work across namespaces
                     and fr.isActiveInMoneydance):
                 _msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
                 print(_msg); System.err.write(_msg)
@@ -146,9 +149,10 @@ frameToResurrect = None
 try:
     # So we check own namespace first for same frame variable...
     if (u"%s_frame_"%myModuleID in globals()
-            and isinstance(extract_all_attachments_frame_, MyJFrame)        # EDIT THIS
-            and extract_all_attachments_frame_.isActiveInMoneydance):       # EDIT THIS
-        frameToResurrect = extract_all_attachments_frame_                   # EDIT THIS
+            and (isinstance(extract_all_attachments_frame_, MyJFrame)                 # EDIT THIS
+                 or type(extract_all_attachments_frame_).__name__ == u"MyCOAWindow")  # EDIT THIS
+            and extract_all_attachments_frame_.isActiveInMoneydance):                 # EDIT THIS
+        frameToResurrect = extract_all_attachments_frame_                             # EDIT THIS
     else:
         # Now check all frames in the JVM...
         getFr = getMyJFrame( myModuleID )
@@ -222,8 +226,7 @@ else:
 
     from org.python.core.util import FileUtil
 
-    from java.lang import Thread
-    from java.lang import IllegalArgumentException
+    from java.lang import Thread, IllegalArgumentException, String
 
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
@@ -250,13 +253,14 @@ else:
     from javax.swing.event import AncestorListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
-    from java.awt import BorderLayout, Dialog, Insets
+    from java.awt import BorderLayout, Dialog, Insets, Point
     from java.awt.event import KeyEvent, WindowAdapter, InputEvent
-    from java.util import Date
+    from java.util import Date, Locale
 
     from java.text import DecimalFormat, SimpleDateFormat, MessageFormat
     from java.util import Calendar, ArrayList
     from java.lang import Double, Math, Character
+    from java.lang.reflect import Modifier
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
     from java.nio.charset import Charset
@@ -265,7 +269,7 @@ else:
                          JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                          InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                          AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
-                         JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
+                         JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent, GridLayout,
                          WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets, FileDialog, Thread, SwingWorker)): pass
     if codecs.BOM_UTF8 is not None: pass
     if csv.QUOTE_ALL is not None: pass
@@ -274,32 +278,38 @@ else:
     # END COMMON IMPORTS ###################################################################################################
 
     # COMMON GLOBALS #######################################################################################################
-    global myParameters, myScriptName, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
-    global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlobalErrorDetected
-    global MYPYTHON_DOWNLOAD_URL
+    # All common globals have now been eliminated :->
     # END COMMON GLOBALS ###################################################################################################
     # COPY >> END
 
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
-    myParameters = {}                                                                                                   # noqa
-    _resetParameters = False                                                                                            # noqa
-    lPickle_version_warning = False                                                                                     # noqa
-    lIamAMac = False                                                                                                    # noqa
-    lGlobalErrorDetected = False																						# noqa
-    MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
+    if "GlobalVars" in globals():   # Prevent wiping if 'buddy' extension - like Toolbox - is running too...
+        global GlobalVars
+    else:
+        class GlobalVars:        # Started using this method for storing global variables from August 2021
+            CONTEXT = MD_REF
+            defaultPrintService = None
+            defaultPrinterAttributes = None
+            defaultPrintFontSize = None
+            defaultPrintLandscape = None
+            defaultDPI = 72     # NOTE: 72dpi is Java2D default for everything; just go with it. No easy way to change
+            STATUS_LABEL = None
+            DARK_GREEN = Color(0, 192, 0)
+            resetPickleParameters = False
+            decimalCharSep = "."
+            groupingCharSep = ","
+            lGlobalErrorDetected = False
+            MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"
+            i_am_an_extension_so_run_headless = None
+            parametersLoadedFromFile = {}
+            thisScriptName = None
+            def __init__(self): pass    # Leave empty
 
-    class GlobalVars:        # Started using this method for storing global variables from August 2021
-        CONTEXT = MD_REF
-        defaultPrintService = None
-        defaultPrinterAttributes = None
-        defaultPrintFontSize = None
-        defaultPrintLandscape = None
-        defaultDPI = 72     # NOTE: 72dpi is Java2D default for everything; just go with it. No easy way to change
-        STATUS_LABEL = None
-        DARK_GREEN = Color(0, 192, 0)
-        def __init__(self): pass    # Leave empty
+            class Strings:
+                def __init__(self): pass    # Leave empty
+
+    GlobalVars.thisScriptName = u"%s.py(Extension)" %(myModuleID)
 
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
@@ -313,13 +323,13 @@ else:
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 106 ########################################################################
+    # COMMON CODE ################# VERSION 107 ########################################################################
     # COMMON CODE ######################################################################################################
-    i_am_an_extension_so_run_headless = False                                                                           # noqa
+    GlobalVars.i_am_an_extension_so_run_headless = False
     try:
-        myScriptName = os.path.basename(__file__)
+        GlobalVars.thisScriptName = os.path.basename(__file__)
     except:
-        i_am_an_extension_so_run_headless = True                                                                        # noqa
+        GlobalVars.i_am_an_extension_so_run_headless = True
 
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
@@ -328,8 +338,8 @@ The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
 Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
+                                        + Extension Menus: Total selected transactions & Move Investment Transactions
 Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
-Total selected transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 Extension (.mxt) and Script (.py) Versions available:
 Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
@@ -346,12 +356,12 @@ useful_scripts:                         Just unzip and select the script you wan
 
 Visit: %s (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
-""" %(myScriptName, MYPYTHON_DOWNLOAD_URL)
+""" %(GlobalVars.thisScriptName, GlobalVars.MYPYTHON_DOWNLOAD_URL)
 
     def cleanup_references():
         global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
-        myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
-        del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+        # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
+        # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -396,8 +406,6 @@ Visit: %s (Author's site)
 
     # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both, D=If Debug Only print, DB=print both
     def myPrint(where, *args):
-        global myScriptName, debug, i_am_an_extension_so_run_headless
-
         if where[0] == "D" and not debug: return
 
         try:
@@ -407,7 +415,7 @@ Visit: %s (Author's site)
             printString = printString.strip()
 
             if where == "P" or where == "B" or where[0] == "D":
-                if not i_am_an_extension_so_run_headless:
+                if not GlobalVars.i_am_an_extension_so_run_headless:
                     try:
                         print(printString)
                     except:
@@ -417,11 +425,11 @@ Visit: %s (Author's site)
             if where == "J" or where == "B" or where == "DB":
                 dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
                 try:
-                    System.err.write(myScriptName + ":" + dt + ": ")
+                    System.err.write(GlobalVars.thisScriptName + ":" + dt + ": ")
                     System.err.write(printString)
                     System.err.write("\n")
                 except:
-                    System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
+                    System.err.write(GlobalVars.thisScriptName + ":" + dt + ": "+"Error writing to console")
                     dump_sys_error_to_md_console_and_errorlog()
 
         except IllegalArgumentException:
@@ -446,30 +454,27 @@ Visit: %s (Author's site)
 
     def safeStr(_theText): return ("%s" %(_theText))
 
-    def pad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
-        theText = theText[:theLength].ljust(theLength, u" ")
+    def pad(theText, theLength, padChar=u" "):
+        if not isinstance(theText, (unicode, str)): theText = safeStr(theText)
+        theText = theText[:theLength].ljust(theLength, padChar)
         return theText
 
-    def rpad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
-        theText = theText[:theLength].rjust(theLength, u" ")
+    def rpad(theText, theLength, padChar=u" "):
+        if not isinstance(theText, (unicode, str)): theText = safeStr(theText)
+        theText = theText[:theLength].rjust(theLength, padChar)
         return theText
 
-    def cpad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
-        if len(theText)>=theLength: return theText[:theLength]
+    def cpad(theText, theLength, padChar=u" "):
+        if not isinstance(theText, (unicode, str)): theText = safeStr(theText)
+        if len(theText) >= theLength: return theText[:theLength]
         padLength = int((theLength - len(theText)) / 2)
         theText = theText[:theLength]
-        theText = ((" "*padLength)+theText+(" "*padLength))[:theLength]
-
+        theText = ((padChar * padLength)+theText+(padChar * padLength))[:theLength]
         return theText
 
-    myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
+    myPrint("B", GlobalVars.thisScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
     def getMonoFont():
-        global debug
-
         try:
             theFont = MD_REF.getUI().getFonts().code
             # if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
@@ -496,12 +501,16 @@ Visit: %s (Author's site)
         except:
             pass
 
-        if not homeDir: homeDir = u"?"
+        if homeDir is None or homeDir == u"":
+            homeDir = MD_REF.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
+
+        if homeDir is None or homeDir == u"":
+            homeDir = u""
+
+        myPrint("DB", "Home Directory detected...:", homeDir)
         return homeDir
 
     def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
-        global debug
-
         decimalFormat = DecimalFormat.getInstance()
         # noinspection PyUnresolvedReferences
         decimalSymbols = decimalFormat.getDecimalFormatSymbols()
@@ -534,8 +543,8 @@ Visit: %s (Author's site)
         return u"error"
 
 
-    decimalCharSep = getDecimalPoint(lGetPoint=True)
-    groupingCharSep = getDecimalPoint(lGetGrouping=True)
+    GlobalVars.decimalCharSep = getDecimalPoint(lGetPoint=True)
+    GlobalVars.groupingCharSep = getDecimalPoint(lGetGrouping=True)
 
     def isMacDarkModeDetected():
         darkResponse = "LIGHT"
@@ -566,6 +575,48 @@ Visit: %s (Author's site)
         except: pass
         return False
 
+    def isMDThemeCustomizable():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if currentTheme.isCustomizable(): return True
+        except: pass
+        return False
+
+    def isMDThemeHighContrast():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "high_contrast" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeDefault():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "default" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeClassic():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "classic" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeSolarizedLight():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "solarized_light" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeSolarizedDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "solarized_dark" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
     def isMDThemeFlatDark():
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
@@ -581,19 +632,26 @@ Visit: %s (Author's site)
             except: pass
         return False
 
+    def isIntelX86_32bit():
+        """Detect Intel x86 32bit system"""
+        return String(System.getProperty("os.arch", "null").strip()).toLowerCase(Locale.ROOT) == "x86"
+
+    def getMDIcon(startingIcon=None, lAlwaysGetIcon=False):
+        if lAlwaysGetIcon or isIntelX86_32bit():
+            return MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+        return startingIcon
+
     # JOptionPane.DEFAULT_OPTION, JOptionPane.YES_NO_OPTION, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.OK_CANCEL_OPTION
     # JOptionPane.ERROR_MESSAGE, JOptionPane.INFORMATION_MESSAGE, JOptionPane.WARNING_MESSAGE, JOptionPane.QUESTION_MESSAGE, JOptionPane.PLAIN_MESSAGE
 
-    # Copies MD_REF.getUI().showInfoMessage
+    # Copies MD_REF.getUI().showInfoMessage (but a newer version now exists in MD internal code)
     def myPopupInformationBox(theParent=None, theMessage="What no message?!", theTitle="Info", theMessageType=JOptionPane.INFORMATION_MESSAGE):
 
-        if theParent is None:
-            if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
-                JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType, icon_to_use)
-                return
-        JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType)
-        return
+        if theParent is None and (theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE):
+            icon = getMDIcon(lAlwaysGetIcon=True)
+        else:
+            icon = getMDIcon(None)
+        JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType, icon)
 
     def wrapLines(message, numChars=40):
         charCount = 0
@@ -609,6 +667,21 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
+    def doesUserAcceptDisclaimer(theParent, theTitle, disclaimerQuestion):
+        disclaimer = myPopupAskForInput(theParent,
+                                        theTitle,
+                                        "DISCLAIMER:",
+                                        "%s Type 'IAGREE' to continue.." %(disclaimerQuestion),
+                                        "NO",
+                                        False,
+                                        JOptionPane.ERROR_MESSAGE)
+        agreed = (disclaimer == "IAGREE")
+        if agreed:
+            myPrint("B", "%s: User AGREED to disclaimer question: '%s'" %(theTitle, disclaimerQuestion))
+        else:
+            myPrint("B", "%s: User DECLINED disclaimer question: '%s' - no action/changes made" %(theTitle, disclaimerQuestion))
+        return agreed
+
     def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
@@ -617,23 +690,53 @@ Visit: %s (Author's site)
                                                 "PERFORM BACKUP BEFORE UPDATE?",
                                                 0,
                                                 JOptionPane.WARNING_MESSAGE,
-                                                None,
+                                                getMDIcon(),
                                                 _options,
                                                 _options[0])
 
         if response == 2:
-            myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
-            MD_REF.getUI().setStatus("%s performing an Export Backup...." %(myScriptName),-1.0)
+            myPrint("B", "User requested to create a backup before update/fix - calling moneydance 'Export Backup' routine...")
+            MD_REF.getUI().setStatus("%s is creating a backup...." %(GlobalVars.thisScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
-            MD_REF.getUI().setStatus("%s Export Backup completed...." %(myScriptName),0)
+            MD_REF.getUI().setStatus("%s create (export) backup process completed...." %(GlobalVars.thisScriptName),0)
             return True
 
         elif response == 1:
-            myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
+            myPrint("B", "User DECLINED to create a backup before update/fix...!")
             if not lReturnTheTruth:
                 return True
 
         return False
+
+    def confirm_backup_confirm_disclaimer(theFrame, theTitleToDisplay, theAction):
+
+        if not myPopupAskQuestion(theFrame,
+                                  theTitle=theTitleToDisplay,
+                                  theQuestion=theAction,
+                                  theOptionType=JOptionPane.YES_NO_OPTION,
+                                  theMessageType=JOptionPane.ERROR_MESSAGE):
+
+            txt = "'%s' User did not say yes to '%s' - no changes made" %(theTitleToDisplay, theAction)
+            setDisplayStatus(txt, "R")
+            myPrint("B", txt)
+            myPopupInformationBox(theFrame,"User did not agree to proceed - no changes made...","NO UPDATE",JOptionPane.ERROR_MESSAGE)
+            return False
+
+        if not myPopupAskBackup(theFrame, "Would you like to perform a backup before %s" %(theTitleToDisplay)):
+            txt = "'%s' - User chose to exit without the fix/update...."%(theTitleToDisplay)
+            setDisplayStatus(txt, "R")
+            myPrint("B","'%s' User aborted at the backup prompt to '%s' - no changes made" %(theTitleToDisplay, theAction))
+            myPopupInformationBox(theFrame,"User aborted at the backup prompt - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
+            return False
+
+        if not doesUserAcceptDisclaimer(theFrame, theTitleToDisplay, theAction):
+            setDisplayStatus("'%s' - User declined the disclaimer - no changes made...." %(theTitleToDisplay), "R")
+            myPrint("B","'%s' User did not say accept Disclaimer to '%s' - no changes made" %(theTitleToDisplay, theAction))
+            myPopupInformationBox(theFrame,"User did not accept Disclaimer - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
+            return False
+
+        myPrint("B","'%s' - User has been offered opportunity to create a backup and they accepted the DISCLAIMER on Action: %s - PROCEEDING" %(theTitleToDisplay, theAction))
+        return True
 
     # Copied MD_REF.getUI().askQuestion
     def myPopupAskQuestion(theParent=None,
@@ -642,10 +745,10 @@ Visit: %s (Author's site)
                            theOptionType=JOptionPane.YES_NO_OPTION,
                            theMessageType=JOptionPane.QUESTION_MESSAGE):
 
-        icon_to_use = None
-        if theParent is None:
-            if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+        if theParent is None and (theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE):
+            icon = getMDIcon(lAlwaysGetIcon=True)
+        else:
+            icon = getMDIcon(None)
 
         # question = wrapLines(theQuestion)
         question = theQuestion
@@ -654,8 +757,7 @@ Visit: %s (Author's site)
                                                theTitle,
                                                theOptionType,
                                                theMessageType,
-                                               icon_to_use)  # getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"))
-
+                                               icon)
         return result == 0
 
     # Copies Moneydance .askForQuestion
@@ -667,10 +769,10 @@ Visit: %s (Author's site)
                            isPassword=False,
                            theMessageType=JOptionPane.INFORMATION_MESSAGE):
 
-        icon_to_use = None
-        if theParent is None:
-            if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+        if theParent is None and (theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE):
+            icon = getMDIcon(lAlwaysGetIcon=True)
+        else:
+            icon = getMDIcon(None)
 
         p = JPanel(GridBagLayout())
         defaultText = None
@@ -695,18 +797,28 @@ Visit: %s (Author's site)
                                           theTitle,
                                           JOptionPane.OK_CANCEL_OPTION,
                                           theMessageType,
-                                          icon_to_use) == 0):
+                                          icon) == 0):
             return field.getText()
         return None
 
     # APPLICATION_MODAL, DOCUMENT_MODAL, MODELESS, TOOLKIT_MODAL
     class MyPopUpDialogBox():
 
-        def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK", lAlertLevel=0):
+        def __init__(self,
+                     theParent=None,
+                     theStatus="",
+                     theMessage="",
+                     maxSize=Dimension(0,0),
+                     theTitle="Info",
+                     lModal=True,
+                     lCancelButton=False,
+                     OKButtonText="OK",
+                     lAlertLevel=0):
+
             self.theParent = theParent
             self.theStatus = theStatus
             self.theMessage = theMessage
-            self.theWidth = max(80,theWidth)
+            self.maxSize = maxSize
             self.theTitle = theTitle
             self.lModal = lModal
             self.lCancelButton = lCancelButton
@@ -715,10 +827,25 @@ Visit: %s (Author's site)
             self.fakeJFrame = None
             self._popup_d = None
             self.lResult = [None]
+            self.statusLabel = None
+            self.messageJText = None
             if not self.theMessage.endswith("\n"): self.theMessage+="\n"
             if self.OKButtonText == "": self.OKButtonText="OK"
-            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            # if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
             if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
+
+        def updateMessages(self, newTitle=None, newStatus=None, newMessage=None, lPack=True):
+            if not newTitle and not newStatus and not newMessage: return
+            if newTitle:
+                self.theTitle = newTitle
+                self._popup_d.setTitle(self.theTitle)
+            if newStatus:
+                self.theStatus = newStatus
+                self.statusLabel.setText(self.theStatus)
+            if newMessage:
+                self.theMessage = newMessage
+                self.messageJText.setText(self.theMessage)
+            if lPack: self._popup_d.pack()
 
         class WindowListener(WindowAdapter):
 
@@ -728,7 +855,6 @@ Visit: %s (Author's site)
                 self.lResult = lResult
 
             def windowClosing(self, WindowEvent):                                                                       # noqa
-                global debug
                 myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
                 myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -754,7 +880,6 @@ Visit: %s (Author's site)
                 self.lResult = lResult
 
             def actionPerformed(self, event):
-                global debug
                 myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
                 myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -778,7 +903,6 @@ Visit: %s (Author's site)
                 self.lResult = lResult
 
             def actionPerformed(self, event):
-                global debug
                 myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
                 myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -795,8 +919,6 @@ Visit: %s (Author's site)
                 return
 
         def kill(self):
-
-            global debug
             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -819,12 +941,9 @@ Visit: %s (Author's site)
             return
 
         def result(self):
-            global debug
             return self.lResult[0]
 
         def go(self):
-            global debug
-
             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -843,7 +962,7 @@ Visit: %s (Author's site)
                         self.callingClass.fakeJFrame.setName(u"%s_fake_dialog" %(myModuleID))
                         self.callingClass.fakeJFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
                         self.callingClass.fakeJFrame.setUndecorated(True)
-                        self.callingClass.fakeJFrame.setVisible( False )
+                        self.callingClass.fakeJFrame.setVisible(False)
                         if not Platform.isOSX():
                             self.callingClass.fakeJFrame.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
@@ -853,6 +972,16 @@ Visit: %s (Author's site)
                     else:
                         # noinspection PyUnresolvedReferences
                         self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.MODELESS)
+
+                    screenSize = Toolkit.getDefaultToolkit().getScreenSize()
+
+                    if isinstance(self.callingClass.maxSize, Dimension)\
+                            and self.callingClass.maxSize.height and self.callingClass.maxSize.width:
+                        frame_width = min(screenSize.width-20, self.callingClass.maxSize.width)
+                        frame_height = min(screenSize.height-20, self.callingClass.maxSize.height)
+                        self.callingClass._popup_d.setPreferredSize(Dimension(frame_width,frame_height))
+
+                    self.callingClass._popup_d.getContentPane().setLayout(BorderLayout())
 
                     self.callingClass._popup_d.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 
@@ -869,29 +998,28 @@ Visit: %s (Author's site)
                         # MD_REF.getUI().getImages()
                         self.callingClass._popup_d.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
-                    displayJText = JTextArea(self.callingClass.theMessage)
-                    displayJText.setFont( getMonoFont() )
-                    displayJText.setEditable(False)
-                    displayJText.setLineWrap(False)
-                    displayJText.setWrapStyleWord(False)
+                    self.callingClass.messageJText = JTextArea(self.callingClass.theMessage)
+                    self.callingClass.messageJText.setFont(getMonoFont())
+                    self.callingClass.messageJText.setEditable(False)
+                    self.callingClass.messageJText.setLineWrap(False)
+                    self.callingClass.messageJText.setWrapStyleWord(False)
 
-                    _popupPanel=JPanel()
+                    _popupPanel = JPanel(BorderLayout())
 
                     # maxHeight = 500
-                    _popupPanel.setLayout(GridLayout(0,1))
                     _popupPanel.setBorder(EmptyBorder(8, 8, 8, 8))
 
-                    if self.callingClass.theStatus:
-                        _label1 = JLabel(pad(self.callingClass.theStatus,self.callingClass.theWidth-20))
-                        _label1.setForeground(getColorBlue())
-                        _popupPanel.add(_label1)
 
-                    myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
-                    if displayJText.getLineCount()>5:
-                        myScrollPane.setWheelScrollingEnabled(True)
-                        _popupPanel.add(myScrollPane)
-                    else:
-                        _popupPanel.add(displayJText)
+                    if self.callingClass.theStatus:
+                        _statusPnl = JPanel(BorderLayout())
+                        self.callingClass.statusLabel = JLabel(self.callingClass.theStatus)
+                        self.callingClass.statusLabel.setForeground(getColorBlue())
+                        self.callingClass.statusLabel.setBorder(EmptyBorder(8, 0, 8, 0))
+                        _popupPanel.add(self.callingClass.statusLabel, BorderLayout.NORTH)
+
+                    myScrollPane = JScrollPane(self.callingClass.messageJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+                    myScrollPane.setWheelScrollingEnabled(True)
+                    _popupPanel.add(myScrollPane, BorderLayout.CENTER)
 
                     buttonPanel = JPanel()
                     if self.callingClass.lModal or self.callingClass.lCancelButton:
@@ -903,7 +1031,9 @@ Visit: %s (Author's site)
                             cancel_button.setBackground(Color.LIGHT_GRAY)
                             cancel_button.setBorderPainted(False)
                             cancel_button.setOpaque(True)
-                            cancel_button.addActionListener( self.callingClass.CancelButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame,self.callingClass.lResult) )
+                            cancel_button.setBorder(EmptyBorder(8, 8, 8, 8))
+
+                            cancel_button.addActionListener(self.callingClass.CancelButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame,self.callingClass.lResult) )
                             buttonPanel.add(cancel_button)
 
                         if self.callingClass.lModal:
@@ -916,34 +1046,35 @@ Visit: %s (Author's site)
                             ok_button.setBackground(Color.LIGHT_GRAY)
                             ok_button.setBorderPainted(False)
                             ok_button.setOpaque(True)
+                            ok_button.setBorder(EmptyBorder(8, 8, 8, 8))
                             ok_button.addActionListener( self.callingClass.OKButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame, self.callingClass.lResult) )
                             buttonPanel.add(ok_button)
 
-                        _popupPanel.add(buttonPanel)
+                        _popupPanel.add(buttonPanel, BorderLayout.SOUTH)
 
                     if self.callingClass.lAlertLevel>=2:
                         # internalScrollPane.setBackground(Color.RED)
-                        # theJText.setBackground(Color.RED)
-                        # theJText.setForeground(Color.BLACK)
-                        displayJText.setBackground(Color.RED)
-                        displayJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setBackground(Color.RED)
+                        self.callingClass.messageJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setOpaque(True)
                         _popupPanel.setBackground(Color.RED)
                         _popupPanel.setForeground(Color.BLACK)
+                        _popupPanel.setOpaque(True)
                         buttonPanel.setBackground(Color.RED)
-                        myScrollPane.setBackground(Color.RED)
+                        buttonPanel.setOpaque(True)
 
                     elif self.callingClass.lAlertLevel>=1:
                         # internalScrollPane.setBackground(Color.YELLOW)
-                        # theJText.setBackground(Color.YELLOW)
-                        # theJText.setForeground(Color.BLACK)
-                        displayJText.setBackground(Color.YELLOW)
-                        displayJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setBackground(Color.YELLOW)
+                        self.callingClass.messageJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setOpaque(True)
                         _popupPanel.setBackground(Color.YELLOW)
                         _popupPanel.setForeground(Color.BLACK)
+                        _popupPanel.setOpaque(True)
                         buttonPanel.setBackground(Color.YELLOW)
-                        myScrollPane.setBackground(Color.RED)
+                        buttonPanel.setOpaque(True)
 
-                    self.callingClass._popup_d.add(_popupPanel)
+                    self.callingClass._popup_d.add(_popupPanel, BorderLayout.CENTER)
                     self.callingClass._popup_d.pack()
                     self.callingClass._popup_d.setLocationRelativeTo(None)
                     self.callingClass._popup_d.setVisible(True)  # Keeping this modal....
@@ -963,7 +1094,8 @@ Visit: %s (Author's site)
 
         # Seems to cause a crash on Virtual Machine with no Audio - so just in case....
         try:
-            MD_REF.getUI().getSounds().playSound("cash_register.wav")
+            if MD_REF.getPreferences().getSetting("beep_on_transaction_change", "y") == "y":
+                MD_REF.getUI().getSounds().playSound("cash_register.wav")
         except:
             pass
 
@@ -1016,13 +1148,7 @@ Visit: %s (Author's site)
             if _theFile is None: return False
             return _theFile.getName().upper().endswith(self.ext)
 
-    try:
-        moneydanceIcon = MDImages.getImage(MD_REF.getSourceInformation().getIconResource())
-    except:
-        moneydanceIcon = None
-
     def MDDiag():
-        global debug
         myPrint("D", "Moneydance Build:", MD_REF.getVersion(), "Build:", MD_REF.getBuild())
 
 
@@ -1031,8 +1157,6 @@ Visit: %s (Author's site)
     myPrint("DB","System file encoding is:", sys.getfilesystemencoding() )   # Not used, but interesting. Perhaps useful when switching between Windows/Macs and writing files...
 
     def checkVersions():
-        global debug
-
         lError = False
         plat_j = platform.system()
         plat_p = platform.python_implementation()
@@ -1063,8 +1187,19 @@ Visit: %s (Author's site)
     checkVersions()
 
     def setDefaultFonts():
+        """Grabs the MD defaultText font, reduces default size down to below 18, sets UIManager defaults (if runtime extension, will probably error, so I catch and skip)"""
+        if MD_REF_UI is None: return
 
-        myFont = MD_REF.getUI().getFonts().defaultText
+        # If a runtime extension, then this may fail, depending on timing... Just ignore and return...
+        try:
+            myFont = MD_REF.getUI().getFonts().defaultText
+        except:
+            myPrint("B","ERROR trying to call .getUI().getFonts().defaultText - skipping setDefaultFonts()")
+            return
+
+        if myFont is None:
+            myPrint("B","WARNING: In setDefaultFonts(): calling .getUI().getFonts().defaultText has returned None (but moneydance_ui was set) - skipping setDefaultFonts()")
+            return
 
         if myFont.getSize()>18:
             try:
@@ -1130,15 +1265,11 @@ Visit: %s (Author's site)
         myPrint("DB",".setDefaultFonts() successfully executed...")
         return
 
-    if MD_REF_UI is not None:
-        setDefaultFonts()
+    setDefaultFonts()
 
     def who_am_i():
-        try:
-            username = System.getProperty("user.name")
-        except:
-            username = "???"
-
+        try: username = System.getProperty("user.name")
+        except: username = "???"
         return username
 
     def getHomeDir():
@@ -1150,36 +1281,8 @@ Visit: %s (Author's site)
         myPrint("D", 'os.environ.get("HOMEPATH")', os.environ.get("HOMEPATH"))
         return
 
-    def amIaMac():
-        return Platform.isOSX()
-
     myPrint("D", "I am user:", who_am_i())
     if debug: getHomeDir()
-    lIamAMac = amIaMac()
-
-    def myDir():
-        global lIamAMac
-        homeDir = None
-
-        try:
-            if lIamAMac:
-                homeDir = System.getProperty("UserHome")  # On a Mac in a Java VM, the homedir is hidden
-            else:
-                # homeDir = System.getProperty("user.home")
-                homeDir = os.path.expanduser("~")  # Should work on Unix and Windows
-                if homeDir is None or homeDir == "":
-                    homeDir = System.getProperty("user.home")
-                if homeDir is None or homeDir == "":
-                    homeDir = os.environ.get("HOMEPATH")
-        except:
-            pass
-
-        if homeDir is None or homeDir == "":
-            homeDir = MD_REF.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
-
-        myPrint("DB", "Home Directory selected...:", homeDir)
-        if homeDir is None: return ""
-        return homeDir
 
     # noinspection PyArgumentList
     class JTextFieldLimitYN(PlainDocument):
@@ -1222,13 +1325,13 @@ Visit: %s (Author's site)
         return str( theDelimiter )
 
     def get_StuWareSoftSystems_parameters_from_file(myFile="StuWareSoftSystems.dict"):
-        global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
+        global debug    # This global for debug must be here as we set it from loaded parameters
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
-        if _resetParameters:
+        if GlobalVars.resetPickleParameters:
             myPrint("B", "User has specified to reset parameters... keeping defaults and skipping pickle()")
-            myParameters = {}
+            GlobalVars.parametersLoadedFromFile = {}
             return
 
         old_dict_filename = os.path.join("..", myFile)
@@ -1252,14 +1355,14 @@ Visit: %s (Author's site)
                 else:
                     load_string = load_file.read()
 
-                myParameters = pickle.loads(load_string)
+                GlobalVars.parametersLoadedFromFile = pickle.loads(load_string)
                 load_file.close()
             except FileNotFoundException:
                 myPrint("B", "Error: failed to find parameter file...")
-                myParameters = None
+                GlobalVars.parametersLoadedFromFile = None
             except EOFError:
                 myPrint("B", "Error: reached EOF on parameter file....")
-                myParameters = None
+                GlobalVars.parametersLoadedFromFile = None
             except:
                 myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[0])
                 myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[1])
@@ -1271,39 +1374,38 @@ Visit: %s (Author's site)
                     istr = local_storage.openFileForReading(old_dict_filename)
                     load_file = FileUtil.wrap(istr)
                     # noinspection PyTypeChecker
-                    myParameters = pickle.load(load_file)
+                    GlobalVars.parametersLoadedFromFile = pickle.load(load_file)
                     load_file.close()
                     myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
-                    lPickle_version_warning = True
                 except:
                     myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[0])
                     myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[1])
                     myPrint("B","Error opening Pickle File - Line Number: ", sys.exc_info()[2].tb_lineno)
                     myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-                    myParameters = None
+                    GlobalVars.parametersLoadedFromFile = None
 
-            if myParameters is None:
-                myParameters = {}
+            if GlobalVars.parametersLoadedFromFile is None:
+                GlobalVars.parametersLoadedFromFile = {}
                 myPrint("DB","Parameters did not load, will keep defaults..")
             else:
                 myPrint("DB","Parameters successfully loaded from file...")
         else:
             myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
             myPrint("D", "Parameter Pickle file does not exist - will use default and create new file..")
-            myParameters = {}
+            GlobalVars.parametersLoadedFromFile = {}
 
-        if not myParameters: return
+        if not GlobalVars.parametersLoadedFromFile: return
 
-        myPrint("DB","myParameters read from file contains...:")
-        for key in sorted(myParameters.keys()):
-            myPrint("DB","...variable:", key, myParameters[key])
+        myPrint("DB","parametersLoadedFromFile read from file contains...:")
+        for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
+            myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
-        if myParameters.get("debug") is not None: debug = myParameters.get("debug")
-        if myParameters.get("lUseMacFileChooser") is not None:
+        if GlobalVars.parametersLoadedFromFile.get("debug") is not None: debug = GlobalVars.parametersLoadedFromFile.get("debug")
+        if GlobalVars.parametersLoadedFromFile.get("lUseMacFileChooser") is not None:
             myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
-            myParameters.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
+            GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
-        myPrint("DB","Parameter file loaded if present and myParameters{} dictionary set.....")
+        myPrint("DB","Parameter file loaded if present and parametersLoadedFromFile{} dictionary set.....")
 
         # Now load into memory!
         load_StuWareSoftSystems_parameters_into_memory()
@@ -1311,15 +1413,13 @@ Visit: %s (Author's site)
         return
 
     def save_StuWareSoftSystems_parameters_to_file(myFile="StuWareSoftSystems.dict"):
-        global debug, myParameters, lPickle_version_warning, version_build
-
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
-        if myParameters is None: myParameters = {}
+        if GlobalVars.parametersLoadedFromFile is None: GlobalVars.parametersLoadedFromFile = {}
 
         # Don't forget, any parameters loaded earlier will be preserved; just add changed variables....
-        myParameters["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
-        myParameters["debug"] = debug
+        GlobalVars.parametersLoadedFromFile["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
+        GlobalVars.parametersLoadedFromFile["debug"] = debug
 
         dump_StuWareSoftSystems_parameters_from_memory()
 
@@ -1334,12 +1434,12 @@ Visit: %s (Author's site)
 
         try:
             save_file = FileUtil.wrap(ostr)
-            pickle.dump(myParameters, save_file, protocol=0)
+            pickle.dump(GlobalVars.parametersLoadedFromFile, save_file, protocol=0)
             save_file.close()
 
-            myPrint("DB","myParameters now contains...:")
-            for key in sorted(myParameters.keys()):
-                myPrint("DB","...variable:", key, myParameters[key])
+            myPrint("DB","parametersLoadedFromFile now contains...:")
+            for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
+                myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         except:
             myPrint("B", "Error - failed to create/write parameter file.. Ignoring and continuing.....")
@@ -1351,18 +1451,19 @@ Visit: %s (Author's site)
 
         return
 
-    def get_time_stamp_as_nice_text( timeStamp ):
+    def get_time_stamp_as_nice_text(timeStamp, _format=None, lUseHHMMSS=True):
 
-        prettyDate = ""
+        if _format is None: _format = MD_REF.getPreferences().getShortDateFormat()
+
+        humanReadableDate = ""
         try:
             c = Calendar.getInstance()
             c.setTime(Date(timeStamp))
-            dateFormatter = SimpleDateFormat("yyyy/MM/dd HH:mm:ss(.SSS) Z z zzzz")
-            prettyDate = dateFormatter.format(c.getTime())
-        except:
-            pass
-
-        return prettyDate
+            longHHMMSSText = " HH:mm:ss(.SSS) Z z zzzz" if (lUseHHMMSS) else ""
+            dateFormatter = SimpleDateFormat("%s%s" %(_format, longHHMMSSText))
+            humanReadableDate = dateFormatter.format(c.getTime())
+        except: pass
+        return humanReadableDate
 
     def currentDateTimeMarker():
         c = Calendar.getInstance()
@@ -1673,7 +1774,7 @@ Visit: %s (Author's site)
                                                     "Search for text",
                                                     JOptionPane.OK_CANCEL_OPTION,
                                                     JOptionPane.QUESTION_MESSAGE,
-                                                    None,
+                                                    getMDIcon(None),
                                                     _search_options,
                                                     defaultDirection)
 
@@ -1791,8 +1892,11 @@ Visit: %s (Author's site)
 
         return
 
-    try: GlobalVars.defaultPrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")   # Do this here as MD_REF disappears after script ends...
-    except: GlobalVars.defaultPrintFontSize = 12
+    if MD_REF_UI is not None:       # Only action if the UI is loaded - e.g. scripts (not run time extensions)
+        try: GlobalVars.defaultPrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")   # Do this here as MD_REF disappears after script ends...
+        except: GlobalVars.defaultPrintFontSize = 12
+    else:
+        GlobalVars.defaultPrintFontSize = 12
 
     ####################################################################################################################
     # PRINTING UTILITIES...: Points to MM, to Inches, to Resolution: Conversion routines etc
@@ -2085,7 +2189,16 @@ Visit: %s (Author's site)
 
     class QuickJFrame():
 
-        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True, lQuitMDAfterClose=False):
+        def __init__(self,
+                     title,
+                     output,
+                     lAlertLevel=0,
+                     copyToClipboard=False,
+                     lJumpToEnd=False,
+                     lWrapText=True,
+                     lQuitMDAfterClose=False,
+                     screenLocation=None,
+                     lAutoSize=False):
             self.title = title
             self.output = output
             self.lAlertLevel = lAlertLevel
@@ -2094,7 +2207,9 @@ Visit: %s (Author's site)
             self.lJumpToEnd = lJumpToEnd
             self.lWrapText = lWrapText
             self.lQuitMDAfterClose = lQuitMDAfterClose
-            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            self.screenLocation = screenLocation
+            self.lAutoSize = lAutoSize
+            # if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
             if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         class QJFWindowListener(WindowAdapter):
@@ -2241,15 +2356,18 @@ Visit: %s (Author's site)
                     internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
                     if self.callingClass.lAlertLevel>=2:
-                        internalScrollPane.setBackground(Color.RED)
+                        # internalScrollPane.setBackground(Color.RED)
                         theJText.setBackground(Color.RED)
                         theJText.setForeground(Color.BLACK)
+                        theJText.setOpaque(True)
                     elif self.callingClass.lAlertLevel>=1:
-                        internalScrollPane.setBackground(Color.YELLOW)
+                        # internalScrollPane.setBackground(Color.YELLOW)
                         theJText.setBackground(Color.YELLOW)
                         theJText.setForeground(Color.BLACK)
+                        theJText.setOpaque(True)
 
-                    jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
+                    if not self.callingClass.lAutoSize:
+                        jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
                     SetupMDColors.updateUI()
 
@@ -2326,7 +2444,11 @@ Visit: %s (Author's site)
                     jInternalFrame.add(internalScrollPane)
 
                     jInternalFrame.pack()
-                    jInternalFrame.setLocationRelativeTo(None)
+                    if self.callingClass.screenLocation and isinstance(self.callingClass.screenLocation, Point):
+                        jInternalFrame.setLocation(self.callingClass.screenLocation)
+                    else:
+                        jInternalFrame.setLocationRelativeTo(None)
+
                     jInternalFrame.setVisible(True)
 
                     if Platform.isOSX():
@@ -2354,90 +2476,76 @@ Visit: %s (Author's site)
 
             return (self.returnFrame)
 
-    class AboutThisScript():
-
-        class CloseAboutAction(AbstractAction):
-
-            def __init__(self, theFrame):
-                self.theFrame = theFrame
-
-            def actionPerformed(self, event):
-                global debug
-                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event:", event)
-
-                # Listener is already on the Swing EDT...
-                self.theFrame.dispose()
+    class AboutThisScript(AbstractAction, Runnable):
 
         def __init__(self, theFrame):
-            global debug, scriptExit
             self.theFrame = theFrame
+            self.aboutDialog = None
+
+        def actionPerformed(self, event):
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event:", event)
+            self.aboutDialog.dispose()  # Listener is already on the Swing EDT...
 
         def go(self):
             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
 
-            class MyAboutRunnable(Runnable):
-                def __init__(self, callingClass):
-                    self.callingClass = callingClass
-
-                def run(self):                                                                                                      # noqa
-
-                    myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
-                    myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
-
-                    # noinspection PyUnresolvedReferences
-                    about_d = JDialog(self.callingClass.theFrame, "About", Dialog.ModalityType.MODELESS)
-
-                    shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
-                    about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
-                    about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
-                    about_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
-
-                    about_d.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAboutAction(about_d))
-
-                    about_d.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)  # The CloseAction() and WindowListener() will handle dispose() - else change back to DISPOSE_ON_CLOSE
-
-                    if (not Platform.isMac()):
-                        # MD_REF.getUI().getImages()
-                        about_d.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
-
-                    aboutPanel=JPanel()
-                    aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
-                    aboutPanel.setPreferredSize(Dimension(1120, 525))
-
-                    _label1 = JLabel(pad("Author: Stuart Beesley", 800))
-                    _label1.setForeground(getColorBlue())
-                    aboutPanel.add(_label1)
-
-                    _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
-                    _label2.setForeground(getColorBlue())
-                    aboutPanel.add(_label2)
-
-                    _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
-                    _label3.setForeground(getColorBlue())
-                    aboutPanel.add(_label3)
-
-                    displayString=scriptExit
-                    displayJText = JTextArea(displayString)
-                    displayJText.setFont( getMonoFont() )
-                    displayJText.setEditable(False)
-                    displayJText.setLineWrap(False)
-                    displayJText.setWrapStyleWord(False)
-                    displayJText.setMargin(Insets(8, 8, 8, 8))
-
-                    aboutPanel.add(displayJText)
-
-                    about_d.add(aboutPanel)
-
-                    about_d.pack()
-                    about_d.setLocationRelativeTo(None)
-                    about_d.setVisible(True)
-
             if not SwingUtilities.isEventDispatchThread():
                 myPrint("DB",".. Not running within the EDT so calling via MyAboutRunnable()...")
-                SwingUtilities.invokeAndWait(MyAboutRunnable(self))
+                SwingUtilities.invokeAndWait(self)
             else:
                 myPrint("DB",".. Already within the EDT so calling naked...")
-                MyAboutRunnable(self).run()
+                self.run()
+
+        def run(self):                                                                                                  # noqa
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+
+            # noinspection PyUnresolvedReferences
+            self.aboutDialog = JDialog(self.theFrame, "About", Dialog.ModalityType.MODELESS)
+
+            shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+            self.aboutDialog.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
+            self.aboutDialog.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+            self.aboutDialog.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
+            self.aboutDialog.getRootPane().getActionMap().put("close-window", self)
+            self.aboutDialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+
+            if (not Platform.isMac()):
+                # MD_REF.getUI().getImages()
+                self.aboutDialog.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+
+            aboutPanel = JPanel()
+            aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
+            aboutPanel.setPreferredSize(Dimension(1120, 550))
+
+            _label1 = JLabel(pad("Author: Stuart Beesley", 800))
+            _label1.setForeground(getColorBlue())
+            aboutPanel.add(_label1)
+
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2022)", 800))
+            _label2.setForeground(getColorBlue())
+            aboutPanel.add(_label2)
+
+            _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(GlobalVars.thisScriptName, version_build), 800))
+            _label3.setForeground(getColorBlue())
+            aboutPanel.add(_label3)
+
+            displayString=scriptExit
+            displayJText = JTextArea(displayString)
+            displayJText.setFont( getMonoFont() )
+            displayJText.setEditable(False)
+            displayJText.setLineWrap(False)
+            displayJText.setWrapStyleWord(False)
+            displayJText.setMargin(Insets(8, 8, 8, 8))
+
+            aboutPanel.add(displayJText)
+
+            self.aboutDialog.add(aboutPanel)
+
+            self.aboutDialog.pack()
+            self.aboutDialog.setLocationRelativeTo(None)
+            self.aboutDialog.setVisible(True)
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
@@ -2457,17 +2565,47 @@ Visit: %s (Author's site)
 
     def convertBytesKBs(_size): return round((_size/(1000.0)),1)
 
-    def getHumanReadableDateTimeFromTimeStamp(_theTimeStamp):
-        return datetime.datetime.fromtimestamp(_theTimeStamp).strftime('%Y-%m-%d %H:%M:%S')
+    def convertMDShortDateFormat_strftimeFormat(lIncludeTime=False, lForceYYMMDDHMS=False):
+        """Returns a Python strftime format string in accordance with MD Preferences for Date Format"""
+        # https://strftime.org
 
-    def getHumanReadableModifiedDateTimeFromFile(_theFile):
-        return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile))
+        _MDFormat = MD_REF.getPreferences().getShortDateFormat()
+
+        rtnFormat = "%Y-%m-%d"
+
+        if lForceYYMMDDHMS:
+            lIncludeTime = True
+        else:
+            if _MDFormat == "MM/dd/yyyy":
+                rtnFormat = "%m/%d/%Y"
+            elif _MDFormat == "MM.dd.yyyy":
+                rtnFormat = "%m.%d.%Y"
+            elif _MDFormat == "yyyy/MM/dd":
+                rtnFormat = "%Y/%m/%d"
+            elif _MDFormat == "yyyy.MM.dd":
+                rtnFormat = "%Y.%m.%d"
+            elif _MDFormat == "dd/MM/yyyy":
+                rtnFormat = "%d/%m/%Y"
+            elif _MDFormat == "dd.MM.yyyy":
+                rtnFormat = "%d.%m.%Y"
+
+        if lIncludeTime: rtnFormat += " %H:%M:%S"
+        return rtnFormat
+
+    def getHumanReadableDateTimeFromTimeStamp(_theTimeStamp, lIncludeTime=False, lForceYYMMDDHMS=False):
+        return datetime.datetime.fromtimestamp(_theTimeStamp).strftime(convertMDShortDateFormat_strftimeFormat(lIncludeTime=lIncludeTime, lForceYYMMDDHMS=lForceYYMMDDHMS))
+
+    def getHumanReadableModifiedDateTimeFromFile(_theFile, lIncludeTime=True, lForceYYMMDDHMS=True):
+        return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile), lIncludeTime=lIncludeTime, lForceYYMMDDHMS=lForceYYMMDDHMS)
 
     def convertStrippedIntDateFormattedText(strippedDateInt, _format=None):
 
-        if _format is None: _format = "yyyy/MM/dd"
+        # if _format is None: _format = "yyyy/MM/dd"
+        if _format is None: _format = MD_REF.getPreferences().getShortDateFormat()
 
-        convertedDate = ""
+        if strippedDateInt is None or strippedDateInt == 0:
+            return "<not set>"
+
         try:
             c = Calendar.getInstance()
             dateFromInt = DateUtil.convertIntDateToLong(strippedDateInt)
@@ -2475,7 +2613,7 @@ Visit: %s (Author's site)
             dateFormatter = SimpleDateFormat(_format)
             convertedDate = dateFormatter.format(c.getTime())
         except:
-            pass
+            return "<error>"
 
         return convertedDate
 
@@ -2508,6 +2646,38 @@ Visit: %s (Author's site)
             myPrint("DB",".. Already running within the EDT so calling FPSRunnable() naked...")
             FPSRunnable().run()
         return
+
+    def decodeCommand(passedEvent):
+        param = ""
+        uri = passedEvent
+        command = uri
+        theIdx = uri.find('?')
+        if(theIdx>=0):
+            command = uri[:theIdx]
+            param = uri[theIdx+1:]
+        else:
+            theIdx = uri.find(':')
+            if(theIdx>=0):
+                command = uri[:theIdx]
+                param = uri[theIdx+1:]
+        return command, param
+
+    def getFieldByReflection(theObj, fieldName, isInt=False):
+        reflect = theObj.getClass().getDeclaredField(fieldName)
+        if Modifier.isPrivate(reflect.getModifiers()): reflect.setAccessible(True)
+        isStatic = Modifier.isStatic(reflect.getModifiers())
+        if isInt: return reflect.getInt(theObj if not isStatic else None)
+        return reflect.get(theObj if not isStatic else None)
+
+    def find_feature_module(theModule):
+        # type: (str) -> bool
+        """Searches Moneydance for a specific extension loaded"""
+        fms = MD_REF.getLoadedModules()
+        for fm in fms:
+            if fm.getIDStr().lower() == theModule:
+                myPrint("DB", "Found extension: %s" %(theModule))
+                return fm
+        return None
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -2546,20 +2716,25 @@ Visit: %s (Author's site)
             destroyOldFrames(myModuleID)
 
         try:
-            MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
+            MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(GlobalVars.thisScriptName),0)
         except:
             pass  # If this fails, then MD is probably shutting down.......
 
-        if not i_am_an_extension_so_run_headless: print(scriptExit)
+        if not GlobalVars.i_am_an_extension_so_run_headless: print(scriptExit)
 
         cleanup_references()
+
+    # .moneydance_invoke_called() is used via the _invoke.py script as defined in script_info.dict. Not used for runtime extensions
+    def moneydance_invoke_called(theCommand):
+        # ... modify as required to handle .showURL() events sent to this extension/script...
+        myPrint("B","INVOKE - Received extension command: '%s'" %(theCommand))
 
     GlobalVars.defaultPrintLandscape = True
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
-    MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
+    MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
 
     myPopupInformationBox(None,"Please select a directory to extract attachments... I will create a subdirectory called 'EXTRACT_MD_ATTACHMENTS-x' (unique number)","EXTRACT ATTACHMENTS")
 

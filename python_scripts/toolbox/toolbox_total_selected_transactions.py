@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# orphan_attachments.py - build: 19 - January 2021 - Stuart Beesley
+# toolbox_total_selected_transactions.py build: 1008 - August 2021 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -27,37 +27,39 @@
 # SOFTWARE.
 ###############################################################################
 # Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
-# Stuart Beesley Created 2020-12-24 tested on MacOS - MD2021 (3034) onwards - StuWareSoftSystems....
-# Build: 1 - beta - Initial release
-# Build: 2 - Fix windows \s for /s
-# Build: 3 - Display enhancements
-# Build: 6 - Changes to common code
-# Build: 10 - Small internal tweak
-# build: 11 - Internal common code tweaks - nothing to do with the core functionality
-# build: 12 - Build 3051 of Moneydance... fix references to moneydance_* variables;
-# build: 13 - Build 3056 of Moneydance...
-# build: 14 - Common code tweaks
-# build: 15 - Common code tweaks
-# build: 16 - Common code tweaks
-# build: 17 - Common code tweaks
-# build: 18 - Common code tweaks
-# build: 19 - Common code - eliminating globals
+
+# build: 1000 - Initial Release
+# build: 1001 - Enhanced the popup with extra info (e.g. average, fx)
+# build: 1001 - Common code tweaks
+# build: 1002 - Extra investment totals
+# build: 1003 - Common code tweaks
+# build: 1004 - Common code tweaks; Flat Dark
+# build: 1005 - Common code tweaks
+# build: 1006 - Common code tweaks; Newer MyJFrame.dispose()
+# build: 1007 - Added <PREVIEW> tag to popup Dialog title if preview detected...
+# build: 1008 - Renamed to toolbox_total_selected_transactions.py and bundled within Toolbox as Extensions Menu option. Decommissioned extension
+# build: 1008 - Decommissioned separate extension
+# build: 1008 - Eliminated common code globals :->
+# build: 1008 - Now copy the result into the clipboard (as a raw number, no formatting)
+
+# Looks for an Account register that has focus and then totals the selected transactions. If any found, displays on screen
+# NOTE: 1st Aug 2021 - As a result of creating this extension, IK stated this would be core functionality in preview build 3070+
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
-myModuleID = u"orphan_transactions"
-version_build = "19"
+myModuleID = u"toolbox_total_selected_transactions"
+version_build = "1008"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
-_I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
+_I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
 if u"debug" in globals():
     global debug
 else:
     debug = False
-global orphan_transactions_frame_
+global toolbox_total_selected_transactions_frame_
 # SET LINES ABOVE ^^^^
 
 # COPY >> START
@@ -154,10 +156,10 @@ frameToResurrect = None
 try:
     # So we check own namespace first for same frame variable...
     if (u"%s_frame_"%myModuleID in globals()
-            and (isinstance(orphan_transactions_frame_, MyJFrame)                 # EDIT THIS
-                 or type(orphan_transactions_frame_).__name__ == u"MyCOAWindow")  # EDIT THIS
-            and orphan_transactions_frame_.isActiveInMoneydance):                 # EDIT THIS
-        frameToResurrect = orphan_transactions_frame_                             # EDIT THIS
+            and (isinstance(toolbox_total_selected_transactions_frame_, MyJFrame)                 # EDIT THIS
+                 or type(toolbox_total_selected_transactions_frame_).__name__ == u"MyCOAWindow")  # EDIT THIS
+            and toolbox_total_selected_transactions_frame_.isActiveInMoneydance):                 # EDIT THIS
+        frameToResurrect = toolbox_total_selected_transactions_frame_                             # EDIT THIS
     else:
         # Now check all frames in the JVM...
         getFr = getMyJFrame( myModuleID )
@@ -319,7 +321,11 @@ else:
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
-    from java.awt import Desktop
+    from javax.swing import JSplitPane
+    from com.moneydance.apps.md.view.gui.acctpanels import BankAcctPanel
+    from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel
+    from com.moneydance.apps.md.view.gui.txnreg import TxnRegister, TxnRegisterList
+    from com.infinitekind.moneydance.model import InvestFields, InvestTxnType                                           # noqa
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
@@ -2700,6 +2706,7 @@ Visit: %s (Author's site)
         pass
         return
 
+    # Just grab debug etc... Nothing extra
     get_StuWareSoftSystems_parameters_from_file()
 
     # clear up any old left-overs....
@@ -2720,7 +2727,10 @@ Visit: %s (Author's site)
             destroyOldFrames(myModuleID)
 
         try:
-            MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(GlobalVars.thisScriptName),0)
+            if storeSum[0]:
+                MD_REF.getUI().setStatus("Total Selected Txns: %s" %(storeSum[0]),0)
+            else:
+                MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(GlobalVars.thisScriptName),0)
         except:
             pass  # If this fails, then MD is probably shutting down.......
 
@@ -2733,363 +2743,322 @@ Visit: %s (Author's site)
         # ... modify as required to handle .showURL() events sent to this extension/script...
         myPrint("B","INVOKE - Received extension command: '%s'" %(theCommand))
 
-    GlobalVars.defaultPrintLandscape = True
+    GlobalVars.defaultPrintLandscape = False
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
 
-    scanningMsg = MyPopUpDialogBox(None,
-                                   "Please wait: searching Database and filesystem for attachments..",
-                                   theTitle="ATTACHMENT(S) SEARCH",
-                                   lModal=False,OKButtonText="WAIT")
-    scanningMsg.go()
+    try:
 
-    myPrint("P", "Scanning database for attachment data..")
-    book = MD_REF.getCurrentAccount().getBook()
+        if not SwingUtilities.isEventDispatchThread():
+            myPrint("B","@@@ ERROR: This extension can only be run on the Swing EDT (contact the author)!")
+            raise QuickAbortThisScriptException
 
-    attachmentList={}
-    attachmentLocations={}
-
-    iObjectsScanned=0
-    iTxnsScanned=0
-
-    iTxnsWithAttachments = 0
-    iAttachmentsFound = 0
-    iAttachmentsNotInLS = 0
-    iDuplicateKeys = 0
-    attachmentsNotInLS=[]
-
-    diagDisplay="ANALYSIS OF ATTACHMENTS\n\n"
-
-    attachmentFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe", MD_REF.getCurrentAccountBook().getAttachmentsFolder())
-
-    LS = MD_REF.getCurrentAccountBook().getLocalStorage()
-
-    txnSet = book.getTransactionSet()
-    for _mdItem in txnSet.iterableTxns():
-
-        iObjectsScanned+=1
-
-        iTxnsScanned+=1
-
-        if not (_mdItem.hasAttachments() or len(_mdItem.getAttachmentKeys())>0): continue
-
-        iTxnsWithAttachments+=1
-        x="Found Record with %s Attachment(s): %s" %(len(_mdItem.getAttachmentKeys()),_mdItem)
-        myPrint("D",x)
-        if debug: diagDisplay+=(x+"\n")
-
-        if attachmentList.get(_mdItem.getUUID()):
-            iDuplicateKeys += 1
-            x="@@ Error %s already exists in my attachment list...!?" %_mdItem.getUUID()
-            myPrint("DB", x)
-            if debug: diagDisplay+=(x+"\n")
-
-        attachmentList[_mdItem.getUUID()] = [
-            _mdItem.getUUID(),
-            _mdItem.getAccount().getAccountName(),
-            _mdItem.getAccount().getAccountType(),
-            _mdItem.getDateInt(),
-            _mdItem.getValue(),
-            _mdItem.getAttachmentKeys()
-        ]
-        x="Attachment keys: %s" %_mdItem.getAttachmentKeys()
-        myPrint("D",x)
-        if debug: diagDisplay+=(x+"\n")
-
-        for _key in _mdItem.getAttachmentKeys():
-            iAttachmentsFound+=1
-            if attachmentLocations.get(_mdItem.getAttachmentTag(_key)):
-                iDuplicateKeys += 1
-                x="@@ Error %s already exists in my attachment location list...!?" %_mdItem.getUUID()
-                myPrint("B", )
-                if debug: diagDisplay+=(x+"\n")
-
-            attachmentLocations[_mdItem.getAttachmentTag(_key)] = [
-                _mdItem.getAttachmentTag(_key),
-                _key,
-                _mdItem.getUUID(),
-                LS.exists(_mdItem.getAttachmentTag(_key))
-            ]
-            if not LS.exists(_mdItem.getAttachmentTag(_key)):
-                iAttachmentsNotInLS+=1
-                attachmentsNotInLS.append([
-                    _mdItem.getUUID(),
-                    _mdItem.getAccount().getAccountName(),
-                    _mdItem.getAccount().getAccountType(),
-                    _mdItem.getDateInt(),
-                    _mdItem.getValue(),
-                    _mdItem.getAttachmentKeys()
-                ])
-
-                x="@@ Error - Attachment for Txn DOES NOT EXIST! - Attachment tag: %s" %_mdItem.getAttachmentTag(_key)
-                myPrint("B",x)
-                diagDisplay+=(x+"\n")
-            else:
-                x="Attachment tag: %s" %_mdItem.getAttachmentTag(_key)
-                myPrint("D", x)
-                if debug: diagDisplay+=(x+"\n")
+        lDetectedBuddyRunning = False
+        for checkFr in [u"toolbox", u"toolbox_move_merge_investment_txns", u"toolbox_total_selected_transactions"]:
+            if getMyJFrame(checkFr) is not None:
+                lDetectedBuddyRunning = True
 
 
-    # Now scan the file system for attachments
-    myPrint("P", "Now scanning attachment directory(s) and files...:")
+        class MainAppRunnable(Runnable):
+            def __init__(self): pass
 
-    attachmentsRawListFound = []
+            def run(self):                                                                                              # noqa
+                global toolbox_total_selected_transactions_frame_   # global as defined here
 
-    typesFound={}
+                myPrint("DB", "In MainAppRunnable()", inspect.currentframe().f_code.co_name, "()")
+                myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
-    for root, dirs, files in os.walk(attachmentFullPath):
+                toolbox_total_selected_transactions_frame_ = MyJFrame()
+                toolbox_total_selected_transactions_frame_.setName(u"%s_main" %(myModuleID))
+                if (not Platform.isMac()):
+                    MD_REF.getUI().getImages()
+                    toolbox_total_selected_transactions_frame_.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+                toolbox_total_selected_transactions_frame_.setVisible(False)
+                toolbox_total_selected_transactions_frame_.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
 
-        for name in files:
-            theFile = os.path.join(root,name)[len(attachmentFullPath)-len(MD_REF.getCurrentAccountBook().getAttachmentsFolder()):]
-            byteSize = os.path.getsize(os.path.join(root,name))
-            modified = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime('%Y-%m-%d %H:%M:%S')
-            attachmentsRawListFound.append([theFile, byteSize, modified])
-            theExtension = os.path.splitext(theFile)[1].lower()
+                myPrint("DB","Main JFrame %s for application created.." %(toolbox_total_selected_transactions_frame_.getName()))
 
-            iCountExtensions = 0
-            iBytes = 0
-            if typesFound.get(theExtension):
-                iCountExtensions = typesFound.get(theExtension)[1]
-                iBytes = typesFound.get(theExtension)[2]
-            typesFound[theExtension] = [theExtension, iCountExtensions+1, iBytes+byteSize ]
-
-            x="Found Attachment File: %s" %theFile
-            myPrint("D", x)
-            if debug: diagDisplay+=(x+"\n")
-
-    # Now match file system to the list from the database
-    iOrphans=0
-    iOrphanBytes=0
-
-    orphanList=[]
-
-    for fileDetails in attachmentsRawListFound:
-        deriveTheKey = fileDetails[0]
-        deriveTheBytes = fileDetails[1]
-        deriveTheModified = fileDetails[2]
-        if attachmentLocations.get(deriveTheKey.replace(os.path.sep,"/")):
-            x="Attachment file system link found in Moneydance database"
-            myPrint("D", x)
-            if debug: diagDisplay+=(x+"\n")
+        if not SwingUtilities.isEventDispatchThread():
+            myPrint("DB",".. Main App Not running within the EDT so calling via MainAppRunnable()...")
+            SwingUtilities.invokeAndWait(MainAppRunnable())
         else:
-            x="Error: Attachment filesystem link missing in Moneydance database: %s" %deriveTheKey
-            myPrint("DB", x)
-            if debug: diagDisplay+=(x+"\n")
-            iOrphans+=1
-            iOrphanBytes+=deriveTheBytes
-            orphanList.append([deriveTheKey,deriveTheBytes, deriveTheModified])
+            myPrint("DB",".. Main App Already within the EDT so calling naked...")
+            MainAppRunnable().run()
 
-    msgStr=""
 
-    myPrint("P","\n"*5)
+        lRunningFromToolbox = False
+        if u"toolbox_script_runner" in globals():
+            global toolbox_script_runner
+            myPrint("B","Toolbox script runner detected: %s (build: %s)" %(toolbox_script_runner, version_build))
+            lRunningFromToolbox = True
+        elif lDetectedBuddyRunning:
+            # This (hopefully) means it's been called from the extensions menu as a 'buddy' extension to Toolbox. Both running will overwrite common variables
+            msg = "Sorry. Only one of the Toolbox Extension menu scripts can run at once.. Shutting all down. Please try again"
+            myPopupInformationBox(toolbox_total_selected_transactions_frame_, msg, "ALERT: Toolbox is running", JOptionPane.WARNING_MESSAGE)
+            myPrint("B", msg)
+            destroyOldFrames(u"toolbox")
+            raise QuickAbortThisScriptException
 
-    x="----------------------------------"
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n")
+        MD_decimal = MD_REF.getPreferences().getDecimalChar()
 
-    x = "Objects scanned: %s" %iObjectsScanned
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n")
-
-    x="Transactions scanned: %s" %iTxnsScanned
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n")
-    x="Transactions with attachments: %s" %iTxnsWithAttachments
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n")
-    x="Total Attachments referenced in Moneydance database (a txn may have multi-attachments): %s" %iAttachmentsFound
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n")
-    x="Attachments missing from Local Storage: %s" %iAttachmentsNotInLS
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n")
-    x="Total Attachments found in file system: %s (difference %s)" %(len(attachmentsRawListFound),len(attachmentsRawListFound)-iAttachmentsFound)
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n")
-
-    myPrint("P","\n"*1)
-
-    x="Attachment extensions found: %s" %len(typesFound)
-    myPrint("B", x)
-    diagDisplay+=("\n"+x+"\n")
-
-    iTotalBytes = 0
-    sortedExtensions = sorted(typesFound.values(), key=lambda _x: (_x[2]), reverse=True)
-
-    for x in sortedExtensions:
-        iTotalBytes+=x[2]
-
-        x="Extension: %s Number: %s Size: %sMB" %(pad(x[0],6),rpad(x[1],12),rpad(round(x[2]/(1000.0 * 1000.0),2),12))
-        myPrint("B", x)
-        diagDisplay+=(x+"\n")
-
-    x="Attachments on disk are taking: %sMB" %(round(iTotalBytes/(1000.0 * 1000.0),2))
-    myPrint("B", x)
-    diagDisplay+=(x+"\n")
-    msgStr+=(x+"\n")
-    x="----------------------------------"
-    myPrint("B", x)
-    msgStr+=(x+"\n")
-    diagDisplay+=(x+"\n\n")
-
-    lErrors=False
-    if iAttachmentsNotInLS:
-        x = "@@ ERROR: You have %s missing attachment(s) referenced on Moneydance Txns!" %(iAttachmentsNotInLS)
-        msgStr+=x+"\n"
-        diagDisplay+=(x+"\n\n")
-        myPrint("P","")
-        myPrint("B",x)
-        lErrors=True
-        attachmentsNotInLS=sorted(attachmentsNotInLS, key=lambda _x: (_x[3]), reverse=False)
-        for theOrphanRecord in attachmentsNotInLS:
-            x="Attachment is missing from this Txn: AcctType: %s Account: %s Date: %s Value: %s AttachKey: %s" %(theOrphanRecord[1],
-                                                                                                                 theOrphanRecord[2],
-                                                                                                                 theOrphanRecord[3],
-                                                                                                                 theOrphanRecord[4],
-                                                                                                                 theOrphanRecord[5])
-            myPrint("B", x)
-            diagDisplay+=(x+"\n")
-        diagDisplay+="\n"
-
-    if iOrphans:
-        x = "@@ ERROR: %s Orphan attachment(s) found, taking up %sMBs" %(iOrphans,round(iOrphanBytes/(1000.0 * 1000.0),2))
-        msgStr+=x+"\n"
-        diagDisplay+=(x+"\n\n")
-        myPrint("P","")
-
-        myPrint("B",x)
-        x="Base Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe","")
-        myPrint("B",x)
-        diagDisplay+=(x+"\n")
-        lErrors=True
-        orphanList=sorted(orphanList, key=lambda _x: (_x[2]), reverse=False)
-
-        for theOrphanRecord in orphanList:
-
-            try:
-                x="Orphaned Attachment >> Txn Size: %sKB Modified %s for file: %s" %(rpad(round(theOrphanRecord[1]/(1000.0),1),6),
-                                                                                     pad(theOrphanRecord[2],19),
-                                                                                     theOrphanRecord[0])
-                diagDisplay+=(x+"\n")
-                myPrint("B", x)
-
-            except:
-                diagDisplay += dump_sys_error_to_md_console_and_errorlog(True)
-                diagDisplay += "REVIEW MD MENU>HELP>CONSOLE WINDOW FOR DETAILS\n\n"
-                myPrint("B", "@@ record causing issue was.....:")
-                myPrint("B", theOrphanRecord)
-                myPrint("B", "... will continue.....")
-
-    if not lErrors:
-        x = "Congratulations! - No orphan attachments detected!".upper()
-        myPrint("B",x)
-        diagDisplay+=(x+"\n")
-
-    if iAttachmentsFound:
-        diagDisplay+="\n\nLISTING VALID ATTACHMENTS FOR REFERENCE\n"
-        diagDisplay+=" ======================================\n"
-        x="\nBase Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe","")
-        diagDisplay+=(x+"\n-----------\n")
-
-        for validLocation in attachmentLocations:
-            locationRecord = attachmentLocations[validLocation]
-            record = attachmentList[locationRecord[2]]
-            try:
-                diagDisplay+="AT: %s ACT: %s DT: %s Val: %s FILE: %s\n" \
-                             %(pad(repr(record[2]),12),
-                               pad(safeStr(record[1]),20),       # Avoid utf-8 issue!
-                               record[3],
-                               rpad(record[4]/100.0,10),
-                               validLocation)
-
-            except:
-                diagDisplay += dump_sys_error_to_md_console_and_errorlog(True)
-                diagDisplay += "REVIEW MD MENU>HELP>CONSOLE WINDOW FOR DETAILS\n\n"
-                myPrint("B", "@@ record causing issue was.....:")
-                myPrint("B", locationRecord)
-                myPrint("B", record)
-                myPrint("B", "... will continue.....")
-
-    diagDisplay+='\n<END>'
-
-    scanningMsg.kill()
-
-    jif = QuickJFrame("ATTACHMENT ANALYSIS",diagDisplay,copyToClipboard=True,lWrapText=False).show_the_frame()
-
-    if iOrphans:
-        theMsg = MyPopUpDialogBox(jif,
-                               "You have %s Orphan attachment(s) found, taking up %sMBs" % (iOrphans,round(iOrphanBytes/(1000.0 * 1000.0),2)),
-                                  msgStr +"CLICK TO VIEW ORPHANS, or CANCEL TO EXIT",
-                                  theTitle="ORPHANED ATTACHMENTS",
-                                  lCancelButton=True,
-                                  OKButtonText="CLICK TO VIEW",
-                                  lAlertLevel=1)
-    elif iAttachmentsNotInLS:
-        theMsg = MyPopUpDialogBox(jif,
-                               "You have %s missing attachment(s) referenced on Moneydance Txns!" % (iAttachmentsNotInLS),
-                                  msgStr,
-                                  theTitle="MISSING ATTACHMENTS",
-                                  lCancelButton=False,
-                                  OKButtonText="OK",
-                                  lAlertLevel=1)
-
-    if lErrors:
-        pass
-    else:
-        theMsg = MyPopUpDialogBox(jif,
-                                  x,
-                                  msgStr,
-                                  200,"ATTACHMENTS STATUS",
-                                  lCancelButton=False,
-                                  OKButtonText="OK",
-                                  lAlertLevel=0)
-
-    myPrint("P","\n"*2)
-
-    if iOrphans:
-        if theMsg.go():        # noqa
-            while True:
-                selectedOrphan = JOptionPane.showInputDialog(jif,
-                                                             "Select an Orphan to View",
-                                                             "VIEW ORPHAN (Escape or Cancel to exit)",
-                                                             JOptionPane.WARNING_MESSAGE,
-                                                             getMDIcon(None),
-                                                             orphanList,
-                                                             None)
-                if not selectedOrphan:
-                    break
-
+        def isPreviewBuild():
+            if MD_EXTENSION_LOADER is not None:
                 try:
-                    tmpDir = File(MD_REF.getCurrentAccount().getBook().getRootFolder(), "tmp")
-                    tmpDir.mkdirs()
-                    attachFileName = (File(tmpDir, selectedOrphan[0])).getName()            # noqa
-                    tmpFile = File.createTempFile(str(System.currentTimeMillis() % 10000L), attachFileName, tmpDir)
-                    tmpFile.deleteOnExit()
-                    fout = FileOutputStream(tmpFile)
-                    LS.readFile(selectedOrphan[0], fout)                                    # noqa
-                    fout.close()
-                    Desktop.getDesktop().open(tmpFile)
+                    stream = MD_EXTENSION_LOADER.getResourceAsStream("/_PREVIEW_BUILD_")
+                    if stream is not None:
+                        myPrint("B", "@@ PREVIEW BUILD (%s) DETECTED @@" %(version_build))
+                        stream.close()
+                        return True
+                except: pass
+            return False
 
-                except:
-                    myPrint("B","Sorry, could not open attachment file....: %s" %selectedOrphan[0])     # noqa
+        lFoundAnySelectedTransactions = [False]
 
-    else:
-        theMsg.go()        # noqa
+        def hunt_component(swingComponent, targetComponent):
 
-    del attachmentList
-    del attachmentLocations
-    del typesFound
-    del attachmentsRawListFound
-    del attachmentsNotInLS
+            result = None
+            comps = swingComponent.getComponents()
 
-    cleanup_actions()
+            for _c in comps:
+                if isinstance(_c,targetComponent):
+                    return _c
+                result = hunt_component(_c, targetComponent)
+                if result:
+                    return result
+
+            return result
+
+        def huntRegister(startingPoint):
+
+            for panel in startingPoint.getComponents():
+
+                myPrint("DB", "............", panel)
+                for pnlComp in panel.getComponents():
+
+                    if not isinstance(pnlComp, TxnRegisterList): continue
+
+                    myPrint("DB", "...............", type(pnlComp))
+
+                    p_reg = pnlComp.getClass().getDeclaredField("reg")                                                      # noqa
+                    p_reg.setAccessible(True)
+                    p_regObject = p_reg.get(pnlComp)                                                                        # type: TxnRegister
+                    p_reg.setAccessible(False)
+
+                    if isinstance(p_regObject, TxnRegister): pass
+
+                    myPrint("DB", "****** ", (p_regObject))
+
+                    if p_regObject.isEditingTxn():
+                        myPrint("DB", " Skipping as Txn is being edited....")
+                        continue
+
+                    # myPrint("DB", " REG TYPE: %s" %(p_regObject.getRegisterType()))
+                    myPrint("DB", "Found %s txns" %(len(p_regObject.getSelectedTxns())))
+                    analyseTxns(p_regObject.getSelectedTxns(), SwingUtilities.getWindowAncestor(pnlComp))
+
+                    myPrint("DB", "****** ")
+                    del p_regObject, p_reg
+
+                    break     # Seems to appear twice, so skip the second one.....
+
+        def analyseTxns(listTxns, frame):                                                                               # noqa
+
+            iCountTxns = 0
+
+            if listTxns:
+
+                total = 0
+                account = acctCurr = None
+                lInvestments = False
+                shares = fees = amounts = 0.0
+                buys = sells = 0
+                fields = InvestFields()
+
+                _i = 1
+                for txn in listTxns:
+                    iCountTxns += 1
+                    # if not isinstance(txn, AbstractTxn): raise Exception("LOGIC ERROR: Found a non AbstractTxn? %s" %(txn))
+                    myPrint("DB","--- Txn: %s ---" %(_i)); _i += 1
+                    myPrint("DB", " Account: %s isParent: %s" %(txn.getAccount(), isinstance(txn,ParentTxn)))
+
+                    if not account:
+                        account = txn.getAccount()
+                        acctCurr = account.getCurrencyType()
+                    elif account != txn.getAccount():
+                        raise Exception("LOGIC ERROR: Found different accounts within Txns?!")
+
+                    if isinstance(txn, ParentTxn):
+                        myPrint("DB", "\n", txn.toMultilineString())
+                    else:
+                        myPrint("DB", "\n", txn)
+
+                    # noinspection PyUnresolvedReferences
+                    if account.getAccountType() == Account.AccountType.INVESTMENT: lInvestments = True
+
+                    if lInvestments:
+                        fields.setFieldStatus(txn)
+
+                        mult = 1.0
+                        if fields.negateSecurity: mult = -1.0
+
+                        if fields.hasShares:
+                            if shares > 0.0:
+                                buys += 1
+                            else:
+                                sells += 1
+
+                            shares += fields.secCurr.getDoubleValue(fields.shares) * mult
+
+                        if fields.hasFee:
+                            fees += fields.curr.getDoubleValue(fields.fee)
+
+                        if fields.hasAmount:
+                            amounts += fields.curr.getDoubleValue(fields.amount) * mult
+
+                        # if fields.txnType.isSell():
+                        # elif fields.txnType.isBuy():
+                        # elif fields.txnType.isDividend():
+                        # elif fields.txnType == InvestTxnType.BANK:
+                        # elif fields.txnType == InvestTxnType.MISCEXP:
+                        # elif fields.txnType == InvestTxnType.MISCINC:
+
+                    total += txn.getValue()
+
+                    myPrint("DB", "------")
+
+                if iCountTxns:
+
+                    acctType = pad("Account:", 11)
+                    # noinspection PyUnresolvedReferences
+                    if account.getAccountType() == Account.AccountType.INCOME \
+                            or account.getAccountType() == Account.AccountType.EXPENSE:
+                        acctType = pad("Category:", 11)
+
+                    storeSum[0] = "%s: '%s' Total of selected txns: %s" %(acctType, account, acctCurr.formatFancy(total,MD_decimal))
+                    myPrint("B", storeSum[0])
+
+                    if len(listTxns) and total:
+                        averageValue = acctCurr.formatFancy(int(round(total/len(listTxns),0)),MD_decimal)
+                    else:
+                        averageValue = ""
+
+                    if isinstance(acctCurr, CurrencyType): pass     # This forces a type hint of sorts....
+
+                    base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+                    if acctCurr != base and isGoodRate(acctCurr.getRate(base)):
+
+                        rate = round(safeInvertRate(acctCurr.getRate(base)),4)
+                        convertBase = int(round(total / acctCurr.getRate(base),0))
+
+                        fx_line = "%s %s (using current rate @ %s)\n" %(pad("Base Value:",11),
+                                                                              base.formatFancy(convertBase,MD_decimal),
+                                                                              rate)
+                    else:
+                        fx_line = ""
+
+                    if lInvestments:
+                        invest_line = "Shares:     %s (Buys: %s, Sells: %s)\n" \
+                                      "Amounts:    %s\n" \
+                                      "Fees:       %s\n" %(shares, buys, sells, amounts, fees)
+                    else:
+                        invest_line = ""
+
+                    titleExtraTxt = u"" if not isPreviewBuild() else u"<PREVIEW BUILD: %s>" %(version_build)
+
+                    # can use frame if you like for the original MD frame....
+                    MyPopUpDialogBox(toolbox_total_selected_transactions_frame_,
+                                     "Cash value: %s (Count: %s, Average: %s)" %(acctCurr.formatFancy(total,MD_decimal),
+                                                                                 len(listTxns),
+                                                                                 averageValue),
+                                     theMessage="%s %s\n"
+                                                "%s"
+                                                "%s"
+                                                "Acct Type:  %s\n"
+                                                "Currency:   %s\n"
+                                                %(acctType, account.getAccountName(),
+                                                  fx_line,
+                                                  invest_line,
+                                                  account.getAccountType(),
+                                                  acctCurr.getName()),
+                                     lModal=False,
+                                     theTitle=u"Value Selected Txns   %s" %(titleExtraTxt)).go()
+                    lFoundAnySelectedTransactions[0] = True
+                    try: Toolkit.getDefaultToolkit().getSystemClipboard().setContents(StringSelection(acctCurr.format(total,MD_decimal)), None)
+                    except: pass
+            return
+
+        myPrint("DB","Scanning for selected register transactions...:")
+
+        myPrint("DB", "Found Main Application Windows: %s" %(MD_REF.getUI().getMainFrameCount()))
+        myPrint("DB", "First Application Window:       %s" %(MD_REF.getUI().getFirstMainFrame().getTitle()))
+        myPrint("DB", "Most Active Account Panel:      %s" %(MD_REF.getUI().getMostActiveAccountPanel()))
+
+        foundTxnRegister = None
+        foundJSplitPane = None
+
+        storeSum = [None]
+
+        myPrint("DB", "Searching Secondary Windows....:")
+
+        for secondary_window in MD_REF.getUI().getSecondaryWindows():
+            if not isinstance(secondary_window,
+                              (MainFrame, BankAcctPanel, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel)):
+                # myPrint("DB", "... skipping: '%s'" %(secondary_window.getTitle()))
+                continue
+
+            if not secondary_window.isFocused():                                                                            # noqa
+                myPrint("DB", "Skipping Non-Focused Secondary Window: '%s'" %(secondary_window.getTitle()))                 # noqa
+                continue
+            else:
+                myPrint("DB", "Secondary Window: '%s' - isFocused: %s, isVisible: %s, hasFocus: %s"
+                        %(secondary_window.getTitle(), secondary_window.isFocused(), secondary_window.isVisible(), secondary_window.hasFocus()))    # noqa
+
+            try:
+                accountPanel = secondary_window.getAccountPanel()
+                if not accountPanel: continue
+            except:
+                myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
+                continue
+
+            account_panel_component = None
+            for account_panel_component in secondary_window.getAccountPanel().getComponents():                              # noqa
+                myPrint("DB", ".. hunting for TxnRegister...")
+                foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+
+            if not foundTxnRegister:
+                myPrint("DB", "Failed to find TxnRegister in '%s'" %(account_panel_component))
+                continue
+
+            myPrint("DB", ".....Found: TxnRegister: '%s'" %(foundTxnRegister))
+
+            myPrint("DB", ".......hunting for JSplitPane...")
+            foundJSplitPane = hunt_component(foundTxnRegister, JSplitPane)
+
+            if foundJSplitPane:
+                myPrint("DB", ".........Found: JSplitScreen", foundJSplitPane)
+                huntRegister(foundJSplitPane)
+            else:
+                myPrint("DB", "Failed to find JSplitPane in '%s'" %(foundTxnRegister))
+
+        if not lFoundAnySelectedTransactions[0]:
+            msg = "No transactions selected and/or no register in focus"
+            myPrint("DB", msg)
+            myPopupInformationBox(toolbox_total_selected_transactions_frame_,msg)
+            raise QuickAbortThisScriptException
+
+        myPrint("B","FINISHED....")
+        cleanup_actions()
+
+    except QuickAbortThisScriptException:
+        myPrint("DB", "Caught Exception: QuickAbortThisScriptException... Doing nothing...")
+
+    except:
+        crash_txt = ("ERROR - %s has crashed. Please review MD Menu>Help>Console Window for details" %(myModuleID)).upper()
+        myPrint("B",crash_txt)
+        crash_output = dump_sys_error_to_md_console_and_errorlog(True)
+        jifr = QuickJFrame("ERROR - %s:" %(myModuleID),crash_output).show_the_frame()
+        myPopupInformationBox(jifr,crash_txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+        raise

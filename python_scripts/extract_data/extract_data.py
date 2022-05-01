@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1020 - August 2021 - Stuart Beesley
+# extract_data.py - build: 1021 - August 2021 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -18,7 +18,7 @@
 
 # MIT License
 #
-# Copyright (c) 2021 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2021-2022 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -85,6 +85,17 @@
 # build: 1019 - Common code tweaks; catch error in myPrint() on Asian double-byte characters; Other Asian Double-Byte fixes (more str() issues!!)
 # build: 1019 - Fix JMenu()s - remove <html> tags (affects colors on older Macs); newer MyJFrame().dispose()
 # build: 1020 - Tweak extract reminders - Monkey Patched the display / sort / extract date format....
+# build: 1021 - Added <PREVIEW> tag to JFrame titlebar if detected...
+# build: 1021 - Added <html> tags to JMenu() titles to stop becoming invisible when mouse hovers
+# build: 1022 - Changed JDateField to use user's date format
+# build: 1022 - Eliminated common code globals :->
+# build: 1022 - Extract Account Registers. Include LOAN and LIABILITY accounts too..
+# build: 1023 - Added lWriteParametersToExportFile_SWSS by user request (GitHub: Michael Thompson)
+# build: 1023 - Bug fix for .getSubAccounts() - as of build 4069 this is an unmodifiable list; also trap SwingWorker errors
+# build: 1023 - Added lOmitLOTDataFromExtract_EIT to Extract Investment Txns to allow user to omit LOT matching data from extract
+# build: 1023 - Added lAllowEscapeExitApp_SWSS to allow/block escape key exiting main app's window;  Tweaked the JMenuBar() to say "MENU"
+# build: 1023 - Upgraded the Edit Reminders popup so that escape will cancel the popup dialog window.
+# build: 1023 - Added showRawItemDetails() to reminders popup right-click menu
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -92,7 +103,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1020"
+version_build = "1021"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -116,6 +127,8 @@ else:
 from java.lang import System, Runnable
 from javax.swing import JFrame, SwingUtilities, SwingWorker
 from java.awt.event import WindowEvent
+
+class QuickAbortThisScriptException(Exception): pass
 
 class MyJFrame(JFrame):
 
@@ -172,12 +185,12 @@ class GenericVisibleRunnable(Runnable):
                 self.theFrame.setExtendedState(JFrame.NORMAL)
             self.theFrame.toFront()
 
-def getMyJFrame( moduleName ):
+def getMyJFrame(moduleName):
     try:
         frames = JFrame.getFrames()
         for fr in frames:
             if (fr.getName().lower().startswith(u"%s_main" %moduleName)
-                    and type(fr).__name__ == MyJFrame.__name__                         # isinstance() won't work across namespaces
+                    and (type(fr).__name__ == MyJFrame.__name__ or type(fr).__name__ == u"MyCOAWindow")  # isinstance() won't work across namespaces
                     and fr.isActiveInMoneydance):
                 _msg = "%s: Found live frame: %s (MyJFrame() version: %s)\n" %(myModuleID,fr.getName(),fr.myJFrameVersion)
                 print(_msg); System.err.write(_msg)
@@ -195,9 +208,10 @@ frameToResurrect = None
 try:
     # So we check own namespace first for same frame variable...
     if (u"%s_frame_"%myModuleID in globals()
-            and isinstance(extract_data_frame_, MyJFrame)        # EDIT THIS
-            and extract_data_frame_.isActiveInMoneydance):       # EDIT THIS
-        frameToResurrect = extract_data_frame_                   # EDIT THIS
+            and (isinstance(extract_data_frame_, MyJFrame)                 # EDIT THIS
+                 or type(extract_data_frame_).__name__ == u"MyCOAWindow")  # EDIT THIS
+            and extract_data_frame_.isActiveInMoneydance):                 # EDIT THIS
+        frameToResurrect = extract_data_frame_                             # EDIT THIS
     else:
         # Now check all frames in the JVM...
         getFr = getMyJFrame( myModuleID )
@@ -271,8 +285,7 @@ else:
 
     from org.python.core.util import FileUtil
 
-    from java.lang import Thread
-    from java.lang import IllegalArgumentException
+    from java.lang import Thread, IllegalArgumentException, String
 
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
@@ -299,13 +312,14 @@ else:
     from javax.swing.event import AncestorListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
-    from java.awt import BorderLayout, Dialog, Insets
+    from java.awt import BorderLayout, Dialog, Insets, Point
     from java.awt.event import KeyEvent, WindowAdapter, InputEvent
-    from java.util import Date
+    from java.util import Date, Locale
 
     from java.text import DecimalFormat, SimpleDateFormat, MessageFormat
     from java.util import Calendar, ArrayList
     from java.lang import Double, Math, Character
+    from java.lang.reflect import Modifier
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
     from java.nio.charset import Charset
@@ -314,7 +328,7 @@ else:
                          JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                          InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
                          AccountUtil, AcctFilter, CurrencyType, Account, TxnUtil, JScrollPane, WindowConstants, JFrame,
-                         JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent,
+                         JComponent, KeyStroke, AbstractAction, UIManager, Color, Dimension, Toolkit, KeyEvent, GridLayout,
                          WindowAdapter, CustomDateFormat, SimpleDateFormat, Insets, FileDialog, Thread, SwingWorker)): pass
     if codecs.BOM_UTF8 is not None: pass
     if csv.QUOTE_ALL is not None: pass
@@ -323,31 +337,38 @@ else:
     # END COMMON IMPORTS ###################################################################################################
 
     # COMMON GLOBALS #######################################################################################################
-    global myParameters, myScriptName, _resetParameters, i_am_an_extension_so_run_headless, moneydanceIcon
-    global lPickle_version_warning, decimalCharSep, groupingCharSep, lIamAMac, lGlobalErrorDetected
-    global MYPYTHON_DOWNLOAD_URL
+    # All common globals have now been eliminated :->
     # END COMMON GLOBALS ###################################################################################################
     # COPY >> END
 
     # SET THESE VARIABLES FOR ALL SCRIPTS ##################################################################################
-    myScriptName = u"%s.py(Extension)" %myModuleID                                                                      # noqa
-    myParameters = {}                                                                                                   # noqa
-    _resetParameters = False                                                                                            # noqa
-    lPickle_version_warning = False                                                                                     # noqa
-    lIamAMac = False                                                                                                    # noqa
-    lGlobalErrorDetected = False																						# noqa
-    MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"                                       # noqa
+    if "GlobalVars" in globals():   # Prevent wiping if 'buddy' extension - like Toolbox - is running too...
+        global GlobalVars
+    else:
+        class GlobalVars:        # Started using this method for storing global variables from August 2021
+            CONTEXT = MD_REF
+            defaultPrintService = None
+            defaultPrinterAttributes = None
+            defaultPrintFontSize = None
+            defaultPrintLandscape = None
+            defaultDPI = 72     # NOTE: 72dpi is Java2D default for everything; just go with it. No easy way to change
+            STATUS_LABEL = None
+            DARK_GREEN = Color(0, 192, 0)
+            resetPickleParameters = False
+            decimalCharSep = "."
+            groupingCharSep = ","
+            lGlobalErrorDetected = False
+            MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"
+            i_am_an_extension_so_run_headless = None
+            parametersLoadedFromFile = {}
+            thisScriptName = None
+            def __init__(self): pass    # Leave empty
 
-    class GlobalVars:        # Started using this method for storing global variables from August 2021
-        CONTEXT = MD_REF
-        defaultPrintService = None
-        defaultPrinterAttributes = None
-        defaultPrintFontSize = None
-        defaultPrintLandscape = None
-        defaultDPI = 72     # NOTE: 72dpi is Java2D default for everything; just go with it. No easy way to change
-        STATUS_LABEL = None
-        DARK_GREEN = Color(0, 192, 0)
-        def __init__(self): pass    # Leave empty
+            class Strings:
+                def __init__(self): pass    # Leave empty
+
+    GlobalVars.thisScriptName = u"%s.py(Extension)" %(myModuleID)
+
 
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
@@ -363,14 +384,23 @@ else:
     # from stockglance2020 and extract_reminders_csv
     from java.awt.event import AdjustmentListener
     from java.text import NumberFormat, SimpleDateFormat
-    from com.moneydance.apps.md.view.gui import EditRemindersWindow
+
+    from com.moneydance.apps.md.view.gui import EditRemindersWindow                                                     # noqa
+    from com.moneydance.apps.md.view.gui import LoanTxnReminderNotificationWindow                                       # noqa
+    from com.moneydance.apps.md.view.gui import TxnReminderNotificationWindow                                           # noqa
+    from com.moneydance.apps.md.view.gui import BasicReminderNotificationWindow                                         # noqa
+    from com.moneydance.apps.md.view.gui import LoanTxnReminderInfoWindow                                               # noqa
+    from com.moneydance.apps.md.view.gui import TxnReminderInfoWindow                                                   # noqa
+    from com.moneydance.apps.md.view.gui import BasicReminderInfoWindow                                                 # noqa
+    from com.infinitekind.moneydance.model import ReminderListener                                                      # noqa
+
     from java.awt.event import MouseAdapter
     from java.util import Comparator
-    from javax.swing import SortOrder, ListSelectionModel
+    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu
     from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, TableRowSorter
     from javax.swing.border import CompoundBorder, MatteBorder
     from javax.swing.event import TableColumnModelListener
-    from java.lang import String, Number
+    from java.lang import Number
     from com.moneydance.apps.md.controller import AppEventListener
     from com.infinitekind.util import StringUtils
     exec("from java.awt.print import Book")     # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
@@ -390,7 +420,7 @@ else:
     global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
     global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
-    global whichDefaultExtractToRun_SWSS
+    global whichDefaultExtractToRun_SWSS, lWriteParametersToExportFile_SWSS, lAllowEscapeExitApp_SWSS
 
     # from extract_account_registers_csv
     global lIncludeSubAccounts_EAR
@@ -402,7 +432,7 @@ else:
 
     # from extract_investment_transactions_csv
     global lIncludeOpeningBalances, lAdjustForSplits
-    global lExtractAttachments_EIT
+    global lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT
 
     # from stockglance2020
     global lIncludeCashBalances, _column_widths_SG2020
@@ -447,6 +477,7 @@ else:
     attachmentDir = ""                                                                                                  # noqa
     lDidIUseAttachmentDir = False                                                                                       # noqa
     lWriteBOMToExportFile_SWSS = True                                                                                   # noqa
+    lWriteParametersToExportFile_SWSS = True                                                                            # noqa
     hideInactiveAccounts = True                                                                                         # noqa
     hideHiddenAccounts = True                                                                                           # noqa
     lAllAccounts = True                                                                                                 # noqa
@@ -457,6 +488,7 @@ else:
     lAllCurrency = True                                                                                                 # noqa
     filterForCurrency = "ALL"                                                                                           # noqa
     whichDefaultExtractToRun_SWSS = None                                                                                # noqa
+    lAllowEscapeExitApp_SWSS = True                                                                                     # noqa
 
     # from extract_account_registers_csv
     lIncludeSubAccounts_EAR = False                                                                                     # noqa
@@ -477,7 +509,8 @@ else:
     # from extract_investment_transactions_csv
     lIncludeOpeningBalances = True                                                                                      # noqa
     lAdjustForSplits = True                                                                                             # noqa
-    lExtractAttachments_EIT=False                                                                                       # noqa
+    lExtractAttachments_EIT = False                                                                                     # noqa
+    lOmitLOTDataFromExtract_EIT = False                                                                                 # noqa
 
     # from stockglance2020
     lIncludeCashBalances = False                                                                                        # noqa
@@ -504,11 +537,11 @@ else:
     # COMMON CODE ######################################################################################################
     # COMMON CODE ################# VERSION 106 ########################################################################
     # COMMON CODE ######################################################################################################
-    i_am_an_extension_so_run_headless = False                                                                           # noqa
+    GlobalVars.i_am_an_extension_so_run_headless = False
     try:
-        myScriptName = os.path.basename(__file__)
+        GlobalVars.thisScriptName = os.path.basename(__file__)
     except:
-        i_am_an_extension_so_run_headless = True                                                                        # noqa
+        GlobalVars.i_am_an_extension_so_run_headless = True
 
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
@@ -517,8 +550,8 @@ The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
 Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
+                                        + Extension Menus: Total selected transactions & Move Investment Transactions
 Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
-Total selected transactions:            One-click. Shows a popup total of the register txn amounts selected on screen
 
 Extension (.mxt) and Script (.py) Versions available:
 Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
@@ -535,12 +568,12 @@ useful_scripts:                         Just unzip and select the script you wan
 
 Visit: %s (Author's site)
 ----------------------------------------------------------------------------------------------------------------------
-""" %(myScriptName, MYPYTHON_DOWNLOAD_URL)
+""" %(GlobalVars.thisScriptName, GlobalVars.MYPYTHON_DOWNLOAD_URL)
 
     def cleanup_references():
         global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
-        myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
-        del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+        # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
+        # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -585,8 +618,6 @@ Visit: %s (Author's site)
 
     # P=Display on Python Console, J=Display on MD (Java) Console Error Log, B=Both, D=If Debug Only print, DB=print both
     def myPrint(where, *args):
-        global myScriptName, debug, i_am_an_extension_so_run_headless
-
         if where[0] == "D" and not debug: return
 
         try:
@@ -596,7 +627,7 @@ Visit: %s (Author's site)
             printString = printString.strip()
 
             if where == "P" or where == "B" or where[0] == "D":
-                if not i_am_an_extension_so_run_headless:
+                if not GlobalVars.i_am_an_extension_so_run_headless:
                     try:
                         print(printString)
                     except:
@@ -606,11 +637,11 @@ Visit: %s (Author's site)
             if where == "J" or where == "B" or where == "DB":
                 dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
                 try:
-                    System.err.write(myScriptName + ":" + dt + ": ")
+                    System.err.write(GlobalVars.thisScriptName + ":" + dt + ": ")
                     System.err.write(printString)
                     System.err.write("\n")
                 except:
-                    System.err.write(myScriptName + ":" + dt + ": "+"Error writing to console")
+                    System.err.write(GlobalVars.thisScriptName + ":" + dt + ": "+"Error writing to console")
                     dump_sys_error_to_md_console_and_errorlog()
 
         except IllegalArgumentException:
@@ -635,30 +666,27 @@ Visit: %s (Author's site)
 
     def safeStr(_theText): return ("%s" %(_theText))
 
-    def pad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
-        theText = theText[:theLength].ljust(theLength, u" ")
+    def pad(theText, theLength, padChar=u" "):
+        if not isinstance(theText, (unicode, str)): theText = safeStr(theText)
+        theText = theText[:theLength].ljust(theLength, padChar)
         return theText
 
-    def rpad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
-        theText = theText[:theLength].rjust(theLength, u" ")
+    def rpad(theText, theLength, padChar=u" "):
+        if not isinstance(theText, (unicode, str)): theText = safeStr(theText)
+        theText = theText[:theLength].rjust(theLength, padChar)
         return theText
 
-    def cpad(theText, theLength):
-        if not (isinstance(theText, unicode) or isinstance(theText, str)): theText = safeStr(theText)
-        if len(theText)>=theLength: return theText[:theLength]
+    def cpad(theText, theLength, padChar=u" "):
+        if not isinstance(theText, (unicode, str)): theText = safeStr(theText)
+        if len(theText) >= theLength: return theText[:theLength]
         padLength = int((theLength - len(theText)) / 2)
         theText = theText[:theLength]
-        theText = ((" "*padLength)+theText+(" "*padLength))[:theLength]
-
+        theText = ((padChar * padLength)+theText+(padChar * padLength))[:theLength]
         return theText
 
-    myPrint("B", myScriptName, ": Python Script Initialising.......", "Build:", version_build)
+    myPrint("B", GlobalVars.thisScriptName, ": Python Script Initialising.......", "Build:", version_build)
 
     def getMonoFont():
-        global debug
-
         try:
             theFont = MD_REF.getUI().getFonts().code
             # if debug: myPrint("B","Success setting Font set to Moneydance code: %s" %theFont)
@@ -685,12 +713,16 @@ Visit: %s (Author's site)
         except:
             pass
 
-        if not homeDir: homeDir = u"?"
+        if homeDir is None or homeDir == u"":
+            homeDir = MD_REF.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
+
+        if homeDir is None or homeDir == u"":
+            homeDir = u""
+
+        myPrint("DB", "Home Directory detected...:", homeDir)
         return homeDir
 
     def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
-        global debug
-
         decimalFormat = DecimalFormat.getInstance()
         # noinspection PyUnresolvedReferences
         decimalSymbols = decimalFormat.getDecimalFormatSymbols()
@@ -723,8 +755,8 @@ Visit: %s (Author's site)
         return u"error"
 
 
-    decimalCharSep = getDecimalPoint(lGetPoint=True)
-    groupingCharSep = getDecimalPoint(lGetGrouping=True)
+    GlobalVars.decimalCharSep = getDecimalPoint(lGetPoint=True)
+    GlobalVars.groupingCharSep = getDecimalPoint(lGetGrouping=True)
 
     def isMacDarkModeDetected():
         darkResponse = "LIGHT"
@@ -755,6 +787,48 @@ Visit: %s (Author's site)
         except: pass
         return False
 
+    def isMDThemeCustomizable():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if currentTheme.isCustomizable(): return True
+        except: pass
+        return False
+
+    def isMDThemeHighContrast():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "high_contrast" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeDefault():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "default" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeClassic():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "classic" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeSolarizedLight():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "solarized_light" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
+    def isMDThemeSolarizedDark():
+        try:
+            currentTheme = MD_REF.getUI().getCurrentTheme()
+            if "solarized_dark" in currentTheme.getThemeID(): return True
+        except: pass
+        return False
+
     def isMDThemeFlatDark():
         try:
             currentTheme = MD_REF.getUI().getCurrentTheme()
@@ -770,19 +844,26 @@ Visit: %s (Author's site)
             except: pass
         return False
 
+    def isIntelX86_32bit():
+        """Detect Intel x86 32bit system"""
+        return String(System.getProperty("os.arch", "null").strip()).toLowerCase(Locale.ROOT) == "x86"
+
+    def getMDIcon(startingIcon=None, lAlwaysGetIcon=False):
+        if lAlwaysGetIcon or isIntelX86_32bit():
+            return MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+        return startingIcon
+
     # JOptionPane.DEFAULT_OPTION, JOptionPane.YES_NO_OPTION, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.OK_CANCEL_OPTION
     # JOptionPane.ERROR_MESSAGE, JOptionPane.INFORMATION_MESSAGE, JOptionPane.WARNING_MESSAGE, JOptionPane.QUESTION_MESSAGE, JOptionPane.PLAIN_MESSAGE
 
-    # Copies MD_REF.getUI().showInfoMessage
+    # Copies MD_REF.getUI().showInfoMessage (but a newer version now exists in MD internal code)
     def myPopupInformationBox(theParent=None, theMessage="What no message?!", theTitle="Info", theMessageType=JOptionPane.INFORMATION_MESSAGE):
 
-        if theParent is None:
-            if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
-                JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType, icon_to_use)
-                return
-        JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType)
-        return
+        if theParent is None and (theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE):
+            icon = getMDIcon(lAlwaysGetIcon=True)
+        else:
+            icon = getMDIcon(None)
+        JOptionPane.showMessageDialog(theParent, JTextPanel(theMessage), theTitle, theMessageType, icon)
 
     def wrapLines(message, numChars=40):
         charCount = 0
@@ -798,6 +879,21 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
+    def doesUserAcceptDisclaimer(theParent, theTitle, disclaimerQuestion):
+        disclaimer = myPopupAskForInput(theParent,
+                                        theTitle,
+                                        "DISCLAIMER:",
+                                        "%s Type 'IAGREE' to continue.." %(disclaimerQuestion),
+                                        "NO",
+                                        False,
+                                        JOptionPane.ERROR_MESSAGE)
+        agreed = (disclaimer == "IAGREE")
+        if agreed:
+            myPrint("B", "%s: User AGREED to disclaimer question: '%s'" %(theTitle, disclaimerQuestion))
+        else:
+            myPrint("B", "%s: User DECLINED disclaimer question: '%s' - no action/changes made" %(theTitle, disclaimerQuestion))
+        return agreed
+
     def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
@@ -806,23 +902,53 @@ Visit: %s (Author's site)
                                                 "PERFORM BACKUP BEFORE UPDATE?",
                                                 0,
                                                 JOptionPane.WARNING_MESSAGE,
-                                                None,
+                                                getMDIcon(),
                                                 _options,
                                                 _options[0])
 
         if response == 2:
-            myPrint("B", "User requested to perform Export Backup before update/fix - calling moneydance export backup routine...")
-            MD_REF.getUI().setStatus("%s performing an Export Backup...." %(myScriptName),-1.0)
+            myPrint("B", "User requested to create a backup before update/fix - calling moneydance 'Export Backup' routine...")
+            MD_REF.getUI().setStatus("%s is creating a backup...." %(GlobalVars.thisScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
-            MD_REF.getUI().setStatus("%s Export Backup completed...." %(myScriptName),0)
+            MD_REF.getUI().setStatus("%s create (export) backup process completed...." %(GlobalVars.thisScriptName),0)
             return True
 
         elif response == 1:
-            myPrint("B", "User DECLINED to perform Export Backup before update/fix...!")
+            myPrint("B", "User DECLINED to create a backup before update/fix...!")
             if not lReturnTheTruth:
                 return True
 
         return False
+
+    def confirm_backup_confirm_disclaimer(theFrame, theTitleToDisplay, theAction):
+
+        if not myPopupAskQuestion(theFrame,
+                                  theTitle=theTitleToDisplay,
+                                  theQuestion=theAction,
+                                  theOptionType=JOptionPane.YES_NO_OPTION,
+                                  theMessageType=JOptionPane.ERROR_MESSAGE):
+
+            txt = "'%s' User did not say yes to '%s' - no changes made" %(theTitleToDisplay, theAction)
+            setDisplayStatus(txt, "R")
+            myPrint("B", txt)
+            myPopupInformationBox(theFrame,"User did not agree to proceed - no changes made...","NO UPDATE",JOptionPane.ERROR_MESSAGE)
+            return False
+
+        if not myPopupAskBackup(theFrame, "Would you like to perform a backup before %s" %(theTitleToDisplay)):
+            txt = "'%s' - User chose to exit without the fix/update...."%(theTitleToDisplay)
+            setDisplayStatus(txt, "R")
+            myPrint("B","'%s' User aborted at the backup prompt to '%s' - no changes made" %(theTitleToDisplay, theAction))
+            myPopupInformationBox(theFrame,"User aborted at the backup prompt - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
+            return False
+
+        if not doesUserAcceptDisclaimer(theFrame, theTitleToDisplay, theAction):
+            setDisplayStatus("'%s' - User declined the disclaimer - no changes made...." %(theTitleToDisplay), "R")
+            myPrint("B","'%s' User did not say accept Disclaimer to '%s' - no changes made" %(theTitleToDisplay, theAction))
+            myPopupInformationBox(theFrame,"User did not accept Disclaimer - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
+            return False
+
+        myPrint("B","'%s' - User has been offered opportunity to create a backup and they accepted the DISCLAIMER on Action: %s - PROCEEDING" %(theTitleToDisplay, theAction))
+        return True
 
     # Copied MD_REF.getUI().askQuestion
     def myPopupAskQuestion(theParent=None,
@@ -831,10 +957,10 @@ Visit: %s (Author's site)
                            theOptionType=JOptionPane.YES_NO_OPTION,
                            theMessageType=JOptionPane.QUESTION_MESSAGE):
 
-        icon_to_use = None
-        if theParent is None:
-            if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+        if theParent is None and (theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE):
+            icon = getMDIcon(lAlwaysGetIcon=True)
+        else:
+            icon = getMDIcon(None)
 
         # question = wrapLines(theQuestion)
         question = theQuestion
@@ -843,8 +969,7 @@ Visit: %s (Author's site)
                                                theTitle,
                                                theOptionType,
                                                theMessageType,
-                                               icon_to_use)  # getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"))
-
+                                               icon)
         return result == 0
 
     # Copies Moneydance .askForQuestion
@@ -856,10 +981,10 @@ Visit: %s (Author's site)
                            isPassword=False,
                            theMessageType=JOptionPane.INFORMATION_MESSAGE):
 
-        icon_to_use = None
-        if theParent is None:
-            if theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE:
-                icon_to_use=MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png")
+        if theParent is None and (theMessageType == JOptionPane.PLAIN_MESSAGE or theMessageType == JOptionPane.INFORMATION_MESSAGE):
+            icon = getMDIcon(lAlwaysGetIcon=True)
+        else:
+            icon = getMDIcon(None)
 
         p = JPanel(GridBagLayout())
         defaultText = None
@@ -884,18 +1009,28 @@ Visit: %s (Author's site)
                                           theTitle,
                                           JOptionPane.OK_CANCEL_OPTION,
                                           theMessageType,
-                                          icon_to_use) == 0):
+                                          icon) == 0):
             return field.getText()
         return None
 
     # APPLICATION_MODAL, DOCUMENT_MODAL, MODELESS, TOOLKIT_MODAL
     class MyPopUpDialogBox():
 
-        def __init__(self, theParent=None, theStatus="", theMessage="", theWidth=200, theTitle="Info", lModal=True, lCancelButton=False, OKButtonText="OK", lAlertLevel=0):
+        def __init__(self,
+                     theParent=None,
+                     theStatus="",
+                     theMessage="",
+                     maxSize=Dimension(0,0),
+                     theTitle="Info",
+                     lModal=True,
+                     lCancelButton=False,
+                     OKButtonText="OK",
+                     lAlertLevel=0):
+
             self.theParent = theParent
             self.theStatus = theStatus
             self.theMessage = theMessage
-            self.theWidth = max(80,theWidth)
+            self.maxSize = maxSize
             self.theTitle = theTitle
             self.lModal = lModal
             self.lCancelButton = lCancelButton
@@ -904,10 +1039,25 @@ Visit: %s (Author's site)
             self.fakeJFrame = None
             self._popup_d = None
             self.lResult = [None]
+            self.statusLabel = None
+            self.messageJText = None
             if not self.theMessage.endswith("\n"): self.theMessage+="\n"
             if self.OKButtonText == "": self.OKButtonText="OK"
-            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            # if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
             if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
+
+        def updateMessages(self, newTitle=None, newStatus=None, newMessage=None, lPack=True):
+            if not newTitle and not newStatus and not newMessage: return
+            if newTitle:
+                self.theTitle = newTitle
+                self._popup_d.setTitle(self.theTitle)
+            if newStatus:
+                self.theStatus = newStatus
+                self.statusLabel.setText(self.theStatus)
+            if newMessage:
+                self.theMessage = newMessage
+                self.messageJText.setText(self.theMessage)
+            if lPack: self._popup_d.pack()
 
         class WindowListener(WindowAdapter):
 
@@ -917,7 +1067,6 @@ Visit: %s (Author's site)
                 self.lResult = lResult
 
             def windowClosing(self, WindowEvent):                                                                       # noqa
-                global debug
                 myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
                 myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -943,7 +1092,6 @@ Visit: %s (Author's site)
                 self.lResult = lResult
 
             def actionPerformed(self, event):
-                global debug
                 myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
                 myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -967,7 +1115,6 @@ Visit: %s (Author's site)
                 self.lResult = lResult
 
             def actionPerformed(self, event):
-                global debug
                 myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
                 myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -984,8 +1131,6 @@ Visit: %s (Author's site)
                 return
 
         def kill(self):
-
-            global debug
             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -1008,12 +1153,9 @@ Visit: %s (Author's site)
             return
 
         def result(self):
-            global debug
             return self.lResult[0]
 
         def go(self):
-            global debug
-
             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -1032,7 +1174,7 @@ Visit: %s (Author's site)
                         self.callingClass.fakeJFrame.setName(u"%s_fake_dialog" %(myModuleID))
                         self.callingClass.fakeJFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
                         self.callingClass.fakeJFrame.setUndecorated(True)
-                        self.callingClass.fakeJFrame.setVisible( False )
+                        self.callingClass.fakeJFrame.setVisible(False)
                         if not Platform.isOSX():
                             self.callingClass.fakeJFrame.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
@@ -1042,6 +1184,16 @@ Visit: %s (Author's site)
                     else:
                         # noinspection PyUnresolvedReferences
                         self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.MODELESS)
+
+                    screenSize = Toolkit.getDefaultToolkit().getScreenSize()
+
+                    if isinstance(self.callingClass.maxSize, Dimension)\
+                            and self.callingClass.maxSize.height and self.callingClass.maxSize.width:
+                        frame_width = min(screenSize.width-20, self.callingClass.maxSize.width)
+                        frame_height = min(screenSize.height-20, self.callingClass.maxSize.height)
+                        self.callingClass._popup_d.setPreferredSize(Dimension(frame_width,frame_height))
+
+                    self.callingClass._popup_d.getContentPane().setLayout(BorderLayout())
 
                     self.callingClass._popup_d.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 
@@ -1058,29 +1210,28 @@ Visit: %s (Author's site)
                         # MD_REF.getUI().getImages()
                         self.callingClass._popup_d.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
-                    displayJText = JTextArea(self.callingClass.theMessage)
-                    displayJText.setFont( getMonoFont() )
-                    displayJText.setEditable(False)
-                    displayJText.setLineWrap(False)
-                    displayJText.setWrapStyleWord(False)
+                    self.callingClass.messageJText = JTextArea(self.callingClass.theMessage)
+                    self.callingClass.messageJText.setFont(getMonoFont())
+                    self.callingClass.messageJText.setEditable(False)
+                    self.callingClass.messageJText.setLineWrap(False)
+                    self.callingClass.messageJText.setWrapStyleWord(False)
 
-                    _popupPanel=JPanel()
+                    _popupPanel = JPanel(BorderLayout())
 
                     # maxHeight = 500
-                    _popupPanel.setLayout(GridLayout(0,1))
                     _popupPanel.setBorder(EmptyBorder(8, 8, 8, 8))
 
-                    if self.callingClass.theStatus:
-                        _label1 = JLabel(pad(self.callingClass.theStatus,self.callingClass.theWidth-20))
-                        _label1.setForeground(getColorBlue())
-                        _popupPanel.add(_label1)
 
-                    myScrollPane = JScrollPane(displayJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
-                    if displayJText.getLineCount()>5:
-                        myScrollPane.setWheelScrollingEnabled(True)
-                        _popupPanel.add(myScrollPane)
-                    else:
-                        _popupPanel.add(displayJText)
+                    if self.callingClass.theStatus:
+                        _statusPnl = JPanel(BorderLayout())
+                        self.callingClass.statusLabel = JLabel(self.callingClass.theStatus)
+                        self.callingClass.statusLabel.setForeground(getColorBlue())
+                        self.callingClass.statusLabel.setBorder(EmptyBorder(8, 0, 8, 0))
+                        _popupPanel.add(self.callingClass.statusLabel, BorderLayout.NORTH)
+
+                    myScrollPane = JScrollPane(self.callingClass.messageJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+                    myScrollPane.setWheelScrollingEnabled(True)
+                    _popupPanel.add(myScrollPane, BorderLayout.CENTER)
 
                     buttonPanel = JPanel()
                     if self.callingClass.lModal or self.callingClass.lCancelButton:
@@ -1092,7 +1243,9 @@ Visit: %s (Author's site)
                             cancel_button.setBackground(Color.LIGHT_GRAY)
                             cancel_button.setBorderPainted(False)
                             cancel_button.setOpaque(True)
-                            cancel_button.addActionListener( self.callingClass.CancelButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame,self.callingClass.lResult) )
+                            cancel_button.setBorder(EmptyBorder(8, 8, 8, 8))
+
+                            cancel_button.addActionListener(self.callingClass.CancelButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame,self.callingClass.lResult) )
                             buttonPanel.add(cancel_button)
 
                         if self.callingClass.lModal:
@@ -1105,34 +1258,35 @@ Visit: %s (Author's site)
                             ok_button.setBackground(Color.LIGHT_GRAY)
                             ok_button.setBorderPainted(False)
                             ok_button.setOpaque(True)
+                            ok_button.setBorder(EmptyBorder(8, 8, 8, 8))
                             ok_button.addActionListener( self.callingClass.OKButtonAction(self.callingClass._popup_d, self.callingClass.fakeJFrame, self.callingClass.lResult) )
                             buttonPanel.add(ok_button)
 
-                        _popupPanel.add(buttonPanel)
+                        _popupPanel.add(buttonPanel, BorderLayout.SOUTH)
 
                     if self.callingClass.lAlertLevel>=2:
                         # internalScrollPane.setBackground(Color.RED)
-                        # theJText.setBackground(Color.RED)
-                        # theJText.setForeground(Color.BLACK)
-                        displayJText.setBackground(Color.RED)
-                        displayJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setBackground(Color.RED)
+                        self.callingClass.messageJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setOpaque(True)
                         _popupPanel.setBackground(Color.RED)
                         _popupPanel.setForeground(Color.BLACK)
+                        _popupPanel.setOpaque(True)
                         buttonPanel.setBackground(Color.RED)
-                        myScrollPane.setBackground(Color.RED)
+                        buttonPanel.setOpaque(True)
 
                     elif self.callingClass.lAlertLevel>=1:
                         # internalScrollPane.setBackground(Color.YELLOW)
-                        # theJText.setBackground(Color.YELLOW)
-                        # theJText.setForeground(Color.BLACK)
-                        displayJText.setBackground(Color.YELLOW)
-                        displayJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setBackground(Color.YELLOW)
+                        self.callingClass.messageJText.setForeground(Color.BLACK)
+                        self.callingClass.messageJText.setOpaque(True)
                         _popupPanel.setBackground(Color.YELLOW)
                         _popupPanel.setForeground(Color.BLACK)
+                        _popupPanel.setOpaque(True)
                         buttonPanel.setBackground(Color.YELLOW)
-                        myScrollPane.setBackground(Color.RED)
+                        buttonPanel.setOpaque(True)
 
-                    self.callingClass._popup_d.add(_popupPanel)
+                    self.callingClass._popup_d.add(_popupPanel, BorderLayout.CENTER)
                     self.callingClass._popup_d.pack()
                     self.callingClass._popup_d.setLocationRelativeTo(None)
                     self.callingClass._popup_d.setVisible(True)  # Keeping this modal....
@@ -1152,7 +1306,8 @@ Visit: %s (Author's site)
 
         # Seems to cause a crash on Virtual Machine with no Audio - so just in case....
         try:
-            MD_REF.getUI().getSounds().playSound("cash_register.wav")
+            if MD_REF.getPreferences().getSetting("beep_on_transaction_change", "y") == "y":
+                MD_REF.getUI().getSounds().playSound("cash_register.wav")
         except:
             pass
 
@@ -1205,13 +1360,7 @@ Visit: %s (Author's site)
             if _theFile is None: return False
             return _theFile.getName().upper().endswith(self.ext)
 
-    try:
-        moneydanceIcon = MDImages.getImage(MD_REF.getSourceInformation().getIconResource())
-    except:
-        moneydanceIcon = None
-
     def MDDiag():
-        global debug
         myPrint("D", "Moneydance Build:", MD_REF.getVersion(), "Build:", MD_REF.getBuild())
 
 
@@ -1220,8 +1369,6 @@ Visit: %s (Author's site)
     myPrint("DB","System file encoding is:", sys.getfilesystemencoding() )   # Not used, but interesting. Perhaps useful when switching between Windows/Macs and writing files...
 
     def checkVersions():
-        global debug
-
         lError = False
         plat_j = platform.system()
         plat_p = platform.python_implementation()
@@ -1252,8 +1399,19 @@ Visit: %s (Author's site)
     checkVersions()
 
     def setDefaultFonts():
+        """Grabs the MD defaultText font, reduces default size down to below 18, sets UIManager defaults (if runtime extension, will probably error, so I catch and skip)"""
+        if MD_REF_UI is None: return
 
-        myFont = MD_REF.getUI().getFonts().defaultText
+        # If a runtime extension, then this may fail, depending on timing... Just ignore and return...
+        try:
+            myFont = MD_REF.getUI().getFonts().defaultText
+        except:
+            myPrint("B","ERROR trying to call .getUI().getFonts().defaultText - skipping setDefaultFonts()")
+            return
+
+        if myFont is None:
+            myPrint("B","WARNING: In setDefaultFonts(): calling .getUI().getFonts().defaultText has returned None (but moneydance_ui was set) - skipping setDefaultFonts()")
+            return
 
         if myFont.getSize()>18:
             try:
@@ -1319,15 +1477,11 @@ Visit: %s (Author's site)
         myPrint("DB",".setDefaultFonts() successfully executed...")
         return
 
-    if MD_REF_UI is not None:
-        setDefaultFonts()
+    setDefaultFonts()
 
     def who_am_i():
-        try:
-            username = System.getProperty("user.name")
-        except:
-            username = "???"
-
+        try: username = System.getProperty("user.name")
+        except: username = "???"
         return username
 
     def getHomeDir():
@@ -1339,36 +1493,8 @@ Visit: %s (Author's site)
         myPrint("D", 'os.environ.get("HOMEPATH")', os.environ.get("HOMEPATH"))
         return
 
-    def amIaMac():
-        return Platform.isOSX()
-
     myPrint("D", "I am user:", who_am_i())
     if debug: getHomeDir()
-    lIamAMac = amIaMac()
-
-    def myDir():
-        global lIamAMac
-        homeDir = None
-
-        try:
-            if lIamAMac:
-                homeDir = System.getProperty("UserHome")  # On a Mac in a Java VM, the homedir is hidden
-            else:
-                # homeDir = System.getProperty("user.home")
-                homeDir = os.path.expanduser("~")  # Should work on Unix and Windows
-                if homeDir is None or homeDir == "":
-                    homeDir = System.getProperty("user.home")
-                if homeDir is None or homeDir == "":
-                    homeDir = os.environ.get("HOMEPATH")
-        except:
-            pass
-
-        if homeDir is None or homeDir == "":
-            homeDir = MD_REF.getCurrentAccountBook().getRootFolder().getParent()  # Better than nothing!
-
-        myPrint("DB", "Home Directory selected...:", homeDir)
-        if homeDir is None: return ""
-        return homeDir
 
     # noinspection PyArgumentList
     class JTextFieldLimitYN(PlainDocument):
@@ -1411,13 +1537,13 @@ Visit: %s (Author's site)
         return str( theDelimiter )
 
     def get_StuWareSoftSystems_parameters_from_file(myFile="StuWareSoftSystems.dict"):
-        global debug, myParameters, lPickle_version_warning, version_build, _resetParameters                            # noqa
+        global debug    # This global for debug must be here as we set it from loaded parameters
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
-        if _resetParameters:
+        if GlobalVars.resetPickleParameters:
             myPrint("B", "User has specified to reset parameters... keeping defaults and skipping pickle()")
-            myParameters = {}
+            GlobalVars.parametersLoadedFromFile = {}
             return
 
         old_dict_filename = os.path.join("..", myFile)
@@ -1441,14 +1567,14 @@ Visit: %s (Author's site)
                 else:
                     load_string = load_file.read()
 
-                myParameters = pickle.loads(load_string)
+                GlobalVars.parametersLoadedFromFile = pickle.loads(load_string)
                 load_file.close()
             except FileNotFoundException:
                 myPrint("B", "Error: failed to find parameter file...")
-                myParameters = None
+                GlobalVars.parametersLoadedFromFile = None
             except EOFError:
                 myPrint("B", "Error: reached EOF on parameter file....")
-                myParameters = None
+                GlobalVars.parametersLoadedFromFile = None
             except:
                 myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[0])
                 myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[1])
@@ -1460,39 +1586,38 @@ Visit: %s (Author's site)
                     istr = local_storage.openFileForReading(old_dict_filename)
                     load_file = FileUtil.wrap(istr)
                     # noinspection PyTypeChecker
-                    myParameters = pickle.load(load_file)
+                    GlobalVars.parametersLoadedFromFile = pickle.load(load_file)
                     load_file.close()
                     myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
-                    lPickle_version_warning = True
                 except:
                     myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[0])
                     myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[1])
                     myPrint("B","Error opening Pickle File - Line Number: ", sys.exc_info()[2].tb_lineno)
                     myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-                    myParameters = None
+                    GlobalVars.parametersLoadedFromFile = None
 
-            if myParameters is None:
-                myParameters = {}
+            if GlobalVars.parametersLoadedFromFile is None:
+                GlobalVars.parametersLoadedFromFile = {}
                 myPrint("DB","Parameters did not load, will keep defaults..")
             else:
                 myPrint("DB","Parameters successfully loaded from file...")
         else:
             myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
             myPrint("D", "Parameter Pickle file does not exist - will use default and create new file..")
-            myParameters = {}
+            GlobalVars.parametersLoadedFromFile = {}
 
-        if not myParameters: return
+        if not GlobalVars.parametersLoadedFromFile: return
 
-        myPrint("DB","myParameters read from file contains...:")
-        for key in sorted(myParameters.keys()):
-            myPrint("DB","...variable:", key, myParameters[key])
+        myPrint("DB","parametersLoadedFromFile read from file contains...:")
+        for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
+            myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
-        if myParameters.get("debug") is not None: debug = myParameters.get("debug")
-        if myParameters.get("lUseMacFileChooser") is not None:
+        if GlobalVars.parametersLoadedFromFile.get("debug") is not None: debug = GlobalVars.parametersLoadedFromFile.get("debug")
+        if GlobalVars.parametersLoadedFromFile.get("lUseMacFileChooser") is not None:
             myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
-            myParameters.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
+            GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
-        myPrint("DB","Parameter file loaded if present and myParameters{} dictionary set.....")
+        myPrint("DB","Parameter file loaded if present and parametersLoadedFromFile{} dictionary set.....")
 
         # Now load into memory!
         load_StuWareSoftSystems_parameters_into_memory()
@@ -1500,15 +1625,13 @@ Visit: %s (Author's site)
         return
 
     def save_StuWareSoftSystems_parameters_to_file(myFile="StuWareSoftSystems.dict"):
-        global debug, myParameters, lPickle_version_warning, version_build
-
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
-        if myParameters is None: myParameters = {}
+        if GlobalVars.parametersLoadedFromFile is None: GlobalVars.parametersLoadedFromFile = {}
 
         # Don't forget, any parameters loaded earlier will be preserved; just add changed variables....
-        myParameters["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
-        myParameters["debug"] = debug
+        GlobalVars.parametersLoadedFromFile["__Author"] = "Stuart Beesley - (c) StuWareSoftSystems"
+        GlobalVars.parametersLoadedFromFile["debug"] = debug
 
         dump_StuWareSoftSystems_parameters_from_memory()
 
@@ -1523,12 +1646,12 @@ Visit: %s (Author's site)
 
         try:
             save_file = FileUtil.wrap(ostr)
-            pickle.dump(myParameters, save_file, protocol=0)
+            pickle.dump(GlobalVars.parametersLoadedFromFile, save_file, protocol=0)
             save_file.close()
 
-            myPrint("DB","myParameters now contains...:")
-            for key in sorted(myParameters.keys()):
-                myPrint("DB","...variable:", key, myParameters[key])
+            myPrint("DB","parametersLoadedFromFile now contains...:")
+            for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
+                myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         except:
             myPrint("B", "Error - failed to create/write parameter file.. Ignoring and continuing.....")
@@ -1540,18 +1663,19 @@ Visit: %s (Author's site)
 
         return
 
-    def get_time_stamp_as_nice_text( timeStamp ):
+    def get_time_stamp_as_nice_text(timeStamp, _format=None, lUseHHMMSS=True):
 
-        prettyDate = ""
+        if _format is None: _format = MD_REF.getPreferences().getShortDateFormat()
+
+        humanReadableDate = ""
         try:
             c = Calendar.getInstance()
             c.setTime(Date(timeStamp))
-            dateFormatter = SimpleDateFormat("yyyy/MM/dd HH:mm:ss(.SSS) Z z zzzz")
-            prettyDate = dateFormatter.format(c.getTime())
-        except:
-            pass
-
-        return prettyDate
+            longHHMMSSText = " HH:mm:ss(.SSS) Z z zzzz" if (lUseHHMMSS) else ""
+            dateFormatter = SimpleDateFormat("%s%s" %(_format, longHHMMSSText))
+            humanReadableDate = dateFormatter.format(c.getTime())
+        except: pass
+        return humanReadableDate
 
     def currentDateTimeMarker():
         c = Calendar.getInstance()
@@ -1862,7 +1986,7 @@ Visit: %s (Author's site)
                                                     "Search for text",
                                                     JOptionPane.OK_CANCEL_OPTION,
                                                     JOptionPane.QUESTION_MESSAGE,
-                                                    None,
+                                                    getMDIcon(None),
                                                     _search_options,
                                                     defaultDirection)
 
@@ -1980,8 +2104,11 @@ Visit: %s (Author's site)
 
         return
 
-    try: GlobalVars.defaultPrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")   # Do this here as MD_REF disappears after script ends...
-    except: GlobalVars.defaultPrintFontSize = 12
+    if MD_REF_UI is not None:       # Only action if the UI is loaded - e.g. scripts (not run time extensions)
+        try: GlobalVars.defaultPrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")   # Do this here as MD_REF disappears after script ends...
+        except: GlobalVars.defaultPrintFontSize = 12
+    else:
+        GlobalVars.defaultPrintFontSize = 12
 
     ####################################################################################################################
     # PRINTING UTILITIES...: Points to MM, to Inches, to Resolution: Conversion routines etc
@@ -2274,7 +2401,16 @@ Visit: %s (Author's site)
 
     class QuickJFrame():
 
-        def __init__(self, title, output, lAlertLevel=0, copyToClipboard=False, lJumpToEnd=False, lWrapText=True, lQuitMDAfterClose=False):
+        def __init__(self,
+                     title,
+                     output,
+                     lAlertLevel=0,
+                     copyToClipboard=False,
+                     lJumpToEnd=False,
+                     lWrapText=True,
+                     lQuitMDAfterClose=False,
+                     screenLocation=None,
+                     lAutoSize=False):
             self.title = title
             self.output = output
             self.lAlertLevel = lAlertLevel
@@ -2283,7 +2419,9 @@ Visit: %s (Author's site)
             self.lJumpToEnd = lJumpToEnd
             self.lWrapText = lWrapText
             self.lQuitMDAfterClose = lQuitMDAfterClose
-            if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
+            self.screenLocation = screenLocation
+            self.lAutoSize = lAutoSize
+            # if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
             if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         class QJFWindowListener(WindowAdapter):
@@ -2430,15 +2568,18 @@ Visit: %s (Author's site)
                     internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
                     if self.callingClass.lAlertLevel>=2:
-                        internalScrollPane.setBackground(Color.RED)
+                        # internalScrollPane.setBackground(Color.RED)
                         theJText.setBackground(Color.RED)
                         theJText.setForeground(Color.BLACK)
+                        theJText.setOpaque(True)
                     elif self.callingClass.lAlertLevel>=1:
-                        internalScrollPane.setBackground(Color.YELLOW)
+                        # internalScrollPane.setBackground(Color.YELLOW)
                         theJText.setBackground(Color.YELLOW)
                         theJText.setForeground(Color.BLACK)
+                        theJText.setOpaque(True)
 
-                    jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
+                    if not self.callingClass.lAutoSize:
+                        jInternalFrame.setPreferredSize(Dimension(frame_width, frame_height))
 
                     SetupMDColors.updateUI()
 
@@ -2515,7 +2656,11 @@ Visit: %s (Author's site)
                     jInternalFrame.add(internalScrollPane)
 
                     jInternalFrame.pack()
-                    jInternalFrame.setLocationRelativeTo(None)
+                    if self.callingClass.screenLocation and isinstance(self.callingClass.screenLocation, Point):
+                        jInternalFrame.setLocation(self.callingClass.screenLocation)
+                    else:
+                        jInternalFrame.setLocationRelativeTo(None)
+
                     jInternalFrame.setVisible(True)
 
                     if Platform.isOSX():
@@ -2543,90 +2688,76 @@ Visit: %s (Author's site)
 
             return (self.returnFrame)
 
-    class AboutThisScript():
-
-        class CloseAboutAction(AbstractAction):
-
-            def __init__(self, theFrame):
-                self.theFrame = theFrame
-
-            def actionPerformed(self, event):
-                global debug
-                myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event:", event)
-
-                # Listener is already on the Swing EDT...
-                self.theFrame.dispose()
+    class AboutThisScript(AbstractAction, Runnable):
 
         def __init__(self, theFrame):
-            global debug, scriptExit
             self.theFrame = theFrame
+            self.aboutDialog = None
+
+        def actionPerformed(self, event):
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event:", event)
+            self.aboutDialog.dispose()  # Listener is already on the Swing EDT...
 
         def go(self):
             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
 
-            class MyAboutRunnable(Runnable):
-                def __init__(self, callingClass):
-                    self.callingClass = callingClass
-
-                def run(self):                                                                                                      # noqa
-
-                    myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
-                    myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
-
-                    # noinspection PyUnresolvedReferences
-                    about_d = JDialog(self.callingClass.theFrame, "About", Dialog.ModalityType.MODELESS)
-
-                    shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
-                    about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
-                    about_d.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
-                    about_d.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
-
-                    about_d.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAboutAction(about_d))
-
-                    about_d.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)  # The CloseAction() and WindowListener() will handle dispose() - else change back to DISPOSE_ON_CLOSE
-
-                    if (not Platform.isMac()):
-                        # MD_REF.getUI().getImages()
-                        about_d.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
-
-                    aboutPanel=JPanel()
-                    aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
-                    aboutPanel.setPreferredSize(Dimension(1120, 525))
-
-                    _label1 = JLabel(pad("Author: Stuart Beesley", 800))
-                    _label1.setForeground(getColorBlue())
-                    aboutPanel.add(_label1)
-
-                    _label2 = JLabel(pad("StuWareSoftSystems (2020-2021)", 800))
-                    _label2.setForeground(getColorBlue())
-                    aboutPanel.add(_label2)
-
-                    _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(myScriptName, version_build), 800))
-                    _label3.setForeground(getColorBlue())
-                    aboutPanel.add(_label3)
-
-                    displayString=scriptExit
-                    displayJText = JTextArea(displayString)
-                    displayJText.setFont( getMonoFont() )
-                    displayJText.setEditable(False)
-                    displayJText.setLineWrap(False)
-                    displayJText.setWrapStyleWord(False)
-                    displayJText.setMargin(Insets(8, 8, 8, 8))
-
-                    aboutPanel.add(displayJText)
-
-                    about_d.add(aboutPanel)
-
-                    about_d.pack()
-                    about_d.setLocationRelativeTo(None)
-                    about_d.setVisible(True)
-
             if not SwingUtilities.isEventDispatchThread():
                 myPrint("DB",".. Not running within the EDT so calling via MyAboutRunnable()...")
-                SwingUtilities.invokeAndWait(MyAboutRunnable(self))
+                SwingUtilities.invokeAndWait(self)
             else:
                 myPrint("DB",".. Already within the EDT so calling naked...")
-                MyAboutRunnable(self).run()
+                self.run()
+
+        def run(self):                                                                                                  # noqa
+            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+
+            # noinspection PyUnresolvedReferences
+            self.aboutDialog = JDialog(self.theFrame, "About", Dialog.ModalityType.MODELESS)
+
+            shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+            self.aboutDialog.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
+            self.aboutDialog.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
+            self.aboutDialog.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
+            self.aboutDialog.getRootPane().getActionMap().put("close-window", self)
+            self.aboutDialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+
+            if (not Platform.isMac()):
+                # MD_REF.getUI().getImages()
+                self.aboutDialog.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+
+            aboutPanel = JPanel()
+            aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
+            aboutPanel.setPreferredSize(Dimension(1120, 550))
+
+            _label1 = JLabel(pad("Author: Stuart Beesley", 800))
+            _label1.setForeground(getColorBlue())
+            aboutPanel.add(_label1)
+
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2022)", 800))
+            _label2.setForeground(getColorBlue())
+            aboutPanel.add(_label2)
+
+            _label3 = JLabel(pad("Script/Extension: %s (build: %s)" %(GlobalVars.thisScriptName, version_build), 800))
+            _label3.setForeground(getColorBlue())
+            aboutPanel.add(_label3)
+
+            displayString=scriptExit
+            displayJText = JTextArea(displayString)
+            displayJText.setFont( getMonoFont() )
+            displayJText.setEditable(False)
+            displayJText.setLineWrap(False)
+            displayJText.setWrapStyleWord(False)
+            displayJText.setMargin(Insets(8, 8, 8, 8))
+
+            aboutPanel.add(displayJText)
+
+            self.aboutDialog.add(aboutPanel)
+
+            self.aboutDialog.pack()
+            self.aboutDialog.setLocationRelativeTo(None)
+            self.aboutDialog.setVisible(True)
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
@@ -2646,17 +2777,47 @@ Visit: %s (Author's site)
 
     def convertBytesKBs(_size): return round((_size/(1000.0)),1)
 
-    def getHumanReadableDateTimeFromTimeStamp(_theTimeStamp):
-        return datetime.datetime.fromtimestamp(_theTimeStamp).strftime('%Y-%m-%d %H:%M:%S')
+    def convertMDShortDateFormat_strftimeFormat(lIncludeTime=False, lForceYYMMDDHMS=False):
+        """Returns a Python strftime format string in accordance with MD Preferences for Date Format"""
+        # https://strftime.org
 
-    def getHumanReadableModifiedDateTimeFromFile(_theFile):
-        return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile))
+        _MDFormat = MD_REF.getPreferences().getShortDateFormat()
+
+        rtnFormat = "%Y-%m-%d"
+
+        if lForceYYMMDDHMS:
+            lIncludeTime = True
+        else:
+            if _MDFormat == "MM/dd/yyyy":
+                rtnFormat = "%m/%d/%Y"
+            elif _MDFormat == "MM.dd.yyyy":
+                rtnFormat = "%m.%d.%Y"
+            elif _MDFormat == "yyyy/MM/dd":
+                rtnFormat = "%Y/%m/%d"
+            elif _MDFormat == "yyyy.MM.dd":
+                rtnFormat = "%Y.%m.%d"
+            elif _MDFormat == "dd/MM/yyyy":
+                rtnFormat = "%d/%m/%Y"
+            elif _MDFormat == "dd.MM.yyyy":
+                rtnFormat = "%d.%m.%Y"
+
+        if lIncludeTime: rtnFormat += " %H:%M:%S"
+        return rtnFormat
+
+    def getHumanReadableDateTimeFromTimeStamp(_theTimeStamp, lIncludeTime=False, lForceYYMMDDHMS=False):
+        return datetime.datetime.fromtimestamp(_theTimeStamp).strftime(convertMDShortDateFormat_strftimeFormat(lIncludeTime=lIncludeTime, lForceYYMMDDHMS=lForceYYMMDDHMS))
+
+    def getHumanReadableModifiedDateTimeFromFile(_theFile, lIncludeTime=True, lForceYYMMDDHMS=True):
+        return getHumanReadableDateTimeFromTimeStamp(os.path.getmtime(_theFile), lIncludeTime=lIncludeTime, lForceYYMMDDHMS=lForceYYMMDDHMS)
 
     def convertStrippedIntDateFormattedText(strippedDateInt, _format=None):
 
-        if _format is None: _format = "yyyy/MM/dd"
+        # if _format is None: _format = "yyyy/MM/dd"
+        if _format is None: _format = MD_REF.getPreferences().getShortDateFormat()
 
-        convertedDate = ""
+        if strippedDateInt is None or strippedDateInt == 0:
+            return "<not set>"
+
         try:
             c = Calendar.getInstance()
             dateFromInt = DateUtil.convertIntDateToLong(strippedDateInt)
@@ -2664,7 +2825,7 @@ Visit: %s (Author's site)
             dateFormatter = SimpleDateFormat(_format)
             convertedDate = dateFormatter.format(c.getTime())
         except:
-            pass
+            return "<error>"
 
         return convertedDate
 
@@ -2698,6 +2859,38 @@ Visit: %s (Author's site)
             FPSRunnable().run()
         return
 
+    def decodeCommand(passedEvent):
+        param = ""
+        uri = passedEvent
+        command = uri
+        theIdx = uri.find('?')
+        if(theIdx>=0):
+            command = uri[:theIdx]
+            param = uri[theIdx+1:]
+        else:
+            theIdx = uri.find(':')
+            if(theIdx>=0):
+                command = uri[:theIdx]
+                param = uri[theIdx+1:]
+        return command, param
+
+    def getFieldByReflection(theObj, fieldName, isInt=False):
+        reflect = theObj.getClass().getDeclaredField(fieldName)
+        if Modifier.isPrivate(reflect.getModifiers()): reflect.setAccessible(True)
+        isStatic = Modifier.isStatic(reflect.getModifiers())
+        if isInt: return reflect.getInt(theObj if not isStatic else None)
+        return reflect.get(theObj if not isStatic else None)
+
+    def find_feature_module(theModule):
+        # type: (str) -> bool
+        """Searches Moneydance for a specific extension loaded"""
+        fms = MD_REF.getLoadedModules()
+        for fm in fms:
+            if fm.getIDStr().lower() == theModule:
+                myPrint("DB", "Found extension: %s" %(theModule))
+                return fm
+        return None
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -2708,8 +2901,6 @@ Visit: %s (Author's site)
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     def load_StuWareSoftSystems_parameters_into_memory():
 
-        global debug, myParameters, lPickle_version_warning, version_build
-
         # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD
 
         # common
@@ -2718,7 +2909,7 @@ Visit: %s (Author's site)
         global lAllCurrency, filterForCurrency
         global hideHiddenSecurities, lAllSecurity, filterForSecurity
         global hideInactiveAccounts, hideHiddenAccounts, lAllAccounts, filterForAccounts
-        global whichDefaultExtractToRun_SWSS
+        global whichDefaultExtractToRun_SWSS, lWriteParametersToExportFile_SWSS, lAllowEscapeExitApp_SWSS
 
         # extract_account_registers_csv
         global lIncludeOpeningBalances_EAR
@@ -2729,7 +2920,7 @@ Visit: %s (Author's site)
         global lAllCategories_EAR, categoriesFilter_EAR
 
         # extract_investment_transactions_csv
-        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
+        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT
 
         # extract_currency_history_csv
         global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
@@ -2745,7 +2936,7 @@ Visit: %s (Author's site)
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
         myPrint("DB", "Loading variables into memory...")
 
-        if myParameters is None: myParameters = {}
+        if GlobalVars.parametersLoadedFromFile is None: GlobalVars.parametersLoadedFromFile = {}
 
 
         # Delete superseded version keys from file - stops Toolbox complaining
@@ -2758,183 +2949,154 @@ Visit: %s (Author's site)
                                   "__extract_reminders_csv",
                                   "lRoundPrice"]:
 
-            if myParameters.get(deleteObsoleteKey) is not None:
+            if GlobalVars.parametersLoadedFromFile.get(deleteObsoleteKey) is not None:
                 myPrint("B", "@@ Detected old %s extract version key... Will delete it..." %(deleteObsoleteKey))
-                myParameters.pop(deleteObsoleteKey, None)  # Obsoleted extract version key - delete from parameter file
+                GlobalVars.parametersLoadedFromFile.pop(deleteObsoleteKey, None)  # Obsoleted extract version key - delete from parameter file
 
 
         # common
-        if myParameters.get("__extract_data") is not None: __extract_data = myParameters.get("__extract_data")
-        if myParameters.get("hideHiddenSecurities") is not None: hideHiddenSecurities = myParameters.get("hideHiddenSecurities")
-        if myParameters.get("lAllSecurity") is not None: lAllSecurity = myParameters.get("lAllSecurity")
-        if myParameters.get("filterForSecurity") is not None: filterForSecurity = myParameters.get("filterForSecurity")
-        if myParameters.get("hideInactiveAccounts") is not None: hideInactiveAccounts = myParameters.get("hideInactiveAccounts")
-        if myParameters.get("hideHiddenAccounts") is not None: hideHiddenAccounts = myParameters.get("hideHiddenAccounts")
-        if myParameters.get("lAllAccounts") is not None: lAllAccounts = myParameters.get("lAllAccounts")
-        if myParameters.get("filterForAccounts") is not None: filterForAccounts = myParameters.get("filterForAccounts")
-        if myParameters.get("lAllCurrency") is not None: lAllCurrency = myParameters.get("lAllCurrency")
-        if myParameters.get("filterForCurrency") is not None: filterForCurrency = myParameters.get("filterForCurrency")
-        if myParameters.get("lStripASCII") is not None: lStripASCII = myParameters.get("lStripASCII")
-        if myParameters.get("csvDelimiter") is not None: csvDelimiter = myParameters.get("csvDelimiter")
-        if myParameters.get("userdateformat") is not None: userdateformat = myParameters.get("userdateformat")
-        if myParameters.get("lWriteBOMToExportFile_SWSS") is not None: lWriteBOMToExportFile_SWSS = myParameters.get("lWriteBOMToExportFile_SWSS")                                                                                  # noqa
-        if myParameters.get("whichDefaultExtractToRun_SWSS") is not None: whichDefaultExtractToRun_SWSS = myParameters.get("whichDefaultExtractToRun_SWSS")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("__extract_data") is not None: __extract_data = GlobalVars.parametersLoadedFromFile.get("__extract_data")
+        if GlobalVars.parametersLoadedFromFile.get("hideHiddenSecurities") is not None: hideHiddenSecurities = GlobalVars.parametersLoadedFromFile.get("hideHiddenSecurities")
+        if GlobalVars.parametersLoadedFromFile.get("lAllSecurity") is not None: lAllSecurity = GlobalVars.parametersLoadedFromFile.get("lAllSecurity")
+        if GlobalVars.parametersLoadedFromFile.get("filterForSecurity") is not None: filterForSecurity = GlobalVars.parametersLoadedFromFile.get("filterForSecurity")
+        if GlobalVars.parametersLoadedFromFile.get("hideInactiveAccounts") is not None: hideInactiveAccounts = GlobalVars.parametersLoadedFromFile.get("hideInactiveAccounts")
+        if GlobalVars.parametersLoadedFromFile.get("hideHiddenAccounts") is not None: hideHiddenAccounts = GlobalVars.parametersLoadedFromFile.get("hideHiddenAccounts")
+        if GlobalVars.parametersLoadedFromFile.get("lAllAccounts") is not None: lAllAccounts = GlobalVars.parametersLoadedFromFile.get("lAllAccounts")
+        if GlobalVars.parametersLoadedFromFile.get("filterForAccounts") is not None: filterForAccounts = GlobalVars.parametersLoadedFromFile.get("filterForAccounts")
+        if GlobalVars.parametersLoadedFromFile.get("lAllCurrency") is not None: lAllCurrency = GlobalVars.parametersLoadedFromFile.get("lAllCurrency")
+        if GlobalVars.parametersLoadedFromFile.get("filterForCurrency") is not None: filterForCurrency = GlobalVars.parametersLoadedFromFile.get("filterForCurrency")
+        if GlobalVars.parametersLoadedFromFile.get("lStripASCII") is not None: lStripASCII = GlobalVars.parametersLoadedFromFile.get("lStripASCII")
+        if GlobalVars.parametersLoadedFromFile.get("csvDelimiter") is not None: csvDelimiter = GlobalVars.parametersLoadedFromFile.get("csvDelimiter")
+        if GlobalVars.parametersLoadedFromFile.get("userdateformat") is not None: userdateformat = GlobalVars.parametersLoadedFromFile.get("userdateformat")
+        if GlobalVars.parametersLoadedFromFile.get("lWriteBOMToExportFile_SWSS") is not None: lWriteBOMToExportFile_SWSS = GlobalVars.parametersLoadedFromFile.get("lWriteBOMToExportFile_SWSS")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("whichDefaultExtractToRun_SWSS") is not None: whichDefaultExtractToRun_SWSS = GlobalVars.parametersLoadedFromFile.get("whichDefaultExtractToRun_SWSS")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lWriteParametersToExportFile_SWSS") is not None: lWriteParametersToExportFile_SWSS = GlobalVars.parametersLoadedFromFile.get("lWriteParametersToExportFile_SWSS")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lAllowEscapeExitApp_SWSS") is not None: lAllowEscapeExitApp_SWSS = GlobalVars.parametersLoadedFromFile.get("lAllowEscapeExitApp_SWSS")                                                                                  # noqa
 
         # extract_account_registers_csv
-        if myParameters.get("lIncludeSubAccounts_EAR") is not None: lIncludeSubAccounts_EAR = myParameters.get("lIncludeSubAccounts_EAR")
-        if myParameters.get("userdateStart_EAR") is not None: userdateStart_EAR = myParameters.get("userdateStart_EAR")
-        if myParameters.get("userdateEnd_EAR") is not None: userdateEnd_EAR = myParameters.get("userdateEnd_EAR")
-        if myParameters.get("lAllTags_EAR") is not None: lAllTags_EAR = myParameters.get("lAllTags_EAR")
-        if myParameters.get("tagFilter_EAR") is not None: tagFilter_EAR = myParameters.get("tagFilter_EAR")
-        if myParameters.get("lAllText_EAR") is not None: lAllText_EAR = myParameters.get("lAllText_EAR")
-        if myParameters.get("textFilter_EAR") is not None: textFilter_EAR = myParameters.get("textFilter_EAR")
-        if myParameters.get("lAllCategories_EAR") is not None: lAllCategories_EAR = myParameters.get("lAllCategories_EAR")
-        if myParameters.get("categoriesFilter_EAR") is not None: categoriesFilter_EAR = myParameters.get("categoriesFilter_EAR")
-        if myParameters.get("lExtractAttachments_EAR") is not None: lExtractAttachments_EAR = myParameters.get("lExtractAttachments_EAR")
-        if myParameters.get("lIncludeOpeningBalances_EAR") is not None: lIncludeOpeningBalances_EAR = myParameters.get("lIncludeOpeningBalances_EAR")
-        if myParameters.get("saveDropDownAccountUUID_EAR") is not None: saveDropDownAccountUUID_EAR = myParameters.get("saveDropDownAccountUUID_EAR")                                                                                  # noqa
-        if myParameters.get("saveDropDownDateRange_EAR") is not None: saveDropDownDateRange_EAR = myParameters.get("saveDropDownDateRange_EAR")                                                                                  # noqa
-        if myParameters.get("lIncludeInternalTransfers_EAR") is not None: lIncludeInternalTransfers_EAR = myParameters.get("lIncludeInternalTransfers_EAR")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeSubAccounts_EAR") is not None: lIncludeSubAccounts_EAR = GlobalVars.parametersLoadedFromFile.get("lIncludeSubAccounts_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("userdateStart_EAR") is not None: userdateStart_EAR = GlobalVars.parametersLoadedFromFile.get("userdateStart_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("userdateEnd_EAR") is not None: userdateEnd_EAR = GlobalVars.parametersLoadedFromFile.get("userdateEnd_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("lAllTags_EAR") is not None: lAllTags_EAR = GlobalVars.parametersLoadedFromFile.get("lAllTags_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("tagFilter_EAR") is not None: tagFilter_EAR = GlobalVars.parametersLoadedFromFile.get("tagFilter_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("lAllText_EAR") is not None: lAllText_EAR = GlobalVars.parametersLoadedFromFile.get("lAllText_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("textFilter_EAR") is not None: textFilter_EAR = GlobalVars.parametersLoadedFromFile.get("textFilter_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("lAllCategories_EAR") is not None: lAllCategories_EAR = GlobalVars.parametersLoadedFromFile.get("lAllCategories_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("categoriesFilter_EAR") is not None: categoriesFilter_EAR = GlobalVars.parametersLoadedFromFile.get("categoriesFilter_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EAR") is not None: lExtractAttachments_EAR = GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances_EAR") is not None: lIncludeOpeningBalances_EAR = GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("saveDropDownAccountUUID_EAR") is not None: saveDropDownAccountUUID_EAR = GlobalVars.parametersLoadedFromFile.get("saveDropDownAccountUUID_EAR")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("saveDropDownDateRange_EAR") is not None: saveDropDownDateRange_EAR = GlobalVars.parametersLoadedFromFile.get("saveDropDownDateRange_EAR")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeInternalTransfers_EAR") is not None: lIncludeInternalTransfers_EAR = GlobalVars.parametersLoadedFromFile.get("lIncludeInternalTransfers_EAR")                                                                                  # noqa
 
         # extract_investment_transactions_csv
-        if myParameters.get("lIncludeOpeningBalances") is not None: lIncludeOpeningBalances = myParameters.get("lIncludeOpeningBalances")
-        if myParameters.get("lAdjustForSplits") is not None: lAdjustForSplits = myParameters.get("lAdjustForSplits")
-        if myParameters.get("lExtractAttachments_EIT") is not None: lExtractAttachments_EIT = myParameters.get("lExtractAttachments_EIT")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances") is not None: lIncludeOpeningBalances = GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances")
+        if GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits") is not None: lAdjustForSplits = GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits")
+        if GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT") is not None: lExtractAttachments_EIT = GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT") is not None: lOmitLOTDataFromExtract_EIT = GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT")                                                                                  # noqa
 
         # extract_currency_history_csv
-        if myParameters.get("lSimplify_ECH") is not None: lSimplify_ECH = myParameters.get("lSimplify_ECH")
-        if myParameters.get("userdateStart_ECH") is not None: userdateStart_ECH = myParameters.get("userdateStart_ECH")
-        if myParameters.get("userdateEnd_ECH") is not None: userdateEnd_ECH = myParameters.get("userdateEnd_ECH")
-        if myParameters.get("hideHiddenCurrencies_ECH") is not None: hideHiddenCurrencies_ECH = myParameters.get("hideHiddenCurrencies_ECH")
+        if GlobalVars.parametersLoadedFromFile.get("lSimplify_ECH") is not None: lSimplify_ECH = GlobalVars.parametersLoadedFromFile.get("lSimplify_ECH")
+        if GlobalVars.parametersLoadedFromFile.get("userdateStart_ECH") is not None: userdateStart_ECH = GlobalVars.parametersLoadedFromFile.get("userdateStart_ECH")
+        if GlobalVars.parametersLoadedFromFile.get("userdateEnd_ECH") is not None: userdateEnd_ECH = GlobalVars.parametersLoadedFromFile.get("userdateEnd_ECH")
+        if GlobalVars.parametersLoadedFromFile.get("hideHiddenCurrencies_ECH") is not None: hideHiddenCurrencies_ECH = GlobalVars.parametersLoadedFromFile.get("hideHiddenCurrencies_ECH")
 
         # stockglance2020
-        if myParameters.get("lIncludeCashBalances") is not None: lIncludeCashBalances = myParameters.get("lIncludeCashBalances")
-        if myParameters.get("lSplitSecuritiesByAccount") is not None: lSplitSecuritiesByAccount = myParameters.get("lSplitSecuritiesByAccount")
-        if myParameters.get("lExcludeTotalsFromCSV") is not None: lExcludeTotalsFromCSV = myParameters.get("lExcludeTotalsFromCSV")
-        if myParameters.get("lIncludeFutureBalances_SG2020") is not None: lIncludeFutureBalances_SG2020 = myParameters.get("lIncludeFutureBalances_SG2020")
-        if myParameters.get("maxDecimalPlacesRounding_SG2020") is not None: maxDecimalPlacesRounding_SG2020 = myParameters.get("maxDecimalPlacesRounding_SG2020")
-        if myParameters.get("lUseCurrentPrice_SG2020") is not None: lUseCurrentPrice_SG2020 = myParameters.get("lUseCurrentPrice_SG2020")
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeCashBalances") is not None: lIncludeCashBalances = GlobalVars.parametersLoadedFromFile.get("lIncludeCashBalances")
+        if GlobalVars.parametersLoadedFromFile.get("lSplitSecuritiesByAccount") is not None: lSplitSecuritiesByAccount = GlobalVars.parametersLoadedFromFile.get("lSplitSecuritiesByAccount")
+        if GlobalVars.parametersLoadedFromFile.get("lExcludeTotalsFromCSV") is not None: lExcludeTotalsFromCSV = GlobalVars.parametersLoadedFromFile.get("lExcludeTotalsFromCSV")
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeFutureBalances_SG2020") is not None: lIncludeFutureBalances_SG2020 = GlobalVars.parametersLoadedFromFile.get("lIncludeFutureBalances_SG2020")
+        if GlobalVars.parametersLoadedFromFile.get("maxDecimalPlacesRounding_SG2020") is not None: maxDecimalPlacesRounding_SG2020 = GlobalVars.parametersLoadedFromFile.get("maxDecimalPlacesRounding_SG2020")
+        if GlobalVars.parametersLoadedFromFile.get("lUseCurrentPrice_SG2020") is not None: lUseCurrentPrice_SG2020 = GlobalVars.parametersLoadedFromFile.get("lUseCurrentPrice_SG2020")
 
-        if myParameters.get("_column_widths_SG2020") is not None: _column_widths_SG2020 = myParameters.get("_column_widths_SG2020")
+        if GlobalVars.parametersLoadedFromFile.get("_column_widths_SG2020") is not None: _column_widths_SG2020 = GlobalVars.parametersLoadedFromFile.get("_column_widths_SG2020")
 
         # extract_reminders_csv
-        if myParameters.get("_column_widths_ERTC") is not None: _column_widths_ERTC = myParameters.get("_column_widths_ERTC")
+        if GlobalVars.parametersLoadedFromFile.get("_column_widths_ERTC") is not None: _column_widths_ERTC = GlobalVars.parametersLoadedFromFile.get("_column_widths_ERTC")
 
-        if myParameters.get("scriptpath") is not None:
-            scriptpath = myParameters.get("scriptpath")
+        if GlobalVars.parametersLoadedFromFile.get("scriptpath") is not None:
+            scriptpath = GlobalVars.parametersLoadedFromFile.get("scriptpath")
             if not os.path.isdir(scriptpath):
                 myPrint("B","Warning: loaded parameter scriptpath does not appear to be a valid directory:", scriptpath, "will ignore")
                 scriptpath = ""
 
-        myPrint("DB","myParameters{} set into memory (as variables).....")
+        myPrint("DB","parametersLoadedFromFile{} set into memory (as variables).....")
 
         return
 
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     def dump_StuWareSoftSystems_parameters_from_memory():
-
-        global debug, myParameters, lPickle_version_warning, version_build
-
-        # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD
-
-        # common
-        global __extract_data
-        global lWriteBOMToExportFile_SWSS, userdateformat, lStripASCII, csvDelimiter, scriptpath
-        global lAllCurrency, filterForCurrency
-        global hideHiddenSecurities, lAllSecurity, filterForSecurity
-        global hideInactiveAccounts, hideHiddenAccounts, lAllAccounts, filterForAccounts
-        global whichDefaultExtractToRun_SWSS
-
-        # extract_account_registers_csv
-        global lIncludeOpeningBalances_EAR
-        global userdateStart_EAR, userdateEnd_EAR, lIncludeSubAccounts_EAR
-        global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
-        global saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
-        global lAllText_EAR, textFilter_EAR
-        global lAllCategories_EAR, categoriesFilter_EAR
-
-        # extract_investment_transactions_csv
-        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
-
-        # extract_currency_history_csv
-        global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
-
-        # stockglance2020
-        global lIncludeCashBalances
-        global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, _column_widths_SG2020, lIncludeFutureBalances_SG2020
-        global maxDecimalPlacesRounding_SG2020, lUseCurrentPrice_SG2020
-
-        # extract_reminders_csv
-        global _column_widths_ERTC
-
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
 
         # NOTE: Parameters were loaded earlier on... Preserve existing, and update any used ones...
         # (i.e. other StuWareSoftSystems programs might be sharing the same file)
 
-        if myParameters is None: myParameters = {}
+        if GlobalVars.parametersLoadedFromFile is None: GlobalVars.parametersLoadedFromFile = {}
 
         # common
-        myParameters["__extract_data"] = version_build
-        myParameters["lStripASCII"] = lStripASCII
-        myParameters["csvDelimiter"] = csvDelimiter
-        myParameters["lWriteBOMToExportFile_SWSS"] = lWriteBOMToExportFile_SWSS
-        myParameters["whichDefaultExtractToRun_SWSS"] = whichDefaultExtractToRun_SWSS
-        myParameters["userdateformat"] = userdateformat
-        myParameters["hideInactiveAccounts"] = hideInactiveAccounts
-        myParameters["hideHiddenAccounts"] = hideHiddenAccounts
-        myParameters["lAllAccounts"] = lAllAccounts
-        myParameters["filterForAccounts"] = filterForAccounts
-        myParameters["lAllCurrency"] = lAllCurrency
-        myParameters["filterForCurrency"] = filterForCurrency
-        myParameters["hideHiddenSecurities"] = hideHiddenSecurities
-        myParameters["lAllSecurity"] = lAllSecurity
-        myParameters["filterForSecurity"] = filterForSecurity
+        GlobalVars.parametersLoadedFromFile["__extract_data"] = version_build
+        GlobalVars.parametersLoadedFromFile["lStripASCII"] = lStripASCII
+        GlobalVars.parametersLoadedFromFile["csvDelimiter"] = csvDelimiter
+        GlobalVars.parametersLoadedFromFile["lWriteBOMToExportFile_SWSS"] = lWriteBOMToExportFile_SWSS
+        GlobalVars.parametersLoadedFromFile["lWriteParametersToExportFile_SWSS"] = lWriteParametersToExportFile_SWSS
+        GlobalVars.parametersLoadedFromFile["whichDefaultExtractToRun_SWSS"] = whichDefaultExtractToRun_SWSS
+        GlobalVars.parametersLoadedFromFile["lAllowEscapeExitApp_SWSS"] = lAllowEscapeExitApp_SWSS
+        GlobalVars.parametersLoadedFromFile["userdateformat"] = userdateformat
+        GlobalVars.parametersLoadedFromFile["hideInactiveAccounts"] = hideInactiveAccounts
+        GlobalVars.parametersLoadedFromFile["hideHiddenAccounts"] = hideHiddenAccounts
+        GlobalVars.parametersLoadedFromFile["lAllAccounts"] = lAllAccounts
+        GlobalVars.parametersLoadedFromFile["filterForAccounts"] = filterForAccounts
+        GlobalVars.parametersLoadedFromFile["lAllCurrency"] = lAllCurrency
+        GlobalVars.parametersLoadedFromFile["filterForCurrency"] = filterForCurrency
+        GlobalVars.parametersLoadedFromFile["hideHiddenSecurities"] = hideHiddenSecurities
+        GlobalVars.parametersLoadedFromFile["lAllSecurity"] = lAllSecurity
+        GlobalVars.parametersLoadedFromFile["filterForSecurity"] = filterForSecurity
 
         # extract_account_registers_csv
-        myParameters["lIncludeSubAccounts_EAR"] = lIncludeSubAccounts_EAR
-        myParameters["lIncludeOpeningBalances_EAR"] = lIncludeOpeningBalances_EAR
-        myParameters["userdateStart_EAR"] = userdateStart_EAR
-        myParameters["userdateEnd_EAR"] = userdateEnd_EAR
-        myParameters["lAllTags_EAR"] = lAllTags_EAR
-        myParameters["tagFilter_EAR"] = tagFilter_EAR
-        myParameters["lAllText_EAR"] = lAllText_EAR
-        myParameters["textFilter_EAR"] = textFilter_EAR
-        myParameters["lAllCategories_EAR"] = lAllCategories_EAR
-        myParameters["categoriesFilter_EAR"] = categoriesFilter_EAR
-        myParameters["lExtractAttachments_EAR"] = lExtractAttachments_EAR
-        myParameters["lIncludeInternalTransfers_EAR"] = lIncludeInternalTransfers_EAR
-        myParameters["saveDropDownAccountUUID_EAR"] = saveDropDownAccountUUID_EAR
-        myParameters["saveDropDownDateRange_EAR"] = saveDropDownDateRange_EAR
+        GlobalVars.parametersLoadedFromFile["lIncludeSubAccounts_EAR"] = lIncludeSubAccounts_EAR
+        GlobalVars.parametersLoadedFromFile["lIncludeOpeningBalances_EAR"] = lIncludeOpeningBalances_EAR
+        GlobalVars.parametersLoadedFromFile["userdateStart_EAR"] = userdateStart_EAR
+        GlobalVars.parametersLoadedFromFile["userdateEnd_EAR"] = userdateEnd_EAR
+        GlobalVars.parametersLoadedFromFile["lAllTags_EAR"] = lAllTags_EAR
+        GlobalVars.parametersLoadedFromFile["tagFilter_EAR"] = tagFilter_EAR
+        GlobalVars.parametersLoadedFromFile["lAllText_EAR"] = lAllText_EAR
+        GlobalVars.parametersLoadedFromFile["textFilter_EAR"] = textFilter_EAR
+        GlobalVars.parametersLoadedFromFile["lAllCategories_EAR"] = lAllCategories_EAR
+        GlobalVars.parametersLoadedFromFile["categoriesFilter_EAR"] = categoriesFilter_EAR
+        GlobalVars.parametersLoadedFromFile["lExtractAttachments_EAR"] = lExtractAttachments_EAR
+        GlobalVars.parametersLoadedFromFile["lIncludeInternalTransfers_EAR"] = lIncludeInternalTransfers_EAR
+        GlobalVars.parametersLoadedFromFile["saveDropDownAccountUUID_EAR"] = saveDropDownAccountUUID_EAR
+        GlobalVars.parametersLoadedFromFile["saveDropDownDateRange_EAR"] = saveDropDownDateRange_EAR
 
         # extract_investment_transactions_csv
-        myParameters["lExtractAttachments_EIT"] = lExtractAttachments_EIT
-        myParameters["lIncludeOpeningBalances"] = lIncludeOpeningBalances
-        myParameters["lAdjustForSplits"] = lAdjustForSplits
+        GlobalVars.parametersLoadedFromFile["lExtractAttachments_EIT"] = lExtractAttachments_EIT
+        GlobalVars.parametersLoadedFromFile["lOmitLOTDataFromExtract_EIT"] = lOmitLOTDataFromExtract_EIT
+        GlobalVars.parametersLoadedFromFile["lIncludeOpeningBalances"] = lIncludeOpeningBalances
+        GlobalVars.parametersLoadedFromFile["lAdjustForSplits"] = lAdjustForSplits
 
         # extract_currency_history_csv
-        myParameters["lSimplify_ECH"] = lSimplify_ECH
-        myParameters["userdateStart_ECH"] = userdateStart_ECH
-        myParameters["userdateEnd_ECH"] = userdateEnd_ECH
-        myParameters["hideHiddenCurrencies_ECH"] = hideHiddenCurrencies_ECH
+        GlobalVars.parametersLoadedFromFile["lSimplify_ECH"] = lSimplify_ECH
+        GlobalVars.parametersLoadedFromFile["userdateStart_ECH"] = userdateStart_ECH
+        GlobalVars.parametersLoadedFromFile["userdateEnd_ECH"] = userdateEnd_ECH
+        GlobalVars.parametersLoadedFromFile["hideHiddenCurrencies_ECH"] = hideHiddenCurrencies_ECH
 
         # stockglance2020
-        myParameters["lIncludeCashBalances"] = lIncludeCashBalances
-        myParameters["lSplitSecuritiesByAccount"] = lSplitSecuritiesByAccount
-        myParameters["lExcludeTotalsFromCSV"] = lExcludeTotalsFromCSV
-        myParameters["lIncludeFutureBalances_SG2020"] = lIncludeFutureBalances_SG2020
-        myParameters["maxDecimalPlacesRounding_SG2020"] = maxDecimalPlacesRounding_SG2020
-        myParameters["lUseCurrentPrice_SG2020"] = lUseCurrentPrice_SG2020
+        GlobalVars.parametersLoadedFromFile["lIncludeCashBalances"] = lIncludeCashBalances
+        GlobalVars.parametersLoadedFromFile["lSplitSecuritiesByAccount"] = lSplitSecuritiesByAccount
+        GlobalVars.parametersLoadedFromFile["lExcludeTotalsFromCSV"] = lExcludeTotalsFromCSV
+        GlobalVars.parametersLoadedFromFile["lIncludeFutureBalances_SG2020"] = lIncludeFutureBalances_SG2020
+        GlobalVars.parametersLoadedFromFile["maxDecimalPlacesRounding_SG2020"] = maxDecimalPlacesRounding_SG2020
+        GlobalVars.parametersLoadedFromFile["lUseCurrentPrice_SG2020"] = lUseCurrentPrice_SG2020
 
-        myParameters["_column_widths_SG2020"] = _column_widths_SG2020
+        GlobalVars.parametersLoadedFromFile["_column_widths_SG2020"] = _column_widths_SG2020
 
         # extract_reminders_csv
-        myParameters["_column_widths_ERTC"] = _column_widths_ERTC
+        GlobalVars.parametersLoadedFromFile["_column_widths_ERTC"] = _column_widths_ERTC
 
         if not lDisplayOnly and scriptpath != "" and os.path.isdir(scriptpath):
-            myParameters["scriptpath"] = scriptpath
+            GlobalVars.parametersLoadedFromFile["scriptpath"] = scriptpath
 
-        myPrint("DB","variables dumped from memory back into myParameters{}.....")
+        myPrint("DB","variables dumped from memory back into parametersLoadedFromFile{}.....")
 
         return
 
@@ -2959,13 +3121,18 @@ Visit: %s (Author's site)
             destroyOldFrames(myModuleID)
 
         try:
-            MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(myScriptName),0)
+            MD_REF.getUI().setStatus(">> StuWareSoftSystems - thanks for using >> %s......." %(GlobalVars.thisScriptName),0)
         except:
             pass  # If this fails, then MD is probably shutting down.......
 
-        if not i_am_an_extension_so_run_headless: print(scriptExit)
+        if not GlobalVars.i_am_an_extension_so_run_headless: print(scriptExit)
 
         cleanup_references()
+
+    # .moneydance_invoke_called() is used via the _invoke.py script as defined in script_info.dict. Not used for runtime extensions
+    def moneydance_invoke_called(theCommand):
+        # ... modify as required to handle .showURL() events sent to this extension/script...
+        myPrint("B","INVOKE - Received extension command: '%s'" %(theCommand))
 
     GlobalVars.defaultPrintLandscape = True
     # END ALL CODE COPY HERE ###############################################################################################
@@ -2977,14 +3144,14 @@ Visit: %s (Author's site)
         myPopupInformationBox(None,"Moneydance appears to be empty - no data to scan - aborting...","EMPTY DATASET")
         raise(Exception("Moneydance appears to be empty - no data to scan - aborting..."))
 
-    MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(myScriptName),0)
+    MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
 
     class MainAppRunnable(Runnable):
         def __init__(self):
             pass
 
-        def run(self):                                                                                                      # noqa
-            global debug, extract_data_frame_
+        def run(self):                                                                                                  # noqa
+            global extract_data_frame_      # global as defined here
 
             myPrint("DB", "In MainAppRunnable()", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
@@ -3009,6 +3176,18 @@ Visit: %s (Author's site)
         MainAppRunnable().run()
 
     try:
+
+        def isPreviewBuild():
+            if MD_EXTENSION_LOADER is not None:
+                try:
+                    stream = MD_EXTENSION_LOADER.getResourceAsStream("/_PREVIEW_BUILD_")
+                    if stream is not None:
+                        myPrint("B", "@@ PREVIEW BUILD (%s) DETECTED @@" %(version_build))
+                        stream.close()
+                        return True
+                except: pass
+            return False
+
         # Mirror code in list_future_reminders (ensure identical)
         def printJTable(_theFrame, _theJTable, _theTitle, _secondJTable=None):
 
@@ -3155,8 +3334,8 @@ Visit: %s (Author's site)
 
         csvfilename = None
 
-        if decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ";"  # Override for EU countries or where decimal point is actually a comma...
-        myPrint("DB", "Decimal point:", decimalCharSep, "Grouping Separator", groupingCharSep, "CSV Delimiter set to:", csvDelimiter)
+        if GlobalVars.decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ";"  # Override for EU countries or where decimal point is actually a comma...
+        myPrint("DB", "Decimal point:", GlobalVars.decimalCharSep, "Grouping Separator", GlobalVars.groupingCharSep, "CSV Delimiter set to:", csvDelimiter)
 
         sdf = SimpleDateFormat("dd/MM/yyyy")
 
@@ -3206,7 +3385,7 @@ Visit: %s (Author's site)
                                                            "EXTRACT DATA: SELECT OPTION",
                                                            JOptionPane.OK_CANCEL_OPTION,
                                                            JOptionPane.QUESTION_MESSAGE,
-                                                           MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                           getMDIcon(lAlwaysGetIcon=True),
                                                            options,
                                                            options[0]))
                 if userAction != 1:
@@ -3273,7 +3452,6 @@ Visit: %s (Author's site)
                         self.thePanel=thePanel
 
                     def actionPerformed(self, event):
-                        global extract_data_frame_, debug
                         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
 
                         theDateRangeDropDown = None
@@ -3371,6 +3549,8 @@ Visit: %s (Author's site)
                         # noinspection PyUnresolvedReferences
                         if not (acct.getAccountType() == Account.AccountType.BANK
                                 or acct.getAccountType() == Account.AccountType.CREDIT_CARD
+                                or acct.getAccountType() == Account.AccountType.LOAN
+                                or acct.getAccountType() == Account.AccountType.LIABILITY
                                 or acct.getAccountType() == Account.AccountType.ASSET):
                             return False
 
@@ -3380,21 +3560,37 @@ Visit: %s (Author's site)
 
                         return True
 
+                class StoreAccount:
+                    def __init__(self, _acct):
+                        if not isinstance(_acct, Account): raise Exception("Error: Object: %s(%s) is not an Account Object!" %(_acct, type(_acct)))
+                        self.acct = _acct
+
+                    def getAccount(self): return self.acct
+
+                    def __str__(self):      return "%s : %s" %(self.getAccount().getAccountType(), self.getAccount().getAccountName())
+                    def __repr__(self):     return self.__str__()
+                    def toString(self):     return self.__str__()
+
 
                 labelSelectOneAccount = JLabel("Select One Account here....")
-                acctList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(),MyAcctFilterForDropdown())
+                mdAcctList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(),MyAcctFilterForDropdown())
                 textToUse = "<NONE SELECTED - USE FILTERS BELOW>"
+
+                acctList = ArrayList()
                 acctList.add(0,textToUse)
-                accountDropdown = JComboBox(acctList.toArray())
+                for getAcct in mdAcctList: acctList.add(StoreAccount(getAcct))
+                del mdAcctList
+
+                accountDropdown = JComboBox(acctList)
                 accountDropdown.setName("accountDropdown")
 
                 if saveDropDownAccountUUID_EAR != "":
                     findAccount = AccountUtil.findAccountWithID(MD_REF.getRootAccount(), saveDropDownAccountUUID_EAR)
-                    if findAccount:
-                        try:
-                            accountDropdown.setSelectedItem(findAccount)
-                        except:
-                            pass
+                    if findAccount is not None:
+                        for acctObj in acctList:
+                            if isinstance(acctObj, StoreAccount) and acctObj.getAccount() == findAccount:
+                                accountDropdown.setSelectedItem(acctObj)
+                                break
 
                 labelFilterAccounts = JLabel("Filter for Accounts containing text '...' (or ALL):")
                 user_selectAccounts = JTextField(12)
@@ -3543,15 +3739,15 @@ Visit: %s (Author's site)
                 labelDateDropDown = JLabel("Select Date Range:")
 
 
-                labelDateStart = JLabel("Date range start (enter as yyyy/mm/dd):")
-                user_selectDateStart = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
+                labelDateStart = JLabel("Date range start:")
+                user_selectDateStart = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
                 user_selectDateStart.setName("user_selectDateStart")                                                        # noqa
                 user_selectDateStart.setEnabled(False)                                                                      # noqa
                 # user_selectDateStart.setDisabledTextColor(Color.gray)                                                       # noqa
                 user_selectDateStart.setDateInt(userdateStart_EAR)
 
-                labelDateEnd = JLabel("Date range end (enter as yyyy/mm/dd):")
-                user_selectDateEnd = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
+                labelDateEnd = JLabel("Date range end:")
+                user_selectDateEnd = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
                 user_selectDateEnd.setName("user_selectDateEnd")                                                            # noqa
                 user_selectDateEnd.setEnabled(False)                                                                        # noqa
                 # user_selectDateEnd.setDisabledTextColor(Color.gray)                                                         # noqa
@@ -3617,6 +3813,10 @@ Visit: %s (Author's site)
                 user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
                 user_selectBOM.setName("user_selectBOM")
 
+                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+                user_ExportParameters.setName("user_ExportParameters")
+
                 labelDEBUG = JLabel("Turn DEBUG Verbose messages on?")
                 user_selectDEBUG = JCheckBox("", debug)
                 user_selectDEBUG.setName("user_selectDEBUG")
@@ -3670,6 +3870,8 @@ Visit: %s (Author's site)
                 userFilters.add(user_selectDELIMITER)
                 userFilters.add(labelBOM)
                 userFilters.add(user_selectBOM)
+                userFilters.add(labelExportParameters)
+                userFilters.add(user_ExportParameters)
                 userFilters.add(labelDEBUG)
                 userFilters.add(user_selectDEBUG)
 
@@ -3689,7 +3891,7 @@ Visit: %s (Author's site)
                                                                userFilters, "EXTRACT ACCOUNT REGISTERS: Set Script Parameters....",
                                                                JOptionPane.OK_CANCEL_OPTION,
                                                                JOptionPane.QUESTION_MESSAGE,
-                                                               MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                               getMDIcon(lAlwaysGetIcon=True),
                                                                options, options[1]))
                     if userAction != 1:
                         myPrint("B", "User Cancelled Parameter selection.. Will abort..")
@@ -3740,7 +3942,7 @@ Visit: %s (Author's site)
                             user_includeSubAccounts.setForeground(getColorRed())
                             accountDropdown.setForeground(getColorRed())
                             continue
-                    elif isinstance(accountDropdown.getSelectedItem(),(Account)):
+                    elif isinstance(accountDropdown.getSelectedItem(),(StoreAccount)):
 
                         if (user_selectAccounts.getText() != "ALL" or user_selectCurrency.getText() != "ALL"
                                 or (not user_hideInactiveAccounts.isSelected()) or (not user_hideHiddenAccounts.isSelected())):
@@ -3788,6 +3990,7 @@ Visit: %s (Author's site)
                             "User Date Format:", user_dateformat.getSelectedItem(),
                             "Strip ASCII:", user_selectStripASCII.isSelected(),
                             "Write BOM to file:", user_selectBOM.isSelected(),
+                            "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
                             "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
                             "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
                     # endif
@@ -3799,6 +4002,8 @@ Visit: %s (Author's site)
                     lIncludeInternalTransfers_EAR = user_selectIncludeTransfers.isSelected()
                     lExtractAttachments_EAR = user_selectExtractAttachments.isSelected()
                     lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
+
                     lStripASCII = user_selectStripASCII.isSelected()
                     debug = user_selectDEBUG.isSelected()
 
@@ -3839,18 +4044,18 @@ Visit: %s (Author's site)
                     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
                         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
                         csvDelimiter = ","
-                    if decimalCharSep == csvDelimiter:
+                    if GlobalVars.decimalCharSep == csvDelimiter:
                         myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
-                                decimalCharSep, " - Proceeding without file export!!")
+                                GlobalVars.decimalCharSep, " - Proceeding without file export!!")
                         lDisplayOnly = True
                         myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, decimalCharSep),
+                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
                                               "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
 
                     saveDropDownDateRange_EAR = dateDropdown.getSelectedItem()
 
-                    if isinstance(accountDropdown.getSelectedItem(), Account):
-                        dropDownAccount_EAR = accountDropdown.getSelectedItem()
+                    if isinstance(accountDropdown.getSelectedItem(), StoreAccount):
+                        dropDownAccount_EAR = accountDropdown.getSelectedItem().getAccount()                            # noqa
                         # noinspection PyUnresolvedReferences
                         saveDropDownAccountUUID_EAR = dropDownAccount_EAR.getUUID()
                         labelIncludeSubAccounts = user_includeSubAccounts.isSelected()
@@ -3951,6 +4156,10 @@ Visit: %s (Author's site)
                 elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
                 else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
+                labelOmitLOTDataFromExtract_EIT = JLabel("Omit Buy/Sell LOT Matching Data from extract file")
+                user_lOmitLOTDataFromExtract_EIT = JCheckBox("", lOmitLOTDataFromExtract_EIT)
+                user_lOmitLOTDataFromExtract_EIT.setName("user_lOmitLOTDataFromExtract_EIT")
+
                 labelAttachments = JLabel("Extract & Download Attachments?")
                 user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EIT)
                 user_selectExtractAttachments.setName("user_selectExtractAttachments")
@@ -3965,6 +4174,9 @@ Visit: %s (Author's site)
 
                 labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
                 user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+
+                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
 
                 label12 = JLabel("Turn DEBUG Verbose messages on?")
                 user_selectDEBUG = JCheckBox("", debug)
@@ -3986,6 +4198,8 @@ Visit: %s (Author's site)
                 userFilters.add(user_selectOpeningBalances)
                 userFilters.add(label8)
                 userFilters.add(user_selectAdjustSplits)
+                userFilters.add(labelOmitLOTDataFromExtract_EIT)
+                userFilters.add(user_lOmitLOTDataFromExtract_EIT)
                 userFilters.add(labelAttachments)
                 userFilters.add(user_selectExtractAttachments)
                 userFilters.add(label9)
@@ -3996,6 +4210,8 @@ Visit: %s (Author's site)
                 userFilters.add(user_selectDELIMITER)
                 userFilters.add(labelBOM)
                 userFilters.add(user_selectBOM)
+                userFilters.add(labelExportParameters)
+                userFilters.add(user_ExportParameters)
                 userFilters.add(label12)
                 userFilters.add(user_selectDEBUG)
 
@@ -4006,7 +4222,7 @@ Visit: %s (Author's site)
                 userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT INVESTMENT TRANSACTIONS: Set Script Parameters....",
                                                            JOptionPane.OK_CANCEL_OPTION,
                                                            JOptionPane.QUESTION_MESSAGE,
-                                                           MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                           getMDIcon(lAlwaysGetIcon=True),
                                                            options, options[1]))
                 if userAction == 1:  # Export
                     myPrint("DB", "Export chosen")
@@ -4027,6 +4243,7 @@ Visit: %s (Author's site)
                             "Filter Accts:", user_selectAccounts.getText(),
                             "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
                             "Adj Splits:", user_selectAdjustSplits.isSelected(),
+                            "OmitLOTData:", user_lOmitLOTDataFromExtract_EIT.isSelected(),
                             "DownldAttachments:", user_selectExtractAttachments.isSelected(),
                             "User Date Format:", user_dateformat.getSelectedItem(),
                             "Strip ASCII:", user_selectStripASCII.isSelected(),
@@ -4061,6 +4278,7 @@ Visit: %s (Author's site)
 
                     lIncludeOpeningBalances = user_selectOpeningBalances.isSelected()
                     lAdjustForSplits = user_selectAdjustSplits.isSelected()
+                    lOmitLOTDataFromExtract_EIT = user_lOmitLOTDataFromExtract_EIT.isSelected()
                     lExtractAttachments_EIT = user_selectExtractAttachments.isSelected()
 
                     if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
@@ -4077,15 +4295,16 @@ Visit: %s (Author's site)
                     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
                         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
                         csvDelimiter = ","
-                    if decimalCharSep == csvDelimiter:
+                    if GlobalVars.decimalCharSep == csvDelimiter:
                         myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
-                                decimalCharSep, " - Proceeding without file export!!")
+                                GlobalVars.decimalCharSep, " - Proceeding without file export!!")
                         lDisplayOnly = True
                         myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, decimalCharSep),
+                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
                                               "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
 
                     lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
 
                     debug = user_selectDEBUG.isSelected()
 
@@ -4131,6 +4350,11 @@ Visit: %s (Author's site)
                     else:
                         myPrint("B", "Not adjusting for Stock Splits...")
 
+                    if lOmitLOTDataFromExtract_EIT:
+                        myPrint("B", "Script will OMIT Buy/Sell LOT matching data from extract file...")
+                    else:
+                        myPrint("B", "Buy/Sell LOT matching data will be included in the extract file...")
+
                     myPrint("B", "user date format....:", userdateformat)
 
             elif lExtractCurrencyHistory:
@@ -4148,12 +4372,12 @@ Visit: %s (Author's site)
                 elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
                 else: user_dateformat.setSelectedItem("yyyy/mm/dd")
 
-                labelDateStart = JLabel("Date range start (enter as yyyy/mm/dd):")
-                user_selectDateStart = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
+                labelDateStart = JLabel("Date range start:")
+                user_selectDateStart = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
                 user_selectDateStart.setDateInt(userdateStart_ECH)
 
-                labelDateEnd = JLabel("Date range end (enter as yyyy/mm/dd):")
-                user_selectDateEnd = JDateField(CustomDateFormat("ymd"),15)   # Use MD API function (not std Python)
+                labelDateEnd = JLabel("Date range end:")
+                user_selectDateEnd = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
                 user_selectDateEnd.setDateInt(userdateEnd_ECH)
                 # user_selectDateEnd.gotoToday()
 
@@ -4173,6 +4397,9 @@ Visit: %s (Author's site)
 
                 labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
                 user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+
+                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
 
                 label4 = JLabel("Turn DEBUG Verbose messages on?")
                 user_selectDEBUG = JCheckBox("", debug)
@@ -4199,6 +4426,8 @@ Visit: %s (Author's site)
                 userFilters.add(user_selectDELIMITER)
                 userFilters.add(labelBOM)
                 userFilters.add(user_selectBOM)
+                userFilters.add(labelExportParameters)
+                userFilters.add(user_ExportParameters)
                 userFilters.add(label4)
                 userFilters.add(user_selectDEBUG)
 
@@ -4212,7 +4441,7 @@ Visit: %s (Author's site)
                     userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT CURRENCY HISTORY: Set Script Parameters....",
                                                                JOptionPane.OK_CANCEL_OPTION,
                                                                JOptionPane.QUESTION_MESSAGE,
-                                                               MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                               getMDIcon(lAlwaysGetIcon=True),
                                                                options, options[1]))
                     if userAction != 1:
                         myPrint("B", "User Cancelled Parameter selection.. Will abort..")
@@ -4239,6 +4468,7 @@ Visit: %s (Author's site)
                             "End date:", user_selectDateEnd.getDateInt(),
                             "Strip ASCII:", user_selectStripASCII.isSelected(),
                             "Write BOM to file:", user_selectBOM.isSelected(),
+                            "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
                             "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
                             "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
                     # endif
@@ -4262,14 +4492,15 @@ Visit: %s (Author's site)
                     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
                         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
                         csvDelimiter = ","
-                    if decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
+                    if GlobalVars.decimalCharSep == csvDelimiter:
+                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
                         lDisplayOnly = True
                         myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, decimalCharSep),
+                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
                                               "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
 
                     lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
 
                     debug = user_selectDEBUG.isSelected()
                     myPrint("DB", "DEBUG turned ON")
@@ -4353,6 +4584,9 @@ Visit: %s (Author's site)
                 labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
                 user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
+                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+
                 label10 = JLabel("Turn DEBUG Verbose messages on?")
                 user_selectDEBUG = JCheckBox("", debug)
 
@@ -4389,6 +4623,8 @@ Visit: %s (Author's site)
                 userFilters.add(user_selectDELIMITER)
                 userFilters.add(labelBOM)
                 userFilters.add(user_selectBOM)
+                userFilters.add(labelExportParameters)
+                userFilters.add(user_ExportParameters)
                 userFilters.add(label10)
                 userFilters.add(user_selectDEBUG)
 
@@ -4401,7 +4637,7 @@ Visit: %s (Author's site)
                                                            "StockGlance2020 - Summarise Stocks/Funds: Set Script Parameters....",
                                                            JOptionPane.OK_CANCEL_OPTION,
                                                            JOptionPane.QUESTION_MESSAGE,
-                                                           MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                           getMDIcon(lAlwaysGetIcon=True),
                                                            options,
                                                            options[2]))
                 if userAction == 1:  # Display & Export
@@ -4435,6 +4671,7 @@ Visit: %s (Author's site)
                                 ", Reset Columns:", user_selectResetColumns.isSelected(),
                                 ", Strip ASCII:", user_selectStripASCII.isSelected(),
                                 ", Write BOM to file:", user_selectBOM.isSelected(),
+                                ", Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
                                 ", Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
                                 ", CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
 
@@ -4489,14 +4726,15 @@ Visit: %s (Author's site)
                     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
                         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
                         csvDelimiter = ","
-                    if decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
+                    if GlobalVars.decimalCharSep == csvDelimiter:
+                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
                         lDisplayOnly = True
                         myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, decimalCharSep),
+                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
                                               "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
 
                     lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
 
                     debug = user_selectDEBUG.isSelected()
                     myPrint("DB", "DEBUG turned on")
@@ -4583,6 +4821,9 @@ Visit: %s (Author's site)
                 labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
                 user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
+                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+
                 label4 = JLabel("Turn DEBUG Verbose messages on?")
                 user_selectDEBUG = JCheckBox("", debug)
 
@@ -4598,6 +4839,8 @@ Visit: %s (Author's site)
                 userFilters.add(user_selectDELIMITER)
                 userFilters.add(labelBOM)
                 userFilters.add(user_selectBOM)
+                userFilters.add(labelExportParameters)
+                userFilters.add(user_ExportParameters)
                 userFilters.add(label4)
                 userFilters.add(user_selectDEBUG)
 
@@ -4610,7 +4853,7 @@ Visit: %s (Author's site)
                                                             "EXTRACT REMINDERS: Set Script Parameters....",
                                                             JOptionPane.OK_CANCEL_OPTION,
                                                             JOptionPane.QUESTION_MESSAGE,
-                                                            MD_REF.getUI().getIcon("/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"),
+                                                            getMDIcon(lAlwaysGetIcon=True),
                                                             options,
                                                             options[2])
                               )
@@ -4638,6 +4881,7 @@ Visit: %s (Author's site)
                                 "Reset Columns", user_selectResetColumns.isSelected(),
                                 "Strip ASCII:", user_selectStripASCII.isSelected(),
                                 "Write BOM to file:", user_selectBOM.isSelected(),
+                                "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
                                 "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
                                 "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
                     # endif
@@ -4660,14 +4904,15 @@ Visit: %s (Author's site)
                     if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
                         myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
                         csvDelimiter = ","
-                    if decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", decimalCharSep, " - Proceeding without file export!!")
+                    if GlobalVars.decimalCharSep == csvDelimiter:
+                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
                         lDisplayOnly = True
                         myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, decimalCharSep),
+                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
                                               "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
 
                     lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
 
                     myPrint("B", "User Parameters...")
                     myPrint("B", "user date format....:", userdateformat)
@@ -4709,8 +4954,6 @@ Visit: %s (Author's site)
 
                 # noinspection PyMethodMayBeStatic
                 def handleEvent(self, appEvent):
-                    global debug
-
                     myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
                     myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
                     myPrint("DB", "I am .handleEvent() within %s" %(classPrinter("MoneydanceAppListener", self.theFrame.MoneydanceAppListener)))
@@ -4774,9 +5017,10 @@ Visit: %s (Author's site)
             csvfilename = None
 
             if not lDisplayOnly:  # i.e. we have asked for a file export - so get the filename - Always False in this script1
-                myPrint("B","Strip non-ASCII characters.: %s" %(lStripASCII))
-                myPrint("B","Add BOM to front of file...: %s" %(lWriteBOMToExportFile_SWSS))
-                myPrint("B","CSV Export Delimiter.......: %s" %(csvDelimiter))
+                myPrint("B","Strip non-ASCII characters.....: %s" %(lStripASCII))
+                myPrint("B","Add BOM to front of file.......: %s" %(lWriteBOMToExportFile_SWSS))
+                myPrint("B","Write Parameters to end of file: %s" %(lWriteParametersToExportFile_SWSS))
+                myPrint("B","CSV Export Delimiter...........: %s" %(csvDelimiter))
 
                 if lExcludeTotalsFromCSV:
                     myPrint("B",  "Exclude Totals from CSV (to assist Pivot tables)..: %s" %(lExcludeTotalsFromCSV))
@@ -4793,13 +5037,10 @@ Visit: %s (Author's site)
                     extract_filename="extract_reminders"+currentDateTimeMarker()+".csv"
 
                 def grabTheFile():
-                    global debug, lDisplayOnly, csvfilename, lIamAMac, scriptpath, myScriptName
+                    global lDisplayOnly, csvfilename, scriptpath
                     global attachmentDir, relativePath, lExtractAttachments_EAR, lExtractAttachments_EIT
 
                     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-
-                    if scriptpath == "" or scriptpath is None:  # No parameter saved / loaded from disk
-                        scriptpath = myDir()
 
                     if scriptpath == "" or scriptpath is None:  # No parameter saved / loaded from disk
                         scriptpath = get_home_dir()
@@ -4879,7 +5120,7 @@ Visit: %s (Author's site)
                             try:
                                 os.mkdir(attachmentDir)
                                 myPrint("B", "Successfully created Attachment Directory: %s" %attachmentDir)
-                                MyPopUpDialogBox(extract_data_frame_, theStatus="I have created Attachment Directory:", theMessage=attachmentDir, theWidth=200, theTitle="Info", lModal=True).go()
+                                MyPopUpDialogBox(extract_data_frame_, theStatus="I have created Attachment Directory:", theMessage=attachmentDir, theTitle="Info", lModal=True).go()
 
                             except:
                                 myPrint("B", "Sorry - Failed to create Attachment Directory: %s",attachmentDir)
@@ -4923,15 +5164,15 @@ Visit: %s (Author's site)
 
 
                 def do_stockglance2020():
-                    global debug
-                    global decimalCharSep, lDidIUseAttachmentDir, csvfilename, myScriptName, lGlobalErrorDetected, lExit, lDisplayOnly
-                    global baseCurrency, sdf, rawDataTable, rawFooterTable, headingNames
+
+                    global lDidIUseAttachmentDir, csvfilename, lExit, lDisplayOnly
+                    global baseCurrency, rawDataTable, rawFooterTable, headingNames
                     global StockGlanceInstance  # holds the instance of StockGlance2020()
                     global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW
                     global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
                     global acctSeparator
 
-                    global __extract_data, extract_data_frame_, extract_filename
+                    global __extract_data, extract_filename
                     global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
                     global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
@@ -4942,8 +5183,6 @@ Visit: %s (Author's site)
                     global lIncludeFutureBalances_SG2020
 
                     def terminate_script():
-                        global debug, extract_data_frame_, i_am_an_extension_so_run_headless, scriptExit, csvfilename, lDisplayOnly, lGlobalErrorDetected
-
                         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
                         myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -4954,7 +5193,7 @@ Visit: %s (Author's site)
                             myPrint("B", "Error - failed to save parameters to pickle file...!")
                             dump_sys_error_to_md_console_and_errorlog()
 
-                        if not lDisplayOnly and not lGlobalErrorDetected:
+                        if not lDisplayOnly and not GlobalVars.lGlobalErrorDetected:
                             try:
                                 helper = MD_REF.getPlatformHelper()
                                 helper.openDirectory(File(csvfilename))
@@ -4974,11 +5213,10 @@ Visit: %s (Author's site)
 
                     class DoTheMenu(AbstractAction):
 
-                        def __init__(self, menu):
-                            self.menu = menu
+                        def __init__(self): pass
 
                         def actionPerformed(self, event):																				# noqa
-                            global extract_data_frame_, debug
+                            global lAllowEscapeExitApp_SWSS     # global as we can set this here
 
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
@@ -4988,6 +5226,16 @@ Visit: %s (Author's site)
                             if event.getActionCommand().lower().startswith("about"):
                                 AboutThisScript(extract_data_frame_).go()
 
+                            if event.getActionCommand().lower().startswith("allow escape"):
+                                lAllowEscapeExitApp_SWSS = not lAllowEscapeExitApp_SWSS
+                                if lAllowEscapeExitApp_SWSS:
+                                    extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+                                else:
+                                    extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).remove(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0))
+
+                                # Note: save_StuWareSoftSystems_parameters_to_file() is called within terminate_script() - so will save on exit
+                                myPrint("B","Escape key can exit the app's main screen: %s" %(lAllowEscapeExitApp_SWSS))
+
                             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
                             return
 
@@ -4995,7 +5243,7 @@ Visit: %s (Author's site)
                         def __init__(self):
                             pass
 
-                        global debug, hideHiddenSecurities, hideInactiveAccounts, lSplitSecuritiesByAccount, acctSeparator, lIncludeFutureBalances_SG2020
+                        global hideHiddenSecurities, hideInactiveAccounts, lSplitSecuritiesByAccount, acctSeparator, lIncludeFutureBalances_SG2020
                         global maxDecimalPlacesRounding_SG2020, lUseCurrentPrice_SG2020
                         global rawDataTable, rawFooterTable, headingNames
                         global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW, _SORT
@@ -5053,7 +5301,7 @@ Visit: %s (Author's site)
                         _EXCLUDECSV = 18                                                                                        # noqa
 
                         def getTableModel(self, book):
-                            global debug, baseCurrency, rawDataTable, lAllCurrency, filterForCurrency, lAllSecurity, filterForSecurity
+                            global baseCurrency, rawDataTable, lAllCurrency, filterForCurrency, lAllSecurity, filterForSecurity
                             myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
                             myPrint("D", "MD Book: ", book)
 
@@ -5116,7 +5364,7 @@ Visit: %s (Author's site)
                                                     or (filterForSecurity.upper().strip() in curr.getTickerSymbol().upper().strip()) \
                                                     or (filterForSecurity.upper().strip() in curr.getName().upper().strip()):
                                                 myPrint("D", "Found Security..: ", curr, curr.getTickerSymbol(), " Curr: ", curr.getRelativeCurrency().getIDString(),
-                                                        " Price: ", price, " Qty: ", curr.formatSemiFancy(qty, decimalCharSep))
+                                                        " Price: ", price, " Qty: ", curr.formatSemiFancy(qty, GlobalVars.decimalCharSep))
 
                                                 securityCostBasis = self.CostBasisTotals.get(curr)
 
@@ -5176,7 +5424,7 @@ Visit: %s (Author's site)
                                                     entry = []
                                                     entry.append(curr.getTickerSymbol())  # c0
                                                     entry.append(curr.getName())  # c1
-                                                    entry.append(curr.formatSemiFancy(qtySplit, decimalCharSep))  # c2
+                                                    entry.append(curr.formatSemiFancy(qtySplit, GlobalVars.decimalCharSep))  # c2
                                                     entry.append(self.myNumberFormatter(price, False, self.currXrate, baseCurrency, _roundPrice))  # c3
                                                     entry.append(self.currXrate.getIDString())  # c4
                                                     x = None
@@ -5235,7 +5483,7 @@ Visit: %s (Author's site)
                                                 else:
                                                     entry.append(curr.getTickerSymbol())  # c0
                                                 entry.append(curr.getName())  # c1
-                                                entry.append(curr.formatSemiFancy(qty, decimalCharSep))  # c2
+                                                entry.append(curr.formatSemiFancy(qty, GlobalVars.decimalCharSep))  # c2
                                                 entry.append(self.myNumberFormatter(price, False, self.currXrate, baseCurrency, _roundPrice))  # c3
                                                 entry.append(self.currXrate.getIDString())  # c4
                                                 x = None
@@ -5319,7 +5567,7 @@ Visit: %s (Author's site)
                                                 myPrint("D", "Skipping non Filtered Security/Ticker:", curr, curr.getTickerSymbol())
                                         else:
                                             myPrint("D", "Skipping Security with 0 shares..: ", curr, curr.getTickerSymbol(),
-                                                    " Curr: ", curr.getRelativeCurrency().getIDString(), " Price: ", price, " Qty: ", curr.formatSemiFancy(qty, decimalCharSep))
+                                                    " Curr: ", curr.getRelativeCurrency().getIDString(), " Price: ", price, " Qty: ", curr.formatSemiFancy(qty, GlobalVars.decimalCharSep))
                                     else:
                                         myPrint("D", "Skipping non Filtered Security/Currency:", curr, curr.getTickerSymbol(), curr.getRelativeCurrency().getIDString())
                                 elif curr.getHideInUI() and curr.getCurrencyType() == CurrencyType.Type.SECURITY:
@@ -5348,7 +5596,7 @@ Visit: %s (Author's site)
                             return DefaultTableModel(rawDataTable, self.columnNames)
 
                         def getFooterModel(self):
-                            global debug, baseCurrency, rawFooterTable, lIncludeCashBalances
+                            global baseCurrency, rawFooterTable, lIncludeCashBalances
                             myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
                             myPrint("D", "Generating the footer table data....")
 
@@ -5496,8 +5744,6 @@ Visit: %s (Author's site)
                         # Render a currency with given number of fractional digits. NaN or null is an empty cell.
                         # noinspection PyMethodMayBeStatic
                         def myNumberFormatter(self, theNumber, useBase, exchangeCurr, baseCurr, noDecimals):
-                            global debug, decimalCharSep, groupingCharSep
-
                             noDecimalFormatter = NumberFormat.getNumberInstance()
                             noDecimalFormatter.setMinimumFractionDigits(0)
                             noDecimalFormatter.setMaximumFractionDigits(noDecimals)
@@ -5648,8 +5894,8 @@ Visit: %s (Author's site)
                             # enddef
 
                         def sumInfoBySecurity(self, book):
-                            global debug, hideInactiveAccounts, hideHiddenAccounts, lAllAccounts, filterForAccounts, lIncludeCashBalances
-                            global lSplitSecuritiesByAccount, acctSeparator, i_am_an_extension_so_run_headless, lIncludeFutureBalances_SG2020
+                            global hideInactiveAccounts, hideHiddenAccounts, lAllAccounts, filterForAccounts, lIncludeCashBalances
+                            global lSplitSecuritiesByAccount, acctSeparator, lIncludeFutureBalances_SG2020
 
                             myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -5710,8 +5956,8 @@ Visit: %s (Author's site)
                                     _getBalance = acct.getCurrentBalance()
 
                                 if _getBalance != 0:  # we only want Securities with holdings
-                                    if debug and not i_am_an_extension_so_run_headless: print("Processing Acct:", acct.getParentAccount(), "Share/Fund Qty Balances for Security: ", curr, curr.formatSemiFancy(
-                                        _getBalance, decimalCharSep), " Shares/Units")
+                                    if debug and not GlobalVars.i_am_an_extension_so_run_headless: print("Processing Acct:", acct.getParentAccount(), "Share/Fund Qty Balances for Security: ", curr, curr.formatSemiFancy(
+                                        _getBalance, GlobalVars.decimalCharSep), " Shares/Units")
 
                                     total = (0L if (total is None) else total) + _getBalance
                                     totals[curr] = total
@@ -5763,7 +6009,6 @@ Visit: %s (Author's site)
                             lInTheFooter = False
 
                             def __init__(self, tableModel, lSortTheTable, lInTheFooter):
-                                global debug
                                 super(JTable, self).__init__(tableModel)
                                 self.lInTheFooter = lInTheFooter
                                 if lSortTheTable: self.fixTheRowSorter()
@@ -5809,8 +6054,7 @@ Visit: %s (Author's site)
                                         self.lSortNumber = False
 
                                 def compare(self, str1, str2):
-                                    global decimalCharSep
-                                    validString = "-0123456789" + decimalCharSep  # Yes this will strip % sign too, but that still works
+                                    validString = "-0123456789" + GlobalVars.decimalCharSep  # Yes this will strip % sign too, but that still works
                                     if self.lSortNumber:
                                         # strip non numerics from string so can convert back to float - yes, a bit of a reverse hack
                                         conv_string1 = ""
@@ -5905,8 +6149,7 @@ Visit: %s (Author's site)
                                 super(DefaultTableCellRenderer, self).__init__()
 
                             def setValue(self, value):
-                                global decimalCharSep
-                                validString = "-0123456789" + decimalCharSep
+                                validString = "-0123456789" + GlobalVars.decimalCharSep
 
                                 self.setText(value)
 
@@ -6016,13 +6259,10 @@ Visit: %s (Author's site)
                                 self.theFrame = theFrame        # type: MyJFrame
 
                             def windowClosing(self, WindowEvent):                                                           # noqa
-                                global debug, extract_data_frame_
                                 myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
                                 terminate_script()
 
                             def windowClosed(self, WindowEvent):                                                                       # noqa
-                                global debug
-
                                 myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
                                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -6048,7 +6288,6 @@ Visit: %s (Author's site)
 
                         class CloseAction(AbstractAction):
                             def actionPerformed(self, event):                                                               # noqa
-                                global debug, extract_data_frame_
                                 myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
                                 terminate_script()
 
@@ -6063,7 +6302,7 @@ Visit: %s (Author's site)
                                 printJTable(_theFrame=self._frame, _theJTable=self._table, _theTitle=self._title, _secondJTable=self.footerTable)
 
                         def createAndShowGUI(self):
-                            global debug, extract_data_frame_, rawDataTable, rawFooterTable, lDisplayOnly, version_build, lSplitSecuritiesByAccount, _column_widths_SG2020
+                            global rawDataTable, rawFooterTable, lDisplayOnly, lSplitSecuritiesByAccount, _column_widths_SG2020
                             global lIncludeFutureBalances_SG2020
 
                             global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW, _SORT
@@ -6081,10 +6320,12 @@ Visit: %s (Author's site)
 
                             # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
 
+                            titleExtraTxt = u"" if not isPreviewBuild() else u"<PREVIEW BUILD: %s>" %(version_build)
+
                             if lDisplayOnly:
-                                extract_data_frame_.setTitle(u"StockGlance2020 - Summarise Stocks/Funds...")
+                                extract_data_frame_.setTitle(u"StockGlance2020 - Summarise Stocks/Funds...   %s" %(titleExtraTxt))
                             else:
-                                extract_data_frame_.setTitle(u"StockGlance2020 - Summarise Stocks/Funds... (NOTE: your file has already been exported)")
+                                extract_data_frame_.setTitle(u"StockGlance2020 - Summarise Stocks/Funds... (NOTE: your file has already been exported)   %s" %(titleExtraTxt))
 
                             extract_data_frame_.setName(u"%s_main_stockglance2020" %(myModuleID))
 
@@ -6101,7 +6342,10 @@ Visit: %s (Author's site)
                             extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut),  "close-window")
                             extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
                             extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut),  "print-me")
-                            extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
+                            if lAllowEscapeExitApp_SWSS:
+                                extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
                             extract_data_frame_.getRootPane().getActionMap().put("close-window", self.CloseAction())
 
                             extract_data_frame_.addWindowListener(self.WindowListener(extract_data_frame_))
@@ -6303,19 +6547,25 @@ Visit: %s (Author's site)
                             printButton.addActionListener(self.PrintJTable(extract_data_frame_, self.table, "StockGlance2020", self.footerTable))
 
                             mb = JMenuBar()
-                            # menuH = JMenu("<html><B>ABOUT</b></html>")
-                            menuH = JMenu("ABOUT")
+                            menuH = JMenu("<html><B>MENU</b></html>")
+                            # menuH = JMenu("ABOUT")
                             menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                             menuItemA = JMenuItem("About")
                             menuItemA.setToolTipText("About...")
-                            menuItemA.addActionListener(DoTheMenu(menuH)); menuItemA.setEnabled(True)
+                            menuItemA.addActionListener(DoTheMenu())
                             menuH.add(menuItemA)
 
                             menuItemPS = JMenuItem("Page Setup")
                             menuItemPS.setToolTipText("Printer Page Setup...")
-                            menuItemPS.addActionListener(DoTheMenu(menuH)); menuItemPS.setEnabled(True)
+                            menuItemPS.addActionListener(DoTheMenu())
                             menuH.add(menuItemPS)
+
+                            menuItemEsc = JCheckBoxMenuItem("Allow Escape to Exit")
+                            menuItemEsc.setToolTipText("When enabled, allows the Escape key to exit the main screen")
+                            menuItemEsc.addActionListener(DoTheMenu())
+                            menuItemEsc.setSelected(lAllowEscapeExitApp_SWSS)
+                            menuH.add(menuItemEsc)
 
                             mb.add(menuH)
 
@@ -6450,8 +6700,8 @@ Visit: %s (Author's site)
 
                         if not lDisplayOnly:
                             def ExportDataToFile():
-                                global debug, extract_data_frame_, rawDataTable, rawFooterTable, headingNames, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build
-                                global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, myScriptName, lGlobalErrorDetected, lIncludeFutureBalances_SG2020
+                                global rawDataTable, rawFooterTable, headingNames, csvfilename, csvDelimiter
+                                global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV, lIncludeFutureBalances_SG2020
                                 global maxDecimalPlacesRounding_SG2020, lUseCurrentPrice_SG2020
                                 global lWriteBOMToExportFile_SWSS
 
@@ -6512,36 +6762,37 @@ Visit: %s (Author's site)
                                                     raise Exception("Aborting")
                                                 # ENDIF
                                         # NEXT
-                                        today = Calendar.getInstance()
-                                        writer.writerow([""])
-                                        writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
-                                                         + version_build
-                                                         + ")  Moneydance Python Script - Date of Extract: "
-                                                         + str(sdf.format(today.getTime()))])
+                                        if lWriteParametersToExportFile_SWSS:
+                                            today = Calendar.getInstance()
+                                            writer.writerow([""])
+                                            writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
+                                                             + version_build
+                                                             + ")  Moneydance Python Script - Date of Extract: "
+                                                             + str(sdf.format(today.getTime()))])
 
-                                        writer.writerow([""])
-                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                            writer.writerow([""])
+                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
 
-                                        writer.writerow([""])
-                                        writer.writerow(["User Parameters..."])
+                                            writer.writerow([""])
+                                            writer.writerow(["User Parameters..."])
 
-                                        writer.writerow(["Hiding Hidden Securities...: %s" %(hideHiddenSecurities)])
-                                        writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
-                                        writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
-                                        writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
-                                        writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
-                                        writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
-                                        writer.writerow(["Include Cash Balances......: %s" %(lIncludeCashBalances)])
-                                        writer.writerow(["Include Future Balances....: %s" %(lIncludeFutureBalances_SG2020)])
-                                        writer.writerow(["Use Current Price..........: %s (False means use the latest dated price history price)" %(lUseCurrentPrice_SG2020)])
-                                        writer.writerow(["Max Price dpc Rounding.....: %s" %(maxDecimalPlacesRounding_SG2020)])
-                                        writer.writerow(["Split Securities by Account: %s" %(lSplitSecuritiesByAccount)])
-                                        writer.writerow(["Extract Totals from CSV....: %s" %(lExcludeTotalsFromCSV)])
+                                            writer.writerow(["Hiding Hidden Securities...: %s" %(hideHiddenSecurities)])
+                                            writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
+                                            writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
+                                            writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
+                                            writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
+                                            writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+                                            writer.writerow(["Include Cash Balances......: %s" %(lIncludeCashBalances)])
+                                            writer.writerow(["Include Future Balances....: %s" %(lIncludeFutureBalances_SG2020)])
+                                            writer.writerow(["Use Current Price..........: %s (False means use the latest dated price history price)" %(lUseCurrentPrice_SG2020)])
+                                            writer.writerow(["Max Price dpc Rounding.....: %s" %(maxDecimalPlacesRounding_SG2020)])
+                                            writer.writerow(["Split Securities by Account: %s" %(lSplitSecuritiesByAccount)])
+                                            writer.writerow(["Extract Totals from CSV....: %s" %(lExcludeTotalsFromCSV)])
 
                                     myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
                                 except IOError, e:
-                                    lGlobalErrorDetected = True
+                                    GlobalVars.lGlobalErrorDetected = True
                                     myPrint("B", "Oh no - File IO Error!", e)
                                     myPrint("B", "Path:", csvfilename)
                                     myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
@@ -6550,8 +6801,6 @@ Visit: %s (Author's site)
                             # enddef
 
                             def fixFormatsStr(theString, lNumber, sFormat=""):
-                                global lStripASCII
-
                                 if lNumber is None: lNumber = False
                                 if theString is None: theString = ""
 
@@ -6577,8 +6826,8 @@ Visit: %s (Author's site)
                             # enddef
 
                             ExportDataToFile()
-                            if not lGlobalErrorDetected:
-                                myPopupInformationBox(extract_data_frame_,"Your extract has been created as requested",myScriptName)
+                            if not GlobalVars.lGlobalErrorDetected:
+                                myPopupInformationBox(extract_data_frame_,"Your extract has been created as requested",GlobalVars.thisScriptName)
 
                 # Not great code design, but sticking the whole code into the EDT (what happens anyway when running as an Extension)
                 # for new code, design Swing Worker Threads too
@@ -6629,12 +6878,11 @@ Visit: %s (Author's site)
 
 
                 def do_extract_reminders():
-                    global debug
-                    global decimalCharSep, lDidIUseAttachmentDir, csvfilename, myScriptName, lGlobalErrorDetected, lExit, lDisplayOnly
-                    global baseCurrency, sdf, csvlines, csvheaderline, headerFormats
+                    global lDidIUseAttachmentDir, csvfilename, lExit, lDisplayOnly
+                    global baseCurrency, csvlines, csvheaderline, headerFormats
                     global table, focus, row, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 
-                    global __extract_data, extract_data_frame_, extract_filename
+                    global __extract_data, extract_filename
                     global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
                     global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
@@ -6642,8 +6890,6 @@ Visit: %s (Author's site)
                     global _column_widths_ERTC
 
                     def terminate_script():
-                        global debug, extract_data_frame_, lDisplayOnly, lGlobalErrorDetected
-
                         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
                         myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -6657,16 +6903,16 @@ Visit: %s (Author's site)
                         if not lDisplayOnly:
                             try:
                                 ExportDataToFile()
-                                if not lGlobalErrorDetected:
-                                    myPopupInformationBox(extract_data_frame_, "Your extract has been created as requested", myScriptName)
+                                if not GlobalVars.lGlobalErrorDetected:
+                                    myPopupInformationBox(extract_data_frame_, "Your extract has been created as requested", GlobalVars.thisScriptName)
                                     try:
                                         helper = MD_REF.getPlatformHelper()
                                         helper.openDirectory(File(csvfilename))
                                     except:
                                         pass
                             except:
-                                lGlobalErrorDetected = True
-                                myPopupInformationBox(extract_data_frame_, "ERROR WHILST CREATING EXPORT! Review Console Log", myScriptName)
+                                GlobalVars.lGlobalErrorDetected = True
+                                myPopupInformationBox(extract_data_frame_, "ERROR WHILST CREATING EXPORT! Review Console Log", GlobalVars.thisScriptName)
                                 dump_sys_error_to_md_console_and_errorlog()
 
                         try:
@@ -6681,13 +6927,17 @@ Visit: %s (Author's site)
 
                     class DoTheMenu(AbstractAction):
 
-                        def __init__(self, menu):
-                            self.menu = menu
+                        def __init__(self): pass
 
-                        def actionPerformed(self, event):																				# noqa
-                            global extract_data_frame_, debug
+                        def actionPerformed(self, event):																# noqa
+                            global lAllowEscapeExitApp_SWSS     # global as we can set this here
 
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+                            if event.getActionCommand().lower().startswith("show reminder"):
+                                reminders = MD_REF.getCurrentAccount().getBook().getReminders()
+                                reminder = reminders.getAllReminders()[table.getValueAt(row, 0) - 1]
+                                MD_REF.getUI().showRawItemDetails(reminder, extract_data_frame_)
 
                             if event.getActionCommand().lower().startswith("page setup"):
                                 pageSetup()
@@ -6701,12 +6951,21 @@ Visit: %s (Author's site)
                             if event.getActionCommand() == "About":
                                 AboutThisScript(extract_data_frame_).go()
 
+                            if event.getActionCommand().lower().startswith("allow escape"):
+                                lAllowEscapeExitApp_SWSS = not lAllowEscapeExitApp_SWSS
+                                if lAllowEscapeExitApp_SWSS:
+                                    extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+                                else:
+                                    extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).remove(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0))
+
+                                # Note: save_StuWareSoftSystems_parameters_to_file() is called within terminate_script() - so will save on exit
+                                myPrint("B","Escape key can exit the app's main screen: %s" %(lAllowEscapeExitApp_SWSS))
+
                             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
                             return
 
                     def build_the_data_file(ind):
-                        global sdf, userdateformat, csvlines, csvheaderline, myScriptName, baseCurrency, headerFormats
-                        global debug, ExtractDetails_Count
+                        global userdateformat, csvlines, csvheaderline, baseCurrency, headerFormats, ExtractDetails_Count
 
                         ExtractDetails_Count += 1
 
@@ -7066,7 +7325,6 @@ Visit: %s (Author's site)
                         # noinspection PyMethodMayBeStatic
                         # noinspection PyUnusedLocal
                         def actionPerformed(self, event):
-                            global extract_data_frame_, debug
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
                             terminate_script()
@@ -7085,15 +7343,12 @@ Visit: %s (Author's site)
                         def __init__(self, theFrame):
                             self.theFrame = theFrame        # type: MyJFrame
 
-                        def windowClosing(self, WindowEvent):                                                               # noqa
-                            global debug, extract_data_frame_
+                        def windowClosing(self, WindowEvent):                                                           # noqa
                             myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
 
                             terminate_script()
 
-                        def windowClosed(self, WindowEvent):                                                                       # noqa
-                            global debug
-
+                        def windowClosed(self, WindowEvent):                                                            # noqa
                             myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -7119,8 +7374,8 @@ Visit: %s (Author's site)
 
                         # noinspection PyMethodMayBeStatic
                         # noinspection PyUnusedLocal
-                        def windowGainedFocus(self, WindowEvent):                                                           # noqa
-                            global focus, table, row, debug, EditedReminderCheck
+                        def windowGainedFocus(self, WindowEvent):                                                       # noqa
+                            global focus, table, row, EditedReminderCheck
 
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -7157,6 +7412,18 @@ Visit: %s (Author's site)
                     WL = WindowListener(extract_data_frame_)
 
                     class MouseListener(MouseAdapter):
+
+                        # noinspection PyMethodMayBeStatic
+                        def mouseClicked(self, event):
+                            global table, row, debug
+                            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+                            # Select the row when right-click initiated
+                            point = event.getPoint()
+                            row = table.rowAtPoint(point)
+                            table.setRowSelectionInterval(row, row)
+                            myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
                         # noinspection PyMethodMayBeStatic
                         def mousePressed(self, event):
                             global table, row, debug
@@ -7167,7 +7434,6 @@ Visit: %s (Author's site)
                                 index = table.getValueAt(row, 0)
                                 ShowEditForm(index)
                             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-                            return
 
                     ML = MouseListener()
 
@@ -7189,7 +7455,6 @@ Visit: %s (Author's site)
 
                         # noinspection PyMethodMayBeStatic
                         def extract_or_close(self):
-                            global extract_data_frame_, debug
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
                             myPrint("D", "inside ExtractMenuAction() ;->")
 
@@ -7201,7 +7466,8 @@ Visit: %s (Author's site)
 
                         # noinspection PyMethodMayBeStatic
                         def refresh(self):
-                            global extract_data_frame_, table, row, debug
+                            global table, row
+
                             row = 0  # reset to row 1
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "\npre-extract details(1), row: ", row)
                             build_the_data_file(1)  # Re-extract data
@@ -7255,8 +7521,7 @@ Visit: %s (Author's site)
                                     self.lSortNumber = False
 
                             def compare(self, str1, str2):
-                                global decimalCharSep
-                                validString = "-0123456789" + decimalCharSep  # Yes this will strip % sign too, but that still works
+                                validString = "-0123456789" + GlobalVars.decimalCharSep  # Yes this will strip % sign too, but that still works
 
                                 if isinstance(str1, StoreDateInt) or isinstance(str2, StoreDateInt):
                                     if str1.getDateInt() > str2.getDateInt():
@@ -7348,14 +7613,12 @@ Visit: %s (Author's site)
                             super(DefaultTableCellRenderer, self).__init__()
 
                         def setValue(self, value):
-                            global decimalCharSep
-
                             if isinstance(value, (float,int)):
                                 if value < 0.0:
                                     self.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
                                 else:
                                     self.setForeground(MD_REF.getUI().getColors().budgetHealthyColor)
-                                self.setText(baseCurrency.formatFancy(int(value*100), decimalCharSep, True))
+                                self.setText(baseCurrency.formatFancy(int(value*100), GlobalVars.decimalCharSep, True))
                             else:
                                 if isinstance(value, StoreDateInt):
                                     self.setText(value.getDateIntFormatted())
@@ -7375,7 +7638,7 @@ Visit: %s (Author's site)
                                 self.setText(str(value))
 
                     def ReminderTable(tabledata, ind):
-                        global extract_data_frame_, scrollpane, table, row, debug, ReminderTable_Count, csvheaderline, lDisplayOnly
+                        global scrollpane, table, row, ReminderTable_Count, csvheaderline, lDisplayOnly
                         global _column_widths_ERTC
 
                         ReminderTable_Count += 1
@@ -7431,7 +7694,10 @@ Visit: %s (Author's site)
 
                             # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                             # extract_data_frame_ = JFrame("extract_data(Reminders) - StuWareSoftSystems(build: %s)..." % version_build)
-                            extract_data_frame_.setTitle(u"Extract Reminders...")
+
+                            titleExtraTxt = u"" if not isPreviewBuild() else u"<PREVIEW BUILD: %s>" %(version_build)
+
+                            extract_data_frame_.setTitle(u"Extract Reminders...   %s" %(titleExtraTxt))
                             extract_data_frame_.setName(u"%s_main_reminders" %myModuleID)
                             # extract_data_frame_.setLayout(FlowLayout())
 
@@ -7450,7 +7716,10 @@ Visit: %s (Author's site)
                             extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut),  "close-window")
                             extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
                             extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut),  "print-me")
-                            extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
+                            if lAllowEscapeExitApp_SWSS:
+                                extract_data_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
+
                             extract_data_frame_.getRootPane().getActionMap().put("close-window", CloseAction())
 
                             extract_data_frame_.addWindowFocusListener(WL)
@@ -7475,19 +7744,30 @@ Visit: %s (Author's site)
 
                             mb = JMenuBar()
 
-                            # menuO = JMenu("<html><B>OPTIONS</b></html>")
-                            menuO = JMenu("OPTIONS")
+                            menuO = JMenu("<html><B>MENU</b></html>")
+                            # menuO = JMenu("OPTIONS")
                             menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
+
+                            menuItemA = JMenuItem("About")
+                            menuItemA.setToolTipText("About...")
+                            menuItemA.addActionListener(DoTheMenu())
+                            menuO.add(menuItemA)
 
                             menuItemR = JMenuItem("Refresh Data/Default Sort")
                             menuItemR.setToolTipText("Refresh (re-extract) the data, revert to default sort  order....")
-                            menuItemR.addActionListener(DoTheMenu(menuO)); menuItemR.setEnabled(True)
+                            menuItemR.addActionListener(DoTheMenu())
                             menuO.add(menuItemR)
 
                             menuItemPS = JMenuItem("Page Setup")
                             menuItemPS.setToolTipText("Printer Page Setup....")
-                            menuItemPS.addActionListener(DoTheMenu(menuO)); menuItemPS.setEnabled(True)
+                            menuItemPS.addActionListener(DoTheMenu())
                             menuO.add(menuItemPS)
+
+                            menuItemEsc = JCheckBoxMenuItem("Allow Escape to Exit")
+                            menuItemEsc.setToolTipText("When enabled, allows the Escape key to exit the main screen")
+                            menuItemEsc.addActionListener(DoTheMenu())
+                            menuItemEsc.setSelected(lAllowEscapeExitApp_SWSS)
+                            menuO.add(menuItemEsc)
 
                             if not lDisplayOnly:
                                 menuItemE = JMenuItem("Extract to CSV")
@@ -7496,23 +7776,10 @@ Visit: %s (Author's site)
                                 menuItemE = JMenuItem("Close Window")
                                 menuItemE.setToolTipText("Exit and close the window")
 
-                            menuItemE.addActionListener(DoTheMenu(menuO))
-                            menuItemE.setEnabled(True)
+                            menuItemE.addActionListener(DoTheMenu())
                             menuO.add(menuItemE)
 
                             mb.add(menuO)
-
-                            # menuH = JMenu("<html><B>ABOUT</b></html>")
-                            menuH = JMenu("ABOUT")
-                            menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
-
-                            menuItemA = JMenuItem("About")
-                            menuItemA.setToolTipText("About...")
-                            menuItemA.addActionListener(DoTheMenu(menuH))
-                            menuItemA.setEnabled(True)
-                            menuH.add(menuItemA)
-
-                            mb.add(menuH)
 
                             mb.add(Box.createHorizontalGlue())
                             mb.add(printButton)
@@ -7550,7 +7817,14 @@ Visit: %s (Author's site)
 
                         # table.setAutoCreateRowSorter(True) # DON'T DO THIS - IT WILL OVERRIDE YOUR NICE CUSTOM SORT
 
+
+                        popupMenu = JPopupMenu()
+                        showDetails = JMenuItem("Show Reminder's raw details")
+                        showDetails.addActionListener(DoTheMenu())
+                        popupMenu.add(showDetails)
+
                         table.addMouseListener(ML)
+                        table.setComponentPopupMenu(popupMenu)
 
                         if ind == 0:
                             scrollpane = JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS)  # On first call, create the scrollpane
@@ -7587,13 +7861,34 @@ Visit: %s (Author's site)
                         return
 
                     def ShowEditForm(item):
-                        global debug, EditedReminderCheck
+                        global EditedReminderCheck
+
                         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
                         reminders = MD_REF.getCurrentAccount().getBook().getReminders()
                         reminder = reminders.getAllReminders()[item-1]
                         myPrint("D", "Calling MD EditRemindersWindow() function...")
-                        EditRemindersWindow.editReminder(None, MD_REF.getUI(), reminder)
+
+                        # EditRemindersWindow.editReminder(None, MD_REF.getUI(), reminder)
+
+                        r = reminder
+                        book = MD_REF.getCurrentAccountBook()
+                        reminderSet = MD_REF.getUI().getCurrentBook().getReminders()
+                        # noinspection PyUnresolvedReferences
+                        if r.getReminderType() == Reminder.Type.TRANSACTION:
+                            if r.isLoanReminder():
+                                win = LoanTxnReminderInfoWindow(MD_REF.getUI(), extract_data_frame_, r, book, r.getTransaction().getSplit(0).getAccount())
+                            else:
+                                win = TxnReminderInfoWindow(MD_REF.getUI(), extract_data_frame_, r, reminderSet.getAccountBook())
+                        # noinspection PyUnresolvedReferences
+                        elif r.getReminderType() == Reminder.Type.NOTE:
+                            win = BasicReminderInfoWindow(MD_REF.getUI(), r, reminderSet, extract_data_frame_)
+                        else: raise Exception("Unknown reminder class: " + r.getClass())
+
+                        win.setEscapeKeyCancels(True)
+                        win.setVisible(True)
+
                         EditedReminderCheck = True
+
                         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
                         return
 
@@ -7606,8 +7901,8 @@ Visit: %s (Author's site)
 
                         if not lDisplayOnly:
                             def ExportDataToFile():
-                                global debug, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build, myScriptName
-                                global sdf, userdateformat, csvlines, csvheaderline, lGlobalErrorDetected, extract_data_frame_
+                                global csvfilename, csvDelimiter
+                                global userdateformat, csvlines, csvheaderline
                                 global lWriteBOMToExportFile_SWSS
 
                                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -7677,24 +7972,25 @@ Visit: %s (Author's site)
                                                 ConsoleWindow.showConsoleWindow(MD_REF.getUI())
                                                 raise Exception("Aborting")
                                         # NEXT
-                                        today = Calendar.getInstance()
-                                        writer.writerow([""])
-                                        writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
-                                                         + version_build
-                                                         + ")  Moneydance Python Script - Date of Extract: "
-                                                         + str(sdf.format(today.getTime()))])
+                                        if lWriteParametersToExportFile_SWSS:
+                                            today = Calendar.getInstance()
+                                            writer.writerow([""])
+                                            writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
+                                                             + version_build
+                                                             + ")  Moneydance Python Script - Date of Extract: "
+                                                             + str(sdf.format(today.getTime()))])
 
-                                        writer.writerow([""])
-                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                            writer.writerow([""])
+                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
 
-                                        writer.writerow([""])
-                                        writer.writerow(["User Parameters..."])
-                                        writer.writerow(["Date format................: %s" %(userdateformat)])
+                                            writer.writerow([""])
+                                            writer.writerow(["User Parameters..."])
+                                            writer.writerow(["Date format................: %s" %(userdateformat)])
 
                                     myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
                                 except IOError, e:
-                                    lGlobalErrorDetected = True
+                                    GlobalVars.lGlobalErrorDetected = True
                                     myPrint("B", "Oh no - File IO Error!", e)
                                     myPrint("B", "Path:", csvfilename)
                                     myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
@@ -7703,8 +7999,6 @@ Visit: %s (Author's site)
                             # enddef
 
                             def fixFormatsStr(theString, lNumber, sFormat=""):
-                                global lStripASCII
-
                                 if isinstance(theString, (int,float)):
                                     lNumber = True
 
@@ -7729,7 +8023,7 @@ Visit: %s (Author's site)
                                 return all_ASCII
 
                     else:
-                        myPopupInformationBox(extract_data_frame_,"You have no reminders to display or extract!",myScriptName)
+                        myPopupInformationBox(extract_data_frame_,"You have no reminders to display or extract!",GlobalVars.thisScriptName)
 
                 # Not great code design, but sticking the whole code into the EDT (what happens anyway when running as an Extension)
                 # for new code, design Swing Worker Threads too
@@ -7765,13 +8059,12 @@ Visit: %s (Author's site)
                     # ##############################################
 
                     def do_extract_account_registers():
-                        global debug
-                        global decimalCharSep, lDidIUseAttachmentDir, csvfilename, myScriptName, lGlobalErrorDetected, lExit, lDisplayOnly
-                        global baseCurrency, sdf
+                        global lDidIUseAttachmentDir, csvfilename, lExit, lDisplayOnly
+                        global baseCurrency
                         global transactionTable, dataKeys, attachmentDir, relativePath
 
-                        global __extract_data, extract_data_frame_, extract_filename
-                        global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+                        global __extract_data, extract_filename
+                        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
                         global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
                         global whichDefaultExtractToRun_SWSS
@@ -7804,6 +8097,8 @@ Visit: %s (Author's site)
                                 # noinspection PyUnresolvedReferences
                                 if not (acct.getAccountType() == Account.AccountType.BANK
                                         or acct.getAccountType() == Account.AccountType.CREDIT_CARD
+                                        or acct.getAccountType() == Account.AccountType.LOAN
+                                        or acct.getAccountType() == Account.AccountType.LIABILITY
                                         or acct.getAccountType() == Account.AccountType.ASSET):
                                     return False
 
@@ -7849,7 +8144,7 @@ Visit: %s (Author's site)
                         if dropDownAccount_EAR:
                             if lIncludeSubAccounts_EAR:
                                 # noinspection PyUnresolvedReferences
-                                validAccountList = dropDownAccount_EAR.getSubAccounts()
+                                validAccountList = ArrayList(dropDownAccount_EAR.getSubAccounts())
                             else:
                                 validAccountList = ArrayList()
                             validAccountList.add(0,dropDownAccount_EAR)
@@ -7865,7 +8160,7 @@ Visit: %s (Author's site)
                             myPrint("DB","%s Accounts selected in filters" %len(validAccountList))
                             for element in validAccountList: myPrint("D","...selected acct: %s" %element)
 
-                        _msg = MyPopUpDialogBox(extract_data_frame_, "PLEASE WAIT....", "", 100, "Building Database", False)
+                        _msg = MyPopUpDialogBox(extract_data_frame_, theStatus="PLEASE WAIT....", theTitle="Building Database", lModal=False)
                         _msg.go()
 
                         _COLUMN = 0
@@ -8311,8 +8606,8 @@ Visit: %s (Author's site)
 
 
                         def ExportDataToFile(statusMsg):
-                            global debug, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build, myScriptName
-                            global transactionTable, userdateformat, lGlobalErrorDetected
+                            global csvfilename, csvDelimiter
+                            global transactionTable, userdateformat
                             global lWriteBOMToExportFile_SWSS
                             global lAllTags_EAR, tagFilter_EAR
                             global lAllText_EAR, textFilter_EAR
@@ -8393,44 +8688,45 @@ Visit: %s (Author's site)
                                         ConsoleWindow.showConsoleWindow(MD_REF.getUI())
                                         raise Exception("Aborting")
 
-                                    today = Calendar.getInstance()
-                                    writer.writerow([""])
-                                    writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
-                                                     + version_build
-                                                     + ")  Moneydance Python Script - Date of Extract: "
-                                                     + str(sdf.format(today.getTime()))])
+                                    if lWriteParametersToExportFile_SWSS:
+                                        today = Calendar.getInstance()
+                                        writer.writerow([""])
+                                        writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
+                                                         + version_build
+                                                         + ")  Moneydance Python Script - Date of Extract: "
+                                                         + str(sdf.format(today.getTime()))])
 
-                                    writer.writerow([""])
-                                    writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                        writer.writerow([""])
+                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
 
-                                    writer.writerow([""])
-                                    writer.writerow(["User Parameters..."])
+                                        writer.writerow([""])
+                                        writer.writerow(["User Parameters..."])
 
-                                    if dropDownAccount_EAR:
-                                        # noinspection PyUnresolvedReferences
-                                        writer.writerow(["Dropdown Account selected..: %s" %(dropDownAccount_EAR.getAccountName())])
-                                        writer.writerow(["Include Sub Accounts.......: %s" %(lIncludeSubAccounts_EAR)])
-                                    else:
-                                        writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
-                                        writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
-                                        writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
-                                        writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+                                        if dropDownAccount_EAR:
+                                            # noinspection PyUnresolvedReferences
+                                            writer.writerow(["Dropdown Account selected..: %s" %(dropDownAccount_EAR.getAccountName())])
+                                            writer.writerow(["Include Sub Accounts.......: %s" %(lIncludeSubAccounts_EAR)])
+                                        else:
+                                            writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
+                                            writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
+                                            writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
+                                            writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
 
-                                    writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances_EAR)])
-                                    # writer.writerow(["Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR)])
-                                    writer.writerow(["Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR)])
-                                    writer.writerow(["Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR)])
-                                    writer.writerow(["Category filter............: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR)])
-                                    writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EAR)])
-                                    writer.writerow(["Date range.................: %s" %(saveDropDownDateRange_EAR)])
-                                    writer.writerow(["Selected Start Date........: %s" %(userdateStart_EAR)])
-                                    writer.writerow(["Selected End Date..........: %s" %(userdateEnd_EAR)])
-                                    writer.writerow(["user date format...........: %s" %(userdateformat)])
+                                        writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances_EAR)])
+                                        # writer.writerow(["Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR)])
+                                        writer.writerow(["Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR)])
+                                        writer.writerow(["Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR)])
+                                        writer.writerow(["Category filter............: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR)])
+                                        writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EAR)])
+                                        writer.writerow(["Date range.................: %s" %(saveDropDownDateRange_EAR)])
+                                        writer.writerow(["Selected Start Date........: %s" %(userdateStart_EAR)])
+                                        writer.writerow(["Selected End Date..........: %s" %(userdateEnd_EAR)])
+                                        writer.writerow(["user date format...........: %s" %(userdateformat)])
 
                                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
                             except IOError, e:
-                                lGlobalErrorDetected = True
+                                GlobalVars.lGlobalErrorDetected = True
                                 myPrint("B", "Oh no - File IO Error!", e)
                                 myPrint("B", "Path:", csvfilename)
                                 myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
@@ -8438,9 +8734,6 @@ Visit: %s (Author's site)
                                 myPopupInformationBox(extract_data_frame_, "Sorry - error writing to export file!", "FILE EXTRACT")
 
                         def fixFormatsStr(theString, lNumber=False, sFormat=""):
-
-                            global lStripASCII
-
                             if isinstance(theString, bool): return theString
                             if isinstance(theString, tuple): return theString
                             if isinstance(theString, dict): return theString
@@ -8476,7 +8769,7 @@ Visit: %s (Author's site)
                             ExportDataToFile(_msg)
                             _msg.kill()
 
-                            if not lGlobalErrorDetected:
+                            if not GlobalVars.lGlobalErrorDetected:
                                 xtra_msg=""
                                 if lDidIUseAttachmentDir:
 
@@ -8512,11 +8805,11 @@ Visit: %s (Author's site)
                                         xtra_msg="\n(with an error creating the zip file - review console / log for messages)"
 
                                 MyPopUpDialogBox(extract_data_frame_,
-                                                 "Your extract has been created as requested:",
-                                                 "With %s rows and %s attachments downloaded %s\n"
+                                                 theStatus="Your extract has been created as requested:",
+                                                 theMessage="With %s rows and %s attachments downloaded %s\n"
                                                  "\n(... and %s Attachment Errors...)" % (len(transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors),
-                                                 200,
-                                                 myScriptName, lModal=True).go()
+                                                 theTitle=GlobalVars.thisScriptName,
+                                                 lModal=True).go()
 
                                 try:
                                     helper_EAR = MD_REF.getPlatformHelper()
@@ -8525,7 +8818,7 @@ Visit: %s (Author's site)
                                     pass
                         else:
                             _msg.kill()
-                            myPopupInformationBox(extract_data_frame_, "No records selected and no extract file created....", myScriptName)
+                            myPopupInformationBox(extract_data_frame_, "No records selected and no extract file created....", GlobalVars.thisScriptName)
 
                         # Clean up...
                         if not lDidIUseAttachmentDir and attachmentDir:
@@ -8547,15 +8840,24 @@ Visit: %s (Author's site)
                             myPrint("DB", "In ExtractAccountRegistersSwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
                             myPrint("DB", "... Calling do_extract_account_registers()")
-                            do_extract_account_registers()
+
+                            try:
+                                do_extract_account_registers()
+                            except:
+                                myPrint("B","@@ ERROR Detected in do_extract_account_registers()")
+                                dump_sys_error_to_md_console_and_errorlog()
+                                return False
+
                             return True
 
                         # noinspection PyMethodMayBeStatic
                         def done(self):
                             myPrint("DB", "In ExtractAccountRegistersSwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
-                            self.get()     # wait for task to complete
-                            cleanup_actions(extract_data_frame_)
+                            if self.get():     # wait for task to complete
+                                cleanup_actions(extract_data_frame_)
+                            else:
+                                myPopupInformationBox(extract_data_frame_, "ERROR: do_extract_account_registers() has failed (review console)!","ERROR", JOptionPane.ERROR_MESSAGE)
 
                     myPrint("DB",".. Running ExtractAccountRegistersSwingWorker() via SwingWorker...")
                     sw = ExtractAccountRegistersSwingWorker()
@@ -8568,13 +8870,12 @@ Visit: %s (Author's site)
                     # ####################################################
 
                     def do_extract_investment_transactions():
-                        global debug
-                        global decimalCharSep, lDidIUseAttachmentDir, csvfilename, myScriptName, lGlobalErrorDetected, lExit, lDisplayOnly
-                        global baseCurrency, sdf
+                        global lDidIUseAttachmentDir, csvfilename, lExit, lDisplayOnly
+                        global baseCurrency
                         global transactionTable, dataKeys, attachmentDir, relativePath
 
-                        global __extract_data, extract_data_frame_, extract_filename
-                        global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+                        global __extract_data, extract_filename
+                        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
                         global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
                         global whichDefaultExtractToRun_SWSS
@@ -8999,7 +9300,7 @@ Visit: %s (Author's site)
                                 _row[dataKeys["_SHARES"][_COLUMN]] = securityCurr.getDoubleValue(securityTxn.getValue())
                                 _row[dataKeys["_PRICE"][_COLUMN]] = acctCurr.getDoubleValue(securityTxn.getAmount())
                                 _row[dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
-                                _row[dataKeys["_SECSHRHOLDING"][_COLUMN]] = securityCurr.formatSemiFancy(securityAcct.getBalance(),decimalCharSep)
+                                _row[dataKeys["_SECSHRHOLDING"][_COLUMN]] = securityCurr.formatSemiFancy(securityAcct.getBalance(),GlobalVars.decimalCharSep)
                             else:
                                 _row[dataKeys["_SECURITY"][_COLUMN]] = ""
                                 _row[dataKeys["_SECCURR"][_COLUMN]] = ""
@@ -9150,20 +9451,22 @@ Visit: %s (Author's site)
                                 _row[dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
 
                             if securityTxn and cbTags:
-                                lots = []
-                                for cbKey in cbTags.keys():
-                                    relatedCBTxn = rootbook.getTransactionSet().getTxnByID(cbKey)
-                                    if relatedCBTxn is not None:
-                                        lots.append([cbKey,
-                                                     relatedCBTxn.getTransferType(),
-                                                     relatedCBTxn.getOtherTxn(0).getInvestTxnType(),
-                                                     relatedCBTxn.getDateInt(),
-                                                     acctCurr.formatSemiFancy(relatedCBTxn.getValue(), decimalCharSep),
-                                                     acctCurr.getDoubleValue(relatedCBTxn.getAmount()),
-                                                     ])
-                                # endfor
-                                if len(lots) > 0:
-                                    _row[dataKeys["_LOTS"][_COLUMN]] = lots
+                                if not lOmitLOTDataFromExtract_EIT:
+                                    lots = []
+                                    for cbKey in cbTags.keys():
+                                        relatedCBTxn = rootbook.getTransactionSet().getTxnByID(cbKey)
+                                        if relatedCBTxn is not None:
+                                            lots.append([cbKey,
+                                                         relatedCBTxn.getTransferType(),
+                                                         relatedCBTxn.getOtherTxn(0).getInvestTxnType(),
+                                                         relatedCBTxn.getDateInt(),
+                                                         acctCurr.formatSemiFancy(relatedCBTxn.getValue(), GlobalVars.decimalCharSep),
+                                                         acctCurr.getDoubleValue(relatedCBTxn.getAmount()),
+                                                         ])
+                                    # endfor
+                                    if len(lots) > 0:
+                                        _row[dataKeys["_LOTS"][_COLUMN]] = lots
+                                    # endif
                                 # endif
                             # endif
 
@@ -9295,8 +9598,8 @@ Visit: %s (Author's site)
 
 
                         def ExportDataToFile():
-                            global debug, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build, myScriptName
-                            global transactionTable, userdateformat, lGlobalErrorDetected
+                            global csvfilename, csvDelimiter
+                            global transactionTable, userdateformat
                             global lWriteBOMToExportFile_SWSS, lExtractAttachments_EIT, relativePath
 
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -9375,34 +9678,36 @@ Visit: %s (Author's site)
                                         ConsoleWindow.showConsoleWindow(MD_REF.getUI())
                                         raise Exception("Aborting")
 
-                                    today = Calendar.getInstance()
-                                    writer.writerow([""])
-                                    writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
-                                                     + version_build
-                                                     + ")  Moneydance Python Script - Date of Extract: "
-                                                     + str(sdf.format(today.getTime()))])
+                                    if lWriteParametersToExportFile_SWSS:
+                                        today = Calendar.getInstance()
+                                        writer.writerow([""])
+                                        writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
+                                                         + version_build
+                                                         + ")  Moneydance Python Script - Date of Extract: "
+                                                         + str(sdf.format(today.getTime()))])
 
-                                    writer.writerow([""])
-                                    writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                        writer.writerow([""])
+                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
 
-                                    writer.writerow([""])
-                                    writer.writerow(["User Parameters..."])
+                                        writer.writerow([""])
+                                        writer.writerow(["User Parameters..."])
 
-                                    writer.writerow(["Hiding Hidden Securities...: %s" %(hideHiddenSecurities)])
-                                    writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
-                                    writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
-                                    writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
-                                    writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
-                                    writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
-                                    writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances)])
-                                    writer.writerow(["Adjust for Splits..........: %s" %(lAdjustForSplits)])
-                                    writer.writerow(["Split Securities by Account: %s" %(userdateformat)])
-                                    writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EIT)])
+                                        writer.writerow(["Hiding Hidden Securities...: %s" %(hideHiddenSecurities)])
+                                        writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
+                                        writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
+                                        writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
+                                        writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
+                                        writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+                                        writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances)])
+                                        writer.writerow(["Adjust for Splits..........: %s" %(lAdjustForSplits)])
+                                        writer.writerow(["Split Securities by Account: %s" %(userdateformat)])
+                                        writer.writerow(["Omit LOT matching data.....: %s" %(lOmitLOTDataFromExtract_EIT)])
+                                        writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EIT)])
 
                                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
                             except IOError, e:
-                                lGlobalErrorDetected = True
+                                GlobalVars.lGlobalErrorDetected = True
                                 myPrint("B", "Oh no - File IO Error!", e)
                                 myPrint("B", "Path:", csvfilename)
                                 myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
@@ -9412,9 +9717,6 @@ Visit: %s (Author's site)
                         # enddef
 
                         def fixFormatsStr(theString, lNumber=False, sFormat=""):
-
-                            global lStripASCII
-
                             if isinstance(theString, bool): return theString
                             if isinstance(theString, tuple): return theString
                             if isinstance(theString, dict): return theString
@@ -9450,7 +9752,7 @@ Visit: %s (Author's site)
 
                             ExportDataToFile()
 
-                            if not lGlobalErrorDetected:
+                            if not GlobalVars.lGlobalErrorDetected:
                                 xtra_msg=""
                                 if lDidIUseAttachmentDir:
 
@@ -9486,11 +9788,11 @@ Visit: %s (Author's site)
                                         xtra_msg="\n(with an error creating the zip file - review console / log for messages)"
 
                                 MyPopUpDialogBox(extract_data_frame_,
-                                                 "Your extract has been created as requested:",
-                                                 "With %s rows and %s attachments downloaded %s\n"
+                                                 theStatus="Your extract has been created as requested:",
+                                                 theMessage="With %s rows and %s attachments downloaded %s\n"
                                                  "\n(... and %s Attachment Errors...)" % (len(transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors),
-                                                 200,
-                                                 myScriptName, lModal=True).go()
+                                                 theTitle=GlobalVars.thisScriptName,
+                                                 lModal=True).go()
 
                                 try:
                                     helper_EIT = MD_REF.getPlatformHelper()
@@ -9498,7 +9800,7 @@ Visit: %s (Author's site)
                                 except:
                                     pass
                         else:
-                            myPopupInformationBox(extract_data_frame_, "No records selected and no extract file created....", myScriptName)
+                            myPopupInformationBox(extract_data_frame_, "No records selected and no extract file created....", GlobalVars.thisScriptName)
 
                         # Clean up...
                         if not lDidIUseAttachmentDir and attachmentDir:
@@ -9519,15 +9821,23 @@ Visit: %s (Author's site)
                             myPrint("DB", "In ExtractInvestmentTxnsSwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
                             myPrint("DB", "... Calling do_extract_investment_transactions()")
-                            do_extract_investment_transactions()
+                            try:
+                                do_extract_investment_transactions()
+                            except:
+                                myPrint("B","@@ ERROR Detected in do_extract_investment_transactions()")
+                                dump_sys_error_to_md_console_and_errorlog()
+                                return False
+
                             return True
 
                         # noinspection PyMethodMayBeStatic
                         def done(self):
                             myPrint("DB", "In ExtractInvestmentTxnsSwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
-                            self.get()     # wait for task to complete
-                            cleanup_actions(extract_data_frame_)
+                            if self.get():     # wait for task to complete
+                                cleanup_actions(extract_data_frame_)
+                            else:
+                                myPopupInformationBox(extract_data_frame_, "ERROR: do_extract_account_registers() has failed (review console)!","ERROR", JOptionPane.ERROR_MESSAGE)
 
                     myPrint("DB",".. Running do_extract_investment_transactions() via SwingWorker...")
                     sw = ExtractInvestmentTxnsSwingWorker()
@@ -9541,12 +9851,11 @@ Visit: %s (Author's site)
                     # ####################################################
 
                     def do_extract_currency_history():
-                        global debug
-                        global decimalCharSep, lDidIUseAttachmentDir, csvfilename, myScriptName, lGlobalErrorDetected, lExit, lDisplayOnly
-                        global sdf, csvlines
+                        global lDidIUseAttachmentDir, csvfilename, lExit, lDisplayOnly
+                        global csvlines
 
-                        global __extract_data, extract_data_frame_, extract_filename
-                        global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+                        global __extract_data, extract_filename
+                        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
                         global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
                         global whichDefaultExtractToRun_SWSS
@@ -9636,10 +9945,8 @@ Visit: %s (Author's site)
 
                         currencyTable = list_currency_rate_history()
 
-                        def ExportDataToFile(theTable, header):                                                                 # noqa
-                            global debug, csvfilename, decimalCharSep, groupingCharSep, csvDelimiter, version_build, myScriptName
-                            global sdf, userdateformat, lGlobalErrorDetected
-                            global lWriteBOMToExportFile_SWSS
+                        def ExportDataToFile(theTable, _header):                                                         # noqa
+                            global csvfilename, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
 
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -9654,7 +9961,7 @@ Visit: %s (Author's site)
                                 theTable = sorted(theTable, key=lambda x: (safeStr(x[_CURRNAME]).upper(),x[_SNAPDATE]))
 
                             myPrint("P", "Now pre-processing the file to convert integer dates to 'formatted' dates....")
-                            for row in theTable:                                                                                # noqa
+                            for row in theTable:                                                                        # noqa
                                 try:
                                     if row[_SNAPDATE]:
                                         dateasdate = datetime.datetime.strptime(str(row[_SNAPDATE]),"%Y%m%d")  # Convert to Date field
@@ -9670,7 +9977,7 @@ Visit: %s (Author's site)
                                     for col in range(0, len(row)):
                                         row[col] = fixFormatsStr(row[col])
 
-                            theTable.insert(0,header)  # Insert Column Headings at top of list. A bit rough and ready, not great coding, but a short list...!
+                            theTable.insert(0,_header)  # Insert Column Headings at top of list. A bit rough and ready, not great coding, but a short list...!
 
                             # Write the theTable to a file
                             myPrint("B", "Opening file and writing ", len(theTable), " records")
@@ -9709,22 +10016,23 @@ Visit: %s (Author's site)
                                             raise Exception("Aborting")
 
                                         # NEXT
-                                        today = Calendar.getInstance()
-                                        writer.writerow([""])
-                                        writer.writerow(["StuWareSoftSystems - " + myScriptName + "(build: "
-                                                         + version_build
-                                                         + ")  Moneydance Python Script - Date of Extract: "
-                                                         + str(sdf.format(today.getTime()))])
+                                        if lWriteParametersToExportFile_SWSS:
+                                            today = Calendar.getInstance()
+                                            writer.writerow([""])
+                                            writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
+                                                             + version_build
+                                                             + ")  Moneydance Python Script - Date of Extract: "
+                                                             + str(sdf.format(today.getTime()))])
 
-                                        writer.writerow([""])
-                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                            writer.writerow([""])
+                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
 
-                                        writer.writerow([""])
-                                        writer.writerow(["User Parameters..."])
-                                        writer.writerow(["Simplify Extract...........: %s" %(lSimplify_ECH)])
-                                        writer.writerow(["Hiding Hidden Currencies...: %s" %(hideHiddenCurrencies_ECH)])
-                                        writer.writerow(["Date format................: %s" %(userdateformat)])
-                                        writer.writerow(["Date Range Selected........: "+str(userdateStart_ECH) + " to " +str(userdateEnd_ECH)])
+                                            writer.writerow([""])
+                                            writer.writerow(["User Parameters..."])
+                                            writer.writerow(["Simplify Extract...........: %s" %(lSimplify_ECH)])
+                                            writer.writerow(["Hiding Hidden Currencies...: %s" %(hideHiddenCurrencies_ECH)])
+                                            writer.writerow(["Date format................: %s" %(userdateformat)])
+                                            writer.writerow(["Date Range Selected........: "+str(userdateStart_ECH) + " to " +str(userdateEnd_ECH)])
 
                                     else:
                                         # Simplify is for my tester 'buddy' DerekKent23 - it's actually an MS Money Import format
@@ -9756,7 +10064,7 @@ Visit: %s (Author's site)
                                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
                             except IOError, e:
-                                lGlobalErrorDetected = True
+                                GlobalVars.lGlobalErrorDetected = True
                                 myPrint("B", "Oh no - File IO Error!", e)
                                 myPrint("B", "Path:", csvfilename)
                                 myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
@@ -9765,8 +10073,6 @@ Visit: %s (Author's site)
                         # enddef
 
                         def fixFormatsStr(theString, lNumber=False, sFormat=""):
-                            global lStripASCII
-
                             if isinstance(theString, bool): return theString
 
                             if isinstance(theString, int) or isinstance(theString, float):
@@ -9793,8 +10099,8 @@ Visit: %s (Author's site)
                             return all_ASCII
 
                         ExportDataToFile(currencyTable, header)
-                        if not lGlobalErrorDetected:
-                            myPopupInformationBox(extract_data_frame_,"Your extract (%s records) has been created as requested." %(len(currencyTable)+1),myScriptName)
+                        if not GlobalVars.lGlobalErrorDetected:
+                            myPopupInformationBox(extract_data_frame_,"Your extract (%s records) has been created as requested." %(len(currencyTable)+1),GlobalVars.thisScriptName)
                             try:
                                 helper_c = MD_REF.getPlatformHelper()
                                 helper_c.openDirectory(File(csvfilename))
@@ -9808,15 +10114,24 @@ Visit: %s (Author's site)
                             myPrint("DB", "In ExtractCurrencyHistorySwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
                             myPrint("DB", "... Calling do_extract_currency_history()")
-                            do_extract_currency_history()
+
+                            try:
+                                do_extract_currency_history()
+                            except:
+                                myPrint("B","@@ ERROR Detected in do_extract_currency_history()")
+                                dump_sys_error_to_md_console_and_errorlog()
+                                return False
+
                             return True
 
                         # noinspection PyMethodMayBeStatic
                         def done(self):
                             myPrint("DB", "In ExtractCurrencyHistorySwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
-                            self.get()     # wait for task to complete
-                            cleanup_actions(extract_data_frame_)
+                            if self.get():     # wait for task to complete
+                                cleanup_actions(extract_data_frame_)
+                            else:
+                                myPopupInformationBox(extract_data_frame_, "ERROR: do_extract_account_registers() has failed (review console)!","ERROR", JOptionPane.ERROR_MESSAGE)
 
                     myPrint("DB",".. Running ExtractCurrencyHistorySwingWorker() via SwingWorker...")
                     sw = ExtractCurrencyHistorySwingWorker()

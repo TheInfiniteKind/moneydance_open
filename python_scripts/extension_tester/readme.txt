@@ -171,6 +171,10 @@ CODING TIPS
     AccountListener, BudgetListener, CurrencyListener, MDFileListener, MemorizedItemListener, OnlineInfoListener
     OnlinePayeeListener, OnlinePaymentListener, OnlineTxnListener, ReminderListener, TransactionListener
 
+- Quick Java tip on "context"
+    This is a reference to Main. In Python, you can access the variable "moneydance". In Java use the following for example:
+    com.moneydance.apps.md.controller.Main mdContext = (com.moneydance.apps.md.controller.Main) context;
+
 - Review:
     - Stuart Beesley's scripts (especially net_account_balances extension): https://yogi1967.github.io/MoneydancePythonScripts/
     - Mike Bray's excellent wiki:   https://bitbucket.org/mikerb/moneydance-2019/wiki/Moneydance%20Information

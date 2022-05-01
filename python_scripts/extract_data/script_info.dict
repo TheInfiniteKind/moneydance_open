@@ -11,6 +11,11 @@
     }
     {
       "type" = "method"
+      "method" = "invoke"
+      "script_file" = "extract_data_invoke.py"
+    }
+    {
+      "type" = "method"
       "method" = "unload"
       "script_file" = "extract_data_unload.py"
     }

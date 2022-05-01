@@ -11,6 +11,11 @@
     }
     {
       "type" = "method"
+      "method" = "invoke"
+      "script_file" = "list_future_reminders_invoke.py"
+    }
+    {
+      "type" = "method"
       "method" = "unload"
       "script_file" = "list_future_reminders_unload.py"
     }
