@@ -395,6 +395,9 @@ public class YahooConnection extends BaseConnection {
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
       String line = null;
       while ((line = bufferedReader.readLine()) != null) {
+        // the matcher is slow, so try a quick string comparison first...
+        if(!line.contains("CrumbStore")) continue;
+        
         Matcher m = p.matcher(line);
         if (m.matches()) {
           crumble = m.group(1);
@@ -407,7 +410,7 @@ public class YahooConnection extends BaseConnection {
       System.err.println("yahoo: set/updated cookie and/or crumble in " + ((System.currentTimeMillis()-startTime)/1000.0) + " seconds");
     }
     
-    return cookie!=null && crumble!=null;
+    return crumble!=null;
   }
 
 }
