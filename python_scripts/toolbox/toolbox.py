@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1047 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1048 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and they retain all copyright over Moneydance internal code
@@ -280,6 +280,10 @@
 # build: 1047 - added toolbox_invoke.py script... collaborated with Mike Bray to add QuoteLoader variables to detect when busy
 # build: 1047 - MD build 4074 changed .getOFXLastTxnUpdate() to add connectionID parameter
 # build: 1047 - added OFX_reset_OFXLastTxnUpdate_dates() for build 4074 onwards; added error traps on main menus...
+# build: 1047 - Bugfix deleteOFXService() if no service selected...; Enhanced View OFX data for multiple service options (OFX and MD+)
+# build: 1047 - Improved the 'STOP-NOW' command message (suggest to check for upgrade)
+
+# todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - fix vmoptions file name to match .exe
@@ -299,7 +303,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1047"
+version_build = "1048"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -649,6 +653,7 @@ else:
     global MD_OFX_BANK_SETTINGS_DIR, MD_OFX_DEFAULT_SETTINGS_FILE, MD_OFX_DEBUG_SETTINGS_FILE, MD_EXTENSIONS_DIRECTORY_FILE
     global TOOLBOX_VERSION_VALIDATION_URL, TOOLBOX_STOP_NOW
     global MD_RRATE_ISSUE_FIXED_BUILD, MD_ICLOUD_ENABLED, MD_MDPLUS_BUILD, MD_MULTI_OFX_TXN_DNLD_DATES_BUILD
+    global MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD
 
     GlobalVars.allButtonsList = []
     GlobalVars.TOOLBOX_UNLOCK = False
@@ -673,6 +678,7 @@ else:
     MD_ICLOUD_ENABLED = 3088                                                                                            # noqa
     MD_RRATE_ISSUE_FIXED_BUILD = 3089                                                                                   # noqa
     MD_MDPLUS_BUILD = 4040                                                                                              # noqa
+    MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD = 4078                                                                 # noqa
     MD_MULTI_OFX_TXN_DNLD_DATES_BUILD = 4074                                                                            # noqa
 
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
@@ -3283,6 +3289,8 @@ Visit: %s (Author's site)
 
     def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_BUILD)
 
+    def isMDPlusUniqueBankingServicesEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD)
+
     if isMDPlusEnabledBuild():
         # from com.moneydance.apps.md.controller import MDPlus
         # from com.moneydance.apps.md.controller.olb.plaid import PlaidConnection
@@ -5716,6 +5724,20 @@ Visit: %s (Author's site)
                     OFX.append("- {:40} ('Key': {:15}) OFXAccNum: {:15} Bank Profile: {}".format(olAcct[0].getAccount().getFullAccountName(), olAcct[0].getAccountKey(), olAcct[0].getOFXAccountNumber(), olAcct[1]))
                 else:
                     OFX.append("- {:40} ('Key': {:15}) OFXAccNum: {:15} BillPay Prof: {}".format(olAcct[0].getAccount().getFullAccountName(), olAcct[0].getAccountKey(), olAcct[0].getOFXAccountNumber(), olAcct[1]))
+        OFX.append("")
+
+        if isMDPlusEnabledBuild() and isMDPlusUniqueBankingServicesEnabledBuild():
+            OFX.append("MD Accounts >> listing enabled banking services per account:")
+            if len(olAccounts) < 1:
+                OFX.append("<NONE FOUND>")
+            else:
+                for acctObj in olAccounts:
+                    gbs = acctObj.getBankingServices()
+                    if gbs.size() < 1: continue
+                    for bs in gbs:
+                        OFX.append("- Account: {:40} Banking Service (out of {}) {:40}".format(acctObj.getFullAccountName(),
+                                                                                               gbs.size(),
+                                                                                               bs.getService()))
         OFX.append("")
 
         for service in MD_REF.getCurrentAccount().getBook().getOnlineInfo().getAllServices():
@@ -10610,6 +10632,7 @@ Visit: %s (Author's site)
         _THIS_METHOD_NAME = "DELETE ONLINE BANKING SERVICE / PROFILE"
 
         service = getUserSelectedServiceProfile(toolbox_frame_, _THIS_METHOD_NAME, "Select an Online Banking Service / Profile to delete", lIncludePlaidWhenUnlocked=True)  # type: OnlineService
+        if not service: return
 
         if service.getTIKServiceID() == "md:plaid":
             if not myPopupAskQuestion(toolbox_frame_,
@@ -12903,15 +12926,21 @@ Visit: %s (Author's site)
                             if (acct.canDownloadTxns() and not acct.getAccountIsInactive()):
                                 output += pad(">> Can Download Txns:",50)+safeStr(acct.canDownloadTxns() and not acct.getAccountIsInactive())+"\n"
 
-                            # if isMDPlusEnabledBuild() and acct.getBankingServices().size() > 0:
-                            #     # Sean advised that always take the first item (there are duplicates in the list, but it is sorted)
-                            #     output += pad(">> Banking Services first candidate:",50)+safeStr(acct.getBankingServices()[0].getService())+"\n"
-                            #
                             if acct.getOFXAccountNumber() is not None and acct.getOFXAccountNumber() != "":
                                 output += pad(">> OFX Account Number:",50)+safeStr(acct.getOFXAccountNumber())+"\n"
 
+                            if isMDPlusEnabledBuild():
+                                gbs = acct.getBankingServices()
+                                if gbs.size() > 0:
+                                    if isMDPlusUniqueBankingServicesEnabledBuild():
+                                        for bs in gbs:
+                                            output += pad(">> Banking Service found (out of %s):" %(gbs.size()),50)+safeStr(bs.getService())+"\n"
+                                    else:
+                                        # Sean advised that always take the first item (there are duplicates in the list, but it is sorted)
+                                        output += pad(">> Banking Services first candidate:",50)+safeStr(gbs[0].getService())+"\n"
+
                             if acct.getBankingFI() is not None:
-                                output += pad(">> Bank Service/Logon profile:",50)+safeStr(acct.getBankingFI())+"\n"
+                                output += pad(">> Bank Service/Logon profile (getBankingFI()):",50)+safeStr(acct.getBankingFI())+"\n"
                                 if my_get_account_key(acct):
                                     output += pad(">> (Account Key):",50)+safeStr(my_get_account_key(acct))+"\n"
 
@@ -26204,10 +26233,10 @@ Script/extension is analysing your moneydance & system settings....
 
     if lAbort:
         if TOOLBOX_STOP_NOW:
-            myPrint("B", "STOP-NOW COMMAND RECEIVED!")
+            myPrint("B", "STOP-NOW (DISABLE) COMMAND RECEIVED!")
             myPopupInformationBox(None,
-                                  "Sorry, Toolbox has received a STOP-NOW command from developer....!",
-                                  "Toolbox- STOP-NOW",
+                                  "Toolbox DISABLED (check for version update Extension>Manage Extensions)",
+                                  "TOOLBOX DISABLED",
                                   JOptionPane.ERROR_MESSAGE)
         else:
             myPrint("B", "Sorry, this Toolbox (build %s) has only been tested on Moneydance versions %s thru' %s(build %s)... Yours is %s(%s) >> Exiting....."
