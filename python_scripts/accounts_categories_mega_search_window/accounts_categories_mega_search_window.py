@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# categories_super_window.py build: 1002 - November 2021 - Stuart Beesley StuWareSoftSystems
+# categories_super_window.py build: 1004 - April 2022 - Stuart Beesley StuWareSoftSystems
 # Renamed to: accounts_categories_mega_search_window.py build: 1003 - April 2022 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
@@ -33,7 +33,7 @@
 # build: 1001 - Updated common code MyJFrame.dispose()
 # build: 1002 - Eliminated common code globals :->
 # build: 1003 - Renamed to accounts_categories_mega_search_window and allow both Accounts & Categories...
-# build: 1003 -
+# build: 1004 - Tweaks: Search filter field grabs focus. Expand all button"
 
 # Clones MD Menu > Tools>Categories and adds Search capability...
 
@@ -43,7 +43,7 @@
 
 # SET THESE LINES
 myModuleID = u"accounts_categories_mega_search_window"
-version_build = "1003"
+version_build = "1004"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -322,6 +322,7 @@ else:
     from java.awt.event import FocusAdapter
     from com.moneydance.awt import GridC
     from com.moneydance.apps.md.view.gui import MoneydanceGUI
+    from java.awt import Event
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
@@ -2791,15 +2792,17 @@ Visit: %s (Author's site)
                 self.lCats = lCats
                 self.lAccounts = lAccounts
                 self.lRoot = lRoot
+                self.bypassFilter = False
 
             def matches(self, acct):
                 if (acct is None): return False
 
                 if not self.lCats and not self.lAccounts and not self.lRoot: return False
 
-                if self.searchFilter != "":
-                    if self.searchFilter.strip().lower() not in acct.getAccountName().lower():
-                        return False
+                if not self.bypassFilter:
+                    if self.searchFilter != "":
+                        if self.searchFilter.strip().lower() not in acct.getAccountName().lower():
+                            return False
 
                 if self.lRoot:
                     # noinspection PyUnresolvedReferences
@@ -2860,9 +2863,11 @@ Visit: %s (Author's site)
 
         mySearchField = QuickSearchField()
 
+        expandAllButton = JButton("Expand all")
+
         class MyCOAWindow(COAWindow):
             """Extends the MD Internal Window that can display Accounts / Categories. This presents both combined with a search field"""
-            def __init__(self, _ui, _currentAccount, _catAcctSearch, _newAcctTypes, _prefix, _showBalances, _mySearchField, _lSelectAccts, _lSelectCats):
+            def __init__(self, _ui, _currentAccount, _catAcctSearch, _newAcctTypes, _prefix, _showBalances, _mySearchField, _expandAllButton, _lSelectAccts, _lSelectCats):
                 self._ui = _ui
                 self._currentAccount = _currentAccount
                 self._catAcctSearch = _catAcctSearch
@@ -2870,6 +2875,7 @@ Visit: %s (Author's site)
                 self._prefix = _prefix
                 self._showBalances = _showBalances
                 self.mySearchField = _mySearchField
+                self.expandAllButton = _expandAllButton
                 self._lSelectAccts = _lSelectAccts
                 self._lSelectCats = _lSelectCats
                 document = self.mySearchField.getDocument()
@@ -2882,6 +2888,10 @@ Visit: %s (Author's site)
                     saveCloseAction = self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(KeyStroke.getKeyStroke(KeyEvent.VK_W, MoneydanceGUI.ACCELERATOR_MASK))
                     self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), saveCloseAction)
 
+                # shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+                self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_D, (MoneydanceGUI.ACCELERATOR_MASK | Event.SHIFT_MASK)), "enable-debug")
+                self.getRootPane().getActionMap().put("enable-debug", self.ToggleDebugAction(self))
+
                 # Java cannot do multiple Inheritance, so cannot also extend MyJFrame... Make do....
                 self.myJFrameVersion = 2
                 self.isActiveInMoneydance = False
@@ -2889,12 +2899,13 @@ Visit: %s (Author's site)
                 self.MoneydanceAppListener = None
                 self.HomePageViewObj = None
 
-                p_tableModel = self.getClass().getSuperclass().getDeclaredField("tableModel")                                     # noqa
+                p_tableModel = self.getClass().getSuperclass().getDeclaredField("tableModel")                           # noqa
                 p_tableModel.setAccessible(True)
-                p_tableModelObject = p_tableModel.get(self)
-                p_tableModel.setAccessible(False)
+                self.saveTableModelReference = p_tableModel.get(self)
 
-                self.saveTableModelReference = p_tableModelObject
+                p_storage = self.getClass().getSuperclass().getDeclaredField("storage")                                 # noqa
+                p_storage.setAccessible(True)
+                self.saveStorageReference = p_storage.get(self)
 
                 gui = MD_REF.getUI()
                 if gui is not None:
@@ -2918,6 +2929,43 @@ Visit: %s (Author's site)
                         p_coa_cat_Win.set(gui, self)
                         p_coa_cat_Win.setAccessible(False)
 
+                self.expandAllButton.addActionListener(self)
+
+            class ToggleDebugAction(AbstractAction):
+
+                def __init__(self, callingClass):
+                    self.callingClass = callingClass
+
+                def actionPerformed(self, event):                                                                       # noqa
+                    global debug
+                    debug = not debug
+                    myPopupInformationBox(None, "Debug status flipped - now set to: %s" %(debug))
+
+            def actionPerformed(self, event):
+                myPrint("DB", "within actionPerformed()")
+                if event.getActionCommand().lower() != "expand all":
+                    myPrint("DB", "...calling (super) on original actionPerformed")
+                    super(self.__class__, self).actionPerformed(event)
+                else:
+                    myPrint("DB", "within actionPerformed() - trapped request for expand all");
+                    self.expandAllAccounts()
+
+            def expandAllAccounts(self):
+                KEY = "::expand_in_coa"
+
+                self._catAcctSearch.bypassFilter = True
+
+                allAccounts = AccountUtil.allMatchesForSearch(self._currentAccount.getBook(), self._catAcctSearch)
+                for acct in allAccounts:
+                    if not self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
+                        myPrint("DB","Found acct: %s which needs to be expanded..." %(acct))
+                        self.saveStorageReference.put(acct.getUUID() + "::expand_in_coa", True)
+
+                self._catAcctSearch.bypassFilter = False
+
+                myPrint("DB","Calling .reloadAccounts()")
+                self.saveTableModelReference.reloadAccounts()
+                self.saveTableModelReference.fireTableDataChanged()
 
             def dispose(self):
                 myPrint("DB", "within dispose() - will call (super) original dispose")
@@ -2937,6 +2985,11 @@ Visit: %s (Author's site)
                 _foundComp = huntPanelWithButtons(comp, _level+1)
                 if _foundComp is not None: return _foundComp
 
+        class GrabFocusRunnable(Runnable):
+            def __init__(self, swingObject): self.swingObject = swingObject
+            def run(self): self.swingObject.requestFocus()
+
+
         class MainAppRunnable(Runnable):
 
             def __init__(self): pass
@@ -2953,7 +3006,16 @@ Visit: %s (Author's site)
                 # prefixForPosnSaves = "gui.cat_window_"            # Categories
                 prefixForPosnSaves = "gui.coa_cat_mega_window_"     # Save my own window settings
 
-                coa_cat_Win = MyCOAWindow(MD_REF.getUI(), currentAccount, catAcctSearch, newAcctTypes, prefixForPosnSaves, True, mySearchField, lSelectAccounts, lSelectCategories)
+                coa_cat_Win = MyCOAWindow(MD_REF.getUI(),
+                                          currentAccount,
+                                          catAcctSearch,
+                                          newAcctTypes,
+                                          prefixForPosnSaves,
+                                          True,
+                                          mySearchField,
+                                          expandAllButton,
+                                          lSelectAccounts,
+                                          lSelectCategories)
 
                 titleTxt = ""
                 if lSelectAccounts:   titleTxt += u"Accounts %s" %(u"& " if lSelectCategories else "")
@@ -2967,12 +3029,14 @@ Visit: %s (Author's site)
                 theControlPanel = huntPanelWithButtons(coa_cat_Win, 0)
                 if theControlPanel is not None:
                     myPrint("DB", "@@ FOUND CONTROL PANEL @@", theControlPanel, type(theControlPanel))
-                    theControlPanel.add(mySearchField,GridC.getc().xy(0,1).colspan(7).fillx().insets(0,10,0,5))
-                    # theControlPanel.add(mySearchField,GridC.getc().xy(0,1).insets(0,10,0,5))
+                    theControlPanel.add(expandAllButton,GridC.getc().xy(0,1).fillx().insets(0,10,0,5))
+                    theControlPanel.add(mySearchField,GridC.getc().xy(1,1).colspan(6).fillx().insets(0,10,0,5))
                     theControlPanel.validate()
 
                     accounts_categories_mega_search_window_frame_.setVisible(True)
                     accounts_categories_mega_search_window_frame_.isActiveInMoneydance = True
+
+                    SwingUtilities.invokeLater(GrabFocusRunnable(mySearchField))
 
                     myPrint("DB","Main JFrame %s for application created.." %(accounts_categories_mega_search_window_frame_.getName()))
                 else:
