@@ -434,7 +434,7 @@ http://jakarta.apache.org/ant/index.html
       <move file="${src}/s-moneyPie.mxt" tofile="${dist}/moneyPie.mxt"/>
   </target>
 
-  <target name="all_python" depends="init,toolbox,extract_data,list_future_reminders,net_account_balances,extension_tester,accounts_categories_mega_search_window">
+  <target name="all_python" depends="init,toolbox,extract_data,list_future_reminders,net_account_balances,extension_tester,accounts_categories_mega_search_window,security_performance_graph">
   </target>
   
   <target name="extension_tester" depends="init">
@@ -476,6 +476,13 @@ http://jakarta.apache.org/ant/index.html
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="accounts_categories_mega_search_window" />
       <param name="python-base" value="${python-src}/accounts_categories_mega_search_window" />
+    </antcall>
+  </target>
+
+  <target name="security_performance_graph" depends="init">
+    <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
+      <param name="feature" value="security_performance_graph" />
+      <param name="python-base" value="${python-src}/security_performance_graph" />
     </antcall>
   </target>
 
