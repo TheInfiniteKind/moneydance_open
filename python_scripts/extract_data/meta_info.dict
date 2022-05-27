@@ -2,11 +2,11 @@
   "id" = "extract_data"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1021"
+  "module_build" = "1024"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Extract Data"
   "module_desc" = "Extract data to screen/csv. Options incl: 'StockGlance2020' investments, Reminders, Account / Investment txns, Currency History; Attachments..."
   "mac_sandbox_friendly" = "true"
-  "news" = "Patch the date extract/format/display on Extract Reminders"
+  "news" = "Fixed calls to .setEscapeKeyCancels() on older versions of MD"
 }

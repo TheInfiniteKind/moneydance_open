@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1021 - August 2021 - Stuart Beesley
+# extract_data.py - build: 1024 - August 2021 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -96,6 +96,9 @@
 # build: 1023 - Added lAllowEscapeExitApp_SWSS to allow/block escape key exiting main app's window;  Tweaked the JMenuBar() to say "MENU"
 # build: 1023 - Upgraded the Edit Reminders popup so that escape will cancel the popup dialog window.
 # build: 1023 - Added showRawItemDetails() to reminders popup right-click menu
+# build: 1024 - Fixed call to .setEscapeKeyCancels() on older versions of MD
+
+# todo - consider creating a Yahoo Finance portfolio upload format
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -103,7 +106,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1021"
+version_build = "1024"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -562,6 +565,8 @@ Extract Data:                           Extract various data to screen and/or cs
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
+Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
+Security Performance Graph:             Graphs selected securities, calculating relative price performance as percentage
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -7884,7 +7889,9 @@ Visit: %s (Author's site)
                             win = BasicReminderInfoWindow(MD_REF.getUI(), r, reminderSet, extract_data_frame_)
                         else: raise Exception("Unknown reminder class: " + r.getClass())
 
-                        win.setEscapeKeyCancels(True)
+                        try: win.setEscapeKeyCancels(True)
+                        except: pass
+
                         win.setVisible(True)
 
                         EditedReminderCheck = True

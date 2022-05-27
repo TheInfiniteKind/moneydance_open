@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1016)
+# list_future_reminders.py (build: 1017)
 
 ###############################################################################
 # MIT License
@@ -55,8 +55,11 @@
 # build: 1016 - lAllowEscapeExitApp_SWSS to allow/block escape from exiting the app; Tweaked the JMenuBar() to say "MENU"
 # build: 1016 - pushing .setEscapeKeyCancels(True) to the popup dialogs....
 # build: 1016 - added showRawItemDetails() to popup right-click menu....
+# build: 1017 - Fixed calls to .setEscapeKeyCancels() on older MD versions
 
 # Displays Moneydance future reminders
+
+# todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -64,7 +67,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1016"
+version_build = "1017"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -412,6 +415,8 @@ Extract Data:                           Extract various data to screen and/or cs
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
+Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
+Security Performance Graph:             Graphs selected securities, calculating relative price performance as percentage
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -2897,7 +2902,9 @@ Visit: %s (Author's site)
             win = BasicReminderInfoWindow(MD_REF.getUI(), r, reminderSet, list_future_reminders_frame_)
         else: raise Exception("Unknown reminder class: " + r.getClass())
 
-        win.setEscapeKeyCancels(True)
+        try: win.setEscapeKeyCancels(True)
+        except: pass
+
         win.setVisible(True)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
@@ -2925,7 +2932,9 @@ Visit: %s (Author's site)
                 win = BasicReminderNotificationWindow(MD_REF.getUI(), book, GlobalVars.saveLastReminderObj, rdate, True, list_future_reminders_frame_)
             else: raise Exception("ERROR: Unknown Reminder type")
 
-            win.setEscapeKeyCancels(True)
+            try: win.setEscapeKeyCancels(True)
+            except: pass
+
             win.setVisible(True)
 
     class DoTheMenu(AbstractAction):

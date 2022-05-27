@@ -466,6 +466,8 @@ Extract Data:                           Extract various data to screen and/or cs
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
+Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
+Security Performance Graph:             Graphs selected securities, calculating relative price performance as percentage
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -7787,7 +7789,7 @@ Visit: %s (Author's site)
 
                                 # This bit is neat, as it seems to work for Securities with just the qty balance!!
                                 if bal != 0 and acctCurr != thisRowCurr:
-                                    balConv = CurrencyUtil.convertValue(bal, acctCurr, thisRowCurr)
+                                    balConv = CurrencyUtil.convertValue(bal, acctCurr, thisRowCurr)                     # todo - should this include an asof date?
                                     myPrint("DB",".. Converted %s to %s (%s)" %(acctCurr.formatSemiFancy(bal, NAB.decimal), thisRowCurr.formatSemiFancy(balConv, NAB.decimal), thisRowCurr))
                                     totalBalance += (balConv * mult)
                                 else:

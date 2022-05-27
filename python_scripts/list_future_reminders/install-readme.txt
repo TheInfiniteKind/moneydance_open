@@ -51,8 +51,8 @@ Extract Data:                           Extract various data to screen and/or cs
 - extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
 
 List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
-
-categories_super_window:                Clones MD Menu> Tools>Categories and adds a Quick Search box/capability
+Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
+Security Performance Graph:             Graphs selected securities, calculating relative price performance as percentage
 
 extension_tester:                       Demo extension/scripts for coders wanting to build Moneydance Python extensions
 
