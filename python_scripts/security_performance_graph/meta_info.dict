@@ -1,0 +1,12 @@
+{
+  "id" = "security_performance_graph"
+  "extension_type" = "python"
+  "vendor" = "Stuart Beesley - StuWareSoftSystems"
+  "module_build" = "1000"
+  "minbuild" = "3056"
+  "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
+  "module_name" = "Security Performance Graph"
+  "module_desc" = "Graphs relative price performance by percentage against selected securities."
+  "mac_sandbox_friendly" = "true"
+  "news" = "New release"
+}

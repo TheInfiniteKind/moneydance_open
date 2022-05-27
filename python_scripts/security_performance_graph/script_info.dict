@@ -1,0 +1,23 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "security_performance_graph.py"
+      "name" = "Security Performance Graph"
+    }
+    {
+      "type" = "initializer"
+      "script_file" = "security_performance_graph_init.py"
+    }
+    {
+      "type" = "method"
+      "method" = "invoke"
+      "script_file" = "security_performance_graph_invoke.py"
+    }
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "security_performance_graph_unload.py"
+    }
+  )
+}
