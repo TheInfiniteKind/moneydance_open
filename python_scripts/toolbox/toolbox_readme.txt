@@ -213,8 +213,9 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Inactivate all Categories with Zero Balance
         - FIX - Edit an Account's shouldBeIncludedInNetWorth() setting
         - FIX - FORCE change an Account's Type (use with care. Does not update any transactions) (set_account_type.py)
-        - FIX - FORCE change an Account's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)
-        - FIX - FORCE change ALL Account's currencies (use with care. Does not update any transactions) (force_change_all_currencies.py)
+        - FIX - FORCE change an Account's / Category's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)
+        - FIX - FORCE change ALL Accounts' / Categories' currencies (use with care. Does not update any transactions) (force_change_all_currencies.py)
+        - FIX - FORCE Change Accounts / Categories [& Securities] FROM Currency TO Currency
         - FIX - Account's Invalid Parent Account (script fix_account_parent.py)
         - FIX - Correct the Name of Root to match Dataset
     - MENU: Currency & Security tools:
@@ -230,8 +231,9 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Thin/Purge Price History (allows you to thin/prune your price history based on parameters you input; also fix 'orphans') (price_history_thinner.py)
         - FIX - Fix invalid relative currency (& security) rates >> fixes relative rates where <= (1.0/9999999999) or >= 9999999999) (fix_invalid_currency_rates.py)
         - FIX - Delete invalid price history records where rate <= (1.0/9999999999) or >= 9999999999.
-        - FIX - FORCE change an Account's Currency (use with care). (Does not update any transactions) (force_change_account_currency.py)
-        - FIX - FORCE change ALL Account's currencies (use with care). (Does not update any transactions) (force_change_all_currencies.py)
+        - FIX - FORCE change an Account's / Category's Currency (use with care). (Does not update any transactions) (force_change_account_currency.py)
+        - FIX - FORCE change ALL Accounts' / Categories' currencies (use with care). (Does not update any transactions) (force_change_all_currencies.py)
+        - FIX - FORCE Change Accounts / Categories [& Securities] FROM Currency TO Currency
     - MENU: Transactions tools
         - Move/Merge Investment transactions from one account into another. DISABLED >> NOW RUN FROM EXTENSIONS MENU (you can pre-select register txns first)
         - FIX - Diagnose Attachments - DELETE Orphan attachments (allows you to delete Orphan attachments from Disk ** Syncing must be disabled **)

@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1049 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1050 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and they retain all copyright over Moneydance internal code
@@ -285,6 +285,7 @@
 # build: 1049 - Updated Zap md+ option to wipe all md+ data from system (including all banking links)
 # build: 1049 - Added redactor() to various outputs (especially OFX and curious modes)
 # build: 1049 - Fixed calls to .setEscapeKeyCancels() on older MD versions...
+# build: 1050 - Added force change currency for categories options...
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 
@@ -306,7 +307,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1049"
+version_build = "1050"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -631,7 +632,7 @@ else:
     from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
     from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory
     from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
-    from java.lang import Integer, Long
+    from java.lang import Integer, Long, NoSuchFieldException, NoSuchMethodException                                    # noqa
     from javax.swing import BorderFactory, JSeparator, DefaultComboBoxModel                                             # noqa
     from com.moneydance.awt import JCurrencyField                                                                       # noqa
 
@@ -6827,16 +6828,19 @@ Visit: %s (Author's site)
             return currCount, localOutput
 
         currs = []
+        securities = []
 
         for currency in allCurrencies:
-            if currency.getCurrencyType() == CurrencyType.Type.CURRENCY:            # noqa
+            if currency.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                # noqa
                 currs.append(currency)
+            if currency.getCurrencyType() == CurrencyType.Type.SECURITY:                                                # noqa
+                securities.append(currency)
 
         currs = sorted(currs, key=lambda x: (x.getName().upper()))
-
+        securities = sorted(securities, key=lambda x: (x.getName().upper()))
 
         selectedCurrency = JOptionPane.showInputDialog(toolbox_frame_,
-                                                       "Select Security", "Select the security to analyse",
+                                                       "Select Currency", "Select the currency to analyse",
                                                        JOptionPane.INFORMATION_MESSAGE,
                                                        getMDIcon(lAlwaysGetIcon=True),
                                                        currs,
@@ -6857,10 +6861,28 @@ Visit: %s (Author's site)
             lFailTests = True
             currOutput += "\n** Currency is set as the base - Deletion not possible!! **\n\n"
 
+        currOutput += "\nReviewing all Account/Category records for currency...:\n"
         foundCurrCount, outputBuild = accountHasCurrency(MD_REF.getCurrentAccount(), selectedCurrency)
         currOutput += outputBuild
+        if foundCurrCount > 0:
+            currOutput += "<%s ACCOUNTS / CATS FOUND USING CURRENCY>\n" %(foundCurrCount)
+        else:
+            currOutput += "<NO ACCOUNTS / CATS FOUND USING CURRENCY>\n"
+        currOutput += "\n"
 
-        if foundCurrCount or lFailTests:
+        currOutput += "\nReviewing security records for currency...:\n"
+        secCount = 0
+        for sec in securities:
+            if sec.getRelativeCurrency() == selectedCurrency:
+                secCount += 1
+                currOutput += "Security: %s is using %s\n" %(sec, selectedCurrency)
+        if secCount > 0:
+            currOutput += "<%s SECURITIES FOUND USING CURRENCY>\n" %(secCount)
+        else:
+            currOutput += "<NO SECURITIES FOUND USING CURRENCY>\n"
+        currOutput += "\n"
+
+        if foundCurrCount or secCount or lFailTests:
             txt = "Currency %s ** IS BEING USED ** - Deletion not possible!" %(selectedCurrency)
             currOutput += "\n%s\n" %(txt)
             myPrint("B",txt)
@@ -14278,25 +14300,145 @@ now after saving the file, restart Moneydance
         root = MD_REF.getRootAccount()
         MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
 
-        txt = "The Account: %s has been changed to Type: %s- MONEYDANCE WILL NOW EXIT - PLEASE RELAUNCH MD & REVIEW" %(selectedAccount.getAccountName(),selectedAccount.getAccountType())  # noqa
+        txt = "The Account: %s has been changed to Type: %s - PLEASE REVIEW & THEN RESTART MD" %(selectedAccount.getAccountName(),selectedAccount.getAccountType())  # noqa
         setDisplayStatus(txt, "R")
         play_the_money_sound()
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
 
-        MD_REF.getUI().exit()
+        # MD_REF.getUI().exit()
 
-    # noinspection PyUnresolvedReferences
-    def force_change_all_accounts_currencies():
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+    def force_change_account_cat_currency():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        # force_change_account_currency.py
+        ask=MyPopUpDialogBox(toolbox_frame_,
+                             theStatus="Are you sure you want to FORCE change an Account's / Category's Currency?",
+                             theTitle="FORCE CHANGE CURRENCY",
+                             theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
+                                        "The typical scenario is where you have duplicated Currencies and you want to move\n"
+                                        "transactions from one account to another, but the system prevents you unless they are the same currency\n"
+                                        "This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the currency\n"
+                                        "set on the account / category to the new currency. You should carefully review your data afterwards and revert\n"
+                                        "to a backup if you are not happy with the results....\n"
+                                        "\n",
+                             lCancelButton=True,
+                             OKButtonText="I AGREE - PROCEED",
+                             lAlertLevel=2)
+
+        if not ask.go():
+            txt = "User did not say yes to FORCE change an Account's / Category's currency - no changes made"
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+        del ask
+
+        currencies=[]
+        book = MD_REF.getCurrentAccountBook()
+        allCurrencies = book.getCurrencies().getAllCurrencies()
+        for c in allCurrencies:
+            if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                       # noqa
+                currencies.append(c)
+        currencies = sorted(currencies, key=lambda sort_x: (sort_x.getName().upper()))
+
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(19))
+        accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+        newAccounts = []
+        for acct in accounts:
+            newAccounts.append(StoreAccountList(acct))
+
+        selectedAccount = JOptionPane.showInputDialog(toolbox_frame_,
+                                                      "Select the Account / Category to FORCE change currency",
+                                                      "FORCE CHANGE ACCOUNT's / CATEGORY's CURRENCY",
+                                                      JOptionPane.WARNING_MESSAGE,
+                                                      getMDIcon(None),
+                                                      newAccounts,
+                                                      None)  # type: StoreAccountList
+        if not selectedAccount:
+            txt = "User did not Select an Account / Category to FORCE change currency - no changes made"
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        selectedAccount = selectedAccount.obj       # type: Account
+        if isinstance(selectedAccount, Account): pass
+
+        # noinspection PyUnresolvedReferences
+        currencies.remove(selectedAccount.getCurrencyType())
+
+        selectedCurrency = JOptionPane.showInputDialog(toolbox_frame_,
+                                                       "Old Currency: %s >> Select the new currency for the account/Category" %(selectedAccount.getCurrencyType()),                    # noqa
+                                                       "FORCE CHANGE ACCOUNT's / CATEGORY's CURRENCY",
+                                                       JOptionPane.ERROR_MESSAGE,
+                                                       getMDIcon(None),
+                                                       currencies,
+                                                       None)  # type: CurrencyType
+        if not selectedCurrency:
+            txt = "User did not Select an new currency for Account / Category FORCE change - no changes made"
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        ask=MyPopUpDialogBox(toolbox_frame_,
+                             theStatus="Are you sure you want to FORCE change this Account's / Category's Currency?",
+                             theTitle="FORCE CHANGE CURRENCY",
+                             theMessage="Account: %s\n"
+                                        "Old Currency: %s\n"
+                                        "New Currency: %s\n"
+                                        %(selectedAccount.getFullAccountName(), selectedAccount.getCurrencyType(),selectedCurrency),
+                             lCancelButton=True,
+                             OKButtonText="I AGREE - PROCEED",
+                             lAlertLevel=2)
+
+        if not ask.go():
+            txt = "User aborted the FORCE change to an Account's / Category's currency - no changes made"
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, "FORCE CHANGE CURRENCY", "FORCE CHANGE ACCOUNT / CATEGORY %s CURRENCY" %(selectedAccount.getFullAccountName())):    # noqa
+            return
+
+        myPrint("B","@@ User requested to Force Change the Currency of Account/Category: %s from: %s to %s - APPLYING UPDATE NOW...."
+                %(selectedAccount.getFullAccountName(),selectedAccount.getCurrencyType(),selectedCurrency))
+
+        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getUI().setSuspendRefresh(True)
+
+        selectedAccount.setCurrencyType(selectedCurrency)
+        selectedAccount.syncItem()
+
+        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getUI().setSuspendRefresh(False)
+
+        root = MD_REF.getRootAccount()
+        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+
+        txt = "Account/Category: %s has been changed to Curr: %s - PLEASE REVIEW & THEN RESTART MD WHEN FINISHED"\
+              %(selectedAccount.getAccountName(),selectedAccount.getCurrencyType())
+        setDisplayStatus(txt, "R")
+        play_the_money_sound()
+        myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+
+        # MD_REF.getUI().exit()
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+    def force_change_all_accounts_categories_currencies():
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         # force_change_all_currencies.py
         ask=MyPopUpDialogBox(toolbox_frame_,
-                             theStatus="Are you sure you want to FORCE change ALL Account's Currencies?",
-                             theTitle="FORCE CHANGE ALL ACCOUNTS' CURRENCIES",
+                             theStatus="Are you sure you want to FORCE change ALL Accounts' / Categories' Currencies?",
+                             theTitle="FORCE CHANGE ALL ACCOUNTS' / CATEGORYS' CURRENCIES",
                              theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
                                         "The typical scenario is where you have a missing currency, or need to change them all\n"
                                         "This fix will not touch the ROOT account nor Security sub-accounts (which are stocks/shares)\n"
+                                        "... it will include categories, along with all other account types...\n"
                                         "This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the currency\n"
                                         "set on all accounts to the new currency. You should carefully review your data afterwards and revert\n"
                                         "to a backup if you are not happy with the results....\n"
@@ -14306,7 +14448,7 @@ now after saving the file, restart Moneydance
                              lAlertLevel=2)
 
         if not ask.go():
-            txt = "User did not say yes to FORCE change ALL Account's currencies - no changes made"
+            txt = "User did not say yes to FORCE change ALL Accounts' / Categories' currencies - no changes made"
             setDisplayStatus(txt, "B")
             myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
             return
@@ -14319,39 +14461,40 @@ now after saving the file, restart Moneydance
         book = MD_REF.getCurrentAccountBook()
         allCurrencies = book.getCurrencies().getAllCurrencies()
         for c in allCurrencies:
-            if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                               # noqa
+            if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                       # noqa
                 currencies.append(c)
         currencies = sorted(currencies, key=lambda sort_x: (sort_x.getName().upper()))
 
         if len(currencies) < 1:
-            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' CURRENCIES - Creating new currency record!")
-            selectedCurrency = CurrencyType(book.getCurrencies())       # Creates a null:null CT record
+            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES - Creating new currency record!")
+            selectedCurrency = CurrencyType(book.getCurrencies())       # Creates a new CT object
+            selectedCurrency.setEditingMode()
             selectedCurrency.setName("NEW CURRENCY - PLEASE EDIT ME LATER")
             selectedCurrency.setIDString("AAA")
             selectedCurrency.setDecimalPlaces(2)
             selectedCurrency.syncItem()
-            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' CURRENCIES - Creating new currency: %s" %(selectedCurrency))
-            myPopupInformationBox(toolbox_frame_,"FYI - I have created a new Currency %s for you (Edit me later)" %(selectedCurrency),
-                                  "FORCE CHANGE ALL ACCOUNTS' CURRENCIES")
+            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES - Creating new currency: %s" %(selectedCurrency))
+            myPopupInformationBox(toolbox_frame_,"FYI - I have created a new Currency %s for you (Edit it later)" %(selectedCurrency),
+                                  "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES")
         else:
             selectedCurrency = JOptionPane.showInputDialog(toolbox_frame_,
-                                                           "Select a currency to assign to *ALL* accounts",
-                                                           "FORCE CHANGE ALL ACCOUNT's CURRENCIES",
+                                                           "Select a currency to assign to *ALL* accounts/categories",
+                                                           "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES",
                                                            JOptionPane.ERROR_MESSAGE,
                                                            getMDIcon(None),
                                                            currencies,
                                                            None)  # type: CurrencyType
 
         if not selectedCurrency:
-            txt = "User did not Select a new currency for FORCE change ALL Accounts' Currencies - no changes made"
+            txt = "User did not Select a new currency for FORCE change ALL Accounts' / Categories' Currencies - no changes made"
             setDisplayStatus(txt, "B")
             myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_, "FORCE CHANGE ALL ACCOUNTS' CURRENCIES", "FORCE CHANGE ALL %s ACCOUNT's CURRENCIES TO %s?" %(len(accounts),selectedCurrency)):    # noqa
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES", "FORCE CHANGE ALL %s ACCTS' / CATS' CURRENCIES TO %s?" %(len(accounts),selectedCurrency)):    # noqa
             return
 
-        myPrint("B","@@ User requested to Force Change the Currency of ALL %s Accounts to %s - APPLYING UPDATE NOW...."
+        myPrint("B","@@ User requested to Force Change the Currency of ALL %s Accounts / Categories to %s - APPLYING UPDATE NOW...."
                 %(len(accounts),selectedCurrency))     # noqa
 
         MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
@@ -14360,14 +14503,14 @@ now after saving the file, restart Moneydance
 
         accountsChanged = 0
         for account in accounts:
-            if account.getAccountType() == Account.AccountType.ROOT:
+            if account.getAccountType() == Account.AccountType.ROOT:                                                    # noqa
                 continue
-            if account.getAccountType() == Account.AccountType.SECURITY:
+            if account.getAccountType() == Account.AccountType.SECURITY:                                                # noqa
                 continue
             if account.getCurrencyType() == selectedCurrency:
                 continue
 
-            myPrint("B","Setting account %s to currency %s" %(account, selectedCurrency))
+            myPrint("B","Setting account / category %s to currency %s" %(account, selectedCurrency))
             account.setCurrencyType(selectedCurrency)
             account.syncItem()
             accountsChanged += 1
@@ -14379,13 +14522,160 @@ now after saving the file, restart Moneydance
         root = MD_REF.getRootAccount()
         MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
 
-        txt = "FORCE CHANGE ALL ACCOUNTS' CURRENCIES: %s Accounts changed to curr: %s - MONEYDANCE WILL NOW EXIT - RELAUNCH MD & REVIEW" %(accountsChanged,selectedCurrency)
+        txt = "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES: %s Accts / Cats changed to curr: %s - MONEYDANCE WILL NOW EXIT - RELAUNCH MD & REVIEW" %(accountsChanged,selectedCurrency)
         setDisplayStatus(txt, "R")
         myPrint("B", txt)
         play_the_money_sound()
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
 
         MD_REF.getUI().exit()
+
+    def force_change_accounts_cats_from_to_currency():
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "FORCE CHANGE ACCTs / CATs FROM / TO CURRENCY"
+
+        # force_change_all_currencies.py
+        ask=MyPopUpDialogBox(toolbox_frame_,
+                             theStatus="Are you sure you want to FORCE change Accounts / Categories FROM / TO Currency?",
+                             theTitle=_THIS_METHOD_NAME,
+                             theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
+                                        "The typical scenarios is where you have a duplicate currency and want to change to the right one\n"
+                                        "PLEASE ENSURE THE FROM's and TO's Currency rates are essentially the same before you start!\n"
+                                        "This fix will not touch the ROOT account nor Security sub-accounts (which are stocks/shares)\n"
+                                        "... it will include categories, along with all other account types...\n"
+                                        "You will be asked if you also want to include Security records on the from/to switch to...\n"
+                                        "... (you can switch security records manually if you prefer)...\n"
+                                        "This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the currency\n"
+                                        "...set on all accounts to the new currency. You should carefully review your data afterwards and revert\n"
+                                        "...to a backup if you are not happy with the results....\n"
+                                        "\n",
+                             lCancelButton=True,
+                             OKButtonText="I AGREE - PROCEED",
+                             lAlertLevel=2)
+
+        if not ask.go():
+            txt = "User did not say yes to %s - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+        del ask
+
+        includeSecurities = myPopupAskQuestion(toolbox_frame_, _THIS_METHOD_NAME.upper(),  "Include Security records in the FROM/TO currency switch too?")
+
+        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(19))
+        allAccounts = sorted(allAccounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+
+        currencies = []
+        securities = []
+        book = MD_REF.getCurrentAccountBook()
+        allCurrencies = book.getCurrencies().getAllCurrencies()
+        for c in allCurrencies:
+            if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                       # noqa
+                currencies.append(c)
+            if c.getCurrencyType() == CurrencyType.Type.SECURITY:                                                       # noqa
+                securities.append(c)
+        currencies = sorted(currencies, key=lambda sort_x: (sort_x.getName().upper()))
+        securities = sorted(securities, key=lambda sort_x: (sort_x.getName().upper()))
+
+        if len(currencies) < 2:
+            txt = "%s: Not enough currencies exist - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        selectedFromCurrency = JOptionPane.showInputDialog(toolbox_frame_,
+                                                           "Select the FROM currency (that you want to remove from accts/cats)",
+                                                           _THIS_METHOD_NAME,
+                                                           JOptionPane.ERROR_MESSAGE,
+                                                           getMDIcon(None),
+                                                           currencies,
+                                                           None)  # type: CurrencyType
+
+        if not selectedFromCurrency:
+            txt = "User did not Select the old FROM currency for '%s' - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        if isinstance(selectedFromCurrency, CurrencyType): pass
+
+        currencies.remove(selectedFromCurrency)
+
+        selectedToCurrency = JOptionPane.showInputDialog(toolbox_frame_,
+                                                           "Select the TO currency (that you store on your accts/cats)",
+                                                           _THIS_METHOD_NAME,
+                                                           JOptionPane.ERROR_MESSAGE,
+                                                           getMDIcon(None),
+                                                           currencies,
+                                                           None)  # type: CurrencyType
+
+        if not selectedToCurrency:
+            txt = "User did not Select the new TO currency for '%s' - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        if isinstance(selectedToCurrency, CurrencyType): pass
+
+        replaceAccts = []
+        for acct in allAccounts:
+            if acct.getCurrencyType() == selectedFromCurrency:
+                replaceAccts.append(acct)
+
+        replaceSecurities = []
+        if includeSecurities:
+            for sec in securities:
+                if sec.getRelativeCurrency() == selectedFromCurrency:
+                    replaceSecurities.append(sec)
+
+        if (len(replaceAccts) + len(replaceSecurities)) < 1:
+            txt = "%s: No accounts / Securities found with the old currency: %s - no changes made" %(_THIS_METHOD_NAME, selectedFromCurrency)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "SWITCH FROM CURRENCY %s TO %s ON %s ACCTS / CATS & %s SECURITIES?"
+                                                                                    %(selectedFromCurrency, selectedToCurrency, len(replaceAccts), len(replaceSecurities))):
+            return
+
+        myPrint("B","%s: @@ User requested to replace currency %s with %s on %s Accounts/Categories & %s Securities - APPLYING UPDATE NOW...."
+                %(_THIS_METHOD_NAME, selectedFromCurrency, selectedToCurrency, len(replaceAccts), len(replaceSecurities)))
+
+        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getUI().setSuspendRefresh(True)
+
+        for acct in replaceAccts:
+            myPrint("B","Setting account / category '%s' currency to: %s" %(acct, selectedToCurrency))
+            acct.setCurrencyType(selectedToCurrency)
+            acct.syncItem()
+
+        for sec in replaceSecurities:
+            if sec.getRelativeCurrency() == selectedFromCurrency:
+                myPrint("B","Setting security '%s' relative currency to: %s" %(sec, selectedToCurrency))
+                sec.setRelativeCurrency(selectedToCurrency)
+                sec.syncItem()
+
+        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getUI().setSuspendRefresh(False)
+
+        root = MD_REF.getRootAccount()
+        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+
+        txt = ("%s: %s Accts / Cats, and %s Securities, changed from curr: %s to %s - PLEASE REVIEW & THEN RESTART MONEYDANCE"
+               %(_THIS_METHOD_NAME, len(replaceAccts), len(replaceSecurities), selectedFromCurrency, selectedToCurrency))
+
+        setDisplayStatus(txt, "R")
+        myPrint("B", txt)
+        play_the_money_sound()
+        myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+
+        # MD_REF.getUI().exit()
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
     def fix_invalid_relative_currency_rates():
 
@@ -14577,121 +14867,6 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, u"()")
         return
-
-    def force_change_account_currency():
-        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-
-        # force_change_account_currency.py
-        ask=MyPopUpDialogBox(toolbox_frame_,
-                             theStatus="Are you sure you want to FORCE change an Account's Currency?",
-                             theTitle="FORCE CHANGE CURRENCY",
-                             theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
-                                        "The typical scenario is where you have duplicated Currencies and you want to move\n"
-                                        "transactions from one account to another, but the system prevents you unless they are the same currency\n"
-                                        "This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the currency\n"
-                                        "set on the account to the new currency. You should carefully review your data afterwards and revert\n"
-                                        "to a backup if you are not happy with the results....\n"
-                                        "\n",
-                             lCancelButton=True,
-                             OKButtonText="I AGREE - PROCEED",
-                             lAlertLevel=2)
-
-        if not ask.go():
-            txt = "User did not say yes to FORCE change an Account's currency - no changes made"
-            setDisplayStatus(txt, "B")
-            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
-            return
-        del ask
-
-        currencies=[]
-        book = MD_REF.getCurrentAccountBook()
-        allCurrencies = book.getCurrencies().getAllCurrencies()
-        for c in allCurrencies:
-            if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                               # noqa
-                currencies.append(c)
-        currencies = sorted(currencies, key=lambda sort_x: (sort_x.getName().upper()))
-
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(5))
-        accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
-        newAccounts = []
-        for acct in accounts:
-            newAccounts.append(StoreAccountList(acct))
-
-        selectedAccount = JOptionPane.showInputDialog(toolbox_frame_,
-                                                      "Select the Account to FORCE change currency",
-                                                      "FORCE CHANGE ACCOUNT's CURRENCY",
-                                                      JOptionPane.WARNING_MESSAGE,
-                                                      getMDIcon(None),
-                                                      newAccounts,
-                                                      None)  # type: StoreAccountList
-        if not selectedAccount:
-            txt = "User did not Select an Account to FORCE change currency - no changes made"
-            setDisplayStatus(txt, "B")
-            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
-            return
-
-        selectedAccount = selectedAccount.obj       # type: Account
-
-        # noinspection PyUnresolvedReferences
-        currencies.remove(selectedAccount.getCurrencyType())
-
-        selectedCurrency = JOptionPane.showInputDialog(toolbox_frame_,
-                                                       "Old Currency: %s >> Select the new currency for the account" %(selectedAccount.getCurrencyType()),                    # noqa
-                                                       "FORCE CHANGE ACCOUNT's CURRENCY",
-                                                       JOptionPane.ERROR_MESSAGE,
-                                                       getMDIcon(None),
-                                                       currencies,
-                                                       None)  # type: CurrencyType
-        if not selectedCurrency:
-            txt = "User did not Select an new currency for Account FORCE change - no changes made"
-            setDisplayStatus(txt, "B")
-            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
-            return
-
-        ask=MyPopUpDialogBox(toolbox_frame_,
-                             theStatus="Are you sure you want to FORCE change this Account's Currency?",
-                             theTitle="FORCE CHANGE CURRENCY",
-                             theMessage="Account: %s\n"
-                                        "Old Currency: %s\n"
-                                        "New Currency: %s\n"
-                                        %(selectedAccount.getFullAccountName(), selectedAccount.getCurrencyType(),selectedCurrency),  # noqa
-                             lCancelButton=True,
-                             OKButtonText="I AGREE - PROCEED",
-                             lAlertLevel=2)
-
-        if not ask.go():
-            txt = "User aborted the FORCE change to an Account's currency - no changes made"
-            setDisplayStatus(txt, "R")
-            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
-            return
-
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_, "FORCE CHANGE CURRENCY", "FORCE CHANGE ACCOUNT %s CURRENCY" %(selectedAccount.getFullAccountName())):    # noqa
-            return
-
-        myPrint("B","@@ User requested to Force Change the Currency of Account: %s from: %s to %s - APPLYING UPDATE NOW...."
-                %(selectedAccount.getFullAccountName(),selectedAccount.getCurrencyType(),selectedCurrency))     # noqa
-
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
-        MD_REF.getUI().setSuspendRefresh(True)
-
-        selectedAccount.setCurrencyType(selectedCurrency)                                                       # noqa
-        selectedAccount.syncItem()                                                                              # noqa
-
-        MD_REF.getUI().getMain().saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
-        MD_REF.getUI().setSuspendRefresh(False)
-
-        root = MD_REF.getRootAccount()
-        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
-
-        txt = "The Account: %s has been changed to Curr: %s - MONEYDANCE WILL NOW EXIT - PLEASE RELAUNCH MD & REVIEW"\
-              %(selectedAccount.getAccountName(),selectedAccount.getCurrencyType())                                     # noqa
-        setDisplayStatus(txt, "R")
-        play_the_money_sound()
-        myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
-
-        MD_REF.getUI().exit()
 
     def reverse_txn_amounts():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -20537,6 +20712,26 @@ Now you will have a text readable version of the file you can open in a text edi
         myPopupInformationBox(jif, txt, "DELETE ORPHANED EXTENSIONS", JOptionPane.ERROR_MESSAGE)
         return
 
+    # def invokeMethodByReflection(theObj, methodName, params, *args):
+    #
+    #     theClass = theObj.getClass()
+    #     reflectMethod = None
+    #
+    #     while theClass is not None:
+    #         try:
+    #             if params is None:
+    #                 reflectMethod = theClass.getDeclaredMethod(methodName)
+    #             else:
+    #                 reflectMethod = theClass.getDeclaredMethod(methodName, params)
+    #         except NoSuchMethodException:
+    #             theClass = theClass.getSuperclass()
+    #
+    #     if reflectMethod is None:
+    #         raise Exception("ERROR: could not find method: %s in class hierarchy" %(methodName))
+    #
+    #     reflectMethod.setAccessible(True)
+    #     return reflectMethod.invoke(theObj, *args)
+
     def reset_window_positions():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -20912,7 +21107,7 @@ Now you will have a text readable version of the file you can open in a text edi
         myPrint("B", "SUCCESS - %s data reset in config.dict config file, internally by Account & Local Storage...." %(resetWhat))
         txt = "OK - %s settings forgotten.... RESTART MD!" %(resetWhat)
         setDisplayStatus(txt, "R")
-        myPopupInformationBox(theNewViewFrame, "SUCCESS - %s - MONEYDANCE WILL NOW RESTART" %(resetWhat), "RESET WINDOW DISPLAY SETTINGS", JOptionPane.WARNING_MESSAGE)
+        myPopupInformationBox(theNewViewFrame, "SUCCESS - %s - MONEYDANCE WILL NOW EXIT" %(resetWhat), "RESET WINDOW DISPLAY SETTINGS", JOptionPane.WARNING_MESSAGE)
         MD_REF.getUI().exit()
 
     def advanced_mode_suppress_dropbox_warning():
@@ -24256,15 +24451,20 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_view_check_number_settings = JRadioButton("View Check Number Settings", False)
                     user_view_check_number_settings.setToolTipText("View the Check Number settings that will display in the Transaction Register")
 
-                    user_force_change_accounts_currency = JRadioButton("FIX: FORCE Change an Account's Currency (force_change_account_currency.py)", False)
-                    user_force_change_accounts_currency.setToolTipText("This allows you to FORCE change an Account's currency - USE WITH CARE!.. THIS CHANGES DATA! (force_change_account_currency.py)")
+                    user_force_change_accounts_currency = JRadioButton("FIX: FORCE Change an Account's / Category's Currency (force_change_account_currency.py)", False)
+                    user_force_change_accounts_currency.setToolTipText("This allows you to FORCE change an Account's / Category's currency - USE WITH CARE!.. THIS CHANGES DATA! (force_change_account_currency.py)")
                     user_force_change_accounts_currency.setEnabled(GlobalVars.UPDATE_MODE)
                     user_force_change_accounts_currency.setForeground(getColorRed())
 
-                    user_force_change_all_accounts_currency = JRadioButton("FIX: FORCE Change ALL Account's Currencies (force_change_all_currencies.py)", False)
-                    user_force_change_all_accounts_currency.setToolTipText("This allows you to FORCE change ALL Account's Currencies - USE WITH CARE!.. THIS CHANGES DATA! (force_change_all_currencies.py)")
-                    user_force_change_all_accounts_currency.setEnabled(GlobalVars.UPDATE_MODE)
-                    user_force_change_all_accounts_currency.setForeground(getColorRed())
+                    user_force_change_all_accounts_cats_currency = JRadioButton("FIX: FORCE Change ALL Accounts' / Categories' Currencies (force_change_all_currencies.py)", False)
+                    user_force_change_all_accounts_cats_currency.setToolTipText("This allows you to FORCE change ALL Accounts' / Categories' Currencies - USE WITH CARE!.. THIS CHANGES DATA! (force_change_all_currencies.py)")
+                    user_force_change_all_accounts_cats_currency.setEnabled(GlobalVars.UPDATE_MODE)
+                    user_force_change_all_accounts_cats_currency.setForeground(getColorRed())
+
+                    user_force_change_accounts_cats_from_to_currency = JRadioButton("FIX: FORCE Change Accounts / Categories [& Securities] FROM Currency TO Currency", False)
+                    user_force_change_accounts_cats_from_to_currency.setToolTipText("This allows you to FORCE change Accounts / Categories [& Securities] from one currency to another - USE WITH CARE!.. THIS CHANGES DATA! (force_change_all_currencies.py)")
+                    user_force_change_accounts_cats_from_to_currency.setEnabled(GlobalVars.UPDATE_MODE)
+                    user_force_change_accounts_cats_from_to_currency.setForeground(getColorRed())
 
                     user_force_change_an_accounts_type = JRadioButton("FIX: FORCE Change an Account's Type (set_account_type.py)", False)
                     user_force_change_an_accounts_type.setToolTipText("This allows you to FORCE change an Account's Type - USE WITH CARE!.. THIS CHANGES DATA! (set_account_type.py)")
@@ -24316,7 +24516,8 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_edit_shouldBeIncludedInNetWorth_settings)
                     bg.add(user_force_change_an_accounts_type)
                     bg.add(user_force_change_accounts_currency)
-                    bg.add(user_force_change_all_accounts_currency)
+                    bg.add(user_force_change_all_accounts_cats_currency)
+                    bg.add(user_force_change_accounts_cats_from_to_currency)
                     bg.add(user_fix_accounts_parent)
                     bg.add(user_fix_root_account_name)
                     bg.clearSelection()
@@ -24336,7 +24537,8 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_edit_shouldBeIncludedInNetWorth_settings)
                     userFilters.add(user_force_change_an_accounts_type)
                     userFilters.add(user_force_change_accounts_currency)
-                    userFilters.add(user_force_change_all_accounts_currency)
+                    userFilters.add(user_force_change_all_accounts_cats_currency)
+                    userFilters.add(user_force_change_accounts_cats_from_to_currency)
                     userFilters.add(user_fix_accounts_parent)
                     userFilters.add(user_fix_root_account_name)
 
@@ -24351,7 +24553,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         bg.clearSelection()
 
                         options = ["EXIT", "PROCEED"]
-                        jsp = MyJScrollPaneForJOptionPane(userFilters,600,300)
+                        jsp = MyJScrollPaneForJOptionPane(userFilters,700,350)
                         userAction = (JOptionPane.showOptionDialog(toolbox_frame_,
                                                                    jsp,
                                                                    "Accounts / Categories Diagnostics, Tools, Fixes",
@@ -24388,10 +24590,13 @@ Now you will have a text readable version of the file you can open in a text edi
                             force_change_account_type()
 
                         if user_force_change_accounts_currency.isSelected():
-                            force_change_account_currency()
+                            force_change_account_cat_currency()
 
-                        if user_force_change_all_accounts_currency.isSelected():
-                            force_change_all_accounts_currencies()
+                        if user_force_change_all_accounts_cats_currency.isSelected():
+                            force_change_all_accounts_categories_currencies()
+
+                        if user_force_change_accounts_cats_from_to_currency.isSelected():
+                            force_change_accounts_cats_from_to_currency()
 
                         if user_fix_accounts_parent.isSelected():
                             fix_account_parent()
@@ -24448,10 +24653,10 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_fix_invalidLotRecords.setEnabled(GlobalVars.UPDATE_MODE)
                     user_fix_invalidLotRecords.setForeground(getColorRed())
 
-                    user_can_i_delete_security = JRadioButton("DIAG: Can I Delete a Security?", False)
+                    user_can_i_delete_security = JRadioButton("DIAG: Can I Delete a Security? (i.e. this is a show where used)", False)
                     user_can_i_delete_security.setToolTipText("This will tell you whether a Selected Security is in use and whether you can delete it in Moneydance")
 
-                    user_can_i_delete_currency = JRadioButton("DIAG: Can I Delete a Currency?", False)
+                    user_can_i_delete_currency = JRadioButton("DIAG: Can I Delete a Currency?  (i.e. this is a show where used)", False)
                     user_can_i_delete_currency.setToolTipText("This will tell you whether a Selected Currency is in use and whether you can delete it in Moneydance")
 
                     user_list_curr_sec_dpc = JRadioButton("DIAG: List Security / Currency (hidden) decimal place settings", False)
@@ -24498,16 +24703,21 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_fix_invalid_price_history.setEnabled(GlobalVars.UPDATE_MODE)
                     user_fix_invalid_price_history.setForeground(getColorRed())
 
-                    user_force_change_accounts_currency = JRadioButton("FIX: FORCE Change an Account's Currency (force_change_account_currency.py)", False)
-                    user_force_change_accounts_currency.setToolTipText("This allows you to FORCE change an Account's currency - USE WITH CARE!.. THIS CHANGES DATA! (force_change_account_currency.py)")
+                    user_force_change_accounts_currency = JRadioButton("FIX: FORCE Change an Account's / Category's Currency (force_change_account_currency.py)", False)
+                    user_force_change_accounts_currency.setToolTipText("This allows you to FORCE change an Account's / Category's currency - USE WITH CARE!.. THIS CHANGES DATA! (force_change_account_currency.py)")
                     user_force_change_accounts_currency.setEnabled(GlobalVars.UPDATE_MODE)
                     user_force_change_accounts_currency.setForeground(getColorRed())
 
+                    user_force_change_all_accounts_cats_currency = JRadioButton("FIX: FORCE Change ALL Accounts' / Categories' Currencies (force_change_all_currencies.py)", False)
+                    user_force_change_all_accounts_cats_currency.setToolTipText("This allows you to FORCE change ALL Accounts' / Categories' Currencies - USE WITH CARE!.. THIS CHANGES DATA! (force_change_all_currencies.py)")
+                    user_force_change_all_accounts_cats_currency.setEnabled(GlobalVars.UPDATE_MODE)
+                    user_force_change_all_accounts_cats_currency.setForeground(getColorRed())
 
-                    user_force_change_all_accounts_currency = JRadioButton("FIX: FORCE Change ALL Account's Currencies (force_change_all_currencies.py)", False)
-                    user_force_change_all_accounts_currency.setToolTipText("This allows you to FORCE change ALL Account's Currencies - USE WITH CARE!.. THIS CHANGES DATA! (force_change_all_currencies.py)")
-                    user_force_change_all_accounts_currency.setEnabled(GlobalVars.UPDATE_MODE)
-                    user_force_change_all_accounts_currency.setForeground(getColorRed())
+                    user_force_change_accounts_cats_from_to_currency = JRadioButton("FIX: FORCE Change Accounts / Categories [& Securities] FROM Currency TO Currency", False)
+                    user_force_change_accounts_cats_from_to_currency.setToolTipText("This allows you to FORCE change Accounts / Categories [& Securities] from one currency to another - USE WITH CARE!.. THIS CHANGES DATA! (force_change_all_currencies.py)")
+                    user_force_change_accounts_cats_from_to_currency.setEnabled(GlobalVars.UPDATE_MODE)
+                    user_force_change_accounts_cats_from_to_currency.setForeground(getColorRed())
+
 
                     labelFYI2 = JLabel("       ** to activate Exit, Select Toolbox Options, Update mode **")
                     labelFYI2.setForeground(getColorRed())
@@ -24537,7 +24747,8 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_fix_invalid_curr_sec)
                     bg.add(user_fix_invalid_price_history)
                     bg.add(user_force_change_accounts_currency)
-                    bg.add(user_force_change_all_accounts_currency)
+                    bg.add(user_force_change_all_accounts_cats_currency)
+                    bg.add(user_force_change_accounts_cats_from_to_currency)
                     bg.clearSelection()
 
                     userFilters.add(JLabel(" "))
@@ -24574,7 +24785,8 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_fix_invalid_curr_sec)
                     userFilters.add(user_fix_invalid_price_history)
                     userFilters.add(user_force_change_accounts_currency)
-                    userFilters.add(user_force_change_all_accounts_currency)
+                    userFilters.add(user_force_change_all_accounts_cats_currency)
+                    userFilters.add(user_force_change_accounts_cats_from_to_currency)
 
                     while True:
 
@@ -24627,7 +24839,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         bg.clearSelection()
 
                         options = ["EXIT", "PROCEED"]
-                        jsp = MyJScrollPaneForJOptionPane(userFilters,1000,525)
+                        jsp = MyJScrollPaneForJOptionPane(userFilters,1000,550)
                         userAction = (JOptionPane.showOptionDialog(toolbox_frame_,
                                                                    jsp,
                                                                    "Currency / Security Diagnostics, Tools, Fixes",
@@ -24709,10 +24921,13 @@ Now you will have a text readable version of the file you can open in a text edi
                             return
 
                         if user_force_change_accounts_currency.isSelected():
-                            force_change_account_currency()
+                            force_change_account_cat_currency()
 
-                        if user_force_change_all_accounts_currency.isSelected():
-                            force_change_all_accounts_currencies()
+                        if user_force_change_all_accounts_cats_currency.isSelected():
+                            force_change_all_accounts_categories_currencies()
+
+                        if user_force_change_accounts_cats_from_to_currency.isSelected():
+                            force_change_accounts_cats_from_to_currency()
 
                         if user_fix_price_date.isSelected():
                             manually_edit_price_date_field()
