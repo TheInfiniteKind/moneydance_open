@@ -2,7 +2,7 @@
   "id" = "accounts_categories_mega_search_window"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1004"
+  "module_build" = "1005"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Accounts & Categories Mega Search Window"

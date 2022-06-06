@@ -176,9 +176,6 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
                 More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
         - FIX - Fix Remove legacy Dropbox Migrated Sync Key (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
-        - FIX - Change Moneydance Fonts
-        - FIX - Delete Custom Theme file
-        - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
         - FIX - RESET Window Display Settings
                 This allows you to tell Moneydance to forget remembered Display settings:
                 1. RESET>> Just Window locations (i.e. it leaves the other settings intact).
@@ -186,6 +183,15 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
                 3. RESET>> Just Register Transaction Initial Views (e.g. In investments, start on Portfolio or Security View
                 4. RESET>> Window locations, Size, Sort Orders, One-line, Split Reg, Offset, Column Widths; Dividers, isOpen,
                 isExpanded, isMaximised settings (this does not reset Filters or Initial views)
+        - FIX - Rename this dataset Rename this dataset (within the same location)
+        - FIX - Relocate this dataset back to the default 'internal' location
+        - FIX - Cleanup MD's File/Open list of 'external' files (does not touch actual files)
+        - DELETE Files from Menu>File>Open list and also from DISK (Removes files from 'Internal' and 'External' locations).
+            >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
+            >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
+        - FIX - Set/Change Default Moneydance FONTS
+        - FIX - Delete Custom Theme file
+        - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
     - MENU: Online (OFX) Banking Tools:
         - Forget OFX Banking Import Link (so it asks which account when importing ofx files) (remove_ofx_account_bindings.py) (MD versions < 2022)
         - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank) (remove_one_service.py)
@@ -252,9 +258,6 @@ ALT-SHIFT-M - Menu - ADVANCED MODE (button turns red when enabled)
     - Import (a single) File back into LocalStorage. Encrypts a file of your choosing and puts it into LocalStorage/safe/TMP...
     - Allows User to Add/Change/Delete Settings/Prefs >> key/value in config.dict or LocalStorage() (./safe/settings)
     - Edit/Change/Delete an Object's Parameter keys (this can change data in your dataset/database directly)
-    - Remove Int/Ext Files from File-list.
-        >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
-        >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
     - Clone Dataset's structure (purge transactional data) - Copy dataset keeping structures, purging all transactional data.
     - Call Save Trunk File option.... Immediately flushes all in memory changes to disk, including your dataset (rather than wait for restart)
     - Force a refresh/PUSH of your local dataset to Sync. Push new Sync data (and rebuild remote copies). Use carefully!

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# ofx_populate_multiple_userids.py (build 7) - Author - Stuart Beesley - StuWareSoftSystems 2021
+# ofx_populate_multiple_userids.py (build 8) - Author - Stuart Beesley - StuWareSoftSystems 2021
 
 # This script allows you to add multiple UserIDs to a working OFX profile
 
@@ -40,6 +40,7 @@
 # build: 5 - Common code tweaks
 # build: 6 - Common code tweaks
 # build: 7 - Common code - eliminating globals
+# build: 8 - Tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -47,7 +48,7 @@
 
 # SET THESE LINES
 myModuleID = u"ofx_populate_multiple_userids"
-version_build = "7"
+version_build = "8"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -240,6 +241,10 @@ else:
     from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
     from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
+    from com.moneydance.apps.md.controller import AccountBookWrapper
+    from com.moneydance.apps.md.view.gui import WelcomeWindow
+    from com.infinitekind.moneydance.model import AccountBook
+
     from javax.swing import JButton, JScrollPane, WindowConstants, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
     from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
     from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox, JRadioButton, ButtonGroup
@@ -262,7 +267,7 @@ else:
 
     from java.text import DecimalFormat, SimpleDateFormat, MessageFormat
     from java.util import Calendar, ArrayList
-    from java.lang import Double, Math, Character
+    from java.lang import Double, Math, Character, NoSuchFieldException, NoSuchMethodException, Boolean
     from java.lang.reflect import Modifier
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
@@ -306,6 +311,7 @@ else:
             i_am_an_extension_so_run_headless = None
             parametersLoadedFromFile = {}
             thisScriptName = None
+            MD_MDPLUS_BUILD = 4040
             def __init__(self): pass    # Leave empty
 
             class Strings:
@@ -335,14 +341,13 @@ else:
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
     # >>> THIS SCRIPT'S GLOBALS ########################################################################################
-    MD_MDPLUS_BUILD = 4040
     GlobalVars.Strings.OFX_LAST_TXN_UPDATE = "ofx_last_txn_update"
     GlobalVars.MD_MULTI_OFX_TXN_DNLD_DATES_BUILD = 4074
     # >>> END THIS SCRIPT'S GLOBALS ####################################################################################
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
-    # COMMON CODE ################# VERSION 107 ########################################################################
+    # COMMON CODE ################# VERSION 108 ########################################################################
     # COMMON CODE ######################################################################################################
     GlobalVars.i_am_an_extension_so_run_headless = False
     try:
@@ -1417,7 +1422,7 @@ Visit: %s (Author's site)
 
         if not GlobalVars.parametersLoadedFromFile: return
 
-        myPrint("DB","parametersLoadedFromFile read from file contains...:")
+        myPrint("DB","GlobalVars.parametersLoadedFromFile read from file contains...:")
         for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
             myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
@@ -1426,7 +1431,7 @@ Visit: %s (Author's site)
             myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
             GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
-        myPrint("DB","Parameter file loaded if present and parametersLoadedFromFile{} dictionary set.....")
+        myPrint("DB","Parameter file loaded if present and GlobalVars.parametersLoadedFromFile{} dictionary set.....")
 
         # Now load into memory!
         load_StuWareSoftSystems_parameters_into_memory()
@@ -1458,7 +1463,7 @@ Visit: %s (Author's site)
             pickle.dump(GlobalVars.parametersLoadedFromFile, save_file, protocol=0)
             save_file.close()
 
-            myPrint("DB","parametersLoadedFromFile now contains...:")
+            myPrint("DB","GlobalVars.parametersLoadedFromFile now contains...:")
             for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
                 myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
@@ -1493,7 +1498,7 @@ Visit: %s (Author's site)
         return _datetime
 
     def destroyOldFrames(moduleName):
-        myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", WindowEvent)
+        myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
         myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
         frames = JFrame.getFrames()
         for fr in frames:
@@ -1532,7 +1537,8 @@ Visit: %s (Author's site)
 
         if GlobalVars.STATUS_LABEL is None or not isinstance(GlobalVars.STATUS_LABEL, JLabel): return
 
-        GlobalVars.STATUS_LABEL.setText((_theStatus).ljust(800, " "))
+        # GlobalVars.STATUS_LABEL.setText((_theStatus).ljust(800, " "))
+        GlobalVars.STATUS_LABEL.setText((_theStatus))
 
         if _theColor is None or _theColor == "": _theColor = "X"
         _theColor = _theColor.upper()
@@ -2218,6 +2224,7 @@ Visit: %s (Author's site)
                      lJumpToEnd=False,
                      lWrapText=True,
                      lQuitMDAfterClose=False,
+                     lRestartMDAfterClose=False,
                      screenLocation=None,
                      lAutoSize=False):
             self.title = title
@@ -2228,6 +2235,7 @@ Visit: %s (Author's site)
             self.lJumpToEnd = lJumpToEnd
             self.lWrapText = lWrapText
             self.lQuitMDAfterClose = lQuitMDAfterClose
+            self.lRestartMDAfterClose = lRestartMDAfterClose
             self.screenLocation = screenLocation
             self.lAutoSize = lAutoSize
             # if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
@@ -2235,9 +2243,10 @@ Visit: %s (Author's site)
 
         class QJFWindowListener(WindowAdapter):
 
-            def __init__(self, theFrame, lQuitMDAfterClose=False):
+            def __init__(self, theFrame, lQuitMDAfterClose=False, lRestartMDAfterClose=False):
                 self.theFrame = theFrame
                 self.lQuitMDAfterClose = lQuitMDAfterClose
+                self.lRestartMDAfterClose = lRestartMDAfterClose
                 self.saveMD_REF = MD_REF
 
             def windowClosing(self, WindowEvent):                                                                       # noqa
@@ -2256,6 +2265,9 @@ Visit: %s (Author's site)
                 if self.lQuitMDAfterClose:
                     myPrint("B", "Quit MD after Close triggered... Now quitting MD")
                     self.saveMD_REF.getUI().exit()   # NOTE: This method should already detect whether MD is already shutting down.... (also, MD Shut down just kills extensions dead)
+                elif self.lRestartMDAfterClose:
+                    myPrint("B", "Restart MD after Close triggered... Now restarting MD")
+                    MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
                 else:
                     myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing")
 
@@ -2345,10 +2357,14 @@ Visit: %s (Author's site)
                     frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
 
                     # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
-                    jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)%s"
-                                              %( MD_REF.getUI().ACCELERATOR_MASK_STR,
-                                                ("" if not self.callingClass.lQuitMDAfterClose else  " >> MD WILL QUIT AFTER VIEWING THIS <<")))
+                    if self.callingClass.lQuitMDAfterClose:
+                        extraText =  ">> MD WILL QUIT AFTER VIEWING THIS <<"
+                    elif self.callingClass.lRestartMDAfterClose:
+                        extraText =  ">> MD WILL RESTART AFTER VIEWING THIS <<"
+                    else:
+                        extraText = ""
 
+                    jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)%s" %(MD_REF.getUI().ACCELERATOR_MASK_STR, extraText))
                     jInternalFrame.setName(u"%s_quickjframe" %myModuleID)
 
                     if not Platform.isOSX(): jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
@@ -2372,7 +2388,7 @@ Visit: %s (Author's site)
                     jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
                     jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
                     jInternalFrame.getRootPane().getActionMap().put("print-me", self.callingClass.QuickJFramePrint(self.callingClass, theJText, self.callingClass.title))
-                    jInternalFrame.addWindowListener(self.callingClass.QJFWindowListener(jInternalFrame, self.callingClass.lQuitMDAfterClose))
+                    jInternalFrame.addWindowListener(self.callingClass.QJFWindowListener(jInternalFrame, self.callingClass.lQuitMDAfterClose, self.callingClass.lRestartMDAfterClose))
 
                     internalScrollPane = JScrollPane(theJText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
@@ -2684,11 +2700,52 @@ Visit: %s (Author's site)
         return command, param
 
     def getFieldByReflection(theObj, fieldName, isInt=False):
-        reflect = theObj.getClass().getDeclaredField(fieldName)
-        if Modifier.isPrivate(reflect.getModifiers()): reflect.setAccessible(True)
-        isStatic = Modifier.isStatic(reflect.getModifiers())
-        if isInt: return reflect.getInt(theObj if not isStatic else None)
-        return reflect.get(theObj if not isStatic else None)
+        theClass = theObj.getClass()
+        reflectField = None
+        while theClass is not None:
+            try:
+                reflectField = theClass.getDeclaredField(fieldName)
+                break
+            except NoSuchFieldException:
+                theClass = theClass.getSuperclass()
+        if reflectField is None: raise Exception("ERROR: could not find field: %s in class hierarchy" %(fieldName))
+        if Modifier.isPrivate(reflectField.getModifiers()): reflectField.setAccessible(True)
+        elif Modifier.isProtected(reflectField.getModifiers()): reflectField.setAccessible(True)
+        isStatic = Modifier.isStatic(reflectField.getModifiers())
+        if isInt: return reflectField.getInt(theObj if not isStatic else None)
+        return reflectField.get(theObj if not isStatic else None)
+
+    def invokeMethodByReflection(theObj, methodName, params, *args):
+        theClass = theObj.getClass()
+        reflectMethod = None
+        while theClass is not None:
+            try:
+                if params is None:
+                    reflectMethod = theClass.getDeclaredMethod(methodName)
+                    break
+                else:
+                    reflectMethod = theClass.getDeclaredMethod(methodName, params)
+                    break
+            except NoSuchMethodException:
+                theClass = theClass.getSuperclass()
+        if reflectMethod is None: raise Exception("ERROR: could not find method: %s in class hierarchy" %(methodName))
+        reflectMethod.setAccessible(True)
+        return reflectMethod.invoke(theObj, *args)
+
+    def setFieldByReflection(theObj, fieldName, newValue):
+        theClass = theObj.getClass()
+        reflectField = None
+        while theClass is not None:
+            try:
+                reflectField = theClass.getDeclaredField(fieldName)
+                break
+            except NoSuchFieldException:
+                theClass = theClass.getSuperclass()
+        if reflectField is None: raise Exception("ERROR: could not find field: %s in class hierarchy" %(fieldName))
+        if Modifier.isPrivate(reflectField.getModifiers()): reflectField.setAccessible(True)
+        elif Modifier.isProtected(reflectField.getModifiers()): reflectField.setAccessible(True)
+        isStatic = Modifier.isStatic(reflectField.getModifiers())
+        return reflectField.set(theObj if not isStatic else None, newValue)
 
     def find_feature_module(theModule):
         # type: (str) -> bool
@@ -2699,6 +2756,119 @@ Visit: %s (Author's site)
                 myPrint("DB", "Found extension: %s" %(theModule))
                 return fm
         return None
+
+    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)
+
+    class ManuallyCloseAndReloadDataset(Runnable):
+
+        @staticmethod
+        def closeSecondaryWindows():
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.closeSecondaryWindows()")
+            if not SwingUtilities.isEventDispatchThread(): return False
+            if not ManuallyCloseAndReloadDataset.isSafeToCloseDataset(): return False
+            return invokeMethodByReflection(MD_REF.getUI(), "closeSecondaryWindows", [Boolean.TYPE], [False])
+
+        @staticmethod
+        def isSafeToCloseDataset():
+            # type: () -> bool
+            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.isSafeToCloseDataset()")
+            if not SwingUtilities.isEventDispatchThread(): return False
+            return invokeMethodByReflection(MD_REF.getUI(), "isOKToCloseFile", None)
+
+        @staticmethod
+        def manuallyCloseDataset(theBook, lCloseWindows=True):
+            # type: (AccountBook, bool) -> bool
+            """Mimics .setCurrentBook(None) but avoids the Auto Backup 'issue'. Also closes open SecondaryWindows, pauses MD+ etc
+            You should decide whether to run this on the EDT or on a new background thread when calling this method"""
+
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.manuallyCloseDataset(), lCloseWindows:", lCloseWindows)
+
+            if lCloseWindows:
+                if not SwingUtilities.isEventDispatchThread():
+                    raise Exception("ERROR: you must run manuallyCloseDataset() on the EDT if you wish to also call closeSecondaryWindows()...!")
+                if not ManuallyCloseAndReloadDataset.closeSecondaryWindows(): return False
+
+            # Pause the MD+ poller... Leave paused, as when we open a new dataset it should reset itself.....
+            if isMDPlusEnabledBuild():
+                myPrint("DB", "Pausing MD+")
+                plusPoller = MD_REF.getUI().getPlusController()
+                invokeMethodByReflection(plusPoller, "pausePolling", None)
+
+            myPrint("DB", "... saving LocalStorage..")
+            theBook.getLocalStorage().save()                        # Flush LocalStorage...
+
+            myPrint("DB", "... Mimicking .setCurrentBook(None)....")
+
+            MD_REF.fireAppEvent("md:file:closing")
+            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
+
+            MD_REF.fireAppEvent("md:file:closed")
+
+            myPrint("DB", "... calling .cleanUp() ....")
+            theBook.cleanUp()
+
+            setFieldByReflection(MD_REF, "currentBook", None)
+            myPrint("B", "Closed current dataset (book: %s)" %(theBook))
+
+            # Remove the current book's reference to LocalStorage.... (used when debugging what was recreating the dataset/settings)
+            # theBook.setLocalStorage(None)                             # Will fail as it tries to refer to book, which is now None
+            # setFieldByReflection(theBook, "localStorage", None)       # Works as avoids above problem
+
+            myPrint("DB", "... FINISHED Closing down the dataset")
+            return True
+
+        THIS_APPS_FRAME_REFERENCE = None
+
+        def __init__(self, lQuitThisAppToo=True):
+            self.lQuitThisAppToo = (lQuitThisAppToo and self.__class__.THIS_APPS_FRAME_REFERENCE is not None)
+            self.result = None
+
+        def getResult(self): return self.result     # Caution - only call this when you have waited for Thread to complete..... ;->
+
+        def run(self):
+            # type: () -> bool
+            self.result = self.manuallyCloseAndReloadDataset()
+
+        def manuallyCloseAndReloadDataset(self):
+            # type: () -> bool
+            """Manually closes current dataset, then reloads the same dataset.. Use when you want to refresh MD's internals"""
+
+            if SwingUtilities.isEventDispatchThread(): raise Exception("ERROR - you must run manuallyCloseAndReloadDataset() from a new non-EDT thread!")
+
+            cswResult = [None]
+            class CloseSecondaryWindows(Runnable):
+                def __init__(self, result): self.result = result
+                def run(self): self.result[0] = ManuallyCloseAndReloadDataset.closeSecondaryWindows()
+
+            SwingUtilities.invokeAndWait(CloseSecondaryWindows(cswResult))
+            if not cswResult[0]: return False
+
+            currentBook = MD_REF.getCurrentAccountBook()
+            fCurrentFilePath = currentBook.getRootFolder()
+
+            if not ManuallyCloseAndReloadDataset.manuallyCloseDataset(currentBook, lCloseWindows=False): return False
+
+            newWrapper = AccountBookWrapper.wrapperForFolder(fCurrentFilePath)
+            if newWrapper is None: raise Exception("ERROR: 'AccountBookWrapper.wrapperForFolder' returned None")
+            myPrint("DB", "Successfully obtained 'wrapper' for dataset: %s\n" %(fCurrentFilePath.getCanonicalPath()))
+
+            if self.lQuitThisAppToo:
+                if self.__class__.THIS_APPS_FRAME_REFERENCE is not None:
+                    if isinstance(self.__class__.THIS_APPS_FRAME_REFERENCE, JFrame):
+                        SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.__class__.THIS_APPS_FRAME_REFERENCE))
+
+            myPrint("B", "Opening dataset: %s" %(fCurrentFilePath.getCanonicalPath()))
+
+            # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
+            if not MD_REF.setCurrentBook(newWrapper) or newWrapper.getBook() is None:
+                txt = "Failed to open Dataset (wrong password?).... Will show the Welcome Window...."
+                setDisplayStatus(txt, "R"); myPrint("B", txt)
+                WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
+                return False
+
+            return True
+
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -2784,8 +2954,6 @@ Visit: %s (Author's site)
     else:
         myPrint("DB",".. Main App Already within the EDT so calling naked...")
         MainAppRunnable().run()
-
-    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_BUILD)
 
     def isMulti_OFXLastTxnUpdate_build(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MULTI_OFX_TXN_DNLD_DATES_BUILD)
 
