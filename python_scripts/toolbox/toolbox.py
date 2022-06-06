@@ -293,6 +293,7 @@
 # build: 1051 - Added 'Cleanup MD's File/Open list of 'external' files (does not touch actual files)' feature
 # build: 1051 - Moved the Delete internal/external files option to General Tools Menu (and auto purge external orphans)
 # build: 1051 - Auto-magically restart MD (same dataset) when needed....; Changed menus so they all exit after each usage
+# build: 1051 - Added 'Force MD+ name cache & access tokens rebuild' feature
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -11761,6 +11762,48 @@ Visit: %s (Author's site)
         play_the_money_sound()
 
         txt = "All moneydance+ settings deleted..! MONEYDANCE WILL NOW EXIT - PLEASE MANUALLY RESTART"
+        setDisplayStatus(txt, "R"); myPrint("B", txt)
+        myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
+
+        MD_REF.getUI().exit()
+        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+
+    def forceMDPlusNameCacheAccessTokensRebuild():
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "Force MD+ name cache & access tokens rebuild"
+
+        storage = MD_REF.getCurrentAccountBook().getLocalStorage()
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME.upper(),"Wipe MD+ name cache and access tokens (to force a rebuild)?"):
+            return False
+
+        myPrint("B", "User requested to wipe MD+ name cache and access tokens (mdp_items and access_tokens) - proceeding....:")
+
+        myPrint("B", "... shutting down the md+ controller...")
+        mdp_controller = MD_REF.getUI().getPlusController()
+
+        invokeMethodByReflection(mdp_controller, "shutdown", None)
+
+        myPrint("B", "... Zapping md+ 'access_tokens' from local storage (if they exist)...")
+        storage.removeSubset("access_tokens")
+
+        myPrint("B", "... Zapping md+ plaid cache 'mdp_items' from local storage (if they exist)...")
+        storage.removeSubset("mdp_items")
+
+        myPrint("B", "... Auto-running cleanup of banking links...")
+        cleanupMissingOnlineBankingLinks(lAutoPurge=True)
+
+        myPrint("B", "... Saving local storage...")
+        storage.save()
+
+        myPrint("B", "... Flushing changes to sync...")
+        MD_REF.getUI().getMain().saveCurrentAccount()
+
+        play_the_money_sound()
+
+        txt = "MD+ name cache & access tokens have been wiped..! MONEYDANCE WILL NOW EXIT - PLEASE MANUALLY RESTART"
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
@@ -24194,6 +24237,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_cookieManagement.setEnabled(GlobalVars.ADVANCED_MODE)
                     user_cookieManagement.setForeground(getColorRed())
 
+                    user_forceMDPlusNameCacheAccessTokensRebuild = JRadioButton("Force MD+ name cache & access tokens rebuild (USE WITH CARE)", False)
+                    user_forceMDPlusNameCacheAccessTokensRebuild.setToolTipText("Wipes your internal MD+ cached bank names and access tokens. These should rebuild themselves. THIS CHANGES DATA!")
+                    user_forceMDPlusNameCacheAccessTokensRebuild.setEnabled(GlobalVars.ADVANCED_MODE)
+                    user_forceMDPlusNameCacheAccessTokensRebuild.setForeground(getColorRed())
+
                     user_exportMDPlusProfile = JRadioButton("Export your Moneydance+ (Plaid) settings to a file (for 'transplant')", False)
                     user_exportMDPlusProfile.setToolTipText("This will Export your stored Moneydance+ (Plaid) data/keys etc to a file (for 'transplant'). READONLY")
                     user_exportMDPlusProfile.setEnabled(GlobalVars.ADVANCED_MODE)
@@ -24240,6 +24288,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_viewAllLastTxnDownloadDates)
                     bg.add(user_viewReconcileAsOfDates)
                     bg.add(user_cookieManagement)
+                    bg.add(user_forceMDPlusNameCacheAccessTokensRebuild)
                     bg.add(user_exportMDPlusProfile)
                     bg.add(user_importMDPlusProfile)
                     bg.add(user_zapMDPlusProfile)
@@ -24291,6 +24340,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_cookieManagement)
 
                     if isMDPlusEnabledBuild():
+                        userFilters.add(user_forceMDPlusNameCacheAccessTokensRebuild)
                         userFilters.add(user_exportMDPlusProfile)
                         userFilters.add(user_importMDPlusProfile)
                         userFilters.add(user_zapMDPlusProfile)
@@ -24302,7 +24352,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     while True:
                         options = ["EXIT", "PROCEED"]
-                        jsp = MyJScrollPaneForJOptionPane(userFilters,775,700)
+                        jsp = MyJScrollPaneForJOptionPane(userFilters,775,725)
                         userAction = (JOptionPane.showOptionDialog(toolbox_frame_,
                                                                    jsp,
                                                                    "Online Banking (OFX) Tools",
@@ -24317,30 +24367,31 @@ Now you will have a text readable version of the file you can open in a text edi
 
                         selectHomeScreen()      # Stops the LOT Control box popping up..... Get back to home screen....
 
-                        if user_forgetOFXBankingLink.isSelected():                  forgetOFXImportLink()
-                        if user_deleteOFXBankingLogonProfile.isSelected():          deleteOFXService()
-                        if user_cleanupMissingOnlineBankingLinks.isSelected():      cleanupMissingOnlineBankingLinks(lAutoPurge=False)
-                        if user_manageCUSIPLink.isSelected():                       CUSIPFix()
-                        if user_toggleMDDebug.isSelected():                         advanced_mode_DEBUG()
-                        if user_UNLOCKMDPlusDiagnostic.isSelected():                UNLOCKMDPlusDiagnostic()
-                        if user_authenticationManagement.isSelected():              OFX_authentication_management()
-                        if user_exportMDPlusProfile.isSelected():                   export_MDPlus_Profile()
-                        if user_importMDPlusProfile.isSelected():                   import_MDPlus_Profile()
-                        if user_zapMDPlusProfile.isSelected():                      zap_MDPlus_Profile()
-                        if user_cookieManagement.isSelected():                      OFX_cookie_management()
-                        if user_deleteOnlineTxns.isSelected():                      OFX_delete_saved_online_txns()
-                        if user_deleteALLOnlineTxns.isSelected():                   OFX_delete_ALL_saved_online_txns()
-                        if user_manuallyPrimeUSAARootUserIDClientIDs.isSelected():  manuallyPrimeUSAARootUserIDClientIDs()
-                        if user_createUSAAProfile.isSelected():                     createUSAAProfile()
-                        if user_updateOFXLastTxnUpdate.isSelected():                OFX_update_OFXLastTxnUpdate()
-                        if user_reset_OFXLastTxnUpdate_dates.isSelected():          OFX_reset_OFXLastTxnUpdate_dates()
-                        if user_searchOFXData.isSelected():                         CuriousViewInternalSettingsButtonAction(lOFX=True).actionPerformed("")
-                        if user_viewListALLMDServices.isSelected():                 download_md_fiscal_setup()
-                        if user_view_CUSIP_settings.isSelected():                   OFX_view_CUSIP_settings()
-                        if user_viewOnlineTxnsPayeesPayments.isSelected():          OFX_view_online_txns_payees_payments()
-                        if user_viewAllLastTxnDownloadDates.isSelected():           OFX_view_all_last_txn_download_dates()
-                        if user_viewReconcileAsOfDates.isSelected():                OFX_view_reconcile_AsOf_Dates()
-                        if user_viewInstalledBankProfiles.isSelected():             ofx_view_service_profile_data()
+                        if user_forgetOFXBankingLink.isSelected():                      forgetOFXImportLink()
+                        if user_deleteOFXBankingLogonProfile.isSelected():              deleteOFXService()
+                        if user_cleanupMissingOnlineBankingLinks.isSelected():          cleanupMissingOnlineBankingLinks(lAutoPurge=False)
+                        if user_manageCUSIPLink.isSelected():                           CUSIPFix()
+                        if user_toggleMDDebug.isSelected():                             advanced_mode_DEBUG()
+                        if user_UNLOCKMDPlusDiagnostic.isSelected():                    UNLOCKMDPlusDiagnostic()
+                        if user_authenticationManagement.isSelected():                  OFX_authentication_management()
+                        if user_forceMDPlusNameCacheAccessTokensRebuild.isSelected():   forceMDPlusNameCacheAccessTokensRebuild()
+                        if user_exportMDPlusProfile.isSelected():                       export_MDPlus_Profile()
+                        if user_importMDPlusProfile.isSelected():                       import_MDPlus_Profile()
+                        if user_zapMDPlusProfile.isSelected():                          zap_MDPlus_Profile()
+                        if user_cookieManagement.isSelected():                          OFX_cookie_management()
+                        if user_deleteOnlineTxns.isSelected():                          OFX_delete_saved_online_txns()
+                        if user_deleteALLOnlineTxns.isSelected():                       OFX_delete_ALL_saved_online_txns()
+                        if user_manuallyPrimeUSAARootUserIDClientIDs.isSelected():      manuallyPrimeUSAARootUserIDClientIDs()
+                        if user_createUSAAProfile.isSelected():                         createUSAAProfile()
+                        if user_updateOFXLastTxnUpdate.isSelected():                    OFX_update_OFXLastTxnUpdate()
+                        if user_reset_OFXLastTxnUpdate_dates.isSelected():              OFX_reset_OFXLastTxnUpdate_dates()
+                        if user_searchOFXData.isSelected():                             CuriousViewInternalSettingsButtonAction(lOFX=True).actionPerformed("")
+                        if user_viewListALLMDServices.isSelected():                     download_md_fiscal_setup()
+                        if user_view_CUSIP_settings.isSelected():                       OFX_view_CUSIP_settings()
+                        if user_viewOnlineTxnsPayeesPayments.isSelected():              OFX_view_online_txns_payees_payments()
+                        if user_viewAllLastTxnDownloadDates.isSelected():               OFX_view_all_last_txn_download_dates()
+                        if user_viewReconcileAsOfDates.isSelected():                    OFX_view_reconcile_AsOf_Dates()
+                        if user_viewInstalledBankProfiles.isSelected():                 ofx_view_service_profile_data()
 
                         for button in bg.getElements():
                             if button.isSelected(): return      # Quit the menu system after running something....
