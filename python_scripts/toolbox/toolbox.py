@@ -3179,13 +3179,20 @@ Visit: %s (Author's site)
                 myPrint("DB", "Shutting down MD+")
                 plusPoller = MD_REF.getUI().getPlusController()
                 # invokeMethodByReflection(plusPoller, "pausePolling", None)
-                invokeMethodByReflection(plusPoller, "shutdown", None)
+                if plusPoller is not None:
+                    invokeMethodByReflection(plusPoller, "shutdown", None)
+                    setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
 
             # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
             if isAlertControllerEnabledBuild():
                 myPrint("DB", "Shutting down Alert Controller")
                 alertController = MD_REF.getUI().getAlertController()
-                invokeMethodByReflection(alertController, "shutdown", None)
+                if alertController is not None:
+                    invokeMethodByReflection(alertController, "shutdown", None)
+                    setFieldByReflection(MD_REF.getUI(), "alertController", None)
+
+            try: setFieldByReflection(MD_REF.getUI(), "olMgr", None)
+            except: pass
 
             myPrint("DB", "... saving LocalStorage..")
             theBook.getLocalStorage().save()                        # Flush LocalStorage...
@@ -3245,18 +3252,22 @@ Visit: %s (Author's site)
             if newWrapper is None: raise Exception("ERROR: 'AccountBookWrapper.wrapperForFolder' returned None")
             myPrint("DB", "Successfully obtained 'wrapper' for dataset: %s\n" %(fCurrentFilePath.getCanonicalPath()))
 
-            if self.lQuitThisAppToo:
-                if self.__class__.THIS_APPS_FRAME_REFERENCE is not None:
-                    if isinstance(self.__class__.THIS_APPS_FRAME_REFERENCE, JFrame):
-                        SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.__class__.THIS_APPS_FRAME_REFERENCE))
-
             myPrint("B", "Opening dataset: %s" %(fCurrentFilePath.getCanonicalPath()))
 
             # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
-            if not MD_REF.setCurrentBook(newWrapper) or newWrapper.getBook() is None:
+            openResult = MD_REF.setCurrentBook(newWrapper)
+            if not openResult or newWrapper.getBook() is None:
                 txt = "Failed to open Dataset (wrong password?).... Will show the Welcome Window...."
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
                 WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
+
+                if self.lQuitThisAppToo:
+                    # Remember... the file opened event closes my extensions with app listeners, so do this if file could not be opened....
+                    if self.__class__.THIS_APPS_FRAME_REFERENCE is not None:
+                        if isinstance(self.__class__.THIS_APPS_FRAME_REFERENCE, JFrame):
+                            # Do this after .setCurrentBook() so-as not to co-modify listeners.....
+                            SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.__class__.THIS_APPS_FRAME_REFERENCE))
+
                 return False
 
             return True
@@ -11703,7 +11714,7 @@ Visit: %s (Author's site)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
         MD_REF.getUI().exit()
-        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset());
 
     def zap_MDPlus_Profile(lAutoZap=False):
 
@@ -11803,7 +11814,7 @@ Visit: %s (Author's site)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
         MD_REF.getUI().exit()
-        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset());
 
     def forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=False):
 
@@ -20029,12 +20040,17 @@ now after saving the file, restart Moneydance
             if success and fCurrentFilePath.exists():
                 raise Exception("ERROR: The old file/path still exists: %s" %(fCurrentFilePath.getAbsolutePath()))
 
-            if not MD_REF.setCurrentBook(newWrapper) or newWrapper.getBook() is None:
+            # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
+            openResult = MD_REF.setCurrentBook(newWrapper)
+            if not openResult or newWrapper.getBook() is None:
                 txt = "%s: Failed to open Dataset (wrong password?)...." %(_THIS_METHOD_NAME)
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
                 myPopupInformationBox(toolbox_frame_,"%s - Will show Welcome Window" %(txt),theMessageType=JOptionPane.WARNING_MESSAGE)
                 WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
+
+                # Do this after .setCurrentBook() so-as not to co-modify listeners.....
                 SwingUtilities.invokeLater(GenericWindowClosingRunnable(toolbox_frame_))
+
                 return False
 
             if success and fCurrentFilePath.exists():
