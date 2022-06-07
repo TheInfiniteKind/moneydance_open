@@ -293,7 +293,7 @@
 # build: 1051 - Added 'Cleanup MD's File/Open list of 'external' files (does not touch actual files)' feature
 # build: 1051 - Moved the Delete internal/external files option to General Tools Menu (and auto purge external orphans)
 # build: 1051 - Auto-magically restart MD (same dataset) when needed....; Changed menus so they all exit after each usage
-# build: 1051 - Added 'Force MD+ name cache & access tokens rebuild' feature
+# build: 1051 - Added 'Force MD+ name cache & access tokens rebuild' feature; Tweaked Export/Import/Zap/Wipe MD+ features
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -11409,17 +11409,17 @@ Visit: %s (Author's site)
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
-    def export_MDPlus_Profile():
+    def export_MDPlus_LicenseObject():
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        _THIS_METHOD_NAME = "Export Moneydance+ (Plaid) settings to file"
+        _THIS_METHOD_NAME = "Export Moneydance+ (Plaid) license (keys) to file"
         _TEST_KEY = "Confidential data: KEYTEST123$"
 
         licenseObject = getMDPlusLicenseInfoForBook()
 
         if licenseObject is None:
-            myPopupInformationBox(toolbox_frame_,"No Moneydance+ settings/profile found - NO EXPORT PERFORMED!",_THIS_METHOD_NAME.upper(),JOptionPane.ERROR_MESSAGE)
+            myPopupInformationBox(toolbox_frame_,"No Moneydance+ license object found - NO EXPORT PERFORMED!",_THIS_METHOD_NAME.upper(),JOptionPane.ERROR_MESSAGE)
             return
 
         mdplus_email = licenseObject.getParameter("mdplus.account_email", None)                                         # noqa
@@ -11432,7 +11432,7 @@ Visit: %s (Author's site)
         mdplus_pubKeyHex = licenseObject.getParameter("mdplus.pub", None)                                               # noqa
 
         if not mdplus_email or not mdplus_pubKeyHex or not mdplus_privKeyHex or not mdplus_signup_status:
-            txt = "No Valid Moneydance+ settings/profile found - NO EXPORT PERFORMED!"
+            txt = "No Valid Moneydance+ license object found - NO EXPORT PERFORMED!"
             setDisplayStatus(txt, "B"); myPrint("B", txt)
             myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.ERROR_MESSAGE)
             return
@@ -11440,16 +11440,16 @@ Visit: %s (Author's site)
         if not myPopupAskQuestion(toolbox_frame_,_THIS_METHOD_NAME.upper(),"ALERT: This Exports your confidential MD+(Plaid) private/public keys to an encrypted file. Continue?"):
             return
 
-        theTitle = "Select location to Export your encrypted Moneydance+ settings/profile... (CANCEL=ABORT)"
-        exportFile = getFileFromFileChooser(toolbox_frame_,                                 # Parent frame or None
-                                            get_home_dir(),                                 # Starting path
-                                            "MoneydancePlus_settings_CONFIDENTIAL.mdp",     # Default Filename
-                                            theTitle,                                       # Title
-                                            False,                                          # Multi-file selection mode
-                                            False,                                          # True for Open/Load, False for Save
-                                            True,                                           # True = Files, else Dirs
-                                            "EXPORT",                                       # Load/Save button text, None for defaults
-                                            "mdp",                                          # File filter (non Mac only). Example: "txt" or "qif"
+        theTitle = "Select location to Export your encrypted Moneydance+ license object ... (CANCEL=ABORT)"
+        exportFile = getFileFromFileChooser(toolbox_frame_,                                     # Parent frame or None
+                                            get_home_dir(),                                     # Starting path
+                                            "MoneydancePlus_license_object_CONFIDENTIAL.mdp",   # Default Filename
+                                            theTitle,                                           # Title
+                                            False,                                              # Multi-file selection mode
+                                            False,                                              # True for Open/Load, False for Save
+                                            True,                                               # True = Files, else Dirs
+                                            "EXPORT",                                           # Load/Save button text, None for defaults
+                                            "mdp",                                              # File filter (non Mac only). Example: "txt" or "qif"
                                             lAllowTraversePackages=False,
                                             lForceJFC=False,
                                             lForceFD=True,
@@ -11491,6 +11491,12 @@ Visit: %s (Author's site)
         fout = FileOutputStream(File(exportFile))
         export_encryptedStream = invokeMethodByReflection(cipher, "getEncryptStream", [OutputStream], [fout])
 
+        # Pause the MD+ poller...
+        if isMDPlusEnabledBuild():
+            myPrint("B", "Pausing MD+")
+            plusPoller = MD_REF.getUI().getPlusController()
+            invokeMethodByReflection(plusPoller, "pausePolling", None)
+
         exportMDPlusData = StreamTable()
         exportMDPlusData.put("_TOOLBOX_",_TEST_KEY)
         for object_key in licenseObject.getParameterKeys():
@@ -11512,42 +11518,47 @@ Visit: %s (Author's site)
             setDisplayStatus(txt, "B"); myPrint("B", txt)
             myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
-            txt = "Exported (encrypted) file contains confidential MD+(Plaid) key data. Use then DELETE file ASAP!"
+            txt = "Exported (encrypted) file contains confidential MD+(Plaid) license key data. Use then DELETE file ASAP!"
             myPrint("B", txt)
             myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
         except:
             dump_sys_error_to_md_console_and_errorlog()
-            txt = "ERROR exporting & decrypting Moneydance+ settings to: %s (review console)" %(exportFile)
+            txt = "ERROR exporting & decrypting Moneydance+ license object to: %s (review console)" %(exportFile)
             setDisplayStatus(txt, "R"); myPrint("B", txt)
             myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.ERROR_MESSAGE)
 
-        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-        return
+        if isMDPlusEnabledBuild():
+            myPrint("B", "Un-pausing MD+")
+            plusPoller = MD_REF.getUI().getPlusController()
+            invokeMethodByReflection(plusPoller, "resumePolling", None)
 
-    def import_MDPlus_Profile():
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+    def import_MDPlus_LicenseObject():
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        _THIS_METHOD_NAME = "Import Moneydance+ (Plaid) settings from file"
+        if not isMDPlusEnabledBuild(): return
+
+        _THIS_METHOD_NAME = "Import Moneydance+ (Plaid) license object from file"
         _TEST_KEY = "Confidential data: KEYTEST123$"
 
-        if not myPopupAskQuestion(toolbox_frame_,_THIS_METHOD_NAME.upper(), "WARNING: This will overwrite/replace/transplant your MD+(Plaid) settings with data from a file. Continue?"):
+        if not myPopupAskQuestion(toolbox_frame_,_THIS_METHOD_NAME.upper(), "WARNING: This will overwrite/replace/transplant your MD+(Plaid) license object with data from a file. Continue?"):
             return False
 
         book = MD_REF.getCurrentAccountBook()
-        licenseObject = getMDPlusLicenseInfoForBook()
 
-        theTitle = "Select file to Import ('transplant') your Moneydance+ settings/profile from... (CANCEL=ABORT)"
-        importFile = getFileFromFileChooser(toolbox_frame_,                                 # Parent frame or None
-                                            get_home_dir(),                                 # Starting path
-                                            "MoneydancePlus_settings_CONFIDENTIAL.mdp",     # Default Filename
-                                            theTitle,                                       # Title
-                                            False,                                          # Multi-file selection mode
-                                            True,                                           # True for Open/Load, False for Save
-                                            True,                                           # True = Files, else Dirs
-                                            "IMPORT",                                       # Load/Save button text, None for defaults
-                                            "mdp",                                          # File filter (non Mac only). Example: "txt" or "qif"
+        theTitle = "Select file to Import ('transplant') your Moneydance+ license object from... (CANCEL=ABORT)"
+        importFile = getFileFromFileChooser(toolbox_frame_,                                     # Parent frame or None
+                                            get_home_dir(),                                     # Starting path
+                                            "MoneydancePlus_license_object_CONFIDENTIAL.mdp",   # Default Filename
+                                            theTitle,                                           # Title
+                                            False,                                              # Multi-file selection mode
+                                            True,                                               # True for Open/Load, False for Save
+                                            True,                                               # True = Files, else Dirs
+                                            "IMPORT",                                           # Load/Save button text, None for defaults
+                                            "mdp",                                              # File filter (non Mac only). Example: "txt" or "qif"
                                             lAllowTraversePackages=False,
                                             lForceJFC=False,
                                             lForceFD=True,
@@ -11614,7 +11625,7 @@ Visit: %s (Author's site)
 
             if not importMDPlusData.get(checkKey):
                 myPrint("B","Import validation: Failed checking for key '%s' (missing)" %(checkKey))
-                txt = "Import file for Moneydance+ settings/profile INVALID - NO IMPORT PERFORMED!"
+                txt = "Import file for Moneydance+ license object INVALID - NO IMPORT PERFORMED!"
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
                 myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.ERROR_MESSAGE)
                 return False
@@ -11627,11 +11638,25 @@ Visit: %s (Author's site)
                     return
                 myPrint("B","Verified that the _TOOLBOX_ Key Test properly decrypted... Proceeding....")
 
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME.upper(), "Import ('transplant') Moneydance+ settings/profile from file & OVERWRITE EXISTING SETTINGS?"):
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME.upper(), "Import ('transplant') Moneydance+ license object from file & OVERWRITE EXISTING SETTINGS?"):
             return False
 
+        myPrint("B", "... shutting down the md+ controller...")
+        mdp_controller = MD_REF.getUI().getPlusController()
+        invokeMethodByReflection(mdp_controller, "shutdown", None)
+
+        preZapMDPlusSettingsFirst = myPopupAskQuestion(toolbox_frame_, _THIS_METHOD_NAME, "Wipe all pre-existing MD+ settings before importing MD+ licence?")
+
+        if preZapMDPlusSettingsFirst:
+            zap_MDPlus_Profile(lAutoZap=True)
+        else:
+            # Just clear the LocalStorage cache.... It will rebuild itself...
+            forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=True)
+
+        licenseObject = getMDPlusLicenseInfoForBook()
+
         if licenseObject is not None:
-            myPrint("B","Moneydance+ IMPORT.. Existing settings will be overwritten.. Settings were..:\n", special_toMultilineHumanReadableString(licenseObject))
+            myPrint("B","Moneydance+ IMPORT.. Existing license object will be overwritten.. Settings were..:\n", special_toMultilineHumanReadableString(licenseObject))
             licenseObject.setEditingMode()
             for key_to_delete in mdplus_keys: licenseObject.setParameter(key_to_delete, None)
         else:
@@ -11649,11 +11674,12 @@ Visit: %s (Author's site)
             else: myPrint("B","IMPORT.. Ignoring/skipping the setting: '%s', Value: '%s'" %(object_key,importMDPlusData.get(object_key)))
 
         licenseObject.syncItem()
-        MD_REF.getUI().getMain().saveCurrentAccount()
 
-        # Clear the cache of tokens.... It will rebuild itself...
-        MD_REF.getCurrentAccountBook().getLocalStorage().removeSubset("mdp_items")
-        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
+        myPrint("B", "... Auto-running cleanup of banking links...")
+        cleanupMissingOnlineBankingLinks(lAutoPurge=True)
+
+        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.getCurrentAccountBook().getLocalStorage().save()
 
         del importMDPlusData, licenseObject
 
@@ -11662,14 +11688,14 @@ Visit: %s (Author's site)
         except: pass
 
         play_the_money_sound()
-        txt = "Moneydance+ settings IMPORTED (import file deleted) >> MONEYDANCE WILL NOW EXIT - PLEASE MANUALLY RESTART!"
+        txt = "Moneydance+ license object IMPORTED (import file deleted) >> MONEYDANCE WILL NOW EXIT - PLEASE MANUALLY RESTART!"
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
         MD_REF.getUI().exit()
         # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
 
-    def zap_MDPlus_Profile():
+    def zap_MDPlus_Profile(lAutoZap=False):
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -11683,38 +11709,38 @@ Visit: %s (Author's site)
         #     myPopupInformationBox(toolbox_frame_,"NO Moneydance+ settings/profile found - NO CHANGES MADE!",_THIS_METHOD_NAME.upper(),JOptionPane.ERROR_MESSAGE)
         #     return False
 
-        if isMDPlusLicenseActivated():
-            ask = MyPopUpDialogBox(toolbox_frame_,
-                                 theStatus="WARNING: Attempting to ZAP MD+ settings when Dataset status is ACTIVATED!?",
-                                 theTitle=_THIS_METHOD_NAME.upper(),
-                                 theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
-                                            "This dataset has an Activated MD+ License.\n"
-                                            "If you ZAP, then your Account linkages will still be stored on the IK/Plaid servers ('Zombies')\n"
-                                            "You should use the Online/Setup Moneydance+ menu to Disconnect this dataset's account links (first)\n"
-                                            "However, if you have 'transplanted' your MD+ license to other datasets, then it's OK to Zap...\n"
-                                            "         (as your account links will be accessible from the other dataset with the same MD+ license)\n"
-                                            "NOTE: Running ZAP will not cause any harm, but you will have to setup MD+ / PLaid links again (in this dataset)\n"
-                                            "\n",
-                                 lCancelButton=True,
-                                 OKButtonText="I AGREE - PROCEED",
-                                 lAlertLevel=2)
+        if not lAutoZap:
+            if isMDPlusLicenseActivated():
+                ask = MyPopUpDialogBox(toolbox_frame_,
+                                     theStatus="WARNING: Attempting to ZAP MD+ settings when Dataset status is ACTIVATED!?",
+                                     theTitle=_THIS_METHOD_NAME.upper(),
+                                     theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
+                                                "This dataset has an Activated MD+ License.\n"
+                                                "If you ZAP, then your Account linkages will still be stored on the IK/Plaid servers ('Zombies')\n"
+                                                "You should use the Online/Setup Moneydance+ menu to Disconnect this dataset's account links (first)\n"
+                                                "However, if you have 'transplanted' your MD+ license to other datasets, then it's OK to Zap...\n"
+                                                "         (as your account links will be accessible from the other dataset with the same MD+ license)\n"
+                                                "NOTE: Running ZAP will not cause any harm, but you will have to setup MD+ / PLaid links again (in this dataset)\n"
+                                                "\n",
+                                     lCancelButton=True,
+                                     OKButtonText="I AGREE - PROCEED",
+                                     lAlertLevel=2)
 
-            if not ask.go():
-                txt = "User did not say yes to ZAP an Activated MD+ license - NO CHANGES MADE"
-                setDisplayStatus(txt, "B")
-                myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                if not ask.go():
+                    txt = "User did not say yes to ZAP an Activated MD+ license - NO CHANGES MADE"
+                    setDisplayStatus(txt, "B")
+                    myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                    return False
+                del ask
+
+            if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME.upper(),"ZAP this Dataset's Moneydance+ settings/profile & banking links etc (USE WITH CARE)?"):
                 return False
-            del ask
 
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME.upper(),"ZAP this Dataset's Moneydance+ settings/profile & banking links etc (USE WITH CARE)?"):
-            return False
+            myPrint("B", "User requested to delete all Moneydance+ settings - proceeding....:")
 
-        myPrint("B", "User requested to delete all Moneydance+ settings - proceeding....:")
-
-        myPrint("B", "... shutting down the md+ controller...")
-        mdp_controller = MD_REF.getUI().getPlusController()
-
-        invokeMethodByReflection(mdp_controller, "shutdown", None)
+            myPrint("B", "... shutting down the md+ controller...")
+            mdp_controller = MD_REF.getUI().getPlusController()
+            invokeMethodByReflection(mdp_controller, "shutdown", None)
 
         if licenseObject is None:
             myPrint("B", "... No md+ license object found to delete... skipping...")
@@ -11722,11 +11748,8 @@ Visit: %s (Author's site)
             myPrint("B", "... md+ license object's settings before deletion were..:\n", special_toMultilineHumanReadableString(licenseObject))
             licenseObject.deleteItem()
 
-        myPrint("B", "... Zapping md+ 'access_tokens' from local storage (if they exist)...")
-        storage.removeSubset("access_tokens")
-
-        myPrint("B", "... Zapping md+ plaid cache 'mdp_items' from local storage (if they exist)...")
-        storage.removeSubset("mdp_items")
+        # Clear the cache.... It will rebuild itself...
+        forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=True)
 
         myPrint("B", "... Zapping md+ service / logon profile(s) (if exists)...")
         deleteServiceList = []
@@ -11750,6 +11773,10 @@ Visit: %s (Author's site)
                 for maplink in invalid_mapping_links: mappingObject.setParameter(maplink, None)
                 mappingObject.syncItem()
 
+        if lAutoZap:
+            myPrint("B", "... >> All pre-existing moneydance+ settings have been deleted.. (returning to calling function)...")
+            return
+
         myPrint("B", "... Auto-running cleanup of banking links...")
         cleanupMissingOnlineBankingLinks(lAutoPurge=True)
 
@@ -11768,7 +11795,7 @@ Visit: %s (Author's site)
         MD_REF.getUI().exit()
         # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
 
-    def forceMDPlusNameCacheAccessTokensRebuild():
+    def forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=False):
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -11776,21 +11803,24 @@ Visit: %s (Author's site)
 
         storage = MD_REF.getCurrentAccountBook().getLocalStorage()
 
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME.upper(),"Wipe MD+ name cache and access tokens (to force a rebuild)?"):
-            return False
+        if not lAutoWipe:
 
-        myPrint("B", "User requested to wipe MD+ name cache and access tokens (mdp_items and access_tokens) - proceeding....:")
+            if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME.upper(),"Wipe MD+ name cache and access tokens (to force a rebuild)?"):
+                return False
 
-        myPrint("B", "... shutting down the md+ controller...")
-        mdp_controller = MD_REF.getUI().getPlusController()
+            myPrint("B", "User requested to wipe MD+ name cache and access tokens (mdp_items and access_tokens) - proceeding....:")
 
-        invokeMethodByReflection(mdp_controller, "shutdown", None)
+            myPrint("B", "... shutting down the md+ controller...")
+            mdp_controller = MD_REF.getUI().getPlusController()
+            invokeMethodByReflection(mdp_controller, "shutdown", None)
 
         myPrint("B", "... Zapping md+ 'access_tokens' from local storage (if they exist)...")
         storage.removeSubset("access_tokens")
 
         myPrint("B", "... Zapping md+ plaid cache 'mdp_items' from local storage (if they exist)...")
         storage.removeSubset("mdp_items")
+
+        if lAutoWipe: return
 
         myPrint("B", "... Auto-running cleanup of banking links...")
         cleanupMissingOnlineBankingLinks(lAutoPurge=True)
@@ -24242,15 +24272,15 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_forceMDPlusNameCacheAccessTokensRebuild.setEnabled(GlobalVars.ADVANCED_MODE)
                     user_forceMDPlusNameCacheAccessTokensRebuild.setForeground(getColorRed())
 
-                    user_exportMDPlusProfile = JRadioButton("Export your Moneydance+ (Plaid) settings to a file (for 'transplant')", False)
-                    user_exportMDPlusProfile.setToolTipText("This will Export your stored Moneydance+ (Plaid) data/keys etc to a file (for 'transplant'). READONLY")
-                    user_exportMDPlusProfile.setEnabled(GlobalVars.ADVANCED_MODE)
-                    user_exportMDPlusProfile.setForeground(getColorRed())
+                    user_export_MDPlus_LicenseObject = JRadioButton("Export your Moneydance+ (Plaid) license (keys) to a file (for 'transplant')", False)
+                    user_export_MDPlus_LicenseObject.setToolTipText("This will Export your stored Moneydance+ (Plaid) license (keys) etc to a file (for 'transplant'). READONLY")
+                    user_export_MDPlus_LicenseObject.setEnabled(GlobalVars.ADVANCED_MODE)
+                    user_export_MDPlus_LicenseObject.setForeground(getColorRed())
 
-                    user_importMDPlusProfile = JRadioButton("Import ('transplant') your Moneydance+ (Plaid) settings from a file (exported by Toolbox)", False)
-                    user_importMDPlusProfile.setToolTipText("This will Import ('transplant') your Moneydance+ (Plaid) data/keys etc from a file exported by Toolbox. THIS CHANGES DATA!")
-                    user_importMDPlusProfile.setEnabled(GlobalVars.ADVANCED_MODE)
-                    user_importMDPlusProfile.setForeground(getColorRed())
+                    user_import_MDPlus_LicenseObject = JRadioButton("Import ('transplant') your Moneydance+ (Plaid) license (keys) from a file (exported by Toolbox)", False)
+                    user_import_MDPlus_LicenseObject.setToolTipText("This will Import ('transplant') your Moneydance+ (Plaid) license (keys) from a file exported by Toolbox. THIS CHANGES DATA!")
+                    user_import_MDPlus_LicenseObject.setEnabled(GlobalVars.ADVANCED_MODE)
+                    user_import_MDPlus_LicenseObject.setForeground(getColorRed())
 
                     user_zapMDPlusProfile = JRadioButton("ZAP your Moneydance+ (Plaid) settings (only when status is NOT 'activated')", False)
                     user_zapMDPlusProfile.setToolTipText("This will delete your stored Moneydance+ (Plaid) data/keys (including banking links) etc - E.g. you will have to set this up again. THIS CHANGES DATA!")
@@ -24289,8 +24319,8 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_viewReconcileAsOfDates)
                     bg.add(user_cookieManagement)
                     bg.add(user_forceMDPlusNameCacheAccessTokensRebuild)
-                    bg.add(user_exportMDPlusProfile)
-                    bg.add(user_importMDPlusProfile)
+                    bg.add(user_export_MDPlus_LicenseObject)
+                    bg.add(user_import_MDPlus_LicenseObject)
                     bg.add(user_zapMDPlusProfile)
                     bg.add(user_authenticationManagement)
                     bg.add(user_deleteOnlineTxns)
@@ -24341,8 +24371,8 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     if isMDPlusEnabledBuild():
                         userFilters.add(user_forceMDPlusNameCacheAccessTokensRebuild)
-                        userFilters.add(user_exportMDPlusProfile)
-                        userFilters.add(user_importMDPlusProfile)
+                        userFilters.add(user_export_MDPlus_LicenseObject)
+                        userFilters.add(user_import_MDPlus_LicenseObject)
                         userFilters.add(user_zapMDPlusProfile)
 
                     userFilters.add(JLabel(" "))
@@ -24375,8 +24405,8 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_UNLOCKMDPlusDiagnostic.isSelected():                    UNLOCKMDPlusDiagnostic()
                         if user_authenticationManagement.isSelected():                  OFX_authentication_management()
                         if user_forceMDPlusNameCacheAccessTokensRebuild.isSelected():   forceMDPlusNameCacheAccessTokensRebuild()
-                        if user_exportMDPlusProfile.isSelected():                       export_MDPlus_Profile()
-                        if user_importMDPlusProfile.isSelected():                       import_MDPlus_Profile()
+                        if user_export_MDPlus_LicenseObject.isSelected():               export_MDPlus_LicenseObject()
+                        if user_import_MDPlus_LicenseObject.isSelected():               import_MDPlus_LicenseObject()
                         if user_zapMDPlusProfile.isSelected():                          zap_MDPlus_Profile()
                         if user_cookieManagement.isSelected():                          OFX_cookie_management()
                         if user_deleteOnlineTxns.isSelected():                          OFX_delete_saved_online_txns()
