@@ -308,6 +308,7 @@ else:
             parametersLoadedFromFile = {}
             thisScriptName = None
             MD_MDPLUS_BUILD = 4040
+            MD_ALERTCONTROLLER_BUILD = 4077
             def __init__(self): pass    # Leave empty
 
             class Strings:
@@ -2816,6 +2817,8 @@ Visit: %s (Author's site)
 
     def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)
 
+    def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)
+
     class ManuallyCloseAndReloadDataset(Runnable):
 
         @staticmethod
@@ -2846,11 +2849,18 @@ Visit: %s (Author's site)
                     raise Exception("ERROR: you must run manuallyCloseDataset() on the EDT if you wish to also call closeSecondaryWindows()...!")
                 if not ManuallyCloseAndReloadDataset.closeSecondaryWindows(): return False
 
-            # Pause the MD+ poller... Leave paused, as when we open a new dataset it should reset itself.....
+            # Shutdown the MD+ poller... When we open a new dataset it should reset itself.....
             if isMDPlusEnabledBuild():
-                myPrint("DB", "Pausing MD+")
+                myPrint("DB", "Shutting down MD+")
                 plusPoller = MD_REF.getUI().getPlusController()
-                invokeMethodByReflection(plusPoller, "pausePolling", None)
+                # invokeMethodByReflection(plusPoller, "pausePolling", None)
+                invokeMethodByReflection(plusPoller, "shutdown", None)
+
+            # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
+            if isAlertControllerEnabledBuild():
+                myPrint("DB", "Shutting down Alert Controller")
+                alertController = MD_REF.getUI().getAlertController()
+                invokeMethodByReflection(alertController, "shutdown", None)
 
             myPrint("DB", "... saving LocalStorage..")
             theBook.getLocalStorage().save()                        # Flush LocalStorage...
