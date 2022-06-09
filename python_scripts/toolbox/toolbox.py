@@ -77,209 +77,6 @@
 # SOFTWARE.
 ###############################################################################
 
-# Build: 999 PREVIEW RELEASE
-# Build: 999a Added some instructions on how to properly edit Moneydance.vmoptions file; added to help file(s)
-# Build: 999a Now finds the application directory for MacOS too....
-# Build: 1000 INITIAL PUBLIC RELEASE
-# Build: 1001 Enhanced MyPrint to catch unicode utf-8 encode/decode errors
-# Build: 1002 - fixed raise(Exception) clauses ;->
-# Build: 1002 - Now leveraging the Default font set in Moneydance; added change Fonts Button
-# Build: 1003 - Updated common codeset
-# Build: 1004 - Removed TxnSortOrder from common code, and catch error on import for earlier versions of MD
-# Build: 1004 - Fix for Jython 2.7.1 where csv.writer expects a 1-byte string delimiter, not unicode....
-# Build: 1005 - Tweaked for 2021 build 3032 (fonts/preferences)
-# Build: 1006 - Detect when the .moneydancesync folder is missing and add button to fix this
-# Build: 1006 - Detect current Toolbox version from github.. added downloadStuWareSoftSystemsExtensions()
-# Build: 1007 - Renamed REPO, Moneydance and ID to lowercase ready for signing (Sean request)...
-# Build: 1008 - Cosmetic changes to searching window; update available windows...
-# Build: 1008 - new button; search for ios sync data for sync key recovery....
-# Build: 1008 - New 'Advanced' [was hacker] buttons; Moneydance internal DEBUG ON/OFF; Moneydance ofx connection console debug ON/OFF check; set check days
-# Build: 1009 - Changed JFrame() to leverage internal moneydance's main frame size/dimensions etc.... (IK request)
-# Build: 1010 - Tweaks to popup boxes to fit text for certain fonts and common imports
-# Build: 1011 - Added "code_font" setting (which got sneaked into MD).... (and the print font setting too while I was at it); also corrected where font set to 'null' in config.dict
-# Build: 1012 - Tweak to code_font display message
-# Build: 1013 - Added Diagnose Attachments button(also detects Orphans)
-# Build: 1014 - Added size and date to search for dataset outputs
-# Build: 1014 - Enhanced main Frame to resize components on resize....; also the QuickJFrame; Small fix to Geek out mode error....:->
-# Build: 1015 - Added more scripts as buttons: price_history_thinner.py
-# Build: 1016 - Added 'Advanced' [was hacker] button; save trunk file (false)
-# Build: 1016 - Added Update [was Advanced] Mode Button - fix one way syncing
-# Build: 1017 - Added script: change-security-cusip.py; print message when checking dataset name vs root name; enhancements to price_history_thinner
-# Build: 1018 - Override and reduce font point-size down to 18 max
-# Build: 1018 - Tweaks to reset_relative_currencies - fix known error conditions / bugs in MD
-# Build: 1019 - Added database objects count t  o main diagnostic screen.....
-# Build: 1019 - Added support script: force_change_account_currency.py as a new button
-# Build: 1019 - Added 'Advanced' [was hacker] mode button to suppress the your file is stored in Dropbox warning (with disclaimer etc)
-# Build: 1019 - Move the triple confirmation, backup, disclaimer messages to one common function
-# Build: 1019 - Moved all OFX Function to a new Online Bank (OFX) Menu
-# Build: 1019 - Changed the GeekOut mode to sort some objects first before selection....; major update to fix relative currencies
-# Build: 1020 - Added button to analise dataset objects, files and sizes...; enhanced debug mode (same as console); use mono font in common code MyPopUpDialogBox()
-# Build: 1020 - Massive update to OFX management, new button, menu, updated outputs with extensive data...; updates to 'Advanced' [was hacker] mode
-# Build: 1020 - Allow escape in common QuickJFrames and Popup dialogs.... (triggers cancel)
-# Build: 1020 - Detect missing or invalid ROOT account based on fix_restored_accounts.py (but no fix as I don't think it's needed any more)...
-# Build: 1020 - Extract Attachments button
-# Build: 1020 - added fix_account_parent.py script as a button
-# Build: 1020 - added show_open_tax_lots.py script as a button
-# Build: 1020 - added MakeFifoCost.py script as a button
-# Build: 1020 - added Linux instructions to view .vmoptions for screen scaling
-# Build: 1020 - change to use common function for backup confirm disclaimer etc....
-# Build: 1020 - Geekout and searches for OFX bank data significantly improved
-# Build: 1020 - Bug fix finding location of backup dir
-# Build: 1020 - Enabled auto-pruning of internal backups of config.dict, settings, custom_themes
-# Build: 1020 - Added 'Advanced' [was hacker] buttons to clean up the external file/open list and also delete these datasets, and also internal datasets
-# Build: 1020 - added .dispose and del of FileDialog objects after usage as otherwise it remembers the last directory selected.....
-# Build: 1020 - Removed OFX console debug window; not needed. The debug in console is good enough/better already
-# Build: 1020 - Forces all Moneydance Debugs ON - same as console window - at launch (rather than launching console window)
-# Build: 1020 - New 'Advanced' [was hacker] button for extra debug options
-# Build: 1020 - Listen to MD Events.. Close Toolbox down when switching datasets.... (called when MD flags new file has been opened)
-# Build: 1020 - save parameters everytime the menu option changes (in case program is killed or MD exits)
-# Build: 1020 - script now checks for version information online and updates it's own defaults....
-# Build: 1020 - Added button / script fix_non-hierarchical_security_account_txns.py (and fix_investment_txns_to_wrong_security.py)
-# Build: 1020 - script now dials home to check for updated version information etc.... (any error/not found, it just ignores and carries on)
-# Build: 1020 - RELEASE 2.0: New Diag and Fix buttons (incl. Thin Price History and more); New OFX Bank Management Menu; many updates to 'Advanced' [was hacker] mode
-# Build: 1021 - Tweak to delete int/ext files workflow; changed open file to JFileChooser() when I don't want remembered directories (Java 'feature')
-# Build: 1021 - Tweak to find my dataset, don't report .moneydance folder as a dataset in the counts.. fixed display of archives found count..
-# Build: 1021 - Applied same cosmetic tweaks to Find iOS Dataset too....
-# Build: 1021 - Added please wait message when extracting attachments....
-# Build: 1021 - Somehow lost the Advanced [was Hack] menu DEBUG toggle button... Put back....
-# Build: 1022 - Cosmetic tweak to curr/sec dpc to show something when blank name...
-# Build: 1022 - Added the older Import QIF file button; added service.clearAuthenticationCache() to remove_one_service.py script
-# Build: 1022 - Added delete_intermediate_downloaded_transaction_caches.py script to OFX banking menu
-# Build: 1022 - Re-badged as InfiniteKind - co-authored by Stuart Beesley
-# Build: 1022 - Added size of database objects to analyse objects button
-# Build: 1023 - Added option after search for datasets to add missing files to config.dict and file open menu; also excluded /System from search on Macs
-# Build: 1023 - Added Force change Account type button to Update [was Advanced] menu (set_account_type.py)
-# Build: 1023 - Added Force change all Accounts' currencies to Update [was Advanced] menu (force_change_all_currencies.py)
-# Build: 1023 - Started the journey (due to learning) to ensure unicode used everywhere (rather than byte strings) (yes; I learnt coding back in the 80s!)
-# Build: 1023 - Error trapped diagnostic display - crashed on non utf8 characters - and also when decimal local grouping character was nbsp (chr(160)) - fixed....
-# Build: 1023 - added button fix invalid currency rates to Update [was Advanced] menu (fix_invalid_currency_rates.py)
-# Build: 1023 - Updated search datasets and search ios backups to skip symbolic links.... also skip some system dirs on some platforms
-# Build: 1024 - Updated search so that it asks again after 10 mins, but then also carries on if no response after 10 seconds
-# Build: 1024 - Moved some buttons to the toolbar...
-# Build: 1024 - Fix for when System Property "HomeDir" is None on Mac (thanks Sean!). Comma in wrong place....!
-# Build: 1025 - New 'Advanced' [was hacker] button - Import a file into Local storage....
-# Build: 1025 - Allow " " and "'" in key data values when editing in 'Advanced' [was hacker] mode..; Added option to demote Primary to Secondary Sync Node
-# Build: 1025 - Added script reverse_txn_amounts.py to Transaction Menu - Update [was Advanced] mode
-# Build: 1025 - Added script reverse_txn_exchange_rates_by_account_and_date.py to Transaction Menu - Update [was Advanced] mode
-# Build: 1025 - Revamped button/menu system. As many buttons as poss on sub-menus...
-# Build: 1025 - small fix for is_moneydance_loaded_properly() when using MD build 2012
-# Build: 1026 - Enhancements to detect when extension is already running....
-# Build: 1026 - Detect when .moneydance and or .moneydancesync folder(s) are readonly/hidden - alert only
-# Build: 1027 - CMD-F Search popup on all displays feature added; tweak to block old MD versions....; Added back view whole console (searchable)
-# Build: 1027 - enhanced launch code...; added information banner when toolbox connects to the internet...
-# Build: 1028 - Common code update (default the parameter filename); update tested versions; Allow \&/ in keys/data
-# build: 1029 - Put suitable objects into editing mode by calling .setEditingMode() whilst editing until .syncItem() called
-# build: 1029 - Switch to SwingUtilities.invokeLater() rather than Thread(); other small internal tweaks; fix toolbar location on older versions
-# build: 1029 - Build 3051 of Moneydance... fix references to moneydance_* variables; Remove OFX_SETUP_MATCH_MD_BUILD;
-# build: 1029 - Build 3051 fix >> getOutdatedExtensionIDs() replaced with getUnloadableExtensionIDs()...
-# build: 1029 - Build 3051 leverage moneydance_extension_loader class loader to get help file from the mxt container
-# build: 1030 - Build 3056 'deal' with the Python loader changes..
-# build: 1031 - Build 3056 Utilise .unload() method...
-# build: 1032 - Add HomePageViews (widgets) to extension list; add getTIKServiceID() to delete_one_service popup display
-# build: 1032 - Add 'View all your OFX last download txn dates (for all accounts)'to menu
-# build: 1033 - Common code tweaks
-# build: 1034 - Disabled the 'tabbing mode' check from build 3065 onwards
-# build: 1035 - Build 3067 of MD renamed com.moneydance.apps.md.view.gui.theme.Theme to com.moneydance.apps.md.view.gui.theme.ThemeInfo
-# build: 1036 - Added the 'Can I delete Currency' menu option
-# build: 1037 - Updated for MD2021.1 stable release build 3069
-# build: 1038 - Change to popup warning about running on a secondary node; as suggested by IK (Sean); Popup warning about improper opening of backup files...
-# build: 1039 - Built in error trap for .getSyncFolder() as it crashes if there is a Dropbox issue on the machine...
-# build: 1040 - Changes requested by IK to change / remove version updates from non IK source(s) - so as to load into manage extensions list
-# build: 1041 - Feature to convert TimeStamps to readable dates; Geekout, Diagnosis and manual edit mode for Currency/Security price_date parameter...
-# build: 1041 - Detect cached downloaded bank transactions (OnlineTxnList) at startup...
-# build: 1041 - Enhanced OFX Search data and service profile lists with linkage account key data et al...
-# build: 1041 - Fixed several JFileChooser file dialogs - since the VAqua LaF upgrade (2021.1) on Macs broke it...
-# build: 1041 - Fixed pickle.dump/load common code to work properly cross-platform (e.g. Windows to Mac) by (stripping \r when needed)
-# build: 1041 - Enhanced / tweaked Fix relative currencies function (quite a lot ;-> )
-# build: 1041 - New feature - Move/Merge Investment Txns from one account into another >> 550+ lines of code for this neat little function!
-# build: 1041 - New feature - FIX - Detect and fix Investment Security records not properly linked to Security Master records
-# build: 1041 - New feature - FIX - Delete invalid price history records where rate <= (1.0/9999999999) or >= 9999999999.
-# build: 1041 - New feature - FIX - Merge 'duplicate' securities (and related Investment txns) together into one master security record.
-# build: 1041 - New feature - FIX - Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly).
-# build: 1041 - Fixed 'Advanced' [was hacker] mode on SplitTxns to properly 'manage' parent record; fixed Geekout lookup for splits by UUID; Added 5 newest/oldest Snapshots data to geekout
-# build: 1041 - Switch back to Home Screen before some functions... Stops Lot control box appearing; Good practice to get out of all accounts first...
-# build: 1041 - Renamed feature to: - FIX - Fix currencies / securities (including relative currencies) (fixes your currency & security's key settings) (reset_relative_currencies.py)
-# build: 1041 - Updated 'Diagnose Currency / Security (hidden) Decimal Places' report
-# build: 1041 - Added options to report and set the shouldBeIncludedInNetWorth() settings to Accounts Tools Menu
-# build: 1041 - Added feature - View your Security's hidden CUSIP settings to Online Banking (OFX) Tools Menu
-# build: 1041 - Tweaks to cope with MD2021.2(3088)+ (iCloud Sync, env var 'md_passphrase', currency rrate fixes)
-# build: 1041 - Currency rrate checking / fix features now detect version 2021.2 build 3089 of Moneydance where the code 'issue' was resolved...
-# build: 1041 - Amended fix relative currencies accordingly with MD2021.2(3088) rate / rrate knowledge. I now only touch 'rrate' (not 'rate)...
-# build: 1041 - Added save output button to QuickJFrame() popup that displays output text, along with top and bottom buttons.....
-# build: 1041 - Fetch iCloud details if used, and added open sync location to open md folders button; also now copy tha path to clipboard too.
-# build: 1041 - Added print function to QuickJFrame(); also save and print to main diagnostics display
-# build: 1041 - Added feature - ADVANCED: Peek at an encrypted file located in your Sync Folder... (previously 'HACK')
-# build: 1041 - Added feature - Diagnose Attachments - DELETE Orphan attachments.
-# build: 1041 - Detect User's Locale (vs MD User Preferences for Locale).
-# build: 1041 - Added feature - ADVANCED: Shrink Dataset feature... (previously 'HACK')
-# build: 1041 - Added feature - ADVANCED: Force a refresh/PUSH to Sync option (previously 'HACK')
-# build: 1041 - Updated Common code to use FileDialog/JFileChooser wrapper...
-# build: 1041 - Added feature - ADVANCED: Force disable/turn Sync OFF... (previously 'HACK')
-# build: 1041 - Converted all statusLabel usage over to GlobalVars and method call... 1000s of changes....
-# build: 1042 - Enabling MD2022 (with Moneydance+)
-# build: 1042 - Updated for new 2022 license keys
-# build: 1042 - OFX forget banking link disabled for build 4040 onwards as new mapping table and user managed
-# build: 1042 - New features: ZAP, Export, Import your Moneydance+ license key/object. Updated Geekout mode for license object, and mappings enabled too
-# build: 1042 - Code updated with MD2022 Online Banking features / requirements...
-# build: 1042 - New features: Cleanup missing banking links (MD2022 too)
-# build: 1042 - Main menus enhanced to be scrollable... Toolbox now quits MD where needed..... after fix.....
-# build: 1042 - New feature: Force reset Sync settings...; changed edit lasttxndownloaddate for MD+ to reset which forces new MD popup prompt...
-# build: 1042 - Disable edit last txn download date if MD+ enabled build .....
-# build: 1043 - Bug fixes on colors...; Common code fix lAlertLevel= on Mac/Dark Mode; added Dark detection and color fixes...
-# build: 1043 - Enhanced cleanup missing banking links to detect/delete orphaned md+ connections; tweak to GeekOut on OFX Data (Accounts)
-# build: 1043 - New feature: 'Restore an archive file, and RETAIN Sync settings ' (avoids wiping out Sync settings on restore)
-# build: 1043 - New feature: Fix iCloud Sync Crash (same as Fix Dropbox One-Way Crash)
-# build: 1043 - Tweaked OFX Authentication menu... Added change OFX Password feature
-# build: 1044 - Enhanced OFX Authentication Menu. Added option to prime USAA UserID/ClientUID...; tweaked open md folder, for open system locations to work
-# build: 1044 - Added execution of ofx_populate_multiple_userids.py script...
-# build: 1044 - Added execution of ofx_create_new_usaa_bank_custom_profile.py script...
-# build: 1044 - Tweaks for new Dark Flat theme in build 4059
-# build: 1044 - Fix 'FIX - Non Hierarchical Security Account Txns' for None Account issue... (this is where User force removed a Security from Investment Account)
-# build: 1045 - Enhanced search option (CMD-F) so that text field gets focus....
-# build: 1045 - Enhanced 'Prime' USAA ClientUID function to allow deletion of old USAA profile(s)
-# build: 1045 - Enhanced decrypt file from local storage... Catch BadPadding Exception and continue....
-# build: 1045 - Fix to editStoredOFXPasswords() was pre-pending the key prefix when it was already there.....
-# build: 1045 - Common code tweak - destroyOldFrames() - add a "_" for cloned instances; re-enable
-# build: 1045 - Changed JFrame and JPanel layouts so that JScrollPane resize just works etc... Removed ReSize Listener (watching out for increased memory consumption)
-# build: 1045 - Fix JMenu()s - remove <html> tags (affects colors on older Macs)
-# build: 1045 - changed all to use .isMasterSyncNode() and .isMasterSyncNode() and also set primary on force reset all sync settings too (to match 4063)
-# build: 1045 - Newer MyJFrame.dispose(); enhanced analise datasets and objects to detect permission problems with folders...
-# build: 1046 - skipped this build
-# build: 1047 - Renaming Advanced mode to Update mode and Hacker mode to Advanced mode....
-# build: 1047 - Put back .setRate() in fix currency / security routines - as it wasn't working on infinity rrates (zero)....
-# build: 1047 - Changed Options menu so that Basic/Advanced mode are a Checkbox and ALT-M is the toggle....; Renamed Export Backup to Create Backup
-# build: 1047 - Flipped JMenus to use html and bold tags (as otherwise disappeared on mouse hover)
-# build: 1047 - Added CMD-SHIFT-U hotkey to show object's raw data - enter UUID to locate
-# build: 1047 - Remove 'Geek Out' mode and have the button ever-present... Renamed Button to 'Expert: View Internal Settings'
-# build: 1047 - Enhanced the number of keys that force reset sync removes to include old migrated sync keys/settings...
-# build: 1047 - Upgraded move_merge_investment_txns() with GUI for processing options and filters for security and date range...
-# build: 1047 - Moved move_merge_investment_txns to an enclosed script and added as a new Extensions menu option to allow register selection
-# build: 1047 - Moved Total Selected Transactions to an enclosed script and added as a new Extensions menu option to allow register selection
-# build: 1047 - Updated usages of JDateField() to present user's dateformat... also convertStrippedIntDateFormattedText() too
-# build: 1047 - Updated usages of get_time_stamp_as_nice_text() to use MD date format set by user... Also where strftime formats used
-# build: 1047 - Added check for critical 'java.io.tmpdir' folder
-# build: 1047 - Added 'FIX: Detect and fix (wipe) LOT records where matched Buy/Sell records are invalid' function
-# build: 1047 - Updated / fixed / tweaked show_open_share_lots(); also tweaked common code to allow for when buddy scripts might run at same time...
-# build: 1047 - disabled check_for_old_StuWareSoftSystems_scripts() - can no longer be relevant....
-# build: 1047 - Eliminated common code globals :->
-# build: 1047 - Move/Merge investment txns disabled and now called via Extensions Menu directly...
-# build: 1047 - Rename Expert: View internal settings - to Curious? View internal settings; Now not Magenta, just normal colour
-# build: 1047 - Make Advanced Mode Button always there, just with options disabled...; switch to GridBagLayout for a slicker display
-# build: 1047 - Added Preferences Listener... Will abort Toolbox if Preferences Updated...
-# build: 1047 - Added getMDIcon() and Intel X86 32bit check/fix - attempt to stop Java 17 crashing
-# build: 1047 - Make popup Menu scrollpanes / JOptionPane resizeable; fix MyPopUpDialog and QuickJFrame alert colors on Mac/Vaqua
-# build: 1047 - Fixed where lIgnoreOutdatedExtensions_TB wasn't being saved...
-# build: 1047 - Common code all: Updated MyPopupDialogBox() so that screen layout is much better...
-# build: 1047 - Common code all: Updated QuickJFrame() with location and autosize options...
-# build: 1047 - Decommissioned the option to restore an archive and retain sync settings. This now exists in 2022.3(4072)
-# build: 1047 - Added DetectInvalidWindowLocations() to look for window locations 'offscreen' (Now fixed in 4073 using my code ;-> )
-# build: 1047 - Added 'View your accounts' calculated reconcile window auto 'as of' date' feature
-# build: 1047 - Updated common code all .get_time_stamp_as_nice_text() with useHHMMSS parameter
-# build: 1047 - added 'Clone Dataset's structure' feature (stage-1, just structure, purge data)
-# build: 1047 - added internal sync UUID to main diagnostic display screen
-# build: 1047 - added toolbox_invoke.py script... collaborated with Mike Bray to add QuoteLoader variables to detect when busy
-# build: 1047 - MD build 4074 changed .getOFXLastTxnUpdate() to add connectionID parameter
-# build: 1047 - added OFX_reset_OFXLastTxnUpdate_dates() for build 4074 onwards; added error traps on main menus...
 # build: 1048 - Bugfix deleteOFXService() if no service selected...; Enhanced View OFX data for multiple service options (OFX and MD+)
 # build: 1048 - Improved the 'STOP-NOW' command message (suggest to check for upgrade)
 # build: 1049 - Updated Zap md+ option to wipe all md+ data from system (including all banking links)
@@ -294,6 +91,7 @@
 # build: 1051 - Moved the Delete internal/external files option to General Tools Menu (and auto purge external orphans)
 # build: 1051 - Auto-magically restart MD (same dataset) when needed....; Changed menus so they all exit after each usage
 # build: 1051 - Added 'Force MD+ name cache & access tokens rebuild' feature; Tweaked Export/Import/Zap/Wipe MD+ features
+# build: 1051 - Added 'REGISTER MONEYDANCE' button (if not registered)...; Fixed invalid locations detection for off-screen negative (left)
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -639,7 +437,7 @@ else:
 
     from com.infinitekind.tiksync import SyncRecord, SyncableItem
     from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
-    from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow                              # noqa
+    from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow            # noqa
     from com.moneydance.apps.md.view.gui.bot import MoneyBotWindow                                                      # noqa
     from com.moneydance.apps.md.view.gui.extensions import ExtensionsWindow                                             # noqa
 
@@ -714,6 +512,8 @@ else:
     GlobalVars.Strings.MD_CONFIGDICT_CURRENT_ACCOUNT_BOOK = "current_accountbook"
     GlobalVars.Strings.MD_CONFIGDICT_BACKUP_TYPE = "backup.backup_type"
     GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES = "external_files"
+
+    GlobalVars.Strings.MD_PLAID_SETTINGS_OBJ_ID = "plaid_settings"
 
     GlobalVars.redact = True
     GlobalVars.lMustRestartAfterSnapChanges = False
@@ -2750,7 +2550,7 @@ Visit: %s (Author's site)
                     jInternalFrame = MyJFrame(self.callingClass.title + " (%s+F to find/search for text)%s" %(MD_REF.getUI().ACCELERATOR_MASK_STR, extraText))
                     jInternalFrame.setName(u"%s_quickjframe" %myModuleID)
 
-                    if not Platform.isOSX(): jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+                    if not Platform.isOSX(): jInternalFrame.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
                     jInternalFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
                     jInternalFrame.setResizable(True)
@@ -2933,7 +2733,7 @@ Visit: %s (Author's site)
 
             if (not Platform.isMac()):
                 # MD_REF.getUI().getImages()
-                self.aboutDialog.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+                self.aboutDialog.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
             aboutPanel = JPanel()
             aboutPanel.setLayout(FlowLayout(FlowLayout.LEFT))
@@ -3083,7 +2883,8 @@ Visit: %s (Author's site)
         return command, param
 
     def getFieldByReflection(theObj, fieldName, isInt=False):
-        theClass = theObj.getClass()
+        try: theClass = theObj.getClass()
+        except TypeError: theClass = theObj     # This catches where the object is already the Class
         reflectField = None
         while theClass is not None:
             try:
@@ -3099,7 +2900,8 @@ Visit: %s (Author's site)
         return reflectField.get(theObj if not isStatic else None)
 
     def invokeMethodByReflection(theObj, methodName, params, *args):
-        theClass = theObj.getClass()
+        try: theClass = theObj.getClass()
+        except TypeError: theClass = theObj     # This catches where the object is already the Class
         reflectMethod = None
         while theClass is not None:
             try:
@@ -3116,7 +2918,8 @@ Visit: %s (Author's site)
         return reflectMethod.invoke(theObj, *args)
 
     def setFieldByReflection(theObj, fieldName, newValue):
-        theClass = theObj.getClass()
+        try: theClass = theObj.getClass()
+        except TypeError: theClass = theObj     # This catches where the object is already the Class
         reflectField = None
         while theClass is not None:
             try:
@@ -3183,6 +2986,14 @@ Visit: %s (Author's site)
                     invokeMethodByReflection(plusPoller, "shutdown", None)
                     setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
 
+                # myPrint("DB","... also resetting MDPlus.singleton to None")
+                # from com.moneydance.apps.md.controller import MDPlus
+                # setFieldByReflection(MDPlus, "singleton", None);
+                #
+                # myPrint("DB","... also resetting PlaidConnection.plaidClient to None")
+                # from com.moneydance.apps.md.controller.olb.plaid import PlaidConnection
+                # setFieldByReflection(PlaidConnection, "plaidClient", None);
+
             # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
             if isAlertControllerEnabledBuild():
                 myPrint("DB", "Shutting down Alert Controller")
@@ -3200,7 +3011,7 @@ Visit: %s (Author's site)
             myPrint("DB", "... Mimicking .setCurrentBook(None)....")
 
             MD_REF.fireAppEvent("md:file:closing")
-            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
+            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
 
             MD_REF.fireAppEvent("md:file:closed")
 
@@ -3211,7 +3022,7 @@ Visit: %s (Author's site)
             myPrint("B", "Closed current dataset (book: %s)" %(theBook))
 
             # Remove the current book's reference to LocalStorage.... (used when debugging what was recreating the dataset/settings)
-            # theBook.setLocalStorage(None)                             # Will fail as it tries to refer to book, which is now None
+            # # theBook.setLocalStorage(None)                             # Will fail as it tries to refer to book, which is now None
             # setFieldByReflection(theBook, "localStorage", None)       # Works as avoids above problem
 
             myPrint("DB", "... FINISHED Closing down the dataset")
@@ -3519,6 +3330,10 @@ Visit: %s (Author's site)
     def getMDPlusLicenseInfoForBook():
         _licenseObject = MD_REF.getCurrentAccountBook().getItemForID("tik.mdplus-license")	    # type: MoneydanceSyncableItem
         return _licenseObject
+
+    def getMDPlusPlaidSettings():
+        _plaidSettings = MD_REF.getCurrentAccountBook().getItemForID(GlobalVars.Strings.MD_PLAID_SETTINGS_OBJ_ID)	    # type: MoneydanceSyncableItem
+        return _plaidSettings
 
     def isMDPlusLicenseActivated():
         if isMDPlusEnabledBuild():
@@ -3842,7 +3657,8 @@ Visit: %s (Author's site)
                 if lFoundLocation:
                     livePrefValue = prefs.getXYSetting(theKey, 0, 0)
                     if livePrefValue.x == 0 and livePrefValue.y == 0: continue
-                    if livePrefValue.x > virtualBounds.width or livePrefValue.y > virtualBounds.height:
+                    if ((livePrefValue.x > virtualBounds.width or livePrefValue.y > virtualBounds.height)
+                            or (livePrefValue.x < virtualBounds.x or livePrefValue.y < virtualBounds.y)):
                         invalidLocns.append(theKey)
                         txt = "Found INVALID location outside current virtual bounds: %s (%s)" %(theKey, livePrefValue)
                         output += "%s\n" %(txt)
@@ -4236,7 +4052,7 @@ Visit: %s (Author's site)
         license2004 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2004", None)
 
         if not isMDPlusEnabledBuild():      # The start of MD+ and new licensing....
-            if MD_REF.getUI().getMain().isRegistered():
+            if MD_REF.isRegistered():
                 textArray.append(u"LICENSED: %s" %(currLicense))
             else:
                 textArray.append(u"UNLICENSED!")
@@ -4579,7 +4395,7 @@ Visit: %s (Author's site)
         try:
             textArray.append(u"\nEXTENSIONS / EDITORS / VIEWS")
 
-            textArray.append(u"Extensions enabled:                          %s" %MD_REF.getUI().getMain().getSourceInformation().getExtensionsEnabled())
+            textArray.append(u"Extensions enabled:                          %s" %MD_REF.getSourceInformation().getExtensionsEnabled())
 
             x = MD_REF.getExternalAccountEditors()
             for y in x:
@@ -4957,7 +4773,7 @@ Visit: %s (Author's site)
 
             theData.append("\n")
 
-        theData.append("Extensions enabled: %s\n" %MD_REF.getUI().getMain().getSourceInformation().getExtensionsEnabled())
+        theData.append("Extensions enabled: %s\n" %MD_REF.getSourceInformation().getExtensionsEnabled())
 
         theUpdateList = get_extension_update_info()
 
@@ -5241,7 +5057,7 @@ Visit: %s (Author's site)
         myPrint("B","#######################################################################################################################################")
 
         downloadInfo = StreamTable()
-        if MD_REF.getUI().getMain().getSourceInformation().getExtensionsEnabled():
+        if MD_REF.getSourceInformation().getExtensionsEnabled():
             inx = None
             try:
                 url = URL(System.getProperty("moneydance.extension_list_url", MD_EXTENSIONS_DIRECTORY_FILE))
@@ -5291,7 +5107,7 @@ Visit: %s (Author's site)
         availableExtensionInfo=downloadExtensions()
         moduleList = availableExtensionInfo.get(u"feature_modules")      # StreamVector
 
-        installed = MD_REF.getUI().getMain().getLoadedModules()          # FeatureModule[]
+        installed = MD_REF.getLoadedModules()          # FeatureModule[]
         excludedIDs = MD_REF.getSuppressedExtensionIDs()            # List<String>
         for installedMod in installed:
             if installedMod.isBundled():
@@ -5317,7 +5133,7 @@ Visit: %s (Author's site)
                         continue
                     if not (extInfo.getMinimumSupportedBuild() >= 1000):
                         continue
-                    if (extInfo.isMacSandboxFriendly() or not Platform.isMac() or not MD_REF.getUI().getMain().getPlatformHelper().isConstrainedToSandbox()):
+                    if (extInfo.isMacSandboxFriendly() or not Platform.isMac() or not MD_REF.getPlatformHelper().isConstrainedToSandbox()):
                         pass
                     else:
                         continue
@@ -7790,7 +7606,7 @@ Visit: %s (Author's site)
         _CURRS_FIX_NEWRATE = 2
         _CURRS_FIX_RELCURR = 3
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -7825,7 +7641,7 @@ Visit: %s (Author's site)
                 curr.setRate(Util.safeRate(newRate),rCurr)
             curr.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -8502,7 +8318,7 @@ Visit: %s (Author's site)
                           "- VERBOSE: %s\n\n" \
                           % (lFixErrors, lFixWarnings, lCurrencies, lSecurities, VERBOSE)
 
-                MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+                MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
                 MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
                 MD_REF.getUI().setSuspendRefresh(True)
 
@@ -8912,7 +8728,7 @@ Visit: %s (Author's site)
 
         finally:
             if lFix:
-                MD_REF.getUI().getMain().saveCurrentAccount()
+                MD_REF.saveCurrentAccount()
                 MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
                 MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -10283,7 +10099,7 @@ Visit: %s (Author's site)
         if not confirm_backup_confirm_disclaimer(toolbox_frame_,"OFX PURGE OnlineTxnList OBJECTS","Purge/Clean all Cached OnlineTxnList Txns (very safe to run)?"):
             return
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes....
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes....
 
         myPrint("B","Purging / cleaning all OnlineTxnList Cached txns.....")
 
@@ -10343,7 +10159,7 @@ Visit: %s (Author's site)
         output += "\n--------\n\n"
 
         MD_REF.getCurrentAccount().getBook().logRemovedItems(olTxnLists)
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes....
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes....
 
         if shouldSaveTrunk:
             myPrint("J","Purge/Clean ALL OnlineTxnList objects - Saving Trunk file now....")
@@ -11526,7 +11342,7 @@ Visit: %s (Author's site)
             exportMDPlusData.put(object_key, theData)
             del theData
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
 
         try:
             exportMDPlusData.writeTo(export_encryptedStream)
@@ -11699,7 +11515,7 @@ Visit: %s (Author's site)
         myPrint("B", "... Auto-running cleanup of banking links...")
         cleanupMissingOnlineBankingLinks(lAutoPurge=True)
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccountBook().getLocalStorage().save()
 
         del importMDPlusData, licenseObject
@@ -11769,6 +11585,13 @@ Visit: %s (Author's site)
             myPrint("B", "... md+ license object's settings before deletion were..:\n", special_toMultilineHumanReadableString(licenseObject))
             licenseObject.deleteItem()
 
+        plaidSettings = getMDPlusPlaidSettings()
+        if plaidSettings is None:
+            myPrint("B", "... No PlaidSettings object found to delete... skipping...")
+        else:
+            myPrint("B", "... PlaidSettings object's settings before deletion were..:\n", special_toMultilineHumanReadableString(plaidSettings))
+            plaidSettings.deleteItem()
+
         # Clear the cache.... It will rebuild itself...
         forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=True)
 
@@ -11805,7 +11628,7 @@ Visit: %s (Author's site)
         storage.save()
 
         myPrint("B", "... Flushing changes to sync...")
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
 
         play_the_money_sound()
 
@@ -11850,7 +11673,7 @@ Visit: %s (Author's site)
         storage.save()
 
         myPrint("B", "... Flushing changes to sync...")
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
 
         play_the_money_sound()
 
@@ -12682,7 +12505,7 @@ Visit: %s (Author's site)
                     txt = "ADVANCED MODE!.. %s references removed and %s Datasets DELETED" %(iReferencesRemoved, iFilesOnDiskRemoved)
                     setDisplayStatus(txt, "R")
                     myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
-                    # MD_REF.getUI().exit();
+                    # MD_REF.getUI().exit()
                 return
 
             iReferencesRemoved+=1
@@ -12770,7 +12593,9 @@ Visit: %s (Author's site)
                     or appEvent == "md:app:exiting"):
                 myPrint("DB","@@ Ignoring MD handleEvent: %s" %(appEvent))
 
-            elif (appEvent == "md:file:opened" or appEvent == "%s:customevent:close" %self.myModuleID):
+            elif (appEvent == "md:file:opened"
+                  or (appEvent == "md:licenseupdated" and MD_REF.isRegistered())
+                  or appEvent == "%s:customevent:close" %(self.myModuleID)):
                 if debug:
                     myPrint("DB","MD event %s triggered.... Will call GenericWindowClosingRunnable (via the Swing EDT) to push a WINDOW_CLOSING Event to %s to close itself (while I exit back to MD quickly) ...." %(appEvent, self.myModuleID))
                 else:
@@ -14439,7 +14264,7 @@ now after saving the file, restart Moneydance
         # OK - so we are fixing...!
         myPrint("B", ">> User selected to Inactivate %s Zero Balance Categories!?" % iCountForInactivation)
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -14449,7 +14274,7 @@ now after saving the file, restart Moneydance
                 cat.setAccountIsInactive(True)
                 cat.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -14542,7 +14367,7 @@ now after saving the file, restart Moneydance
         output += "\n\nRUNNING FIX ON PARENT ACCOUNTS\n" \
                   "--------------------------------\n\n"
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes...
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes...
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -14550,7 +14375,7 @@ now after saving the file, restart Moneydance
         output += x
         output += "\n<END>"
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
         root = MD_REF.getRootAccount()
@@ -14718,14 +14543,14 @@ now after saving the file, restart Moneydance
         myPrint("B","@@ User requested to Force Change the Type of Account: %s from: %s to %s - APPLYING UPDATE NOW...."
                 %(selectedAccount.getFullAccountName(),selectedAccount.getAccountType(),selectedType))          # noqa
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         selectedAccount.setAccountType(selectedType)                                                            # noqa
         selectedAccount.syncItem()                                                                              # noqa
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -14833,14 +14658,14 @@ now after saving the file, restart Moneydance
         myPrint("B","@@ User requested to Force Change the Currency of Account/Category: %s from: %s to %s - APPLYING UPDATE NOW...."
                 %(selectedAccount.getFullAccountName(),selectedAccount.getCurrencyType(),selectedCurrency))
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         selectedAccount.setCurrencyType(selectedCurrency)
         selectedAccount.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)
 
@@ -14925,7 +14750,7 @@ now after saving the file, restart Moneydance
         myPrint("B","@@ User requested to Force Change the Currency of ALL %s Accounts / Categories to %s - APPLYING UPDATE NOW...."
                 %(len(accounts),selectedCurrency))     # noqa
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -14943,7 +14768,7 @@ now after saving the file, restart Moneydance
             account.syncItem()
             accountsChanged += 1
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)
 
@@ -15072,7 +14897,7 @@ now after saving the file, restart Moneydance
         myPrint("B","%s: @@ User requested to replace currency %s with %s on %s Accounts/Categories & %s Securities - APPLYING UPDATE NOW...."
                 %(_THIS_METHOD_NAME, selectedFromCurrency, selectedToCurrency, len(replaceAccts), len(replaceSecurities)))
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -15087,7 +14912,7 @@ now after saving the file, restart Moneydance
                 sec.setRelativeCurrency(selectedToCurrency)
                 sec.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)
 
@@ -15166,7 +14991,7 @@ now after saving the file, restart Moneydance
         output += u"\n\n APPLYING FIXES\n" \
                   u" ==============\n\n"
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -15181,7 +15006,7 @@ now after saving the file, restart Moneydance
 
         myPrint(u"P", output)
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -15272,12 +15097,12 @@ now after saving the file, restart Moneydance
         txt = "@@ User requested to delete %s invalid price history with 'wild' rates - DELETING NOW...." %(len(badSnaps))
         myPrint("B", txt); output += "%s\n\n" %(txt)
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
         output += "Logging snaps with 'wild' rates for deletion....\n"
         MD_REF.getCurrentAccount().getBook().logRemovedItems(badSnaps)
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
         output += "Flushing dataset changes in memory back to disk....\n"
         MD_REF.getCurrentAccount().getBook().saveTrunkFile()
@@ -15381,7 +15206,7 @@ now after saving the file, restart Moneydance
 
         myPrint("B","@@ User requested to REVERSE the (%s) Txn Amounts on Account %s between %s to %s - APPLYING UPDATE NOW...." %(iTxnsFound, selectedAccount, convertStrippedIntDateFormattedText(startDate), convertStrippedIntDateFormattedText(endDate)))
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -15406,7 +15231,7 @@ now after saving the file, restart Moneydance
 
             ptxn.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -15518,7 +15343,7 @@ now after saving the file, restart Moneydance
         myPrint("B","@@ User requested to REVERSE the (%s) Txn Exchange Rates on Account %s between %s to %s - APPLYING UPDATE NOW...."
                 %(iTxnsFound, selectedAccount, convertStrippedIntDateFormattedText(startDate), convertStrippedIntDateFormattedText(endDate)))
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -15559,7 +15384,7 @@ now after saving the file, restart Moneydance
             if needsSync:
                 ptxn.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -16382,7 +16207,7 @@ now after saving the file, restart Moneydance
                      " =================\n" %(ThnPurgeTxt)
 
         if not simulate:
-            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
 
@@ -16407,7 +16232,7 @@ now after saving the file, restart Moneydance
             totalChangesMade += i
 
         if not simulate:
-            MD_REF.getUI().getMain().saveCurrentAccount()
+            MD_REF.saveCurrentAccount()
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -17119,13 +16944,13 @@ now after saving the file, restart Moneydance
 
         myPrint("B", "USER ACCEPTED DISCLAIMER AND CONFIRMED TO PROCEED WITH Reassign Security '%s' to Security Master '%s'?" %(selectedSecSubAcct, targetSecurity))
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
         selectedSecSubAcct.setEditingMode()
         selectedSecSubAcct.setCurrencyType(targetSecurity)
         selectedSecSubAcct.syncItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
         txt = "Fix/reassign Security (Sub Account) completed. Now reports '%s'. Please Check results" %(selectedSecSubAcct)
         myPrint("B", txt)
@@ -17260,7 +17085,7 @@ now after saving the file, restart Moneydance
         output += "\n\n%s transactions corrected (invalid LOT data has been wiped)...\n\n" %(len(securityTxnsToFix))
         jif = QuickJFrame(_THIS_METHOD_NAME,output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
         txt = "%s: Completed. Please Check results and manually address any Buy/Sell LOT matching that needs to be resolved" %(_THIS_METHOD_NAME)
         myPrint("B", txt)
@@ -17569,7 +17394,7 @@ now after saving the file, restart Moneydance
             pleaseWait.go()
 
             myPrint("DB","Flushing dataset pre-merge changes in memory to sync... and disabling balance recalculation(s) / display refresh(es)..")
-            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the merge..
+            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the merge..
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
 
@@ -17753,7 +17578,7 @@ now after saving the file, restart Moneydance
         finally:
 
             myPrint("DB","Saving dataset after %s changes in memory to sync... and re-enabling balance recalculation(s) and display refresh(es).." %(_THIS_METHOD_NAME))
-            MD_REF.getUI().getMain().saveCurrentAccount()
+            MD_REF.saveCurrentAccount()
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -18617,7 +18442,7 @@ now after saving the file, restart Moneydance
             pleaseWait.go()
 
             myPrint("DB","Flushing dataset pre-merge changes in memory to sync... and disabling balance recalculation(s) / display refresh(es)..")
-            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the merge..
+            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the merge..
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
 
@@ -18857,7 +18682,7 @@ now after saving the file, restart Moneydance
         finally:
 
             myPrint("DB","Saving dataset merge 'duplicate' security changes in memory to sync... and re-enabling balance recalculation(s) and display refresh(es)..")
-            MD_REF.getUI().getMain().saveCurrentAccount()
+            MD_REF.saveCurrentAccount()
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -19130,14 +18955,14 @@ now after saving the file, restart Moneydance
             output += "\n\nRUNNING FIX ON SECURITY TXNS TO RE-LINK PARENT ACCOUNTS\n" \
                       "------------------------------------------------------------\n\n"
 
-            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the move/changes..
+            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the move/changes..
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
 
             x, iCountErrors, iCountUnfixable, iErrorsFixed = review_security_accounts(txns, FIX_MODE=True)
             del txns, txnSet
 
-            MD_REF.getUI().getMain().saveCurrentAccount()
+            MD_REF.saveCurrentAccount()
             MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -19244,7 +19069,7 @@ now after saving the file, restart Moneydance
         if not confirm_backup_confirm_disclaimer(jif, "DELETE ONE-SIDED TRANSACTIONS", "delete %s one-sided transactions?" %(len(toDelete))):
             return
 
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
@@ -19252,7 +19077,7 @@ now after saving the file, restart Moneydance
             myPrint("J", "Item %s deleted" %t.getUUID())
             t.deleteItem()
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
@@ -21833,7 +21658,7 @@ Now you will have a text readable version of the file you can open in a text edi
             return
 
         myPrint("B","%s: Calling saveTrunkFile() now at user request...." %(_THIS_METHOD_NAME))
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
         MD_REF.getCurrentAccount().getBook().saveTrunkFile()
         play_the_money_sound()
 
@@ -21976,7 +21801,7 @@ Now you will have a text readable version of the file you can open in a text edi
             tmpFile = File.createTempFile("toolbox_%s" %(System.currentTimeMillis()), ".moneydancearchive")
             tmpFile.deleteOnExit()
 
-            MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
+            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
 
             output += "Saving current dataset back to disk (trunk)\n"
             currentBook.saveTrunkFile()    # Save dataset too before backup
@@ -22359,7 +22184,7 @@ Now you will have a text readable version of the file you can open in a text edi
         if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME,txt): return
 
         myPrint("B", "User accepted disclaimer - now executing: %s" %(txt))
-        MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
 
         if lSyncPush:
             MD_REF.getCurrentAccount().getBook().getSyncer().forceResyncFromLocal()
@@ -22377,7 +22202,7 @@ Now you will have a text readable version of the file you can open in a text edi
             # storage.writeToFileAtomically(PyByteArray(), PULL_RESYNC)
             # myPrint("B", "@@ Created: %s" %(PULL_RESYNC))
 
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
         play_the_money_sound()
 
         txt = "%s: Force Sync Push/Pull requested." %(_THIS_METHOD_NAME)
@@ -23392,7 +23217,7 @@ Now you will have a text readable version of the file you can open in a text edi
         MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
 
         output += "Flushing memory and saving in memory dataset changes to disk (log files)....\n"
-        MD_REF.getUI().getMain().saveCurrentAccount()
+        MD_REF.saveCurrentAccount()
 
         output += "Pausing the MD Syncing engine....\n"
         MD_REF.getCurrentAccountBook().pauseSyncing()
@@ -23771,7 +23596,7 @@ Now you will have a text readable version of the file you can open in a text edi
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         key = "moneydance.debug"
-        md_debug = MD_REF.getUI().getMain().DEBUG
+        md_debug = MD_REF.DEBUG
         props_debug = System.getProperty(key, None)
 
         toggleText = "ON"
@@ -23798,14 +23623,14 @@ Now you will have a text readable version of the file you can open in a text edi
             myPrint("B","ADVANCED MODE: User requested to change all internal DEBUG modes to %s - setting these now...!" %(toggleText))
 
         if toggleText == "OFF":
-            MD_REF.getUI().getMain().DEBUG = False
+            MD_REF.DEBUG = False
             System.clearProperty(key)
             OFXConnection.DEBUG_MESSAGES = False
             MoneybotURLStreamHandlerFactory.DEBUG = False
             OnlineTxnMerger.DEBUG = False
             Syncer.DEBUG = False
         else:
-            MD_REF.getUI().getMain().DEBUG = True
+            MD_REF.DEBUG = True
             System.setProperty(key, "true")
             OFXConnection.DEBUG_MESSAGES = True
             MoneybotURLStreamHandlerFactory.DEBUG = True
@@ -24482,7 +24307,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 LS.remove(theKey)
                 LS.save()
 
-                MD_REF.getUI().getMain().saveCurrentAccount()           # Flush any current txns in memory and start a new sync record...
+                MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record...
                 play_the_money_sound()
 
                 self.myButton.setVisible(False)
@@ -24493,6 +24318,18 @@ Now you will have a text readable version of the file you can open in a text edi
                 myPopupInformationBox(toolbox_frame_,txt,titleText,JOptionPane.WARNING_MESSAGE)
                 # MD_REF.getUI().exit()
                 MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+
+        class RegisterMoneydance(AbstractAction):
+
+            def __init__(self, myButton):
+                self.myButton = myButton
+
+            def actionPerformed(self, event):
+                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
+
+                # if MD_REF.isRegistered(): return
+                LicenseKeyWindow(MD_REF.getUI(), toolbox_frame_).setVisible(True)
+
 
         class MakeDropBoxSyncFolder(AbstractAction):
 
@@ -26208,7 +26045,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
             if (not Platform.isOSX()):
                 MD_REF.getUI().getImages()
-                toolbox_frame_.setIconImage(MDImages.getImage(MD_REF.getUI().getMain().getSourceInformation().getIconResource()))
+                toolbox_frame_.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
             toolbox_frame_.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)  # The CloseAction() and WindowListener() will handle dispose() - else change back to DISPOSE_ON_CLOSE
 
@@ -26276,6 +26113,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     self.updateCapable = kwargs.pop("updateCapable", False)
                     self.adhocButton = kwargs.pop("adhocButton", False)
                     self.backupButton = kwargs.pop("backupButton", False)
+                    self.registerMDButton = kwargs.pop("registerMDButton", False)
 
                     super(JButton, self).__init__(*args)
                     self.setBorderPainted(False)
@@ -26297,6 +26135,10 @@ Now you will have a text readable version of the file you can open in a text edi
                     backupFG = MD_REF.getUI().getColors().hudFG
                     backupBG = getColorDarkGreen()
                     backupBOLD = True
+
+                    registerMDFG = MD_REF.getUI().getColors().hudFG
+                    registerMDBG = getColorRed()
+                    registerMDBOLD = True
 
                     adhocFG = getColorRed()
                     adhocBG = normalBG
@@ -26325,6 +26167,12 @@ Now you will have a text readable version of the file you can open in a text edi
                         if backupBOLD: self.setFont(self.getFont().deriveFont(Font.BOLD))
                         return
 
+                    if self.isRegisterMDButton():
+                        self.setForeground(registerMDFG)
+                        self.setBackground(registerMDBG)
+                        if registerMDBOLD: self.setFont(self.getFont().deriveFont(Font.BOLD))
+                        return
+
                     if self.isAdhocButton():
                         self.setForeground(adhocFG)
                         self.setBackground(adhocBG)
@@ -26349,6 +26197,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     self.setBackground(normalBG)
 
                 def isBackupButton(self): return self.backupButton
+                def isRegisterMDButton(self): return self.registerMDButton
                 def isAdhocButton(self): return self.adhocButton
                 def isAdvancedCapable(self): return self.advancedCapable
                 def isUpdateCapable(self): return self.updateCapable
@@ -26453,6 +26302,12 @@ Now you will have a text readable version of the file you can open in a text edi
                 FixDropboxOneWaySync_button.addActionListener(self.FixDropboxOneWaySyncButtonAction(FixDropboxOneWaySync_button))
                 FixDropboxOneWaySync_button.setVisible(False)
                 GlobalVars.allButtonsList.append(FixDropboxOneWaySync_button)
+
+            if not MD_REF.isRegistered():
+                RegisterMD_button = MyJButton("<html><center>REGISTER<BR>MONEYDANCE</center></html>", registerMDButton=True)
+                RegisterMD_button.setToolTipText("This allows you to enter your registration key")
+                RegisterMD_button.addActionListener(self.RegisterMoneydance(RegisterMD_button))
+                GlobalVars.allButtonsList.append(RegisterMD_button)
 
             # end of instant fix buttons
             # ----------------------------------------------------------------------------------------------------------
