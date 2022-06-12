@@ -2322,10 +2322,10 @@ Visit: %s (Author's site)
 
                 if self.lQuitMDAfterClose:
                     myPrint("B", "Quit MD after Close triggered... Now quitting MD")
-                    self.saveMD_REF.getUI().exit()   # NOTE: This method should already detect whether MD is already shutting down.... (also, MD Shut down just kills extensions dead)
+                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
                 elif self.lRestartMDAfterClose:
                     myPrint("B", "Restart MD after Close triggered... Now restarting MD")
-                    MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
                 else:
                     myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing")
 
@@ -2822,6 +2822,25 @@ Visit: %s (Author's site)
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)
 
+    def shutdownMDPlusPoller():
+        if isMDPlusEnabledBuild():
+            myPrint("DB", "Shutting down the MD+ poller")
+            plusPoller = MD_REF.getUI().getPlusController()
+            if plusPoller is not None:
+                invokeMethodByReflection(plusPoller, "shutdown", None)
+                setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
+            # NOTE: MDPlus.licenseCache should be reset too, but it's a 'private static final' field....
+            #       hence restart MD if changing (importing/zapping) the license object
+            myPrint("DB", "... MD+ poller shutdown...")
+
+    def shutdownMDAlertController():
+        if isAlertControllerEnabledBuild():
+            myPrint("DB", "Shutting down the Alert Controller")
+            alertController = MD_REF.getUI().getAlertController()
+            if alertController is not None:
+                invokeMethodByReflection(alertController, "shutdown", None)
+                setFieldByReflection(MD_REF.getUI(), "alertController", None)
+
     class ManuallyCloseAndReloadDataset(Runnable):
 
         @staticmethod
@@ -2840,6 +2859,25 @@ Visit: %s (Author's site)
             return invokeMethodByReflection(MD_REF.getUI(), "isOKToCloseFile", None)
 
         @staticmethod
+        def moneydanceExitOrRestart(lRestart=True, lAllowSaveWorkspace=True):
+            # type: (bool, bool) -> bool
+            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.moneydanceExitOrRestart() - lRestart: %s, lAllowSaveWorkspace: %s" %(lRestart, lAllowSaveWorkspace))
+
+            if lRestart and not lAllowSaveWorkspace: raise Exception("Sorry: you cannot use lRestart=True and lAllowSaveWorkspace=False together...!")
+
+            if lRestart:
+                myPrint("B", "@@ RESTARTING MONEYDANCE >> RELOADING SAME DATASET @@")
+                Thread(ManuallyCloseAndReloadDataset()).start()
+            else:
+                if lAllowSaveWorkspace:
+                    myPrint("B", "@@ EXITING MONEYDANCE @@")
+                    MD_REF.getUI().exit()
+                else:
+                    myPrint("B", "@@ SHUTTING DOWN MONEYDANCE >> NOT SAVING 'WORKSPACE' @@")
+                    MD_REF.getUI().shutdownApp(False)
+
+        @staticmethod
         def manuallyCloseDataset(theBook, lCloseWindows=True):
             # type: (AccountBook, bool) -> bool
             """Mimics .setCurrentBook(None) but avoids the Auto Backup 'issue'. Also closes open SecondaryWindows, pauses MD+ etc
@@ -2853,32 +2891,12 @@ Visit: %s (Author's site)
                 if not ManuallyCloseAndReloadDataset.closeSecondaryWindows(): return False
 
             # Shutdown the MD+ poller... When we open a new dataset it should reset itself.....
-            if isMDPlusEnabledBuild():
-                myPrint("DB", "Shutting down MD+")
-                plusPoller = MD_REF.getUI().getPlusController()
-                # invokeMethodByReflection(plusPoller, "pausePolling", None)
-                if plusPoller is not None:
-                    invokeMethodByReflection(plusPoller, "shutdown", None)
-                    setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
-
-                # myPrint("DB","... also resetting MDPlus.singleton to None")
-                # from com.moneydance.apps.md.controller import MDPlus
-                # setFieldByReflection(MDPlus, "singleton", None);
-                #
-                # myPrint("DB","... also resetting PlaidConnection.plaidClient to None")
-                # from com.moneydance.apps.md.controller.olb.plaid import PlaidConnection
-                # setFieldByReflection(PlaidConnection, "plaidClient", None);
+            shutdownMDPlusPoller()
 
             # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
-            if isAlertControllerEnabledBuild():
-                myPrint("DB", "Shutting down Alert Controller")
-                alertController = MD_REF.getUI().getAlertController()
-                if alertController is not None:
-                    invokeMethodByReflection(alertController, "shutdown", None)
-                    setFieldByReflection(MD_REF.getUI(), "alertController", None)
+            shutdownMDAlertController()
 
-            try: setFieldByReflection(MD_REF.getUI(), "olMgr", None)
-            except: pass
+            setFieldByReflection(MD_REF.getUI(), "olMgr", None)
 
             myPrint("DB", "... saving LocalStorage..")
             theBook.getLocalStorage().save()                        # Flush LocalStorage...
@@ -2895,10 +2913,6 @@ Visit: %s (Author's site)
 
             setFieldByReflection(MD_REF, "currentBook", None)
             myPrint("B", "Closed current dataset (book: %s)" %(theBook))
-
-            # Remove the current book's reference to LocalStorage.... (used when debugging what was recreating the dataset/settings)
-            # # theBook.setLocalStorage(None)                             # Will fail as it tries to refer to book, which is now None
-            # setFieldByReflection(theBook, "localStorage", None)       # Works as avoids above problem
 
             myPrint("DB", "... FINISHED Closing down the dataset")
             return True

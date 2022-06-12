@@ -2447,10 +2447,10 @@ Visit: %s (Author's site)
 
                 if self.lQuitMDAfterClose:
                     myPrint("B", "Quit MD after Close triggered... Now quitting MD")
-                    self.saveMD_REF.getUI().exit()   # NOTE: This method should already detect whether MD is already shutting down.... (also, MD Shut down just kills extensions dead)
+                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
                 elif self.lRestartMDAfterClose:
                     myPrint("B", "Restart MD after Close triggered... Now restarting MD")
-                    MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
                 else:
                     myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing")
 
@@ -2947,6 +2947,25 @@ Visit: %s (Author's site)
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)
 
+    def shutdownMDPlusPoller():
+        if isMDPlusEnabledBuild():
+            myPrint("DB", "Shutting down the MD+ poller")
+            plusPoller = MD_REF.getUI().getPlusController()
+            if plusPoller is not None:
+                invokeMethodByReflection(plusPoller, "shutdown", None)
+                setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
+            # NOTE: MDPlus.licenseCache should be reset too, but it's a 'private static final' field....
+            #       hence restart MD if changing (importing/zapping) the license object
+            myPrint("DB", "... MD+ poller shutdown...")
+
+    def shutdownMDAlertController():
+        if isAlertControllerEnabledBuild():
+            myPrint("DB", "Shutting down the Alert Controller")
+            alertController = MD_REF.getUI().getAlertController()
+            if alertController is not None:
+                invokeMethodByReflection(alertController, "shutdown", None)
+                setFieldByReflection(MD_REF.getUI(), "alertController", None)
+
     class ManuallyCloseAndReloadDataset(Runnable):
 
         @staticmethod
@@ -2965,6 +2984,25 @@ Visit: %s (Author's site)
             return invokeMethodByReflection(MD_REF.getUI(), "isOKToCloseFile", None)
 
         @staticmethod
+        def moneydanceExitOrRestart(lRestart=True, lAllowSaveWorkspace=True):
+            # type: (bool, bool) -> bool
+            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.moneydanceExitOrRestart() - lRestart: %s, lAllowSaveWorkspace: %s" %(lRestart, lAllowSaveWorkspace))
+
+            if lRestart and not lAllowSaveWorkspace: raise Exception("Sorry: you cannot use lRestart=True and lAllowSaveWorkspace=False together...!")
+
+            if lRestart:
+                myPrint("B", "@@ RESTARTING MONEYDANCE >> RELOADING SAME DATASET @@")
+                Thread(ManuallyCloseAndReloadDataset()).start()
+            else:
+                if lAllowSaveWorkspace:
+                    myPrint("B", "@@ EXITING MONEYDANCE @@")
+                    MD_REF.getUI().exit()
+                else:
+                    myPrint("B", "@@ SHUTTING DOWN MONEYDANCE >> NOT SAVING 'WORKSPACE' @@")
+                    MD_REF.getUI().shutdownApp(False)
+
+        @staticmethod
         def manuallyCloseDataset(theBook, lCloseWindows=True):
             # type: (AccountBook, bool) -> bool
             """Mimics .setCurrentBook(None) but avoids the Auto Backup 'issue'. Also closes open SecondaryWindows, pauses MD+ etc
@@ -2978,32 +3016,12 @@ Visit: %s (Author's site)
                 if not ManuallyCloseAndReloadDataset.closeSecondaryWindows(): return False
 
             # Shutdown the MD+ poller... When we open a new dataset it should reset itself.....
-            if isMDPlusEnabledBuild():
-                myPrint("DB", "Shutting down MD+")
-                plusPoller = MD_REF.getUI().getPlusController()
-                # invokeMethodByReflection(plusPoller, "pausePolling", None)
-                if plusPoller is not None:
-                    invokeMethodByReflection(plusPoller, "shutdown", None)
-                    setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
-
-                # myPrint("DB","... also resetting MDPlus.singleton to None")
-                # from com.moneydance.apps.md.controller import MDPlus
-                # setFieldByReflection(MDPlus, "singleton", None);
-                #
-                # myPrint("DB","... also resetting PlaidConnection.plaidClient to None")
-                # from com.moneydance.apps.md.controller.olb.plaid import PlaidConnection
-                # setFieldByReflection(PlaidConnection, "plaidClient", None);
+            shutdownMDPlusPoller()
 
             # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
-            if isAlertControllerEnabledBuild():
-                myPrint("DB", "Shutting down Alert Controller")
-                alertController = MD_REF.getUI().getAlertController()
-                if alertController is not None:
-                    invokeMethodByReflection(alertController, "shutdown", None)
-                    setFieldByReflection(MD_REF.getUI(), "alertController", None)
+            shutdownMDAlertController()
 
-            try: setFieldByReflection(MD_REF.getUI(), "olMgr", None)
-            except: pass
+            setFieldByReflection(MD_REF.getUI(), "olMgr", None)
 
             myPrint("DB", "... saving LocalStorage..")
             theBook.getLocalStorage().save()                        # Flush LocalStorage...
@@ -3020,10 +3038,6 @@ Visit: %s (Author's site)
 
             setFieldByReflection(MD_REF, "currentBook", None)
             myPrint("B", "Closed current dataset (book: %s)" %(theBook))
-
-            # Remove the current book's reference to LocalStorage.... (used when debugging what was recreating the dataset/settings)
-            # # theBook.setLocalStorage(None)                             # Will fail as it tries to refer to book, which is now None
-            # setFieldByReflection(theBook, "localStorage", None)       # Works as avoids above problem
 
             myPrint("DB", "... FINISHED Closing down the dataset")
             return True
@@ -3615,8 +3629,7 @@ Visit: %s (Author's site)
             txt = "MacOS Tabbing Mode: OK I Made the Change to your Mac Tabbing Mode: MONEYDANCE WILL NOW RESTART"
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
-            # MD_REF.getUI().exit()
-            MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+            ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     class DetectInvalidWindowLocations(AbstractAction):
 
@@ -3764,7 +3777,7 @@ Visit: %s (Author's site)
             MyPopUpDialogBox(toolbox_frame_, txt, output, theTitle="INVALID LOCATION(S)/SIZE(S) ZAPPED", lAlertLevel=1).go()
 
             myPrint("B","Requesting Moneydance shuts down now...")
-            MD_REF.getUI().shutdownApp(False)
+            ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False, lAllowSaveWorkspace=False)
 
     def find_other_datasets():
         output = ""
@@ -11479,8 +11492,7 @@ Visit: %s (Author's site)
             return False
 
         myPrint("B", "... shutting down the md+ controller...")
-        mdp_controller = MD_REF.getUI().getPlusController()
-        invokeMethodByReflection(mdp_controller, "shutdown", None)
+        shutdownMDPlusPoller()
 
         preZapMDPlusSettingsFirst = myPopupAskQuestion(toolbox_frame_, _THIS_METHOD_NAME, "Wipe all pre-existing MD+ settings before importing MD+ licence?")
 
@@ -11529,8 +11541,8 @@ Visit: %s (Author's site)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
-        MD_REF.getUI().exit()
-        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset());
+        # Must Exit and manually restart MD as MDPlus.licenseCache field does not get reset otherwise.....
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
 
     def zap_MDPlus_Profile(lAutoZap=False):
 
@@ -11576,8 +11588,7 @@ Visit: %s (Author's site)
             myPrint("B", "User requested to delete all Moneydance+ settings - proceeding....:")
 
             myPrint("B", "... shutting down the md+ controller...")
-            mdp_controller = MD_REF.getUI().getPlusController()
-            invokeMethodByReflection(mdp_controller, "shutdown", None)
+            shutdownMDPlusPoller()
 
         if licenseObject is None:
             myPrint("B", "... No md+ license object found to delete... skipping...")
@@ -11636,8 +11647,8 @@ Visit: %s (Author's site)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
-        MD_REF.getUI().exit()
-        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset());
+        # Must Exit and manually restart MD as MDPlus.licenseCache field does not get reset otherwise.....
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
 
     def forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=False):
 
@@ -11655,8 +11666,7 @@ Visit: %s (Author's site)
             myPrint("B", "User requested to wipe MD+ name cache and access tokens (mdp_items and access_tokens) - proceeding....:")
 
             myPrint("B", "... shutting down the md+ controller...")
-            mdp_controller = MD_REF.getUI().getPlusController()
-            invokeMethodByReflection(mdp_controller, "shutdown", None)
+            shutdownMDPlusPoller()
 
         myPrint("B", "... Zapping md+ 'access_tokens' from local storage (if they exist)...")
         storage.removeSubset("access_tokens")
@@ -11681,8 +11691,7 @@ Visit: %s (Author's site)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
-        # MD_REF.getUI().exit()
-        MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def forgetOFXImportLink():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -12505,7 +12514,6 @@ Visit: %s (Author's site)
                     txt = "ADVANCED MODE!.. %s references removed and %s Datasets DELETED" %(iReferencesRemoved, iFilesOnDiskRemoved)
                     setDisplayStatus(txt, "R")
                     myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
-                    # MD_REF.getUI().exit()
                 return
 
             iReferencesRemoved+=1
@@ -12602,8 +12610,6 @@ Visit: %s (Author's site)
                     myPrint("B","Moneydance triggered event %s triggered - So I am closing %s now...." %(appEvent, self.myModuleID))
                 self.alreadyClosed = True
                 try:
-                    # t = Thread(GenericWindowClosingRunnable(self.theFrame))
-                    # t.start()
                     SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.theFrame))
                     myPrint("DB","Back from calling GenericWindowClosingRunnable to push a WINDOW_CLOSING Event (via the Swing EDT) to %s.... ;-> ** I'm getting out quick! **" %(self.myModuleID))
                 except:
@@ -14437,8 +14443,6 @@ now after saving the file, restart Moneydance
         setDisplayStatus(txt, "R")
         myPopupInformationBox(toolbox_frame_,txt,"RENAME ROOT",JOptionPane.WARNING_MESSAGE)
 
-        # MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
-
     # noinspection PyUnresolvedReferences
     def force_change_account_type():
 
@@ -14781,8 +14785,7 @@ now after saving the file, restart Moneydance
         play_the_money_sound()
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
 
-        # MD_REF.getUI().exit()
-        MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def force_change_accounts_cats_from_to_currency():
 
@@ -14927,7 +14930,7 @@ now after saving the file, restart Moneydance
         play_the_money_sound()
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
 
-        MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def fix_invalid_relative_currency_rates():
 
@@ -19891,11 +19894,6 @@ now after saving the file, restart Moneydance
 
             pleaseWait.kill()
 
-            # if isMDPlusEnabledBuild():
-            #     myPrint("DB", "Un-pausing MD+")
-            #     plusPoller = MD_REF.getUI().getPlusController()
-            #     invokeMethodByReflection(plusPoller, "resumePolling", None)
-
         return False
 
 
@@ -21600,7 +21598,7 @@ Now you will have a text readable version of the file you can open in a text edi
         myPopupInformationBox(theNewViewFrame, "SUCCESS - %s - MONEYDANCE WILL EXIT - PLEASE MANUALLY RESTART MD" %(resetWhat), "RESET WINDOW DISPLAY SETTINGS", JOptionPane.WARNING_MESSAGE)
 
         myPrint("B","Requesting Moneydance shuts down now...")
-        MD_REF.getUI().shutdownApp(False)
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False, lAllowSaveWorkspace=False)
 
     def advanced_mode_suppress_dropbox_warning():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -21635,8 +21633,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     txt = "'SUPPRESS DROPBOX WARNING' - Suppressed >> 'Your file is stored in a shared folder' (dropbox) warning. MONEYDANCE WILL NOW RESTART"
                     setDisplayStatus(txt, "R")
                     myPopupInformationBox(toolbox_frame_,txt,"'SUPPRESS DROPBOX WARNING'",JOptionPane.ERROR_MESSAGE)
-                    # MD_REF.getUI().exit()
-                    MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
                     return
                 except:
                     myPrint("B","'SUPPRESS DROPBOX WARNING' - Error creating %s" %(suppressFile))
@@ -23727,8 +23724,7 @@ Now you will have a text readable version of the file you can open in a text edi
         myPrint("B", txt); setDisplayStatus(txt, "R")
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
 
-        # MD_REF.getUI().exit()
-        MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def advanced_mode_force_sync_off():
 
@@ -23763,8 +23759,7 @@ Now you will have a text readable version of the file you can open in a text edi
         txt = "Sync ('%s')has been force disabled/turned OFF - MONEYDANCE WILL NOW RESTART" %(_PARAM_KEY)
         myPrint("B", txt); setDisplayStatus(txt, "R")
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
-        # MD_REF.getUI().exit()
-        MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def advanced_mode_force_reset_sync_settings():
         # Resets all Sync settings, generates a new Sync ID, Turns Sync Off. You can turn it back on later....
@@ -23819,9 +23814,7 @@ Now you will have a text readable version of the file you can open in a text edi
         myPrint("B", txt); setDisplayStatus(txt, "R")
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
 
-        # MD_REF.getUI().exit()
-        MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
-
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def checkForREADONLY():
 
@@ -24316,8 +24309,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 txt = "%s: Completed. MONEYDANCE WILL NOW RESTART" %(titleText)
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
                 myPopupInformationBox(toolbox_frame_,txt,titleText,JOptionPane.WARNING_MESSAGE)
-                # MD_REF.getUI().exit()
-                MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+                ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
         class RegisterMoneydance(AbstractAction):
 
@@ -25710,8 +25702,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         setDisplayStatus(txt, "R")
                         myPrint("B", txt)
                         myPopupInformationBox(toolbox_frame_, txt, "PRIMARY DATASET", JOptionPane.WARNING_MESSAGE)
-                        # MD_REF.getUI().exit()
-                        MD_REF.getBackgroundThread().runOnBackgroundThread(ManuallyCloseAndReloadDataset())
+                        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
                         return
 
                 txt = "User did not say yes to Master Node promotion - NO CHANGES MADE"
