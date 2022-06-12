@@ -34,7 +34,7 @@
 # build: 1002 - Eliminated common code globals :->
 # build: 1003 - Renamed to accounts_categories_mega_search_window and allow both Accounts & Categories...
 # build: 1004 - Tweaks: Search filter field grabs focus. Expand all button"
-# build: 1005 - Swap in new .getFieldByReflection() method
+# build: 1005 - Swap in new .getFieldByReflection() method; added collapse all button
 
 # Clones MD Menu > Tools>Categories and adds Search capability...
 
@@ -3016,6 +3016,7 @@ Visit: %s (Author's site)
                     if (acct.getAccountType() == Account.AccountType.BANK
                             or acct.getAccountType() == Account.AccountType.CREDIT_CARD
                             or acct.getAccountType() == Account.AccountType.INVESTMENT
+                            or acct.getAccountType() == Account.AccountType.SECURITY
                             or acct.getAccountType() == Account.AccountType.ASSET
                             or acct.getAccountType() == Account.AccountType.LIABILITY
                             or acct.getAccountType() == Account.AccountType.LOAN):
@@ -3060,10 +3061,11 @@ Visit: %s (Author's site)
         mySearchField = QuickSearchField()
 
         expandAllButton = JButton("Expand all")
+        collapseAllButton = JButton("-")
 
         class MyCOAWindow(COAWindow):
             """Extends the MD Internal Window that can display Accounts / Categories. This presents both combined with a search field"""
-            def __init__(self, _ui, _currentAccount, _catAcctSearch, _newAcctTypes, _prefix, _showBalances, _mySearchField, _expandAllButton, _lSelectAccts, _lSelectCats):
+            def __init__(self, _ui, _currentAccount, _catAcctSearch, _newAcctTypes, _prefix, _showBalances, _mySearchField, _expandAllButton, _collapseAllButton, _lSelectAccts, _lSelectCats):
                 self._ui = _ui
                 self._currentAccount = _currentAccount
                 self._catAcctSearch = _catAcctSearch
@@ -3072,6 +3074,7 @@ Visit: %s (Author's site)
                 self._showBalances = _showBalances
                 self.mySearchField = _mySearchField
                 self.expandAllButton = _expandAllButton
+                self.collapseAllButton = _collapseAllButton
                 self._lSelectAccts = _lSelectAccts
                 self._lSelectCats = _lSelectCats
                 document = self.mySearchField.getDocument()
@@ -3121,6 +3124,7 @@ Visit: %s (Author's site)
                         p_coa_cat_Win.setAccessible(False)
 
                 self.expandAllButton.addActionListener(self)
+                self.collapseAllButton.addActionListener(self)
 
             class ToggleDebugAction(AbstractAction):
 
@@ -3134,23 +3138,29 @@ Visit: %s (Author's site)
 
             def actionPerformed(self, event):
                 myPrint("DB", "within actionPerformed()")
-                if event.getActionCommand().lower() != "expand all":
+                if (event.getActionCommand().lower() != "expand all" and event.getActionCommand().lower() != "-"):
                     myPrint("DB", "...calling (super) on original actionPerformed")
                     super(self.__class__, self).actionPerformed(event)
                 else:
-                    myPrint("DB", "within actionPerformed() - trapped request for expand all")
-                    self.expandAllAccounts()
+                    myPrint("DB", "within actionPerformed() - trapped request for '%s'" %(event.getActionCommand()))
+                    self.expandAllAccounts(event.getActionCommand().lower() == "expand all")
 
-            def expandAllAccounts(self):
+            def expandAllAccounts(self, lExpandAll):
                 KEY = "::expand_in_coa"
 
                 self._catAcctSearch.bypassFilter = True
 
                 allAccounts = AccountUtil.allMatchesForSearch(self._currentAccount.getBook(), self._catAcctSearch)
-                for acct in allAccounts:
-                    if not self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
-                        myPrint("DB","Found acct: %s which needs to be expanded..." %(acct))
-                        self.saveStorageReference.put(acct.getUUID() + "::expand_in_coa", True)
+                if lExpandAll:
+                    for acct in allAccounts:
+                        if not self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
+                            myPrint("DB","Found acct: %s which needs to be expanded..." %(acct))
+                            self.saveStorageReference.put(acct.getUUID() + KEY, True)
+                else:
+                    for acct in allAccounts:
+                        if self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
+                            myPrint("DB","Found acct: %s which needs to be collapsed..." %(acct))
+                            self.saveStorageReference.put(acct.getUUID() + KEY, False)
 
                 self._catAcctSearch.bypassFilter = False
 
@@ -3205,6 +3215,7 @@ Visit: %s (Author's site)
                                           True,
                                           mySearchField,
                                           expandAllButton,
+                                          collapseAllButton,
                                           lSelectAccounts,
                                           lSelectCategories)
 
@@ -3219,9 +3230,11 @@ Visit: %s (Author's site)
 
                 theControlPanel = huntPanelWithButtons(coa_cat_Win, 0)
                 if theControlPanel is not None:
+                    x = 0
                     myPrint("DB", "@@ FOUND CONTROL PANEL @@", theControlPanel, type(theControlPanel))
-                    theControlPanel.add(expandAllButton,GridC.getc().xy(0,1).fillx().insets(0,10,0,5))
-                    theControlPanel.add(mySearchField,GridC.getc().xy(1,1).colspan(6).fillx().insets(0,10,0,5))
+                    theControlPanel.add(expandAllButton,GridC.getc().xy(x,1).fillx().insets(0,10,0,5));             x += 1
+                    theControlPanel.add(mySearchField,GridC.getc().xy(x,1).colspan(5).fillx().insets(0,10,0,5));    x += 5
+                    theControlPanel.add(collapseAllButton,GridC.getc().xy(x,1).insets(0,10,0,5));                   x += 1
                     theControlPanel.validate()
 
                     accounts_categories_mega_search_window_frame_.setVisible(True)
