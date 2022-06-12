@@ -16,6 +16,14 @@ _THIS_IS_ = u"toolbox"
 
 _TOOLBOX_PREFERENCES_ZAPPER = u"toolbox_preferences_zapper"
 
+try:
+    from com.moneydance.apps.md.controller import Common
+    _specialPrint(u"\n")
+    _specialPrint(u"CONSOLE FILE LOCATION: '%s'\n" %(moneydance.getLogFile().getCanonicalPath()))
+    _specialPrint(u"CONFIG LOCATION:       '%s'\n" %(Common.getPreferencesFile()))
+    _specialPrint(u"\n")
+except: pass
+
 keysToZap = moneydance.getPreferences().getVectorSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
 if keysToZap is None:
     msg = u"\n#####################################################################\n"\
