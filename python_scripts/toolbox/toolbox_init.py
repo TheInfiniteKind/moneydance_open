@@ -20,7 +20,7 @@ try:
     from com.moneydance.apps.md.controller import Common
     _specialPrint(u"\n")
     _specialPrint(u"CONSOLE FILE LOCATION: '%s'\n" %(moneydance.getLogFile().getCanonicalPath()))
-    _specialPrint(u"CONFIG LOCATION:       '%s'\n" %(Common.getPreferencesFile()))
+    _specialPrint(u"CONFIG LOCATION:       '%s'\n" %(Common.getPreferencesFile().getCanonicalPath()))
     _specialPrint(u"\n")
 except: pass
 
