@@ -25,9 +25,9 @@ public class BudgetData  {
 	private boolean             taxIsIncome;
 	private Account             mainAccount;
 	
-	private Map<Integer, String>     incomeAccounts  = new HashMap<Integer, String>();
-	private Map<Integer, String>     moneyAccounts   = new HashMap<Integer, String>();
-	private Map<Integer, String>     expenseAccounts = new HashMap<Integer, String>();
+	private Map<String, String>      incomeAccounts  = new HashMap<>();
+	private Map<String, String>     moneyAccounts   = new HashMap<>();
+	private Map<String, String>     expenseAccounts = new HashMap<>();
 	
 	@SuppressWarnings("unchecked")
 	protected Map<String, String>[]       cellTypeData    = new Map[13];
@@ -70,15 +70,15 @@ public class BudgetData  {
     	return mainAccount;
     }
     
-    public Map<Integer, String> getIncomeAccounts(){
+    public Map<String, String> getIncomeAccounts(){
     	return incomeAccounts;
     }
     
-    public Map<Integer, String> getMoneyAccounts(){
+    public Map<String, String> getMoneyAccounts(){
     	return moneyAccounts;
     }
     
-    public Map<Integer, String> getExpenseAccounts(){
+    public Map<String, String> getExpenseAccounts(){
     	return expenseAccounts;
     }
     
@@ -294,9 +294,9 @@ public class BudgetData  {
 	}
 	
 	private void fetchSpendingData(){
-		  incomeAccounts  = new HashMap<Integer, String>();
-		  expenseAccounts = new HashMap<Integer, String>();
-		  moneyAccounts   = new HashMap<Integer, String>();
+		  incomeAccounts  = new HashMap<String, String>();
+		  expenseAccounts = new HashMap<String, String>();
+		  moneyAccounts   = new HashMap<String, String>();
 
 		  for(int i = 0; i <= 12; i++){
 			  spendingData[i]  = new HashMap<String, BudgetValue>();
@@ -322,7 +322,7 @@ public class BudgetData  {
 		          }
 		          if(othAccount.getComment().indexOf("MAIN") > -1 && othAccount.getAccountType() == Account.AccountType.EXPENSE) continue;
 
-		          Integer accNum = new Integer(txnAccount.getAccountNum());
+		          String accNum = txnAccount.getUUID();
 		          String  accName = txnAccount.getFullAccountName();
 		          
 		          if (BudgetDateUtil.isInRange(getTxnDate(t),
@@ -630,8 +630,8 @@ public class BudgetData  {
 			          if(bi.getIntervalStartDate() > 0 && 
 			        		  a.getComment().indexOf("IGNORE") == -1 &&
 			        		  a.getComment().indexOf("MAIN") == -1  ){
-			        	  Integer accNum = new Integer(a.getAccountNum());
-			              String  accName = a.getFullAccountName();
+			        	  String accNum = a.getUUID();
+			            String  accName = a.getFullAccountName();
 			              
 			        	  for(int month = 1; month <= 12; month++){
 			        		  Date startDay   = new GregorianCalendar(budgetYear, month-1, 1).getTime();
@@ -679,7 +679,7 @@ public class BudgetData  {
 			                incomeAccounts.put(accNum,accName);
 			              } else {
 			                if(a.getAccountType() == Account.AccountType.EXPENSE && accName.indexOf("Bank Charges") < 0 ){
-			                  expenseAccounts.put(accNum,accName);
+			                  expenseAccounts.put(accNum, accName);
 			                } else {
 			                  moneyAccounts.put(accNum,accName);
 			                }
