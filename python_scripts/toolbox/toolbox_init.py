@@ -18,10 +18,13 @@ _TOOLBOX_PREFERENCES_ZAPPER = u"toolbox_preferences_zapper"
 
 try:
     from com.moneydance.apps.md.controller import Common
-    _specialPrint(u"\n")
-    _specialPrint(u"CONSOLE FILE LOCATION: '%s'\n" %(moneydance.getLogFile().getCanonicalPath()))
-    _specialPrint(u"CONFIG LOCATION:       '%s'\n" %(Common.getPreferencesFile().getCanonicalPath()))
-    _specialPrint(u"\n")
+    msg = u"\n"
+    msg += (u"CONSOLE FILE LOCATION: '%s'\n" %(moneydance.getLogFile().getCanonicalPath()))
+    msg += (u"CONFIG LOCATION:       '%s'\n" %(Common.getPreferencesFile().getCanonicalPath()))
+    msg += (u"EXECUTION MODE:        '%s (%s)'\n" %(moneydance.getExecutionMode(), (u"AppletMode" if (moneydance.getExecutionMode() == moneydance.EXEC_MODE_APPLET) else u"Normal")))
+    msg += (u"ARCHITECTURE:          '%s'\n" %(System.getProperty(u"os.arch")))
+    msg += u"\n"
+    _specialPrint(msg)
 except: pass
 
 keysToZap = moneydance.getPreferences().getVectorSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
