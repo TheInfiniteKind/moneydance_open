@@ -447,7 +447,7 @@ else:
     from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
     from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory
     from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
-    from java.lang import Integer, Long, NoSuchFieldException, NoSuchMethodException                                    # noqa
+    from java.lang import Integer, Long, NoSuchFieldException, NoSuchMethodException, Runtime                           # noqa
     from javax.swing import BorderFactory, JSeparator, DefaultComboBoxModel                                             # noqa
     from com.moneydance.awt import JCurrencyField                                                                       # noqa
 
@@ -2781,6 +2781,8 @@ Visit: %s (Author's site)
             return theRate
         return (1.0 / theRate)
 
+    def convertBytesGBs(_size): return round((_size/(1000.0*1000.0*1000)),1)
+
     def convertBytesMBs(_size): return round((_size/(1000.0*1000.0)),1)
 
     def convertBytesKBs(_size): return round((_size/(1000.0)),1)
@@ -4655,6 +4657,16 @@ Visit: %s (Author's site)
             textArray.append(getTheSetting(u"ofx.bp_country", 29))
         if getTheSetting(u"ofx.app_version"):
             textArray.append(getTheSetting(u"ofx.app_version", 29))
+
+        textArray.append(u"")
+        textArray.append(u"Java JVM Resources")
+        runTime = Runtime.getRuntime()
+        maxMemory = Runtime.getRuntime().maxMemory()
+        textArray.append(u"JVM - Available processor cores: %s" %(runTime.availableProcessors()))
+        textArray.append(u"JVM - Maximum memory possible:   %s" %(u"{}".format(u"no limit") if (Long(maxMemory) == Long.MAX_VALUE) else u"{:,} GB".format(convertBytesGBs(maxMemory))))
+        textArray.append(u"JVM - Total memory allocated:    {:,} GB (used {:,} GB / free {:,} GB)".format(convertBytesGBs(runTime.totalMemory()),
+                                                                                                          convertBytesGBs(runTime.totalMemory() - runTime.freeMemory()),
+                                                                                                          convertBytesGBs(runTime.freeMemory())))
 
         textArray.append(u"")
         textArray.append(u"Java JVM System Properties containing references to Moneydance")

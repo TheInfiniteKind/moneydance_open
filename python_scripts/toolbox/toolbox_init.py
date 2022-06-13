@@ -5,7 +5,7 @@
 
 global moneydance
 
-from java.lang import System
+from java.lang import System, Runtime, Long
 
 def _specialPrint(_what):
     print(_what)
@@ -17,15 +17,29 @@ _THIS_IS_ = u"toolbox"
 _TOOLBOX_PREFERENCES_ZAPPER = u"toolbox_preferences_zapper"
 
 try:
+    def convertBytesGBs(_size): return round((_size/(1000.0*1000.0*1000)),1)
     from com.moneydance.apps.md.controller import Common
     msg = u"\n"
-    msg += (u"CONSOLE FILE LOCATION: '%s'\n" %(moneydance.getLogFile().getCanonicalPath()))
-    msg += (u"CONFIG LOCATION:       '%s'\n" %(Common.getPreferencesFile().getCanonicalPath()))
-    msg += (u"EXECUTION MODE:        '%s (%s)'\n" %(moneydance.getExecutionMode(), (u"AppletMode" if (moneydance.getExecutionMode() == moneydance.EXEC_MODE_APPLET) else u"Normal")))
-    msg += (u"ARCHITECTURE:          '%s'\n" %(System.getProperty(u"os.arch")))
+    msg += u"-----------------------------------------------------\n"
+    msg += (u"%s - quick information:\n" %(_THIS_IS_.capitalize()))
+    msg += (u"MD CONSOLE FILE LOCATION:       '%s'\n" %(moneydance.getLogFile().getCanonicalPath()))
+    msg += (u"MD CONFIG/PREFERENCES LOCATION: '%s'\n" %(Common.getPreferencesFile().getCanonicalPath()))
+    msg += (u"MD EXECUTION MODE:               %s (%s)\n" %(moneydance.getExecutionMode(), (u"AppletMode" if (moneydance.getExecutionMode() == moneydance.EXEC_MODE_APPLET) else u"Normal")))
+    # msg += (u"OS PLATFORM:                     %s (%s)\n" %(System.getProperty(u"os.name"), System.getProperty(u"os.version")))
+    # msg += (u"ARCHITECTURE:                    %s\n" %(System.getProperty(u"os.arch")))
+
+    runTime = Runtime.getRuntime()
+    maxMemory = Runtime.getRuntime().maxMemory()
+    msg += (u"JVM - Available processor cores: %s\n" %(runTime.availableProcessors()))
+    msg += (u"JVM - Maximum memory possible:   %s\n" %(u"{}".format(u"no limit") if (Long(maxMemory) == Long.MAX_VALUE) else u"{:,} GB".format(convertBytesGBs(maxMemory))))
+    msg += (u"JVM - Total memory allocated:    {:,} GB (used {:,} GB / free {:,} GB)\n".format(convertBytesGBs(runTime.totalMemory()),
+                                                                                               convertBytesGBs(runTime.totalMemory() - runTime.freeMemory()),
+                                                                                               convertBytesGBs(runTime.freeMemory())))
+    msg += u"-----------------------------------------------------\n"
     msg += u"\n"
     _specialPrint(msg)
-except: pass
+except:
+    _specialPrint(u"ERROR: %s quick information failed...." %(_THIS_IS_.capitalize()))
 
 keysToZap = moneydance.getPreferences().getVectorSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
 if keysToZap is None:

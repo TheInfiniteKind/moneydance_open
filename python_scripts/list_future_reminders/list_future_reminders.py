@@ -2646,6 +2646,8 @@ Visit: %s (Author's site)
             return theRate
         return (1.0 / theRate)
 
+    def convertBytesGBs(_size): return round((_size/(1000.0*1000.0*1000)),1)
+
     def convertBytesMBs(_size): return round((_size/(1000.0*1000.0)),1)
 
     def convertBytesKBs(_size): return round((_size/(1000.0)),1)
