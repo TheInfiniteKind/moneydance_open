@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_move_merge_investment_txns.py build: 1001 - March 2022 - Stuart Beesley StuWareSoftSystems
+# toolbox_move_merge_investment_txns.py build: 1002 - June 2022 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -29,7 +29,8 @@
 # Called by the Toolbox extension
 
 # build: 1000 - Initial Release.
-# build: 1000 - Tweaks
+# build: 1001 - Tweaks
+# build: 1002 - Tweaked to cope with Search and Advanced Find windows...
 
 # Allows the user to select investment transactions and then move them between accounts:
 # Can be called from the Extensions Menu (with/without txns selected); or from Toolbox menu
@@ -40,7 +41,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox_move_merge_investment_txns"
-version_build = "1001"
+version_build = "1002"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -318,7 +319,7 @@ else:
     # >>> THIS SCRIPT'S IMPORTS ########################################################################################
     from javax.swing import JSplitPane
     from com.moneydance.apps.md.view.gui.acctpanels import BankAcctPanel
-    from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel
+    from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel, TxnSearchWindow
     from com.moneydance.apps.md.view.gui.txnreg import TxnRegister, TxnRegisterList
     from com.infinitekind.moneydance.model import InvestFields, InvestTxnType, TxnSet                                   # noqa
     from javax.swing import DefaultComboBoxModel
@@ -3185,15 +3186,24 @@ Visit: %s (Author's site)
 
                         myPrint("DB", "Found %s txns" %(len(p_regObject.getSelectedTxns())))
                         GlobalVars.theMDFrame = SwingUtilities.getWindowAncestor(pnlComp)
-                        analyseTxns(p_regObject.getSelectedTxns())
+                        analyseTxns(p_regObject.getSelectedTxns(), GlobalVars.theMDFrame)
 
                         del p_regObject
 
                         break     # Seems to appear twice, so skip the second one.....
 
-            def analyseTxns(listTxns):
+
+            def analyseTxns(listTxns, frame):
 
                 iCountTxns = 0
+
+                try:
+                    if frame.getSelectedAccount() is None or frame.getSelectedAccount() == MD_REF.getCurrentAccountBook().getRootAccount():
+                        myPrint("B","ALERT: Trying to run within [Advanced] Search window >> IGNORING SELECTED TRANSACTIONS")
+                        return
+                except:
+                    myPrint("B","ERROR: Trying to call .getSelectedAccount() on:", frame)
+                    dump_sys_error_to_md_console_and_errorlog()
 
                 if listTxns:
 
@@ -3232,7 +3242,14 @@ Visit: %s (Author's site)
 
             for secondary_window in MD_REF.getUI().getSecondaryWindows():
                 if not isinstance(secondary_window,
-                                  (MainFrame, BankAcctPanel, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel)):
+                                  (MainFrame,
+                                   BankAcctPanel,
+                                   AccountDetailPanel,
+                                   InvestAccountDetailPanel,
+                                   LoanAccountDetailPanel,
+                                   LiabilityAccountInfoPanel,
+                                   TxnSearchWindow)):
+
                     continue
 
                 if not secondary_window.isFocused():                                                                            # noqa
@@ -3242,17 +3259,26 @@ Visit: %s (Author's site)
                     myPrint("DB", "Secondary Window: '%s' - isFocused: %s, isVisible: %s, hasFocus: %s"
                             %(secondary_window.getTitle(), secondary_window.isFocused(), secondary_window.isVisible(), secondary_window.hasFocus()))    # noqa
 
-                try:
-                    accountPanel = secondary_window.getAccountPanel()
-                    if not accountPanel: continue
-                except:
-                    myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
-                    continue
+                if isinstance(secondary_window, TxnSearchWindow):
+                    myPrint("DB","Special handling for TxnSearchWindow....")
 
-                account_panel_component = None
-                for account_panel_component in secondary_window.getAccountPanel().getComponents():                      # noqa
-                    myPrint("DB", ".. hunting for TxnRegister...")
-                    foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                    account_panel_component = None
+                    for account_panel_component in secondary_window.getComponents():                                    # noqa
+                        myPrint("DB", ".. hunting for TxnRegister (within Search Window)...")
+                        foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+
+                else:
+                    try:
+                        accountPanel = secondary_window.getAccountPanel()
+                        if not accountPanel: continue
+                    except:
+                        myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
+                        continue
+
+                    account_panel_component = None
+                    for account_panel_component in secondary_window.getAccountPanel().getComponents():                  # noqa
+                        myPrint("DB", ".. hunting for TxnRegister...")
+                        foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
 
                 if not foundTxnRegister:
                     myPrint("DB", "Failed to find TxnRegister in '%s'" %(account_panel_component))

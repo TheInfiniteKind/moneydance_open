@@ -186,6 +186,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
                 isExpanded, isMaximised settings (this does not reset Filters or Initial views)
         - FIX - Rename this dataset Rename this dataset (within the same location)
         - FIX - Relocate this dataset back to the default 'internal' location
+        - FIX - Relocate this dataset to another location [Note: IK do not recommend this]
         - FIX - Cleanup MD's File/Open list of 'external' files (does not touch actual files)
         - DELETE Files from Menu>File>Open list and also from DISK (Removes files from 'Internal' and 'External' locations).
             >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
@@ -230,6 +231,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Fix currencies / securities (including relative currencies) (fixes your currency & security's key settings) (reset_relative_currencies.py)
         - FIX - Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly).  >> 2021.2 onwards
         - FIX - Merge 'duplicate' securities (and related Investment txns) into one master security record (by TickerSymbol).        >> 2021.2 onwards
+        - FIX - Detect and merge/fix duplicate Securities within same Investment Account(s)
         - FIX - Fix currency / security's current price hidden 'price_date' field. Also corrects current price whilst fixing too..   >> 2021.2 onwards
         - FIX - Manually edit a Security/Currency's current price hidden 'price_date' field
         - FIX - Detect and fix (wipe) LOT records where matched Buy/Sell records are invalid
@@ -249,6 +251,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Delete One-Sided Txns (delete_invalid_txns.py)
         - FIX - Reverse Transaction Amounts between dates (reverse_txn_amounts.py)
         - FIX - Reverse Transaction Exchange rates between dates (reverse_txn_amounts.py)
+        - FIX - Detect and fix transactions assigned to 'root' account (Offers options to display / fix these transactions)
 
 ALT-SHIFT-M - Menu - ADVANCED MODE (button turns red when enabled)
     >> SPECIAL ADVANCED FEATURES - USE WITH CARE!
@@ -264,6 +267,7 @@ ALT-SHIFT-M - Menu - ADVANCED MODE (button turns red when enabled)
     - Call Save Trunk File option.... Immediately flushes all in memory changes to disk, including your dataset (rather than wait for restart)
     - Force a refresh/PUSH of your local dataset to Sync. Push new Sync data (and rebuild remote copies). Use carefully!
     - Force disable/turn Sync OFF (This just sets your Sync method to None - all other settings are preserved. You can turn it back on again)
+    - Toggle Sync Downloading of Attachments (Normally this defaults to ON; Change to OFF to prevent attachments downloading via Sync)
     - Force reset Sync settings (This resets all Sync settings, changes your Sync ID, and turns Sync off. You can then re-enable it for a fresh Sync)
     - DEMOTE your Primary Sync dataset/node back to a Secondary Node
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)

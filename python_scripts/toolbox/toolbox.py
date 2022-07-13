@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1051 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1052 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and they retain all copyright over Moneydance internal code
@@ -77,6 +77,8 @@
 # SOFTWARE.
 ###############################################################################
 
+# NOTE: java.lang.IllegalArgumentException can occur when doing something like '"%s" %(java.util.HashMap)' containing unicode (or calling print on the same HashMap)
+
 # build: 1048 - Bugfix deleteOFXService() if no service selected...; Enhanced View OFX data for multiple service options (OFX and MD+)
 # build: 1048 - Improved the 'STOP-NOW' command message (suggest to check for upgrade)
 # build: 1049 - Updated Zap md+ option to wipe all md+ data from system (including all banking links)
@@ -92,6 +94,24 @@
 # build: 1051 - Auto-magically restart MD (same dataset) when needed....; Changed menus so they all exit after each usage
 # build: 1051 - Added 'Force MD+ name cache & access tokens rebuild' feature; Tweaked Export/Import/Zap/Wipe MD+ features
 # build: 1051 - Added 'REGISTER MONEYDANCE' button (if not registered)...; Fixed invalid locations detection for off-screen negative (left)
+# build: 1052 - Small bugfix when debug message crashed merge duplicate securities with java.lang.IllegalArgumentException
+# build: 1052 - Updated toolbox_total_selected_transactions.py script; Added Detect/Fix Txns assigned to Root...
+# build: 1052 - Enhanced fix_non_hier_sec_acct_txns() with autofix and tweak for concurrent modification of txn list error
+# build: 1052 - Change lAutoPruneInternalBackups_TB default to True
+# build: 1052 - Redact these keys and also added to remove list: 'netsync.db.access_token_key', 'netsync.db.access_token_secret', 'netsync.db.v2token'
+# build: 1052 - Also detect/display/zap 'netsync.download_attachments'; Added 'Toggle Sync Downloading of Attachments' feature
+# build: 1052 - Turned off linewrap on main diagnostic display... WATCHOUT FOR SLUGGISH DIAGNOSTICS SCREEN with long lines and wordwrap off! (Probably Mac only)
+# build: 1052 - Fixed get_sync_folder() when Dropbox Connection (cloud service has no local folder on disk)
+# build: 1052 - Added some more startup diag info to console error log during init and main script
+# build: 1052 - Fixed bug with VAQua9 that causes Mac long lines in main display to slow down the scroll and cause memory issues. Don't do this: 'scrollpane.setBorder(BorderFactory.createLineBorder....
+# build: 1052 - .... and thus removed the call to System.gc()
+# build: 1052 - Tweaked init so that JVM stats captured from new thread after 10 seconds (to allow JVM memory to settle)...
+# build: 1052 - Added 'Relocate this dataset to another location' option
+# build: 1052 - Added AppleScript File Open selector (for when needed - e.g. trying to open 'special locations' or .moneydance bundle file)
+# build: 1052 - Enhanced 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' to self-repair where 'sec' split missing (creates dummy fake security)
+# build: 1052 - Added 'FIX: Detect and merge/fix duplicate Securities within same Investment Account(s)'
+# build: 1052 - Added check for no currencies at launch... Odd, but has happened!
+# build: 1052 - Enhanced Shrink Dataset... Allow 0 days, always delete out/txn-tmp...
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -111,8 +131,8 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1051"
-MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
+version_build = "1052"
+MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
 if u"debug" in globals():
@@ -410,6 +430,8 @@ else:
     except:
         pass
 
+    from com.moneydance.apps.md.view.gui.sync import DropboxSyncConfigurer
+
     from java.io import ByteArrayInputStream, OutputStream, InputStream, BufferedOutputStream
     from java.nio.charset import StandardCharsets
     from java.nio.file import Paths, Files, StandardCopyOption
@@ -422,7 +444,7 @@ else:
 
     from com.google.gson import Gson
 
-    from com.moneydance.apps.md.controller import MDException, Util, AppEventListener               # noqa
+    from com.moneydance.apps.md.controller import MDException, Util, AppEventListener                                   # noqa
 
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
     from com.moneydance.apps.md.controller.sync import MDSyncCipher
@@ -437,9 +459,13 @@ else:
 
     from com.infinitekind.tiksync import SyncRecord, SyncableItem
     from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
-    from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow            # noqa
+    from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow, SecondaryDialog   # noqa
     from com.moneydance.apps.md.view.gui.bot import MoneyBotWindow                                                      # noqa
     from com.moneydance.apps.md.view.gui.extensions import ExtensionsWindow                                             # noqa
+
+    from com.moneydance.apps.md.view.gui.txnreg import TxnDetailsPanel, TxnRegister, TxnRegisterType, InvestRegisterType
+    from com.moneydance.apps.md.view.gui import SearchRegTxnListModel
+    # from com.infinitekind.moneydance.model import AggregateTxnSearch
 
     from com.moneydance.apps.md.view.gui.txnreg import DownloadedTxnsView
     from com.infinitekind.tiksync import Syncer
@@ -447,9 +473,9 @@ else:
     from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
     from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory
     from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
-    from java.lang import Integer, Long, NoSuchFieldException, NoSuchMethodException, Runtime                           # noqa
+    from java.lang import Integer, Long, NoSuchFieldException, NoSuchMethodException, Runtime, Process                  # noqa
     from javax.swing import BorderFactory, JSeparator, DefaultComboBoxModel                                             # noqa
-    from com.moneydance.awt import JCurrencyField                                                                       # noqa
+    from com.moneydance.awt import JCurrencyField, AwtUtil                                                              # noqa
 
     from java.net import URL, URLEncoder, URLDecoder                                                                    # noqa
 
@@ -520,7 +546,7 @@ else:
 
     lCopyAllToClipBoard_TB = False                                                                                      # noqa
     lIgnoreOutdatedExtensions_TB = False                                                                                # noqa
-    lAutoPruneInternalBackups_TB = False                                                                                # noqa
+    lAutoPruneInternalBackups_TB = True                                                                                 # noqa
     _COLWIDTHS = ["bank", "cc", "invest", "security", "loan", "misc", "split","rec_credits","rec_debits","secdetail"]   # noqa
     globalSaveFI_data = None                                                                                            # noqa
     globalSave_DEBUG_FI_data = None                                                                                     # noqa
@@ -904,7 +930,7 @@ Visit: %s (Author's site)
                                                 _options[0])
 
         if response == 2:
-            myPrint("B", "User requested to create a backup before update/fix - calling moneydance 'Export Backup' routine...")
+            myPrint("B", "User requested to create a backup before update/fix - calling Moneydance's 'Export Backup' routine...")
             MD_REF.getUI().setStatus("%s is creating a backup...." %(GlobalVars.thisScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
             MD_REF.getUI().setStatus("%s create (export) backup process completed...." %(GlobalVars.thisScriptName),0)
@@ -3364,6 +3390,113 @@ Visit: %s (Author's site)
                     return True
         return False
 
+    def getFileFromAppleScriptFileChooser(fileChooser_parent,                  # The Parent Frame, or None
+                                          fileChooser_starting_dir,            # The Starting Dir
+                                          fileChooser_filename,                # Default filename (or None)
+                                          fileChooser_title,                   # The Title (with FileDialog, only works on SAVE)
+                                          fileChooser_multiMode,               # Normally False (True has not been coded!)
+                                          fileChooser_open,                    # True for Open/Load, False for Save
+                                          fileChooser_selectFiles,             # True for files, False for Directories
+                                          fileChooser_OK_text,                 # Normally None, unless set - use text
+                                          fileChooser_fileFilterText=None,     # E.g. "txt" or "qif"
+                                          lForceJFC=False,
+                                          lForceFD=False,
+                                          lAllowTraversePackages=None,
+                                          lAllowTraverseApplications=None,     # JFileChooser only..
+                                          lAllowNewFolderButton=True,          # JFileChooser only..
+                                          lAllowOptionsButton=None):           # JFileChooser only..
+        # type: (JFrame, str, str, str, bool, bool, bool, str, str, bool, bool, bool, bool, bool, bool) -> str
+        """If on a Mac and AppleScript exists then will attempt to load AppleScript file/folder chooser, else calls getFileFromFileChooser() which loads JFileChooser() or FileDialog() accordingly"""
+
+        if not Platform.isOSX() or not File("/usr/bin/osascript").exists() or float(System.getProperty("os.version", "0.0")) < 11.0:
+            return getFileFromFileChooser(fileChooser_parent,
+                                          fileChooser_starting_dir,
+                                          fileChooser_filename,
+                                          fileChooser_title,
+                                          fileChooser_multiMode,
+                                          fileChooser_open,
+                                          fileChooser_selectFiles,
+                                          fileChooser_OK_text,
+                                          fileChooser_fileFilterText,
+                                          lForceJFC, lForceFD,
+                                          lAllowTraversePackages, lAllowTraverseApplications,
+                                          lAllowNewFolderButton, lAllowOptionsButton)
+
+        myPrint("B", "Mac: switching to AppleScript for folder/file selector..:")
+
+        _TRUE = "true"; _FALSE = "false"
+        appleScript = "/usr/bin/osascript"
+
+        lAllowInvisibles = False
+        multipleSelectionsAllowed = _TRUE if fileChooser_multiMode else _FALSE
+        showPackageContents = _TRUE if lAllowTraversePackages else _FALSE
+        showInvisibles = _TRUE if lAllowInvisibles else _FALSE
+
+        cmdTitle = ""
+        cmdDefaultPath = ""
+        cmdExtension = ""
+        cmdInvisibles = ""
+        cmdMultipleSelections = ""
+        cmdShowPackageContents = ""
+        cmdNewName = ""
+
+        cmdChooseWhat = "file " if fileChooser_selectFiles else "folder "
+
+        if fileChooser_title is not None and isinstance(fileChooser_title, basestring) and len(fileChooser_title) > 0:
+            cmdTitle = "with prompt \"%s\" " %(fileChooser_title)
+
+        lRequestingNewName = (not fileChooser_open and fileChooser_selectFiles)
+        if lRequestingNewName:
+            cmdChooseWhat = "file name "
+            if fileChooser_filename is not None and isinstance(fileChooser_filename, basestring) and len(fileChooser_filename) > 0:
+                cmdNewName = "default name \"%s\" " %(fileChooser_filename)
+        else:
+            if (fileChooser_fileFilterText is not None and fileChooser_selectFiles):
+                cmdExtension = "of type {\"%s\"} " %(fileChooser_fileFilterText)
+            cmdInvisibles = "invisibles %s " %(showInvisibles)
+            cmdMultipleSelections = "multiple selections allowed %s " %(multipleSelectionsAllowed)
+            cmdShowPackageContents = "showing package contents %s " %(showPackageContents)
+
+        if File(fileChooser_starting_dir).exists():
+            cmdDefaultPath = "default location (POSIX file \"%s\") " %(fileChooser_starting_dir)
+
+        cmdStr = ["%s" %(appleScript),
+                 "-e",
+                 "return POSIX path of (choose %s"
+                    "%s"
+                    "%s"
+                    "%s"
+                    "%s"
+                    "%s"
+                    "%s"
+                    "%s"
+                  ")"
+                  %(cmdChooseWhat, cmdTitle, cmdExtension, cmdNewName, cmdDefaultPath, cmdInvisibles, cmdMultipleSelections, cmdShowPackageContents),
+                ]
+
+        try:
+            myPrint("DB", "AppleScript Command: '%s'" %(cmdStr))
+
+            process = None
+            exec("process = Runtime.getRuntime().exec(cmdStr)")         # Use exec to avoid Intellij [invalid] code error
+            if isinstance(process, Process): pass
+            result = process.waitFor()
+            err = BufferedReader(InputStreamReader(process.getErrorStream())).readLine()
+            if err is not None and isinstance(err, basestring) and ("user cancelled" in err.lower() or "(-128)" in err):
+                myPrint("DB", "** AppleScript: USER CANCELLED FILE SELECTION ** ")
+                return None
+            if result != 0:
+                myPrint("B", "ERROR: AppleScript returned error:", result, err)
+                return None
+            _theFile = BufferedReader(InputStreamReader(process.getInputStream())).readLine()
+            myPrint("DB", "AppleScript - User selected file:", _theFile, "Exists:", File(_theFile).exists())
+            return _theFile
+
+        except:
+            myPrint("B", "ERROR: getFileFromAppleScriptFileChooser() has crashed?!")
+            dump_sys_error_to_md_console_and_errorlog()
+            return None
+
     def calculateMoneydanceDatasetSize(_lReturnMBs=False, whichBook=None):
         """Calculates and returns the size of the Moneydance dataset in bytes (or MBs when _lReturnMBs=True), and file count"""
 
@@ -3632,6 +3765,66 @@ Visit: %s (Author's site)
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
             ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
+
+    class MyPopupRegister(SecondaryDialog):
+
+        class MyTxnRegisterType(TxnRegisterType):
+            def __init__(self, mdGUI, editableRegister=False, showCashBalance=False):
+                self.editableRegister = editableRegister
+                self.showCashBalance = showCashBalance
+                super(self.__class__, self).__init__(mdGUI)
+            def isEditable(self): return self.editableRegister
+            def getNumColumns(self):
+                defaultCols = super(self.__class__, self).getNumColumns()
+                if not self.showCashBalance: defaultCols -= 1
+                return defaultCols
+
+        class MyInvestRegisterType(InvestRegisterType):
+            def __init__(self, mdGUI, editableRegister=False, showCashBalance=False):
+                self.editableRegister = editableRegister
+                self.showCashBalance = showCashBalance
+                self.cashColumn = 8
+                super(self.__class__, self).__init__(mdGUI)
+            def isEditable(self): return self.editableRegister
+            def getPreferredFieldWidth(self, info, col):
+                if not self.showCashBalance and col == self.cashColumn: return 0
+                return super(self.__class__, self).getPreferredFieldWidth(info, col)
+            def getColMinWidth(self, info, col):
+                if not self.showCashBalance and col == self.cashColumn: return 0
+                return super(self.__class__, self).getColMinWidth(info, col)
+            def getColPreferredWidth(self, info, col):
+                if not self.showCashBalance and col == self.cashColumn: return 0
+                return super(self.__class__, self).getColPreferredWidth(info, col)
+
+        def __init__(self, title, registerType, txnSearchFilter, parent=None, editableRegister=False, showCashBalance=False, modal=True, singleLineMode=False, escapeCancels=True):
+            # type: (str, type, TxnSearch, JComponent, bool, bool, bool, bool, bool) -> None
+            mdGUI = MD_REF.getUI()
+            title += " >> EDITING ENABLED - BE CAREFUL! <<" if editableRegister else " -- READONLY MODE --"
+            super(self.__class__, self).__init__(mdGUI, parent, title, modal)
+            self.setEscapeKeyCancels(escapeCancels)
+            book = MD_REF.getCurrentAccountBook()
+
+            if registerType == InvestRegisterType:
+                txnRegister = TxnRegister(mdGUI, book, MyPopupRegister.MyInvestRegisterType(mdGUI, editableRegister=editableRegister, showCashBalance=showCashBalance))
+            else:
+                if registerType != TxnRegisterType:
+                    myPrint("B", "@@ ERROR: MyPopupRegister() registerType incorrect:", registerType, ">> Defaulting to TxnRegisterType @@")
+                txnRegister = TxnRegister(mdGUI, book, MyPopupRegister.MyTxnRegisterType(mdGUI, editableRegister=editableRegister, showCashBalance=showCashBalance))
+
+            txnRegister.setDetailPanels([TxnDetailsPanel(mdGUI, txnRegister)])
+            txnRegister.setSingleLineMode(singleLineMode)
+            txnResultSet = SearchRegTxnListModel(book, txnSearchFilter, TxnSortOrder.DATE)
+            txnRegister.setTxnModel(txnResultSet)
+            self.add(txnRegister)
+
+        def setEscapeKeyCancels(self, escapeKeyCancels):
+            try: super(self.__class__, self).setEscapeKeyCancels(escapeKeyCancels)
+            except:
+                # This was a new method in a recent build....
+                if escapeKeyCancels:
+                    self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close_window")
+                else:
+                    self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).remove(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0))
 
     class DetectInvalidWindowLocations(AbstractAction):
 
@@ -4017,6 +4210,9 @@ Visit: %s (Author's site)
         del foundStrange
         return output
 
+    def getShouldDownloadAllAttachments():
+        return MD_REF.getCurrentAccountBook().getLocalStorage().getBoolean("netsync.download_attachments", True)
+
     def buildDiagText():
 
         textArray = []                                                                                                  # noqa
@@ -4162,18 +4358,26 @@ Visit: %s (Author's site)
         textArray.append(u"")
         x, y = calculateMoneydanceDatasetSize(True)
         textArray.append(u"Dataset size: %sMBs (%s files)\n" %(x,y))
+        myPrint("B", "Dataset size: %sMBs (%s files)\n" %(x,y))
 
         storage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
         fileUUID = storage.getStr(u"netsync.dropbox.fileid", u"MISSING")
         migratedFileUUID = storage.getStr(u"migrated.netsync.dropbox.fileid", u"")
+
         textArray.append(u"Dataset internal UUID: %s" %(fileUUID))
+        myPrint("B", "Dataset internal UUID: %s" %(fileUUID))
+
         if migratedFileUUID != "":
             textArray.append(u"Dataset old migrated UUID: %s" %(migratedFileUUID))
+            myPrint("B", "Dataset old migrated UUID: %s" %(migratedFileUUID))
         del storage
 
-        textArray.append(count_database_objects())
+        cos = count_database_objects()
+        textArray.append(cos)
+        myPrint("B", "\n.\n.", cos, "-------------------------------------------------------------------")
 
         textArray.append(u"Master Node (dataset): %s" %(MD_REF.getUI().getCurrentAccounts().isMasterSyncNode()))
+        myPrint("B", "Master Node (dataset): %s" %(MD_REF.getUI().getCurrentAccounts().isMasterSyncNode()))
 
         textArray.append(u"\nENCRYPTION")
         x = MD_REF.getUI().getCurrentAccounts().getEncryptionKey()
@@ -4227,9 +4431,11 @@ Visit: %s (Author's site)
             else:
                 syncMethod = syncMethod
             textArray.append(u"Sync Method:                   %s" %(syncMethod.getSyncFolder()))
+            myPrint("B", "Sync Method: %s" %(syncMethod.getSyncFolder()))
             x = get_sync_folder()
-            if x: textArray.append(u"Sync local disk base location: %s" %(x))
-
+            if x:
+                textArray.append(u"Sync local disk base location: %s" %(x))
+                myPrint("B", "Sync local disk base location: %s" %(x))
         except:
             textArray.append(u"Sync Method: *** YOU HAVE A PROBLEM WITH YOUR DROPBOX CONFIGURATION! ***")
             myPrint("B",u"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -4246,6 +4452,8 @@ Visit: %s (Author's site)
                              lModal=False,
                              lAlertLevel=2).go()
 
+        if not getShouldDownloadAllAttachments(): textArray.append(u"** Sync downloading of attachments is disabled **")
+
         if not check_for_dropbox_folder():
             textArray.append(u"Sync WARNING: Dropbox sync will not work until you add the missing .moneydancesync folder - use update mode to fix!")
 
@@ -4258,6 +4466,7 @@ Visit: %s (Author's site)
         z = u"(Mac Dark Mode detected)" if (Platform.isOSX() and isMacDarkModeDetected()) else u""
 
         textArray.append(u"Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID), x, y, z))
+        myPrint("B", "Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID), x, y, z))
 
         # noinspection PyUnresolvedReferences
         x = ThemeInfo.customThemeFile.getCanonicalPath()
@@ -8747,7 +8956,7 @@ Visit: %s (Author's site)
             myPrint("B",txt); output += "\n\n\n%s\n\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
             setDisplayStatus(txt, "R")
-            jif = QuickJFrame(txt,output,copyToClipboard=lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+            jif = QuickJFrame(txt,output,copyToClipboard=lCopyAllToClipBoard_TB, lAlertLevel=2, lWrapText=False, lAutoSize=True).show_the_frame()
             myPopupInformationBox(jif,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
@@ -8935,6 +9144,8 @@ Visit: %s (Author's site)
                 if os.path.exists(saveSyncFolder):
                     myPrint("DB","icloud folder found:", saveSyncFolder)
                     return saveSyncFolder
+
+            elif isinstance(syncMethod, DropboxSyncConfigurer): return None
 
             elif syncMethod is not None and syncMethod.getSyncFolder() is not None:
                 syncBaseFolder = syncMethod.getSyncFolder().getSyncBaseFolder()                                         # noqa
@@ -13262,7 +13473,7 @@ Visit: %s (Author's site)
                             elif lKeyData and not (searchWhat.lower() in value.lower()): continue
 
                         if GlobalVars.redact:
-                            if theKey.lower() == "netsync.synckey": value = "<%s> (hidden)" %(redactor(value))
+                            if theKey.lower() == "netsync.synckey" or theKey.lower().startswith("netsync.db."): value = "<%s> (hidden)" %(redactor(value))
 
                         rk_redact = theKey
                         val_redact = value
@@ -13331,7 +13542,7 @@ Visit: %s (Author's site)
                             elif lKeyData and not (searchWhat.lower() in value.lower()): continue
 
                         if GlobalVars.redact:
-                            if theKey.lower() == "netsync.synckey": value = "<%s> (hidden)" %(redactor(value))
+                            if theKey.lower() == "netsync.synckey" or theKey.lower().startswith("netsync.db."): value = "<%s> (hidden)" %(redactor(value))
 
                         if GlobalVars.redact:
                             if ("._payloadid" in theKey.lower() or ".token" in theKey.lower()): value = "<%s> (hidden)" %(redactor(value))
@@ -13455,7 +13666,7 @@ Visit: %s (Author's site)
                                 elif lKeyData and not (searchWhat.lower() in value.lower()): continue
 
                             if GlobalVars.redact:
-                                if theKey.lower() == "netsync.synckey": value = "<%s> (hidden)" %(redactor(value))
+                                if theKey.lower() == "netsync.synckey" or theKey.lower().startswith("netsync.db."): value = "<%s> (hidden)" %(redactor(value))
 
                             if GlobalVars.redact:
                                 for checkKey in ["bank_account_number", "ofx_account_number", "ofx_bank_id", "ofx_import_acct_num", "olblink."]:
@@ -15413,6 +15624,251 @@ now after saving the file, restart Moneydance
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
+    def isSplitTxnAccountAssignedRoot(_txn, _fix=False, _accounts=None, _fixAcctType=None):
+        if _fix and (_accounts is None or _fixAcctType is None):
+            raise Exception("ERROR: isTxnAccountAssignedRoot() Fix, _accounts and _fixAcctType must NOT be None")
+        acct = _txn.getAccount()
+        # noinspection PyUnresolvedReferences
+        assignedRoot = (acct is not None and acct.getAccountType() == Account.AccountType.ROOT)
+        if assignedRoot and _fix:
+            if _txn.getParameter("invest.splittype", "") == "sec":
+                myPrint("B", "NOT FIXING: 'security' transaction assigned to root account:", _txn, "FIX MANUALLY")
+            else:
+                fixAccount = _accounts.getAccount(_fixAcctType)
+                myPrint("B", "FIXING: transaction assigned to root account:", _txn, "Assigning to:", fixAccount)
+                _txn.setAccount(fixAccount)
+        return assignedRoot
+
+    def isTxnAccountAssignedRoot(_txn, _fix=False, _accounts=None):
+        if _fix and _accounts is None: raise Exception("ERROR: isTxnAccountAssignedRoot() Fix, _accounts must not be None")
+        if not isinstance(_txn, ParentTxn) or _txn.getOtherTxnCount() < 1: return False
+        # noinspection PyUnresolvedReferences
+        isTxnAssignedRoot = isSplitTxnAccountAssignedRoot(_txn,
+                                                          _fix,
+                                                          _accounts,
+                                                          (Account.AccountType.INVESTMENT if (isInvestmentTxn(_txn)) else Account.AccountType.BANK))
+        for i in range(0, _txn.getOtherTxnCount()):
+            # noinspection PyUnresolvedReferences
+            if isSplitTxnAccountAssignedRoot(_txn.getOtherTxn(i), _fix, _accounts, Account.AccountType.EXPENSE):
+                isTxnAssignedRoot = True
+        return isTxnAssignedRoot
+
+    def isInvestmentTxn(_txn):
+        if not isinstance(_txn, ParentTxn) or _txn.getOtherTxnCount() < 1: return False
+        # noinspection PyUnresolvedReferences
+        if _txn.getAccount() is not None and _txn.getAccount().getAccountType() == Account.AccountType.INVESTMENT: return True
+        if _txn.getParameter("invest.txntype", None) is not None: return True
+        if _txn.getParameter("xfer_type", None) is not None: return True
+        for i in range(0, _txn.getOtherTxnCount()):
+            split = _txn.getOtherTxn(i)
+            if split.getParameter("invest.splittype", None) is not None: return True
+        return False
+
+    def checkForTxnsAssignedRoot(lFix=False, accounts=None):
+        if lFix and accounts is None: raise Exception("ERROR: checkForTxnsAssignedRoot() Fix, accounts must not be None")
+        _countValid = _countAssignedRoot = _countInvestmentAssignedRoot = 0
+        txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+        for txn in txnSet:
+            if not isinstance(txn, ParentTxn): continue
+            if isTxnAccountAssignedRoot(txn, lFix, accounts):
+                _countAssignedRoot += 1
+                if isInvestmentTxn(txn):
+                    _countInvestmentAssignedRoot += 1
+                if lFix: txn.syncItem()
+            else:
+                _countValid += 1
+        return _countValid, _countAssignedRoot, _countInvestmentAssignedRoot
+
+
+    def detect_fix_txns_assigned_root():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "DETECT / FIX TXNS ASSIGNED TO 'ROOT'"
+        PARAMETER_KEY = "toolbox_detect_fix_txns_assigned_root"
+
+        countValid, countAssignedRoot, countInvestmentAssignedRoot = checkForTxnsAssignedRoot()
+
+        if countAssignedRoot < 1:
+            myPopupInformationBox(toolbox_frame_, "You have no transactions assigned to 'root' account - no changes made", _THIS_METHOD_NAME)
+            return
+
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' >> no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
+            return
+
+        book = MD_REF.getCurrentAccountBook()
+
+        # myPopupInformationBox(toolbox_frame_, "WARNING: %s txns assigned to 'root' out of %s parent txns (%s are Investments)" %(countAssignedRoot, countValid, countInvestmentAssignedRoot), _THIS_METHOD_NAME)
+
+        txt = "WARNING: %s txns assigned to 'root' out of %s parent txns [%s are Investment(s)]" %(countAssignedRoot, countValid, countInvestmentAssignedRoot)
+        diagPanel = JPanel(GridLayout(0, 1))
+        diagPanel.add(JLabel(txt))
+        _options = ["Cancel", "VIEW REGISTER(s)", "AUTO-FIX"]
+
+        userResponse = JOptionPane.showOptionDialog(toolbox_frame_,
+                                                  diagPanel,
+                                                  _THIS_METHOD_NAME.upper(),
+                                                  JOptionPane.OK_CANCEL_OPTION,
+                                                  JOptionPane.QUESTION_MESSAGE,
+                                                  getMDIcon(None),
+                                                  _options,
+                                                  _options[0])
+
+        if userResponse < 1:
+            txt = "%s: User did not select option - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_,txt)
+            return
+
+        if userResponse == 1:
+            # View REGISTER
+            # prefs = MD_REF.getPreferences(); twoLines = prefs.getBoolSetting("gui.two_line_transactions", False)
+
+            class MyTxnAcctSearch(TxnSearch):
+                def __init__(self, lAll=True, lInvestments=False):
+                    self.lAll = lAll
+                    self.lInvestments = lInvestments
+
+                def matches(self, _txn):
+                    assignedRoot = isTxnAccountAssignedRoot(_txn)
+                    if not assignedRoot or self.lAll: return assignedRoot
+                    foundInvestment = isInvestmentTxn(_txn)
+                    if (not self.lInvestments and not foundInvestment) or (self.lInvestments and foundInvestment):
+                        return assignedRoot
+                    return False
+
+                def matchesAll(self): return False
+
+            offset = 75
+            w, h = 1200, 500
+            toolboxLocation = toolbox_frame_.getLocation()
+            toolboxLocation.x += offset; toolboxLocation.y += offset
+
+            if (countAssignedRoot - countInvestmentAssignedRoot) > 0:
+                popupTxnRegister = MyPopupRegister("TRANSACTIONS INCORRECTLY ASSIGNED TO ROOT (non Investments)",
+                                                   TxnRegisterType,
+                                                   MyTxnAcctSearch(lAll=False, lInvestments=False),
+                                                   parent=toolbox_frame_,
+                                                   editableRegister=True,
+                                                   modal=False)
+
+
+                AwtUtil.setupWindow(popupTxnRegister, w, h, toolboxLocation.x, toolboxLocation.y, toolbox_frame_)
+                toolboxLocation.x += offset; toolboxLocation.y += offset
+                popupTxnRegister.setVisible(True)
+
+            if countInvestmentAssignedRoot > 0:
+                popupInvestTxnRegister = MyPopupRegister("INVESTMENT TRANSACTIONS INCORRECTLY ASSIGNED TO ROOT",
+                                                         InvestRegisterType,
+                                                         MyTxnAcctSearch(lAll=False, lInvestments=True),
+                                                         parent=toolbox_frame_,
+                                                         editableRegister=debug,
+                                                         modal=False)
+                AwtUtil.setupWindow(popupInvestTxnRegister, w, h, toolboxLocation.x, toolboxLocation.y, toolbox_frame_)
+                toolboxLocation.x += offset; toolboxLocation.y += offset
+                popupInvestTxnRegister.setVisible(True)
+
+            txt = "%s: Txns Assigned to Root displayed in Register(s) so that user can view/amend" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            return
+
+        # AUTOFIX ###############################################
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_,
+                                                 _THIS_METHOD_NAME,
+                                                 "AUTO-FIX %s txns assigned to 'root' account?" %(countAssignedRoot)):
+            return
+
+        class HoldAutoFixAccounts:
+            accountName = "* TOOLBOX: %s (DELETE AFTER USE/WHEN EMPTY) **" %(_THIS_METHOD_NAME)
+
+            def __init__(self): self.accounts = {}
+
+            def getAccount(self, accountType):
+                if accountType not in self.accounts:
+                    newAccount = Account.makeAccount(book, accountType, book.getRootAccount())
+                    newAccount.setAccountName(HoldAutoFixAccounts.accountName + " (%s)" %(accountType))
+                    newAccount.setAccountDescription("DUMMY ACCOUNT..... PLEASE REVIEW AND FIX THESE TXNS (DELETE WHEN EMPTY)")
+                    # noinspection PyUnresolvedReferences
+                    if accountType == Account.AccountType.INVESTMENT:
+                        newAccount.setPreference("sel_inv_view", "sec_register_view")
+                        newAccount.setParameter("gen.asked_to_add_security", True)
+                    newAccount.setParameter(PARAMETER_KEY, True)
+                    newAccount.syncItem()
+                    myPrint("B", "%s: Made account:" %(_THIS_METHOD_NAME), newAccount)
+                    self.accounts[accountType] = newAccount
+                return self.accounts[accountType]
+
+        holdAutoFixAccounts = HoldAutoFixAccounts()
+        checkForTxnsAssignedRoot(lFix=True, accounts=holdAutoFixAccounts)
+
+        fix_non_hier_sec_acct_txns(autofix=True)
+
+        extraSecurityText = ""
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            extraSecurityText = "\nERROR - Cross-linked (or Orphaned) security txns detected..\n" \
+                                ".....I've already run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)'\n" \
+                                ".....>> NEEDS MANUAL INVESTIGATION'\n"
+
+        txt = "%s: AUTO-FIX applied to %s Parent txns [%s investment txn(s)]" %(_THIS_METHOD_NAME, countAssignedRoot, countInvestmentAssignedRoot)
+        setDisplayStatus(txt, "R")
+        myPrint("B", txt)
+        play_the_money_sound()
+        MyPopUpDialogBox(toolbox_frame_,
+                         theStatus=txt,
+                         theMessage="Please review console and also the contents of NEW temporary accounts/categories\n"
+                                    "Go to Menu Tools>Accounts / Tools>Categories and look for: '%s'\n"
+                                    "You will need to reassign these Accounts/Categories as needed\n"
+                                    "... There may be up to 1 Bank Account, 1 Investment Account, 1 Expense Category\n"
+                                    "%s"
+                                    %(HoldAutoFixAccounts.accountName, extraSecurityText),
+                         theTitle=_THIS_METHOD_NAME).go()
+
+        try:
+            # OK, let's show the new accounts/registers to the user.....
+            offset = 75
+            w, h = 1150, 650
+            toolboxLocation = toolbox_frame_.getLocation()
+            toolboxLocation.x += offset; toolboxLocation.y += offset
+
+            for acctT in holdAutoFixAccounts.accounts:
+                selectAccount = holdAutoFixAccounts.accounts[acctT]
+
+                # mf = MainFrame(MD_REF.getUI(), MD_REF.getCurrentAccountBook())
+                # mf.selectAccount(selectAccount)
+                # if isinstance(mf, JFrame): pass
+                # mf.setExtendedState(JFrame.NORMAL)
+                # AwtUtil.setupWindow(mf, w, h, toolboxLocation.x, toolboxLocation.y, toolbox_frame_)
+                # toolboxLocation.x += offset; toolboxLocation.y += offset
+                # mf.setVisible(True)
+
+                class MyTxnAcctSearch(TxnSearch):
+                    def __init__(self, account):
+                        self.account = account
+
+                    def matches(self, _txn):
+                        if _txn.getAccount() == self.account: return True
+                        return False
+
+                    def matchesAll(self): return False
+
+                # noinspection PyUnresolvedReferences
+                popupTxnRegister = MyPopupRegister("TRANSACTIONS REASSIGNED TO NEW ACCOUNT: %s" %(selectAccount),
+                                                   InvestRegisterType if (selectAccount.getAccountType() == Account.AccountType.INVESTMENT) else TxnRegisterType,
+                                                   MyTxnAcctSearch(selectAccount),
+                                                   parent=toolbox_frame_,
+                                                   editableRegister=True,
+                                                   modal=False)
+
+                AwtUtil.setupWindow(popupTxnRegister, w, h, toolboxLocation.x, toolboxLocation.y, toolbox_frame_)
+                toolboxLocation.x += offset; toolboxLocation.y += offset
+                popupTxnRegister.setVisible(True)
+
+        except: pass
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
     def thin_price_history():
         # based on: price_history_thinner.py
         # (also includes elements from 2017_remove_orphaned_currency_history_entries.py)
@@ -17128,7 +17584,7 @@ now after saving the file, restart Moneydance
         MD_decimal = MD_REF.getPreferences().getDecimalChar()
 
         if detect_non_hier_sec_acct_or_orphan_txns() > 0:
-            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
+            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' >> no changes made" %(_THIS_METHOD_NAME)
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -17394,7 +17850,7 @@ now after saving the file, restart Moneydance
             myPrint("B",txt); output += "\n\n\n%s\n\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
             setDisplayStatus(txt, "R")
-            jif = QuickJFrame(txt, output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            jif = QuickJFrame(txt, output, lAlertLevel=2, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
             myPopupInformationBox(jif,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
@@ -17586,7 +18042,7 @@ now after saving the file, restart Moneydance
             myPrint("B",txt); output += "\n\n\n%s\n\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
             setDisplayStatus(txt, "R")
-            jif = QuickJFrame(txt,output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            jif = QuickJFrame(txt,output, lAlertLevel=2, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
             myPopupInformationBox(jif,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
@@ -17659,7 +18115,7 @@ now after saving the file, restart Moneydance
             myPrint("B",txt); output += "\n\n\n%s\n\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
             setDisplayStatus(txt, "R")
-            jif = QuickJFrame(txt,output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            jif = QuickJFrame(txt, output, lAlertLevel=2, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
             myPopupInformationBox(jif,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
@@ -17667,6 +18123,177 @@ now after saving the file, restart Moneydance
         setDisplayStatus(txt, optionColor)
         play_the_money_sound()
         myPopupInformationBox(jif,txt,theMessageType=optionMessage)
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+        return
+
+    def fix_duplicate_securities_within_same_investment_account():
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+        if MD_REF.getCurrentAccount().getBook() is None: return
+
+        _THIS_METHOD_NAME = "Repair duplicate Securities:".upper()
+
+        selectHomeScreen()      # Stops the LOT Control box popping up.....
+
+        PARAMETER_KEY = "toolbox_duplicate_security_fix"
+
+        book = MD_REF.getCurrentAccount().getBook()
+        allAccounts = AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER)
+
+        if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' >> no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
+            return
+
+        class CaptureIllogicalAccount:
+            def __init__(self, investmentAccount):
+                self.investmentAccount = investmentAccount
+                self.illogicalSecurities = {}
+
+        output = "%s\n" \
+                 " --------------------------------------\n\n" %(_THIS_METHOD_NAME)
+
+        allInvestmentAccounts = []
+        for acct in allAccounts:
+            # noinspection PyUnresolvedReferences
+            if acct.getAccountType() == Account.AccountType.INVESTMENT:
+                allInvestmentAccounts.append(acct)
+
+        allSecurityAccounts = []
+        for acct in allAccounts:
+            # noinspection PyUnresolvedReferences
+            if acct.getAccountType() == Account.AccountType.SECURITY:
+                allSecurityAccounts.append(acct)
+
+        illogicalInvestmentAccounts = []
+
+        for acct in allInvestmentAccounts:
+            output += ("\nAnalysing Investment Account: %s\n" %(acct))
+            captureIllogicalAccount = CaptureIllogicalAccount(acct)
+            storeSecurityAcctsByCurrency = {}
+            subAccts = acct.getSubAccounts()
+            for subAcct in subAccts:
+                # noinspection PyUnresolvedReferences
+                if subAcct.getAccountType() != Account.AccountType.SECURITY:
+                    raise Exception("ERROR: Found non Security sub account:", subAcct.getFullAccountName())
+                secCurr = subAcct.getCurrencyType()
+                storeSecurityAcctsByCurrency[secCurr] = storeSecurityAcctsByCurrency.get(secCurr, 0) + 1
+
+            lFoundIllogical = False
+            for secCurr in storeSecurityAcctsByCurrency:
+                appearances = storeSecurityAcctsByCurrency[secCurr]
+                flag = (" "*5) if (appearances <= 1) else ("*"*5)
+                output += ("... %s Security '%s' appears: %s times...\n" %(flag, secCurr, appearances))
+
+                if appearances > 1:
+                    lFoundIllogical = True
+                    captureIllogicalAccount.illogicalSecurities[secCurr] = []
+                    subAccts = acct.getSubAccounts()
+                    for subAcct in subAccts:
+                        if subAcct.getCurrencyType() == secCurr:
+                            captureIllogicalAccount.illogicalSecurities[secCurr].append(subAcct)
+
+            if lFoundIllogical: illogicalInvestmentAccounts.append(captureIllogicalAccount)
+
+        output += ("\n")
+
+        if len(illogicalInvestmentAccounts) < 1:
+            txt = "CONGRATULATIONS - No duplicated Securities within Investment Account(s) found"
+            output += ("%s\n" %(txt))
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+            jif = QuickJFrame(_THIS_METHOD_NAME, output).show_the_frame()
+            myPopupInformationBox(jif, txt, theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.INFORMATION_MESSAGE)
+            return
+
+        lCostBasisFlagWarning = False
+
+        output += ("@@@ ERROR - found %s duplicated securities with investment account(s)...!\n\n" %(len(illogicalInvestmentAccounts)))
+        for captureIllogicalAccount in illogicalInvestmentAccounts:
+            output += ("\nInvestment Account: %s\n" %(captureIllogicalAccount.investmentAccount))
+            for secCurr in captureIllogicalAccount.illogicalSecurities:
+                output += ("... Security: %s\n" %(secCurr))
+
+                lUsesAverageCost = None
+                lUsesAverageCostDifferent = False
+                for subAcct in captureIllogicalAccount.illogicalSecurities[secCurr]:
+                    if lUsesAverageCost is None: lUsesAverageCost = subAcct.getUsesAverageCost()
+                    if lUsesAverageCost != subAcct.getUsesAverageCost():
+                        lUsesAverageCostDifferent = True
+                        lCostBasisFlagWarning = True
+
+                    txns = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTransactionsForAccount(subAcct)
+                    output += ("...... Sub security account (%s): %s Txn count: %s %s\n" %(subAcct.getUUID(), subAcct.getAccountName(), txns.getSize(),
+                                                                                           "" if not lUsesAverageCostDifferent else "(WARNING: Cost Basis Flags different (Avg Cst vs Lot Control)"))
+
+        txt = ("@@@@ FIX REQUIRED!!! @@@@")
+        output += ("\n\n%s\n\n" %(txt))
+
+        jif = QuickJFrame(txt, output, lJumpToEnd=True, lWrapText=False).show_the_frame()
+        myPopupInformationBox(jif, "WARNING: %s duplicated securities found within investment account(s)!" %(len(illogicalInvestmentAccounts)),
+                              theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.ERROR_MESSAGE)
+
+        if not confirm_backup_confirm_disclaimer(jif, _THIS_METHOD_NAME.upper(),
+                                                 "EXECUTE FIX/MERGE OF %s DUPLICATED SECURITIES WITHIN INVESTMENT ACCOUNT(s)?" %(len(illogicalInvestmentAccounts))):
+            return
+
+        jif.dispose()
+
+        output += "\nPROCEEDING TO FIX\n\n"
+
+        accountsToDelete = []
+
+        for captureIllogicalAccount in illogicalInvestmentAccounts:
+            output += ("\nFIXING Investment Account: %s\n" %(captureIllogicalAccount.investmentAccount))
+            for secCurr in captureIllogicalAccount.illogicalSecurities:
+                output += ("... Security: %s\n" %(secCurr))
+
+                acctToKeep = captureIllogicalAccount.illogicalSecurities[secCurr][0]
+                for subAcct in list(captureIllogicalAccount.illogicalSecurities[secCurr]):
+                    txns = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTransactionsForAccount(subAcct)
+                    if subAcct == acctToKeep:
+                        output += ("...... Keeping sub security account (%s) as the primary for: %s (with: %s txns) Cost Basis: '%s'\n" %(subAcct.getUUID(), subAcct.getAccountName(), txns.getSize(),
+                                                                                                                                          "Average Cost" if (subAcct.getUsesAverageCost()) else "LOT Control"))
+                        continue
+                    output += ("...... FIXING Sub security account (%s): %s - changing %s transactions (note: this security/subacct used Cost Basis: '%s')\n" %(subAcct.getUUID(), subAcct.getAccountName(), txns.getSize(),
+                                                                                                                                                                "Average Cost" if (subAcct.getUsesAverageCost()) else "LOT Control"))
+                    for txn in txns:
+                        pTxn = txn.getParentTxn()
+                        pTxn.setEditingMode()
+                        txn.setAccount(acctToKeep)
+                        txn.setParameter(PARAMETER_KEY, True)
+                        pTxn.syncItem()
+                    accountsToDelete.append(subAcct)
+
+                    InvestUtil.getCostBasis(subAcct)
+                    if not InvestUtil.isCostBasisValid(subAcct):
+                        output += ("......... Cost Basis reports as 'invalid' please manually review\n")
+
+        output += "\n"
+        for subAcct in accountsToDelete:
+            txns = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTransactionsForAccount(subAcct)
+            if txns.getSize() != 0:
+                txt = "ERROR: Something's gone wrong! Resulting txn count should be ZERO! Acct: %s (CONSIDER RESTORE!)" %(subAcct)
+                output += "%s\n" %(txt)
+                setDisplayStatus(txt, "R"); myPrint("B", txt)
+                jif = QuickJFrame(_THIS_METHOD_NAME, output).show_the_frame()
+                myPopupInformationBox(jif, txt, theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.ERROR_MESSAGE)
+                return
+            output += "......... will delete old (empty) sub security account: %s\n" %(subAcct)
+
+        if lCostBasisFlagWarning:
+            output += ("\n\nWARNING - you had Cost Basis (Average Cost Basis vs LOT Control) flag differences. Please review these settings (and update your LOT matching if appropriate)\n\n")
+
+        MD_REF.getCurrentAccount().getBook().logRemovedItems(accountsToDelete)
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+
+        txt = "SUCCESS / FINISHED - Please review your investment portfolios"
+        output += "\n%s\n" %(txt)
+        setDisplayStatus(txt, "B"); myPrint("B", txt)
+        play_the_money_sound()
+        jif = QuickJFrame(_THIS_METHOD_NAME, output, lJumpToEnd=True, lWrapText=False).show_the_frame()
+        myPopupInformationBox(jif,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
@@ -17688,7 +18315,7 @@ now after saving the file, restart Moneydance
         MD_decimal = MD_REF.getPreferences().getDecimalChar()
 
         if detect_non_hier_sec_acct_or_orphan_txns() > 0:
-            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made" %(_THIS_METHOD_NAME)
+            txt = "%s: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' >> no changes made" %(_THIS_METHOD_NAME)
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -17738,7 +18365,8 @@ now after saving the file, restart Moneydance
 
                 return True
 
-            myPrint("DB","%s: Initial candidates found %s %s" %(_THIS_METHOD_NAME, len(dup_securities),dup_securities))
+            try: myPrint("DB","%s: Initial candidates found %s %s" %(_THIS_METHOD_NAME, len(dup_securities), dup_securities))
+            except: pass
 
             # Sweep Two - start validating the data found
             lShowOutput = False
@@ -17887,7 +18515,8 @@ now after saving the file, restart Moneydance
                 del dup_securities[remove_ticker]
             del removeList
 
-            myPrint("DB","%s: After validation, found %s %s" %(_THIS_METHOD_NAME, len(dup_securities),dup_securities))
+            try: myPrint("DB","%s: After validation, found %s %s" %(_THIS_METHOD_NAME, len(dup_securities), dup_securities))
+            except: pass
 
             if len(securities) < 2 or len(dup_securities) < 1:
                 output += "\n" \
@@ -18442,7 +19071,7 @@ now after saving the file, restart Moneydance
             myPrint("B",txt); output += "\n\n\n%s\n\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
             setDisplayStatus(txt, "R")
-            jif = QuickJFrame(txt, output,copyToClipboard=lCopyAllToClipBoard_TB,lJumpToEnd=True).show_the_frame()
+            jif = QuickJFrame(txt, output, lAlertLevel=2, copyToClipboard=lCopyAllToClipBoard_TB,lJumpToEnd=True).show_the_frame()
             myPopupInformationBox(jif,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
@@ -18690,7 +19319,7 @@ now after saving the file, restart Moneydance
             myPrint("B",txt); output += "\n\n\n%s\n\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
             setDisplayStatus(txt, "R")
-            jif = QuickJFrame(txt,output,copyToClipboard=lCopyAllToClipBoard_TB,lJumpToEnd=True).show_the_frame()
+            jif = QuickJFrame(txt,output, lAlertLevel=2, copyToClipboard=lCopyAllToClipBoard_TB,lJumpToEnd=True).show_the_frame()
             myPopupInformationBox(jif,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
@@ -18761,7 +19390,7 @@ now after saving the file, restart Moneydance
             myPrint("B",txt); output += "\n\n\n%s\n\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
             setDisplayStatus(txt, "R")
-            jif = QuickJFrame(txt,output,copyToClipboard=lCopyAllToClipBoard_TB,lJumpToEnd=True).show_the_frame()
+            jif = QuickJFrame(txt, output, lAlertLevel=2, copyToClipboard=lCopyAllToClipBoard_TB,lJumpToEnd=True).show_the_frame()
             myPopupInformationBox(jif,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
             return
 
@@ -18788,16 +19417,21 @@ now after saving the file, restart Moneydance
 
         return scriptRunner(scriptToRun, _THIS_METHOD_NAME)
 
-    def fix_non_hier_sec_acct_txns():
+    def fix_non_hier_sec_acct_txns(autofix=False):
 
-        _THIS_METHOD_NAME = "FIX: Non-Hierarchical Security Acct Txn".upper()
+        _THIS_METHOD_NAME = "FIX: Non-Hierarchical Security Acct Txns".upper()
 
         PARAMETER_KEY = "toolbox_fix_non_hier_sec_acct_txns"
+
+        book = MD_REF.getCurrentAccountBook()
+        base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
 
         # fix_non-hierarchical_security_account_txns.py
         # (replaces fix_investment_txns_to_wrong_security.py)
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        if autofix: myPrint("B", "AUTOFIX running... There will be no prompts and all fixes will be applied silently....")
 
         myPrint("B", "Diagnosing Investment Transactions where Security's Account is not linked properly to the Parent Txn's Acct")
         myPrint("P", "-----------------------------------------------------------------------------------------------------------")
@@ -18807,12 +19441,14 @@ now after saving the file, restart Moneydance
 
         try:
             txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
-            txns = txnSet.iterableTxns()
+            txns = list(txnSet.iterableTxns())      # copy into list() to prevent concurrent modification when modifying.....
             fields = InvestFields()
 
             iOrphans = 0
             txt = "Scanning for Security Orphans...:"
             output += "\n%s\n" %(txt); myPrint("B",txt)
+
+            saveInvestmentAccountsNeedingDummy = {}
             for _txn in txns:
                 if not isinstance(_txn, ParentTxn): continue   # only work with parent transactions
                 _acct = _txn.getAccount()
@@ -18824,31 +19460,102 @@ now after saving the file, restart Moneydance
                     txt = "ERROR: Txn for 'Orphaned' Security %s found within Investment Account %s! (old QIF import or you have force removed a Security with linked TXNs?\n" \
                           "txn:\n%s\n" %(fields.security, _acct, _txn.getSyncInfo().toMultilineHumanReadableString())
                     output += "\n%s\n" %(txt); myPrint("B",txt)
+                    saveInvestmentAccountsNeedingDummy[_acct] = True
 
             if iOrphans:
-                txt = "ERROR: %s investment txn(s) with 'Orphaned'securities detected (probably an old QIF import or User has force removed a Security from this Investment Account)" %(iOrphans)
-                output += "\n%s\n" %(txt); myPrint("B",txt)
-                output += "\n<ABORTED>"
-                setDisplayStatus(txt, "R")
-                jif = QuickJFrame(_THIS_METHOD_NAME,output,lAlertLevel=1,copyToClipboard=lCopyAllToClipBoard_TB,lWrapText=False).show_the_frame()
-                MyPopUpDialogBox(jif,
-                                 txt,
-                                 "It's highly likely that you have: either a) old QIF Import data (that was improperly imported)... or\n"
-                                 "b) you have clicked 'Actions' > 'Remove Security' from an Investment Account..\n"
-                                 ".. and that this Security had linked Transactions... You would have been warned and asked to respond 'yes'\n"
-                                 ".. this will have deleted Buy/Sell TXNs and partially removed the Security from other TXNs like buy/Sell/Xfr etc\n"
-                                 "- These are 'illogical' and 'damaged' records.... The security data is lost and not recoverable. Toolbox CANNOT REPAIR!\n"
-                                 ">> You will need to restore, or manually edit and repair the TXNs with your own knowledge of what security was lost...",
-                                 theTitle=_THIS_METHOD_NAME,
-                                 OKButtonText="ACKNOWLEDGED",
-                                 lAlertLevel=1).go()
-                return
+                txt = "ERROR: %s investment txn(s) with 'Orphaned' securities detected (probably an old QIF import or User has force removed a Security from this Investment Account)" %(iOrphans)
+                if not autofix:
+                    MyPopUpDialogBox(toolbox_frame_,
+                                     txt,
+                                     "It's highly likely that you have: either a) old QIF Import data (that was improperly imported)... or\n"
+                                     "b) you have clicked 'Actions' > 'Remove Security' from an Investment Account..\n"
+                                     ".. and that this Security had linked Transactions... You would have been warned and asked to respond 'yes'\n"
+                                     ".. this will have deleted Buy/Sell TXNs and partially removed the Security from other TXNs like buy/Sell/Xfr etc\n"
+                                     "- These are 'illogical' and 'damaged' records.... The proper 'security' linkage is irrecoverable.\n"
+                                     "... Toolbox can 'repair' these txns by assigning a 'dummy' security which you can edit/change later.\n"
+                                     "**OR** You can restore, or manually edit and repair the TXNs with your own knowledge of what security was lost...",
+                                     theTitle=_THIS_METHOD_NAME,
+                                     OKButtonText="ACKNOWLEDGED",
+                                     lAlertLevel=1).go()
 
             else:
-                txt = ">> No investment txn(s) with Orphaned securities were detected - phew!"
+                txt = ">> No investment txn(s) with Orphaned securities were detected!"
                 output += "\n%s\n" %(txt); myPrint("B",txt)
 
             output += "\n\n"
+
+            lFixedOrphans = False
+            ############################################################################################################
+            if iOrphans:
+
+                if autofix:
+                    txt = "AUTOFIX will proceed and fix 'Orphaned' securities..."
+                    output += "\n%s\n" %(txt); myPrint("B",txt)
+                else:
+                    txt = "ERROR: %s investment txn(s) with 'Orphaned' securities detected (probably an old QIF import or User has force removed a Security from this Investment Account)" %(iOrphans)
+                    output += "\n%s\n" %(txt); myPrint("B",txt)
+                    jif = QuickJFrame(_THIS_METHOD_NAME,output,lAlertLevel=1,copyToClipboard=lCopyAllToClipBoard_TB,lWrapText=False).show_the_frame()
+                    if not confirm_backup_confirm_disclaimer(jif, _THIS_METHOD_NAME, "FIX %s orphaned security txns (using a dummy security)?" %(iOrphans)):
+                        return
+
+                    jif.dispose()
+                    txt = "User accepted disclaimer to FIX orphaned security txns. Proceeding....."
+                    output += "\n%s\n" %(txt); myPrint("B",txt)
+
+                newSecurity = CurrencyType(book.getCurrencies())  # Creates a new CT object
+                newSecurity.setEditingMode()
+                newSecurity.setRelativeCurrency(base)
+                newSecurity.setCurrencyType(CurrencyType.Type.SECURITY)                                                 # noqa
+                newSecurity.setName("TOOLBOX: %s" %(_THIS_METHOD_NAME))
+                newSecurity.setIDString("^TOOLBOX")
+                newSecurity.setTickerSymbol("^TOOLBOX")
+                newSecurity.setDecimalPlaces(4)
+                newSecurity.setRelativeRate(1.0)
+                newSecurity.syncItem()
+                output += "\n\nCreated dummy Security: %s (%s)\n" %(newSecurity, newSecurity.getUUID())
+
+                dummySecurityAccounts = {}
+
+                for _txn in txns:
+                    if not isinstance(_txn, ParentTxn): continue   # only work with parent transactions
+                    _acct = _txn.getAccount()
+                    if _acct.getAccountType() != Account.AccountType.INVESTMENT: continue                               # noqa
+                    fields.setFieldStatus(_txn)
+
+                    if fields.hasSecurity and fields.security is None:
+
+                        if saveInvestmentAccountsNeedingDummy.pop(_acct, False):
+
+                            # need to create the Security sub-account in this Investment Account....
+                            newSecurityAcct = Account.makeAccount(book, Account.AccountType.SECURITY, _acct)            # noqa
+                            newSecurityAcct.setEditingMode()
+                            newSecurityAcct.getUUID()
+                            newSecurityAcct.setAccountName("TOOLBOX DUMMY")
+                            newSecurityAcct.setCurrencyType(newSecurity)
+                            newSecurityAcct.setStartBalance(0)
+                            newSecurityAcct.setUsesAverageCost(True)
+                            newSecurityAcct.setComment("Dummy created by Toolbox: %s" %(_THIS_METHOD_NAME))
+                            newSecurityAcct.setParameter(PARAMETER_KEY, True)
+                            newSecurityAcct.syncItem()
+                            output += "\nCreated dummy Security Sub Account: %s (%s) linked to new dummy security\n" %(newSecurityAcct, newSecurityAcct.getUUID())
+                            dummySecurityAccounts[_acct] = newSecurityAcct
+
+                        fields.security = dummySecurityAccounts[_acct]
+                        fields.storeFields(_txn)
+                        _txn.syncItem()
+
+                        txt = "FIXED: Txn for 'Orphaned' Security - Investment Account %s: '%s'\n" %(_acct, _txn)
+                        output += "\n%s\n" %(txt)
+
+                output += "\nFinished fixing 'orphans'....\n" \
+                          " -----------------------------\n\n"
+                lFixedOrphans = True
+
+                # Create a new list of txns
+                txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+                txns = list(txnSet.iterableTxns())      # copy into list() to prevent concurrent modification when modifying.....
+
+            ############################################################################################################
 
             def review_security_accounts(_txns, FIX_MODE=False):
 
@@ -18940,32 +19647,54 @@ now after saving the file, restart Moneydance
                 del _txns
                 return text, count_the_errors, count_unfixable_yet, errors_fixed
 
+
+            output += "\nScanning txns for non-hierarchical accounts:\n" \
+                        " -------------------------------------------\n\n"
+
             x, iCountErrors, iCountUnfixable, iErrorsFixed = review_security_accounts(txns, FIX_MODE=False)
             output += x
 
-            output += "\n\nYou have %s errors, with %s needing manual fixes first... I have fixed %s\n\n" %(iCountErrors, iCountUnfixable, iErrorsFixed)
+            output += "\n\nYou have %s non-hierarchical txn errors...\n\n" %(iCountErrors)
 
-            if iCountErrors<1:
-                txt = "%s: CONGRATULATIONS - I found no Invalid txns......." %(_THIS_METHOD_NAME)
-                setDisplayStatus(txt, "B"); myPrint("B", txt)
-                myPopupInformationBox(toolbox_frame_,txt)
+            if iCountErrors < 1:
+                if lFixedOrphans:
+                    txt = "%s: I found no additional non-hierarchical / invalid txns....... UPDATES COMPLETED" %(_THIS_METHOD_NAME)
+                    output += "\n%s\n" %(txt); myPrint("B",txt)
+                    if not autofix:
+                        MD_REF.saveCurrentAccount()
+                        setDisplayStatus(txt, "B")
+                        play_the_money_sound()
+                        jif = QuickJFrame(_THIS_METHOD_NAME,output,lAlertLevel=1,copyToClipboard=lCopyAllToClipBoard_TB,lWrapText=False).show_the_frame()
+                        myPopupInformationBox(jif, txt)
+                    return
+                txt = "%s: CONGRATULATIONS - I found no non-hierarchical / invalid txns......." %(_THIS_METHOD_NAME)
+                output += "\n%s\n" %(txt); myPrint("B",txt)
+                if not autofix:
+                    setDisplayStatus(txt, "B")
+                    myPopupInformationBox(toolbox_frame_,txt)
                 return
 
-            myPrint("B","%s: found %s errors... with %s needing manual fixes" %(_THIS_METHOD_NAME, iCountErrors, iCountUnfixable))
+            myPrint("B","%s: found %s non-hierarchical txn errors..." %(_THIS_METHOD_NAME, iCountErrors))
 
-            jif = QuickJFrame("VIEW Investment Security Txns with Invalid Parent Accounts".upper(), output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            jif = None
+            if not autofix:
+                jif = QuickJFrame("VIEW Investment Security Txns with Invalid Parent Accounts".upper(), output, lAlertLevel=1, lWrapText=False, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
-            if iCountUnfixable>0:
-                txt = "%s: You have %s errors to manually first first!" %(_THIS_METHOD_NAME, iCountUnfixable)
-                setDisplayStatus(txt, "R"); myPrint("B", txt)
-                myPopupInformationBox(jif,"You have %s errors to manually first first!" %(iCountUnfixable), _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
-                return
+            # if iCountUnfixable>0:
+            #     txt = "%s: You have %s errors to manually first first!" %(_THIS_METHOD_NAME, iCountUnfixable)
+            #     myPrint("B", txt)
+            #     if not autofix:
+            #         setDisplayStatus(txt, "R")
+            #         myPopupInformationBox(jif,"You have %s errors to manually first first!" %(iCountUnfixable), _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
+            #     return
 
-            if not confirm_backup_confirm_disclaimer(jif, _THIS_METHOD_NAME,"FIX %s Security Txns with Invalid Parent Accts?" %(iCountErrors)):
-                return
+            if not autofix:
+                if not lFixedOrphans \
+                        and not confirm_backup_confirm_disclaimer(jif, _THIS_METHOD_NAME,"FIX %s Security Txns with Invalid Parent Accts?" %(iCountErrors)):
+                    return
 
-            jif.dispose()       # already within the EDT
-            myPrint("B", "User accepted disclaimer to FIX Investment Security Txns with Invalid Parent Accounts. Proceeding.....")
+                jif.dispose()
+                myPrint("B", "User accepted disclaimer to FIX Investment Security Txns with Invalid Parent Accounts. Proceeding.....")
 
             output += "\n\nRUNNING FIX ON SECURITY TXNS TO RE-LINK PARENT ACCOUNTS\n" \
                       "------------------------------------------------------------\n\n"
@@ -18982,25 +19711,29 @@ now after saving the file, restart Moneydance
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
             output += x
-            output += "\n\nYou had %s errors, with %s needing manual fixes first... I HAVE FIXED %s\n\n" %(iCountErrors, iCountUnfixable, iErrorsFixed)
+            output += "\n\nYou had %s non-hierarchical txn errors... FIXED %s\n\n" %(iCountErrors, iErrorsFixed)
             output += "\n<END>"
 
-            play_the_money_sound()
-            txt = "FIXED %s Investment Security Txns with Invalid Parent Accounts" %(iErrorsFixed)
-            setDisplayStatus(txt, "DG"); myPrint("B", txt)
-            jif = QuickJFrame(_THIS_METHOD_NAME, output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
-            myPopupInformationBox(jif,txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            txt = "FIXED %s Investment Security Txns with Invalid Parent Accounts (non-hierarchical txn errors)" %(iErrorsFixed)
+            myPrint("B", txt)
+
+            if not autofix:
+                play_the_money_sound()
+                setDisplayStatus(txt, "B")
+                jif = QuickJFrame(_THIS_METHOD_NAME, output, lAlertLevel=1, lWrapText=False, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+                myPopupInformationBox(jif,txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            else:
+                myPrint("B", "AUTOFIX ENDING....")
 
         except:
             output += dump_sys_error_to_md_console_and_errorlog(True)
             txt = "%s: ERROR - Script has crashed. Review screen and console!" %(_THIS_METHOD_NAME)
             output += txt + "\n"
             setDisplayStatus(txt, "R"); myPrint("B", txt)
-            jif = QuickJFrame(_THIS_METHOD_NAME, output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
-            myPopupInformationBox(jif,txt, _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
+            jif = QuickJFrame(_THIS_METHOD_NAME, output, lAlertLevel=2, lWrapText=False, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            myPopupInformationBox(jif, txt, _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-        return
 
     def detect_non_hier_sec_acct_or_orphan_txns():
 
@@ -19113,7 +19846,7 @@ now after saving the file, restart Moneydance
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
         if detect_non_hier_sec_acct_or_orphan_txns() > 0:
-            txt = "CONVERT ACCT/STOCK TO Avg Cst Ctrl: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made"
+            txt = "CONVERT ACCT/STOCK TO Avg Cst Ctrl: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' >> no changes made"
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -19213,7 +19946,7 @@ now after saving the file, restart Moneydance
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
         if detect_non_hier_sec_acct_or_orphan_txns() > 0:
-            txt = "CONVERT ACCT/STOCK TO LOT/FIFO: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX - Non Hierarchical Security Account Txns (cross-linked securities)' >> no changes made"
+            txt = "CONVERT ACCT/STOCK TO LOT/FIFO: ERROR - Cross-linked (or Orphaned) security txns detected.. Review Console. Run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' >> no changes made"
             setDisplayStatus(txt, "R")
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return
@@ -19724,8 +20457,8 @@ now after saving the file, restart Moneydance
         myPrint(u"D", u"Exiting ", inspect.currentframe().f_code.co_name, u"()")
         return theMsg, displayMsg
 
-    def rename_relocate_dataset(lRelocateDataset=False):
-        # type: (bool) -> bool
+    def rename_relocate_dataset(lRelocateDataset=False, lRelocateToInternal=True):
+        # type: (bool, bool) -> bool
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -19758,10 +20491,36 @@ now after saving the file, restart Moneydance
 
         newName = currentName
 
-        newFileWillBeInternal = (lRelocateDataset or AccountBookUtil.isWithinInternalStorage(currentBook))
-
         if lRelocateDataset:
-            fNewNamePath = AccountBook.getUnusedFileNameWithBase(AccountBookUtil.DEFAULT_FOLDER_CONTAINER, StringUtils.stripExtension(fCurrentFilePath.getName()))
+
+            if lRelocateToInternal:
+                newLocation = AccountBookUtil.DEFAULT_FOLDER_CONTAINER
+
+            else:
+                selectedFolder = getFileFromFileChooser(toolbox_frame_,                     # Parent frame or None
+                                                        get_home_dir(),                     # Starting path
+                                                        None,                               # Default Filename
+                                                        "Select new location for dataset",  # Title
+                                                        False,                              # Multi-file selection mode
+                                                        True,                               # True for Open/Load, False for Save
+                                                        False,                              # True = Files, else Dirs
+                                                        "SELECT FOLDER",                    # Load/Save button text, None for defaults
+                                                        None,                               # File filter (non Mac only). Example: "txt" or "qif"
+                                                        lAllowTraversePackages=False,
+                                                        lAllowTraverseApplications=False,
+                                                        lForceJFC=False,
+                                                        lForceFD=False,
+                                                        lAllowNewFolderButton=True,
+                                                        lAllowOptionsButton=True)
+
+                if selectedFolder is None or selectedFolder == "" or not File(selectedFolder).exists():
+                    txt = "%s: User chose to cancel or no folder selected." %(_THIS_METHOD_NAME)
+                    setDisplayStatus(txt, "R")
+                    myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
+                    return None
+                newLocation = File(selectedFolder)
+
+            fNewNamePath = AccountBook.getUnusedFileNameWithBase(newLocation, StringUtils.stripExtension(fCurrentFilePath.getName()))
             newName = fNewNamePath.getName()
             oldPathURI = Paths.get(fCurrentFilePath.toURI())
             newPathURI = Paths.get(fNewNamePath.toURI())
@@ -19861,7 +20620,7 @@ now after saving the file, restart Moneydance
 
             prefs = MD_REF.getUI().getPreferences()
 
-            if not newFileWillBeInternal:
+            if not AccountBookUtil.isWithinInternalStorage(newWrapper.getBook()):
                 externalFiles = prefs.getVectorSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, StreamVector())
                 if not externalFiles.contains(absPath):
                     myPrint("DB", "adding file '%s' to external account list (config.dict)" %(absPath))
@@ -21939,23 +22698,10 @@ Now you will have a text readable version of the file you can open in a text edi
             _msg = pad("Please wait: Resetting Sync in cloned dataset..",_msgPad,padChar=".")
             diag.updateMessages(newTitle=_msg, newStatus=_msg)
 
-            SYNC_KEYS = ["netsync.dropbox.fileid",
-                         "netsync.sync_type",
-                         "netsync.subpath",
-                         "netsync.dropbox_enabled",
-                         "netsync.synckey",
-                         "ext.netsync.settings",
-                         "netsync.guid",
-                         "netsync.fs.sync_path",
-                         "migrated.netsync.dropbox.fileid",
-                         "migrated.ext.netsync.settings",                                                                   # Extra from here
-                         "migrated.netsync.dropbox_enabled",
-                         "migrated.netsync.guid",
-                         "migrated.netsync.synckey"
-                         ]
+            SYNC_KEYS = getNetSyncKeys()
 
             newStorage = newBook.getLocalStorage()
-            for skey in SYNC_KEYS: newStorage.remove(skey)                                                                  # noqa
+            for skey in SYNC_KEYS: newStorage.remove(skey)                                                              # noqa
             newStorage.put("netsync.dropbox.fileid", UUID.randomUUID())
             newStorage.put("_is_master_node", True)
             newStorage.put(PARAMETER_KEY, safeStr(cloneTime))
@@ -22125,7 +22871,7 @@ Now you will have a text readable version of the file you can open in a text edi
             txt = "Clone function has failed. Review log and console (CLONE INCOMPLETE)"
             output += "%s\n" %(txt)
             output += dump_sys_error_to_md_console_and_errorlog(True)
-            jif = QuickJFrame(title=_THIS_METHOD_NAME,output=output,copyToClipboard=True,lWrapText=False).show_the_frame()
+            jif = QuickJFrame(title=_THIS_METHOD_NAME, output=output, lAlertLevel=2, copyToClipboard=True, lWrapText=False).show_the_frame()
             myPopupInformationBox(jif,theMessage=txt, theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
             return
         finally:
@@ -22919,6 +23665,8 @@ Now you will have a text readable version of the file you can open in a text edi
 
         if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return
 
+        MD_REF.saveCurrentAccount()
+
         safeFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe")
 
         fp = os.path.join(safeFullPath, PROCESSED_FILES)
@@ -22999,8 +23747,8 @@ Now you will have a text readable version of the file you can open in a text edi
                          "%sThis function attempts to shrink your dataset size (currently %sMBs, %s files)." %(("SIMULATION MODE: " if SIMULATE else ""),fileSize, fileCount),
                          "It does NOT change your actual database of records (known as 'trunk')\n"
                          "MD keeps log files for every change you (have ever) made. Typically these are .txn and .mdtxn files\n"
-                         "Whilst in theory they could be used to rebuild your database from an older start point, this has never been done to my knowledge.\n"
-                         "These files accumulate over time, and can be safely deleted. Toolbox can do this for you. It will purge log files older than %s days\n"
+                         "Whilst in theory they could be used to rebuild your database from an older start point, this has rarely been done [to my knowledge].\n"
+                         "These files accumulate over time, and can be safely deleted. Toolbox can purge log files older than [%s] days (you set this value)\n"
                          "It validates against the log of known processed dates, and also peeks inside archived zip files that MD creates\n"
                          "NOTE: You will need to repeat this process on other Sync copies too...\n"
                          "PRIOR TO RUNNING THIS, IDEALLY RESTART MD, & ENSURE THAT QUOTE LOADER/Q&ER EXTNS, IMPORTS & BANK DOWNLOADS ARE **NOT** RUNNING\n"
@@ -23016,7 +23764,7 @@ Now you will have a text readable version of the file you can open in a text edi
                                         "If you really are NOT using Sync, I can purge the 'out' directory too?\n"
                                         "Only Click 'PURGE-OUT' if you are NOT using Sync on this dataset.\n"
                                         "(i.e. if you have temporarily disabled Sync, click Cancel)\n"
-                                        "If you click 'PURGE-OUT', you can still enable a NEW Sync relationship at a later date....\n"
+                                        "If you 'PURGE-OUT', you can (re)create a NEW Sync relationship later (if needed)....\n"
                                         "(clicking 'Cancel' means Do NOT purge 'out' directory...)",
                                         theTitle=_THIS_METHOD_NAME, lCancelButton=True, OKButtonText="PURGE-OUT")
             if theMsg.go():
@@ -23032,13 +23780,13 @@ Now you will have a text readable version of the file you can open in a text edi
             newDaysToKeep = myPopupAskForInput(toolbox_frame_,
                                             _THIS_METHOD_NAME,
                                             "Days to Keep:",
-                                            "Enter the new Days to Keep setting (currently %s) - min 1" %(DAYS_TO_KEEP),
+                                            "Enter the new Days to Keep setting (currently %s) - min 0" %(DAYS_TO_KEEP),
                                             defaultValue=str(DAYS_TO_KEEP))
 
             if newDaysToKeep is not None and not StringUtils.isInteger(newDaysToKeep):
                 continue
 
-            if newDaysToKeep is None or int(newDaysToKeep) < 1 or int(newDaysToKeep) > (365*5):
+            if newDaysToKeep is None or int(newDaysToKeep) < 0 or int(newDaysToKeep) > (365*5):
                 txt = "%s: No valid days to keep entered.. - NO CHANGES MADE!" %(_THIS_METHOD_NAME)
                 setDisplayStatus(txt, "B")
                 myPopupInformationBox(toolbox_frame_, txt,theMessageType=JOptionPane.WARNING_MESSAGE)
@@ -23073,25 +23821,27 @@ Now you will have a text readable version of the file you can open in a text edi
         output += "\n%s targets...:\n" %(OUTGOING_PATH)
         # Scan 'out' files... (awaiting Sync)
         targetOutFilesForDeletion = []
-        if lPurgeOutDir:
-            for filename in storage.listFiles(OUTGOING_PATH):
-                fp = os.path.join(safeFullPath, OUTGOING_PATH, filename)
-                if not os.path.exists(fp): raise Exception("Error: file does not exist: %s" %(fp))
+        for filename in storage.listFiles(OUTGOING_PATH):
+            fp = os.path.join(safeFullPath, OUTGOING_PATH, filename)
+            if not os.path.exists(fp): raise Exception("Error: file does not exist: %s" %(fp))
 
-                if (filename.endswith(TXN_FILE_EXTENSION_TMP)) and is_file_older_than_x_days(fp, DAYS_TO_KEEP):
-                    # These are normally 'broken' sync txn files..... get rid of them....
-                    targetOutFilesForDeletion.append(StoreFileReference(OUTGOING_PATH, filename, fp))
-                    output += "%s\n" %(filename)
-                    continue
+            if (filename.endswith(TXN_FILE_EXTENSION_TMP)) and is_file_older_than_x_days(fp, max(1, DAYS_TO_KEEP)):
+                # These are normally 'broken' sync txn files..... get rid of them (but always keep today's just in case)....
+                targetOutFilesForDeletion.append(StoreFileReference(OUTGOING_PATH, filename, fp))
+                output += "%s\n" %(filename)
+                continue
 
-                if not filename.endswith(TXN_FILE_EXTENSION):   continue
-                if not processedTxnFiles.containsKey(filename): continue                                                # noqa
+            if not lPurgeOutDir: continue
 
-                txnFileTimestamp = processedTxnFiles.getLong(filename, 0)
-                txnFileDate = (0 if txnFileTimestamp == 0 else DateUtil.convertLongDateToInt(txnFileTimestamp))
-                if txnFileDate != 0 and txnFileDate <= lookBackDateInt:
-                    # Confirmed that the processed file database has logged this file as processed into trunk!
-                    targetOutFilesForDeletion.append(StoreFileReference(OUTGOING_PATH, filename, fp, txnFileDate))
+            if not filename.endswith(TXN_FILE_EXTENSION):   continue
+            if not processedTxnFiles.containsKey(filename): continue                                                    # noqa
+
+            txnFileTimestamp = processedTxnFiles.getLong(filename, 0)
+            txnFileDate = (0 if txnFileTimestamp == 0 else DateUtil.convertLongDateToInt(txnFileTimestamp))
+            if txnFileDate != 0 and txnFileDate <= lookBackDateInt:
+                # Confirmed that the processed file database has logged this file as processed into trunk!
+                targetOutFilesForDeletion.append(StoreFileReference(OUTGOING_PATH, filename, fp, txnFileDate))
+
         if len(targetOutFilesForDeletion) < 1:
             output += "<NONE>\n"
         else:
@@ -23104,7 +23854,7 @@ Now you will have a text readable version of the file you can open in a text edi
         output += "\n%s targets...:\n" %(UPLOADBUFFER)
         targetUploadBufferForDeletion = []
         fp = os.path.join(safeFullPath, UPLOADBUFFER)
-        if (os.path.exists(fp) and is_file_older_than_x_days(fp, DAYS_TO_KEEP)):
+        if (os.path.exists(fp) and is_file_older_than_x_days(fp, max(1, DAYS_TO_KEEP))):
             # Should be an 'old' file... delete it.....
             targetUploadBufferForDeletion.append(StoreFileReference(UPLOADBUFFER, UPLOADBUFFER, fp))
             output += "%s (modified: %s)\n" %(UPLOADBUFFER, getHumanReadableModifiedDateTimeFromFile(fp))
@@ -23309,23 +24059,23 @@ Now you will have a text readable version of the file you can open in a text edi
         myPopupInformationBox(toolbox_frame_, "Select a non-encrypted file. It will be encrypted and saved to TMP directory of current dataset (details in console log)")
 
         LS = MD_REF.getCurrentAccountBook().getLocalStorage()
-        startingFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath())
+        # startingFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath())
 
         theTitle = "Select file to import (encrypt) and save in the LocalStorage TMP directory"
-        selectedFile = getFileFromFileChooser(  toolbox_frame_,     # Parent frame or None
-                                                startingFullPath,   # Starting path
-                                                None,               # Default Filename
-                                                theTitle,           # Title
-                                                False,              # Multi-file selection mode
-                                                True,               # True for Open/Load, False for Save
-                                                True,               # True = Files, else Dirs
-                                                None,               # Load/Save button text, None for defaults
-                                                "txt",              # File filter (non Mac only). Example: "txt" or "qif"
-                                                lAllowTraversePackages=True,
-                                                lForceJFC=False,
-                                                lForceFD=True,
-                                                lAllowNewFolderButton=True,
-                                                lAllowOptionsButton=True)
+        selectedFile = getFileFromFileChooser(toolbox_frame_,     # Parent frame or None
+                                              get_home_dir(),     # Starting path
+                                              None,               # Default Filename
+                                              theTitle,           # Title
+                                              False,              # Multi-file selection mode
+                                              True,               # True for Open/Load, False for Save
+                                              True,               # True = Files, else Dirs
+                                              None,               # Load/Save button text, None for defaults
+                                              "txt",              # File filter (non Mac only). Example: "txt" or "qif"
+                                              lAllowTraversePackages=True,
+                                              lForceJFC=False,
+                                              lForceFD=True,
+                                              lAllowNewFolderButton=True,
+                                              lAllowOptionsButton=True)
 
         if selectedFile is None or selectedFile == "":
             txt = "%s: No file selected to import/encrypt/save..!" %(_THIS_METHOD_NAME)
@@ -23369,22 +24119,23 @@ Now you will have a text readable version of the file you can open in a text edi
         # JFileChooser has a non native LaF on Mac, but worked... But then VAQua broke it....
         # MacOS: ~/Library/Containers/com.infinitekind.MoneydanceOSX/Data/Documents is a system-location
         # User will have to manually navigate... Oh well!
+        # Update.... as of 2022/07/04 - Now using AppleScript to open this location! ;->
 
-        selectedFile = getFileFromFileChooser(  toolbox_frame_,         # Parent frame or None
-                                                _startingFolder,        # Starting path
-                                                None,                   # Default Filename
-                                                _dialogTitle,           # Title
-                                                False,                  # Multi-file selection mode
-                                                True,                   # True for Open/Load, False for Save
-                                                True,                   # True = Files, else Dirs
-                                                _proceedButtonText,     # Load/Save button text, None for defaults
-                                                None,                   # File filter (non Mac only). Example: "txt" or "qif"
-                                                lAllowTraversePackages=True,
-                                                lAllowTraverseApplications=True,
-                                                lForceJFC=False,
-                                                lForceFD=False,
-                                                lAllowNewFolderButton=False,
-                                                lAllowOptionsButton=False)
+        selectedFile = getFileFromAppleScriptFileChooser(toolbox_frame_,                    # Parent frame or None
+                                                         _startingFolder,                   # Starting path
+                                                         None,                              # Default Filename
+                                                         _dialogTitle,                      # Title
+                                                         False,                             # Multi-file selection mode
+                                                         True,                              # True for Open/Load, False for Save
+                                                         True,                              # True = Files, else Dirs
+                                                         _proceedButtonText,                # Load/Save button text, None for defaults
+                                                         None,                              # File filter (non Mac only). Example: "txt" or "qif"
+                                                         lAllowTraversePackages=True,
+                                                         lAllowTraverseApplications=True,
+                                                         lForceJFC=False,
+                                                         lForceFD=False,
+                                                         lAllowNewFolderButton=False,
+                                                         lAllowOptionsButton=False)
 
         if selectedFile is None or selectedFile == "":
             txt = "%s: User chose to cancel or no file selected." %(_methodTitle)
@@ -23410,9 +24161,9 @@ Now you will have a text readable version of the file you can open in a text edi
                                              "I will decrypt and save it to TMP directory in this current dataset (details in console log)")
 
         LS = MD_REF.getCurrentAccountBook().getLocalStorage()
-        attachmentFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe")
+        internalSafeFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe")
 
-        selectedFile = file_chooser_wrapper(_THIS_METHOD_NAME, attachmentFullPath, "Select Moneydance internal file to extract and copy to TMP directory", "EXTRACT")
+        selectedFile = file_chooser_wrapper(_THIS_METHOD_NAME, internalSafeFullPath, "Select Moneydance internal file to extract and copy to TMP directory", "EXTRACT")
         if selectedFile is None: return
 
         searchForSafe = selectedFile.lower().find(".moneydance"+os.path.sep+"safe"+os.path.sep)
@@ -23773,6 +24524,27 @@ Now you will have a text readable version of the file you can open in a text edi
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
         ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
+    def getNetSyncKeys():
+        _SYNC_KEYS = ["netsync.dropbox.fileid",
+                      "netsync.sync_type",
+                      "netsync.subpath",
+                      "netsync.dropbox_enabled",
+                      "netsync.synckey",
+                      "ext.netsync.settings",
+                      "netsync.guid",
+                      "netsync.fs.sync_path",
+                      "netsync.db.access_token_key",
+                      "netsync.db.access_token_secret",
+                      "netsync.db.v2token",
+                      "netsync.download_attachments",
+                      "migrated.netsync.dropbox.fileid",
+                      "migrated.ext.netsync.settings",
+                      "migrated.netsync.dropbox_enabled",
+                      "migrated.netsync.guid",
+                      "migrated.netsync.synckey"
+                      ]
+        return _SYNC_KEYS
+
     def advanced_mode_force_reset_sync_settings():
         # Resets all Sync settings, generates a new Sync ID, Turns Sync Off. You can turn it back on later....
 
@@ -23791,20 +24563,7 @@ Now you will have a text readable version of the file you can open in a text edi
             myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
-        SYNC_KEYS = ["netsync.dropbox.fileid",
-                     "netsync.sync_type",
-                     "netsync.subpath",
-                     "netsync.dropbox_enabled",
-                     "netsync.synckey",
-                     "ext.netsync.settings",
-                     "netsync.guid",
-                     "netsync.fs.sync_path",
-                     "migrated.netsync.dropbox.fileid",
-                     "migrated.ext.netsync.settings",                                                                   # Extra from here
-                     "migrated.netsync.dropbox_enabled",
-                     "migrated.netsync.guid",
-                     "migrated.netsync.synckey"
-                     ]
+        SYNC_KEYS = getNetSyncKeys()
 
         for skey in SYNC_KEYS: storage.remove(skey)
 
@@ -23823,6 +24582,36 @@ Now you will have a text readable version of the file you can open in a text edi
 
         play_the_money_sound()
         txt = "ALL SYNC SETTINGS HAVE BEEN RESET - MONEYDANCE WILL NOW RESTART"
+        myPrint("B", txt); setDisplayStatus(txt, "R")
+        myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
+
+    def toggle_sync_download_attachments():
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "ADVANCED: TOGGLE SYNC DOWNLOAD ATTACHMENTS"
+
+        shouldDownloadAllAttachments = getShouldDownloadAllAttachments()
+
+        storage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Toggle Sync Download Attachments setting to: %s"
+                                                                                    %("OFF" if shouldDownloadAllAttachments else "ON")):
+            return
+
+        if not backup_local_storage_settings():
+            txt = "%s: ERROR making backup of LocalStorage() ./safe/settings - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        storage.put("netsync.download_attachments", not shouldDownloadAllAttachments)
+        storage.save()
+
+        play_the_money_sound()
+        txt = "Sync download attachments setting now: %s - MONEYDANCE WILL NOW RESTART" %("ON" if getShouldDownloadAllAttachments() else "OFF")
         myPrint("B", txt); setDisplayStatus(txt, "R")
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
 
@@ -24617,15 +25406,6 @@ Now you will have a text readable version of the file you can open in a text edi
                                                                     timeOutSeconds * 1000,
                                                                     options[2])
 
-                            # response = JOptionPane.showOptionDialog(toolbox_frame_,
-                            #                                          "Are you OK to continue (so far..: %s found / %s files/searched)?" %(iFound, thingsSearched),
-                            #                                          "SEARCH COMPUTER FOR MONEYDANCE DATASET(s)",
-                            #                                          JOptionPane.YES_NO_OPTION,
-                            #                                          JOptionPane.QUESTION_MESSAGE,
-                            #                                          None,
-                            #                                          options,
-                            #                                          options[2])
-
                             if response < 1:
                                 _txt = "%s: User Aborted Dataset search..." %(_THIS_METHOD_NAME)
                                 myPrint("B", _txt); setDisplayStatus(_txt, "R")
@@ -24860,7 +25640,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         bg.clearSelection()
 
                         options = ["EXIT", "PROCEED"]
-                        jsp = MyJScrollPaneForJOptionPane(userFilters,700,350)
+                        jsp = MyJScrollPaneForJOptionPane(userFilters,700,425)
                         userAction = (JOptionPane.showOptionDialog(toolbox_frame_,
                                                                    jsp,
                                                                    "Accounts / Categories Diagnostics, Tools, Fixes",
@@ -24960,6 +25740,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_merge_duplicate_securities.setEnabled(GlobalVars.UPDATE_MODE)
                     user_merge_duplicate_securities.setForeground(getColorRed())
 
+                    user_fix_duplicate_securities_within_same_investment_account = JRadioButton("FIX: Detect and merge/fix duplicate Securities within same Investment Account(s)", False)
+                    user_fix_duplicate_securities_within_same_investment_account.setToolTipText("Scans and merges 'duplicated' Securities within the same Investment account(s).. THIS CHANGES DATA!")
+                    user_fix_duplicate_securities_within_same_investment_account.setEnabled(GlobalVars.UPDATE_MODE)
+                    user_fix_duplicate_securities_within_same_investment_account.setForeground(getColorRed())
+
                     user_autofix_price_date = JRadioButton("FIX: Diagnose then fix your currency / security's current price hidden 'price_date' field (along with the current price/rate)", False)
                     user_autofix_price_date.setToolTipText("This will diagnose then fix your Currency & Security's current price hidden price_date field (and current price/rate)....")
                     user_autofix_price_date.setEnabled(GlobalVars.UPDATE_MODE)
@@ -25023,6 +25808,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_diag_price_date)
                     bg.add(user_edit_security_decimal_places)
                     bg.add(user_merge_duplicate_securities)
+                    bg.add(user_fix_duplicate_securities_within_same_investment_account)
                     bg.add(user_autofix_price_date)
                     bg.add(user_fix_price_date)
                     bg.add(user_fix_curr_sec)
@@ -25059,6 +25845,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         userFilters.add(user_autofix_price_date)
                         userFilters.add(user_fix_price_date)
 
+                    userFilters.add(user_fix_duplicate_securities_within_same_investment_account)
                     userFilters.add(user_fix_invalidLotRecords)
                     userFilters.add(user_convert_stock_lot_FIFO)
                     userFilters.add(user_convert_stock_avg_cst_control)
@@ -25114,14 +25901,14 @@ Now you will have a text readable version of the file you can open in a text edi
                             user_fix_invalid_price_history.setEnabled(False)
 
                             # Just disable if errors on Security records....
-                            if not check_all_currency_raw_rates_ok(CurrencyType.Type.SECURITY):                             # noqa
+                            if not check_all_currency_raw_rates_ok(CurrencyType.Type.SECURITY):                         # noqa
                                 user_edit_security_decimal_places.setEnabled(False)
                                 user_merge_duplicate_securities.setEnabled(False)
 
                         bg.clearSelection()
 
                         options = ["EXIT", "PROCEED"]
-                        jsp = MyJScrollPaneForJOptionPane(userFilters,1000,600)
+                        jsp = MyJScrollPaneForJOptionPane(userFilters,1100,625)
                         userAction = (JOptionPane.showOptionDialog(toolbox_frame_,
                                                                    jsp,
                                                                    "Currency / Security Diagnostics, Tools, Fixes",
@@ -25136,27 +25923,28 @@ Now you will have a text readable version of the file you can open in a text edi
 
                         selectHomeScreen()      # Stops the LOT Control box popping up..... Get back to home screen....
 
-                        if user_can_i_delete_security.isSelected():                         can_I_delete_security()
-                        if user_can_i_delete_currency.isSelected():                         can_I_delete_currency()
-                        if user_list_curr_sec_dpc.isSelected():                             list_security_currency_decimal_places()
-                        if user_diag_price_date.isSelected():                               list_security_currency_price_date()
-                        if user_autofix_price_date.isSelected():                            list_security_currency_price_date(autofix=True)
-                        if user_diag_curr_sec.isSelected():                                 diagnose_currencies(False)
-                        if user_fix_curr_sec.isSelected():                                  diagnose_currencies(True)
-                        if user_fix_invalid_curr_sec.isSelected():                          fix_invalid_relative_currency_rates()
-                        if user_edit_security_decimal_places.isSelected():                  edit_security_decimal_places()
-                        if user_merge_duplicate_securities.isSelected():                    merge_duplicate_securities()
-                        if user_fix_invalid_price_history.isSelected():                     fix_invalid_price_history()
-                        if user_fix_nonlinked_security_records.isSelected():                detect_fix_nonlinked_investment_security_records()
-                        if user_thin_price_history.isSelected():                            thin_price_history()
-                        if user_show_open_share_lots.isSelected():                          show_open_share_lots()
-                        if user_fix_invalidLotRecords.isSelected():                         fix_invalidLotRecords()
-                        if user_convert_stock_lot_FIFO.isSelected():                        convert_stock_lot_FIFO()
-                        if user_convert_stock_avg_cst_control.isSelected():                 convert_stock_avg_cst_control()
-                        if user_force_change_accounts_currency.isSelected():                force_change_account_cat_currency()
-                        if user_force_change_all_accounts_cats_currency.isSelected():       force_change_all_accounts_categories_currencies()
-                        if user_force_change_accounts_cats_from_to_currency.isSelected():   force_change_accounts_cats_from_to_currency()
-                        if user_fix_price_date.isSelected():                                manually_edit_price_date_field()
+                        if user_can_i_delete_security.isSelected():                                     can_I_delete_security()
+                        if user_can_i_delete_currency.isSelected():                                     can_I_delete_currency()
+                        if user_list_curr_sec_dpc.isSelected():                                         list_security_currency_decimal_places()
+                        if user_diag_price_date.isSelected():                                           list_security_currency_price_date()
+                        if user_autofix_price_date.isSelected():                                        list_security_currency_price_date(autofix=True)
+                        if user_diag_curr_sec.isSelected():                                             diagnose_currencies(False)
+                        if user_fix_curr_sec.isSelected():                                              diagnose_currencies(True)
+                        if user_fix_invalid_curr_sec.isSelected():                                      fix_invalid_relative_currency_rates()
+                        if user_edit_security_decimal_places.isSelected():                              edit_security_decimal_places()
+                        if user_merge_duplicate_securities.isSelected():                                merge_duplicate_securities()
+                        if user_fix_duplicate_securities_within_same_investment_account.isSelected():   fix_duplicate_securities_within_same_investment_account()
+                        if user_fix_invalid_price_history.isSelected():                                 fix_invalid_price_history()
+                        if user_fix_nonlinked_security_records.isSelected():                            detect_fix_nonlinked_investment_security_records()
+                        if user_thin_price_history.isSelected():                                        thin_price_history()
+                        if user_show_open_share_lots.isSelected():                                      show_open_share_lots()
+                        if user_fix_invalidLotRecords.isSelected():                                     fix_invalidLotRecords()
+                        if user_convert_stock_lot_FIFO.isSelected():                                    convert_stock_lot_FIFO()
+                        if user_convert_stock_avg_cst_control.isSelected():                             convert_stock_avg_cst_control()
+                        if user_force_change_accounts_currency.isSelected():                            force_change_account_cat_currency()
+                        if user_force_change_all_accounts_cats_currency.isSelected():                   force_change_all_accounts_categories_currencies()
+                        if user_force_change_accounts_cats_from_to_currency.isSelected():               force_change_accounts_cats_from_to_currency()
+                        if user_fix_price_date.isSelected():                                            manually_edit_price_date_field()
 
                         for button in bg.getElements():
                             if button.isSelected(): return      # Quit the menu system after running something....
@@ -25220,6 +26008,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_reverse_txn_exchange_rates_by_account_and_date.setEnabled(GlobalVars.UPDATE_MODE)
                     user_reverse_txn_exchange_rates_by_account_and_date.setForeground(getColorRed())
 
+                    user_detect_fix_txns_assigned_root = JRadioButton("FIX: Detect and fix transactions assigned to 'root' account", False)
+                    user_detect_fix_txns_assigned_root.setToolTipText("This detects transactions assigned to 'root' and offers options to display/fix. THIS CHANGES DATA!")
+                    user_detect_fix_txns_assigned_root.setEnabled(GlobalVars.UPDATE_MODE)
+                    user_detect_fix_txns_assigned_root.setForeground(getColorRed())
+
                     labelFYI2 = JLabel("       ** to activate Exit, Select Toolbox Options, Update mode **")
                     labelFYI2.setForeground(getColorRed())
 
@@ -25235,6 +26028,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_fix_delete_one_sided_txns)
                     bg.add(user_reverse_txn_amounts)
                     bg.add(user_reverse_txn_exchange_rates_by_account_and_date)
+                    bg.add(user_detect_fix_txns_assigned_root)
                     bg.clearSelection()
 
                     userFilters.add(JLabel(" "))
@@ -25257,6 +26051,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_fix_delete_one_sided_txns)
                     userFilters.add(user_reverse_txn_amounts)
                     userFilters.add(user_reverse_txn_exchange_rates_by_account_and_date)
+                    userFilters.add(user_detect_fix_txns_assigned_root)
 
                     while True:
 
@@ -25266,7 +26061,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         user_diagnose_fix_attachments.setEnabled(GlobalVars.UPDATE_MODE and syncFolder is None)
 
                         options = ["EXIT", "PROCEED"]
-                        jsp = MyJScrollPaneForJOptionPane(userFilters,850,300)
+                        jsp = MyJScrollPaneForJOptionPane(userFilters,850,350)
                         userAction = (JOptionPane.showOptionDialog(toolbox_frame_,
                                                                    jsp,
                                                                    "Transaction(s) Diagnostics, Tools, Fixes",
@@ -25290,6 +26085,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_fix_delete_one_sided_txns.isSelected():                         fix_delete_one_sided_txns()
                         if user_reverse_txn_amounts.isSelected():                               reverse_txn_amounts()
                         if user_reverse_txn_exchange_rates_by_account_and_date.isSelected():    reverse_txn_exchange_rates_by_account_and_date()
+                        if user_detect_fix_txns_assigned_root.isSelected():                     detect_fix_txns_assigned_root()
 
                         for button in bg.getElements():
                             if button.isSelected(): return      # Quit the menu system after running something....
@@ -25346,10 +26142,15 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_rename_dataset.setEnabled(GlobalVars.UPDATE_MODE)
                     user_rename_dataset.setForeground(getColorRed())
 
-                    user_relocate_dataset = JRadioButton("Relocate this dataset back to the default 'internal' location", False)
-                    user_relocate_dataset.setToolTipText("This will allow you to relocate this dataset back to the internal default location - THIS CHANGES DATA!")
-                    user_relocate_dataset.setEnabled(GlobalVars.UPDATE_MODE and not AccountBookUtil.isWithinInternalStorage(MD_REF.getCurrentAccountBook()))
-                    user_relocate_dataset.setForeground(getColorRed())
+                    user_relocate_dataset_internal = JRadioButton("Relocate this dataset back to the default 'internal' location", False)
+                    user_relocate_dataset_internal.setToolTipText("This will allow you to relocate this dataset back to the internal default location - THIS CHANGES DATA!")
+                    user_relocate_dataset_internal.setEnabled(GlobalVars.UPDATE_MODE and not AccountBookUtil.isWithinInternalStorage(MD_REF.getCurrentAccountBook()))
+                    user_relocate_dataset_internal.setForeground(getColorRed())
+
+                    user_relocate_dataset_external = JRadioButton("Relocate this dataset to another location [Note: IK do not recommend this]", False)
+                    user_relocate_dataset_external.setToolTipText("This will allow you to relocate this dataset to another (non-default) location - THIS CHANGES DATA!")
+                    user_relocate_dataset_external.setEnabled(GlobalVars.UPDATE_MODE and (not Platform.isOSX() or not MD_REF.getPlatformHelper().isConstrainedToSandbox()))
+                    user_relocate_dataset_external.setForeground(getColorRed())
 
                     user_cleanup_external_files = JRadioButton("Cleanup MD's File/Open list of 'external' files (does not touch actual files)", False)
                     user_cleanup_external_files.setToolTipText("Cleans up the list of files shown on the MD File/Open menu - THIS CHANGES CONFIG.DICT!")
@@ -25399,7 +26200,8 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_convert_timestamp)
                     bg.add(user_reset_window_display_settings)
                     bg.add(user_rename_dataset)
-                    bg.add(user_relocate_dataset)
+                    bg.add(user_relocate_dataset_internal)
+                    bg.add(user_relocate_dataset_external)
                     bg.add(user_cleanup_external_files)
                     bg.add(user_advanced_delete_int_ext_files)
                     bg.add(user_change_moneydance_fonts)
@@ -25427,7 +26229,8 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     userFilters.add(user_reset_window_display_settings)
                     userFilters.add(user_rename_dataset)
-                    userFilters.add(user_relocate_dataset)
+                    userFilters.add(user_relocate_dataset_internal)
+                    userFilters.add(user_relocate_dataset_external)
                     userFilters.add(user_cleanup_external_files)
                     userFilters.add(user_advanced_delete_int_ext_files)
                     userFilters.add(user_change_moneydance_fonts)
@@ -25442,7 +26245,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         bg.clearSelection()
 
                         options = ["EXIT", "PROCEED"]
-                        jsp = MyJScrollPaneForJOptionPane(userFilters,550,500)
+                        jsp = MyJScrollPaneForJOptionPane(userFilters,550,600)
                         userAction = (JOptionPane.showOptionDialog(toolbox_frame_,
                                                                    jsp,
                                                                    "General Diagnostics, Tools, Fixes",
@@ -25468,7 +26271,8 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_import_QIF.isSelected():                            import_QIF()
                         if user_convert_timestamp.isSelected():                     convert_timestamp_readable_date()
                         if user_rename_dataset.isSelected():                        rename_relocate_dataset(lRelocateDataset=False)
-                        if user_relocate_dataset.isSelected():                      rename_relocate_dataset(lRelocateDataset=True)
+                        if user_relocate_dataset_internal.isSelected():             rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=True)
+                        if user_relocate_dataset_external.isSelected():             rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=False)
                         if user_cleanup_external_files.isSelected():                cleanup_external_files_setting()
                         if user_advanced_delete_int_ext_files.isSelected():         advanced_remove_int_external_files_settings()
                         if user_change_moneydance_fonts.isSelected():               change_fonts()
@@ -25563,6 +26367,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_force_reset_sync_settings.setForeground(getColorRed())
                     user_force_reset_sync_settings.setEnabled(GlobalVars.ADVANCED_MODE)
 
+                    user_toggle_sync_download_attachments = JRadioButton("Toggle Sync Downloading of Attachments", False)
+                    user_toggle_sync_download_attachments.setToolTipText("Normally this defaults to ON; Change to OFF to prevent attachments downloading via Sync - UPDATES YOUR DATASET")
+                    user_toggle_sync_download_attachments.setForeground(getColorRed())
+                    user_toggle_sync_download_attachments.setEnabled(GlobalVars.ADVANCED_MODE)
+
                     user_demote_primary_to_secondary = JRadioButton("DEMOTE Primary dataset back to a Secondary Node", False)
                     user_demote_primary_to_secondary.setToolTipText("DEMOTE your Primary Sync Node/Dataset to a Secondary Node)..... UPDATES YOUR DATASET")
                     user_demote_primary_to_secondary.setEnabled(GlobalVars.ADVANCED_MODE and MD_REF.getUI().getCurrentAccounts().isMasterSyncNode())
@@ -25591,6 +26400,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_advanced_sync_push)
                     bg.add(user_force_sync_off)
                     bg.add(user_force_reset_sync_settings)
+                    bg.add(user_toggle_sync_download_attachments)
                     bg.add(user_demote_primary_to_secondary)
                     bg.add(user_advanced_suppress_dropbox_warning)
                     bg.clearSelection()
@@ -25616,6 +26426,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_advanced_sync_push)
                     userFilters.add(user_force_sync_off)
                     userFilters.add(user_force_reset_sync_settings)
+                    userFilters.add(user_toggle_sync_download_attachments)
                     userFilters.add(user_advanced_import_to_storage)
                     userFilters.add(user_advanced_mode_edit_prefs)
                     userFilters.add(user_advanced_edit_param_keys)
@@ -25632,6 +26443,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         user_demote_primary_to_secondary.setEnabled(GlobalVars.ADVANCED_MODE and (MD_REF.getUI().getCurrentAccounts().isMasterSyncNode()))
                         user_advanced_sync_push.setEnabled(GlobalVars.ADVANCED_MODE and (MD_REF.getUI().getCurrentAccounts().isMasterSyncNode()))
                         user_force_sync_off.setEnabled(GlobalVars.ADVANCED_MODE and (not (storage.get(_PARAM_KEY) is None or storage.get(_PARAM_KEY) == _NONE)))
+                        user_toggle_sync_download_attachments.setEnabled(GlobalVars.ADVANCED_MODE and (not (storage.get(_PARAM_KEY) is None or storage.get(_PARAM_KEY) == _NONE)))
                         user_advanced_extract_from_sync.setEnabled(GlobalVars.ADVANCED_MODE and (MD_REF.getUI().getCurrentAccounts().getSyncFolder() is not None))
 
                         bg.clearSelection()
@@ -25665,6 +26477,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_advanced_clone_dataset.isSelected():                advanced_clone_dataset()
                         if user_force_sync_off.isSelected():                        advanced_mode_force_sync_off()
                         if user_force_reset_sync_settings.isSelected():             advanced_mode_force_reset_sync_settings()
+                        if user_toggle_sync_download_attachments.isSelected():      toggle_sync_download_attachments()
                         if user_demote_primary_to_secondary.isSelected():           advanced_mode_demote_primary_to_secondary()
                         if user_advanced_suppress_dropbox_warning.isSelected():     advanced_mode_suppress_dropbox_warning()
 
@@ -25679,8 +26492,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
         class ConvertSecondaryButtonAction(AbstractAction):
 
-            def __init__(self, theString):
-                self.theString = theString
+            def __init__(self): pass
 
             def actionPerformed(self, event):
                 # convert_secondary_to_primary_data_set
@@ -26265,10 +27077,16 @@ Now you will have a text readable version of the file you can open in a text edi
             # ----------------------------------------------------------------------------------------------------------
 
             # These are instant fix buttons
+            if not MD_REF.isRegistered():
+                RegisterMD_button = MyJButton("<html><center>REGISTER<BR>MONEYDANCE</center></html>", registerMDButton=True)
+                RegisterMD_button.setToolTipText("This allows you to enter your registration key")
+                RegisterMD_button.addActionListener(self.RegisterMoneydance(RegisterMD_button))
+                GlobalVars.allButtonsList.append(RegisterMD_button)
+
             if (not MD_REF.getUI().getCurrentAccounts().isMasterSyncNode()):
                 convertSecondary_button = MyJButton("<html><center>FIX: Make me a<BR>Primary dataset</center></html>", adhocButton=True)
                 convertSecondary_button.setToolTipText("Promotes this Dataset a Primary / Master Dataset. Enables Sync options. (typically after restore from a synchronised secondary dataset/backup). THIS CHANGES DATA!")
-                convertSecondary_button.addActionListener(self.ConvertSecondaryButtonAction(displayString))
+                convertSecondary_button.addActionListener(self.ConvertSecondaryButtonAction())
                 convertSecondary_button.setVisible(False)
                 GlobalVars.allButtonsList.append(convertSecondary_button)
 
@@ -26306,12 +27124,6 @@ Now you will have a text readable version of the file you can open in a text edi
                 FixDropboxOneWaySync_button.setVisible(False)
                 GlobalVars.allButtonsList.append(FixDropboxOneWaySync_button)
 
-            if not MD_REF.isRegistered():
-                RegisterMD_button = MyJButton("<html><center>REGISTER<BR>MONEYDANCE</center></html>", registerMDButton=True)
-                RegisterMD_button.setToolTipText("This allows you to enter your registration key")
-                RegisterMD_button.addActionListener(self.RegisterMoneydance(RegisterMD_button))
-                GlobalVars.allButtonsList.append(RegisterMD_button)
-
             # end of instant fix buttons
             # ----------------------------------------------------------------------------------------------------------
 
@@ -26340,8 +27152,10 @@ Now you will have a text readable version of the file you can open in a text edi
 
             myDiagText = JTextArea(displayString)
             myDiagText.setEditable(False)
-            myDiagText.setLineWrap(True)
-            myDiagText.setWrapStyleWord(True)
+            lineWrap = False
+            # if isMDThemeVAQua() and float(MD_REF.getBuild()) < 4077: lineWrap = True    # Bug in VAQua9.. Seems OK in VAQua10
+            myDiagText.setLineWrap(lineWrap)
+            if lineWrap: myDiagText.setWrapStyleWord(True)
             myDiagText.setFont(getMonoFont())
 
             mySearchAction = SearchAction(toolbox_frame_,myDiagText)
@@ -26360,8 +27174,7 @@ Now you will have a text readable version of the file you can open in a text edi
             # ----------------------------------------------------------------------------------------------------------
 
             self.myScrollPane = JScrollPane(myDiagText, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
-            # self.myScrollPane.setPreferredSize(Dimension(frame_width - 30, frame_height - mainPnl.getPreferredSize().height))
-            self.myScrollPane.setBorder(BorderFactory.createLineBorder((MD_REF.getUI().getColors()).mainPanelBorderColor, 1))
+            # self.myScrollPane.setBorder(BorderFactory.createLineBorder((MD_REF.getUI().getColors()).mainPanelBorderColor, 1))  # This causes VAQua9 bug (OK in VAQua10)
             self.myScrollPane.setViewportBorder(EmptyBorder(1, 5, 5, 5))
             self.myScrollPane.setOpaque(False)
             self.myScrollPane.setWheelScrollingEnabled(True)
@@ -26592,6 +27405,21 @@ Now you will have a text readable version of the file you can open in a text edi
                 System.setProperty("apple.laf.useScreenMenuBar", save_useScreenMenuBar)
                 System.setProperty("com.apple.macos.useScreenMenuBar", save_useScreenMenuBar)
 
+
+            # Check for no currencies.. Popup alert message
+            # noinspection PyUnresolvedReferences
+            allCurrs = [c for c in MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies() if c.getCurrencyType() == CurrencyType.Type.CURRENCY]
+            if len(allCurrs) < 1:
+                MyPopUpDialogBox(toolbox_frame_,"PROBLEM DETECTED",
+                                                 "You seem to have no Currencies?!\n" 
+                                                 "Please go to Tools/Currencies and add a Currency\n" 
+                                                 "This would normally need to be your 'base' currency\n"
+                                                 "You should check the currency setup of your accounts too!",
+                                                 theTitle="ERROR - NO CURRENCIES EXIST",
+                                                 OKButtonText="ACKNOWLEDGE",
+                                                 lAlertLevel=2,
+                                                 lModal=True).go()
+            del allCurrs
 
             # Check for problem with java.io.tmpdir - causes missing icons etc.. Popup alert message
             if not detect_broken_critical_javaio_temp_dir_OK():
@@ -26832,8 +27660,8 @@ Script/extension is analysing your moneydance & system settings....
                     myPrint("DB",".. Main App Already within the EDT so calling naked...")
                     MainAppRunnable().run()
 
-                myPrint("DB","Requesting System Garbage Collection....")
-                System.gc()
+                # myPrint("DB","Requesting System Garbage Collection....")
+                # System.gc()
 
                 myPrint("P","-----------------------------------------------------------------------------------------------------------")
                 myPrint("B", "Infinite Kind in conjunction with StuWareSoftSystems - ", GlobalVars.thisScriptName, " script ending (frame is open/running)......")

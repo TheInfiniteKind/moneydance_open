@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_total_selected_transactions.py build: 1009 - August 2021 - Stuart Beesley StuWareSoftSystems
+# toolbox_total_selected_transactions.py build: 1010 - August 2021 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -42,6 +42,8 @@
 # build: 1008 - Eliminated common code globals :->
 # build: 1008 - Now copy the result into the clipboard (as a raw number, no formatting)
 # build: 1009 - Tweaks
+# build: 1010 - Enhancement to allow usage from the Summary / home page search (which can create a list of txns from different accounts)
+# build: 1010 - Allow multi-currency, multi-account-types etc.....; Enhanced component search so that Advanced Search / Find is also included too..
 
 # Looks for an Account register that has focus and then totals the selected transactions. If any found, displays on screen
 # NOTE: 1st Aug 2021 - As a result of creating this extension, IK stated this would be core functionality in preview build 3070+
@@ -52,7 +54,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox_total_selected_transactions"
-version_build = "1009"
+version_build = "1010"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -330,13 +332,15 @@ else:
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
     from javax.swing import JSplitPane
     from com.moneydance.apps.md.view.gui.acctpanels import BankAcctPanel
-    from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel
+    from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel, TxnSearchWindow
     from com.moneydance.apps.md.view.gui.txnreg import TxnRegister, TxnRegisterList
     from com.infinitekind.moneydance.model import InvestFields, InvestTxnType                                           # noqa
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
+
+    GlobalVars.Strings.PREFERENCES_USER_CURRENCY_KEY = "toolbox_total_selected_transactions_currencyid"
 
     # COPY >> START
     # COMMON CODE ######################################################################################################
@@ -3072,7 +3076,6 @@ Visit: %s (Author's site)
                         myPrint("DB", " Skipping as Txn is being edited....")
                         continue
 
-                    # myPrint("DB", " REG TYPE: %s" %(p_regObject.getRegisterType()))
                     myPrint("DB", "Found %s txns" %(len(p_regObject.getSelectedTxns())))
                     analyseTxns(p_regObject.getSelectedTxns(), SwingUtilities.getWindowAncestor(pnlComp))
 
@@ -3083,39 +3086,84 @@ Visit: %s (Author's site)
 
         def analyseTxns(listTxns, frame):                                                                               # noqa
 
+            MULTI = "** MULTI **"
+
             iCountTxns = 0
+
+            originalBase = base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+            userPreferenceCurrID = MD_REF.getPreferences().getSetting(GlobalVars.Strings.PREFERENCES_USER_CURRENCY_KEY, None)
+
+            if userPreferenceCurrID is not None:
+                newBase = MD_REF.getCurrentAccountBook().getCurrencies().getCurrencyByIDString(userPreferenceCurrID)
+                # noinspection PyUnresolvedReferences
+                if newBase is not None and newBase != base and newBase.getCurrencyType() == CurrencyType.Type.CURRENCY:
+                    myPrint("B", "User has overridden the base currency '%s' with preference for '%s' (key: '%s')" %(base, newBase, GlobalVars.Strings.PREFERENCES_USER_CURRENCY_KEY))
+                    base = newBase
+                else:
+                    myPrint("B", "Ignoring request by user preference to override base currency with ID: '%s' (key: '%s')" %(userPreferenceCurrID, GlobalVars.Strings.PREFERENCES_USER_CURRENCY_KEY))
 
             if listTxns:
 
-                total = 0
-                account = acctCurr = None
+                totalsByTxnCurrency = {}
+                primaryAccount = primaryAcctCurr = None
+                lMultiAccounts = lMultiAccountTypes = lMultiCurrency = False
                 lInvestments = False
-                shares = fees = amounts = 0.0
+                shares = 0.0
+                feesInLocalCurr = amountsInLocalCurr = 0.0
+                feesInBaseCurr = amountsInBaseCurr = 0.0
                 buys = sells = 0
                 fields = InvestFields()
 
                 _i = 1
                 for txn in listTxns:
+
                     iCountTxns += 1
+                    txnAcct = txn.getAccount()
+                    txnAcctCurr = txnAcct.getCurrencyType()
+
                     # if not isinstance(txn, AbstractTxn): raise Exception("LOGIC ERROR: Found a non AbstractTxn? %s" %(txn))
                     myPrint("DB","--- Txn: %s ---" %(_i)); _i += 1
-                    myPrint("DB", " Account: %s isParent: %s" %(txn.getAccount(), isinstance(txn,ParentTxn)))
+                    myPrint("DB", " Account: %s isParent: %s" %(txnAcct, isinstance(txn,ParentTxn)))
 
-                    if not account:
-                        account = txn.getAccount()
-                        acctCurr = account.getCurrencyType()
-                    elif account != txn.getAccount():
-                        raise Exception("LOGIC ERROR: Found different accounts within Txns?!")
+                    if primaryAccount is None:
+                        primaryAccount = txnAcct
+                        primaryAcctCurr = primaryAccount.getCurrencyType()
 
-                    if isinstance(txn, ParentTxn):
-                        myPrint("DB", "\n", txn.toMultilineString())
-                    else:
-                        myPrint("DB", "\n", txn)
+                    elif primaryAccount != txnAcct:
+                        lMultiAccounts = True
+
+                        # # noinspection PyUnresolvedReferences
+                        # if (primaryAccount.getAccountType() == Account.AccountType.INVESTMENT
+                        #         and txnAcct.getAccountType() != Account.AccountType.INVESTMENT):
+                        #     myPopupInformationBox(toolbox_total_selected_transactions_frame_, "WARNING: Cannot Total a mixed list containing both Investment and Non-Investment accounts")
+                        #     raise QuickAbortThisScriptException
+
+                        if (primaryAccount.getAccountType() != txnAcct.getAccountType()):
+                            lMultiAccountTypes = True
+
+                        if (primaryAcctCurr != txnAcct.getCurrencyType()):
+                            lMultiCurrency = True
+                            # txt = "WARNING: Cannot Total a mixed list containing different currencies"
+                            # myPrint("B", txt)
+                            # myPrint("B", txn.getParentTxn().toMultilineString())
+                            # myPrint("B", primaryAcctCurr, primaryAcctCurr.getPrefix(), primaryAcctCurr.getSuffix(), primaryAcctCurr.getUUID())
+                            # myPrint("B", txnAcctCurr, txnAcctCurr.getPrefix(), txnAcctCurr.getSuffix(), txnAcctCurr.getUUID())
+                            # myPopupInformationBox(toolbox_total_selected_transactions_frame_, txt)
+                            # raise QuickAbortThisScriptException
+
+                        myPrint("DB","ALERT: Totalling mixed list (probably from Home/Summary page search results.... (MultiCurrency: %s, MultiAccountTypes: %s" %(lMultiCurrency, lMultiAccountTypes))
+
+                    if debug:
+                        if isinstance(txn, ParentTxn):
+                            myPrint("DB", "\n", txn.toMultilineString())
+                        else:
+                            myPrint("DB", "\n", txn)
 
                     # noinspection PyUnresolvedReferences
-                    if account.getAccountType() == Account.AccountType.INVESTMENT: lInvestments = True
+                    if txnAcct.getAccountType() == Account.AccountType.INVESTMENT:
 
-                    if lInvestments:
+                        lInvestments = True
+
                         fields.setFieldStatus(txn)
 
                         mult = 1.0
@@ -3130,10 +3178,12 @@ Visit: %s (Author's site)
                             shares += fields.secCurr.getDoubleValue(fields.shares) * mult
 
                         if fields.hasFee:
-                            fees += fields.curr.getDoubleValue(fields.fee)
+                            feesInLocalCurr += fields.curr.getDoubleValue(fields.fee)
+                            feesInBaseCurr += base.getDoubleValue(CurrencyUtil.convertValue(fields.fee, txnAcctCurr, base))
 
                         if fields.hasAmount:
-                            amounts += fields.curr.getDoubleValue(fields.amount) * mult
+                            amountsInLocalCurr += fields.curr.getDoubleValue(fields.amount) * mult
+                            amountsInBaseCurr += base.getDoubleValue(CurrencyUtil.convertValue(fields.amount, txnAcctCurr, base)) * mult
 
                         # if fields.txnType.isSell():
                         # elif fields.txnType.isBuy():
@@ -3142,69 +3192,105 @@ Visit: %s (Author's site)
                         # elif fields.txnType == InvestTxnType.MISCEXP:
                         # elif fields.txnType == InvestTxnType.MISCINC:
 
-                    total += txn.getValue()
+                    totalsByTxnCurrency[txnAcctCurr] = totalsByTxnCurrency.get(txnAcctCurr, 0) + txn.getValue()
 
                     myPrint("DB", "------")
 
                 if iCountTxns:
 
+                    totalInBaseCurrency = 0
+                    for txnCurr in totalsByTxnCurrency:
+                        totalInBaseCurrency += CurrencyUtil.convertValue(totalsByTxnCurrency[txnCurr], txnCurr, base)
+
                     acctType = pad("Account:", 11)
                     # noinspection PyUnresolvedReferences
-                    if account.getAccountType() == Account.AccountType.INCOME \
-                            or account.getAccountType() == Account.AccountType.EXPENSE:
+                    if (not lMultiAccountTypes
+                            and primaryAccount.getAccountType() == Account.AccountType.INCOME
+                            or primaryAccount.getAccountType() == Account.AccountType.EXPENSE):
                         acctType = pad("Category:", 11)
 
-                    storeSum[0] = "%s: '%s' Total of selected txns: %s" %(acctType, account, acctCurr.formatFancy(total,MD_decimal))
+                    if lMultiCurrency:
+                        storeSum[0] = "%s: '%s' Total of selected txns: %s (multi-currency converted to base)"\
+                                      %(acctType, (MULTI if lMultiAccounts else primaryAccount), base.formatFancy(totalInBaseCurrency, MD_decimal))
+                    else:
+                        storeSum[0] = "%s: '%s' Total of selected txns: %s (%s)" %(acctType,
+                                                                                   (MULTI if lMultiAccounts else primaryAccount),
+                                                                                   primaryAcctCurr.formatFancy(sum(totalsByTxnCurrency.values()), MD_decimal),
+                                                                                   base.formatFancy(totalInBaseCurrency, MD_decimal))
                     myPrint("B", storeSum[0])
 
-                    if len(listTxns) and total:
-                        averageValue = acctCurr.formatFancy(int(round(total/len(listTxns),0)),MD_decimal)
+                    if len(listTxns) and totalsByTxnCurrency:
+                        if lMultiCurrency:
+                            averageValue = base.formatFancy(int(round(totalInBaseCurrency / len(listTxns),0)), MD_decimal)
+                        else:
+                            averageValue = primaryAcctCurr.formatFancy(int(round(sum(totalsByTxnCurrency.values()) / len(listTxns),0)), MD_decimal)
                     else:
                         averageValue = ""
 
-                    if isinstance(acctCurr, CurrencyType): pass     # This forces a type hint of sorts....
+                    if isinstance(primaryAcctCurr, CurrencyType): pass     # Forces a type hint....
 
-                    base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
-                    if acctCurr != base and isGoodRate(acctCurr.getRate(base)):
-
-                        rate = round(safeInvertRate(acctCurr.getRate(base)),4)
-                        convertBase = int(round(total / acctCurr.getRate(base),0))
-
-                        fx_line = "%s %s (using current rate @ %s)\n" %(pad("Base Value:",11),
-                                                                              base.formatFancy(convertBase,MD_decimal),
-                                                                              rate)
+                    if primaryAcctCurr != base or lMultiCurrency:
+                        # rate = round(safeInvertRate(primaryAcctCurr.getRate(base)),4)
+                        # convertBase = int(round(totalsByTxnCurrency / primaryAcctCurr.getRate(base),0))
+                        fx_line = "%s %s (using current rates)\n" %(pad("Base Value:",11), base.formatFancy(totalInBaseCurrency, MD_decimal))
                     else:
                         fx_line = ""
 
                     if lInvestments:
-                        invest_line = "Shares:     %s (Buys: %s, Sells: %s)\n" \
-                                      "Amounts:    %s\n" \
-                                      "Fees:       %s\n" %(shares, buys, sells, amounts, fees)
+                        if lMultiCurrency:
+                            invest_line = "Shares:     %s (Buys: %s, Sells: %s)\n" \
+                                          "Amounts:    %s (>>base currency)\n" \
+                                          "Fees:       %s (>>base currency)\n" \
+                                          %(shares, buys, sells, amountsInBaseCurr, feesInBaseCurr)
+                        else:
+                            invest_line = "Shares:     %s (Buys: %s, Sells: %s)\n" \
+                                          "Amounts:    %s (local currency)\n" \
+                                          "Fees:       %s (local currency)\n" \
+                                          %(shares, buys, sells, amountsInLocalCurr, feesInLocalCurr)
                     else:
                         invest_line = ""
 
-                    titleExtraTxt = u"" if not isPreviewBuild() else u"<PREVIEW BUILD: %s>" %(version_build)
+                    extraPreviewTxt = "" if not isPreviewBuild() else "\n<PREVIEW BUILD: %s>" %(version_build)
+
+                    if lMultiCurrency:
+                        cashValueTxt = base.formatFancy(totalInBaseCurrency, MD_decimal)
+                    else:
+                        cashValueTxt = primaryAcctCurr.formatFancy(sum(totalsByTxnCurrency.values()), MD_decimal)
+
+                    if base != originalBase:
+                        baseCurrTxt = "(Base currency switched from '%s' to '%s')\n" %(originalBase.getIDString(), base.getIDString())
+                    else:
+                        baseCurrTxt = ""
 
                     # can use frame if you like for the original MD frame....
                     MyPopUpDialogBox(toolbox_total_selected_transactions_frame_,
-                                     "Cash value: %s (Count: %s, Average: %s)" %(acctCurr.formatFancy(total,MD_decimal),
-                                                                                 len(listTxns),
-                                                                                 averageValue),
+                                     "Cash value: %s (Count: %s, Average: %s)%s" %(cashValueTxt, len(listTxns), averageValue,
+                                                                                   " (multi-currency >> converted to base)" if (lMultiCurrency) else ""),
                                      theMessage="%s %s\n"
                                                 "%s"
                                                 "%s"
                                                 "Acct Type:  %s\n"
                                                 "Currency:   %s\n"
-                                                %(acctType, account.getAccountName(),
+                                                "%s"
+                                                "%s"
+                                                %(acctType, (MULTI if (lMultiAccounts) else primaryAccount.getAccountName()),
                                                   fx_line,
                                                   invest_line,
-                                                  account.getAccountType(),
-                                                  acctCurr.getName()),
+                                                  (MULTI if (lMultiAccountTypes) else primaryAccount.getAccountType()),
+                                                  (MULTI if (lMultiCurrency) else primaryAcctCurr.getName()),
+                                                  baseCurrTxt,
+                                                  extraPreviewTxt),
                                      lModal=False,
-                                     theTitle=u"Value Selected Txns   %s" %(titleExtraTxt)).go()
+                                     theTitle=u"Value Selected Txns").go()
                     lFoundAnySelectedTransactions[0] = True
-                    try: Toolkit.getDefaultToolkit().getSystemClipboard().setContents(StringSelection(acctCurr.format(total,MD_decimal)), None)
-                    except: pass
+                    try:
+                        if lMultiCurrency:
+                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(StringSelection(base.formatFancy(totalInBaseCurrency, MD_decimal)), None)
+                        else:
+                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(StringSelection(primaryAcctCurr.formatFancy(sum(totalsByTxnCurrency.values()), MD_decimal)), None)
+                    except:
+                        myPrint("B","WARNING: Error setting value into clipboard...")
+                        dump_sys_error_to_md_console_and_errorlog()
             return
 
         myPrint("DB","Scanning for selected register transactions...:")
@@ -3222,8 +3308,14 @@ Visit: %s (Author's site)
 
         for secondary_window in MD_REF.getUI().getSecondaryWindows():
             if not isinstance(secondary_window,
-                              (MainFrame, BankAcctPanel, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel)):
-                # myPrint("DB", "... skipping: '%s'" %(secondary_window.getTitle()))
+                              (MainFrame,
+                               BankAcctPanel,
+                               AccountDetailPanel,
+                               InvestAccountDetailPanel,
+                               LoanAccountDetailPanel,
+                               LiabilityAccountInfoPanel,
+                               TxnSearchWindow)):
+
                 continue
 
             if not secondary_window.isFocused():                                                                            # noqa
@@ -3233,17 +3325,26 @@ Visit: %s (Author's site)
                 myPrint("DB", "Secondary Window: '%s' - isFocused: %s, isVisible: %s, hasFocus: %s"
                         %(secondary_window.getTitle(), secondary_window.isFocused(), secondary_window.isVisible(), secondary_window.hasFocus()))    # noqa
 
-            try:
-                accountPanel = secondary_window.getAccountPanel()
-                if not accountPanel: continue
-            except:
-                myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
-                continue
+            if isinstance(secondary_window, TxnSearchWindow):
+                myPrint("DB","Special handling for TxnSearchWindow....")
 
-            account_panel_component = None
-            for account_panel_component in secondary_window.getAccountPanel().getComponents():                              # noqa
-                myPrint("DB", ".. hunting for TxnRegister...")
-                foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                account_panel_component = None
+                for account_panel_component in secondary_window.getComponents():                                        # noqa
+                    myPrint("DB", ".. hunting for TxnRegister (within Search Window)...")
+                    foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+
+            else:
+                try:
+                    accountPanel = secondary_window.getAccountPanel()
+                    if not accountPanel: continue
+                except:
+                    myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
+                    continue
+
+                account_panel_component = None
+                for account_panel_component in secondary_window.getAccountPanel().getComponents():                      # noqa
+                    myPrint("DB", ".. hunting for TxnRegister...")
+                    foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
 
             if not foundTxnRegister:
                 myPrint("DB", "Failed to find TxnRegister in '%s'" %(account_panel_component))
