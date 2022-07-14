@@ -112,6 +112,7 @@
 # build: 1052 - Added 'FIX: Detect and merge/fix duplicate Securities within same Investment Account(s)'
 # build: 1052 - Added check for no currencies at launch... Odd, but has happened!
 # build: 1052 - Enhanced Shrink Dataset... Allow 0 days, always delete out/txn-tmp...
+# build: 1052 - Fix Merge Duplicate Securities (security split match check); fix apple script check on Mac version
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -3408,7 +3409,7 @@ Visit: %s (Author's site)
         # type: (JFrame, str, str, str, bool, bool, bool, str, str, bool, bool, bool, bool, bool, bool) -> str
         """If on a Mac and AppleScript exists then will attempt to load AppleScript file/folder chooser, else calls getFileFromFileChooser() which loads JFileChooser() or FileDialog() accordingly"""
 
-        if not Platform.isOSX() or not File("/usr/bin/osascript").exists() or float(System.getProperty("os.version", "0.0")) < 11.0:
+        if not Platform.isOSX() or not File("/usr/bin/osascript").exists() or not Platform.isOSXVersionAtLeast("11.0"):
             return getFileFromFileChooser(fileChooser_parent,
                                           fileChooser_starting_dir,
                                           fileChooser_filename,
