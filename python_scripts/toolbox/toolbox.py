@@ -18360,8 +18360,8 @@ now after saving the file, restart Moneydance
                     s2 = splitsTwo[i]
                     if s1.getDateInt() != s2.getDateInt():        return False
                     if s1.getSplitRatio() != s2.getSplitRatio():  return False
-                    if s1.getNewShares() != s2.getNewShares():    return False
-                    if s1.getOldShares() != s2.getOldShares():    return False
+                    # if s1.getNewShares() != s2.getNewShares():    return False
+                    # if s1.getOldShares() != s2.getOldShares():    return False
 
                 return True
 
