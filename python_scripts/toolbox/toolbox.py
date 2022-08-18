@@ -7,12 +7,12 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1052 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1053 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
-# Credit of course to Moneydance(Sean) and they retain all copyright over Moneydance internal code
+# Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
 # Designed to show user a number of settings / fixes / updates they may find useful (some normally hidden)
-# Basic mode and Expert View Internal Settings are both readonly and very safe >> They do NOT change any data or settings
+# Basic mode and Curious (view settings) are readonly and very safe >> They do NOT change any data or settings
 # If you switch to Update / Advanced mode(s) then you have the ability to perform fixes, change data, change config etc
 # NOTE: Any change that impacts config.dict, custom_theme.properties, LocalStorage() ./safe/settings...
 #       will always backup that single config/settings file (in the directory where it's located).
@@ -78,6 +78,7 @@
 ###############################################################################
 
 # NOTE: java.lang.IllegalArgumentException can occur when doing something like '"%s" %(java.util.HashMap)' containing unicode (or calling print on the same HashMap)
+#       Should be fixed in Jython 2.7.3 sometime)... Also note that unicode() should be used instead of str() where appropriate....
 
 # build: 1048 - Bugfix deleteOFXService() if no service selected...; Enhanced View OFX data for multiple service options (OFX and MD+)
 # build: 1048 - Improved the 'STOP-NOW' command message (suggest to check for upgrade)
@@ -113,14 +114,26 @@
 # build: 1052 - Added check for no currencies at launch... Odd, but has happened!
 # build: 1052 - Enhanced Shrink Dataset... Allow 0 days, always delete out/txn-tmp...
 # build: 1052 - Fix Merge Duplicate Securities (security split match check); fix apple script check on Mac version
+# build: 1053 - Added 'DIAG: Show Securities with 'invalid' LOT Matching (cause of LOT matching popup window)' feature
+# build: 1053 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
+# build: 1053 - New feature 'Decrypt entire dataset' feature...
+# build: 1053 - New feature 'Force Disconnect an MD+ Connection' (also added to view service profiles)
+# build: 1053 - Allow md+ payload ids to appear in the view service profile output, unless user selects redacted option...
+# build: 1053 - Now clear MDPlus.licenseCache when shutting down the plusPoller...
+# build: 1053 - Improved ManuallyCloseAndReloadDataset() to release all references to (old) book, and shutdown more things - memory consumption etc....
+# build: 1053 - Added CMD-SHIFT-/ - calls up QuickJVMDiags(); tweaked Common Code...
+# build: 1053 - Flip to restart after Import and Zap md+ license (was exit) - now that we reset licenseCache.....
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
+# todo - Consider Thread() when downloading data from internet (version checking, extension versions etc) to eliminate launch 'lag'...
+# todo - change from str() to unicode() where appropriate...
 
 # NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM. This is why:
 # 1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
 # 2. At various times it may connect to the Infinite Kind server to gather information about extensions and versions
 # 3. Within the OFX banking menu, it can connect to the Infinite Kind server to get the latest bank connection profiles for viewing
+# >> NOTE: This may cause a 'lag' when launching Toolbox if you have a slow internet connection...
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
@@ -132,7 +145,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1052"
+version_build = "1053"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -314,19 +327,17 @@ else:
 
     from org.python.core.util import FileUtil
 
-    from java.lang import Thread, IllegalArgumentException, String
-
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
     from com.moneydance.apps.md.view.gui import MDImages
 
-    from com.infinitekind.util import DateUtil, CustomDateFormat
+    from com.infinitekind.util import DateUtil, CustomDateFormat, StringUtils
+
     from com.infinitekind.moneydance.model import *
     from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
     from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
     from com.moneydance.apps.md.controller import AccountBookWrapper
-    from com.moneydance.apps.md.view.gui import WelcomeWindow
     from com.infinitekind.moneydance.model import AccountBook
 
     from javax.swing import JButton, JScrollPane, WindowConstants, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
@@ -351,12 +362,14 @@ else:
 
     from java.text import DecimalFormat, SimpleDateFormat, MessageFormat
     from java.util import Calendar, ArrayList
+    from java.lang import Thread, IllegalArgumentException, String, Integer, Long
     from java.lang import Double, Math, Character, NoSuchFieldException, NoSuchMethodException, Boolean
     from java.lang.reflect import Modifier
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
     from java.nio.charset import Charset
     if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
+                         AccountBook, AccountBookWrapper, Long, Integer, Boolean,                          
                          JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                          JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                          InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
@@ -414,9 +427,28 @@ else:
     import threading
     from collections import OrderedDict
 
+    from java.lang import Process, NoClassDefFoundError, OutOfMemoryError, Runtime
+    from java.lang.ref import WeakReference
+
     from org.python.core import PySystemState
+
+    from javax.swing import BorderFactory, JSeparator, DefaultComboBoxModel                                                 # noqa
+
+    from java.io import ByteArrayInputStream, OutputStream, InputStream, BufferedOutputStream
+    from java.net import URL, URLEncoder, URLDecoder                                                                        # noqa
+    from java.awt import GraphicsEnvironment, Rectangle, GraphicsDevice, Desktop, Event, GridBagConstraints, Window, Frame  # noqa
+    from java.awt.event import ComponentAdapter, ItemListener, ItemEvent, HierarchyListener                                 # noqa
     from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector
     from java.util.zip import ZipInputStream, ZipEntry, ZipOutputStream
+    from java.nio.charset import StandardCharsets
+    from java.nio.file import Paths, Files, StandardCopyOption
+    from java.security import MessageDigest, KeyFactory
+    from java.security.spec import PKCS8EncodedKeySpec, X509EncodedKeySpec, MGF1ParameterSpec
+
+    from javax.crypto import Cipher, BadPaddingException
+    from javax.crypto.spec import SecretKeySpec, OAEPParameterSpec, PSource
+
+    from com.google.gson import Gson
 
     # renamed in MD build 3067
     if int(MD_REF.getBuild()) >= 3067:
@@ -428,60 +460,36 @@ else:
         if Platform.isOSX() and int(MD_REF.getBuild()) >= 3088:
             from com.moneydance.apps.md.view.gui.sync import ICloudSyncConfigurer
             from com.moneydance.apps.md.controller.sync import ICloudContainer
-    except:
-        pass
-
-    from com.moneydance.apps.md.view.gui.sync import DropboxSyncConfigurer
-
-    from java.io import ByteArrayInputStream, OutputStream, InputStream, BufferedOutputStream
-    from java.nio.charset import StandardCharsets
-    from java.nio.file import Paths, Files, StandardCopyOption
-
-    from java.security import MessageDigest, KeyFactory
-    from java.security.spec import PKCS8EncodedKeySpec, X509EncodedKeySpec, MGF1ParameterSpec
-
-    from javax.crypto import Cipher, BadPaddingException
-    from javax.crypto.spec import SecretKeySpec, OAEPParameterSpec, PSource
-
-    from com.google.gson import Gson
-
-    from com.moneydance.apps.md.controller import MDException, Util, AppEventListener                                   # noqa
+    except: pass
 
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
-    from com.moneydance.apps.md.controller.sync import MDSyncCipher
+    from com.moneydance.apps.md.controller import MDException, Util, AppEventListener, PreferencesListener
     from com.moneydance.apps.md.controller import ModuleLoader, ModuleMetaData, LocalStorageCipher, Common, BalanceType
+    from com.moneydance.apps.md.controller.sync import MDSyncCipher
     from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
-    from java.awt import GraphicsEnvironment, Rectangle, GraphicsDevice, Desktop, Event, GridBagConstraints             # noqa
-
-    from com.infinitekind.util import StreamTable, StreamVector, IOUtils, StringUtils, CustomDateFormat
-    from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem
-    from com.infinitekind.moneydance.model import OnlinePayeeList, OnlinePaymentList, InvestFields, AbstractTxn         # noqa
-    from com.infinitekind.moneydance.model import CurrencySnapshot, CurrencySplit, OnlineTxnList, CurrencyTable
-
-    from com.infinitekind.tiksync import SyncRecord, SyncableItem
-    from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
-    from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow, SecondaryDialog   # noqa
-    from com.moneydance.apps.md.view.gui.bot import MoneyBotWindow                                                      # noqa
-    from com.moneydance.apps.md.view.gui.extensions import ExtensionsWindow                                             # noqa
-
-    from com.moneydance.apps.md.view.gui.txnreg import TxnDetailsPanel, TxnRegister, TxnRegisterType, InvestRegisterType
-    from com.moneydance.apps.md.view.gui import SearchRegTxnListModel
-    # from com.infinitekind.moneydance.model import AggregateTxnSearch
-
-    from com.moneydance.apps.md.view.gui.txnreg import DownloadedTxnsView
-    from com.infinitekind.tiksync import Syncer
-    from com.moneydance.apps.md.controller import PreferencesListener
-    from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
     from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory
+    from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
+
+    from com.infinitekind.util import StreamTable, StreamVector, IOUtils
+    from com.infinitekind.tiksync import SyncRecord, SyncableItem, Syncer
+
+    from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem
+    from com.infinitekind.moneydance.model import OnlinePayeeList, OnlinePaymentList, InvestFields, AbstractTxn
+    from com.infinitekind.moneydance.model import CurrencySnapshot, CurrencySplit, OnlineTxnList, CurrencyTable
+    from com.infinitekind.moneydance.model import TxnSet, InvestTxnType
+
     from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
-    from java.lang import Integer, Long, NoSuchFieldException, NoSuchMethodException, Runtime, Process                  # noqa
-    from javax.swing import BorderFactory, JSeparator, DefaultComboBoxModel                                             # noqa
+
     from com.moneydance.awt import JCurrencyField, AwtUtil                                                              # noqa
-
-    from java.net import URL, URLEncoder, URLDecoder                                                                    # noqa
-
-    from java.awt.event import ComponentAdapter, ItemListener, ItemEvent, HierarchyListener                             # noqa
     from com.moneydance.security import SecretKeyCallback
+    from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
+    from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow            # noqa
+    from com.moneydance.apps.md.view.gui import WelcomeWindow, SearchRegTxnListModel, SecondaryDialog
+    from com.moneydance.apps.md.view.gui.bot import MoneyBotWindow                                                      # noqa
+    from com.moneydance.apps.md.view.gui.txnreg import TxnDetailsPanel, TxnRegister, TxnRegisterType, InvestRegisterType
+    from com.moneydance.apps.md.view.gui.txnreg import DownloadedTxnsView
+    from com.moneydance.apps.md.view.gui.extensions import ExtensionsWindow                                             # noqa
+    from com.moneydance.apps.md.view.gui.sync import DropboxSyncConfigurer
 
     try:
         from com.infinitekind.moneydance.model import TxnSortOrder
@@ -499,11 +507,11 @@ else:
     global MD_OFX_BANK_SETTINGS_DIR, MD_OFX_DEFAULT_SETTINGS_FILE, MD_OFX_DEBUG_SETTINGS_FILE, MD_EXTENSIONS_DIRECTORY_FILE
     global TOOLBOX_VERSION_VALIDATION_URL, TOOLBOX_STOP_NOW
     global MD_RRATE_ISSUE_FIXED_BUILD, MD_ICLOUD_ENABLED, MD_MULTI_OFX_TXN_DNLD_DATES_BUILD
-    global MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD
+    global MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD, MD_MDPLUS_GETPLAIDCLIENT_BUILD
 
     TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0                                                                          # noqa
     TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.5                                                                          # noqa
-    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4088                                                                            # noqa
+    TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4091                                                                            # noqa
     MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"                                                   # noqa
     MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"                                        # noqa
     MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"                                    # noqa
@@ -515,6 +523,7 @@ else:
     MD_RRATE_ISSUE_FIXED_BUILD = 3089                                                                                   # noqa
     MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD = 4078                                                                 # noqa
     MD_MULTI_OFX_TXN_DNLD_DATES_BUILD = 4074                                                                            # noqa
+    MD_MDPLUS_GETPLAIDCLIENT_BUILD = 4090                                                                               # noqa
 
     GlobalVars.mainPnl_preview_lbl = JLabel()
     GlobalVars.mainPnl_debug_lbl = JLabel()
@@ -719,6 +728,76 @@ Visit: %s (Author's site)
             if debug: myPrint("B","Failed to Font set to Moneydance code - So using: %s" %theFont)
 
         return theFont
+
+    def isOSXVersionAtLeast(compareVersion):
+        # type: (basestring) -> bool
+        """Pass a string in the format 'x.x.x'. Will check that this MacOSX version is at least that version. The 3rd micro number is optional"""
+
+        try:
+            if not Platform.isOSX(): return False
+
+            def convertVersion(convertString):
+                _os_major = _os_minor = _os_micro = 0
+                _versionNumbers = []
+
+                for versionPart in StringUtils.splitIntoList(convertString, '.'):
+                    strippedPart = StringUtils.stripNonNumbers(versionPart, '.')
+                    if (StringUtils.isInteger(strippedPart)):
+                        _versionNumbers.append(Integer.valueOf(Integer.parseInt(strippedPart)))
+                    else:
+                        _versionNumbers.append(0)
+
+                if len(_versionNumbers) >= 1: _os_major = max(0, _versionNumbers[0])
+                if len(_versionNumbers) >= 2: _os_minor = max(0, _versionNumbers[1])
+                if len(_versionNumbers) >= 3: _os_micro = max(0, _versionNumbers[2])
+
+                return _os_major, _os_minor, _os_micro
+
+
+            os_major, os_minor, os_micro = convertVersion(System.getProperty("os.version", "0.0.0"))
+            myPrint("DB", "MacOS Version number(s): %s.%s.%s" %(os_major, os_minor, os_micro))
+
+            if not isinstance(compareVersion, basestring) or len(compareVersion) < 1:
+                myPrint("B", "ERROR: Invalid compareVersion of '%s' passed - returning False" %(compareVersion))
+                return False
+
+            chk_os_major, chk_os_minor, chk_os_micro = convertVersion(compareVersion)
+            myPrint("DB", "Comparing against Version(s): %s.%s.%s" %(chk_os_major, chk_os_minor, chk_os_micro))
+
+
+            if os_major < chk_os_major: return False
+            if os_major > chk_os_major: return True
+
+            if os_minor < chk_os_minor: return False
+            if os_minor > chk_os_minor: return True
+
+            if os_micro < chk_os_micro: return False
+            return True
+
+        except:
+            myPrint("B", "ERROR: isOSXVersionAtLeast() failed - returning False")
+            dump_sys_error_to_md_console_and_errorlog()
+            return False
+
+    def isOSXVersionCheetahOrLater():       return isOSXVersionAtLeast("10.0")
+    def isOSXVersionPumaOrLater():          return isOSXVersionAtLeast("10.1")
+    def isOSXVersionJaguarOrLater():        return isOSXVersionAtLeast("10.2")
+    def isOSXVersionPantherOrLater():       return isOSXVersionAtLeast("10.3")
+    def isOSXVersionTigerOrLater():         return isOSXVersionAtLeast("10.4")
+    def isOSXVersionLeopardOrLater():       return isOSXVersionAtLeast("10.5")
+    def isOSXVersionSnowLeopardOrLater():   return isOSXVersionAtLeast("10.6")
+    def isOSXVersionLionOrLater():          return isOSXVersionAtLeast("10.7")
+    def isOSXVersionMountainLionOrLater():  return isOSXVersionAtLeast("10.8")
+    def isOSXVersionMavericksOrLater():     return isOSXVersionAtLeast("10.9")
+    def isOSXVersionYosemiteOrLater():      return isOSXVersionAtLeast("10.10")
+    def isOSXVersionElCapitanOrLater():     return isOSXVersionAtLeast("10.11")
+    def isOSXVersionSierraOrLater():        return isOSXVersionAtLeast("10.12")
+    def isOSXVersionHighSierraOrLater():    return isOSXVersionAtLeast("10.13")
+    def isOSXVersionMojaveOrLater():        return isOSXVersionAtLeast("10.14")
+    def isOSXVersionCatalinaOrLater():      return isOSXVersionAtLeast("10.15")
+    def isOSXVersionBigSurOrLater():        return isOSXVersionAtLeast("10.16")  # BigSur is officially 11.0, but started at 10.16
+    def isOSXVersionMontereyOrLater():      return isOSXVersionAtLeast("12.0")
+    def isOSXVersionVenturaOrLater():       return isOSXVersionAtLeast("13.0")
 
     def get_home_dir():
         homeDir = None
@@ -1808,12 +1887,13 @@ Visit: %s (Author's site)
         _TRUE = "true"
         _FALSE = "false"
 
-        _DIRS_FD = "apple.awt.fileDialogForDirectories"        # Changes Behaviour. When True you can select a Folder (rather than a file)
-        _PKGS_FD = "com.apple.macos.use-file-dialog-packages"
+        _DIRS_FD = "apple.awt.fileDialogForDirectories"        # When True you can select a Folder (rather than a file)
+        _PKGS_FD = "apple.awt.use-file-dialog-packages"        # When True allows you to select a 'bundle' as a file; False means navigate inside the bundle
+        # "com.apple.macos.use-file-dialog-packages"           # DEPRECATED since Monterrey - discovered this about MD2022.5(4090) - refer: java.desktop/sun/lwawt/macosx/CFileDialog.java
 
         # FileDialog defaults
         # "apple.awt.fileDialogForDirectories"       default "false" >> set "true"  to allow Directories to be selected
-        # "com.apple.macos.use-file-dialog-packages" default "true"  >> set "false" to allow access to Mac 'packages'
+        # "apple.awt.use-file-dialog-packages"       default "true"  >> set "false" to allow access to Mac 'packages'
 
         if debug or lReportOnly:
             myPrint("B", "Parameters set: ReportOnly: %s, Defaults:%s, SelectDirectories:%s, PackagesT:%s" % (lReportOnly, lDefaults, lSelectDirectories, lPackagesT))
@@ -1903,7 +1983,8 @@ Visit: %s (Author's site)
             else:
                 fileDialog.setMode(FileDialog.SAVE)
 
-            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 fileDialog.setFilenameFilter(ExtFilenameFilter(fileChooser_fileFilterText))
 
@@ -1943,7 +2024,8 @@ Visit: %s (Author's site)
             else:
                 jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY)   # FILES_ONLY, DIRECTORIES_ONLY, FILES_AND_DIRECTORIES
 
-            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 jfc.setFileFilter(ExtFileFilterJFC(fileChooser_fileFilterText))
 
@@ -2424,6 +2506,8 @@ Visit: %s (Author's site)
                 SetupMDColors.FOREGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultBackground
                 SetupMDColors.BACKGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
 
+    global ManuallyCloseAndReloadDataset            # Declare it for QuickJFrame/IDE, but not present in common code. Other code will ignore it 
+
     class QuickJFrame():
 
         def __init__(self,
@@ -2472,14 +2556,20 @@ Visit: %s (Author's site)
                 myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
-                if self.lQuitMDAfterClose:
-                    myPrint("B", "Quit MD after Close triggered... Now quitting MD")
-                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
-                elif self.lRestartMDAfterClose:
-                    myPrint("B", "Restart MD after Close triggered... Now restarting MD")
-                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
+                if self.lQuitMDAfterClose or self.lRestartMDAfterClose:
+                    if "ManuallyCloseAndReloadDataset" not in globals():
+                        myPrint("DB", "'ManuallyCloseAndReloadDataset' not in globals(), so just exiting MD the easy way...")
+                        myPrint("B", "@@ EXITING MONEYDANCE @@")
+                        MD_REF.getUI().exit()
+                    else:
+                        if self.lQuitMDAfterClose:
+                            myPrint("B", "Quit MD after Close triggered... Now quitting MD")
+                            ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
+                        elif self.lRestartMDAfterClose:
+                            myPrint("B", "Restart MD after Close triggered... Now restarting MD")
+                            ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
                 else:
-                    myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing")
+                    myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing...")
 
         class CloseAction(AbstractAction):
 
@@ -2983,8 +3073,11 @@ Visit: %s (Author's site)
             if plusPoller is not None:
                 invokeMethodByReflection(plusPoller, "shutdown", None)
                 setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
-            # NOTE: MDPlus.licenseCache should be reset too, but it's a 'private static final' field....
-            #       hence restart MD if changing (importing/zapping) the license object
+
+            myPrint("DB", "... Clearing out the in-memory license cache...")
+            licenseCache = getFieldByReflection(MDPlus, "licenseCache")
+            if licenseCache is not None: licenseCache.clear()
+
             myPrint("DB", "... MD+ poller shutdown...")
 
     def shutdownMDAlertController():
@@ -2994,138 +3087,6 @@ Visit: %s (Author's site)
             if alertController is not None:
                 invokeMethodByReflection(alertController, "shutdown", None)
                 setFieldByReflection(MD_REF.getUI(), "alertController", None)
-
-    class ManuallyCloseAndReloadDataset(Runnable):
-
-        @staticmethod
-        def closeSecondaryWindows():
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.closeSecondaryWindows()")
-            if not SwingUtilities.isEventDispatchThread(): return False
-            if not ManuallyCloseAndReloadDataset.isSafeToCloseDataset(): return False
-            return invokeMethodByReflection(MD_REF.getUI(), "closeSecondaryWindows", [Boolean.TYPE], [False])
-
-        @staticmethod
-        def isSafeToCloseDataset():
-            # type: () -> bool
-            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.isSafeToCloseDataset()")
-            if not SwingUtilities.isEventDispatchThread(): return False
-            return invokeMethodByReflection(MD_REF.getUI(), "isOKToCloseFile", None)
-
-        @staticmethod
-        def moneydanceExitOrRestart(lRestart=True, lAllowSaveWorkspace=True):
-            # type: (bool, bool) -> bool
-            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.moneydanceExitOrRestart() - lRestart: %s, lAllowSaveWorkspace: %s" %(lRestart, lAllowSaveWorkspace))
-
-            if lRestart and not lAllowSaveWorkspace: raise Exception("Sorry: you cannot use lRestart=True and lAllowSaveWorkspace=False together...!")
-
-            if lRestart:
-                myPrint("B", "@@ RESTARTING MONEYDANCE >> RELOADING SAME DATASET @@")
-                Thread(ManuallyCloseAndReloadDataset()).start()
-            else:
-                if lAllowSaveWorkspace:
-                    myPrint("B", "@@ EXITING MONEYDANCE @@")
-                    MD_REF.getUI().exit()
-                else:
-                    myPrint("B", "@@ SHUTTING DOWN MONEYDANCE >> NOT SAVING 'WORKSPACE' @@")
-                    MD_REF.getUI().shutdownApp(False)
-
-        @staticmethod
-        def manuallyCloseDataset(theBook, lCloseWindows=True):
-            # type: (AccountBook, bool) -> bool
-            """Mimics .setCurrentBook(None) but avoids the Auto Backup 'issue'. Also closes open SecondaryWindows, pauses MD+ etc
-            You should decide whether to run this on the EDT or on a new background thread when calling this method"""
-
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.manuallyCloseDataset(), lCloseWindows:", lCloseWindows)
-
-            if lCloseWindows:
-                if not SwingUtilities.isEventDispatchThread():
-                    raise Exception("ERROR: you must run manuallyCloseDataset() on the EDT if you wish to also call closeSecondaryWindows()...!")
-                if not ManuallyCloseAndReloadDataset.closeSecondaryWindows(): return False
-
-            # Shutdown the MD+ poller... When we open a new dataset it should reset itself.....
-            shutdownMDPlusPoller()
-
-            # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
-            shutdownMDAlertController()
-
-            setFieldByReflection(MD_REF.getUI(), "olMgr", None)
-
-            myPrint("DB", "... saving LocalStorage..")
-            theBook.getLocalStorage().save()                        # Flush LocalStorage...
-
-            myPrint("DB", "... Mimicking .setCurrentBook(None)....")
-
-            MD_REF.fireAppEvent("md:file:closing")
-            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
-
-            MD_REF.fireAppEvent("md:file:closed")
-
-            myPrint("DB", "... calling .cleanUp() ....")
-            theBook.cleanUp()
-
-            setFieldByReflection(MD_REF, "currentBook", None)
-            myPrint("B", "Closed current dataset (book: %s)" %(theBook))
-
-            myPrint("DB", "... FINISHED Closing down the dataset")
-            return True
-
-        THIS_APPS_FRAME_REFERENCE = None
-
-        def __init__(self, lQuitThisAppToo=True):
-            self.lQuitThisAppToo = (lQuitThisAppToo and self.__class__.THIS_APPS_FRAME_REFERENCE is not None)
-            self.result = None
-
-        def getResult(self): return self.result     # Caution - only call this when you have waited for Thread to complete..... ;->
-
-        def run(self):
-            # type: () -> bool
-            self.result = self.manuallyCloseAndReloadDataset()
-
-        def manuallyCloseAndReloadDataset(self):
-            # type: () -> bool
-            """Manually closes current dataset, then reloads the same dataset.. Use when you want to refresh MD's internals"""
-
-            if SwingUtilities.isEventDispatchThread(): raise Exception("ERROR - you must run manuallyCloseAndReloadDataset() from a new non-EDT thread!")
-
-            cswResult = [None]
-            class CloseSecondaryWindows(Runnable):
-                def __init__(self, result): self.result = result
-                def run(self): self.result[0] = ManuallyCloseAndReloadDataset.closeSecondaryWindows()
-
-            SwingUtilities.invokeAndWait(CloseSecondaryWindows(cswResult))
-            if not cswResult[0]: return False
-
-            currentBook = MD_REF.getCurrentAccountBook()
-            fCurrentFilePath = currentBook.getRootFolder()
-
-            if not ManuallyCloseAndReloadDataset.manuallyCloseDataset(currentBook, lCloseWindows=False): return False
-
-            newWrapper = AccountBookWrapper.wrapperForFolder(fCurrentFilePath)
-            if newWrapper is None: raise Exception("ERROR: 'AccountBookWrapper.wrapperForFolder' returned None")
-            myPrint("DB", "Successfully obtained 'wrapper' for dataset: %s\n" %(fCurrentFilePath.getCanonicalPath()))
-
-            myPrint("B", "Opening dataset: %s" %(fCurrentFilePath.getCanonicalPath()))
-
-            # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
-            openResult = MD_REF.setCurrentBook(newWrapper)
-            if not openResult or newWrapper.getBook() is None:
-                txt = "Failed to open Dataset (wrong password?).... Will show the Welcome Window...."
-                setDisplayStatus(txt, "R"); myPrint("B", txt)
-                WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
-
-                if self.lQuitThisAppToo:
-                    # Remember... the file opened event closes my extensions with app listeners, so do this if file could not be opened....
-                    if self.__class__.THIS_APPS_FRAME_REFERENCE is not None:
-                        if isinstance(self.__class__.THIS_APPS_FRAME_REFERENCE, JFrame):
-                            # Do this after .setCurrentBook() so-as not to co-modify listeners.....
-                            SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.__class__.THIS_APPS_FRAME_REFERENCE))
-
-                return False
-
-            return True
-
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -3229,7 +3190,316 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
 
     # Prevent usage later on... We use MD_REF
-    del moneydance
+    if "moneydance" in globals(): del moneydance
+
+    def getJVMUsageStatistics(memoryUsageStats=True, maxMemoryStats=False, availableProcessorsStats=False):
+
+        runTime = Runtime.getRuntime()
+        maxMemory = Runtime.getRuntime().maxMemory()
+
+        countParams = 0
+        if memoryUsageStats:         countParams += 1
+        if maxMemoryStats:           countParams += 1
+        if availableProcessorsStats: countParams += 1
+
+        statsText = u""; lineEnd = u""
+        if countParams > 1:
+            lineEnd = u"\n"
+            statsText += (u"Java JVM Resources" + lineEnd)
+
+        if availableProcessorsStats:
+            statsText += (u"JVM - Available processor cores: %s" %(runTime.availableProcessors()) + lineEnd)
+
+        if maxMemoryStats:
+            statsText += (u"JVM - Maximum memory possible:   %s" %(u"{}".format(u"no limit") if (Long(maxMemory) == Long.MAX_VALUE) else u"{:,} GB".format(convertBytesGBs(maxMemory))) + lineEnd)
+
+        if memoryUsageStats:
+            statsText += (u"JVM - Total memory allocated:    {:,} GB (used {:,} GB / free {:,} GB)"
+                .format(convertBytesGBs(runTime.totalMemory()),
+                        convertBytesGBs(runTime.totalMemory() - runTime.freeMemory()),
+                        convertBytesGBs(runTime.freeMemory()))
+                + lineEnd)
+
+        return statsText
+
+    class ManuallyCloseAndReloadDataset(Runnable):
+
+        @staticmethod
+        def closeSecondaryWindows():
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.closeSecondaryWindows()")
+            if not SwingUtilities.isEventDispatchThread(): return False
+            if not ManuallyCloseAndReloadDataset.isSafeToCloseDataset(): return False
+            return invokeMethodByReflection(MD_REF.getUI(), "closeSecondaryWindows", [Boolean.TYPE], [False])
+
+        @staticmethod
+        def isSafeToCloseDataset():
+            # type: () -> bool
+            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.isSafeToCloseDataset()")
+            if not SwingUtilities.isEventDispatchThread(): return False
+            return invokeMethodByReflection(MD_REF.getUI(), "isOKToCloseFile", None)
+
+        @staticmethod
+        def clearWindowBookReferences(lClearCurrentBookToo=False):
+            # type: (bool) -> bool
+            """Iterates all known AWT Windows, searching for 'book' and sets to None"""
+            for _win in Window.getWindows():
+                try:
+                    ref_book = getFieldByReflection(_win, "book")
+                    if (ref_book is not None
+                            and (lClearCurrentBookToo or ref_book is not MD_REF.getCurrentAccountBook())):
+                        if isinstance(_win, (SecondaryWindow, SecondaryFrame, SecondaryDialog)): clearTxt = "CLEARING"
+                        else: clearTxt = "IGNORING"
+                        myPrint("DB", "%s 'book' reference from: %s '%s' : %s @{:x} %s (Owner: %s:%s)\n".format(System.identityHashCode(ref_book))
+                                                                        %(clearTxt, type(_win), _win.getName(),
+                                                                        "** THIS BOOK **" if (ref_book is MD_REF.getCurrentAccountBook()) else "!! OLD BOOK !! ",
+                                                                        ref_book,
+                                                                        type(_win.getOwner()), (None if (_win.getOwner()) is None else _win.getOwner().getName())))
+                        if isinstance(_win, (SecondaryWindow, SecondaryFrame, SecondaryDialog)): setFieldByReflection(_win, "book", None)
+                    del ref_book
+                except: pass
+            return True
+
+        @staticmethod
+        def startBackgroundSyncing():
+            """Start a new Background Ops Thread.. Does nothing if 'backgroundThread' is not None and isRunning()"""
+            myPrint("DB", "... launching a new BackgroundOpsThread if old one dead or not running...")
+            invokeMethodByReflection(MD_REF, "startBackgroundSyncing", None)
+
+        @staticmethod
+        def moneydanceExitOrRestart(lRestart=True, lAllowSaveWorkspace=True):
+            # type: (bool, bool) -> bool
+            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.moneydanceExitOrRestart() - lRestart: %s, lAllowSaveWorkspace: %s" %(lRestart, lAllowSaveWorkspace))
+
+            if lRestart and not lAllowSaveWorkspace: raise Exception("Sorry: you cannot use lRestart=True and lAllowSaveWorkspace=False together...!")
+
+            if lRestart:
+                myPrint("B", "@@ RESTARTING MONEYDANCE >> RELOADING SAME DATASET @@")
+                Thread(ManuallyCloseAndReloadDataset()).start()
+            else:
+                if lAllowSaveWorkspace:
+                    myPrint("B", "@@ EXITING MONEYDANCE @@")
+                    MD_REF.getUI().exit()
+                else:
+                    myPrint("B", "@@ SHUTTING DOWN MONEYDANCE >> NOT SAVING 'WORKSPACE' @@")
+                    MD_REF.getUI().shutdownApp(False)
+
+        @staticmethod
+        def manuallyCloseDataset(theBook, lCloseWindows=True, lKillAllSyncers=False, lKillAllFramesWithBookReferences=False):
+            # type: (AccountBook, bool, bool, bool) -> bool
+            """Mimics .setCurrentBook(None) but avoids the Auto Backup 'issue'. Also closes open SecondaryWindows, pauses MD+ etc
+            You should decide whether to run this on the EDT or on a new background thread when calling this method. This will also
+            force kill Syncer thread(s) found... parameter: lKillAllSyncers:False will only kill this dataset's Syncer (True = kill all Syncers found)"""
+
+            myPrint("DB", "In ManuallyCloseAndReloadDataset.manuallyCloseDataset(), lCloseWindows: %s, lKillAllSyncers: %s lKillAllFramesWithBookReferences: %s" %(lCloseWindows, lKillAllSyncers, lKillAllFramesWithBookReferences))
+
+            wr_bookToClose = WeakReference(theBook)
+            del theBook
+
+            wr_oldSyncer = WeakReference(wr_bookToClose.get().getSyncer())                                              # noqa
+
+            Syncer.DEBUG = True
+
+            if debug: myPrint("B", getJVMUsageStatistics())
+
+            if lCloseWindows:
+                if not SwingUtilities.isEventDispatchThread():
+                    raise Exception("ERROR: you must run manuallyCloseDataset() on the EDT if you wish to also call closeSecondaryWindows()...!")
+                if not ManuallyCloseAndReloadDataset.closeSecondaryWindows():
+                    myPrint("B", "manuallyCloseDataset().closeSecondaryWindows() returned False?")
+                    return False
+
+            # Shutdown the MD+ poller... When we open a new dataset it should reset itself.....
+            shutdownMDPlusPoller()
+
+            # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
+            shutdownMDAlertController()
+
+            MD_REF.getUI().closeBotInterface()
+
+            wr_bookToClose.get().setUndoManager(None)                                                                   # noqa
+
+            if debug:
+                myPrint("B", "... pre-close getSyncer(): %s isRunningInBackground: %s isSyncing: %s" %(wr_oldSyncer.get(), wr_oldSyncer.get().isRunningInBackground(), wr_oldSyncer.get().isSyncing()))    # noqa
+                for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("B", "... Current Syncer Threads...: %s (id: %s) State: %s isAlive: %s isInterrupted: %s" %(t, t.getId(), t.getState(), t.isAlive(), t.isInterrupted()))
+
+            myPrint("DB", "... closing SyncManager / settings window etc..")
+            if MD_REF.getUI().getSyncManager() is not None:
+                MD_REF.getUI().getSyncManager().dataFileWasLoaded(None)  # Essentially will close Sync Manager settings window if open...
+
+            myPrint("DB", "... setting 'olMgr' to None..")
+            setFieldByReflection(MD_REF.getUI(), "olMgr", None)
+
+            myPrint("DB", "... saving LocalStorage..")
+            wr_bookToClose.get().getLocalStorage().save()                                                               # noqa
+
+            myPrint("DB", "... Mimicking .setCurrentBook(None).... (without auto-backup etc)....")
+
+            MD_REF.fireAppEvent("md:file:closing")
+            MD_REF.saveCurrentAccount()                         # Flush any current txns in memory and start a new sync record..
+
+            MD_REF.fireAppEvent("md:file:closed")
+
+            myPrint("DB", "... calling .cleanUp() ....")
+            # This will call syncer.stopSyncing() and syncer.compressLocalStorage()
+            wr_bookToClose.get().cleanUp()                                                                              # noqa
+
+            # myPrint("DB", "... setting syncer's syncFolder to None ....")
+            # if wr_oldSyncer.get() is not None:
+            #     setFieldByReflection(wr_oldSyncer.get(), "syncFolder", None);   # com.infinitekind.tiksync.Syncer.syncFolder : SyncFolder
+
+            # myPrint("DB", "... setting syncer to None ....")
+            # setFieldByReflection(wr_bookToClose.get(), "syncer", None);         # com.infinitekind.moneydance.model.AccountBook.syncer : Syncer
+
+            myPrint("B", "... waiting for background tasks to complete... (shutting down 'backgroundThread'....)...")
+            MD_REF.getBackgroundThread().waitForAllTasksToFinish()   # This will actually shut down the Thread.....
+            setFieldByReflection(MD_REF, "backgroundThread", None)   # com.moneydance.apps.md.controller.Main.backgroundThread : BackgroundOpsThread
+
+            # Force kill all Syncer Threads. Should not need to do this, but something in MD can keep these alive. Syncer must NOT run after we move a dataset (for example)
+            wr_syncerThread = syncerThreadId = None
+            if wr_oldSyncer.get() is not None:
+                wr_syncerThread = WeakReference(getFieldByReflection(wr_oldSyncer.get(), "syncThread"))
+                if wr_syncerThread.get() is not None:
+                    syncerThreadId = wr_syncerThread.get().getId()                                                      # noqa
+
+            if syncerThreadId is not None:
+                myPrint("DB", "Current book's Syncer: %s, SyncerThread: %s (id: %s)" %(wr_oldSyncer.get(), wr_syncerThread.get(), syncerThreadId))
+            else:
+                myPrint("DB", "Current book's Syncer's details not found....")
+
+            iSyncerChecks = 0
+            if wr_oldSyncer.get() is not None:
+                myPrint("B", "... waiting for syncer background tasks to complete...")
+                while wr_oldSyncer.get().isRunningInBackground() or wr_oldSyncer.get().isSyncing():                     # noqa
+
+                    if wr_syncerThread.get() is None or not wr_syncerThread.get().isAlive():                            # noqa
+                        myPrint("B", "...... syncer's thread appears to have died already.... will proceed....")
+                        break
+
+                    iSyncerChecks += 1
+                    if iSyncerChecks <= 16:
+                        myPrint("B", "...... syncer still running.... waiting....")
+                        try:
+                            Thread.sleep(250)
+                            continue
+                        except: myPrint("B", "......... Caught exception during sleep... will proceed....")
+                    else: myPrint("B", "......... giving up after 16 checks (4 seconds)...")
+                    break
+
+                myPrint("B", "...... syncer appears to have finished (or I gave up waiting).....")
+
+            for t in [t for t in Thread.getAllStackTraces().keySet() if t.getName() == "TIKSync async thread"]:
+                if lKillAllSyncers or t.getId() == syncerThreadId:
+                    myPrint("B", "... Force killing Syncer Thread:", t, t.getId())
+                    try: t.stop()    # This is a deprecated method (and bad practice)....
+                    except: myPrint("B", "...... Caught exception during stop() command.... Continuing...")
+            del wr_syncerThread, syncerThreadId
+
+            if debug:
+                myPrint("B", "... after-kill syncer threads getSyncer(): %s isRunningInBackground: %s isSyncing: %s" %(wr_oldSyncer.get(), wr_oldSyncer.get().isRunningInBackground(), wr_oldSyncer.get().isSyncing()))    # noqa
+                for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("B", "... Current Syncer Threads...: %s (id: %s) State: %s isAlive: %s isInterrupted: %s" %(t, t.getId(), t.getState(), t.isAlive(), t.isInterrupted()))
+
+            myPrint("DB", "... setting Main's 'currentBook' to None...")
+            setFieldByReflection(MD_REF, "currentBook", None)
+
+            myPrint("B", "Closed current dataset (book: %s)" %(wr_bookToClose.get()))
+
+            if lKillAllFramesWithBookReferences:
+                myPrint("DB", "... clearing out old references to 'book' from Windows/Frames/JFrames etc....")
+                ManuallyCloseAndReloadDataset.clearWindowBookReferences()
+
+            if debug: myPrint("B", getJVMUsageStatistics())
+
+            myPrint("B", "... FINISHED Closing down the dataset")
+            return True
+
+        class DisplayErrorMsg(Runnable):
+            def __init__(self, _msg): self.msg = _msg
+            def run(self): myPopupInformationBox(None, self.msg, "ERROR", JOptionPane.ERROR_MESSAGE)
+
+        THIS_APPS_FRAME_REFERENCE = None
+
+        def __init__(self, lQuitThisAppToo=True):
+            self.lQuitThisAppToo = (lQuitThisAppToo and self.__class__.THIS_APPS_FRAME_REFERENCE is not None)
+            self.result = None
+
+        def getResult(self): return self.result     # Caution - only call this when you have waited for Thread to complete..... ;->
+
+        def run(self):
+            # type: () -> bool
+            self.result = self.manuallyCloseAndReloadDataset()
+
+        def manuallyCloseAndReloadDataset(self):
+            # type: () -> bool
+            """Manually closes current dataset, then reloads the same dataset.. Use when you want to refresh MD's internals"""
+
+            if SwingUtilities.isEventDispatchThread(): raise Exception("ERROR - you must run manuallyCloseAndReloadDataset() from a new non-EDT thread!")
+
+            cswResult = [None]
+            class CloseSecondaryWindows(Runnable):
+                def __init__(self, result): self.result = result
+                def run(self): self.result[0] = ManuallyCloseAndReloadDataset.closeSecondaryWindows()
+
+            SwingUtilities.invokeAndWait(CloseSecondaryWindows(cswResult))
+            if not cswResult[0]: return False
+
+            fCurrentFilePath = MD_REF.getCurrentAccountBook().getRootFolder()
+
+            if not ManuallyCloseAndReloadDataset.manuallyCloseDataset(MD_REF.getCurrentAccountBook(), lKillAllSyncers=True, lCloseWindows=False, lKillAllFramesWithBookReferences=True):
+                myPrint("B", "manuallyCloseDataset() returned False?")
+                return False
+
+            if debug: myPrint("B", getJVMUsageStatistics())
+            myPrint("DB", "Calling garbage collection after releasing references...")
+            System.gc()
+            Thread.sleep(100)
+            if debug: myPrint("B", getJVMUsageStatistics())
+
+            ManuallyCloseAndReloadDataset.startBackgroundSyncing()
+
+            newWrapper = AccountBookWrapper.wrapperForFolder(fCurrentFilePath)
+            if newWrapper is None: raise Exception("ERROR: 'AccountBookWrapper.wrapperForFolder' returned None")
+            myPrint("DB", "Successfully obtained 'wrapper' for dataset: %s\n" %(fCurrentFilePath.getCanonicalPath()))
+
+            Syncer.DEBUG = True
+
+            openResult = None                                                                                           # noqa
+            try:
+                # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
+                myPrint("B", "Opening dataset: %s" %(fCurrentFilePath.getCanonicalPath()))
+                openResult = MD_REF.setCurrentBook(newWrapper)
+            except OutOfMemoryError:
+                myPrint("B", "@@@ CRITICAL ERROR <<OUT OF MEMORY>> setCurrentBook() has crashed whilst (re)opening dataset!?")
+                dump_sys_error_to_md_console_and_errorlog()
+                myPrint("B", getJVMUsageStatistics())
+                SwingUtilities.invokeAndWait(self.DisplayErrorMsg("TOOLBOX: OUT OF MEMORY whilst (re)opening dataset. WILL SHUT DOWN MD (review Console/errlog.txt)"))
+                MD_REF.getUI().shutdownApp(False)
+                return False
+            except:
+                myPrint("B", "@@@ CRITICAL ERROR - .setCurrentBook() has crashed whilst (re)opening dataset!?")
+                dump_sys_error_to_md_console_and_errorlog()
+                SwingUtilities.invokeAndWait(self.DisplayErrorMsg("TOOLBOX: ERROR: whilst (re)opening dataset.  WILL SHUT DOWN MD (review Console/errlog.txt)"))
+                MD_REF.getUI().shutdownApp(False)
+                return False
+
+            if debug: myPrint("B", getJVMUsageStatistics())
+
+            if not openResult or newWrapper.getBook() is None:
+                txt = "Failed to open Dataset (wrong password?).... Will show the Welcome Window...."
+                setDisplayStatus(txt, "R"); myPrint("B", txt)
+                WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
+
+                if self.lQuitThisAppToo:
+                    # Remember... the file opened event closes my extensions with app listeners, so do this if file could not be opened....
+                    if self.__class__.THIS_APPS_FRAME_REFERENCE is not None:
+                        if isinstance(self.__class__.THIS_APPS_FRAME_REFERENCE, JFrame):
+                            # Do this after .setCurrentBook() so-as not to co-modify listeners.....
+                            SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.__class__.THIS_APPS_FRAME_REFERENCE))
+
+                return False
+            return True
+
 
     def isQER_running(): return find_feature_module(GlobalVars.Strings.EXTENSION_QER_ID)
 
@@ -3365,10 +3635,16 @@ Visit: %s (Author's site)
 
     def isMDPlusUniqueBankingServicesEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD)
 
+    def isMDPlusGetPlaidClientEnabledBuild(): return (float(MD_REF.getBuild()) >= MD_MDPLUS_GETPLAIDCLIENT_BUILD)
+
     if isMDPlusEnabledBuild():
-        # from com.moneydance.apps.md.controller import MDPlus
-        # from com.moneydance.apps.md.controller.olb.plaid import PlaidConnection
+        from com.moneydance.apps.md.controller import MDPlus
         from com.infinitekind.moneydance.model import OnlineServiceLink
+
+    if isMDPlusGetPlaidClientEnabledBuild():
+        from com.infinitekind.moneydance.model import OnlineAccountMapping
+        from com.moneydance.apps.md.controller.olb.plaid import PlaidConnection
+        from com.plaid.client.request import ItemRemoveRequest
 
     def getMDPlusLicenseInfoForBook():
         _licenseObject = MD_REF.getCurrentAccountBook().getItemForID("tik.mdplus-license")	    # type: MoneydanceSyncableItem
@@ -3409,7 +3685,7 @@ Visit: %s (Author's site)
         # type: (JFrame, str, str, str, bool, bool, bool, str, str, bool, bool, bool, bool, bool, bool) -> str
         """If on a Mac and AppleScript exists then will attempt to load AppleScript file/folder chooser, else calls getFileFromFileChooser() which loads JFileChooser() or FileDialog() accordingly"""
 
-        if not Platform.isOSX() or not File("/usr/bin/osascript").exists() or not Platform.isOSXVersionAtLeast("11.0"):
+        if not Platform.isOSX() or not File("/usr/bin/osascript").exists() or not isOSXVersionBigSurOrLater():
             return getFileFromFileChooser(fileChooser_parent,
                                           fileChooser_starting_dir,
                                           fileChooser_filename,
@@ -3661,7 +3937,7 @@ Visit: %s (Author's site)
                 myPopupInformationBox(toolbox_frame_,txt, theMessageType=JOptionPane.WARNING_MESSAGE)
                 return
 
-            if not Platform.isOSXVersionAtLeast("10.16"):
+            if not isOSXVersionBigSurOrLater():
                 if self.lQuickCheckOnly: return True
                 txt = "Change Mac Tabbing Mode - You are not running Big Sur - no changes made!"
                 setDisplayStatus(txt, "R")
@@ -4158,6 +4434,10 @@ Visit: %s (Author's site)
         onlinePayees=0
         onlinePayments=0
 
+        if book.getSyncer() is None or book.getSyncer().getSyncedDocument() is None:
+            output += "\n** WARNING: Book's getSyncer() or getSyncedDocument() was None **\n"
+            return output
+
         for mdItem in book.getSyncer().getSyncedDocument().allItems():
             if isinstance(mdItem, MoneydanceSyncableItem):
 
@@ -4185,12 +4465,12 @@ Visit: %s (Author's site)
 
                 types[mdItem.getParameter("obj_type", "UNKNOWN")] = [x+1, theLength]
             else:
-                foundStrange+=1
-        i=0
-        charCount=0
+                foundStrange += 1
+        i = 0
+        charCount = 0
         for x in types.keys():
-            i+=types[x][0]
-            charCount+=types[x][1]
+            i += types[x][0]
+            charCount += types[x][1]
             extraText = ""
             if x == "oltxns":
                 if onlineTxns:
@@ -4202,13 +4482,12 @@ Visit: %s (Author's site)
                 if onlinePayments:
                     extraText = "(containing %s Online Payments)" %(onlinePayments)
 
-            output+=("Object: %s %s   %s %s\n" %(pad(x,15),rpad(types[x][0],12),rpad(round(types[x][1] / (1000.0),1),12), extraText))
+            output += ("Object: %s %s   %s %s\n" %(pad(x,15),rpad(types[x][0],12),rpad(round(types[x][1] / (1000.0),1),12), extraText))
 
         if foundStrange:
-            output+=("\n@@ I also found %s non Moneydance Syncable Items?! Why? @@\n" %(foundStrange))
-        output+=(" ==========\n TOTAL:                 %s   %s\n\n" %(rpad(i,12),rpad(round(charCount/(1000.0),1),12)))
-        del types
-        del foundStrange
+            output += ("\n@@ I also found %s non Moneydance Syncable Items?! Why? @@\n" %(foundStrange))
+
+        output += (" ==========\n TOTAL:                 %s   %s\n\n" %(rpad(i,12),rpad(round(charCount/(1000.0),1),12)))
         return output
 
     def getShouldDownloadAllAttachments():
@@ -4869,14 +5148,7 @@ Visit: %s (Author's site)
             textArray.append(getTheSetting(u"ofx.app_version", 29))
 
         textArray.append(u"")
-        textArray.append(u"Java JVM Resources")
-        runTime = Runtime.getRuntime()
-        maxMemory = Runtime.getRuntime().maxMemory()
-        textArray.append(u"JVM - Available processor cores: %s" %(runTime.availableProcessors()))
-        textArray.append(u"JVM - Maximum memory possible:   %s" %(u"{}".format(u"no limit") if (Long(maxMemory) == Long.MAX_VALUE) else u"{:,} GB".format(convertBytesGBs(maxMemory))))
-        textArray.append(u"JVM - Total memory allocated:    {:,} GB (used {:,} GB / free {:,} GB)".format(convertBytesGBs(runTime.totalMemory()),
-                                                                                                          convertBytesGBs(runTime.totalMemory() - runTime.freeMemory()),
-                                                                                                          convertBytesGBs(runTime.freeMemory())))
+        textArray.append(getJVMUsageStatistics(memoryUsageStats=True, maxMemoryStats=True, availableProcessorsStats=True))
 
         textArray.append(u"")
         textArray.append(u"Java JVM System Properties containing references to Moneydance")
@@ -6132,7 +6404,7 @@ Visit: %s (Author's site)
                         for token_key in token:
                             txtAppendTxt = "(Confidential: '_payloadid', 'timestamp', 'token' values have been hidden for security reasons)"
                             if token_key != "item": continue
-                            OFX.append("Key: %s AccountRef: %s %s" %(token_key, token.get(token_key), txtAppendTxt))
+                            OFX.append("Key: %s AccountRef: %s %s" %(token_key, token.get(token_key), txtAppendTxt if GlobalVars.redact else token))
                 else:
                     OFX.append("<NONE>")
                 del tokens
@@ -6145,6 +6417,10 @@ Visit: %s (Author's site)
                 else:
                     OFX.append("<NONE>")
                 del mdp_cache
+
+                if not GlobalVars.redact:
+                    # This will not disconnect anything, just reproduce the md+ connection information...
+                    OFX.append(forceDisconnectMDPlusConnection(lReturnConnectionInfoOnly=True))
 
             OFX.append(pad("\n>>Accounts configured within bank profile:",120))
             if len(service.getAvailableAccounts())<1:
@@ -11349,6 +11625,75 @@ Visit: %s (Author's site)
         cipher.init(2, privkey, ENCRYPTION_PARAM_SPEC)
         return cipher.doFinal(cipherText)
 
+    def getLicenseForBook(_book, initIfDoesntExist):
+
+        if not isMDPlusEnabledBuild(): return None
+
+        # com.moneydance.apps.md.controller.MDPlus.getLicenseForBook(AccountBook, boolean) : MDPlus.MDPlusLicense
+        # ... Will fail with 'java.lang.Error: java.lang.Error: Attempted security violation' on .getMDPlusLicense()
+        # ... as "plusLicense" will not have yet been obtained, and the latter code calls .getLicenseForBook() which prevents Python
+        # ... so we either need to get MD to do something which tricks it into setting "plusLicense" in advance.... ;->
+        # ... or execute in a new Thread where MD will not detect "Python" at the top of the call stack....
+
+        class GetLicenseForBook(Runnable):
+            def __init__(self, theBook, _initIfDoesntExist):
+                myPrint("DB", "INITIALISING::getLicenseForBook().GetLicenseForBook()")
+                self.book = theBook
+                self.initIfDoesntExist = _initIfDoesntExist
+                self.plusLicense = None
+
+            def run(self):
+                myPrint("DB", "EXECUTING::getLicenseForBook().GetLicenseForBook.run() - will call MDPlus.singleton().getLicenseForBook()")
+                self.plusLicense = MDPlus.singleton().getLicenseForBook(self.book, self.initIfDoesntExist)
+                myPrint("DB", ">>> Finished executing GetLicenseForBook.run() - result:", self.plusLicense)
+
+            def getResult(self):
+                myPrint("DB", "getLicenseForBook().GetLicenseForBook.getResult() is returning:", self.plusLicense)
+                return self.plusLicense
+
+        clientGrabber = GetLicenseForBook(_book, initIfDoesntExist)
+        t = Thread(clientGrabber)
+        t.start()
+        t.join()
+        return clientGrabber.getResult()
+
+    def getPlaidClient(_plaidConnection):
+
+        if not isMDPlusGetPlaidClientEnabledBuild(): return None
+
+        # if com.moneydance.apps.md.controller.olb.plaid.PlaidConnection.getPlaidClient() is run too 'early',
+        # ... then it will fail with 'java.lang.Error: java.lang.Error: Attempted security violation' on .getMDPlusLicense()
+        # ... as "plusLicense" will not have yet been obtained, and the latter code calls .getLicenseForBook() which prevents Python
+        # ... so we either need to get MD to do something which tricks it into setting "plusLicense" in advance.... ;->
+        # ... or execute in a new Thread where MD will not detect "Python" at the top of the call stack....
+        # Ref: com.moneydance.apps.md.controller.olb.plaid.PlaidConnection.plusLicense : MDPlus.MDPlusLicense
+
+        class GetPlaidClient(Runnable):
+            def __init__(self, thePlaidConnection):
+                myPrint("DB", "INITIALISING::getPlaidClient().GetPlaidClient() - Plaid Connection passed:", thePlaidConnection)
+                self.plaidConnection = thePlaidConnection
+                self.plaidClient = None
+
+            def run(self):
+                myPrint("DB", "EXECUTING::getPlaidClient().GetPlaidClient.run()")
+                try:
+                    self.plaidClient = invokeMethodByReflection(self.plaidConnection, "getPlaidClient", None)
+                except NoClassDefFoundError as e:
+                    myPrint("B", "Caught error '%s' (expect it's 'HttpLoggingInterceptor') - will retry once more....:" %(e.getMessage()))
+                    # Running twice seems to get past the 'NoClassDefFoundError: java.lang.NoClassDefFoundError: okhttp3/logging/HttpLoggingInterceptor' error
+                    self.plaidClient = invokeMethodByReflection(self.plaidConnection, "getPlaidClient", None)
+                myPrint("DB", ">>> Finished executing GetPlaidClient.run() - result:", self.plaidClient)
+
+            def getResult(self):
+                myPrint("DB", "getPlaidClient().GetPlaidClient.getResult() is returning:", self.plaidClient)
+                return self.plaidClient
+
+        clientGrabber = GetPlaidClient(_plaidConnection)
+        t = Thread(clientGrabber)
+        t.start()
+        t.join()
+        return clientGrabber.getResult()
+
     def UNLOCKMDPlusDiagnostic():
 
         if not isToolboxUnlocked() or not isMDPlusEnabledBuild(): return
@@ -11723,8 +12068,7 @@ Visit: %s (Author's site)
         if preZapMDPlusSettingsFirst:
             zap_MDPlus_Profile(lAutoZap=True)
         else:
-            # Just clear the LocalStorage cache.... It will rebuild itself...
-            forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=True)
+            forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=True)   # Clear the LocalStorage cache.... It will rebuild itself...
 
         licenseObject = getMDPlusLicenseInfoForBook()
 
@@ -11761,12 +12105,11 @@ Visit: %s (Author's site)
         except: pass
 
         play_the_money_sound()
-        txt = "Moneydance+ license object IMPORTED (import file deleted) >> MONEYDANCE WILL NOW EXIT - PLEASE MANUALLY RESTART!"
+        txt = "Moneydance+ license object IMPORTED (import file deleted) >> MONEYDANCE WILL NOW RELOAD DATASET/RESTART"
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
-        # Must Exit and manually restart MD as MDPlus.licenseCache field does not get reset otherwise.....
-        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def zap_MDPlus_Profile(lAutoZap=False):
 
@@ -11867,12 +12210,11 @@ Visit: %s (Author's site)
 
         play_the_money_sound()
 
-        txt = "All moneydance+ settings deleted..! MONEYDANCE WILL NOW EXIT - PLEASE MANUALLY RESTART"
+        txt = "All Moneydance+ settings DELETED >> MONEYDANCE WILL NOW RELOAD DATASET/RESTART"
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
-        # Must Exit and manually restart MD as MDPlus.licenseCache field does not get reset otherwise.....
-        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     def forceMDPlusNameCacheAccessTokensRebuild(lAutoWipe=False):
 
@@ -11911,11 +12253,285 @@ Visit: %s (Author's site)
 
         play_the_money_sound()
 
-        txt = "MD+ name cache & access tokens have been wiped..! MONEYDANCE WILL NOW RESTART"
+        txt = "MD+ name cache & access tokens have been wiped..! MONEYDANCE WILL NOW RELOAD DATASET/RESTART"
         setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
 
         ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
+
+    def forceDisconnectMDPlusConnection(lReturnConnectionInfoOnly=False):
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        if not isMDPlusEnabledBuild() or not isMDPlusGetPlaidClientEnabledBuild(): return ""
+
+        _THIS_METHOD_NAME = "Force disconnect an MD+ connection".upper()
+
+        output = "%s:\n" \
+                 " ========================================\n\n" %(_THIS_METHOD_NAME)
+
+        connectionTxt = "\n\n** WARNING: There was a script problem reproducing the md+ connection list **\n\n"
+
+        try:
+            book = MD_REF.getCurrentAccountBook()
+
+            service = PlaidConnection.getPlaidService(book)
+            if service is None:
+                if lReturnConnectionInfoOnly: return connectionTxt
+                txt = "WARNING: could not get Plaid Service - NO CHANGES MADE"
+                setDisplayStatus(txt, "R")
+                myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            # plaidConnection = PlaidConnection(book, DefaultOnlineUIProxy(MD_REF.getUI(), book, None))
+            plusController = MD_REF.getUI().getPlusController()
+            if plusController is None:
+                if lReturnConnectionInfoOnly: return connectionTxt
+                txt = "WARNING: could not get PlusController - NO CHANGES MADE"
+                setDisplayStatus(txt, "R")
+                myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            plaidConnection = plusController.getPlaidConnection()
+            if plaidConnection is None:
+                if lReturnConnectionInfoOnly: return connectionTxt
+                txt = "WARNING: could not get plaidConnection - NO CHANGES MADE"
+                setDisplayStatus(txt, "R")
+                myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            mapping = OnlineAccountMapping(book, service)
+            licenseInfo = getMDPlusLicenseInfoForBook()
+    
+            # noinspection PyUnresolvedReferences
+            p_mdpl = MDPlus.MDPlusLicense.getDeclaredConstructor(MoneydanceSyncableItem)
+            p_mdpl.setAccessible(True)
+            plusLicense = p_mdpl.newInstance(licenseInfo)
+    
+            status = None                                                                                               # noqa
+            try:
+                status = plusLicense.getSignupStatusWithRefreshing()
+            except:
+                if lReturnConnectionInfoOnly: return connectionTxt
+                txt = "WARNING: Could not retrieve md+ signup status (perhaps you are offline) - NO CHANGES MADE"
+                setDisplayStatus(txt, "R")
+                myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            # noinspection PyUnresolvedReferences
+            if status != MDPlus.SignupStatus.ACTIVATED:
+                if lReturnConnectionInfoOnly: return connectionTxt
+                txt = "WARNING: MD+ signup status(%s) is not activated - NO CHANGES MADE" %(status)
+                setDisplayStatus(txt, "R")
+                myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            # if getFieldByReflection(plaidConnection, "plusLicense") is None: raise Exception("PLEASE WAIT AND TRY AGAIN")
+
+            plaidClient = getPlaidClient(plaidConnection)
+            if plaidClient is None:
+                if lReturnConnectionInfoOnly: return connectionTxt
+                txt = "WARNING: getPlaidClient returned None - NO CHANGES MADE"
+                setDisplayStatus(txt, "R")
+                myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            output += "MD+ signup status returned: %s\n\n" %(status)
+
+            # noinspection PyUnresolvedReferences
+            allAccessTokens = [PlaidConnection.ItemAccessInfo(tokenInfo) for tokenInfo in book.getLocalStorage().getSublist("access_tokens")]
+            allItems = plaidConnection.getAccessTokensByItemID()    # Duplicates are ignored....
+
+            output += "allAccessTokens:\n"
+            for token in allAccessTokens:
+                accessToken = invokeMethodByReflection(token, "getAccessToken", [])
+                output += "%s %s\n" %(token, accessToken)
+            output += "\n"
+    
+            accounts = service.getAvailableAccounts()
+            output += "getAvailableAccounts: accounts\n"
+            for acct in accounts: output += "%s (%s)\n" %(acct.getDescription(), acct.getAccountNumber().strip())
+            output += "\n"
+    
+            itemsToBanks = {}
+            for itemID in allItems.keySet():
+                fiID = plaidConnection.getItemInfo(itemID).getStr("inst", "")
+                itemsToBanks[itemID] = plaidConnection.getInstitutionInfo(fiID)
+
+            output += "itemsToBanks:\n"
+            for item in itemsToBanks: output += "%s <> '%s' (%s)\n" %(item, itemsToBanks[item].getName(), itemsToBanks[item].getID())
+            output += "\n"
+    
+            sortedItemIDs = sorted(allItems.keySet(), key=lambda sort_x: (itemsToBanks[sort_x].getName()))
+
+            class AccountMappingRow:
+                def __init__(self, _itemInfo, _accountInfo, _allAccessTokens=None):
+                    self.itemInfo = _itemInfo
+                    self.accountInfo = _accountInfo
+                    self.allAccessTokens = _allAccessTokens
+                def isItemRow(self): return (self.accountInfo is None and self.itemInfo is not None)
+    
+            connectionRows = []
+
+            for itemID in sortedItemIDs:
+                itemInfo = allItems.get(itemID)
+                connectionRows.append(AccountMappingRow(itemInfo, None, [token for token in allAccessTokens if token.getItemID() == itemID]))
+                itemAccounts = sorted([olAccount for olAccount in accounts if olAccount.getPlaidItemID() == itemID], key=lambda sort_x: (sort_x.getDisplayName()))
+                for acctInfo in itemAccounts:
+                    connectionRows.append(AccountMappingRow(itemInfo, acctInfo))
+
+            connectionTxt = "\n" \
+                            "CONNECTIONS (should duplicate Menu>Online>Setup Moneydance+):\n" \
+                            "-------------------------------------------------------------\n"
+
+            class StoreConnectionRow:
+                def __init__(self, _connectionRow, _institutionName):
+                    self.connectionRow = _connectionRow
+                    self.institutionName = _institutionName
+                def __str__(self):  return self.institutionName
+                def __repr__(self): return self.__str__()
+                def toString(self): return self.__str__()
+
+            connectionRowSelector = []
+            for connectionRow in connectionRows:
+                if connectionRow.isItemRow():
+                    itemInfo = plaidConnection.getItemInfo(connectionRow.itemInfo.getItemID())
+                    institutionInfo = plaidConnection.getInstitutionInfo(itemInfo.getStr("inst", ""))
+                    institutionName = institutionInfo.getName("no name") + " (%s)" %(connectionRow.itemInfo.getItemID())
+                    connectionTxt += "\nConnection: %s\n" %(institutionName)
+                    if len(connectionRow.allAccessTokens) > 1:
+                        connectionTxt += "... Found multiple payloads for this connection:\n"
+                        for token in connectionRow.allAccessTokens:
+                            connectionTxt += "...... payloadid=%s token=%s\n" %(token.getPayloadID(), invokeMethodByReflection(token, "getAccessToken", []))
+                    connectionRowSelector.append(StoreConnectionRow(connectionRow, institutionName))
+                else:
+                    acctInfo = connectionRow.accountInfo
+                    accountNum = acctInfo.getAccountNumber()
+                    localAccount = mapping.getAccountForOnlineID(acctInfo.getAccountNumber(), None, False)
+                    connectionTxt += "... ACCOUNT MAPPING: '%s' <> '%s'(%s)\n" %(acctInfo.getDisplayName(), localAccount, accountNum)
+    
+            connectionTxt += "\n<END OF REPRODUCED MD+ CONNECTIONS LIST>\n"
+
+            if lReturnConnectionInfoOnly: return connectionTxt
+
+            output += connectionTxt
+
+            if len(connectionRowSelector) < 1:
+                txt = "You have no connections available that can be disconnected - NO CHANGES MADE"
+                setDisplayStatus(txt, "B")
+                myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            jif = QuickJFrame(_THIS_METHOD_NAME, output, copyToClipboard=lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+
+            ask = MyPopUpDialogBox(jif,
+                                 theStatus="WARNING: User requests to force disconnect an MD+ connection",
+                                 theTitle=_THIS_METHOD_NAME.upper(),
+                                 theMessage="Only attempt this when standard MD menus are not working....!\n"
+                                            "Try the MD Menu > Online > Setup Moneydance + > REFRESH and DISCONNECT options first\n",
+                                 lCancelButton=True,
+                                 OKButtonText="I AGREE - PROCEED",
+                                 lAlertLevel=1)
+    
+            if not ask.go():
+                txt = "User did not say yes force disconnect the selected MD+ connection - NO CHANGES MADE"
+                setDisplayStatus(txt, "B")
+                myPopupInformationBox(jif,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+    
+            selectedConnectionRow = JOptionPane.showInputDialog(jif,
+                                                       "Select the Connection to force disconnect:",
+                                                       "Select CONNECTION",
+                                                       JOptionPane.INFORMATION_MESSAGE,
+                                                       getMDIcon(lAlwaysGetIcon=True),
+                                                       connectionRowSelector,
+                                                       None)
+    
+            if not selectedConnectionRow:
+                txt = "User did not select a connection to force disconnect - NO CHANGES MADE"
+                setDisplayStatus(txt, "B")
+                myPopupInformationBox(jif,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+            if isinstance(selectedConnectionRow, StoreConnectionRow): pass
+
+            if not confirm_backup_confirm_disclaimer(jif,_THIS_METHOD_NAME.upper(),"Proceed with force disconnect '%s' md+ connection (USE WITH CARE)?" %(selectedConnectionRow.institutionName)):
+                return
+
+            jif.dispose()
+
+            pleaseWait = MyPopUpDialogBox(toolbox_frame_,
+                                          "Please wait: executing 'force disconnecting md+ connection' right now..",
+                                          theTitle=_THIS_METHOD_NAME.upper(),
+                                          lModal=False,
+                                          OKButtonText="WAIT")
+            pleaseWait.go()
+
+            output += "\n"
+            txt = "User requested to force disconnect the '%s' Moneydance+ connection - proceeding....:" %(selectedConnectionRow.institutionName)
+            output += "%s\n" %(txt); myPrint("B", txt)
+
+            for token in selectedConnectionRow.connectionRow.allAccessTokens:
+                # itemAccessInfo = token.
+                accessToken = invokeMethodByReflection(token, "getAccessToken", [])
+                response = plaidClient.service().itemRemove(ItemRemoveRequest(accessToken)).execute()
+                success = response.isSuccessful()
+                if success:
+                    txt = "Plaid ItemRemoveRequest(%s) reported SUCCESS (token: %s)!" %(accessToken, token)
+                    output += "%s\n" %(txt); myPrint("B", txt)
+                else:
+                    errorResponse = plaidClient.parseError(response)
+                    txt = "Plaid ItemRemoveRequest(%s) FAILED (token: %s) - will continue... (error: %s %s)" %(accessToken, token, errorResponse, errorResponse.getErrorCode())
+                    output += "%s\n" %(txt); myPrint("B", txt)
+
+                payloadID = token.getPayloadID()
+                if not StringUtils.isBlank(payloadID):
+                    plusLicense.deleteKeyPayload(payloadID)
+                    txt = "Deleted payloadID: '%s' from plusLicense at server..." %(payloadID)
+                    output += "%s\n" %(txt); myPrint("B", txt)
+                else:
+                    txt = "payloadID: '%s' empty - no delete from server.... will continue...." %(payloadID)
+                    output += "%s\n" %(txt); myPrint("B", txt)
+
+                # noinspection PyUnresolvedReferences
+                invokeMethodByReflection(plaidConnection, "removeAccessToken", [PlaidConnection.ItemAccessInfo], token)
+                txt = "Removed access token from access_tokens cache: %s" %(token)
+                output += "%s\n" %(txt); myPrint("B", txt)
+
+            try:
+                plaidConnection.updateAccountList()
+                txt = "Plaid - called update account list..."
+                output += "%s\n" %(txt); myPrint("B", txt)
+            except Exception as e:
+                txt = "Unable to refresh accounts list after removing token(s). Error was: %s" %(e)
+                output += "%s\n" %(txt); myPrint("B", txt)
+                dump_sys_error_to_md_console_and_errorlog()
+
+            txt = "... Auto-running cleanup of banking links..."
+            output += "%s\n" %(txt); myPrint("B", txt)
+            cleanupMissingOnlineBankingLinks(lAutoPurge=True)
+
+            MD_REF.getCurrentAccountBook().getLocalStorage().save()
+            MD_REF.saveCurrentAccount()
+    
+            pleaseWait.kill()
+
+            play_the_money_sound()
+
+            txt = "Process to force disconnect '%s' MD+ connection completed.." %(selectedConnectionRow.institutionName)
+            output += "%s\n" %(txt); myPrint("B", txt)
+            setDisplayStatus(txt, "R")
+
+            output += "\n<END>\n"
+
+            jif = QuickJFrame(_THIS_METHOD_NAME, output, copyToClipboard=lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+            myPopupInformationBox(jif,txt,_THIS_METHOD_NAME.upper(),JOptionPane.WARNING_MESSAGE)
+
+        except:
+            if lReturnConnectionInfoOnly: return connectionTxt
+            output += "\n\nERROR script has crashed - please review console\n".upper()
+            txt = dump_sys_error_to_md_console_and_errorlog(True)
+            output += txt
+            QuickJFrame(_THIS_METHOD_NAME, output, copyToClipboard=lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True, lAlertLevel=2).show_the_frame()
 
     def forgetOFXImportLink():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -15877,6 +16493,8 @@ now after saving the file, restart Moneydance
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccount().getBook().getSyncer() is None: return
+        if MD_REF.getCurrentAccount().getBook().getSyncer().getSyncedDocument() is None: return
 
         if GlobalVars.lMustRestartAfterSnapChanges:
             x="Sorry - you have to RESTART MD after running 'FIX - Thin/Purge Price History' to update the csnap cache....."
@@ -20333,6 +20951,160 @@ now after saving the file, restart Moneydance
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
+    def diagnose_matched_lot_data():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "DIAGNOSE MATCHED LOT DATA"
+
+        if MD_REF.getCurrentAccount().getBook() is None: return
+
+        book = MD_REF.getCurrentAccountBook()
+        date = datetime.datetime.today()
+
+        output = "\n\nDIAGNOSING SHARES/SECURITIES LOT MATCHING DATA\n" \
+                 " =================================================\n\n"
+
+        output += 'as of %s\n\n' %(date.strftime(convertMDShortDateFormat_strftimeFormat()))
+
+        allAccounts = AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER)
+        secAccounts = [acct for acct in allAccounts if acct.getAccountType() == Account.AccountType.SECURITY]           # noqa
+
+        securitiesToValidate = []
+
+        for secAcct in secAccounts:
+            if InvestUtil.isCostBasisValid(secAcct): continue
+
+            output += "%s: reports invalid cost basis... Checking for sells\n" %(secAcct)
+
+            sellCheck = False
+            tSet = secAcct.getBook().getTransactionSet().getTransactionsForAccount(secAcct)
+            if tSet is not None:
+                for i in range(0, tSet.getSize()):
+                    absTxn = tSet.getTxn(i)
+                    txnType = absTxn.getParentTxn().getInvestTxnType()
+                    if txnType.isBuy() or txnType.isSell():
+                        split = TxnUtil.getSecurityPart(absTxn.getParentTxn())
+                        if split.getValue() < 0:
+                            sellCheck = True
+                            break
+
+            if not sellCheck: continue
+
+            output += "... this security account does hold Sell txns - will proceed to validate LOTS\n"
+            securitiesToValidate.append(secAcct)
+
+        if len(securitiesToValidate) < 1:
+            txt = "SUCCESS - FOUND NO 'INVALID' LOT MATCHING DATA"
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME)
+            return
+
+        output += "\n\nWARNING: Found %s 'INVALID' LOT MATCHING(s) TO VALIDATE\n\n" %(len(securitiesToValidate))
+
+        def validateLots(sec):
+            # duplicates - isCostBasisValid(Account sec)
+            curr = sec.getCurrencyType()
+            buySet = TxnSet()
+            sellSet = TxnSet()
+            buyList = {}
+            txnSet = sec.getBook().getTransactionSet().getTransactionsForAccount(sec)
+            _errorTxt = ""
+
+            for _i in range(0, txnSet.getSize()):
+                _absTxn = txnSet.getTxn(_i)
+                _txnType = _absTxn.getParentTxn().getInvestTxnType()
+                if (_txnType == InvestTxnType.BUY or _txnType == InvestTxnType.SELL
+                        or _txnType == InvestTxnType.BUY_XFER or _txnType == InvestTxnType.SELL_XFER):
+                    _split = TxnUtil.getSecurityPart(_absTxn.getParentTxn())
+                    if (_split.getParentAmount() < 0):
+                        buySet.addTxn(_split)
+                    elif (_split.getParentAmount() > 0):
+                        sellSet.addTxn(_split)
+                elif (_txnType == InvestTxnType.DIVIDEND or _txnType == InvestTxnType.DIVIDEND_REINVEST):
+                    _split = TxnUtil.getSecurityPart(_absTxn.getParentTxn())
+                    if (_split.getParentAmount() < 0):
+                        buySet.addTxn(_split)
+
+            for j in range(0, sellSet.getSize()):
+                stxn = sellSet.getTxn(j)
+                shares = Math.abs(stxn.getValue())
+                if (shares != TxnUtil.getNumShares(stxn)):
+                    _errorTxt += "*****************\n"
+                    _errorTxt += "... Failed on 'shares != TxnUtil.getNumShares(stxn)'\n"
+                    _errorTxt += "shares: %s, getNumShares: %s\n" %(shares, TxnUtil.getNumShares(stxn))
+                    _errorTxt += "This means that the total qty of shares for this Sell is not exactly matched to the same qty of Buy(s)\n"
+                    _errorTxt += "stxn: %s\n" %(stxn)
+                    _errorTxt += stxn.getParentTxn().getSyncInfo().toMultilineHumanReadableString()
+                    _errorTxt += "Transaction date: %s\n" %(convertStrippedIntDateFormattedText(stxn.getParentTxn().getDateInt()))
+                    _errorTxt += "*****************\n"
+                    return False, _errorTxt
+
+                buyTable = TxnUtil.parseCostBasisTag(stxn)
+                if (buyTable is not None):
+                    for txnID in buyTable:
+                        if (txnID in buyList):
+                            oldValue = buyList.get(txnID)
+                            plusValue = buyTable.get(txnID)
+                            adjustedShares = curr.adjustValueForSplitsInt(stxn.getDateInt(), plusValue)
+                            newValue = oldValue + adjustedShares
+                            buyList[txnID] = newValue
+                            continue
+                        buyList[txnID] = curr.adjustValueForSplitsInt(stxn.getDateInt(), buyTable.get(txnID))
+                else:
+                    _errorTxt += "*****************\n"
+                    _errorTxt += "... Failed as buyTable (cost basis lot tags) is None\n"
+                    _errorTxt += "This probably means that no Buy(s) have been matched to this Sell\n"
+                    _errorTxt += "stxn: %s\n" %(stxn)
+                    _errorTxt += stxn.getParentTxn().getSyncInfo().toMultilineHumanReadableString()
+                    _errorTxt += "Transaction date: %s\n" %(convertStrippedIntDateFormattedText(stxn.getParentTxn().getDateInt()))
+                    _errorTxt += "*****************\n"
+                    return False, _errorTxt
+
+            for txnID in buyList:
+                txn = TxnUtil.getTxnByID(buySet, txnID)
+                if (txn is None):
+                    _errorTxt += "*****************\n"
+                    _errorTxt += "... Failed as could not find txnID: '%s' in buySet\n" %(txnID)
+                    _errorTxt += "This means that a matched Buy txn doesn't seem to exist any more?\n"
+                    _errorTxt += "buySet  contains: %s\n" %(buySet)
+                    _errorTxt += "buyList contains: %s\n" %(buyList)
+                    _errorTxt += "*****************\n"
+                    return False, _errorTxt
+
+                numShares = buyList.get(txnID)
+                if (curr.adjustValueForSplitsInt(txn.getDateInt(), txn.getValue()) < numShares):
+                    _errorTxt += "*****************\n"
+                    _errorTxt += "... Failed as 'curr.adjustValueForSplitsInt(txn.getDateInt(), txn.getValue()) < numShares'\n"
+                    _errorTxt += "This means that a Buy is over matched on Sell(s) - i.e. the Buy qty is less than the total matched Sell qty\n"
+                    _errorTxt += "On TxnID: %s\n" %(txnID)
+                    _errorTxt += "On Txn:   %s\n" %(txn)
+                    _errorTxt += txn.getParentTxn().getSyncInfo().toMultilineHumanReadableString()
+                    _errorTxt += "Transaction date: %s\n" %(convertStrippedIntDateFormattedText(txn.getParentTxn().getDateInt()))
+                    _errorTxt += "curr.adjustValueForSplitsInt(txn.getDateInt(), txn.getValue()): %s\n" %(curr.adjustValueForSplitsInt(txn.getDateInt(), txn.getValue()))
+                    _errorTxt += "numShares: %s\n" %(numShares)
+                    _errorTxt += "*****************\n"
+                    return False, _errorTxt
+
+            return True, _errorTxt
+
+        for secAcct in securitiesToValidate:
+            output += "\nVALIDATING: %s\n" %(secAcct)
+            result, _output = validateLots(secAcct)
+            output += _output
+            if result:
+                output += "STRANGE RESULT - Now seems to validates as OK? %s\n" %(secAcct)
+                continue
+
+            output += "... FAILED VALIDATION!!! %s\n\n" %(secAcct)
+
+        toolbox_frame_.toFront()
+        txt = "%s: Displaying invalid LOT matching data" %(_THIS_METHOD_NAME)
+        setDisplayStatus(txt, "B")
+        jif = QuickJFrame(_THIS_METHOD_NAME, output, copyToClipboard=lCopyAllToClipBoard_TB, lWrapText=False).show_the_frame()
+        myPopupInformationBox(jif,txt)
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
     class OpenFolderButtonAction(AbstractAction):
 
         def __init__(self): pass
@@ -20570,11 +21342,12 @@ now after saving the file, restart Moneydance
 
             myPrint("B", "Executing '%s' on current dataset: %s - will %s to: %s" %(_THIS_METHOD_NAME, fCurrentFilePath.getCanonicalPath(), actionString, fNewNamePath.getCanonicalPath()))
 
-            if not ManuallyCloseAndReloadDataset.manuallyCloseDataset(currentBook, lCloseWindows=True):
+            if not ManuallyCloseAndReloadDataset.manuallyCloseDataset(currentBook, lKillAllSyncers=True, lCloseWindows=True, lKillAllFramesWithBookReferences=True):
                 txt = "ERROR: MD reports that it could not close all open windows.... - no changes made (you might need to restart MD)"
-                myPopupInformationBox(toolbox_frame_,txt)
+                myPopupInformationBox(toolbox_frame_, txt, theTitle="ERROR", theMessageType=JOptionPane.ERROR_MESSAGE)
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
                 return False
+            del currentBook, currentRoot
 
             success = False
             try:
@@ -20597,7 +21370,7 @@ now after saving the file, restart Moneydance
             if not success:
                 txt = "%s: File operation(s) failed (review console) - no changes made...." %(_THIS_METHOD_NAME)
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
-                myPopupInformationBox(toolbox_frame_,"%s - Will close Toolbox & reopen original" %(txt),theMessageType=JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(toolbox_frame_,"%s - Will close Toolbox & reopen original" %(txt),theMessageType=JOptionPane.ERROR_MESSAGE)
 
                 absPath = fCurrentFilePath.getAbsolutePath()
 
@@ -20640,8 +21413,15 @@ now after saving the file, restart Moneydance
             if success and fCurrentFilePath.exists():
                 raise Exception("ERROR: The old file/path still exists: %s" %(fCurrentFilePath.getAbsolutePath()))
 
+            ManuallyCloseAndReloadDataset.startBackgroundSyncing()
+
             # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
+            myPrint("DB", "... calling .setCurrentBook() to open the dataset...")
             openResult = MD_REF.setCurrentBook(newWrapper)
+
+            myPrint("DB", "... after-open getSyncer():", MD_REF.getCurrentAccountBook().getSyncer(), MD_REF.getCurrentAccountBook().getSyncer().isRunningInBackground(), MD_REF.getCurrentAccountBook().getSyncer().isSyncing())
+            for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("DB", "...... Current Syncer Threads...", t, t.getId(), t.getState(), t.isAlive(), t.isInterrupted())
+
             if not openResult or newWrapper.getBook() is None:
                 txt = "%s: Failed to open Dataset (wrong password?)...." %(_THIS_METHOD_NAME)
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -24227,6 +25007,84 @@ Now you will have a text readable version of the file you can open in a text edi
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
 
+    def advanced_mode_decrypt_dataset():
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "ADVANCED: EXTRACT/DECRYPT ENTIRE DATASET"
+
+        if not doesUserAcceptDisclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Extract/decrypt entire dataset?"):
+            txt = "%s: User declined to continue - aborted" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt,"B")
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, theMessageType=JOptionPane.ERROR_MESSAGE)
+            return
+
+        _theTitle = "Select location to store Extracted/Decrypted dataset... (CANCEL=ABORT)"
+        theDir = getFileFromFileChooser(    toolbox_frame_,         # Parent frame or None
+                                            get_home_dir(),         # Starting path
+                                            None,                   # Default Filename
+                                            _theTitle,              # Title
+                                            False,                  # Multi-file selection mode
+                                            True,                   # True for Open/Load, False for Save
+                                            False,                  # True = Files, else Dirs
+                                            "DECRYPT DATASET",      # Load/Save button text, None for defaults
+                                            None,                   # File filter (non Mac only). Example: "txt" or "qif"
+                                            lAllowTraversePackages=False,
+                                            lForceJFC=False,
+                                            lForceFD=False,
+                                            lAllowNewFolderButton=True,
+                                            lAllowOptionsButton=True)
+
+        if theDir is None or theDir == "":
+            txt = "%s: User did not select extraction/decryption folder... Aborting" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            return
+
+        if not os.path.exists(theDir):
+            txt = "ERROR - the extraction/decryption folder does not exist?"
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            return
+
+        decryptionFolder = File(theDir, "decrypted")
+        if decryptionFolder.exists():
+            txt = "%s: Sorry, decrypted sub folder must NOT pre-exist - select another location..... Aborting" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            return
+
+        myPrint("B", "Calling save routines before decryption...")
+        MD_REF.saveCurrentAccount()
+        MD_REF.getCurrentAccountBook().getLocalStorage().save()
+
+        if myPopupAskQuestion(toolbox_frame_, theQuestion="Flush memory to disk(trunk) before starting extraction/decryption?", theTitle=_THIS_METHOD_NAME):
+            myPrint("B", "Saving Trunk before extraction/decryption...")
+            MD_REF.getCurrentAccountBook().saveTrunkFile()
+
+        decryptionFolder.mkdirs()
+
+        _msgPad = 100
+        _msg = pad("Please wait: DECRYPTING", _msgPad, padChar=".")
+        diag = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False,OKButtonText="WAIT")
+        diag.go()
+
+        myPrint("B","DECRYPTING ENTIRE DATASET to: '%s'" %(decryptionFolder.getCanonicalPath()))
+
+        wrapper = MD_REF.getUI().getCurrentAccounts()
+
+        invokeMethodByReflection(wrapper, "copyFolderToDecryptedStore", [String, File], ["", decryptionFolder])
+
+        myPrint("B","FINISHED DECRYPTING ENTIRE DATASET to: '%s'" %(decryptionFolder.getCanonicalPath()))
+        diag.kill()
+
+        txt = "ENTIRE DATASET EXTRACTED/DECRYPTED TO %s" %(decryptionFolder.getCanonicalPath())
+        setDisplayStatus(txt, "B")
+        myPopupInformationBox(toolbox_frame_, txt)
+
+        MD_REF.getPlatformHelper().openDirectory(decryptionFolder)
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
     def advanced_mode_decrypt_file_from_sync():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -24791,6 +25649,92 @@ Now you will have a text readable version of the file you can open in a text edi
                 GlobalVars.mainPnl_toolboxUnlocked_lbl.setText("<TOOLBOX UNLOCKED>" if isToolboxUnlocked() else "")
                 setDisplayStatus(txt, sColor); myPrint("B",txt)
 
+        class QuickJVMDiags(AbstractAction):
+
+            def __init__(self, theFrame):
+                self.theFrame = theFrame
+
+            def actionPerformed(self, event):                                                                           # noqa
+
+                diagTxt = "Quick JVM Diagnostics:\n" \
+                          " ---------------------\n\n"
+
+                diagTxt += getJVMUsageStatistics(True, True, True) + "\n\n"
+                
+                def isMDThread(threadName):
+                    for checkName in ["TIKSync",
+                                      "MD Background Ops",
+                                      "MDPlus",
+                                      "MD+",
+                                      "TaskIndicator"]:
+                        if threadName.lower().startswith(checkName.lower()): return True
+                    return False
+
+                diagTxt += "Threads:\n" \
+                           " -------\n"
+                lastGroup = None
+                for t in sorted(Thread.getAllStackTraces().keySet(), key=lambda sort_t: (sort_t.getThreadGroup().getName(), sort_t.getName().lower())):
+                    tg = t.getThreadGroup().getName()
+                    if lastGroup is not None and tg != lastGroup: diagTxt += "  --\n"
+                    lastGroup = tg
+                    diagTxt += "%s%s (id: %s) State: %s isAlive: %s isInterrupted: %s ThreadGroup: %s\n" %("**" if (isMDThread(t.getName())) else "  ",
+                                pad(t.getName(),40), rpad(t.getId(),4), pad(t.getState(),15), pad(t.isAlive(),5), pad(t.isInterrupted(),5), t.getThreadGroup())
+                diagTxt += "\n"
+
+                ct = Thread.currentThread()
+                diagTxt += "** This (Toolbox) thread:        %s (id: %s) %s\n" %(pad(ct.getName(),40), rpad(ct.getId(),4), ct.getThreadGroup())
+
+                try:
+                    backgroundOpsThread = MD_REF.getBackgroundThread()
+                    if backgroundOpsThread is not None:
+                        backgroundOpsThreadId = backgroundOpsThread.getId()
+                        diagTxt += "** Main's Background Ops Thread: %s (id: %s)\n" %(pad(backgroundOpsThread,40), rpad(backgroundOpsThreadId,4))
+                except: pass
+
+                try:
+                    book = MD_REF.getCurrentAccountBook()
+                    syncer = book.getSyncer()
+                    if syncer is not None:
+                        syncerThread = getFieldByReflection(syncer, "syncThread")
+                        syncerThreadId = syncerThread.getId() if (syncerThread) else None
+                        diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s\n" %(pad(syncerThread,40), rpad(syncerThreadId,4), syncer)
+                except: pass
+
+                diagTxt += "\n\nWindows:\n" \
+                           " -------\n"
+
+                def sortWindowTypes(_win):
+                    if isinstance(_win, JFrame): return 3
+                    if isinstance(_win, Frame):  return 2
+                    return 0
+
+                for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
+                    diagTxt += "%s %s isFocused: %s isVisible: %s isActive: %s isDisplayable: %s isShowing: %s (Owner: %s:%s)\n"\
+                               %(pad(type(win),70), pad(win.getName(),25),
+                                 pad(win.isFocused(),5), pad(win.isVisible(),5), pad(win.isActive(),5), pad(win.isDisplayable(),5), pad(win.isShowing(),5),
+                                 type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
+
+                diagTxt += "\nOld Frames holding on to 'book' references....:\n" \
+                           " ----------------------------------------------\n"
+                for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
+                    try:
+                        ref_book = getFieldByReflection(win, "book")
+                        if ref_book is not None:
+                            diagTxt += "%s %s : %s @{:x} '%s' (Owner: %s:%s)\n".format(System.identityHashCode(ref_book)) \
+                                                                            %(pad(type(win),70), pad(win.getName(),25),
+                                                                            "** THIS BOOK **" if (ref_book is MD_REF.getCurrentAccountBook()) else "!! OLD BOOK !! ",
+                                                                            ref_book,
+                                                                            type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
+                            if ref_book is not MD_REF.getCurrentAccountBook():
+                                win.dispose()
+                        del ref_book
+                    except: pass
+
+                diagTxt += "\n<END>"
+
+                QuickJFrame("QUICK JVM DIAGNOSTICS", diagTxt, lAlertLevel=1, copyToClipboard=lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+                setDisplayStatus("Quick JVM Diagnostics displayed...", "B")
+
         class DisplayUUID(AbstractAction):
 
             def __init__(self, theFrame):
@@ -24918,6 +25862,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_forceMDPlusNameCacheAccessTokensRebuild.setEnabled(GlobalVars.ADVANCED_MODE)
                     user_forceMDPlusNameCacheAccessTokensRebuild.setForeground(getColorRed())
 
+                    user_forceDisconnectMDPlusConnection = JRadioButton("Force Disconnect an MD+ Connection (USE WITH CARE)", False)
+                    user_forceDisconnectMDPlusConnection.setToolTipText("Attempts to force disconnect and MD+ connection. THIS CHANGES DATA!")
+                    user_forceDisconnectMDPlusConnection.setEnabled(GlobalVars.ADVANCED_MODE and isMDPlusGetPlaidClientEnabledBuild())
+                    user_forceDisconnectMDPlusConnection.setForeground(getColorRed())
+
                     user_export_MDPlus_LicenseObject = JRadioButton("Export your Moneydance+ (Plaid) license (keys) to a file (for 'transplant')", False)
                     user_export_MDPlus_LicenseObject.setToolTipText("This will Export your stored Moneydance+ (Plaid) license (keys) etc to a file (for 'transplant'). READONLY")
                     user_export_MDPlus_LicenseObject.setEnabled(GlobalVars.ADVANCED_MODE)
@@ -24965,6 +25914,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_viewReconcileAsOfDates)
                     bg.add(user_cookieManagement)
                     bg.add(user_forceMDPlusNameCacheAccessTokensRebuild)
+                    bg.add(user_forceDisconnectMDPlusConnection)
                     bg.add(user_export_MDPlus_LicenseObject)
                     bg.add(user_import_MDPlus_LicenseObject)
                     bg.add(user_zapMDPlusProfile)
@@ -25017,6 +25967,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     if isMDPlusEnabledBuild():
                         userFilters.add(user_forceMDPlusNameCacheAccessTokensRebuild)
+                        userFilters.add(user_forceDisconnectMDPlusConnection)
                         userFilters.add(user_export_MDPlus_LicenseObject)
                         userFilters.add(user_import_MDPlus_LicenseObject)
                         userFilters.add(user_zapMDPlusProfile)
@@ -25051,6 +26002,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_UNLOCKMDPlusDiagnostic.isSelected():                    UNLOCKMDPlusDiagnostic()
                         if user_authenticationManagement.isSelected():                  OFX_authentication_management()
                         if user_forceMDPlusNameCacheAccessTokensRebuild.isSelected():   forceMDPlusNameCacheAccessTokensRebuild()
+                        if user_forceDisconnectMDPlusConnection.isSelected():           forceDisconnectMDPlusConnection()
                         if user_export_MDPlus_LicenseObject.isSelected():               export_MDPlus_LicenseObject()
                         if user_import_MDPlus_LicenseObject.isSelected():               import_MDPlus_LicenseObject()
                         if user_zapMDPlusProfile.isSelected():                          zap_MDPlus_Profile()
@@ -25691,6 +26643,9 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_show_open_share_lots = JRadioButton("DIAG: Show Open Share LOTS (unconsumed) (show_open_tax_lots.py)", False)
                     user_show_open_share_lots.setToolTipText("This will list all Stocks/Shares with Open/Unconsumed LOTS (when LOT Control ON) - READONLY (show_open_tax_lots.py)")
 
+                    user_diagnose_matched_lot_data = JRadioButton("DIAG: Show Securities with 'invalid' LOT Matching (cause of LOT matching popup window)", False)
+                    user_diagnose_matched_lot_data.setToolTipText("Diagnose LOT matching data and highlights 'invalid' matching (causing LOT matching window to appear) - READONLY")
+
                     user_convert_stock_lot_FIFO = JRadioButton("FIX: Convert Stock to LOT controlled with FIFO lot matching (MakeFifoCost.py)", False)
                     user_convert_stock_lot_FIFO.setToolTipText("Convert Average Cost Controlled Stock to LOT Controlled and Allocate LOTs using FiFo method - THIS CHANGES DATA! (MakeFifoCost.py)")
                     user_convert_stock_lot_FIFO.setEnabled(GlobalVars.UPDATE_MODE)
@@ -25798,6 +26753,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg = ButtonGroup()
                     bg.add(user_fix_invalidLotRecords)
                     bg.add(user_show_open_share_lots)
+                    bg.add(user_diagnose_matched_lot_data)
                     bg.add(user_convert_stock_lot_FIFO)
                     bg.add(user_convert_stock_avg_cst_control)
                     bg.add(user_fix_nonlinked_security_records)
@@ -25827,6 +26783,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_can_i_delete_currency)
                     userFilters.add(user_list_curr_sec_dpc)
                     userFilters.add(user_show_open_share_lots)
+                    userFilters.add(user_diagnose_matched_lot_data)
                     userFilters.add(user_diag_price_date)
                     userFilters.add(JLabel(" "))
                     userFilters.add(JLabel("----------- UPDATE FUNCTIONS -----------"))
@@ -25939,6 +26896,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_fix_nonlinked_security_records.isSelected():                            detect_fix_nonlinked_investment_security_records()
                         if user_thin_price_history.isSelected():                                        thin_price_history()
                         if user_show_open_share_lots.isSelected():                                      show_open_share_lots()
+                        if user_diagnose_matched_lot_data.isSelected():                                 diagnose_matched_lot_data()
                         if user_fix_invalidLotRecords.isSelected():                                     fix_invalidLotRecords()
                         if user_convert_stock_lot_FIFO.isSelected():                                    convert_stock_lot_FIFO()
                         if user_convert_stock_avg_cst_control.isSelected():                             convert_stock_avg_cst_control()
@@ -26328,6 +27286,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_advanced_extract_from_storage.setForeground(getColorRed())
                     user_advanced_extract_from_storage.setEnabled(GlobalVars.ADVANCED_MODE)
 
+                    user_advanced_decrypt_dataset = JRadioButton("Decrypt entire dataset...", False)
+                    user_advanced_decrypt_dataset.setToolTipText("Decrypts your entire Dataset (to a folder of your choosing)")
+                    user_advanced_decrypt_dataset.setForeground(getColorRed())
+                    user_advanced_decrypt_dataset.setEnabled(GlobalVars.ADVANCED_MODE)
+
                     user_advanced_extract_from_sync = JRadioButton("Peek at an encrypted file located in your Sync Folder...", False)
                     user_advanced_extract_from_sync.setToolTipText("This allows you to select, extract (decrypt) and then peek at a file inside your Sync folder")
                     user_advanced_extract_from_sync.setForeground(getColorRed())
@@ -26391,6 +27354,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_advanced_toggle_DEBUG)
                     bg.add(user_advanced_toggle_other_DEBUGs)
                     bg.add(user_advanced_extract_from_storage)
+                    bg.add(user_advanced_decrypt_dataset)
                     bg.add(user_advanced_extract_from_sync)
                     bg.add(user_advanced_shrink_dataset)
                     bg.add(user_advanced_import_to_storage)
@@ -26416,6 +27380,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     userFilters.add(user_advanced_toggle_DEBUG)
                     userFilters.add(user_advanced_toggle_other_DEBUGs)
                     userFilters.add(user_advanced_extract_from_storage)
+                    userFilters.add(user_advanced_decrypt_dataset)
                     userFilters.add(user_advanced_extract_from_sync)
                     userFilters.add(JLabel(" "))
                     userFilters.add(JLabel("----------- UPDATE FUNCTIONS -----------"))
@@ -26468,6 +27433,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_advanced_toggle_DEBUG.isSelected():                 advanced_mode_DEBUG()
                         if user_advanced_toggle_other_DEBUGs.isSelected():          advanced_mode_other_DEBUG()
                         if user_advanced_extract_from_storage.isSelected():         advanced_mode_decrypt_file()
+                        if user_advanced_decrypt_dataset.isSelected():              advanced_mode_decrypt_dataset()
                         if user_advanced_extract_from_sync.isSelected():            advanced_mode_decrypt_file_from_sync()
                         if user_advanced_shrink_dataset.isSelected():               advanced_mode_shrink_dataset()
                         if user_advanced_import_to_storage.isSelected():            advanced_mode_encrypt_file()
@@ -26883,6 +27849,9 @@ Now you will have a text readable version of the file you can open in a text edi
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, (shortcut | Event.SHIFT_MASK)), "unlock-window")   # So Plus on Mac...
             toolbox_frame_.getRootPane().getActionMap().put("unlock-window", self.UnlockAction(toolbox_frame_))
 
+            toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, (shortcut)), "quick-jvm-diags")  # So / on Mac...
+            toolbox_frame_.getRootPane().getActionMap().put("quick-jvm-diags", self.QuickJVMDiags(toolbox_frame_))
+
             # Add standard CMD-W keystrokes etc to close window
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
@@ -27099,7 +28068,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 GlobalVars.allButtonsList.append(createMoneydanceSyncFolder_button)
 
             lTabbingModeNeedsChanging = False
-            if (Platform.isOSX() and Platform.isOSXVersionAtLeast("10.16")
+            if (isOSXVersionBigSurOrLater()
                     and int(MD_REF.getBuild()) < 3065
                     and not DetectAndChangeMacTabbingMode(True).actionPerformed("quick check")):
                 lTabbingModeNeedsChanging = True

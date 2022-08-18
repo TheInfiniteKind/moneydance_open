@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# security_performance_graph.py build: 1001 - May 2022 - Stuart Beesley StuWareSoftSystems
+# security_performance_graph.py build: 1002 - August 2022 - Stuart Beesley StuWareSoftSystems
 
 # requires: MD 2021.1(3069) due to NPE on SwingUtilities - something to do with 'theGenerator.setInfo(reportSpec)'
 
@@ -32,6 +32,8 @@
 
 # build: 1000 - Initial Release: Recreates the internal MD graph engine and create a special security performance report by percentage
 # build: 1001 - Tweaks; Common code; Fixed JTable sorting....
+# build: 1002 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
+# build: 1002 - Common code
 
 # todo - Memorise (save versions) along with choose/delete etc saved versions
 # todo - add markers for splits, buy/sells
@@ -42,7 +44,7 @@
 
 # SET THESE LINES
 myModuleID = u"security_performance_graph"
-version_build = "1001"
+version_build = "1002"
 MIN_BUILD_REQD = 3069
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -225,19 +227,17 @@ else:
 
     from org.python.core.util import FileUtil
 
-    from java.lang import Thread, IllegalArgumentException, String
-
     from com.moneydance.util import Platform
     from com.moneydance.awt import JTextPanel, GridC, JDateField
     from com.moneydance.apps.md.view.gui import MDImages
 
-    from com.infinitekind.util import DateUtil, CustomDateFormat
+    from com.infinitekind.util import DateUtil, CustomDateFormat, StringUtils
+
     from com.infinitekind.moneydance.model import *
     from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
     from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
     from com.moneydance.apps.md.controller import AccountBookWrapper
-    from com.moneydance.apps.md.view.gui import WelcomeWindow
     from com.infinitekind.moneydance.model import AccountBook
 
     from javax.swing import JButton, JScrollPane, WindowConstants, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
@@ -262,12 +262,14 @@ else:
 
     from java.text import DecimalFormat, SimpleDateFormat, MessageFormat
     from java.util import Calendar, ArrayList
+    from java.lang import Thread, IllegalArgumentException, String, Integer, Long
     from java.lang import Double, Math, Character, NoSuchFieldException, NoSuchMethodException, Boolean
     from java.lang.reflect import Modifier
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
     from java.nio.charset import Charset
     if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
+                         AccountBook, AccountBookWrapper, Long, Integer, Boolean,
                          JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
                          JButton, FlowLayout, InputEvent, ArrayList, File, IOException, StringReader, BufferedReader,
                          InputStreamReader, Dialog, JTable, BorderLayout, Double, InvestUtil, JRadioButton, ButtonGroup,
@@ -567,6 +569,76 @@ Visit: %s (Author's site)
             if debug: myPrint("B","Failed to Font set to Moneydance code - So using: %s" %theFont)
 
         return theFont
+
+    def isOSXVersionAtLeast(compareVersion):
+        # type: (basestring) -> bool
+        """Pass a string in the format 'x.x.x'. Will check that this MacOSX version is at least that version. The 3rd micro number is optional"""
+
+        try:
+            if not Platform.isOSX(): return False
+
+            def convertVersion(convertString):
+                _os_major = _os_minor = _os_micro = 0
+                _versionNumbers = []
+
+                for versionPart in StringUtils.splitIntoList(convertString, '.'):
+                    strippedPart = StringUtils.stripNonNumbers(versionPart, '.')
+                    if (StringUtils.isInteger(strippedPart)):
+                        _versionNumbers.append(Integer.valueOf(Integer.parseInt(strippedPart)))
+                    else:
+                        _versionNumbers.append(0)
+
+                if len(_versionNumbers) >= 1: _os_major = max(0, _versionNumbers[0])
+                if len(_versionNumbers) >= 2: _os_minor = max(0, _versionNumbers[1])
+                if len(_versionNumbers) >= 3: _os_micro = max(0, _versionNumbers[2])
+
+                return _os_major, _os_minor, _os_micro
+
+
+            os_major, os_minor, os_micro = convertVersion(System.getProperty("os.version", "0.0.0"))
+            myPrint("DB", "MacOS Version number(s): %s.%s.%s" %(os_major, os_minor, os_micro))
+
+            if not isinstance(compareVersion, basestring) or len(compareVersion) < 1:
+                myPrint("B", "ERROR: Invalid compareVersion of '%s' passed - returning False" %(compareVersion))
+                return False
+
+            chk_os_major, chk_os_minor, chk_os_micro = convertVersion(compareVersion)
+            myPrint("DB", "Comparing against Version(s): %s.%s.%s" %(chk_os_major, chk_os_minor, chk_os_micro))
+
+
+            if os_major < chk_os_major: return False
+            if os_major > chk_os_major: return True
+
+            if os_minor < chk_os_minor: return False
+            if os_minor > chk_os_minor: return True
+
+            if os_micro < chk_os_micro: return False
+            return True
+
+        except:
+            myPrint("B", "ERROR: isOSXVersionAtLeast() failed - returning False")
+            dump_sys_error_to_md_console_and_errorlog()
+            return False
+
+    def isOSXVersionCheetahOrLater():       return isOSXVersionAtLeast("10.0")
+    def isOSXVersionPumaOrLater():          return isOSXVersionAtLeast("10.1")
+    def isOSXVersionJaguarOrLater():        return isOSXVersionAtLeast("10.2")
+    def isOSXVersionPantherOrLater():       return isOSXVersionAtLeast("10.3")
+    def isOSXVersionTigerOrLater():         return isOSXVersionAtLeast("10.4")
+    def isOSXVersionLeopardOrLater():       return isOSXVersionAtLeast("10.5")
+    def isOSXVersionSnowLeopardOrLater():   return isOSXVersionAtLeast("10.6")
+    def isOSXVersionLionOrLater():          return isOSXVersionAtLeast("10.7")
+    def isOSXVersionMountainLionOrLater():  return isOSXVersionAtLeast("10.8")
+    def isOSXVersionMavericksOrLater():     return isOSXVersionAtLeast("10.9")
+    def isOSXVersionYosemiteOrLater():      return isOSXVersionAtLeast("10.10")
+    def isOSXVersionElCapitanOrLater():     return isOSXVersionAtLeast("10.11")
+    def isOSXVersionSierraOrLater():        return isOSXVersionAtLeast("10.12")
+    def isOSXVersionHighSierraOrLater():    return isOSXVersionAtLeast("10.13")
+    def isOSXVersionMojaveOrLater():        return isOSXVersionAtLeast("10.14")
+    def isOSXVersionCatalinaOrLater():      return isOSXVersionAtLeast("10.15")
+    def isOSXVersionBigSurOrLater():        return isOSXVersionAtLeast("10.16")  # BigSur is officially 11.0, but started at 10.16
+    def isOSXVersionMontereyOrLater():      return isOSXVersionAtLeast("12.0")
+    def isOSXVersionVenturaOrLater():       return isOSXVersionAtLeast("13.0")
 
     def get_home_dir():
         homeDir = None
@@ -1656,12 +1728,13 @@ Visit: %s (Author's site)
         _TRUE = "true"
         _FALSE = "false"
 
-        _DIRS_FD = "apple.awt.fileDialogForDirectories"        # Changes Behaviour. When True you can select a Folder (rather than a file)
-        _PKGS_FD = "com.apple.macos.use-file-dialog-packages"
+        _DIRS_FD = "apple.awt.fileDialogForDirectories"        # When True you can select a Folder (rather than a file)
+        _PKGS_FD = "apple.awt.use-file-dialog-packages"        # When True allows you to select a 'bundle' as a file; False means navigate inside the bundle
+        # "com.apple.macos.use-file-dialog-packages"           # DEPRECATED since Monterrey - discovered this about MD2022.5(4090) - refer: java.desktop/sun/lwawt/macosx/CFileDialog.java
 
         # FileDialog defaults
         # "apple.awt.fileDialogForDirectories"       default "false" >> set "true"  to allow Directories to be selected
-        # "com.apple.macos.use-file-dialog-packages" default "true"  >> set "false" to allow access to Mac 'packages'
+        # "apple.awt.use-file-dialog-packages"       default "true"  >> set "false" to allow access to Mac 'packages'
 
         if debug or lReportOnly:
             myPrint("B", "Parameters set: ReportOnly: %s, Defaults:%s, SelectDirectories:%s, PackagesT:%s" % (lReportOnly, lDefaults, lSelectDirectories, lPackagesT))
@@ -1751,7 +1824,8 @@ Visit: %s (Author's site)
             else:
                 fileDialog.setMode(FileDialog.SAVE)
 
-            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 fileDialog.setFilenameFilter(ExtFilenameFilter(fileChooser_fileFilterText))
 
@@ -1791,7 +1865,8 @@ Visit: %s (Author's site)
             else:
                 jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY)   # FILES_ONLY, DIRECTORIES_ONLY, FILES_AND_DIRECTORIES
 
-            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
+            if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 jfc.setFileFilter(ExtFileFilterJFC(fileChooser_fileFilterText))
 
@@ -2272,6 +2347,8 @@ Visit: %s (Author's site)
                 SetupMDColors.FOREGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultBackground
                 SetupMDColors.BACKGROUND_REVERSED = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
 
+    global ManuallyCloseAndReloadDataset            # Declare it for QuickJFrame/IDE, but not present in common code. Other code will ignore it
+
     class QuickJFrame():
 
         def __init__(self,
@@ -2320,14 +2397,20 @@ Visit: %s (Author's site)
                 myPrint("DB","In ", inspect.currentframe().f_code.co_name, "()")
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
-                if self.lQuitMDAfterClose:
-                    myPrint("B", "Quit MD after Close triggered... Now quitting MD")
-                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
-                elif self.lRestartMDAfterClose:
-                    myPrint("B", "Restart MD after Close triggered... Now restarting MD")
-                    ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
+                if self.lQuitMDAfterClose or self.lRestartMDAfterClose:
+                    if "ManuallyCloseAndReloadDataset" not in globals():
+                        myPrint("DB", "'ManuallyCloseAndReloadDataset' not in globals(), so just exiting MD the easy way...")
+                        myPrint("B", "@@ EXITING MONEYDANCE @@")
+                        MD_REF.getUI().exit()
+                    else:
+                        if self.lQuitMDAfterClose:
+                            myPrint("B", "Quit MD after Close triggered... Now quitting MD")
+                            ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
+                        elif self.lRestartMDAfterClose:
+                            myPrint("B", "Restart MD after Close triggered... Now restarting MD")
+                            ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
                 else:
-                    myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing")
+                    myPrint("DB", "FYI No Quit MD after Close triggered... So doing nothing...")
 
         class CloseAction(AbstractAction):
 
@@ -2842,138 +2925,6 @@ Visit: %s (Author's site)
             if alertController is not None:
                 invokeMethodByReflection(alertController, "shutdown", None)
                 setFieldByReflection(MD_REF.getUI(), "alertController", None)
-
-    class ManuallyCloseAndReloadDataset(Runnable):
-
-        @staticmethod
-        def closeSecondaryWindows():
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.closeSecondaryWindows()")
-            if not SwingUtilities.isEventDispatchThread(): return False
-            if not ManuallyCloseAndReloadDataset.isSafeToCloseDataset(): return False
-            return invokeMethodByReflection(MD_REF.getUI(), "closeSecondaryWindows", [Boolean.TYPE], [False])
-
-        @staticmethod
-        def isSafeToCloseDataset():
-            # type: () -> bool
-            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.isSafeToCloseDataset()")
-            if not SwingUtilities.isEventDispatchThread(): return False
-            return invokeMethodByReflection(MD_REF.getUI(), "isOKToCloseFile", None)
-
-        @staticmethod
-        def moneydanceExitOrRestart(lRestart=True, lAllowSaveWorkspace=True):
-            # type: (bool, bool) -> bool
-            """Checks with MD whether all the Secondary Windows report that they are in a state to close"""
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.moneydanceExitOrRestart() - lRestart: %s, lAllowSaveWorkspace: %s" %(lRestart, lAllowSaveWorkspace))
-
-            if lRestart and not lAllowSaveWorkspace: raise Exception("Sorry: you cannot use lRestart=True and lAllowSaveWorkspace=False together...!")
-
-            if lRestart:
-                myPrint("B", "@@ RESTARTING MONEYDANCE >> RELOADING SAME DATASET @@")
-                Thread(ManuallyCloseAndReloadDataset()).start()
-            else:
-                if lAllowSaveWorkspace:
-                    myPrint("B", "@@ EXITING MONEYDANCE @@")
-                    MD_REF.getUI().exit()
-                else:
-                    myPrint("B", "@@ SHUTTING DOWN MONEYDANCE >> NOT SAVING 'WORKSPACE' @@")
-                    MD_REF.getUI().shutdownApp(False)
-
-        @staticmethod
-        def manuallyCloseDataset(theBook, lCloseWindows=True):
-            # type: (AccountBook, bool) -> bool
-            """Mimics .setCurrentBook(None) but avoids the Auto Backup 'issue'. Also closes open SecondaryWindows, pauses MD+ etc
-            You should decide whether to run this on the EDT or on a new background thread when calling this method"""
-
-            myPrint("DB", "In ManuallyCloseAndReloadDataset.manuallyCloseDataset(), lCloseWindows:", lCloseWindows)
-
-            if lCloseWindows:
-                if not SwingUtilities.isEventDispatchThread():
-                    raise Exception("ERROR: you must run manuallyCloseDataset() on the EDT if you wish to also call closeSecondaryWindows()...!")
-                if not ManuallyCloseAndReloadDataset.closeSecondaryWindows(): return False
-
-            # Shutdown the MD+ poller... When we open a new dataset it should reset itself.....
-            shutdownMDPlusPoller()
-
-            # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
-            shutdownMDAlertController()
-
-            setFieldByReflection(MD_REF.getUI(), "olMgr", None)
-
-            myPrint("DB", "... saving LocalStorage..")
-            theBook.getLocalStorage().save()                        # Flush LocalStorage...
-
-            myPrint("DB", "... Mimicking .setCurrentBook(None)....")
-
-            MD_REF.fireAppEvent("md:file:closing")
-            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
-
-            MD_REF.fireAppEvent("md:file:closed")
-
-            myPrint("DB", "... calling .cleanUp() ....")
-            theBook.cleanUp()
-
-            setFieldByReflection(MD_REF, "currentBook", None)
-            myPrint("B", "Closed current dataset (book: %s)" %(theBook))
-
-            myPrint("DB", "... FINISHED Closing down the dataset")
-            return True
-
-        THIS_APPS_FRAME_REFERENCE = None
-
-        def __init__(self, lQuitThisAppToo=True):
-            self.lQuitThisAppToo = (lQuitThisAppToo and self.__class__.THIS_APPS_FRAME_REFERENCE is not None)
-            self.result = None
-
-        def getResult(self): return self.result     # Caution - only call this when you have waited for Thread to complete..... ;->
-
-        def run(self):
-            # type: () -> bool
-            self.result = self.manuallyCloseAndReloadDataset()
-
-        def manuallyCloseAndReloadDataset(self):
-            # type: () -> bool
-            """Manually closes current dataset, then reloads the same dataset.. Use when you want to refresh MD's internals"""
-
-            if SwingUtilities.isEventDispatchThread(): raise Exception("ERROR - you must run manuallyCloseAndReloadDataset() from a new non-EDT thread!")
-
-            cswResult = [None]
-            class CloseSecondaryWindows(Runnable):
-                def __init__(self, result): self.result = result
-                def run(self): self.result[0] = ManuallyCloseAndReloadDataset.closeSecondaryWindows()
-
-            SwingUtilities.invokeAndWait(CloseSecondaryWindows(cswResult))
-            if not cswResult[0]: return False
-
-            currentBook = MD_REF.getCurrentAccountBook()
-            fCurrentFilePath = currentBook.getRootFolder()
-
-            if not ManuallyCloseAndReloadDataset.manuallyCloseDataset(currentBook, lCloseWindows=False): return False
-
-            newWrapper = AccountBookWrapper.wrapperForFolder(fCurrentFilePath)
-            if newWrapper is None: raise Exception("ERROR: 'AccountBookWrapper.wrapperForFolder' returned None")
-            myPrint("DB", "Successfully obtained 'wrapper' for dataset: %s\n" %(fCurrentFilePath.getCanonicalPath()))
-
-            myPrint("B", "Opening dataset: %s" %(fCurrentFilePath.getCanonicalPath()))
-
-            # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
-            openResult = MD_REF.setCurrentBook(newWrapper)
-            if not openResult or newWrapper.getBook() is None:
-                txt = "Failed to open Dataset (wrong password?).... Will show the Welcome Window...."
-                setDisplayStatus(txt, "R"); myPrint("B", txt)
-                WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
-
-                if self.lQuitThisAppToo:
-                    # Remember... the file opened event closes my extensions with app listeners, so do this if file could not be opened....
-                    if self.__class__.THIS_APPS_FRAME_REFERENCE is not None:
-                        if isinstance(self.__class__.THIS_APPS_FRAME_REFERENCE, JFrame):
-                            # Do this after .setCurrentBook() so-as not to co-modify listeners.....
-                            SwingUtilities.invokeLater(GenericWindowClosingRunnable(self.__class__.THIS_APPS_FRAME_REFERENCE))
-
-                return False
-
-            return True
-
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################

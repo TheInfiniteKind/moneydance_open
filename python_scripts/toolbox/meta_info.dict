@@ -2,11 +2,11 @@
   "id" = "toolbox"
   "extension_type" = "python"
   "vendor" = "The Infinite Kind (co-authored with Stuart Beesley - StuWareSoftSystems)"
-  "module_build" = "1052"
+  "module_build" = "1053"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Toolbox"
   "module_desc" = "Infinite Kind support tool: Displays Moneydance settings, diagnoses issues, run fixes, and much more....."
   "mac_sandbox_friendly" = "false"
-  "news" = "Tweaks, various new features"
+  "news" = "New LOT matching diagnosis report"
 }

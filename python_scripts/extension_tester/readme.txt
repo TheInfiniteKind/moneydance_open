@@ -158,6 +158,7 @@ CODING TIPS
     - This is not good practice, but do this 'hack' at the beginning of your code to get Python 2.7 to default to UTF-8
         import sys; reload(sys); sys.setdefaultencoding('utf8')
     - AVOID using str(). For example just use %s in text. So "Hello %s" %(name) - and not "Hello " + str(name)
+      ... an update.. I had a tip from the Jython developer to use unicode() instead of str() [on MD data/strings that is unicode/utf8]
     - If you use str(), especially anywhere where there are extended characters - like £ or € - you will either get garbage or an error.....
     The reference __file__ will not exist if running as an ExtensionClass()
 - Account Filter  is very useful: com.infinitekind.moneydance.model.AcctFilter. It took me ages to work out.... - Example:

@@ -146,6 +146,7 @@ Basic Mode (Default at launch) - Use ALT-M to toggle between Basic and Update mo
         - DIAGnostics - Can I delete a Currency (tells you whether a currency is being used - and where)
         - DIAGnostics - List decimal places (currency & security). Shows you the hidden setting and related data.
         - DIAGnostics - Show your open LOTs on stocks/shares (when using LOT control) (show_open_tax_lots.py)
+        - DIAGnostics - Show Securities with 'invalid' LOT Matching (cause of LOT matching popup window)
         - DIAGnostics - Diagnose currency / security's current price hidden 'price_date' field. If warnings, then go to FIX below
     - MENU: Transactions tools
         - View Register Txn Sort Orders
@@ -212,6 +213,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
                 - Manual Edit of stored Root UserIDs/ClientUIDs
         - OFX Cookie Management (requires Advanced mode)
         - Force MD+ name cache & access tokens rebuild - Names and Access Tokens should rebuild themselves - MD Version 2022 onwards. USE WITH CARE. (requires Advanced mode)
+        - Force Disconnect an MD+ Connection - MD Version 2022 onwards. USE WITH CARE. (requires Advanced mode)
         - Export your Moneydance+ (Plaid) license (keys) to a file (for 'transplant') - MD Version 2022 onwards. READONLY (requires Advanced mode)
         - Import ('transplant') your Moneydance+ (Plaid) license (keys) from a file (exported by Toolbox) - MD Version 2022 onwards. USE WITH CARE. (requires Advanced mode)
         - ZAP Dataset's Moneydance+ (Plaid) settings (requires Advanced mode) - MD Version 2022 onwards. USE WITH CARE. WILL REQUIRE RE-REGISTRATION!
@@ -258,6 +260,7 @@ ALT-SHIFT-M - Menu - ADVANCED MODE (button turns red when enabled)
     - Toggle other known DEBUG settings on (extra messages in Console)
     - Toggle all internal Moneydance DEBUG settings ON/OFF (same as viewing console)
     - Extract a (single) file from within LocalStorage. Decrypts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
+    - Decrypt entire dataset. Decrypts entire dataset to a folder of your choosing...
     - Peek at an encrypted file located in your Sync Folder.... Decrypts a Sync (e.g. Dropbox) file and shows it to you...
     - Shrink Dataset. This function deletes MD's log files of all prior changes (not needed).. Typically these are .txn, .mdtxn files...
     - Import (a single) File back into LocalStorage. Encrypts a file of your choosing and puts it into LocalStorage/safe/TMP...
@@ -273,6 +276,8 @@ ALT-SHIFT-M - Menu - ADVANCED MODE (button turns red when enabled)
     - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
 
 CMD-P - View parameters file (StuWareSoftSystems). Also allows user to Delete all, and/or change/delete single saved parameters
+
+CMD-/ - View quick JVM diagnostics
 
 Menu - DEBUG MODE
     >> Turns on this Extension's own internal debug messages...
