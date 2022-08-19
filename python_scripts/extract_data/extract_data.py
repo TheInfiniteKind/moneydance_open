@@ -9014,9 +9014,6 @@ Visit: %s (Author's site)
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
                             myPrint("DB", "... Calling do_extract_account_registers()")
 
-                            ct = Thread.currentThread()
-                            if "ED_" not in ct.getName(): ct.setName(u"ED_ExtractAccountRegistersSwingWorker_%s" %(ct.getName()))
-
                             try:
                                 do_extract_account_registers()
                             except:
@@ -9997,10 +9994,6 @@ Visit: %s (Author's site)
                             myPrint("DB", "In ExtractInvestmentTxnsSwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
                             myPrint("DB", "... Calling do_extract_investment_transactions()")
-
-                            ct = Thread.currentThread()
-                            if "ED_" not in ct.getName(): ct.setName(u"ED_ExtractInvestmentTxnsSwingWorker_%s" %(ct.getName()))
-
                             try:
                                 do_extract_investment_transactions()
                             except:
@@ -10294,9 +10287,6 @@ Visit: %s (Author's site)
                             myPrint("DB", "In ExtractCurrencyHistorySwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
                             myPrint("DB", "... Calling do_extract_currency_history()")
-
-                            ct = Thread.currentThread()
-                            if "ED_" not in ct.getName(): ct.setName(u"ED_ExtractCurrencyHistorySwingWorker_%s" %(ct.getName()))
 
                             try:
                                 do_extract_currency_history()
