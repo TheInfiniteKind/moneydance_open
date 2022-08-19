@@ -70,15 +70,20 @@ class QuickDiag(Runnable):
             msg += (u"BACKUPS - Keep no more than:     %s backups\n" %(destroyBackupChoices))
             msg += (u"BACKUPS - Separate Backup Foldr: %s\n" %(self.mdRef.getPreferences().getBoolSetting(u"backup.location_selected", True)))
 
-            backupFile = FileUtils.getBackupDir(self.mdRef.getPreferences())
-            if backupFile is None:
-                backupFileTxt = u"(no backup location detected)"
-            elif not isinstance(backupFile, File) or not backupFile.exists():
-                backupFileTxt = u"** INVALID BACKUP LOCATION DETECTED **"
+            MD_CONFIGDICT_BACKUP_TYPE = u"backup.backup_type"
+            backupFolder = FileUtils.getBackupDir(self.mdRef.getPreferences())
+            backupType = self.mdRef.getPreferences().getSetting(MD_CONFIGDICT_BACKUP_TYPE, u"every_x_days")
+            autoBackup = (backupType != u"no_backup")
+            if not autoBackup:
+                backupFileTxt = u"** WARNING: AUTO BACKUPS ARE DISABLED **"
+            elif backupFolder is None:
+                backupFileTxt = u"** ERROR: NO AUTO-BACKUP LOCATION DETECTED **"
+            elif not isinstance(backupFolder, File) or not backupFolder.exists():
+                backupFileTxt = u"** ERROR: INVALID AUTO-BACKUP LOCATION DETECTED **"
             else:
                 backupFileTxt = u"(backup location exists)"
 
-            msg += (u"BACKUPS - Backup Folder:        '%s' %s\n" %(backupFile.getCanonicalPath(), backupFileTxt))
+            msg += (u"BACKUPS - Backup Folder:        '%s' %s\n" %(backupFolder.getCanonicalPath(), backupFileTxt))
 
             msg += (u"..key - 'backup.location':      '%s'\n" %(self.mdRef.getPreferences().getSetting(u"backup.location", u"<not set>")))
             msg += (u"..key - 'backup.last_browsed':  '%s'\n" %(self.mdRef.getPreferences().getSetting(u"backup.last_browsed", u"<not set>")))

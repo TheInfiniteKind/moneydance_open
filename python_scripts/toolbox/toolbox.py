@@ -123,6 +123,7 @@
 # build: 1053 - Improved ManuallyCloseAndReloadDataset() to release all references to (old) book, and shutdown more things - memory consumption etc....
 # build: 1053 - Added CMD-SHIFT-/ - calls up QuickJVMDiags(); tweaked Common Code...
 # build: 1053 - Flip to restart after Import and Zap md+ license (was exit) - now that we reset licenseCache.....
+# build: 1053 - Alerts to detect invalid backup locations (or auto-backup off); init code now warns about memory % and invalid backup locations too...
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -28406,6 +28407,29 @@ Now you will have a text readable version of the file you can open in a text edi
                                                  theTitle="ERROR - JAVA TEMP FOLDER",
                                                  OKButtonText="ACKNOWLEDGE",
                                                  lAlertLevel=2,
+                                                 lModal=True).go()
+
+            # Check for problem with 'auto' backup location... Popup alert message
+            backupFolder = FileUtils.getBackupDir(MD_REF.getPreferences())
+            backupType = MD_REF.getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_BACKUP_TYPE, "every_x_days")
+            autoBackup = (backupType != "no_backup")
+            if not autoBackup:
+                MyPopUpDialogBox(toolbox_frame_, "AUTO-BACKUP DISABLED",
+                                                 "You appear to have disabled auto-backup\n" 
+                                                 "If you require automatic backups then...\n" 
+                                                 "..you should review menu MD>Preferences>Backups",
+                                                 theTitle="WARNING: AUTO BACKUPS DISABLED",
+                                                 OKButtonText="ACKNOWLEDGE",
+                                                 lAlertLevel=1,
+                                                 lModal=True).go()
+            elif backupFolder is None or not isinstance(backupFolder, File) or not backupFolder.exists():
+                MyPopUpDialogBox(toolbox_frame_,"POTENTIAL PROBLEM DETECTED",
+                                                 "Your (auto) backup location appears invalid...\n" 
+                                                 "..you should review menu MD>Preferences>Backups\n" 
+                                                 "Review console for details and correct problem",
+                                                 theTitle="ERROR: AUTO-BACKUP FOLDER INVALID",
+                                                 OKButtonText="ACKNOWLEDGE",
+                                                 lAlertLevel=1,
                                                  lModal=True).go()
 
             # Check for secondary node (potentially restored from backup).. Popup alert message
