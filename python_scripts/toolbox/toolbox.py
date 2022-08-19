@@ -3192,6 +3192,25 @@ Visit: %s (Author's site)
     # Prevent usage later on... We use MD_REF
     if "moneydance" in globals(): del moneydance
 
+    def isMDThread(threadName):
+        for checkName in ["TIKSync", "MD Background Ops", "MDPlus", "MD+", "TaskIndicator"]:
+            if threadName.lower().startswith(checkName.lower()): return True
+        return False
+
+    def getYN(_bool=False): return "Y" if _bool else "N"
+
+    def getJVMThreadInformation(_thread, _addNewLine=False):
+        if _thread is None or not isinstance(_thread, Thread): return
+        try:
+            _txt = ("%s%s (id: %s) State: %s isAlive: %s isInterrupted: %s isDaemon: %s Priority: %s ThreadGroup: %s"
+                            %(pad("**" if (isMDThread(_thread.getName())) else "", 2),
+                              pad(_thread.getName(),40), rpad(_thread.getId(),4),
+                              pad(_thread.getState(),15), getYN(_thread.isAlive()), getYN(_thread.isInterrupted()),
+                              getYN(_thread.isDaemon()), rpad(_thread.getPriority(),2), _thread.getThreadGroup()))
+        except: _txt = "**ERROR translating Thread information**"
+        if _addNewLine: _txt += "\n"
+        return _txt
+
     def getJVMUsageStatistics(memoryUsageStats=True, maxMemoryStats=False, availableProcessorsStats=False):
 
         runTime = Runtime.getRuntime()
@@ -3276,7 +3295,7 @@ Visit: %s (Author's site)
 
             if lRestart:
                 myPrint("B", "@@ RESTARTING MONEYDANCE >> RELOADING SAME DATASET @@")
-                Thread(ManuallyCloseAndReloadDataset()).start()
+                Thread(ManuallyCloseAndReloadDataset(), "toolbox_moneydanceExitOrRestart").start()
             else:
                 if lAllowSaveWorkspace:
                     myPrint("B", "@@ EXITING MONEYDANCE @@")
@@ -3322,7 +3341,7 @@ Visit: %s (Author's site)
 
             if debug:
                 myPrint("B", "... pre-close getSyncer(): %s isRunningInBackground: %s isSyncing: %s" %(wr_oldSyncer.get(), wr_oldSyncer.get().isRunningInBackground(), wr_oldSyncer.get().isSyncing()))    # noqa
-                for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("B", "... Current Syncer Threads...: %s (id: %s) State: %s isAlive: %s isInterrupted: %s" %(t, t.getId(), t.getState(), t.isAlive(), t.isInterrupted()))
+                for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("B", "... Current Syncer Threads...:", getJVMThreadInformation(t, True))
 
             myPrint("DB", "... closing SyncManager / settings window etc..")
             if MD_REF.getUI().getSyncManager() is not None:
@@ -3398,7 +3417,7 @@ Visit: %s (Author's site)
 
             if debug:
                 myPrint("B", "... after-kill syncer threads getSyncer(): %s isRunningInBackground: %s isSyncing: %s" %(wr_oldSyncer.get(), wr_oldSyncer.get().isRunningInBackground(), wr_oldSyncer.get().isSyncing()))    # noqa
-                for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("B", "... Current Syncer Threads...: %s (id: %s) State: %s isAlive: %s isInterrupted: %s" %(t, t.getId(), t.getState(), t.isAlive(), t.isInterrupted()))
+                for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("B", "... Current Syncer Threads...:", getJVMThreadInformation(t, True))
 
             myPrint("DB", "... setting Main's 'currentBook' to None...")
             setFieldByReflection(MD_REF, "currentBook", None)
@@ -5148,7 +5167,9 @@ Visit: %s (Author's site)
             textArray.append(getTheSetting(u"ofx.app_version", 29))
 
         textArray.append(u"")
-        textArray.append(getJVMUsageStatistics(memoryUsageStats=True, maxMemoryStats=True, availableProcessorsStats=True))
+        x = getJVMUsageStatistics(memoryUsageStats=True, maxMemoryStats=True, availableProcessorsStats=True)
+        textArray.append(x)
+        myPrint(u"B", x)
 
         textArray.append(u"")
         textArray.append(u"Java JVM System Properties containing references to Moneydance")
@@ -10257,12 +10278,9 @@ Visit: %s (Author's site)
 
             scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_runThisScript))
 
-            t = Thread(ScriptRunnable(MD_REF, py, scriptStream, _runThisScript))
-            t.start()
+            Thread(ScriptRunnable(MD_REF, py, scriptStream, _runThisScript), "toolbox_scriptRunner").start()
 
             myPrint("DB", ".... post calling Thread().....")
-
-            del py, t
             myPrint("B","**********************************************************")
             myPrint("B","**********************************************************")
             myPrint("B","**********************************************************")
@@ -11652,7 +11670,7 @@ Visit: %s (Author's site)
                 return self.plusLicense
 
         clientGrabber = GetLicenseForBook(_book, initIfDoesntExist)
-        t = Thread(clientGrabber)
+        t = Thread(clientGrabber, "toolbox_getLicenseForBook")
         t.start()
         t.join()
         return clientGrabber.getResult()
@@ -11689,7 +11707,7 @@ Visit: %s (Author's site)
                 return self.plaidClient
 
         clientGrabber = GetPlaidClient(_plaidConnection)
-        t = Thread(clientGrabber)
+        t = Thread(clientGrabber, "toolbox_getPlaidClient")
         t.start()
         t.join()
         return clientGrabber.getResult()
@@ -21420,7 +21438,7 @@ now after saving the file, restart Moneydance
             openResult = MD_REF.setCurrentBook(newWrapper)
 
             myPrint("DB", "... after-open getSyncer():", MD_REF.getCurrentAccountBook().getSyncer(), MD_REF.getCurrentAccountBook().getSyncer().isRunningInBackground(), MD_REF.getCurrentAccountBook().getSyncer().isSyncing())
-            for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("DB", "...... Current Syncer Threads...", t, t.getId(), t.getState(), t.isAlive(), t.isInterrupted())
+            for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("DB", "...... Current Syncer Threads...:", getJVMThreadInformation(t, True))
 
             if not openResult or newWrapper.getBook() is None:
                 txt = "%s: Failed to open Dataset (wrong password?)...." %(_THIS_METHOD_NAME)
@@ -25661,15 +25679,6 @@ Now you will have a text readable version of the file you can open in a text edi
 
                 diagTxt += getJVMUsageStatistics(True, True, True) + "\n\n"
                 
-                def isMDThread(threadName):
-                    for checkName in ["TIKSync",
-                                      "MD Background Ops",
-                                      "MDPlus",
-                                      "MD+",
-                                      "TaskIndicator"]:
-                        if threadName.lower().startswith(checkName.lower()): return True
-                    return False
-
                 diagTxt += "Threads:\n" \
                            " -------\n"
                 lastGroup = None
@@ -25677,8 +25686,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     tg = t.getThreadGroup().getName()
                     if lastGroup is not None and tg != lastGroup: diagTxt += "  --\n"
                     lastGroup = tg
-                    diagTxt += "%s%s (id: %s) State: %s isAlive: %s isInterrupted: %s ThreadGroup: %s\n" %("**" if (isMDThread(t.getName())) else "  ",
-                                pad(t.getName(),40), rpad(t.getId(),4), pad(t.getState(),15), pad(t.isAlive(),5), pad(t.isInterrupted(),5), t.getThreadGroup())
+                    diagTxt += getJVMThreadInformation(t, True)
                 diagTxt += "\n"
 
                 ct = Thread.currentThread()
@@ -25711,7 +25719,7 @@ Now you will have a text readable version of the file you can open in a text edi
                 for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
                     diagTxt += "%s %s isFocused: %s isVisible: %s isActive: %s isDisplayable: %s isShowing: %s (Owner: %s:%s)\n"\
                                %(pad(type(win),70), pad(win.getName(),25),
-                                 pad(win.isFocused(),5), pad(win.isVisible(),5), pad(win.isActive(),5), pad(win.isDisplayable(),5), pad(win.isShowing(),5),
+                                 getYN(win.isFocused()), getYN(win.isVisible()), getYN(win.isActive()), getYN(win.isDisplayable()), getYN(win.isShowing()),
                                  type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
 
                 diagTxt += "\nOld Frames holding on to 'book' references....:\n" \
@@ -25720,13 +25728,10 @@ Now you will have a text readable version of the file you can open in a text edi
                     try:
                         ref_book = getFieldByReflection(win, "book")
                         if ref_book is not None:
-                            diagTxt += "%s %s : %s @{:x} '%s' (Owner: %s:%s)\n".format(System.identityHashCode(ref_book)) \
-                                                                            %(pad(type(win),70), pad(win.getName(),25),
-                                                                            "** THIS BOOK **" if (ref_book is MD_REF.getCurrentAccountBook()) else "!! OLD BOOK !! ",
-                                                                            ref_book,
-                                                                            type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
-                            if ref_book is not MD_REF.getCurrentAccountBook():
-                                win.dispose()
+                            diagTxt += "%s %s %s '%s' @{:x} (Owner: %s:%s)\n".format(System.identityHashCode(ref_book)) \
+                                                                            %(pad("<<THIS BOOK>>" if (ref_book is MD_REF.getCurrentAccountBook()) else "!!OLD BOOK", 13, "!"),
+                                                                              pad(win.getName(),25), pad(type(win),70), pad(ref_book.getName(),70),
+                                                                              type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
                         del ref_book
                     except: pass
 
@@ -25857,7 +25862,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_cookieManagement.setEnabled(GlobalVars.ADVANCED_MODE)
                     user_cookieManagement.setForeground(getColorRed())
 
-                    user_forceMDPlusNameCacheAccessTokensRebuild = JRadioButton("Force MD+ name cache & access tokens rebuild (USE WITH CARE)", False)
+                    user_forceMDPlusNameCacheAccessTokensRebuild = JRadioButton("Force MD+ name cache & access tokens rebuild", False)
                     user_forceMDPlusNameCacheAccessTokensRebuild.setToolTipText("Wipes your internal MD+ cached bank names and access tokens. These should rebuild themselves. THIS CHANGES DATA!")
                     user_forceMDPlusNameCacheAccessTokensRebuild.setEnabled(GlobalVars.ADVANCED_MODE)
                     user_forceMDPlusNameCacheAccessTokensRebuild.setForeground(getColorRed())
@@ -26300,7 +26305,7 @@ Now you will have a text readable version of the file you can open in a text edi
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", e)
                             super(MyJOptionPaneListener, self).componentShown(e)                                        # noqa
                             myPrint("D","Toolbox setting up Timer Task for Search function to kill Search dialog...")
-                            self.t = Timer()
+                            self.t = Timer("toolbox_finddataset_timer", True)
                             self.t.schedule(MyTimerTask(self.dlg,self.t), self.timeout)
                             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 

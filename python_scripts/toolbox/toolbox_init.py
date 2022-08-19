@@ -6,6 +6,7 @@
 global moneydance
 
 from java.lang import System, Runtime, Long, Runnable, Thread
+from com.moneydance.util import Platform
 
 def _specialPrint(_what):
     print(_what)
@@ -35,7 +36,10 @@ else:
     _specialPrint(u"############# FINISHED ZAPPING ########################\n")
 
 class QuickDiag(Runnable):
-    def __init__(self, mdRef): self.mdRef = mdRef
+    def __init__(self, mdRef, _thisis):
+        self.mdRef = mdRef
+        self.thisis = _thisis
+
     def run(self):
         try:
             Thread.sleep(10 * 1000)     # Sleep to allow JVM Memory to settle down.....
@@ -43,7 +47,7 @@ class QuickDiag(Runnable):
             from com.moneydance.apps.md.controller import Common
             msg = u"\n"
             msg += u"-----------------------------------------------------\n"
-            msg += (u"%s - quick information:\n" %(_THIS_IS_.capitalize()))
+            msg += (u"%s - quick information:\n" %(self.thisis.capitalize()))
             msg += u"-----\n"
 
             msg += (u"MD CONSOLE FILE LOCATION:       '%s'\n" %(self.mdRef.getLogFile().getCanonicalPath()))
@@ -91,18 +95,30 @@ class QuickDiag(Runnable):
             # msg += (u"OS PLATFORM:                     %s (%s)\n" %(System.getProperty(u"os.name"), System.getProperty(u"os.version")))
             # msg += (u"ARCHITECTURE:                    %s\n" %(System.getProperty(u"os.arch")))
 
-            runTime = Runtime.getRuntime()
-            maxMemory = Runtime.getRuntime().maxMemory()
-            msg += (u"JVM - Available processor cores: %s\n" %(runTime.availableProcessors()))
-            msg += (u"JVM - Maximum memory possible:   %s\n" %(u"{}".format(u"no limit") if (Long(maxMemory) == Long.MAX_VALUE) else u"{:,} GB".format(convertBytesGBs(maxMemory))))
-            msg += (u"JVM - Total memory allocated:    {:,} GB (used {:,} GB / free {:,} GB)\n".format(convertBytesGBs(runTime.totalMemory()),
-                                                                                                       convertBytesGBs(runTime.totalMemory() - runTime.freeMemory()),
-                                                                                                       convertBytesGBs(runTime.freeMemory())))
-            msg += u"-----------------------------------------------------\n"
-            msg += u"\n"
-            _specialPrint(msg)
+            for i in range(3):
+                runTime = Runtime.getRuntime()
+                maxMemory = Runtime.getRuntime().maxMemory()
+                if i < 1: msg += (u"JVM - Available processor cores: %s\n" %(runTime.availableProcessors()))
+                msg += (u"JVM - Maximum memory possible:   %s\n" %(u"{}".format(u"no limit") if (Long(maxMemory) == Long.MAX_VALUE) else u"{:,} GB".format(convertBytesGBs(maxMemory))))
+                msg += (u"JVM - Total memory allocated:    {:,} GB (used {:,} GB / free {:,} GB)\n".format(convertBytesGBs(runTime.totalMemory()),
+                                                                                                           convertBytesGBs(runTime.totalMemory() - runTime.freeMemory()),
+                                                                                                           convertBytesGBs(runTime.freeMemory())))
+                usage = ((runTime.totalMemory() - runTime.freeMemory()) / float(maxMemory))
+                if  usage > 0.75:
+                    msg += (u"** MD memory usage is %s of max allocated to JVM%s **\n"
+                            %(u"{:.0%}".format(usage),
+                              u", consider editing .vmoptions file to increase '-Xmx' memory setting" if not Platform.isOSX() else u""))
+                msg += u"-----------------------------------------------------\n"
+                msg += u"\n"
+                _specialPrint(msg)
+                msg = u"-----------------------------------------------------\n"
+
+                Thread.sleep(60 * 1000)     # Sleep and repeat.....
+
         except:
-            _specialPrint(u"ERROR: %s quick information failed...." %(_THIS_IS_.capitalize()))
+            _specialPrint(u"ERROR: %s quick information failed...." %(self.thisis.capitalize()))
 
 
-Thread(QuickDiag(moneydance)).start()
+t = Thread(QuickDiag(moneydance, _THIS_IS_), u"%s_init_quickdiag" %(_THIS_IS_))
+t.setDaemon(True)
+t.start()
