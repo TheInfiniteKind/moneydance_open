@@ -9015,6 +9015,9 @@ Visit: %s (Author's site)
                             myPrint("DB", "... Calling do_extract_account_registers()")
 
                             try:
+                                ct = Thread.currentThread()
+                                if "_extn_ED" not in ct.getName(): ct.setName(u"%s_extn_ED" %(ct.getName()))
+
                                 do_extract_account_registers()
                             except:
                                 myPrint("B","@@ ERROR Detected in do_extract_account_registers()")
@@ -9994,7 +9997,11 @@ Visit: %s (Author's site)
                             myPrint("DB", "In ExtractInvestmentTxnsSwingWorker()", inspect.currentframe().f_code.co_name, "()")
                             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
                             myPrint("DB", "... Calling do_extract_investment_transactions()")
+
                             try:
+                                ct = Thread.currentThread()
+                                if "_extn_ED" not in ct.getName(): ct.setName(u"%s_extn_ED" %(ct.getName()))
+
                                 do_extract_investment_transactions()
                             except:
                                 myPrint("B","@@ ERROR Detected in do_extract_investment_transactions()")
@@ -10289,6 +10296,9 @@ Visit: %s (Author's site)
                             myPrint("DB", "... Calling do_extract_currency_history()")
 
                             try:
+                                ct = Thread.currentThread()
+                                if "_extn_ED" not in ct.getName(): ct.setName(u"%s_extn_ED" %(ct.getName()))
+
                                 do_extract_currency_history()
                             except:
                                 myPrint("B","@@ ERROR Detected in do_extract_currency_history()")

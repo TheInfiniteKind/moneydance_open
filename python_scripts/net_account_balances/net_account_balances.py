@@ -5175,7 +5175,7 @@ Visit: %s (Author's site)
                 myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
 
                 ct = Thread.currentThread()
-                if "NAB_" not in ct.getName(): ct.setName(u"NAB_RebuildParallelBalanceTableSwingWorker_%s" %(ct.getName()))
+                if "_extn_NAB" not in ct.getName(): ct.setName(u"%s_extn_NAB" %(ct.getName()))
 
                 NAB = NetAccountBalancesExtension.getNAB()
                 NAB.jlst.parallelAccountBalances = buildEmptyTxnOrBalanceArray()
@@ -5545,7 +5545,7 @@ Visit: %s (Author's site)
                 myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
 
                 ct = Thread.currentThread()
-                if "NAB_" not in ct.getName(): ct.setName(u"NAB_SimulateTotalForRowSwingWorker_%s" %(ct.getName()))
+                if "_extn_NAB" not in ct.getName(): ct.setName(u"%s_extn_NAB" %(ct.getName()))
 
                 NAB = NetAccountBalancesExtension.getNAB()
                 md = NAB.moneydanceContext
@@ -7353,7 +7353,7 @@ Visit: %s (Author's site)
                 myPrint("DB", "In UnloadUninstallSwingWorker()", inspect.currentframe().f_code.co_name, "()")
 
                 ct = Thread.currentThread()
-                if "NAB_" not in ct.getName(): ct.setName(u"NAB_UnloadUninstallSwingWorker_%s" %(ct.getName()))
+                if "_extn_NAB" not in ct.getName(): ct.setName(u"%s_extn_NAB" %(ct.getName()))
 
                 NAB = NetAccountBalancesExtension.getNAB()
 
@@ -8167,7 +8167,7 @@ Visit: %s (Author's site)
                     myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
 
                     ct = Thread.currentThread()
-                    if "NAB_" not in ct.getName(): ct.setName(u"NAB_BuildHomePageWidgetSwingWorker_%s" %(ct.getName()))
+                    if "_extn_NAB" not in ct.getName(): ct.setName(u"%s_extn_NAB" %(ct.getName()))
 
                     result = False
 

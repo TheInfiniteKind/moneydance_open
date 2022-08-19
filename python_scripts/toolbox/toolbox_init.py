@@ -7,6 +7,7 @@ global moneydance
 
 from java.lang import System, Runtime, Long, Runnable, Thread
 from com.moneydance.util import Platform
+from java.io import File
 
 def _specialPrint(_what):
     print(_what)
@@ -68,7 +69,16 @@ class QuickDiag(Runnable):
             msg += (u"BACKUPS - Save Daily:            %s\n" %(dailyBackupCheckbox))
             msg += (u"BACKUPS - Keep no more than:     %s backups\n" %(destroyBackupChoices))
             msg += (u"BACKUPS - Separate Backup Foldr: %s\n" %(self.mdRef.getPreferences().getBoolSetting(u"backup.location_selected", True)))
-            msg += (u"BACKUPS - Backup Folder:        '%s'\n" %(FileUtils.getBackupDir(self.mdRef.getPreferences()).getCanonicalPath()))
+
+            backupFile = FileUtils.getBackupDir(self.mdRef.getPreferences())
+            if backupFile is None:
+                backupFileTxt = u"(no backup location detected)"
+            elif not isinstance(backupFile, File) or not backupFile.exists():
+                backupFileTxt = u"** INVALID BACKUP LOCATION DETECTED **"
+            else:
+                backupFileTxt = u"(backup location exists)"
+
+            msg += (u"BACKUPS - Backup Folder:        '%s' %s\n" %(backupFile.getCanonicalPath(), backupFileTxt))
 
             msg += (u"..key - 'backup.location':      '%s'\n" %(self.mdRef.getPreferences().getSetting(u"backup.location", u"<not set>")))
             msg += (u"..key - 'backup.last_browsed':  '%s'\n" %(self.mdRef.getPreferences().getSetting(u"backup.last_browsed", u"<not set>")))
