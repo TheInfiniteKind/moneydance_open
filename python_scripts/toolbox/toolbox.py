@@ -3204,7 +3204,7 @@ Visit: %s (Author's site)
         try:
             _txt = ("%s%s (id: %s) State: %s isAlive: %s isInterrupted: %s isDaemon: %s Priority: %s ThreadGroup: %s"
                             %(pad("**" if (isMDThread(_thread.getName())) else "", 2),
-                              pad(_thread.getName(),40), rpad(_thread.getId(),4),
+                              pad(_thread.getName(),70), rpad(_thread.getId(),4),
                               pad(_thread.getState(),15), getYN(_thread.isAlive()), getYN(_thread.isInterrupted()),
                               getYN(_thread.isDaemon()), rpad(_thread.getPriority(),2), _thread.getThreadGroup()))
         except: _txt = "**ERROR translating Thread information**"
