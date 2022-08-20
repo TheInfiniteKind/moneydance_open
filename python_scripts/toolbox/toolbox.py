@@ -121,7 +121,7 @@
 # build: 1053 - Allow md+ payload ids to appear in the view service profile output, unless user selects redacted option...
 # build: 1053 - Now clear MDPlus.licenseCache when shutting down the plusPoller...
 # build: 1053 - Improved ManuallyCloseAndReloadDataset() to release all references to (old) book, and shutdown more things - memory consumption etc....
-# build: 1053 - Added CMD-SHIFT-/ - calls up QuickJVMDiags(); tweaked Common Code...
+# build: 1053 - Added CMD-/ - calls up QuickJVMDiags(); tweaked Common Code...
 # build: 1053 - Flip to restart after Import and Zap md+ license (was exit) - now that we reset licenseCache.....
 # build: 1053 - Alerts to detect invalid backup locations (or auto-backup off); init code now warns about memory % and invalid backup locations too...
 # build: 1053 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
@@ -527,13 +527,13 @@ else:
     MD_MULTI_OFX_TXN_DNLD_DATES_BUILD = 4074                                                                            # noqa
     MD_MDPLUS_GETPLAIDCLIENT_BUILD = 4090                                                                               # noqa
 
-    GlobalVars.mainPnl_preview_lbl = JLabel()
-    GlobalVars.mainPnl_debug_lbl = JLabel()
-    GlobalVars.mainPnl_syncing_lbl = JLabel()
-    GlobalVars.mainPnl_updateMode_lbl = JLabel()
-    GlobalVars.mainPnl_advancedMode_lbl = JLabel()
-    GlobalVars.mainPnl_toolboxUnlocked_lbl = JLabel()
-    GlobalVars.mainPnl_memory_lbl = JLabel()
+    GlobalVars.mainPnl_preview_lbl = JLabel("", JLabel.CENTER)
+    GlobalVars.mainPnl_debug_lbl = JLabel("", JLabel.CENTER)
+    GlobalVars.mainPnl_syncing_lbl = JLabel("", JLabel.CENTER)
+    GlobalVars.mainPnl_updateMode_lbl = JLabel("", JLabel.CENTER)
+    GlobalVars.mainPnl_advancedMode_lbl = JLabel("", JLabel.CENTER)
+    GlobalVars.mainPnl_toolboxUnlocked_lbl = JLabel("", JLabel.CENTER)
+    GlobalVars.mainPnl_memory_lbl = JLabel("", JLabel.CENTER)
 
     GlobalVars.allButtonsList = []
     GlobalVars.TOOLBOX_UNLOCK = False
@@ -25608,7 +25608,6 @@ Now you will have a text readable version of the file you can open in a text edi
 
             color = MD_REF.getUI().colors.defaultTextForeground
             if  memoryUsedPecentage > 0.75: color = getColorRed()
-
             GlobalVars.mainPnl_memory_lbl.setText(memoryText)
             GlobalVars.mainPnl_memory_lbl.setForeground(color)
         except:
@@ -28425,8 +28424,7 @@ Now you will have a text readable version of the file you can open in a text edi
             bottomPanel.add(GlobalVars.mainPnl_toolboxUnlocked_lbl, GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
 
             setMemoryLabel()
-            pnl_x = 0
-            pnl_y += 1
+            pnl_x = 0; pnl_y += 1
             bottomPanel.add(GlobalVars.mainPnl_memory_lbl, GridC.getc(pnl_x, pnl_y).fillx().colspan(12).center()); pnl_x += 1
 
 
