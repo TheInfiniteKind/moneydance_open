@@ -124,6 +124,7 @@
 # build: 1053 - Added CMD-SHIFT-/ - calls up QuickJVMDiags(); tweaked Common Code...
 # build: 1053 - Flip to restart after Import and Zap md+ license (was exit) - now that we reset licenseCache.....
 # build: 1053 - Alerts to detect invalid backup locations (or auto-backup off); init code now warns about memory % and invalid backup locations too...
+# build: 1053 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -403,7 +404,6 @@ else:
             DARK_GREEN = Color(0, 192, 0)
             resetPickleParameters = False
             decimalCharSep = "."
-            groupingCharSep = ","
             lGlobalErrorDetected = False
             MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"
             i_am_an_extension_so_run_headless = None
@@ -826,41 +826,23 @@ Visit: %s (Author's site)
         myPrint("DB", "Home Directory detected...:", homeDir)
         return homeDir
 
-    def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
+    def getDecimalPoint():
         decimalFormat = DecimalFormat.getInstance()
         # noinspection PyUnresolvedReferences
         decimalSymbols = decimalFormat.getDecimalFormatSymbols()
 
-        if not lGetGrouping: lGetPoint = True
-        if lGetGrouping and lGetPoint: return u"error"
-
         try:
-            if lGetPoint:
-                _decimalCharSep = decimalSymbols.getDecimalSeparator()
-                myPrint(u"D",u"Decimal Point Character: %s" %(_decimalCharSep))
-                return _decimalCharSep
-
-            if lGetGrouping:
-                _groupingCharSep = decimalSymbols.getGroupingSeparator()
-                if _groupingCharSep is None or _groupingCharSep == u"":
-                    myPrint(u"B", u"Caught empty Grouping Separator")
-                    return u""
-                if ord(_groupingCharSep) >= 128:    # Probably a nbsp (160) = e.g. South Africa for example..!
-                    myPrint(u"B", u"Caught special character in Grouping Separator. Ord(%s)" %(ord(_groupingCharSep)))
-                    if ord(_groupingCharSep) == 160:
-                        return u" (non breaking space character)"
-                    return u" (non printable character)"
-                myPrint(u"D",u"Grouping Separator Character:", _groupingCharSep)
-                return _groupingCharSep
+            _decimalCharSep = decimalSymbols.getDecimalSeparator()
+            myPrint(u"D",u"Decimal Point Character: %s" %(_decimalCharSep))
+            return _decimalCharSep
         except:
             myPrint(u"B",u"Error in getDecimalPoint() routine....?")
             dump_sys_error_to_md_console_and_errorlog()
-
         return u"error"
 
 
-    GlobalVars.decimalCharSep = getDecimalPoint(lGetPoint=True)
-    GlobalVars.groupingCharSep = getDecimalPoint(lGetGrouping=True)
+    GlobalVars.decimalCharSep = getDecimalPoint()
+
 
     def isMacDarkModeDetected():
         darkResponse = "LIGHT"
@@ -4835,8 +4817,8 @@ Visit: %s (Author's site)
         if os.environ.get(u"HOMEPATH"):     textArray.append(u"  HOMEPATH:                          %s" %os.environ.get(u"HOMEPATH"))
 
         textArray.append(u"Moneydance decimal point:            %s" %MD_REF.getUI().getPreferences().getSetting(u"decimal_character", u"."))
-        textArray.append(u"System Locale Decimal Point:         %s" %(getDecimalPoint(lGetPoint=True)) + u" Grouping Char: %s" %(getDecimalPoint(lGetGrouping=True)))
-        if MD_REF.getUI().getPreferences().getSetting(u"decimal_character", u".") != getDecimalPoint(lGetPoint=True):
+        textArray.append(u"System Locale Decimal Point:         %s" %(getDecimalPoint()))
+        if MD_REF.getUI().getPreferences().getSetting(u"decimal_character", u".") != getDecimalPoint():
             textArray.append(u"NOTE - MD Decimal point is DIFFERENT to the Locale decimal point!!!")
         textArray.append(u"MD User set Locale Country:          %s" %(MD_REF.getUI().getPreferences().getSetting(u"locale.country", u"")))
         textArray.append(u"MD User set Locale Language:         %s" %(MD_REF.getUI().getPreferences().getSetting(u"locale.language", u"")))

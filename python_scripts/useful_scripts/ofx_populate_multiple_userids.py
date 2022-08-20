@@ -306,7 +306,6 @@ else:
             DARK_GREEN = Color(0, 192, 0)
             resetPickleParameters = False
             decimalCharSep = "."
-            groupingCharSep = ","
             lGlobalErrorDetected = False
             MYPYTHON_DOWNLOAD_URL = "https://yogi1967.github.io/MoneydancePythonScripts/"
             i_am_an_extension_so_run_headless = None
@@ -608,41 +607,23 @@ Visit: %s (Author's site)
         myPrint("DB", "Home Directory detected...:", homeDir)
         return homeDir
 
-    def getDecimalPoint(lGetPoint=False, lGetGrouping=False):
+    def getDecimalPoint():
         decimalFormat = DecimalFormat.getInstance()
         # noinspection PyUnresolvedReferences
         decimalSymbols = decimalFormat.getDecimalFormatSymbols()
 
-        if not lGetGrouping: lGetPoint = True
-        if lGetGrouping and lGetPoint: return u"error"
-
         try:
-            if lGetPoint:
-                _decimalCharSep = decimalSymbols.getDecimalSeparator()
-                myPrint(u"D",u"Decimal Point Character: %s" %(_decimalCharSep))
-                return _decimalCharSep
-
-            if lGetGrouping:
-                _groupingCharSep = decimalSymbols.getGroupingSeparator()
-                if _groupingCharSep is None or _groupingCharSep == u"":
-                    myPrint(u"B", u"Caught empty Grouping Separator")
-                    return u""
-                if ord(_groupingCharSep) >= 128:    # Probably a nbsp (160) = e.g. South Africa for example..!
-                    myPrint(u"B", u"Caught special character in Grouping Separator. Ord(%s)" %(ord(_groupingCharSep)))
-                    if ord(_groupingCharSep) == 160:
-                        return u" (non breaking space character)"
-                    return u" (non printable character)"
-                myPrint(u"D",u"Grouping Separator Character:", _groupingCharSep)
-                return _groupingCharSep
+            _decimalCharSep = decimalSymbols.getDecimalSeparator()
+            myPrint(u"D",u"Decimal Point Character: %s" %(_decimalCharSep))
+            return _decimalCharSep
         except:
             myPrint(u"B",u"Error in getDecimalPoint() routine....?")
             dump_sys_error_to_md_console_and_errorlog()
-
         return u"error"
 
 
-    GlobalVars.decimalCharSep = getDecimalPoint(lGetPoint=True)
-    GlobalVars.groupingCharSep = getDecimalPoint(lGetGrouping=True)
+    GlobalVars.decimalCharSep = getDecimalPoint()
+
 
     def isMacDarkModeDetected():
         darkResponse = "LIGHT"
