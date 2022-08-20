@@ -2371,6 +2371,25 @@ Visit: %s (Author's site)
 
     global ManuallyCloseAndReloadDataset            # Declare it for QuickJFrame/IDE, but not present in common code. Other code will ignore it
 
+    class GetFirstMainFrame:
+        def __init__(self): raise Exception("ERROR: DO NOT CREATE INSTANCE OF GetFirstMainFrame!")
+
+        @staticmethod
+        def getSize(defaultWidth=1024, defaultHeight=768):
+            try:
+                firstMainFrame = MD_REF.getUI().firstMainFrame
+                return firstMainFrame.getSize()
+            except: pass
+            return Dimension(defaultWidth, defaultHeight)
+
+        @staticmethod
+        def getSelectedAccount():
+            try:
+                firstMainFrame = MD_REF.getUI().firstMainFrame
+                return firstMainFrame.getSelectedAccount()
+            except: pass
+            return None
+
     class QuickJFrame():
 
         def __init__(self,
@@ -2516,8 +2535,8 @@ Visit: %s (Author's site)
 
                 def run(self):                                                                                                      # noqa
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
-                    frame_width = min(screenSize.width-20, max(1024,int(round(MD_REF.getUI().firstMainFrame.getSize().width *.9,0))))
-                    frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
+                    frame_width = min(screenSize.width-20, max(1024,int(round(GetFirstMainFrame.getSize().width *.9,0))))
+                    frame_height = min(screenSize.height-20, max(768, int(round(GetFirstMainFrame.getSize().height *.9,0))))
 
                     # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                     if self.callingClass.lQuitMDAfterClose:

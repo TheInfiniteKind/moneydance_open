@@ -125,6 +125,7 @@
 # build: 1053 - Flip to restart after Import and Zap md+ license (was exit) - now that we reset licenseCache.....
 # build: 1053 - Alerts to detect invalid backup locations (or auto-backup off); init code now warns about memory % and invalid backup locations too...
 # build: 1053 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
+# build: 1053 - Added unlock (secret) option 'Close Dataset'
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -2491,6 +2492,25 @@ Visit: %s (Author's site)
 
     global ManuallyCloseAndReloadDataset            # Declare it for QuickJFrame/IDE, but not present in common code. Other code will ignore it 
 
+    class GetFirstMainFrame:
+        def __init__(self): raise Exception("ERROR: DO NOT CREATE INSTANCE OF GetFirstMainFrame!")
+
+        @staticmethod
+        def getSize(defaultWidth=1024, defaultHeight=768):
+            try:
+                firstMainFrame = MD_REF.getUI().firstMainFrame
+                return firstMainFrame.getSize()
+            except: pass
+            return Dimension(defaultWidth, defaultHeight)
+
+        @staticmethod
+        def getSelectedAccount():
+            try:
+                firstMainFrame = MD_REF.getUI().firstMainFrame
+                return firstMainFrame.getSelectedAccount()
+            except: pass
+            return None
+
     class QuickJFrame():
 
         def __init__(self,
@@ -2636,8 +2656,8 @@ Visit: %s (Author's site)
 
                 def run(self):                                                                                                      # noqa
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
-                    frame_width = min(screenSize.width-20, max(1024,int(round(MD_REF.getUI().firstMainFrame.getSize().width *.9,0))))
-                    frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.9,0))))
+                    frame_width = min(screenSize.width-20, max(1024,int(round(GetFirstMainFrame.getSize().width *.9,0))))
+                    frame_height = min(screenSize.height-20, max(768, int(round(GetFirstMainFrame.getSize().height *.9,0))))
 
                     # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                     if self.callingClass.lQuitMDAfterClose:
@@ -21231,6 +21251,62 @@ now after saving the file, restart Moneydance
         myPrint(u"D", u"Exiting ", inspect.currentframe().f_code.co_name, u"()")
         return theMsg, displayMsg
 
+    def close_dataset():
+        # type: () -> bool
+
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "CLOSE DATASET"
+
+        currentBook = MD_REF.getCurrentAccountBook()     # type: AccountBook
+        if currentBook is None:
+            myPopupInformationBox(toolbox_frame_, "CRITICAL ERROR: AccountBook is missing? (Suggest you restart!)",theTitle=_THIS_METHOD_NAME,theMessageType=JOptionPane.ERROR_MESSAGE)
+            return False
+
+        # Already on the EDT....
+        if not ManuallyCloseAndReloadDataset.isSafeToCloseDataset():
+            txt = "ERROR: MD reports that it's not OK to close open windows - no changes made"
+            myPopupInformationBox(toolbox_frame_,txt)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            return True
+
+        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return True
+        if not backup_config_dict():  return True
+
+        _msg = pad("Please wait:", 50, padChar=".")
+        pleaseWait = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False,OKButtonText="WAIT")
+        pleaseWait.go()
+
+        try:
+            MD_REF.getUI().setStatus("Toolbox will now close your dataset", -1.0)
+
+            myPrint("B", "%s: Executing CLOSE CURRENT DATASET" %(_THIS_METHOD_NAME))
+
+            if not ManuallyCloseAndReloadDataset.manuallyCloseDataset(currentBook, lKillAllSyncers=True, lCloseWindows=True, lKillAllFramesWithBookReferences=True):
+                txt = "ERROR: MD reports that it could not close all open windows.... - no changes made (you might need to restart MD)"
+                myPopupInformationBox(toolbox_frame_, txt, theTitle="ERROR", theMessageType=JOptionPane.ERROR_MESSAGE)
+                setDisplayStatus(txt, "R"); myPrint("B", txt)
+                return False
+
+            ManuallyCloseAndReloadDataset.startBackgroundSyncing()
+
+            txt = "DATASET CLOSED (review console)"
+            myPopupInformationBox(toolbox_frame_, theMessage=txt, theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+
+        except:
+            dump_sys_error_to_md_console_and_errorlog()
+            txt = "%s function has failed. Review log and console - You should probably RESTART MD" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_,theMessage=txt, theTitle=_THIS_METHOD_NAME,theMessageType=JOptionPane.ERROR_MESSAGE)
+
+        finally:
+
+            pleaseWait.kill()
+
+        return False
+
+
     def rename_relocate_dataset(lRelocateDataset=False, lRelocateToInternal=True):
         # type: (bool, bool) -> bool
 
@@ -22702,60 +22778,6 @@ Now you will have a text readable version of the file you can open in a text edi
         setDisplayStatus(txt, "R")
         myPopupInformationBox(jif, txt, "DELETE ORPHANED EXTENSIONS", JOptionPane.ERROR_MESSAGE)
         return
-
-    # def forceCloseMoneydanceWindows():
-    #     """Closes all Moneydance SecondaryFrames (including the main application frame(s)).
-    #     Use this to pre-close windows before trying to reset saved locations/sizes (Preferences)"""
-    #
-    #     myPrint("B", "Force closing all Moneydance windows so they cannot overwrite saved window settings....")
-    #     MD_REF.saveCurrentAccount()                                     # flush sync log in case of problems
-    #     firstMainFrame = MD_REF.getUI().getFirstMainFrame()
-    #     saveMainFrames = []
-    #
-    #     if debug:
-    #         dontClose = (MainFrame, ConsoleWindow, MoneyBotWindow, ExtensionsWindow)
-    #     else:
-    #         if GlobalVars.i_am_an_extension_so_run_headless:
-    #             dontClose = (MainFrame, ExtensionsWindow)
-    #         else:
-    #             dontClose = (MainFrame, ExtensionsWindow, MoneyBotWindow)
-    #
-    #     for sWin in list(MD_REF.getUI().getSecondaryWindows()):
-    #         myPrint("DB", "Found:", type(sWin), sWin.getTitle())
-    #         if isinstance(sWin, MainFrame):
-    #             saveMainFrames.append(sWin)
-    #         elif not isinstance(sWin, dontClose):
-    #             myPrint("DB", "... calling .goAwayNow()")
-    #             try: invokeMethodByReflection(sWin, "goAwayNow", None)
-    #             except: myPrint("B","Error closing window:", sWin)
-    #
-    #     # watch out for com.moneydance.apps.md.view.gui.MoneydanceGUI.secondaryWindowFinished(SecondaryWindow) : void
-    #     myPrint("DB", "Calling .goAwayNow() on non-first MainFrame instances....")
-    #     for mainFrame in list(saveMainFrames):
-    #         if mainFrame is firstMainFrame: continue
-    #         if isinstance(mainFrame, JFrame): pass
-    #         myPrint("DB", "...:", type(mainFrame), mainFrame.getTitle())
-    #         try: invokeMethodByReflection(mainFrame, "goAwayNow", None)
-    #         except: myPrint("B","Error closing non-first MainFrame instance:", mainFrame)
-    #
-    #     # com.moneydance.apps.md.view.gui.MoneydanceGUI.storeWindowSettings() will save location/size unless Maximised/Minimised
-    #     firstMainFrame.setExtendedState(JFrame.MAXIMIZED_BOTH)
-    #     firstMainFrame.setLocation(0, 0)
-    #     firstMainFrame.setSize(Dimension(1150, 650))
-    #
-    #     myPrint("DB", "Calling .goAwayNow() on MainFrame's currentPanel...")
-    #     currentPanel = getFieldByReflection(firstMainFrame, "currentPanel")
-    #     currentPanel.goneAway()
-    #     setFieldByReflection(firstMainFrame, "currentPanel", None)
-    #
-    #     myPrint("DB", "Disposing of the Moneydance's first MainFrame (calling .myGoAwayNow())...")
-    #     try:
-    #         invokeMethodByReflection(MD_REF.getUI(), "windowRemoved", [SecondaryWindow], firstMainFrame)
-    #         MD_REF.getPreferences().removeListener(firstMainFrame)
-    #         firstMainFrame.dispose()
-    #     except:
-    #         myPrint("B","Error closing Moneydance's first MainFrame instance:", firstMainFrame)
-    #         dump_sys_error_to_md_console_and_errorlog()
 
     def reset_window_positions():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -27084,6 +27106,11 @@ Now you will have a text readable version of the file you can open in a text edi
                     user_convert_timestamp = JRadioButton("Convert a TimeStamp number into a readable date/time", False)
                     user_convert_timestamp.setToolTipText("Allows you to input a TimeStamp (Milliseconds) and it will display a readable date/time")
 
+                    user_close_dataset = JRadioButton("Close this dataset (and related windows)", False)
+                    user_close_dataset.setToolTipText("Manually closes the dataset, all related windows, but leaves MD open....")
+                    user_close_dataset.setEnabled(GlobalVars.UPDATE_MODE and isToolboxUnlocked())
+                    user_close_dataset.setForeground(getColorRed())
+
                     user_rename_dataset = JRadioButton("Rename this dataset (within the same location)", False)
                     user_rename_dataset.setToolTipText("This will allow you to rename this dataset (within the same location) - THIS CHANGES DATA!")
                     user_rename_dataset.setEnabled(GlobalVars.UPDATE_MODE)
@@ -27146,6 +27173,7 @@ Now you will have a text readable version of the file you can open in a text edi
                     bg.add(user_import_QIF)
                     bg.add(user_convert_timestamp)
                     bg.add(user_reset_window_display_settings)
+                    bg.add(user_close_dataset)
                     bg.add(user_rename_dataset)
                     bg.add(user_relocate_dataset_internal)
                     bg.add(user_relocate_dataset_external)
@@ -27175,6 +27203,10 @@ Now you will have a text readable version of the file you can open in a text edi
                         userFilters.add(labelFYI2)
 
                     userFilters.add(user_reset_window_display_settings)
+
+                    if isToolboxUnlocked() and GlobalVars.UPDATE_MODE:
+                        userFilters.add(user_close_dataset)
+
                     userFilters.add(user_rename_dataset)
                     userFilters.add(user_relocate_dataset_internal)
                     userFilters.add(user_relocate_dataset_external)
@@ -27186,6 +27218,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     while True:
 
+                        user_close_dataset.setEnabled(GlobalVars.UPDATE_MODE and isToolboxUnlocked())
                         user_view_java_vmoptions.setEnabled(os.path.exists(get_vmoptions_path()))
                         user_view_MD_custom_theme_file.setEnabled(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))                             # noqa
                         user_delete_custom_theme_file.setEnabled(GlobalVars.UPDATE_MODE and os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))   # noqa
@@ -27217,6 +27250,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         if user_find_sync_password_in_ios_backups.isSelected():     find_IOS_sync_data()
                         if user_import_QIF.isSelected():                            import_QIF()
                         if user_convert_timestamp.isSelected():                     convert_timestamp_readable_date()
+                        if user_close_dataset.isSelected():                         close_dataset()
                         if user_rename_dataset.isSelected():                        rename_relocate_dataset(lRelocateDataset=False)
                         if user_relocate_dataset_internal.isSelected():             rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=True)
                         if user_relocate_dataset_external.isSelected():             rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=False)
@@ -27856,8 +27890,8 @@ Now you will have a text readable version of the file you can open in a text edi
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_I, shortcut), "display-help")
             toolbox_frame_.getRootPane().getActionMap().put("display-help", DisplayHelp())
 
-            frame_width = min(1024, min(screenSize.width-20, max(1024,int(round(MD_REF.getUI().firstMainFrame.getSize().width *.95,0)))))
-            frame_height = min(screenSize.height-20, max(768, int(round(MD_REF.getUI().firstMainFrame.getSize().height *.95,0))))
+            frame_width = min(1024, min(screenSize.width-20, max(1024,int(round(GetFirstMainFrame.getSize().width *.95,0)))))
+            frame_height = min(screenSize.height-20, max(768, int(round(GetFirstMainFrame.getSize().height *.95,0))))
 
             toolbox_frame_.setPreferredSize(Dimension(frame_width, frame_height))
 
