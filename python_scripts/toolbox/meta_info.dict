@@ -8,5 +8,5 @@
   "module_name" = "Toolbox"
   "module_desc" = "Infinite Kind support tool: Displays Moneydance settings, diagnoses issues, run fixes, and much more....."
   "mac_sandbox_friendly" = "false"
-  "news" = "New LOT matching diagnosis report"
+  "news" = "New LOT matching diag report; Force disconnect md+ connection; CMD-/; Improved restarts; backup location checks; JVM memory stats; fixes; tweaks"
 }

@@ -125,7 +125,7 @@
 # build: 1053 - Flip to restart after Import and Zap md+ license (was exit) - now that we reset licenseCache.....
 # build: 1053 - Alerts to detect invalid backup locations (or auto-backup off); init code now warns about memory % and invalid backup locations too...
 # build: 1053 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
-# build: 1053 - Added unlock (secret) option 'Close Dataset'
+# build: 1053 - Added unlock (secret) option 'Close Dataset'; added JVM Memory stats to status line...
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -487,7 +487,7 @@ else:
     from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
     from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow            # noqa
     from com.moneydance.apps.md.view.gui import WelcomeWindow, SearchRegTxnListModel, SecondaryDialog
-    from com.moneydance.apps.md.view.gui.bot import MoneyBotWindow                                                      # noqa
+    from com.moneydance.apps.md.view.gui.bot import MoneyBotWindow
     from com.moneydance.apps.md.view.gui.txnreg import TxnDetailsPanel, TxnRegister, TxnRegisterType, InvestRegisterType
     from com.moneydance.apps.md.view.gui.txnreg import DownloadedTxnsView
     from com.moneydance.apps.md.view.gui.extensions import ExtensionsWindow                                             # noqa
@@ -533,6 +533,7 @@ else:
     GlobalVars.mainPnl_updateMode_lbl = JLabel()
     GlobalVars.mainPnl_advancedMode_lbl = JLabel()
     GlobalVars.mainPnl_toolboxUnlocked_lbl = JLabel()
+    GlobalVars.mainPnl_memory_lbl = JLabel()
 
     GlobalVars.allButtonsList = []
     GlobalVars.TOOLBOX_UNLOCK = False
@@ -3139,7 +3140,13 @@ Visit: %s (Author's site)
 
         return
 
-    get_StuWareSoftSystems_parameters_from_file()
+    lFailed_get_StuWareSoftSystems_parameters_from_file = False
+    try:
+        get_StuWareSoftSystems_parameters_from_file()
+    except:
+        lFailed_get_StuWareSoftSystems_parameters_from_file = True
+        myPrint("B", "ERROR: Failed on get_StuWareSoftSystems_parameters_from_file()...  ** IS YOUR DATASET CLOSED? **")
+        dump_sys_error_to_md_console_and_errorlog()
 
     # clear up any old left-overs....
     destroyOldFrames(myModuleID)
@@ -21256,6 +21263,8 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
+        if not GlobalVars.UPDATE_MODE or not isToolboxUnlocked(): return False
+
         _THIS_METHOD_NAME = "CLOSE DATASET"
 
         currentBook = MD_REF.getCurrentAccountBook()     # type: AccountBook
@@ -21268,10 +21277,25 @@ now after saving the file, restart Moneydance
             txt = "ERROR: MD reports that it's not OK to close open windows - no changes made"
             myPopupInformationBox(toolbox_frame_,txt)
             setDisplayStatus(txt, "R"); myPrint("B", txt)
-            return True
+            return False
 
-        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return True
-        if not backup_config_dict():  return True
+        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return False
+        if not backup_config_dict():  return False
+
+        try:
+            myPrint("B", "%s: Opening the Console Window (as it might be useful)" %(_THIS_METHOD_NAME))
+            ConsoleWindow.showConsoleWindow(MD_REF.getUI())
+        except: myPrint("B", "%s: FAILED to open the Console Window... ignoring the error...." %(_THIS_METHOD_NAME))
+
+        if float(MD_REF.getBuild()) >= 4057:    # MoneyBot can be a bit quirky on ealrier builds....
+            try:
+                myPrint("B", "%s: Opening a Moneybot Window (as it might be useful)" %(_THIS_METHOD_NAME))
+                MoneyBotWindow.showBotView(MD_REF.getUI())
+            except: myPrint("B", "%s: FAILED to open a Moneybot Window... ignoring the error...." %(_THIS_METHOD_NAME))
+        else:
+            myPrint("B", "%s: Not bothering to open a Moneybot Window... (it's quirky on earlier builds)..." %(_THIS_METHOD_NAME))
+
+        toolbox_frame_.toFront()
 
         _msg = pad("Please wait:", 50, padChar=".")
         pleaseWait = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False,OKButtonText="WAIT")
@@ -21288,11 +21312,14 @@ now after saving the file, restart Moneydance
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
                 return False
 
-            ManuallyCloseAndReloadDataset.startBackgroundSyncing()
-
-            txt = "DATASET CLOSED (review console)"
+            txt = "DATASET CLOSED (review console if appropriate)"
             myPopupInformationBox(toolbox_frame_, theMessage=txt, theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
             setDisplayStatus(txt, "B"); myPrint("B", txt)
+
+            try: WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
+            except: myPrint("B", "%s: FAILED to launch the WelcomeWindow... ignoring the error...." %(_THIS_METHOD_NAME))
+
+            return True
 
         except:
             dump_sys_error_to_md_console_and_errorlog()
@@ -21301,6 +21328,8 @@ now after saving the file, restart Moneydance
             myPopupInformationBox(toolbox_frame_,theMessage=txt, theTitle=_THIS_METHOD_NAME,theMessageType=JOptionPane.ERROR_MESSAGE)
 
         finally:
+
+            ManuallyCloseAndReloadDataset.startBackgroundSyncing()
 
             pleaseWait.kill()
 
@@ -25557,6 +25586,35 @@ Now you will have a text readable version of the file you can open in a text edi
             GlobalVars.mainPnl_syncing_lbl.setText("<ERROR GETTING SYNC STATUS>")
             GlobalVars.mainPnl_syncing_lbl.setForeground(getColorRed())
 
+    def setMemoryLabel():
+        try:
+            runTime = Runtime.getRuntime()
+
+            maxMemory = runTime.maxMemory()
+            freeMemory = runTime.freeMemory()
+            totalMemory = runTime.totalMemory()
+            usedMemory = totalMemory - freeMemory
+            memoryUsedPecentage = (usedMemory / float(maxMemory))
+
+            maxMemoryTxt = "no limit" if (Long(maxMemory) == Long.MAX_VALUE) else "{:,} GB".format(convertBytesGBs(maxMemory))
+            memoryAllocatedTxt = "{:,} GB".format(convertBytesGBs(totalMemory))
+            memoryUsedTxt = "{:,} GB".format(convertBytesGBs(usedMemory))
+            memoryFreeTxt = "{:,} GB".format(convertBytesGBs(freeMemory))
+            memoryUsedPercentage = "{:.0%}".format(memoryUsedPecentage)
+            vmoptionsTxt = "('-Xmx' .vmoption) " if (not Platform.isOSX()) else ""
+
+            memoryText = ("<JVM Memory: Maximum %spossible: %s; Allocated to JVM: %s; Used: %s(%s of max); Free: %s>"
+                          %(vmoptionsTxt, maxMemoryTxt, memoryAllocatedTxt, memoryUsedTxt, memoryUsedPercentage, memoryFreeTxt))
+
+            color = MD_REF.getUI().colors.defaultTextForeground
+            if  memoryUsedPecentage > 0.75: color = getColorRed()
+
+            GlobalVars.mainPnl_memory_lbl.setText(memoryText)
+            GlobalVars.mainPnl_memory_lbl.setForeground(color)
+        except:
+            GlobalVars.mainPnl_memory_lbl.setText("<MEMORY STATS ERROR>")
+            GlobalVars.mainPnl_memory_lbl.setForeground(getColorRed())
+
     class DiagnosticDisplay(PreferencesListener):
 
         def __init__(self):
@@ -25580,6 +25638,8 @@ Now you will have a text readable version of the file you can open in a text edi
             def windowActivated(self, windowEvent):
                 myPrint("D","In ", inspect.currentframe().f_code.co_name, "()", windowEvent)
                 setSyncingLabel()
+                setSyncingLabel()
+                setMemoryLabel()
 
             # def windowDeactivated(self, windowEvent): pass                                                              # noqa
             # def windowDeiconified(self, windowEvent): pass                                                              # noqa
@@ -27203,10 +27263,7 @@ Now you will have a text readable version of the file you can open in a text edi
                         userFilters.add(labelFYI2)
 
                     userFilters.add(user_reset_window_display_settings)
-
-                    if isToolboxUnlocked() and GlobalVars.UPDATE_MODE:
-                        userFilters.add(user_close_dataset)
-
+                    userFilters.add(user_close_dataset)
                     userFilters.add(user_rename_dataset)
                     userFilters.add(user_relocate_dataset_internal)
                     userFilters.add(user_relocate_dataset_external)
@@ -27218,7 +27275,6 @@ Now you will have a text readable version of the file you can open in a text edi
 
                     while True:
 
-                        user_close_dataset.setEnabled(GlobalVars.UPDATE_MODE and isToolboxUnlocked())
                         user_view_java_vmoptions.setEnabled(os.path.exists(get_vmoptions_path()))
                         user_view_MD_custom_theme_file.setEnabled(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))                             # noqa
                         user_delete_custom_theme_file.setEnabled(GlobalVars.UPDATE_MODE and os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))   # noqa
@@ -28338,34 +28394,41 @@ Now you will have a text readable version of the file you can open in a text edi
             bottomPanel = JPanel(GridBagLayout())
             bottomPanel.setBorder(EmptyBorder(10, 10, 10, 10))
             pnl_x = 0
+            pnl_y = 0
 
             setSyncingLabel()
-            bottomPanel.add(GlobalVars.mainPnl_syncing_lbl, GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
-            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
+            bottomPanel.add(GlobalVars.mainPnl_syncing_lbl, GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
+            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
 
             GlobalVars.mainPnl_debug_lbl.setText("<DEBUG ON>" if debug else "")
             GlobalVars.mainPnl_debug_lbl.setForeground(getColorRed())
-            bottomPanel.add(GlobalVars.mainPnl_debug_lbl, GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
-            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
+            bottomPanel.add(GlobalVars.mainPnl_debug_lbl, GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
+            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
 
             GlobalVars.mainPnl_preview_lbl.setText("<PREVIEW BUILD>" if isPreviewBuild() else "")
             GlobalVars.mainPnl_preview_lbl.setForeground(getColorRed())
-            bottomPanel.add(GlobalVars.mainPnl_preview_lbl, GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
-            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
+            bottomPanel.add(GlobalVars.mainPnl_preview_lbl, GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
+            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
 
             GlobalVars.mainPnl_updateMode_lbl.setText("<UPDATE MODE>" if GlobalVars.UPDATE_MODE else "")
             GlobalVars.mainPnl_updateMode_lbl.setForeground(getColorRed())
-            bottomPanel.add(GlobalVars.mainPnl_updateMode_lbl, GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
-            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
+            bottomPanel.add(GlobalVars.mainPnl_updateMode_lbl, GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
+            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
 
             GlobalVars.mainPnl_advancedMode_lbl.setText("<ADVANCED MODE>" if GlobalVars.ADVANCED_MODE else "")
             GlobalVars.mainPnl_advancedMode_lbl.setForeground(getColorRed())
-            bottomPanel.add(GlobalVars.mainPnl_advancedMode_lbl, GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
-            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
+            bottomPanel.add(GlobalVars.mainPnl_advancedMode_lbl, GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
+            bottomPanel.add(Box.createHorizontalStrut(20), GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
 
             GlobalVars.mainPnl_toolboxUnlocked_lbl.setText("<TOOLBOX UNLOCKED>" if isToolboxUnlocked() else "")
             GlobalVars.mainPnl_toolboxUnlocked_lbl.setForeground(getColorRed())
-            bottomPanel.add(GlobalVars.mainPnl_toolboxUnlocked_lbl, GridC.getc(pnl_x, 0).fillx()); pnl_x += 1
+            bottomPanel.add(GlobalVars.mainPnl_toolboxUnlocked_lbl, GridC.getc(pnl_x, pnl_y).fillx()); pnl_x += 1
+
+            setMemoryLabel()
+            pnl_x = 0
+            pnl_y += 1
+            bottomPanel.add(GlobalVars.mainPnl_memory_lbl, GridC.getc(pnl_x, pnl_y).fillx().colspan(12).center()); pnl_x += 1
+
 
             ############################################################################################################
 
@@ -28590,8 +28653,10 @@ Script/extension is analysing your moneydance & system settings....
     # This gets the latest build info from the developer... and it overrides the program defaults...
     download_toolbox_version_info()
 
-    lAbort=False
+    lAbort = False
     if TOOLBOX_STOP_NOW:
+        lAbort = True
+    elif lFailed_get_StuWareSoftSystems_parameters_from_file:
         lAbort = True
     elif float(MD_REF.getVersion()) < TOOLBOX_MINIMUM_TESTED_MD_VERSION or not lImportOK:
         lAbort = True
@@ -28692,6 +28757,14 @@ Script/extension is analysing your moneydance & system settings....
                                   "Toolbox DISABLED (check for version update Extension>Manage Extensions)",
                                   "TOOLBOX DISABLED",
                                   JOptionPane.ERROR_MESSAGE)
+        elif lFailed_get_StuWareSoftSystems_parameters_from_file:
+            myPrint("B", "lFailed_get_StuWareSoftSystems_parameters_from_file() triggered... Perhaps your dataset is closed?")
+            myPopupInformationBox(None,
+                                  "Failed to retrieve saved parameters from file, perhaps your dataset is closed?",
+                                  "TOOLBOX CANNOT OPEN",
+                                  JOptionPane.ERROR_MESSAGE)
+            try: WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
+            except: pass
         else:
             myPrint("B", "Sorry, this Toolbox (build %s) has only been tested on Moneydance versions %s thru' %s(build %s)... Yours is %s(%s) >> Exiting....."
                     %(version_build, TOOLBOX_MINIMUM_TESTED_MD_VERSION, TOOLBOX_MAXIMUM_TESTED_MD_VERSION,TOOLBOX_MAXIMUM_TESTED_MD_BUILD,MD_REF.getVersion(),MD_REF.getBuild()))
