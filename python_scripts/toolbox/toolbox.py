@@ -25588,6 +25588,7 @@ Now you will have a text readable version of the file you can open in a text edi
 
     def setMemoryLabel():
         try:
+            # https://stackoverflow.com/questions/3571203/what-are-runtime-getruntime-totalmemory-and-freememory
             runTime = Runtime.getRuntime()
 
             maxMemory = runTime.maxMemory()
