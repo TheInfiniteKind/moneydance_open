@@ -25608,7 +25608,7 @@ Now you will have a text readable version of the file you can open in a text edi
                           %(vmoptionsTxt, maxMemoryTxt, memoryAllocatedTxt, memoryUsedTxt, memoryUsedPercentage, memoryFreeTxt))
 
             color = MD_REF.getUI().colors.defaultTextForeground
-            if  memoryUsedPecentage > 0.75: color = getColorRed()
+            if  memoryUsedPecentage > 0.60: color = getColorRed()
             GlobalVars.mainPnl_memory_lbl.setText(memoryText)
             GlobalVars.mainPnl_memory_lbl.setForeground(color)
         except:

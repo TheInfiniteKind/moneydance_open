@@ -119,7 +119,7 @@ class QuickDiag(Runnable):
                                                                                                            convertBytesGBs(runTime.totalMemory() - runTime.freeMemory()),
                                                                                                            convertBytesGBs(runTime.freeMemory())))
                 usage = ((runTime.totalMemory() - runTime.freeMemory()) / float(maxMemory))
-                if  usage > 0.75:
+                if  usage > 0.60:
                     msg += (u"** MD memory usage is %s of max allocated to JVM%s **\n"
                             %(u"{:.0%}".format(usage),
                               u", consider editing .vmoptions file to increase '-Xmx' memory setting" if not Platform.isOSX() else u""))
