@@ -8,5 +8,5 @@
   "module_name" = "Extract Data"
   "module_desc" = "Extract data to screen/csv. Options incl: 'StockGlance2020' investments, Reminders, Account / Investment txns, Currency History; Attachments..."
   "mac_sandbox_friendly" = "true"
-  "news" = "Fixed calls to .setEscapeKeyCancels() on older versions of MD"
+  "news" = "Fixed calls to .setEscapeKeyCancels() on older versions of MD; New txn date range option/filter on extract_investment_register"
 }

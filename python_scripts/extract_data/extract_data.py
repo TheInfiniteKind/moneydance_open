@@ -100,6 +100,7 @@
 # build: 1025 - Tweak; Common code
 # build: 1025 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
 # build: 1025 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
+# build: 1025 - Add date range selector/filter to extract_investment_registers
 
 # todo - consider creating a Yahoo Finance portfolio upload format
 
@@ -389,8 +390,7 @@ else:
     from copy import deepcopy
     import subprocess
     from com.moneydance.apps.md.controller import Util
-    from com.moneydance.apps.md.view.gui import ConsoleWindow
-    # from com.infinitekind.moneydance.model import DateRange
+    from com.moneydance.apps.md.view.gui import ConsoleWindow, DateRangeChooser
 
     # from stockglance2020 and extract_reminders_csv
     from java.awt.event import AdjustmentListener
@@ -444,6 +444,7 @@ else:
     # from extract_investment_transactions_csv
     global lIncludeOpeningBalances, lAdjustForSplits
     global lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT
+    global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
 
     # from stockglance2020
     global lIncludeCashBalances, _column_widths_SG2020
@@ -496,6 +497,7 @@ else:
     hideHiddenSecurities = True                                                                                         # noqa
     lAllSecurity = True                                                                                                 # noqa
     filterForSecurity = "ALL"                                                                                           # noqa
+
     lAllCurrency = True                                                                                                 # noqa
     filterForCurrency = "ALL"                                                                                           # noqa
     whichDefaultExtractToRun_SWSS = None                                                                                # noqa
@@ -522,6 +524,9 @@ else:
     lAdjustForSplits = True                                                                                             # noqa
     lExtractAttachments_EIT = False                                                                                     # noqa
     lOmitLOTDataFromExtract_EIT = False                                                                                 # noqa
+    lFilterDateRange_EIT = False                                                                                        # noqa
+    filterDateStart_EIT = 0                                                                                             # noqa
+    filterDateEnd_EIT = 0                                                                                               # noqa
 
     # from stockglance2020
     lIncludeCashBalances = False                                                                                        # noqa
@@ -3096,6 +3101,7 @@ Visit: %s (Author's site)
 
         # extract_investment_transactions_csv
         global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT
+        global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
 
         # extract_currency_history_csv
         global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
@@ -3169,6 +3175,9 @@ Visit: %s (Author's site)
         if GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits") is not None: lAdjustForSplits = GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits")
         if GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT") is not None: lExtractAttachments_EIT = GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT") is not None: lOmitLOTDataFromExtract_EIT = GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lFilterDateRange_EIT") is not None: lFilterDateRange_EIT = GlobalVars.parametersLoadedFromFile.get("lFilterDateRange_EIT")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("filterDateStart_EIT") is not None: filterDateStart_EIT = GlobalVars.parametersLoadedFromFile.get("filterDateStart_EIT")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("filterDateEnd_EIT") is not None: filterDateEnd_EIT = GlobalVars.parametersLoadedFromFile.get("filterDateEnd_EIT")                                                                                  # noqa
 
         # extract_currency_history_csv
         if GlobalVars.parametersLoadedFromFile.get("lSimplify_ECH") is not None: lSimplify_ECH = GlobalVars.parametersLoadedFromFile.get("lSimplify_ECH")
@@ -3246,6 +3255,10 @@ Visit: %s (Author's site)
         # extract_investment_transactions_csv
         GlobalVars.parametersLoadedFromFile["lExtractAttachments_EIT"] = lExtractAttachments_EIT
         GlobalVars.parametersLoadedFromFile["lOmitLOTDataFromExtract_EIT"] = lOmitLOTDataFromExtract_EIT
+        GlobalVars.parametersLoadedFromFile["lFilterDateRange_EIT"] = lFilterDateRange_EIT
+        GlobalVars.parametersLoadedFromFile["filterDateStart_EIT"] = filterDateStart_EIT
+        GlobalVars.parametersLoadedFromFile["filterDateEnd_EIT"] = filterDateEnd_EIT
+
         GlobalVars.parametersLoadedFromFile["lIncludeOpeningBalances"] = lIncludeOpeningBalances
         GlobalVars.parametersLoadedFromFile["lAdjustForSplits"] = lAdjustForSplits
 
@@ -4316,6 +4329,18 @@ Visit: %s (Author's site)
                 if lAllAccounts: user_selectAccounts.setText("ALL")
                 else:            user_selectAccounts.setText(filterForAccounts)
 
+                user_dateRangeChooser = DateRangeChooser(MD_REF.getUI())
+
+                label_dateRange = JLabel("Filter transactions by date range:")
+                user_filterDateRange = JCheckBox("", lFilterDateRange_EIT)
+
+                label_dateStart = user_dateRangeChooser.getStartLabel()
+                if lFilterDateRange_EIT and filterDateStart_EIT != 0: user_dateRangeChooser.setStartDate(filterDateStart_EIT)
+                user_dateStart = user_dateRangeChooser.getStartField()
+                if lFilterDateRange_EIT and filterDateEnd_EIT != 0: user_dateRangeChooser.setEndDate(filterDateEnd_EIT)
+                label_dateEnd = user_dateRangeChooser.getEndLabel()
+                user_dateEnd = user_dateRangeChooser.getEndField()
+
                 label7 = JLabel("Include Opening Balances?")
                 user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances)
 
@@ -4369,6 +4394,19 @@ Visit: %s (Author's site)
                 userFilters.add(user_selectTicker)
                 userFilters.add(label6)
                 userFilters.add(user_selectAccounts)
+
+                # Date Range options
+                userFilters.add(JLabel("-"*30)); userFilters.add(JLabel("-"*30))
+                userFilters.add(label_dateRange)
+                userFilters.add(user_filterDateRange)
+                userFilters.add(user_dateRangeChooser.getChoiceLabel())
+                userFilters.add(user_dateRangeChooser.getChoice())
+                userFilters.add(label_dateStart)
+                userFilters.add(user_dateStart)
+                userFilters.add(label_dateEnd)
+                userFilters.add(user_dateEnd)
+                userFilters.add(JLabel("-"*30)); userFilters.add(JLabel("-"*30))
+
                 userFilters.add(label7)
                 userFilters.add(user_selectOpeningBalances)
                 userFilters.add(label8)
@@ -4416,6 +4454,9 @@ Visit: %s (Author's site)
                             "Curr:", user_selectCurrency.getText(),
                             "Ticker:", user_selectTicker.getText(),
                             "Filter Accts:", user_selectAccounts.getText(),
+                            "Filter txns by date:", user_filterDateRange.isSelected(),
+                            "Filter txns start date:", user_dateRangeChooser.getDateRange().getStartDateInt(),
+                            "Filter txns end date:", user_dateRangeChooser.getDateRange().getEndDateInt(),
                             "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
                             "Adj Splits:", user_selectAdjustSplits.isSelected(),
                             "OmitLOTData:", user_lOmitLOTDataFromExtract_EIT.isSelected(),
@@ -4450,6 +4491,14 @@ Visit: %s (Author's site)
                     else:
                         lAllAccounts = False
                         filterForAccounts = user_selectAccounts.getText()
+
+                    lFilterDateRange_EIT = user_filterDateRange.isSelected()
+                    if lFilterDateRange_EIT:
+                        filterDateStart_EIT = user_dateRangeChooser.getDateRange().getStartDateInt()
+                        filterDateEnd_EIT = user_dateRangeChooser.getDateRange().getEndDateInt()
+                    else:
+                        filterDateStart_EIT = 0
+                        filterDateEnd_EIT = 0
 
                     lIncludeOpeningBalances = user_selectOpeningBalances.isSelected()
                     lAdjustForSplits = user_selectAdjustSplits.isSelected()
@@ -4509,6 +4558,13 @@ Visit: %s (Author's site)
                         myPrint("B", "Selecting ALL Securities...")
                     else:
                         myPrint("B", "Filtering for Security/Ticker containing: ", filterForSecurity)
+
+                    if lFilterDateRange_EIT and filterDateStart_EIT != 0 and filterDateEnd_EIT != 0:
+                        myPrint("B", "FILTERING Transactions by date range:... Start: %s End: %s"
+                                %(convertStrippedIntDateFormattedText(filterDateStart_EIT),
+                                  convertStrippedIntDateFormattedText(filterDateEnd_EIT)))
+                    else:
+                        myPrint("B", "Selecting all dates (no date range filtering): ")
 
                     if lAllAccounts:
                         myPrint("B", "Selecting ALL Accounts...")
@@ -9055,6 +9111,7 @@ Visit: %s (Author's site)
                         global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
                         global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+                        global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
                         global whichDefaultExtractToRun_SWSS
                         global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
 
@@ -9382,8 +9439,9 @@ Visit: %s (Author's site)
                         if lIncludeOpeningBalances:
                             for acctBal in validAccountList:
                                 if acctBal.getStartBalance() != 0:
-                                    # if userdateStart <= acctBal.getCreationDateInt() <= userdateEnd:
-                                    copyValidAccountList.add(acctBal)
+                                    if (not lFilterDateRange_EIT or
+                                            (lFilterDateRange_EIT and acctBal.getCreationDateInt() >= filterDateStart_EIT and acctBal.getCreationDateInt() <= filterDateEnd_EIT)):
+                                        copyValidAccountList.add(acctBal)
 
                         for txn in txns:
 
@@ -9392,11 +9450,15 @@ Visit: %s (Author's site)
 
                             if lIncludeOpeningBalances:
 
-                                if txnAcct in copyValidAccountList:
-                                    copyValidAccountList.remove(txnAcct)
+                                if txnAcct in copyValidAccountList: copyValidAccountList.remove(txnAcct)
 
                                 if accountBalances.get(txnAcct):
                                     pass
+
+                                elif (lFilterDateRange_EIT
+                                      and (txnAcct.getCreationDateInt() < filterDateStart_EIT or txnAcct.getCreationDateInt() > filterDateEnd_EIT)):
+                                    pass
+
                                 else:
                                     accountBalances[txnAcct] = True
                                     openBal = acctCurr.getDoubleValue(txnAcct.getStartBalance())
@@ -9415,6 +9477,9 @@ Visit: %s (Author's site)
 
                                         myPrint("D", _row)
                                         transactionTable.append(_row)
+
+                            if lFilterDateRange_EIT and (txn.getDateInt() < filterDateStart_EIT or txn.getDateInt() > filterDateEnd_EIT):
+                                continue
 
                             # Check that we are on a parent. If we are on a split, in an Investment Account, then it must be a cash txfr only
                             parent = txn.getParentTxn()
@@ -9875,6 +9940,12 @@ Visit: %s (Author's site)
                                         writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
                                         writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
                                         writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+
+                                        writer.writerow(["Txn Date filter............: %s %s" %(lFilterDateRange_EIT,
+                                                         "" if (not lFilterDateRange_EIT) else "(start date: %s, end date: %s"
+                                                                       %(convertStrippedIntDateFormattedText(filterDateStart_EIT),
+                                                                         convertStrippedIntDateFormattedText(filterDateEnd_EIT)))])
+
                                         writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances)])
                                         writer.writerow(["Adjust for Splits..........: %s" %(lAdjustForSplits)])
                                         writer.writerow(["Split Securities by Account: %s" %(userdateformat)])
