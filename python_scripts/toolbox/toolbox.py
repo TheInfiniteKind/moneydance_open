@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1053 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1054 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -126,6 +126,8 @@
 # build: 1053 - Alerts to detect invalid backup locations (or auto-backup off); init code now warns about memory % and invalid backup locations too...
 # build: 1053 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
 # build: 1053 - Added unlock (secret) option 'Close Dataset'; added JVM Memory stats to status line...
+# build: 1054 - Fixed MyPopupDialogBox() height from becoming too tall on Windows.....; also set the relativeLocation to parent (not None).....
+# build: 1054 - Tweaked rename/relocate dataset to detect crash when calling .setCurrentBook() - e.g. out of memory.....
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -148,7 +150,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1053"
+version_build = "1054"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -1266,23 +1268,37 @@ Visit: %s (Author's site)
                         if not Platform.isOSX():
                             self.callingClass.fakeJFrame.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
-                    if self.callingClass.lModal:
-                        # noinspection PyUnresolvedReferences
-                        self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.APPLICATION_MODAL)
-                    else:
-                        # noinspection PyUnresolvedReferences
-                        self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.MODELESS)
+                    class MyJDialog(JDialog):
+                        def __init__(self, maxSize, *args):
+                            self.maxSize = maxSize                                                                      # type: Dimension
+                            super(self.__class__, self).__init__(*args)
+
+                        # On Windows, the height was exceeding the screen height when default size of Dimension (0,0), so set the max....
+                        def getPreferredSize(self):
+                            calcPrefSize = super(self.__class__, self).getPreferredSize()
+                            newPrefSize = Dimension(min(calcPrefSize.width, self.maxSize.width), min(calcPrefSize.height, self.maxSize.height))
+                            return newPrefSize
 
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
 
                     if isinstance(self.callingClass.maxSize, Dimension)\
                             and self.callingClass.maxSize.height and self.callingClass.maxSize.width:
-                        frame_width = min(screenSize.width-20, self.callingClass.maxSize.width)
-                        frame_height = min(screenSize.height-20, self.callingClass.maxSize.height)
-                        self.callingClass._popup_d.setPreferredSize(Dimension(frame_width,frame_height))
+                        maxDialogWidth = min(screenSize.width-20, self.callingClass.maxSize.width)
+                        maxDialogHeight = min(screenSize.height-40, self.callingClass.maxSize.height)
+                        maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
+                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
+                    else:
+                        maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
+                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                        maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
+                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
+
+                    # noinspection PyUnresolvedReferences
+                    self.callingClass._popup_d = MyJDialog(maxDimension,
+                                                           self.callingClass.theParent, self.callingClass.theTitle,
+                                                           Dialog.ModalityType.APPLICATION_MODAL if (self.callingClass.lModal) else Dialog.ModalityType.MODELESS)
 
                     self.callingClass._popup_d.getContentPane().setLayout(BorderLayout())
-
                     self.callingClass._popup_d.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 
                     shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
@@ -1305,10 +1321,7 @@ Visit: %s (Author's site)
                     self.callingClass.messageJText.setWrapStyleWord(False)
 
                     _popupPanel = JPanel(BorderLayout())
-
-                    # maxHeight = 500
                     _popupPanel.setBorder(EmptyBorder(8, 8, 8, 8))
-
 
                     if self.callingClass.theStatus:
                         _statusPnl = JPanel(BorderLayout())
@@ -1352,7 +1365,7 @@ Visit: %s (Author's site)
 
                         _popupPanel.add(buttonPanel, BorderLayout.SOUTH)
 
-                    if self.callingClass.lAlertLevel>=2:
+                    if self.callingClass.lAlertLevel >= 2:
                         # internalScrollPane.setBackground(Color.RED)
                         self.callingClass.messageJText.setBackground(Color.RED)
                         self.callingClass.messageJText.setForeground(Color.BLACK)
@@ -1363,7 +1376,7 @@ Visit: %s (Author's site)
                         buttonPanel.setBackground(Color.RED)
                         buttonPanel.setOpaque(True)
 
-                    elif self.callingClass.lAlertLevel>=1:
+                    elif self.callingClass.lAlertLevel >= 1:
                         # internalScrollPane.setBackground(Color.YELLOW)
                         self.callingClass.messageJText.setBackground(Color.YELLOW)
                         self.callingClass.messageJText.setForeground(Color.BLACK)
@@ -1376,8 +1389,8 @@ Visit: %s (Author's site)
 
                     self.callingClass._popup_d.add(_popupPanel, BorderLayout.CENTER)
                     self.callingClass._popup_d.pack()
-                    self.callingClass._popup_d.setLocationRelativeTo(None)
-                    self.callingClass._popup_d.setVisible(True)  # Keeping this modal....
+                    self.callingClass._popup_d.setLocationRelativeTo(self.callingClass.theParent)
+                    self.callingClass._popup_d.setVisible(True)
 
             if not SwingUtilities.isEventDispatchThread():
                 myPrint("DB",".. Not running within the EDT so calling via MyPopUpDialogBoxRunnable()...")
@@ -2494,10 +2507,16 @@ Visit: %s (Author's site)
     global ManuallyCloseAndReloadDataset            # Declare it for QuickJFrame/IDE, but not present in common code. Other code will ignore it 
 
     class GetFirstMainFrame:
+
+        DEFAULT_MAX_WIDTH = 1024
+        DEFAULT_MAX_HEIGHT = 768
+
         def __init__(self): raise Exception("ERROR: DO NOT CREATE INSTANCE OF GetFirstMainFrame!")
 
         @staticmethod
-        def getSize(defaultWidth=1024, defaultHeight=768):
+        def getSize(defaultWidth=None, defaultHeight=None):
+            if defaultWidth is None: defaultWidth = GetFirstMainFrame.DEFAULT_MAX_WIDTH
+            if defaultHeight is None: defaultHeight = GetFirstMainFrame.DEFAULT_MAX_HEIGHT
             try:
                 firstMainFrame = MD_REF.getUI().firstMainFrame
                 return firstMainFrame.getSize()
@@ -2655,10 +2674,10 @@ Visit: %s (Author's site)
                 def __init__(self, callingClass):
                     self.callingClass = callingClass
 
-                def run(self):                                                                                                      # noqa
+                def run(self):                                                                                          # noqa
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
-                    frame_width = min(screenSize.width-20, max(1024,int(round(GetFirstMainFrame.getSize().width *.9,0))))
-                    frame_height = min(screenSize.height-20, max(768, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                    frame_width = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
+                    frame_height = min(screenSize.height-20, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.9,0))))
 
                     # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                     if self.callingClass.lQuitMDAfterClose:
@@ -18090,6 +18109,8 @@ now after saving the file, restart Moneydance
 
         _THIS_METHOD_NAME = "Detect and fix (wipe) LOT records"
 
+        myPrint("B", "Entering function: '%s'" %(_THIS_METHOD_NAME.upper()))
+
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
         allSecurityAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(2))
@@ -18119,15 +18140,35 @@ now after saving the file, restart Moneydance
 
         output = "%s:\n\n" %(_THIS_METHOD_NAME.upper())
 
+        _msgPad = 100
+        _msg = pad("Please wait: Analysing Security Accounts", _msgPad,padChar=".")
+        diag = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False,OKButtonText="WAIT")
+        diag.go()
+
         securityTxnsToFix = {}
         lLotErrors = False
+
+        output += ("\nValidating the 'Cost Basis' on all Security Sub Accounts%s:\n"
+                   %(" (valid security accounts will not be listed unless debug enabled)" if not debug else ""))
+
+        myPrint("DB", "Validating the 'Cost Basis' on all Security Sub Accounts...:")
+
         for secAcct in allSecurityAccounts:
+
+            _msg = pad("Please wait: Checking security account: '%s'" %(secAcct), _msgPad, padChar=".")
+            diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
             secTxns = MD_REF.getCurrentAccountBook().getTransactionSet().getTransactionsForAccount(secAcct)
-            output += "Validating: %s\n" %(secAcct)
+
             if InvestUtil.isCostBasisValid(secAcct):
-                output += "... Cost Basis reports as valid\n"
+                txt = "... '%s' Cost Basis reports as valid" %(secAcct)
+                if debug:
+                    myPrint("DB", txt)
+                    output += "%s\n" %(txt)
             else:
-                output += "... Cost Basis reports as INVALID\n"
+                txt = "... '%s' Cost Basis reports as INVALID" %(secAcct)
+                myPrint("DB", txt)
+                output += "%s\n" %(txt)
 
             for secTxn in secTxns:
 
@@ -18149,6 +18190,10 @@ now after saving the file, restart Moneydance
                 if lAnyTagChanges:
                     securityTxnsToFix[secTxn] = newTags
 
+        myPrint("DB", "Finished validating the cost basis.....")
+
+        diag.kill()
+
         if not lLotErrors:
             txt = "Congratulations. No Buy/Sell matched LOT errors detected"
             myPrint("B", txt)
@@ -18167,11 +18212,11 @@ now after saving the file, restart Moneydance
                                lCancelButton=True,
                                OKButtonText="PROCEED")
         if not ask.go():
-            txt = "%s: - User Aborted - No changes made!" %(_THIS_METHOD_NAME)
-            myPrint("B",txt)
-            setDisplayStatus(txt, "R")
-            jif = QuickJFrame(_THIS_METHOD_NAME,output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
-            myPopupInformationBox(jif,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            _txt = "%s: - User Aborted - No changes made!" %(_THIS_METHOD_NAME)
+            myPrint("B", _txt)
+            setDisplayStatus(_txt, "R")
+            _jif = QuickJFrame(_THIS_METHOD_NAME, output, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+            myPopupInformationBox(_jif, _txt, theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
         if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME.upper(), "Wipe invalid matched Buy/Sell LOT data?"):
@@ -18179,7 +18224,11 @@ now after saving the file, restart Moneydance
 
         output += "\nUSER ACCEPTED DISCLAIMER AND CONFIRMED TO PROCEED WITH FIX OF INVALID LOT MATCHING DATA.....\n\n"
 
-        output += "Fixing Lot Matching data identified above for %s txns...:" %(len(securityTxnsToFix))
+        _msg = pad("Please wait: Fixing transactions...", _msgPad,padChar=".")
+        diag = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False,OKButtonText="WAIT")
+        diag.go()
+
+        output += "Fixing Lot Matching data identified above for %s txns...:\n\n" %(len(securityTxnsToFix))
         for secTxn in securityTxnsToFix:
             newTag = ""
             cbTags = securityTxnsToFix[secTxn]
@@ -18193,15 +18242,23 @@ now after saving the file, restart Moneydance
             secTxn.setParameter(PARAMETER_KEY_COST_BASIS, newTag)
             pTxn.syncItem()
 
+        output += ("\nValidating the 'Cost Basis' on all Security Sub Accounts (AFTER THE FIX)%s:\n"
+                   %(" (valid security accounts will not be listed unless debug enabled)" if not debug else ""))
+
         for secAcct in allSecurityAccounts:
-            output += "Validating Cost Basis on all Security Sub Accounts (after the fix): %s\n" %(secAcct)
+
+            _msg = pad("Please wait: Validating cost basis on security account: '%s'" %(secAcct), _msgPad, padChar=".")
+            diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
             if InvestUtil.isCostBasisValid(secAcct):
-                output += "... Cost Basis reports as valid\n"
+                if debug: output += "... '%s' Cost Basis reports as valid\n" %(secAcct)
             else:
-                output += "... Cost Basis reports as INVALID\n"
+                output += "... '%s' Cost Basis reports as INVALID (you may need to manually edit / review MATCHED LOTs)\n" %(secAcct)
+
+        diag.kill()
 
         output += "\n\n%s transactions corrected (invalid LOT data has been wiped)...\n\n" %(len(securityTxnsToFix))
-        jif = QuickJFrame(_THIS_METHOD_NAME,output,copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
+        jif = QuickJFrame(_THIS_METHOD_NAME,output, lWrapText=False, lJumpToEnd=True, copyToClipboard=lCopyAllToClipBoard_TB).show_the_frame()
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
@@ -18209,7 +18266,7 @@ now after saving the file, restart Moneydance
         myPrint("B", txt)
         setDisplayStatus(txt, "DG")
         play_the_money_sound()
-        myPopupInformationBox(jif,txt,theMessageType=JOptionPane.INFORMATION_MESSAGE)
+        myPopupInformationBox(jif, txt, theMessageType=JOptionPane.INFORMATION_MESSAGE)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
         return
@@ -21337,7 +21394,7 @@ now after saving the file, restart Moneydance
 
 
     def rename_relocate_dataset(lRelocateDataset=False, lRelocateToInternal=True):
-        # type: (bool, bool) -> bool
+        # type: (bool, bool) -> None
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -21350,20 +21407,20 @@ now after saving the file, restart Moneydance
         currentBook = MD_REF.getCurrentAccountBook()     # type: AccountBook
         if currentBook is None:
             myPopupInformationBox(toolbox_frame_, "CRITICAL ERROR: AccountBook is missing? (Suggest you restart!)",theTitle=_THIS_METHOD_NAME,theMessageType=JOptionPane.ERROR_MESSAGE)
-            return False
+            return
 
         # Already on the EDT....
         if not ManuallyCloseAndReloadDataset.isSafeToCloseDataset():
             txt = "ERROR: MD reports that it's not OK to close open windows - no changes made"
             myPopupInformationBox(toolbox_frame_,txt)
             setDisplayStatus(txt, "R"); myPrint("B", txt)
-            return True
+            return
 
         currentRoot = currentBook.getRootAccount()
         currentName = currentBook.getName()
 
-        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return True
-        if not backup_config_dict():  return True
+        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return
+        if not backup_config_dict():  return
 
         fCurrentFilePath = MD_REF.getCurrentAccount().getBook().getRootFolder()
         currentFilePath = fCurrentFilePath.getCanonicalPath()
@@ -21396,7 +21453,7 @@ now after saving the file, restart Moneydance
                     txt = "%s: User chose to cancel or no folder selected." %(_THIS_METHOD_NAME)
                     setDisplayStatus(txt, "R")
                     myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
-                    return None
+                    return
                 newLocation = File(selectedFolder)
 
             fNewNamePath = AccountBook.getUnusedFileNameWithBase(newLocation, StringUtils.stripExtension(fCurrentFilePath.getName()))
@@ -21417,7 +21474,7 @@ now after saving the file, restart Moneydance
                     txt = "No new name entered - no changes made"
                     myPopupInformationBox(toolbox_frame_,txt)
                     setDisplayStatus(txt, "R")
-                    return True
+                    return
 
                 newName = AccountBook.stripNonFilenameSafeCharacters(userRequestedNewName)
                 newNamePath = os.path.join(os.path.dirname(currentFilePath), newName + Common.ACCOUNT_BOOK_EXTENSION)
@@ -21433,7 +21490,7 @@ now after saving the file, restart Moneydance
                 break
 
         if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "%s this dataset?" %(actionString.capitalize())):
-            return True
+            return
 
         _msg = pad("Please wait:", 50, padChar=".")
         pleaseWait = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False,OKButtonText="WAIT")
@@ -21452,7 +21509,7 @@ now after saving the file, restart Moneydance
                 txt = "ERROR: MD reports that it could not close all open windows.... - no changes made (you might need to restart MD)"
                 myPopupInformationBox(toolbox_frame_, txt, theTitle="ERROR", theMessageType=JOptionPane.ERROR_MESSAGE)
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
-                return False
+                return
             del currentBook, currentRoot
 
             success = False
@@ -21514,33 +21571,50 @@ now after saving the file, restart Moneydance
 
             cleanup_external_files_setting(lAutoPurge=True)
 
-            myPrint("B", "Opening %s dataset...." %("renamed/relocated" if success else "original"))
-
             if success and fCurrentFilePath.exists():
+                # This really should NOT happen (if original dataset reappears, look for Syncer doing something....
                 raise Exception("ERROR: The old file/path still exists: %s" %(fCurrentFilePath.getAbsolutePath()))
 
             ManuallyCloseAndReloadDataset.startBackgroundSyncing()
 
-            # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
-            myPrint("DB", "... calling .setCurrentBook() to open the dataset...")
-            openResult = MD_REF.setCurrentBook(newWrapper)
+            _operationMsg = "renamed/relocated" if success else "original"
+            myPrint("B", "(Re)opening %s dataset...." %(_operationMsg))
 
-            myPrint("DB", "... after-open getSyncer():", MD_REF.getCurrentAccountBook().getSyncer(), MD_REF.getCurrentAccountBook().getSyncer().isRunningInBackground(), MD_REF.getCurrentAccountBook().getSyncer().isSyncing())
-            for t in [t for t in Thread.getAllStackTraces().keySet() if "sync" in t.getName()]: myPrint("DB", "...... Current Syncer Threads...:", getJVMThreadInformation(t, True))
+            openResult = None                                                                                           # noqa
+            try:
+                # .setCurrentBook() always pushes mdGUI().dataFileOpened() on the EDT (if not already on the EDT)....
+                myPrint("DB", "... calling .setCurrentBook() to (re)open the %s dataset..." %(_operationMsg))
+                openResult = MD_REF.setCurrentBook(newWrapper)
+            except OutOfMemoryError:
+                myPrint("B", "@@@ CRITICAL ERROR <<OUT OF MEMORY>> setCurrentBook() has crashed whilst (re)opening %s dataset!?" %(_operationMsg))
+                dump_sys_error_to_md_console_and_errorlog()
+                myPrint("B", getJVMUsageStatistics())
+                myPopupInformationBox(theParent=toolbox_frame_, theTitle="CRITICAL ERROR",
+                                      theMessage="TOOLBOX: OUT OF MEMORY whilst (re)opening %s dataset. WILL SHUT DOWN MD (review Console/errlog.txt)" %(_operationMsg), theMessageType=JOptionPane.ERROR_MESSAGE)
+                MD_REF.getUI().shutdownApp(False)
+                return
+            except:
+                myPrint("B", "@@@ CRITICAL ERROR - .setCurrentBook() has crashed whilst (re)opening %s dataset!?" %(_operationMsg))
+                dump_sys_error_to_md_console_and_errorlog()
+                myPopupInformationBox(theParent=toolbox_frame_, theTitle="CRITICAL ERROR",
+                                      theMessage="TOOLBOX: ERROR: whilst (re)opening %s dataset. WILL SHUT DOWN MD (review Console/errlog.txt)" %(_operationMsg), theMessageType=JOptionPane.ERROR_MESSAGE)
+                MD_REF.getUI().shutdownApp(False)
+                return
+
+            if success and fCurrentFilePath.exists():
+                raise Exception("ERROR: The old file/path still exists: %s" %(fCurrentFilePath.getAbsolutePath()))
 
             if not openResult or newWrapper.getBook() is None:
-                txt = "%s: Failed to open Dataset (wrong password?)...." %(_THIS_METHOD_NAME)
+                txt = "%s: Failed to open %s Dataset (wrong password?)...." %(_THIS_METHOD_NAME, _operationMsg)
                 setDisplayStatus(txt, "R"); myPrint("B", txt)
                 myPopupInformationBox(toolbox_frame_,"%s - Will show Welcome Window" %(txt),theMessageType=JOptionPane.WARNING_MESSAGE)
                 WelcomeWindow.showWelcomeWindow(MD_REF.getUI())
 
                 # Do this after .setCurrentBook() so-as not to co-modify listeners.....
                 SwingUtilities.invokeLater(GenericWindowClosingRunnable(toolbox_frame_))
+                return
 
-                return False
-
-            if success and fCurrentFilePath.exists():
-                raise Exception("ERROR: The old file/path still exists: %s" %(fCurrentFilePath.getAbsolutePath()))
+            myPrint("B", "** SUCCESSFUL COMPLETION RENAME/RELOCATE FUNCTION **")                                        # Phew - made it!
 
         except:
             dump_sys_error_to_md_console_and_errorlog()
@@ -21552,7 +21626,7 @@ now after saving the file, restart Moneydance
 
             pleaseWait.kill()
 
-        return False
+        return
 
 
     def change_fonts():
@@ -23545,8 +23619,6 @@ Now you will have a text readable version of the file you can open in a text edi
                 newBook.logModifiedItem(newRoot)
 
             output += "Clone's Sync settings have been reset and the internal UUID set to: '%s'\n" %(newStorage.getStr("netsync.dropbox.fileid","<ERROR>"))
-
-            # MD_REF.setCurrentBook(newWrapper)
 
             output += "Imported and created clone book: %s\n" %(newBookFile.getCanonicalPath())
             # newBook.notifyAccountModified(newBook.getRootAccount())
@@ -27946,9 +28018,8 @@ Now you will have a text readable version of the file you can open in a text edi
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_I, shortcut), "display-help")
             toolbox_frame_.getRootPane().getActionMap().put("display-help", DisplayHelp())
 
-            frame_width = min(1024, min(screenSize.width-20, max(1024,int(round(GetFirstMainFrame.getSize().width *.95,0)))))
-            frame_height = min(screenSize.height-20, max(768, int(round(GetFirstMainFrame.getSize().height *.95,0))))
-
+            frame_width = min(GetFirstMainFrame.DEFAULT_MAX_WIDTH, min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.95,0)))))
+            frame_height = min(screenSize.height-20, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.95,0))))
             toolbox_frame_.setPreferredSize(Dimension(frame_width, frame_height))
 
             # if MD_REF.getUI().firstMainFrame.getExtendedState() != JFrame.ICONIFIED:

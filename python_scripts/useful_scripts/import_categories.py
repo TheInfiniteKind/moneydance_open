@@ -1043,23 +1043,37 @@ Visit: %s (Author's site)
                         if not Platform.isOSX():
                             self.callingClass.fakeJFrame.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
 
-                    if self.callingClass.lModal:
-                        # noinspection PyUnresolvedReferences
-                        self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.APPLICATION_MODAL)
-                    else:
-                        # noinspection PyUnresolvedReferences
-                        self.callingClass._popup_d = JDialog(self.callingClass.theParent, self.callingClass.theTitle, Dialog.ModalityType.MODELESS)
+                    class MyJDialog(JDialog):
+                        def __init__(self, maxSize, *args):
+                            self.maxSize = maxSize                                                                      # type: Dimension
+                            super(self.__class__, self).__init__(*args)
+
+                        # On Windows, the height was exceeding the screen height when default size of Dimension (0,0), so set the max....
+                        def getPreferredSize(self):
+                            calcPrefSize = super(self.__class__, self).getPreferredSize()
+                            newPrefSize = Dimension(min(calcPrefSize.width, self.maxSize.width), min(calcPrefSize.height, self.maxSize.height))
+                            return newPrefSize
 
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
 
                     if isinstance(self.callingClass.maxSize, Dimension)\
                             and self.callingClass.maxSize.height and self.callingClass.maxSize.width:
-                        frame_width = min(screenSize.width-20, self.callingClass.maxSize.width)
-                        frame_height = min(screenSize.height-20, self.callingClass.maxSize.height)
-                        self.callingClass._popup_d.setPreferredSize(Dimension(frame_width,frame_height))
+                        maxDialogWidth = min(screenSize.width-20, self.callingClass.maxSize.width)
+                        maxDialogHeight = min(screenSize.height-40, self.callingClass.maxSize.height)
+                        maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
+                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
+                    else:
+                        maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
+                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                        maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
+                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
+
+                    # noinspection PyUnresolvedReferences
+                    self.callingClass._popup_d = MyJDialog(maxDimension,
+                                                           self.callingClass.theParent, self.callingClass.theTitle,
+                                                           Dialog.ModalityType.APPLICATION_MODAL if (self.callingClass.lModal) else Dialog.ModalityType.MODELESS)
 
                     self.callingClass._popup_d.getContentPane().setLayout(BorderLayout())
-
                     self.callingClass._popup_d.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE)
 
                     shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
@@ -1082,10 +1096,7 @@ Visit: %s (Author's site)
                     self.callingClass.messageJText.setWrapStyleWord(False)
 
                     _popupPanel = JPanel(BorderLayout())
-
-                    # maxHeight = 500
                     _popupPanel.setBorder(EmptyBorder(8, 8, 8, 8))
-
 
                     if self.callingClass.theStatus:
                         _statusPnl = JPanel(BorderLayout())
@@ -1129,7 +1140,7 @@ Visit: %s (Author's site)
 
                         _popupPanel.add(buttonPanel, BorderLayout.SOUTH)
 
-                    if self.callingClass.lAlertLevel>=2:
+                    if self.callingClass.lAlertLevel >= 2:
                         # internalScrollPane.setBackground(Color.RED)
                         self.callingClass.messageJText.setBackground(Color.RED)
                         self.callingClass.messageJText.setForeground(Color.BLACK)
@@ -1140,7 +1151,7 @@ Visit: %s (Author's site)
                         buttonPanel.setBackground(Color.RED)
                         buttonPanel.setOpaque(True)
 
-                    elif self.callingClass.lAlertLevel>=1:
+                    elif self.callingClass.lAlertLevel >= 1:
                         # internalScrollPane.setBackground(Color.YELLOW)
                         self.callingClass.messageJText.setBackground(Color.YELLOW)
                         self.callingClass.messageJText.setForeground(Color.BLACK)
@@ -1153,8 +1164,8 @@ Visit: %s (Author's site)
 
                     self.callingClass._popup_d.add(_popupPanel, BorderLayout.CENTER)
                     self.callingClass._popup_d.pack()
-                    self.callingClass._popup_d.setLocationRelativeTo(None)
-                    self.callingClass._popup_d.setVisible(True)  # Keeping this modal....
+                    self.callingClass._popup_d.setLocationRelativeTo(self.callingClass.theParent)
+                    self.callingClass._popup_d.setVisible(True)
 
             if not SwingUtilities.isEventDispatchThread():
                 myPrint("DB",".. Not running within the EDT so calling via MyPopUpDialogBoxRunnable()...")
@@ -2271,10 +2282,16 @@ Visit: %s (Author's site)
     global ManuallyCloseAndReloadDataset            # Declare it for QuickJFrame/IDE, but not present in common code. Other code will ignore it
 
     class GetFirstMainFrame:
+
+        DEFAULT_MAX_WIDTH = 1024
+        DEFAULT_MAX_HEIGHT = 768
+
         def __init__(self): raise Exception("ERROR: DO NOT CREATE INSTANCE OF GetFirstMainFrame!")
 
         @staticmethod
-        def getSize(defaultWidth=1024, defaultHeight=768):
+        def getSize(defaultWidth=None, defaultHeight=None):
+            if defaultWidth is None: defaultWidth = GetFirstMainFrame.DEFAULT_MAX_WIDTH
+            if defaultHeight is None: defaultHeight = GetFirstMainFrame.DEFAULT_MAX_HEIGHT
             try:
                 firstMainFrame = MD_REF.getUI().firstMainFrame
                 return firstMainFrame.getSize()
@@ -2432,10 +2449,10 @@ Visit: %s (Author's site)
                 def __init__(self, callingClass):
                     self.callingClass = callingClass
 
-                def run(self):                                                                                                      # noqa
+                def run(self):                                                                                          # noqa
                     screenSize = Toolkit.getDefaultToolkit().getScreenSize()
-                    frame_width = min(screenSize.width-20, max(1024,int(round(GetFirstMainFrame.getSize().width *.9,0))))
-                    frame_height = min(screenSize.height-20, max(768, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                    frame_width = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
+                    frame_height = min(screenSize.height-20, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.9,0))))
 
                     # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                     if self.callingClass.lQuitMDAfterClose:
