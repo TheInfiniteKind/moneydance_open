@@ -103,7 +103,8 @@ TOOLBAR / MENU BAR Contains the following:
     - Help/About menu
     - Button: Launch Console Window (opens the Moneydance Help>Show Console Window)
     - Button: Save Console Log (to a file of your choosing)
-    - Button: Open MD Folder (Preferences, Themes, Console log, Dataset, Extensions, Auto-backup folder, last backup folder[, Sync Dir][, Install Dir])
+    - Button: Open MD Folder (Preferences, Themes, Console log, Dataset, Extensions, Auto-backup folder,
+              last backup folder[, Sync Dir][, Install Dir][, Toolbox's own update log [common / this dataset]])
     - Button: Copy/Save/Print Diagnostics below (to Clipboard (copies the main screen output to clipboard), or save to file, or print)
 
 POPUP Output/Report Window(s):
@@ -127,19 +128,22 @@ Basic Mode (Default at launch) - Use ALT-M to toggle between Basic and Update mo
         - Find my Sync Encryption password(s) in iOS Backup(s)
         - Execute the 'older' Import QIF file and set parameters for import (useful if you want to import Account Structure Only)
         - Convert a TimeStamp number into a readable date/time (display only)
-    - MENU: Online (OFX) Banking Tools:
-        - Search for stored OFX related data
-        - View your installed Service / Bank logon profiles
-        - View full list of all MD's Bank dynamic setup profiles (and then select one to view specific details)
+
+    - MENU: Online Banking Tools (for OFX/DC and MD+):
+        - View online banking configuration / connection data (OFX/DC and MD+) - VERY USEFUL, START HERE!
+        - Search for stored OFX/MD+ related data
+        - View full list of all MD's Bank dynamic OFX/DC setup profiles (and then select one to view specific details)
         - View your Security's hidden CUSIP settings (These link your downloads on Investment Securities to MD Securities)
         - View your Online saved Txns, Payees, Payments
         - View your active accounts' calculated reconcile window auto 'as of' dates (Bank/Credit Cards/Investment)
         - View your accounts' calculated reconcile window auto 'as of' date (active accounts only)
         - Toggle Moneydance DEBUG (turns ON all MD internal Debug messages - same as view console)
+
     - MENU: Accounts & Categories tools
         - View Check number settings
         - DIAGnostics - View Categories with zero balance. You can also inactivate using Update mode.
         - DIAGnostics - View Accounts' shouldBeIncludedInNetWorth() settings...
+
     - MENU: Currency & Security tools:
         - DIAGnostics - Diagnose currencies / securities (including relative currencies) If errors, then go to FIX below
         - DIAGnostics - Can I delete a Security (tells you whether a security/stock is being used - and where)
@@ -148,6 +152,7 @@ Basic Mode (Default at launch) - Use ALT-M to toggle between Basic and Update mo
         - DIAGnostics - Show your open LOTs on stocks/shares (when using LOT control) (show_open_tax_lots.py)
         - DIAGnostics - Show Securities with 'invalid' LOT Matching (cause of LOT matching popup window)
         - DIAGnostics - Diagnose currency / security's current price hidden 'price_date' field. If warnings, then go to FIX below
+
     - MENU: Transactions tools
         - View Register Txn Sort Orders
         - Extract your Attachments (this decrypts and extracts your attachments to a directory of your choice) (export_all_attachments.py)
@@ -177,6 +182,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
                 More information here: https://support.apple.com/en-gb/guide/mac-help/mchla4695cce/mac
         - FIX - Fix Remove legacy Dropbox Migrated Sync Key (runs the fix_dropbox_one_way_syncing.py / reset_sync_and_dropbox_settings.py script / fix).
         - FIX - FIX: REGISTER MONEYDANCE. Allows you to enter your Moneydance license key
+
     - MENU: General Tools (contains a variety of general Diagnostics, Fixes and Tools...)
         - FIX - RESET Window Display Settings
                 This allows you to tell Moneydance to forget remembered Display settings:
@@ -192,9 +198,11 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - DELETE Files from Menu>File>Open list and also from DISK (Removes files from 'Internal' and 'External' locations).
             >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
             >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
+        - FIX - Remove inactive accounts/categories from SideBar
         - FIX - Set/Change Default Moneydance FONTS
         - FIX - Delete Custom Theme file
         - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
+
     - MENU: Online (OFX) Banking Tools:
         - Forget OFX Banking Import Link (so it asks which account when importing ofx files) (remove_ofx_account_bindings.py) (MD versions < 2022)
         - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank) (remove_one_service.py)
@@ -229,6 +237,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - FORCE Change Accounts / Categories [& Securities] FROM Currency TO Currency
         - FIX - Account's Invalid Parent Account (script fix_account_parent.py)
         - FIX - Correct the Name of Root to match Dataset
+
     - MENU: Currency & Security tools:
         - FIX - Fix currencies / securities (including relative currencies) (fixes your currency & security's key settings) (reset_relative_currencies.py)
         - FIX - Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly).  >> 2021.2 onwards
@@ -246,6 +255,8 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - FORCE change an Account's / Category's Currency (use with care). (Does not update any transactions) (force_change_account_currency.py)
         - FIX - FORCE change ALL Accounts' / Categories' currencies (use with care). (Does not update any transactions) (force_change_all_currencies.py)
         - FIX - FORCE Change Accounts / Categories [& Securities] FROM Currency TO Currency
+        - Toggle investment securities with zero shares status to active/inactive
+
     - MENU: Transactions tools
         - Move/Merge Investment transactions from one account into another. DISABLED >> NOW RUN FROM EXTENSIONS MENU (you can pre-select register txns first)
         - FIX - Diagnose Attachments - DELETE Orphan attachments (allows you to delete Orphan attachments from Disk ** Syncing must be disabled **)
@@ -280,7 +291,7 @@ CMD-P - View parameters file (StuWareSoftSystems). Also allows user to Delete al
 CMD-/ - View quick JVM diagnostics
 
 Menu - DEBUG MODE
-    >> Turns on this Extension's own internal debug messages...
+    >> Turns on Toolbox's own internal debug messages...
 
 Menu - Auto Prune of Internal Backup files
     >> Toolbox makes extra backups of config.dict, ./safe/settings and custom_theme.properties. This setting auto-prunes

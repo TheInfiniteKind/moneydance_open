@@ -5,7 +5,7 @@
 
 global moneydance
 
-from java.lang import System, Runtime, Long, Runnable, Thread
+from java.lang import System, Runtime, Long, Runnable, Thread, InterruptedException
 from com.moneydance.util import Platform
 from java.io import File
 
@@ -20,14 +20,14 @@ _TOOLBOX_PREFERENCES_ZAPPER = u"toolbox_preferences_zapper"
 
 keysToZap = moneydance.getPreferences().getVectorSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
 if keysToZap is None:
-    msgx = u"\n#####################################################################\n"\
-           u"%s: %s_init.py initializer script running - doing nothing - will exit....\n"\
-           u"#####################################################################\n\n" %(_THIS_IS_,_THIS_IS_)
+    msgx = u"\n#############################################################################################################################\n"\
+           u"%s: %s_init.py initializer script running - performing some quick checks, logging diagnostics, then will exit....\n"\
+           u"#############################################################################################################################\n\n" %(_THIS_IS_,_THIS_IS_)
     _specialPrint(msgx)
 else:
-    msgx = u"\n##########################################################################\n"\
+    msgx = u"\n########################################################################################\n"\
            u"%s: %s_init.py initializer script running - EXECUTING PREFERENCES ZAPPER....\n"\
-           u"############################################################################\n\n" %(_THIS_IS_,_THIS_IS_)
+           u"########################################################################################\n\n" %(_THIS_IS_,_THIS_IS_)
     _specialPrint(msgx)
 
     for zapKey in keysToZap:
@@ -130,9 +130,19 @@ class QuickDiag(Runnable):
 
                 Thread.sleep(60 * 1000)     # Sleep and repeat.....
 
-        except:
-            _specialPrint(u"ERROR: %s quick information failed...." %(self.thisis.capitalize()))
+        except InterruptedException: pass
 
+        except:
+            _specialPrint(u"ERROR: %s quick information failed....\n" %(self.thisis.capitalize()))
+
+
+try:
+    for t in Thread.getAllStackTraces().keySet():
+        for checkName in [u"toolbox_DownloadExtensionVersionData", u"%s_init_quickdiag" %(_THIS_IS_)]:
+            if checkName.lower() in t.getName().lower() and t.isAlive():
+                _specialPrint(u"Interrupting old Thread '%s'(id: %s) which seems to still be alive\n" %(t, t.getId()))
+                t.interrupt()
+except: _specialPrint(u"%s - error interrupting old Thread... (continuing)\n" %(_THIS_IS_))
 
 t = Thread(QuickDiag(moneydance, _THIS_IS_), u"%s_init_quickdiag" %(_THIS_IS_))
 t.setDaemon(True)
