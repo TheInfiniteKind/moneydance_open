@@ -136,6 +136,7 @@
 # build: 1055 - New feature: 'Toggle investment securities with zero shares status to active/inactive'
 # build: 1055 - New options added to open md folder button: View Toolbox's common & dataset update logfile
 # build: 1055 - Tweaked md+ connections routines to call .getMask() to grab last digits of account number... ;->
+# build: 1055 - Added MD Build and Toolbox Build to logger...
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -3330,8 +3331,8 @@ Visit: %s (Author's site)
                     writer = csv.writer(logFile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(","))
                     if not logFileExists or logSize < 4:
                         logFile.write(codecs.BOM_UTF8)
-                        writer.writerow(["TimeUpdateCompletedMS", "DateUpdateCompletedINT", "DatasetPath", "ToolboxFunctionName", "Comments"])
-                    writer.writerow([nowTimeMS, intNowTime, datasetPathOutput, methodName, comments, ""])
+                        writer.writerow(["TimeUpdateCompletedMS", "DateUpdateCompletedINT", "DatasetPath", "ToolboxFunctionName", "Comments", "MoneydanceBuild", "ToolboxBuild"])
+                    writer.writerow([nowTimeMS, intNowTime, datasetPathOutput, methodName, comments, MD_REF.getBuild(), version_build, ""])
                     i += 1
 
         except:
