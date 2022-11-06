@@ -1660,16 +1660,23 @@ Visit: %s (Author's site)
 
         if GlobalVars.STATUS_LABEL is None or not isinstance(GlobalVars.STATUS_LABEL, JLabel): return
 
-        # GlobalVars.STATUS_LABEL.setText((_theStatus).ljust(800, " "))
-        GlobalVars.STATUS_LABEL.setText((_theStatus))
+        class SetDisplayStatusRunnable(Runnable):
+            def __init__(self, _status, _color):
+                self.status = _status; self.color = _color
 
-        if _theColor is None or _theColor == "": _theColor = "X"
-        _theColor = _theColor.upper()
-        if _theColor == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
-        elif _theColor == "B":  GlobalVars.STATUS_LABEL.setForeground(getColorBlue())
-        elif _theColor == "DG": GlobalVars.STATUS_LABEL.setForeground(getColorDarkGreen())
-        else:                   GlobalVars.STATUS_LABEL.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
-        return
+            def run(self):
+                GlobalVars.STATUS_LABEL.setText((_theStatus))
+                if self.color is None or self.color == "": self.color = "X"
+                self.color = self.color.upper()
+                if self.color == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
+                elif self.color == "B":  GlobalVars.STATUS_LABEL.setForeground(getColorBlue())
+                elif self.color == "DG": GlobalVars.STATUS_LABEL.setForeground(getColorDarkGreen())
+                else:                    GlobalVars.STATUS_LABEL.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
+
+        if not SwingUtilities.isEventDispatchThread():
+            SwingUtilities.invokeLater(SetDisplayStatusRunnable(_theStatus, _theColor))
+        else:
+            SetDisplayStatusRunnable(_theStatus, _theColor).run()
 
     def setJFileChooserParameters(_jf, lReportOnly=False, lDefaults=False, lPackagesT=None, lApplicationsT=None, lOptionsButton=None, lNewFolderButton=None):
         """sets up Client Properties for JFileChooser() to behave as required >> Mac only"""

@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 # categories_super_window.py build: 1005 - April 2022 - Stuart Beesley StuWareSoftSystems
-# Renamed to: accounts_categories_mega_search_window.py build: 1003 - April 2022 - Stuart Beesley StuWareSoftSystems
+# >> Renamed to: accounts_categories_mega_search_window.py build: 1003 - April 2022 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -37,6 +37,7 @@
 # build: 1005 - Swap in new .getFieldByReflection() method; added collapse all button
 # build: 1005 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
 # build: 1005 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
+# build: 1005 - Added CMD-T to allow toggle of active/inactive account status (useful for Security Accounts)
 
 # Clones MD Menu > Tools>Categories and adds Search capability...
 
@@ -1592,16 +1593,23 @@ Visit: %s (Author's site)
 
         if GlobalVars.STATUS_LABEL is None or not isinstance(GlobalVars.STATUS_LABEL, JLabel): return
 
-        # GlobalVars.STATUS_LABEL.setText((_theStatus).ljust(800, " "))
-        GlobalVars.STATUS_LABEL.setText((_theStatus))
+        class SetDisplayStatusRunnable(Runnable):
+            def __init__(self, _status, _color):
+                self.status = _status; self.color = _color
 
-        if _theColor is None or _theColor == "": _theColor = "X"
-        _theColor = _theColor.upper()
-        if _theColor == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
-        elif _theColor == "B":  GlobalVars.STATUS_LABEL.setForeground(getColorBlue())
-        elif _theColor == "DG": GlobalVars.STATUS_LABEL.setForeground(getColorDarkGreen())
-        else:                   GlobalVars.STATUS_LABEL.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
-        return
+            def run(self):
+                GlobalVars.STATUS_LABEL.setText((_theStatus))
+                if self.color is None or self.color == "": self.color = "X"
+                self.color = self.color.upper()
+                if self.color == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
+                elif self.color == "B":  GlobalVars.STATUS_LABEL.setForeground(getColorBlue())
+                elif self.color == "DG": GlobalVars.STATUS_LABEL.setForeground(getColorDarkGreen())
+                else:                    GlobalVars.STATUS_LABEL.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
+
+        if not SwingUtilities.isEventDispatchThread():
+            SwingUtilities.invokeLater(SetDisplayStatusRunnable(_theStatus, _theColor))
+        else:
+            SetDisplayStatusRunnable(_theStatus, _theColor).run()
 
     def setJFileChooserParameters(_jf, lReportOnly=False, lDefaults=False, lPackagesT=None, lApplicationsT=None, lOptionsButton=None, lNewFolderButton=None):
         """sets up Client Properties for JFileChooser() to behave as required >> Mac only"""
@@ -3061,6 +3069,9 @@ Visit: %s (Author's site)
                 self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_D, (MoneydanceGUI.ACCELERATOR_MASK | Event.SHIFT_MASK)), "enable-debug")
                 self.getRootPane().getActionMap().put("enable-debug", self.ToggleDebugAction(self))
 
+                self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_T, (MoneydanceGUI.ACCELERATOR_MASK)), "toggle-active-inactive-status")
+                self.getRootPane().getActionMap().put("toggle-active-inactive-status", self.ToggleActiveInactiveStatusAction(self))
+
                 # Java cannot do multiple Inheritance, so cannot also extend MyJFrame... Make do....
                 self.myJFrameVersion = 2
                 self.isActiveInMoneydance = False
@@ -3105,6 +3116,19 @@ Visit: %s (Author's site)
                     global debug
                     debug = not debug
                     myPopupInformationBox(None, "Debug status flipped - now set to: %s" %(debug))
+
+            class ToggleActiveInactiveStatusAction(AbstractAction):
+
+                def __init__(self, callingClass):
+                    self.callingClass = callingClass
+
+                def actionPerformed(self, event):                                                                       # noqa
+                    selectedAcct = self.callingClass.getSelectedAccount()
+                    if selectedAcct is not None:
+                        if myPopupAskQuestion(None, "TOGGLE ACTIVE/INACTIVE STATUS", "Set selected account to %s?" %("ACTIVE" if selectedAcct.getAccountIsInactive() else "INACTIVE")):
+                            selectedAcct.setAccountIsInactive(not selectedAcct.getAccountIsInactive())
+                            selectedAcct.syncItem()
+                            myPrint("DB", "Account: '%s' AccountIsInactive status set to '%s'" %(selectedAcct.getFullAccountName(), selectedAcct.getAccountIsInactive()))
 
             def actionPerformed(self, event):
                 myPrint("DB", "within actionPerformed()")
@@ -3192,7 +3216,7 @@ Visit: %s (Author's site)
                 titleTxt = ""
                 if lSelectAccounts:   titleTxt += u"Accounts %s" %(u"& " if lSelectCategories else "")
                 if lSelectCategories: titleTxt += u"Categories "
-                titleTxt += u"Mega Search Window   %s" %(titleExtraTxt)
+                titleTxt += u"Mega Search Window   %s (%s-T to toggle active/inactive status)" %(titleExtraTxt, MD_REF.getUI().ACCELERATOR_MASK_STR)
                 coa_cat_Win.setTitle(titleTxt)
 
                 accounts_categories_mega_search_window_frame_ = coa_cat_Win

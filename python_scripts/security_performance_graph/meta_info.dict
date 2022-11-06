@@ -3,7 +3,7 @@
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
   "module_build" = "1002"
-  "minbuild" = "3056"
+  "minbuild" = "3069"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Security Performance Graph"
   "module_desc" = "Graphs relative price performance by percentage against selected securities."
