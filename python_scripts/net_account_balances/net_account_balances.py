@@ -87,7 +87,7 @@
 # build: 1014 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
 # build: 1014 - Bug fix... When old format parameters were loaded, then switch to newer format parameters, migratedParameters flag was sticking as True, and hence loading wrong autoSum defaults...
 # build: 1014 - Small fix for possible MD GUI hang on startup (EDT thing....)
-# build: 1014 - Added icon to allow user to collapse widget.....
+# build: 1014 - Added icon to allow user to collapse widget.....; Added row separator functionality...
 
 # todo add as of balance date option (for non i/e with custom dates) - perhaps??
 
@@ -432,6 +432,7 @@ else:
     GlobalVars.extn_param_NEW_incomeExpenseDateRange_NAB    = None
     GlobalVars.extn_param_NEW_showWarningsTable_NAB         = None
     GlobalVars.extn_param_NEW_customDatesTable_NAB          = None
+    GlobalVars.extn_param_NEW_rowSeparatorTable_NAB         = None
 
     GlobalVars.extn_param_NEW_disableWidgetTitle_NAB        = None
     GlobalVars.extn_param_NEW_autoSumDefault_NAB            = None
@@ -3026,6 +3027,7 @@ Visit: %s (Author's site)
         if GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_balanceType_NAB") is not None:                  GlobalVars.extn_param_NEW_balanceType_NAB = GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_balanceType_NAB")
         if GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_incomeExpenseDateRange_NAB") is not None:       GlobalVars.extn_param_NEW_incomeExpenseDateRange_NAB = GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_incomeExpenseDateRange_NAB")
         if GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_customDatesTable_NAB") is not None:             GlobalVars.extn_param_NEW_customDatesTable_NAB = GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_customDatesTable_NAB")
+        if GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_rowSeparatorTable_NAB") is not None:            GlobalVars.extn_param_NEW_rowSeparatorTable_NAB = GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_rowSeparatorTable_NAB")
         if GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_autoSumAccounts_NAB") is not None:              GlobalVars.extn_param_NEW_autoSumAccounts_NAB = GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_autoSumAccounts_NAB")
         if GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_includeInactive_NAB") is not None:              GlobalVars.extn_param_NEW_includeInactive_NAB = GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_includeInactive_NAB")
         if GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_widget_display_name_NAB") is not None:          GlobalVars.extn_param_NEW_widget_display_name_NAB = GlobalVars.parametersLoadedFromFile.get("extn_param_NEW_widget_display_name_NAB")
@@ -3070,6 +3072,7 @@ Visit: %s (Author's site)
         GlobalVars.parametersLoadedFromFile["extn_param_NEW_balanceType_NAB"]                  = GlobalVars.extn_param_NEW_balanceType_NAB
         GlobalVars.parametersLoadedFromFile["extn_param_NEW_incomeExpenseDateRange_NAB"]       = GlobalVars.extn_param_NEW_incomeExpenseDateRange_NAB
         GlobalVars.parametersLoadedFromFile["extn_param_NEW_customDatesTable_NAB"]             = GlobalVars.extn_param_NEW_customDatesTable_NAB
+        GlobalVars.parametersLoadedFromFile["extn_param_NEW_rowSeparatorTable_NAB"]            = GlobalVars.extn_param_NEW_rowSeparatorTable_NAB
         GlobalVars.parametersLoadedFromFile["extn_param_NEW_autoSumAccounts_NAB"]              = GlobalVars.extn_param_NEW_autoSumAccounts_NAB
         GlobalVars.parametersLoadedFromFile["extn_param_NEW_includeInactive_NAB"]              = GlobalVars.extn_param_NEW_includeInactive_NAB
         GlobalVars.parametersLoadedFromFile["extn_param_NEW_widget_display_name_NAB"]          = GlobalVars.extn_param_NEW_widget_display_name_NAB
@@ -3344,6 +3347,7 @@ Visit: %s (Author's site)
         elif isinstance(component,  JLabel):            key = "Label"
         elif isinstance(component,  JComboBox):         key = "ComboBox"
         elif isinstance(component,  JButton):           key = "Button"
+        elif isinstance(component,  JRadioButton):      key = "RadioButton"
         elif isinstance(component,  JTextField):        key = "TextField"
         elif isinstance(component,  JCheckBox):         key = "CheckBox"
         elif isinstance(component,  JScrollPane):       key = "ScrollPane"
@@ -3409,6 +3413,16 @@ Visit: %s (Author's site)
 
         def updateUI(self):
             super(MyJButton, self).updateUI()
+            # setJComponentStandardUIDefaults(self, key, opaque=True, border=True)
+            setJComponentStandardUIDefaults(self)
+
+    class MyJRadioButton(JRadioButton):
+
+        def __init__(self, *args, **kwargs):
+            super(JRadioButton, self).__init__(*args, **kwargs)
+
+        def updateUI(self):
+            super(MyJRadioButton, self).updateUI()
             # setJComponentStandardUIDefaults(self, key, opaque=True, border=True)
             setJComponentStandardUIDefaults(self)
 
@@ -4198,6 +4212,7 @@ Visit: %s (Author's site)
             self.savedIncludeInactive           = None
             self.savedIncomeExpenseDateRange    = None
             self.savedCustomDatesTable          = None
+            self.savedRowSeparatorTable         = None
             self.savedShowWarningsTable         = None
 
             self.savedAutoSumDefault            = None
@@ -4228,6 +4243,9 @@ Visit: %s (Author's site)
             self.currency_COMBO                     = None                  # Contains a Class holding Currency Objects
             self.disableCurrencyFormatting_CB       = None
             self.widgetNameField_JTF                = None
+            self.separatorSelectorNone_JRB          = None
+            self.separatorSelectorAbove_JRB         = None
+            self.separatorSelectorBelow_JRB         = None
             self.includeInactive_COMBO              = None
             self.autoSumAccounts_CB                 = None
             self.showWarnings_CB                    = None
@@ -4448,6 +4466,7 @@ Visit: %s (Author's site)
             GlobalVars.extn_param_NEW_balanceType_NAB               = NAB.savedBalanceType
             GlobalVars.extn_param_NEW_incomeExpenseDateRange_NAB    = NAB.savedIncomeExpenseDateRange
             GlobalVars.extn_param_NEW_customDatesTable_NAB          = NAB.savedCustomDatesTable
+            GlobalVars.extn_param_NEW_rowSeparatorTable_NAB         = NAB.savedRowSeparatorTable
             GlobalVars.extn_param_NEW_autoSumAccounts_NAB           = NAB.savedAutoSumAccounts
             GlobalVars.extn_param_NEW_includeInactive_NAB           = NAB.savedIncludeInactive
             GlobalVars.extn_param_NEW_widget_display_name_NAB       = NAB.savedWidgetName
@@ -4731,6 +4750,7 @@ Visit: %s (Author's site)
         def balanceDefault(self):                   return 0
         def incomeExpenseDateRangeDefault(self):    return DateRangeOption.DR_ALL_DATES.getResourceKey()
         def customDatesDefault(self):               return [0, 0]
+        def rowSeparatorDefault(self):              return 0
         def includeInactiveDefault(self):           return 0
         def autoSumDefault(self):                   return (False if self.savedAutoSumDefault is None else self.savedAutoSumDefault)
         def showWarningsDefault(self):              return True
@@ -4745,7 +4765,7 @@ Visit: %s (Author's site)
 
             # New parameter - pre-populate with default (None = Base)
             if self.savedCurrencyTable == [self.currencyDefault()] and len(self.savedCurrencyTable) != self.getNumberOfRows():
-                self.savedCurrencyTable = [self.currencyDefault() for i in range(0,self.getNumberOfRows())]      # Don't just do [] * n (as you will get references to same list)
+                self.savedCurrencyTable = [self.currencyDefault() for i in range(0,self.getNumberOfRows())]             # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedCurrencyTable detected, pre-populating with %s (= base currency)" %(self.savedCurrencyTable))
 
             # New parameter - pre-populate with default (0 = Active)
@@ -4755,12 +4775,12 @@ Visit: %s (Author's site)
 
             # New parameter - pre-populate with default (0 = Active)
             if self.savedIncludeInactive == [self.includeInactiveDefault()] and len(self.savedIncludeInactive) != self.getNumberOfRows():
-                self.savedIncludeInactive = [self.includeInactiveDefault() for i in range(0,self.getNumberOfRows())]      # Don't just do [] * n (as you will get references to same list)
+                self.savedIncludeInactive = [self.includeInactiveDefault() for i in range(0,self.getNumberOfRows())]    # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedIncludeInactive detected, pre-populating with %s (= Active items only)" %(self.savedIncludeInactive))
 
             # New parameter - pre-populate with default
             if self.savedAutoSumAccounts == [self.autoSumDefault()] and len(self.savedAutoSumAccounts) != self.getNumberOfRows():
-                self.savedAutoSumAccounts = [self.autoSumDefault() for i in range(0,self.getNumberOfRows())]      # Don't just do [] * n (as you will get references to same list)
+                self.savedAutoSumAccounts = [self.autoSumDefault() for i in range(0,self.getNumberOfRows())]            # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedAutoSumAccounts detected, pre-populating with %s (= Auto Sum Accounts)" %(self.savedAutoSumAccounts))
 
             # New parameter - pre-populate with default
@@ -4770,13 +4790,18 @@ Visit: %s (Author's site)
 
             # New parameter - pre-populate with default
             if self.savedCustomDatesTable == [self.customDatesDefault()] and len(self.savedCustomDatesTable) != self.getNumberOfRows():
-                self.savedCustomDatesTable = [self.customDatesDefault() for i in range(0,self.getNumberOfRows())]      # Don't just do [] * n (as you will get references to same list)
+                self.savedCustomDatesTable = [self.customDatesDefault() for i in range(0,self.getNumberOfRows())]       # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedCustomDatesTable detected, pre-populating with %s (= no custom dates)" %(self.savedCustomDatesTable))
 
             # New parameter - pre-populate with default
             if self.savedShowWarningsTable == [self.showWarningsDefault()] and len(self.savedShowWarningsTable) != self.getNumberOfRows():
-                self.savedShowWarningsTable = [self.showWarningsDefault() for i in range(0,self.getNumberOfRows())]      # Don't just do [] * n (as you will get references to same list)
+                self.savedShowWarningsTable = [self.showWarningsDefault() for i in range(0,self.getNumberOfRows())]     # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedShowWarningsTable detected, pre-populating with %s (= Default Show Warnings per row)" %(self.savedShowWarningsTable))
+
+            # New parameter - pre-populate with default
+            if self.savedRowSeparatorTable == [self.rowSeparatorDefault()] and len(self.savedRowSeparatorTable) != self.getNumberOfRows():
+                self.savedRowSeparatorTable = [self.rowSeparatorDefault() for i in range(0,self.getNumberOfRows())]     # Don't just do [] * n (as you will get references to same list)
+                myPrint("B", "New parameter savedRowSeparatorTable detected, pre-populating with %s (= Default no row separators)" %(self.savedRowSeparatorTable))
 
             if self.savedAccountListUUIDs is None or not isinstance(self.savedAccountListUUIDs, list) or self.getNumberOfRows() < 1:
                 self.resetParameters(1)
@@ -4796,36 +4821,38 @@ Visit: %s (Author's site)
                 self.resetParameters(8)
             elif self.savedCustomDatesTable is None or not isinstance(self.savedCustomDatesTable, list) or len(self.savedCustomDatesTable) < 1:
                 self.resetParameters(9)
-            elif self.savedShowWarningsTable is None or not isinstance(self.savedShowWarningsTable, list) or len(self.savedShowWarningsTable) < 1:
+            elif self.savedRowSeparatorTable is None or not isinstance(self.savedRowSeparatorTable, list) or len(self.savedRowSeparatorTable) < 1:
                 self.resetParameters(10)
-            elif self.savedAutoSumDefault is None or not isinstance(self.savedAutoSumDefault, bool):
+            elif self.savedShowWarningsTable is None or not isinstance(self.savedShowWarningsTable, list) or len(self.savedShowWarningsTable) < 1:
                 self.resetParameters(11)
-            elif self.savedShowDashesInsteadOfZeros is None or not isinstance(self.savedShowDashesInsteadOfZeros, bool):
+            elif self.savedAutoSumDefault is None or not isinstance(self.savedAutoSumDefault, bool):
                 self.resetParameters(12)
-            elif self.savedDisableWidgetTitle is None or not isinstance(self.savedDisableWidgetTitle, bool):
+            elif self.savedShowDashesInsteadOfZeros is None or not isinstance(self.savedShowDashesInsteadOfZeros, bool):
                 self.resetParameters(13)
-            elif self.savedTreatSecZeroBalInactive is None or not isinstance(self.savedTreatSecZeroBalInactive, bool):
+            elif self.savedDisableWidgetTitle is None or not isinstance(self.savedDisableWidgetTitle, bool):
                 self.resetParameters(14)
-            elif self.savedExpandedView is None or not isinstance(self.savedExpandedView, bool):
+            elif self.savedTreatSecZeroBalInactive is None or not isinstance(self.savedTreatSecZeroBalInactive, bool):
                 self.resetParameters(15)
-            elif len(self.savedBalanceType) != self.getNumberOfRows():
+            elif self.savedExpandedView is None or not isinstance(self.savedExpandedView, bool):
                 self.resetParameters(16)
-            elif len(self.savedWidgetName) != self.getNumberOfRows():
+            elif len(self.savedBalanceType) != self.getNumberOfRows():
                 self.resetParameters(17)
-            elif len(self.savedCurrencyTable) != self.getNumberOfRows():
+            elif len(self.savedWidgetName) != self.getNumberOfRows():
                 self.resetParameters(18)
-            elif len(self.savedIncludeInactive) != self.getNumberOfRows():
+            elif len(self.savedCurrencyTable) != self.getNumberOfRows():
                 self.resetParameters(19)
-            elif len(self.savedDisableCurrencyFormatting) != self.getNumberOfRows():
+            elif len(self.savedIncludeInactive) != self.getNumberOfRows():
                 self.resetParameters(20)
-            elif len(self.savedAutoSumAccounts) != self.getNumberOfRows():
+            elif len(self.savedDisableCurrencyFormatting) != self.getNumberOfRows():
                 self.resetParameters(21)
-            elif len(self.savedIncomeExpenseDateRange) != self.getNumberOfRows():
+            elif len(self.savedAutoSumAccounts) != self.getNumberOfRows():
                 self.resetParameters(22)
-            elif len(self.savedCustomDatesTable) != self.getNumberOfRows():
+            elif len(self.savedIncomeExpenseDateRange) != self.getNumberOfRows():
                 self.resetParameters(23)
-            elif len(self.savedShowWarningsTable) != self.getNumberOfRows():
+            elif len(self.savedCustomDatesTable) != self.getNumberOfRows():
                 self.resetParameters(24)
+            elif len(self.savedShowWarningsTable) != self.getNumberOfRows():
+                self.resetParameters(25)
             else:
                 for i in range(0, self.getNumberOfRows()):
                     if self.savedAccountListUUIDs[i] is None or not isinstance(self.savedAccountListUUIDs[i], list):
@@ -4855,6 +4882,9 @@ Visit: %s (Author's site)
                     if self.savedCustomDatesTable[i] is None or not isinstance(self.savedCustomDatesTable[i], list) or len(self.savedCustomDatesTable[i]) != 2:
                         myPrint("B","Resetting parameter '%s' on RowIdx: %s" %("savedCustomDatesTable", i))
                         self.savedCustomDatesTable[i] = self.customDatesDefault()
+                    if self.savedRowSeparatorTable[i] is None or not isinstance(self.savedRowSeparatorTable[i], int) or self.savedRowSeparatorTable[i] < 0 or self.savedRowSeparatorTable[i] > 2:
+                        myPrint("B","Resetting parameter '%s' on RowIdx: %s" %("savedRowSeparatorTable", i))
+                        self.savedRowSeparatorTable[i] = self.rowSeparatorDefault()
                     if not isValidDateRange(self.savedCustomDatesTable[i][0], self.savedCustomDatesTable[i][1]):
                         self.savedCustomDatesTable[i] = self.customDatesDefault()
                     if self.savedShowWarningsTable[i] is None or not isinstance(self.savedShowWarningsTable[i], bool):
@@ -4875,6 +4905,7 @@ Visit: %s (Author's site)
             self.savedBalanceType                   = [self.balanceDefault()]
             self.savedIncomeExpenseDateRange        = [self.incomeExpenseDateRangeDefault()]
             self.savedCustomDatesTable              = [self.customDatesDefault()]
+            self.savedRowSeparatorTable             = [self.rowSeparatorDefault()]
             self.savedIncludeInactive               = [self.includeInactiveDefault()]
             self.savedAutoSumAccounts               = [self.autoSumDefault()]
             self.savedWidgetName                    = [self.widgetRowDefault()]
@@ -4990,18 +5021,21 @@ Visit: %s (Author's site)
 
             saveMyActionListeners = {}
             for comp in [self.rowSelected_COMBO,
-                          self.balanceType_COMBO,
-                          self.incomeExpenseDateRange_COMBO,
-                          self.currency_COMBO,
-                          self.disableCurrencyFormatting_CB,
-                          self.includeInactive_COMBO,
-                          self.filterOutZeroBalAccts_INACTIVE_CB,
-                          self.filterOutZeroBalAccts_ACTIVE_CB,
-                          self.filterIncludeSelected_CB,
-                          self.filterOnlyShowSelected_CB,
-                          self.filterOnlyAccountType_COMBO,
-                          self.showWarnings_CB,
-                          self.autoSumAccounts_CB]:
+                        self.balanceType_COMBO,
+                        self.incomeExpenseDateRange_COMBO,
+                        self.currency_COMBO,
+                        self.separatorSelectorNone_JRB,
+                        self.separatorSelectorAbove_JRB,
+                        self.separatorSelectorBelow_JRB,
+                        self.disableCurrencyFormatting_CB,
+                        self.includeInactive_COMBO,
+                        self.filterOutZeroBalAccts_INACTIVE_CB,
+                        self.filterOutZeroBalAccts_ACTIVE_CB,
+                        self.filterIncludeSelected_CB,
+                        self.filterOnlyShowSelected_CB,
+                        self.filterOnlyAccountType_COMBO,
+                        self.showWarnings_CB,
+                        self.autoSumAccounts_CB]:
                 myPrint("DB",".. saving and removing listeners from %s: %s" %(comp.getName(), comp.getActionListeners()))
                 saveMyActionListeners[comp.getName()] = comp.getActionListeners()
                 for comboListener in comp.getActionListeners(): comp.removeActionListener(comboListener)
@@ -5054,6 +5088,11 @@ Visit: %s (Author's site)
             myPrint("DB", "..about to set autoSumAccounts_CB..")
             self.autoSumAccounts_CB.setSelected(self.savedAutoSumAccounts[selectRowIndex])
 
+            myPrint("DB", "..about to set separatorSelectorNone_JRB, separatorSelectorAbove_JRB, separatorSelectorBelow_JRB..")
+            self.separatorSelectorNone_JRB.setSelected(True if self.savedRowSeparatorTable[selectRowIndex] == 0 else False)
+            self.separatorSelectorAbove_JRB.setSelected(True if self.savedRowSeparatorTable[selectRowIndex] == 1 else False)
+            self.separatorSelectorBelow_JRB.setSelected(True if self.savedRowSeparatorTable[selectRowIndex] == 2 else False)
+
             myPrint("DB", "..about to set savedShowWarningsTable..")
             self.showWarnings_CB.setSelected(self.savedShowWarningsTable[selectRowIndex])
 
@@ -5097,18 +5136,21 @@ Visit: %s (Author's site)
             self.rebuildJList()
 
             for comp in [self.rowSelected_COMBO,
-                          self.balanceType_COMBO,
-                          self.incomeExpenseDateRange_COMBO,
-                          self.currency_COMBO,
-                          self.disableCurrencyFormatting_CB,
-                          self.includeInactive_COMBO,
-                          self.filterOutZeroBalAccts_INACTIVE_CB,
-                          self.filterOutZeroBalAccts_ACTIVE_CB,
-                          self.filterIncludeSelected_CB,
-                          self.filterOnlyShowSelected_CB,
-                          self.filterOnlyAccountType_COMBO,
-                          self.showWarnings_CB,
-                          self.autoSumAccounts_CB]:
+                        self.balanceType_COMBO,
+                        self.incomeExpenseDateRange_COMBO,
+                        self.currency_COMBO,
+                        self.disableCurrencyFormatting_CB,
+                        self.includeInactive_COMBO,
+                        self.separatorSelectorNone_JRB,
+                        self.separatorSelectorAbove_JRB,
+                        self.separatorSelectorBelow_JRB,
+                        self.filterOutZeroBalAccts_INACTIVE_CB,
+                        self.filterOutZeroBalAccts_ACTIVE_CB,
+                        self.filterIncludeSelected_CB,
+                        self.filterOnlyShowSelected_CB,
+                        self.filterOnlyAccountType_COMBO,
+                        self.showWarnings_CB,
+                        self.autoSumAccounts_CB]:
                 myPrint("DB",".. retrieving and re-adding listeners to %s: %s" %(comp.getName(), saveMyActionListeners[comp.getName()]))
                 for comboListener in saveMyActionListeners[comp.getName()]: comp.addActionListener(comboListener)
             del saveMyActionListeners
@@ -5126,6 +5168,10 @@ Visit: %s (Author's site)
             myPrint("DB",".....savedIncomeExpenseDateRange: %s"             %(self.savedIncomeExpenseDateRange[selectRowIndex]))
             myPrint("DB",".....incomeExpenseDateRange_COMBO: %s"            %(self.incomeExpenseDateRange_COMBO.getSelectedItem()))
             myPrint("DB",".....savedCustomDatesTable: %s"                   %(self.savedCustomDatesTable[selectRowIndex]))
+            myPrint("DB",".....savedRowSeparatorTable: %s"                  %(self.savedRowSeparatorTable[selectRowIndex]))
+            myPrint("DB",".....separatorSelectorNone_JRB: %s"               %(self.separatorSelectorNone_JRB.isSelected()))
+            myPrint("DB",".....separatorSelectorAbove_JRB: %s"              %(self.separatorSelectorAbove_JRB.isSelected()))
+            myPrint("DB",".....separatorSelectorBelow_JRB: %s"              %(self.separatorSelectorBelow_JRB.isSelected()))
             myPrint("DB",".....savedIncludeInactive: %s"                    %(self.savedIncludeInactive[selectRowIndex]))
             myPrint("DB",".....includeInactive_COMBO: %s"                   %(self.includeInactive_COMBO.getSelectedIndex()))
             myPrint("DB",".....savedAutoSumAccounts: %s"                    %(self.savedAutoSumAccounts[selectRowIndex]))
@@ -5359,6 +5405,7 @@ Visit: %s (Author's site)
                 myPrint("B", "  %s" %(pad("savedShowWarningsTable",60)),        NAB.savedShowWarningsTable[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedIncomeExpenseDateRange",60)),   NAB.savedIncomeExpenseDateRange[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedCustomDatesTable",60)),         NAB.savedCustomDatesTable[iRowIdx])
+                myPrint("B", "  %s" %(pad("savedRowSeparatorTable",60)),        NAB.savedRowSeparatorTable[iRowIdx])
 
                 dateRange = DateRangeOption.fromKey(NAB.savedIncomeExpenseDateRange[iRowIdx])
                 myPrint("B", "  %s" %(pad(">> System Default for savedIncomeExpenseDateRange will be:",60)),   dateRange.getDateRange())
@@ -5791,6 +5838,20 @@ Visit: %s (Author's site)
                             NAB.simulateTotalForRow()
 
                 # ######################################################################################################
+                if event.getActionCommand().lower().startswith("separatorSelector".lower()):
+                    if event.getSource().getName().lower().startswith("separatorSelector".lower()):
+                        rowSeparatorCodeSelected = 0
+                        if event.getSource().getName().lower() == "separatorSelectorAbove_JRB".lower() and event.getSource().isSelected():
+                            rowSeparatorCodeSelected = 1
+                        elif event.getSource().getName().lower() == "separatorSelectorBelow_JRB".lower() and event.getSource().isSelected():
+                            rowSeparatorCodeSelected = 2
+
+                        if NAB.savedRowSeparatorTable[NAB.getSelectedRowIndex()] != rowSeparatorCodeSelected:
+                            myPrint("DB", ".. setting savedRowSeparatorTable to: %s for row: %s" %(rowSeparatorCodeSelected, NAB.getSelectedRow()))
+                            NAB.savedRowSeparatorTable[NAB.getSelectedRowIndex()] = rowSeparatorCodeSelected
+                            NAB.configSaved = False
+
+                # ######################################################################################################
                 if event.getActionCommand().lower().startswith("Filter Out Zeros Inactive".lower()):
                     if event.getSource().getName().lower() == "filterOutZeroBalAccts_INACTIVE_CB".lower():
                         myPrint("DB", ".. setting filterOutZeroBalAccts_INACTIVE_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
@@ -5930,6 +5991,7 @@ Visit: %s (Author's site)
                                     NAB.savedBalanceType,
                                     NAB.savedIncomeExpenseDateRange,
                                     NAB.savedCustomDatesTable,
+                                    NAB.savedRowSeparatorTable,
                                     NAB.savedAutoSumAccounts,
                                     NAB.savedIncludeInactive,
                                     NAB.savedShowWarningsTable,
@@ -5948,6 +6010,7 @@ Visit: %s (Author's site)
                         NAB.savedBalanceType.insert(NAB.getSelectedRowIndex(),              NAB.balanceDefault())
                         NAB.savedIncomeExpenseDateRange.insert(NAB.getSelectedRowIndex(),   NAB.incomeExpenseDateRangeDefault())
                         NAB.savedCustomDatesTable.insert(NAB.getSelectedRowIndex(),         NAB.customDatesDefault())
+                        NAB.savedRowSeparatorTable.insert(NAB.getSelectedRowIndex(),        NAB.rowSeparatorDefault())
                         NAB.savedAutoSumAccounts.insert(NAB.getSelectedRowIndex(),          NAB.autoSumDefault())
                         NAB.savedWidgetName.insert(NAB.getSelectedRowIndex(),               NAB.widgetRowDefault())
                         NAB.savedCurrencyTable.insert(NAB.getSelectedRowIndex(),            NAB.currencyDefault())
@@ -5966,6 +6029,7 @@ Visit: %s (Author's site)
                         NAB.savedBalanceType.insert(NAB.getSelectedRowIndex()+1,                NAB.balanceDefault())
                         NAB.savedIncomeExpenseDateRange.insert(NAB.getSelectedRowIndex()+1,     NAB.incomeExpenseDateRangeDefault())
                         NAB.savedCustomDatesTable.insert(NAB.getSelectedRowIndex()+1,           NAB.customDatesDefault())
+                        NAB.savedRowSeparatorTable.insert(NAB.getSelectedRowIndex()+1,          NAB.rowSeparatorDefault())
                         NAB.savedAutoSumAccounts.insert(NAB.getSelectedRowIndex()+1,            NAB.autoSumDefault())
                         NAB.savedWidgetName.insert(NAB.getSelectedRowIndex()+1,                 NAB.widgetRowDefault())
                         NAB.savedCurrencyTable.insert(NAB.getSelectedRowIndex()+1,              NAB.currencyDefault())
@@ -5987,6 +6051,7 @@ Visit: %s (Author's site)
                                         NAB.savedBalanceType,
                                         NAB.savedIncomeExpenseDateRange,
                                         NAB.savedCustomDatesTable,
+                                        NAB.savedRowSeparatorTable,
                                         NAB.savedAutoSumAccounts,
                                         NAB.savedIncludeInactive,
                                         NAB.savedShowWarningsTable,
@@ -6019,6 +6084,7 @@ Visit: %s (Author's site)
                                             NAB.savedBalanceType,
                                             NAB.savedIncomeExpenseDateRange,
                                             NAB.savedCustomDatesTable,
+                                            NAB.savedRowSeparatorTable,
                                             NAB.savedAutoSumAccounts,
                                             NAB.savedIncludeInactive,
                                             NAB.savedShowWarningsTable,
@@ -6472,6 +6538,7 @@ Visit: %s (Author's site)
                         GlobalVars.extn_param_NEW_autoSumAccounts_NAB               = [self.autoSumDefault()]                    # Loading will overwrite if saved, else pre-load defaults
                         GlobalVars.extn_param_NEW_incomeExpenseDateRange_NAB        = [self.incomeExpenseDateRangeDefault()]     # Loading will overwrite if saved, else pre-load defaults
                         GlobalVars.extn_param_NEW_customDatesTable_NAB              = [self.customDatesDefault()]                # Loading will overwrite if saved, else pre-load defaults
+                        GlobalVars.extn_param_NEW_rowSeparatorTable_NAB             = [self.rowSeparatorDefault()]               # Loading will overwrite if saved, else pre-load defaults
                         GlobalVars.extn_param_NEW_showWarningsTable_NAB             = [self.showWarningsDefault()]               # Loading will overwrite if saved, else pre-load defaults
 
                         GlobalVars.extn_param_NEW_autoSumDefault_NAB                = self.autoSumDefault()                      # Loading will overwrite if saved, else pre-load defaults
@@ -6499,6 +6566,7 @@ Visit: %s (Author's site)
                             GlobalVars.extn_param_NEW_autoSumAccounts_NAB           = [self.autoSumDefault()]                    # Did not exist previously
                             GlobalVars.extn_param_NEW_incomeExpenseDateRange_NAB    = [self.incomeExpenseDateRangeDefault()]     # Did not exist previously
                             GlobalVars.extn_param_NEW_customDatesTable_NAB          = [self.customDatesDefault()]                # Loading will overwrite if saved, else pre-load defaults
+                            GlobalVars.extn_param_NEW_rowSeparatorTable_NAB         = [self.rowSeparatorDefault()]               # Loading will overwrite if saved, else pre-load defaults
                             GlobalVars.extn_param_NEW_showWarningsTable_NAB         = [self.showWarningsDefault()]               # Loading will overwrite if saved, else pre-load defaults
 
                             GlobalVars.extn_param_NEW_autoSumDefault_NAB            = self.autoSumDefault()                      # Loading will overwrite if saved, else pre-load defaults
@@ -6521,6 +6589,7 @@ Visit: %s (Author's site)
                         self.savedBalanceType               = GlobalVars.extn_param_NEW_balanceType_NAB
                         self.savedIncomeExpenseDateRange    = GlobalVars.extn_param_NEW_incomeExpenseDateRange_NAB
                         self.savedCustomDatesTable          = GlobalVars.extn_param_NEW_customDatesTable_NAB
+                        self.savedRowSeparatorTable         = GlobalVars.extn_param_NEW_rowSeparatorTable_NAB
                         self.savedIncludeInactive           = GlobalVars.extn_param_NEW_includeInactive_NAB
                         self.savedAutoSumAccounts           = GlobalVars.extn_param_NEW_autoSumAccounts_NAB
                         self.savedWidgetName                = GlobalVars.extn_param_NEW_widget_display_name_NAB
@@ -6987,6 +7056,46 @@ Visit: %s (Author's site)
                     resetDefaults_button.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                     resetDefaults_button.addActionListener(NAB.saveActionListener)
                     controlPnl.add(resetDefaults_button, GridC.getc(onCol, onRow).leftInset(colInsetFiller).rightInset(colRightInset).fillx())
+                    onCol += 1
+
+                    separatorSelector_pnl = MyJPanel(GridBagLayout())
+
+                    separatorSelector_lbl = MyJLabel("Row Separator:")
+                    separatorSelector_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "separatorSelector_lbl")
+
+                    NAB.separatorSelectorNone_JRB = MyJRadioButton(u"\u2716")
+                    NAB.separatorSelectorNone_JRB.setName("separatorSelectorNone_JRB")
+                    NAB.separatorSelectorNone_JRB.setActionCommand("separatorSelectorNone_JRB")
+                    NAB.separatorSelectorNone_JRB.putClientProperty("%s.id" %(NAB.myModuleID), "separatorNone_jrb")
+
+                    NAB.separatorSelectorAbove_JRB = MyJRadioButton(u"\u2191")
+                    NAB.separatorSelectorAbove_JRB.setName("separatorSelectorAbove_JRB")
+                    NAB.separatorSelectorAbove_JRB.setActionCommand("separatorSelectorAbove_JRB")
+                    NAB.separatorSelectorAbove_JRB.putClientProperty("%s.id" %(NAB.myModuleID), "separatorAbove_jrb")
+
+                    NAB.separatorSelectorBelow_JRB = MyJRadioButton(u"\u2193")
+                    NAB.separatorSelectorBelow_JRB.setName("separatorSelectorBelow_JRB")
+                    NAB.separatorSelectorBelow_JRB.setActionCommand("separatorSelectorBelow_JRB")
+                    NAB.separatorSelectorBelow_JRB.putClientProperty("%s.id" %(NAB.myModuleID), "separatorBelow_jrb")
+
+                    separatorButtonGroup = ButtonGroup()
+
+                    onSepRow = 0
+                    onSepCol = 0
+
+                    separatorSelector_pnl.add(separatorSelector_lbl, GridC.getc(onSepCol, onSepRow).leftInset(colInsetFiller).rightInset(colRightInset))
+                    onSepCol += 1
+
+                    for jrb in [NAB.separatorSelectorNone_JRB, NAB.separatorSelectorAbove_JRB, NAB.separatorSelectorBelow_JRB]:
+                        separatorButtonGroup.add(jrb)
+                        jrb.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                        jrb.setToolTipText("Add a separator between rows... Either None, or Above/Below this row")
+                        jrb.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                        jrb.addActionListener(NAB.saveActionListener)
+                        separatorSelector_pnl.add(jrb, GridC.getc(onSepCol, onSepRow).leftInset(0).rightInset(0))
+                        onSepCol += 1
+
+                    controlPnl.add(separatorSelector_pnl, GridC.getc(onCol, onRow).leftInset(colInsetFiller).rightInset(colRightInset).fillx())
                     onCol += 1
 
                     onRow += 1
@@ -7824,6 +7933,8 @@ Visit: %s (Author's site)
                 NAB = NetAccountBalancesExtension.getNAB()
                 if not NAB.configSaved:
                     myPrint("B", "Alert - Blocking expand/collapse widget as (changed) parameters not yet saved...!")
+                elif NAB.configPanelOpen:
+                    myPrint("B", "Alert - Blocking expand/collapse widget as widget config gui is open...!")
                 else:
                     NAB.savedExpandedView = not NAB.savedExpandedView
 
@@ -8419,8 +8530,14 @@ Visit: %s (Author's site)
 
                                 nameLabel.addLinkListener(self.callingClass)
 
+                                self.callingClass.listPanel.add(JSeparator(), GridC.getc().xy(0, onPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2)); onPnlRow += 1
+
                             for i in range(0,len(self.netAmountTable)):
+
                                 onRow = i + 1
+
+                                if NAB.savedRowSeparatorTable[i] == 1:
+                                    self.callingClass.listPanel.add(JSeparator(), GridC.getc().xy(0, onPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2)); onPnlRow += 1
 
                                 showCurrText = ""
                                 if self.netAmountTable[i][_curIdx] is not baseCurr:
@@ -8459,6 +8576,10 @@ Visit: %s (Author's site)
 
                                 nameLabel.addLinkListener(self.callingClass)
                                 netTotalLbl.addLinkListener(self.callingClass)
+
+                                if NAB.savedRowSeparatorTable[i] == 2:
+                                    self.callingClass.listPanel.add(JSeparator(), GridC.getc().xy(0, onPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2)); onPnlRow += 1
+
 
                             self.netAmountTable = None
 
@@ -8584,7 +8705,7 @@ Visit: %s (Author's site)
                 self.headerLabel.setText(GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME.title())                                # noqa
                 self.headerLabel.setForeground(md.getUI().colors.secondaryTextFG)                                       # noqa
 
-                if not NAB.savedExpandedView:
+                if not NAB.savedExpandedView and NAB.configSaved:
                     myPrint("DB", "Widget is collapsed, so doing nothing....")
                     self.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_TRIANGLE_RIGHT, self.collapsableIconLbl.getForeground()))
                     self.listPanel.removeAll()
@@ -8592,6 +8713,9 @@ Visit: %s (Author's site)
                     self.listPanel.getParent().repaint()
 
                 else:
+
+                    NAB.savedExpandedView = True        # Override as expanded in case it was collapsed but not saved....
+
                     if not NAB.configSaved:
                         self.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_REMINDERS, self.collapsableIconLbl.getForeground()))
                     else:
