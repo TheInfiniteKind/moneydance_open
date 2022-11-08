@@ -1,5 +1,5 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated April 2022
-Credit: Dan T Davis for his input, testing and sugesstions to make a better product......
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated November 2022
+Credit: Dan T Davis for his input, testing and suggestions to make a better product......
 
 >> Display Name changed to 'Custom Balances' (from 'Net Account Balances') Dec 2021.
 
@@ -34,6 +34,8 @@ This extension creates a 'widget' that displays Totals for items you select on t
 - You can select to total together Accounts / Categories (by date range) / Securities....
 
 - You can change the name of each row, the balance type, and the currency to display. Also Active/Inactive items.
+
+- You can also add row separators to optionally put horizontal lines above / below rows to separate sections
 
 - AutoSum:
   - You can turn AutoSum ON/OFF: When on,  AutoSum recursively totals the selected account and all its sub-accounts
