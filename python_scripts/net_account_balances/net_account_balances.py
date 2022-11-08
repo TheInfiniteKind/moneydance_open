@@ -412,6 +412,10 @@ else:
     GlobalVars.Strings.MD_GLYPH_TRIANGLE_DOWN = "/com/moneydance/apps/md/view/gui/glyphs/glyph_triangle_down.png"
     GlobalVars.Strings.MD_GLYPH_REMINDERS = "/com/moneydance/apps/md/view/gui/glyphs/glyph_reminders.png"
 
+    GlobalVars.Strings.UNICODE_CROSS = u"\u2716"
+    GlobalVars.Strings.UNICODE_UP_ARROW = u"\u2191"
+    GlobalVars.Strings.UNICODE_DOWN_ARROW = u"\u2193"
+
     GlobalVars.__net_account_balances_extension = None
 
     GlobalVars.EXTENSION_LOCK = threading.Lock()
@@ -4246,6 +4250,7 @@ Visit: %s (Author's site)
             self.separatorSelectorNone_JRB          = None
             self.separatorSelectorAbove_JRB         = None
             self.separatorSelectorBelow_JRB         = None
+            self.separatorSelectorBoth_JRB          = None
             self.includeInactive_COMBO              = None
             self.autoSumAccounts_CB                 = None
             self.showWarnings_CB                    = None
@@ -4882,7 +4887,7 @@ Visit: %s (Author's site)
                     if self.savedCustomDatesTable[i] is None or not isinstance(self.savedCustomDatesTable[i], list) or len(self.savedCustomDatesTable[i]) != 2:
                         myPrint("B","Resetting parameter '%s' on RowIdx: %s" %("savedCustomDatesTable", i))
                         self.savedCustomDatesTable[i] = self.customDatesDefault()
-                    if self.savedRowSeparatorTable[i] is None or not isinstance(self.savedRowSeparatorTable[i], int) or self.savedRowSeparatorTable[i] < 0 or self.savedRowSeparatorTable[i] > 2:
+                    if self.savedRowSeparatorTable[i] is None or not isinstance(self.savedRowSeparatorTable[i], int) or self.savedRowSeparatorTable[i] < 0 or self.savedRowSeparatorTable[i] > 3:
                         myPrint("B","Resetting parameter '%s' on RowIdx: %s" %("savedRowSeparatorTable", i))
                         self.savedRowSeparatorTable[i] = self.rowSeparatorDefault()
                     if not isValidDateRange(self.savedCustomDatesTable[i][0], self.savedCustomDatesTable[i][1]):
@@ -5027,6 +5032,7 @@ Visit: %s (Author's site)
                         self.separatorSelectorNone_JRB,
                         self.separatorSelectorAbove_JRB,
                         self.separatorSelectorBelow_JRB,
+                        self.separatorSelectorBoth_JRB,
                         self.disableCurrencyFormatting_CB,
                         self.includeInactive_COMBO,
                         self.filterOutZeroBalAccts_INACTIVE_CB,
@@ -5088,10 +5094,11 @@ Visit: %s (Author's site)
             myPrint("DB", "..about to set autoSumAccounts_CB..")
             self.autoSumAccounts_CB.setSelected(self.savedAutoSumAccounts[selectRowIndex])
 
-            myPrint("DB", "..about to set separatorSelectorNone_JRB, separatorSelectorAbove_JRB, separatorSelectorBelow_JRB..")
+            myPrint("DB", "..about to set separatorSelectorNone_JRB, separatorSelectorAbove_JRB, separatorSelectorBelow_JRB, separatorSelectorBoth_JRB..")
             self.separatorSelectorNone_JRB.setSelected(True if self.savedRowSeparatorTable[selectRowIndex] == 0 else False)
             self.separatorSelectorAbove_JRB.setSelected(True if self.savedRowSeparatorTable[selectRowIndex] == 1 else False)
             self.separatorSelectorBelow_JRB.setSelected(True if self.savedRowSeparatorTable[selectRowIndex] == 2 else False)
+            self.separatorSelectorBoth_JRB.setSelected(True if self.savedRowSeparatorTable[selectRowIndex] == 3 else False)
 
             myPrint("DB", "..about to set savedShowWarningsTable..")
             self.showWarnings_CB.setSelected(self.savedShowWarningsTable[selectRowIndex])
@@ -5144,6 +5151,7 @@ Visit: %s (Author's site)
                         self.separatorSelectorNone_JRB,
                         self.separatorSelectorAbove_JRB,
                         self.separatorSelectorBelow_JRB,
+                        self.separatorSelectorBoth_JRB,
                         self.filterOutZeroBalAccts_INACTIVE_CB,
                         self.filterOutZeroBalAccts_ACTIVE_CB,
                         self.filterIncludeSelected_CB,
@@ -5172,6 +5180,7 @@ Visit: %s (Author's site)
             myPrint("DB",".....separatorSelectorNone_JRB: %s"               %(self.separatorSelectorNone_JRB.isSelected()))
             myPrint("DB",".....separatorSelectorAbove_JRB: %s"              %(self.separatorSelectorAbove_JRB.isSelected()))
             myPrint("DB",".....separatorSelectorBelow_JRB: %s"              %(self.separatorSelectorBelow_JRB.isSelected()))
+            myPrint("DB",".....separatorSelectorBoth_JRB: %s"               %(self.separatorSelectorBoth_JRB.isSelected()))
             myPrint("DB",".....savedIncludeInactive: %s"                    %(self.savedIncludeInactive[selectRowIndex]))
             myPrint("DB",".....includeInactive_COMBO: %s"                   %(self.includeInactive_COMBO.getSelectedIndex()))
             myPrint("DB",".....savedAutoSumAccounts: %s"                    %(self.savedAutoSumAccounts[selectRowIndex]))
@@ -5845,6 +5854,8 @@ Visit: %s (Author's site)
                             rowSeparatorCodeSelected = 1
                         elif event.getSource().getName().lower() == "separatorSelectorBelow_JRB".lower() and event.getSource().isSelected():
                             rowSeparatorCodeSelected = 2
+                        elif event.getSource().getName().lower() == "separatorSelectorBoth_JRB".lower() and event.getSource().isSelected():
+                            rowSeparatorCodeSelected = 3
 
                         if NAB.savedRowSeparatorTable[NAB.getSelectedRowIndex()] != rowSeparatorCodeSelected:
                             myPrint("DB", ".. setting savedRowSeparatorTable to: %s for row: %s" %(rowSeparatorCodeSelected, NAB.getSelectedRow()))
@@ -6070,7 +6081,7 @@ Visit: %s (Author's site)
                         newPosition = myPopupAskForInput(NAB.theFrame,
                                                          "MOVE ROW",
                                                          "New row position:",
-                                                         "Enter the new row position (currently %s)" %(NAB.getSelectedRow()),
+                                                         "Enter the new row position (currently %s, max %s)" %(NAB.getSelectedRow(), NAB.getNumberOfRows()),
                                                          defaultValue=None)
                         if newPosition and StringUtils.isInteger(newPosition):
                             newPosition = int(newPosition)
@@ -6095,8 +6106,10 @@ Visit: %s (Author's site)
 
                                 NAB.rebuildFrameComponents(selectRowIndex=newPos)
                                 NAB.configSaved = False
+                            else:
+                                myPrint("B","User entered an invalid new row position (%s) to move from (%s) - no action taken" %(newPosition, NAB.getSelectedRow()))
                         else:
-                            myPrint("B","User entered an invalid new row position (%s) to move from (%s) - no action taken" %(newPosition, NAB.getSelectedRow()))
+                            myPrint("B","User did not enter a valid new row position - no action taken")
                 # ######################################################################################################
 
                 if event.getActionCommand().lower().startswith("Reset".lower()):
@@ -7055,41 +7068,43 @@ Visit: %s (Author's site)
                     resetDefaults_button.setToolTipText("Wipes all saved settings, resets to defaults with 1 row (does not save)")
                     resetDefaults_button.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                     resetDefaults_button.addActionListener(NAB.saveActionListener)
-                    controlPnl.add(resetDefaults_button, GridC.getc(onCol, onRow).leftInset(colInsetFiller).rightInset(colRightInset).fillx())
+                    controlPnl.add(resetDefaults_button, GridC.getc(onCol, onRow).leftInset(colInsetFiller).fillx())
                     onCol += 1
 
                     separatorSelector_pnl = MyJPanel(GridBagLayout())
 
-                    separatorSelector_lbl = MyJLabel("Row Separator:")
+                    separatorSelector_lbl = MyJLabel(wrap_HTML_small("", "Row Separator:", MD_REF.getUI().getColors().defaultTextForeground))
                     separatorSelector_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "separatorSelector_lbl")
+                    separatorSelector_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
 
-                    NAB.separatorSelectorNone_JRB = MyJRadioButton(u"\u2716")
+                    # NAB.separatorSelectorNone_JRB = MyJRadioButton(GlobalVars.Strings.UNICODE_CROSS)
+                    NAB.separatorSelectorNone_JRB = MyJRadioButton(wrap_HTML_small("", GlobalVars.Strings.UNICODE_CROSS, MD_REF.getUI().getColors().defaultTextForeground))
                     NAB.separatorSelectorNone_JRB.setName("separatorSelectorNone_JRB")
-                    NAB.separatorSelectorNone_JRB.setActionCommand("separatorSelectorNone_JRB")
-                    NAB.separatorSelectorNone_JRB.putClientProperty("%s.id" %(NAB.myModuleID), "separatorNone_jrb")
 
-                    NAB.separatorSelectorAbove_JRB = MyJRadioButton(u"\u2191")
+                    NAB.separatorSelectorAbove_JRB = MyJRadioButton(wrap_HTML_small("", GlobalVars.Strings.UNICODE_UP_ARROW, MD_REF.getUI().getColors().defaultTextForeground))
                     NAB.separatorSelectorAbove_JRB.setName("separatorSelectorAbove_JRB")
-                    NAB.separatorSelectorAbove_JRB.setActionCommand("separatorSelectorAbove_JRB")
-                    NAB.separatorSelectorAbove_JRB.putClientProperty("%s.id" %(NAB.myModuleID), "separatorAbove_jrb")
 
-                    NAB.separatorSelectorBelow_JRB = MyJRadioButton(u"\u2193")
+                    NAB.separatorSelectorBelow_JRB = MyJRadioButton(wrap_HTML_small("", GlobalVars.Strings.UNICODE_DOWN_ARROW, MD_REF.getUI().getColors().defaultTextForeground))
                     NAB.separatorSelectorBelow_JRB.setName("separatorSelectorBelow_JRB")
-                    NAB.separatorSelectorBelow_JRB.setActionCommand("separatorSelectorBelow_JRB")
-                    NAB.separatorSelectorBelow_JRB.putClientProperty("%s.id" %(NAB.myModuleID), "separatorBelow_jrb")
+
+                    NAB.separatorSelectorBoth_JRB = MyJRadioButton(wrap_HTML_small("", GlobalVars.Strings.UNICODE_UP_ARROW + GlobalVars.Strings.UNICODE_DOWN_ARROW, MD_REF.getUI().getColors().defaultTextForeground))
+                    NAB.separatorSelectorBoth_JRB.setName("separatorSelectorBoth_JRB")
 
                     separatorButtonGroup = ButtonGroup()
 
                     onSepRow = 0
                     onSepCol = 0
 
-                    separatorSelector_pnl.add(separatorSelector_lbl, GridC.getc(onSepCol, onSepRow).leftInset(colInsetFiller).rightInset(colRightInset))
+                    separatorSelector_pnl.add(separatorSelector_lbl, GridC.getc(onSepCol, onSepRow))
                     onSepCol += 1
 
-                    for jrb in [NAB.separatorSelectorNone_JRB, NAB.separatorSelectorAbove_JRB, NAB.separatorSelectorBelow_JRB]:
+                    for jrb in [NAB.separatorSelectorNone_JRB, NAB.separatorSelectorAbove_JRB, NAB.separatorSelectorBelow_JRB, NAB.separatorSelectorBoth_JRB]:
                         separatorButtonGroup.add(jrb)
+                        jrb.setActionCommand(jrb.getName())
+                        jrb.putClientProperty("%s.id" %(NAB.myModuleID), jrb.getName())
                         jrb.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
-                        jrb.setToolTipText("Add a separator between rows... Either None, or Above/Below this row")
+                        jrb.setToolTipText(u"Define a separator for this row... Either None%s, Above%s, Below%s, or Above and Below%s"
+                                           %(GlobalVars.Strings.UNICODE_CROSS, GlobalVars.Strings.UNICODE_UP_ARROW, GlobalVars.Strings.UNICODE_DOWN_ARROW, GlobalVars.Strings.UNICODE_UP_ARROW + GlobalVars.Strings.UNICODE_DOWN_ARROW))
                         jrb.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                         jrb.addActionListener(NAB.saveActionListener)
                         separatorSelector_pnl.add(jrb, GridC.getc(onSepCol, onSepRow).leftInset(0).rightInset(0))
@@ -8536,7 +8551,7 @@ Visit: %s (Author's site)
 
                                 onRow = i + 1
 
-                                if NAB.savedRowSeparatorTable[i] == 1:
+                                if NAB.savedRowSeparatorTable[i] == 1 or NAB.savedRowSeparatorTable[i] == 3:
                                     self.callingClass.listPanel.add(JSeparator(), GridC.getc().xy(0, onPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2)); onPnlRow += 1
 
                                 showCurrText = ""
@@ -8577,7 +8592,7 @@ Visit: %s (Author's site)
                                 nameLabel.addLinkListener(self.callingClass)
                                 netTotalLbl.addLinkListener(self.callingClass)
 
-                                if NAB.savedRowSeparatorTable[i] == 2:
+                                if NAB.savedRowSeparatorTable[i] == 2 or NAB.savedRowSeparatorTable[i] == 3:
                                     self.callingClass.listPanel.add(JSeparator(), GridC.getc().xy(0, onPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2)); onPnlRow += 1
 
 
