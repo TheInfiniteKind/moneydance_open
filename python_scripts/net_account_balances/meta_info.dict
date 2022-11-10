@@ -2,11 +2,11 @@
   "id" = "net_account_balances"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1014"
+  "module_build" = "1015"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Custom Balances"
   "module_desc" = "Summary Page multi-row/currency widget that totals user-selected account/category/security balances (previously: Net Account Balances)"
   "mac_sandbox_friendly" = "true"
-  "news" = "Multi-row/currency version; you can now select Accounts/Categories/Securities to total by row; also filter by Active/Inactive"
+  "news" = "New Indian number format menu option to allow grouping by powers of 100 on numbers greater than 10,000"
 }

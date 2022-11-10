@@ -35,7 +35,13 @@ This extension creates a 'widget' that displays Totals for items you select on t
 
 - You can change the name of each row, the balance type, and the currency to display. Also Active/Inactive items.
 
-- You can also add row separators to optionally put horizontal lines above / below rows to separate sections
+- Hide row when ... options: Never, Always(Disable), Zero balance, Positive balance, Negative balance, non zero balance
+- Row separator: optionally put horizontal lines above / below rows to separate sections
+
+** NOTE: When rows can be hidden, they may not display on the Summary screen widget. Click on the widget to config:
+         - In the row selector:
+           ... rows prefixed with a '*' / colored red are always hidden (disabled)
+           ... rows prefixed with a '~' / colored red might be hidden depending on the calculated balance
 
 - AutoSum:
   - You can turn AutoSum ON/OFF: When on,  AutoSum recursively totals the selected account and all its sub-accounts
@@ -115,6 +121,7 @@ This extension creates a 'widget' that displays Totals for items you select on t
   - You can change the default setting AutoSum for new rows that you insert/create. It does not affect existing rows
   - Show Dashes instead of Zeros: Changes the display so that you get '-' instead of '£ 0.0'
   - Treat Securities with Zero Balance as Inactive: If a Security holds zero units, it will be treated as Inactive
+  - Use Indian numbering format: On numbers greater than 10,000 group in powers of 100 (e.g. 10,00,000 not 1,000,000)
   - Debug: Generates program debug messages in Help>Console Window. DO NOT LEAVE THIS PERMANENTLY ON
 
 >> DON'T FORGET TO SAVE CHANGES <<
