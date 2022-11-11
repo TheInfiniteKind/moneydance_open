@@ -35,7 +35,7 @@ This extension creates a 'widget' that displays Totals for items you select on t
 
 - You can change the name of each row, the balance type, and the currency to display. Also Active/Inactive items.
 
-- Hide row when ... options: Never, Always(Disable), Zero balance, Positive balance, Negative balance, non zero balance
+- Hide row when options: Never, Always(Disable), Zero balance, Positive >= 0 balance, Negative <= 0 balance.
 - Row separator: optionally put horizontal lines above / below rows to separate sections
 
 ** NOTE: When rows can be hidden, they may not display on the Summary screen widget. Click on the widget to config:

@@ -7378,10 +7378,10 @@ Visit: %s (Author's site)
                     NAB.hideRowWhenZero_JRB = MyJRadioButton(wrap_HTML_small("", "Zero", MD_REF.getUI().getColors().defaultTextForeground))
                     NAB.hideRowWhenZero_JRB.setName("hideRowWhenZero_JRB")
 
-                    NAB.hideRowWhenNeg_JRB = MyJRadioButton(wrap_HTML_small("", "Negative", MD_REF.getUI().getColors().defaultTextForeground))
+                    NAB.hideRowWhenNeg_JRB = MyJRadioButton(wrap_HTML_small("", "Negative<=0", MD_REF.getUI().getColors().defaultTextForeground))
                     NAB.hideRowWhenNeg_JRB.setName("hideRowWhenNeg_JRB")
 
-                    NAB.hideRowWhenPos_JRB = MyJRadioButton(wrap_HTML_small("", "Positive", MD_REF.getUI().getColors().defaultTextForeground))
+                    NAB.hideRowWhenPos_JRB = MyJRadioButton(wrap_HTML_small("", "Positive>=0", MD_REF.getUI().getColors().defaultTextForeground))
                     NAB.hideRowWhenPos_JRB.setName("hideRowWhenPos_JRB")
 
                     NAB.hideRowWhenNotZero_JRB = MyJRadioButton(wrap_HTML_small("", "Not zero", MD_REF.getUI().getColors().defaultTextForeground))
@@ -7400,9 +7400,10 @@ Visit: %s (Author's site)
                         jrb.setActionCommand(jrb.getName())
                         jrb.putClientProperty("%s.id" %(NAB.myModuleID), jrb.getName())
                         jrb.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
-                        jrb.setToolTipText("Allows hiding of this row. Options: Never, Always(disabled), When balance is ...: zero, negative, positive, not zero")
+                        jrb.setToolTipText("Allows hiding of this row. Options: Never, Always(disabled), When balance is ...: zero, negative(<=0), positive(>=0)")
                         jrb.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                         jrb.addActionListener(NAB.saveActionListener)
+                        if jrb is NAB.hideRowWhenNotZero_JRB: continue  # disable this option
                         hideWhenSelector_pnl.add(jrb, GridC.getc(onHideWhenCol, onHideWhenRow).leftInset(0).rightInset(5))
                         onHideWhenCol += 1
 
@@ -7445,10 +7446,10 @@ Visit: %s (Author's site)
                                            %(GlobalVars.Strings.UNICODE_CROSS, GlobalVars.Strings.UNICODE_UP_ARROW, GlobalVars.Strings.UNICODE_DOWN_ARROW, GlobalVars.Strings.UNICODE_UP_ARROW + GlobalVars.Strings.UNICODE_DOWN_ARROW))
                         jrb.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                         jrb.addActionListener(NAB.saveActionListener)
-                        separatorSelector_pnl.add(jrb, GridC.getc(onSepCol, onSepRow).leftInset(0).rightInset(2))
+                        separatorSelector_pnl.add(jrb, GridC.getc(onSepCol, onSepRow).leftInset(0).rightInset(0))
                         onSepCol += 1
 
-                    controlPnl.add(separatorSelector_pnl, GridC.getc(onCol, onRow).leftInset(0).rightInset(colRightInset).fillx().pady(pady).filly())
+                    controlPnl.add(separatorSelector_pnl, GridC.getc(onCol, onRow).leftInset(colInsetFiller+2).rightInset(colRightInset).fillx().pady(pady).filly().west())
                     onCol += 1
 
                     onRow += 1
@@ -8701,7 +8702,7 @@ Visit: %s (Author's site)
                     self.netAmountTable = None
 
                     self.widgetOnPnlRow = 0
-                    self.widgetLastSeparatorRow = None
+                    self.widgetSeparatorsUsed = []
 
                     with NetAccountBalancesExtension.getNAB().swingWorkers_LOCK:
                         NetAccountBalancesExtension.getNAB().swingWorkers.append(self)
@@ -8746,9 +8747,13 @@ Visit: %s (Author's site)
                     return result
 
                 def addRowSeparator(self):
-                    if (self.widgetOnPnlRow - 1) == self.widgetLastSeparatorRow: return     # Don't double up on separators...
+                    countConsecutive = 0
+                    for i in [1, 2]:
+                        if (self.widgetOnPnlRow - i) in self.widgetSeparatorsUsed:
+                            countConsecutive += 1
+                    if countConsecutive >= 2: return
                     self.callingClass.listPanel.add(JSeparator(), GridC.getc().xy(0, self.widgetOnPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2))
-                    self.widgetLastSeparatorRow = self.widgetOnPnlRow
+                    self.widgetSeparatorsUsed.append(self.widgetOnPnlRow)
                     self.widgetOnPnlRow += 1
 
                 def done(self):                                                                                         # Executes on the EDT
@@ -8812,10 +8817,10 @@ Visit: %s (Author's site)
                                 if NAB.savedHideRowWhenXXXTable[i] == GlobalVars.HIDE_ROW_WHEN_ZERO and self.netAmountTable[i][_valIdx] == 0:
                                     myPrint("DB", "** Hiding/skipping zero balance row %s" %(onRow))
                                     skippingRow = True
-                                if NAB.savedHideRowWhenXXXTable[i] == GlobalVars.HIDE_ROW_WHEN_NEGATIVE and self.netAmountTable[i][_valIdx] < 0:
+                                if NAB.savedHideRowWhenXXXTable[i] == GlobalVars.HIDE_ROW_WHEN_NEGATIVE and self.netAmountTable[i][_valIdx] <= 0:
                                     myPrint("DB", "** Hiding/skipping negative balance row %s" %(onRow))
                                     skippingRow = True
-                                if NAB.savedHideRowWhenXXXTable[i] == GlobalVars.HIDE_ROW_WHEN_POSITIVE and self.netAmountTable[i][_valIdx] > 0:
+                                if NAB.savedHideRowWhenXXXTable[i] == GlobalVars.HIDE_ROW_WHEN_POSITIVE and self.netAmountTable[i][_valIdx] >= 0:
                                     myPrint("DB", "** Hiding/skipping positive balance row %s" %(onRow))
                                     skippingRow = True
                                 if NAB.savedHideRowWhenXXXTable[i] == GlobalVars.HIDE_ROW_WHEN_NOT_ZERO and self.netAmountTable[i][_valIdx] != 0:
