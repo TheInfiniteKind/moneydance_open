@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1015 - Jul thru 2022 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1016 - Jul thru 2022 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -89,6 +89,8 @@
 # build: 1014 - Small fix for possible MD GUI hang on startup (EDT thing....)
 # build: 1014 - Added icon to allow user to collapse widget.....; Added row separator functionality...
 # build: 1015 - Added support for Indian numbering system...: refer: https://en.wikipedia.org/wiki/Indian_numbering_system
+# build: 1015 - Added new options to allow auto hiding of rows when balance is xxx...
+# build: 1016 - Fix phantom linking of account selection when using duplicate row function...
 
 # todo add as of balance date option (for non i/e with custom dates) - perhaps??
 
@@ -98,7 +100,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1015"
+version_build = "1016"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -372,6 +374,7 @@ else:
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
+    import copy
     import threading
     from com.moneydance.awt import GridC, JLinkListener, JLinkLabel, AwtUtil, QuickSearchField
     # from com.moneydance.awt import CollapsibleRefresher
@@ -6161,7 +6164,7 @@ Visit: %s (Author's site)
                         oldPos = NAB.getSelectedRowIndex()
                         newPos = oldPos+1
 
-                        for obj in allRowVariables: obj.insert(newPos, obj[oldPos])
+                        for obj in allRowVariables: obj.insert(newPos, copy.copy(obj[oldPos]))
 
                         NAB.rebuildFrameComponents(selectRowIndex=newPos)
                         NAB.configSaved = False
