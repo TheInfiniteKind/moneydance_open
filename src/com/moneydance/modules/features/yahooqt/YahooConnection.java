@@ -231,7 +231,7 @@ public class YahooConnection extends BaseConnection {
     urlStr.append("&f=sl1d1t1c1ohgv"); // format of each line
     urlStr.append("&e=.csv");          // response format
     urlStr.append("&crumb=");       // crumble
-    urlStr.append(crumble);
+    urlStr.append(URLEncoder.encode(crumble, N12EStockQuotes.URL_ENC));
     
     boolean foundRate = false;
     Exception error = null;
@@ -359,7 +359,7 @@ public class YahooConnection extends BaseConnection {
     result.append("&interval=1d");  // interval
     result.append("&events=history"); // history
     result.append("&crumb=");       // crumble
-    result.append(crumble);
+    result.append(URLEncoder.encode(crumble, N12EStockQuotes.URL_ENC));
     
     return result.toString();
   }
