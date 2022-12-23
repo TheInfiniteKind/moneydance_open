@@ -15,10 +15,8 @@ import com.infinitekind.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -231,7 +229,7 @@ public class YahooConnection extends BaseConnection {
     urlStr.append("&f=sl1d1t1c1ohgv"); // format of each line
     urlStr.append("&e=.csv");          // response format
     urlStr.append("&crumb=");       // crumble
-    urlStr.append(URLEncoder.encode(crumble, N12EStockQuotes.URL_ENC));
+    urlStr.append(SQUtil.urlEncode(crumble));
     
     boolean foundRate = false;
     Exception error = null;
@@ -341,17 +339,8 @@ public class YahooConnection extends BaseConnection {
     cal.add(Calendar.DATE, -dateRange.getNumDays());
     long startTimeInEpoch = cal.getTimeInMillis() / 1000;
     
-    String encTicker;
-    try {
-      encTicker = URLEncoder.encode(fullTickerSymbol, N12EStockQuotes.URL_ENC);
-    } catch (UnsupportedEncodingException ignore) {
-      // should never happen, as the US-ASCII character set is one that is required to be
-      // supported by every Java implementation
-      encTicker = fullTickerSymbol;
-    }
-    
     // add the parameters
-    result.append(encTicker);       // symbol
+    result.append(SQUtil.urlEncode(fullTickerSymbol));       // symbol
     result.append("?period1=");     // start date
     result.append(startTimeInEpoch);
     result.append("&period2=");     // end date
@@ -359,7 +348,7 @@ public class YahooConnection extends BaseConnection {
     result.append("&interval=1d");  // interval
     result.append("&events=history"); // history
     result.append("&crumb=");       // crumble
-    result.append(URLEncoder.encode(crumble, N12EStockQuotes.URL_ENC));
+    result.append(SQUtil.urlEncode(crumble));
     
     return result.toString();
   }

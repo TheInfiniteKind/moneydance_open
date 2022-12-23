@@ -18,6 +18,7 @@ import com.infinitekind.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Stock Quote Utility methods. Most are copied from MD2010r2+ StringUtils or UiUtil, but this
@@ -56,15 +57,9 @@ final class SQUtil {
   }
 
   static String urlEncode(final String toEncode) {
-    String result;
-    try {
-      result = URLEncoder.encode(toEncode, N12EStockQuotes.URL_ENC);
-    } catch (UnsupportedEncodingException e) {
-      result = toEncode;
-    }
-    return result;
+    return URLEncoder.encode(toEncode, StandardCharsets.UTF_8);
   }
-
+  
   static int getNextDate(int date, TimeInterval interval) {
     switch (interval) {
       case WEEK: return Util.incrementDate(date, 0, 0, 7);
