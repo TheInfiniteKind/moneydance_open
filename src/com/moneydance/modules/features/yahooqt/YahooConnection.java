@@ -382,13 +382,7 @@ public class YahooConnection extends BaseConnection {
 
       /*
        We need to find the tdv2Crumb, as in the following:
-                    "RequestPlugin": {
-                        "user": {
-                            "crumb": ".asdfasdfasdf.4",
-                            "firstName": null,
-                            "tdv2Crumb": "VabcdabcdIb6X"
-                        }
-                    },
+          "RequestPlugin":{"user":{"crumb":"K.xOasdfasdfBnPmH","firstName":null,"tdv2Crumb":"t3YKasdfasdfOXgy"}}
        */
       Pattern p = Pattern.compile(".*\"tdv2Crumb\": *\"(.*?)\".*");
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
