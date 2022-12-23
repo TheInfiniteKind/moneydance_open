@@ -33,7 +33,6 @@ public class YahooConnection extends BaseConnection {
   
   private static final SimpleDateFormat SNAPSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
   private static final String crumbleLink = "https://finance.yahoo.com/quote/%1$s/history?p=%1$s";
-  private static final String crumbleRegEx = ".*\"CrumbStore\":[{]\"crumb\":\"(.*?)\"}.*";
   
   private static enum YahooConnectionType {
     DEFAULT, UK, CURRENCIES;
@@ -391,12 +390,23 @@ public class YahooConnection extends BaseConnection {
         int endIdx = cookieValue.indexOf(";");
         cookie = endIdx >= 0 ? cookieValue.substring(0, endIdx) : cookieValue.trim();
       }
-      Pattern p = Pattern.compile(crumbleRegEx);
+
+      /*
+       We need to find the tdv2Crumb, as in the following:
+                    "RequestPlugin": {
+                        "user": {
+                            "crumb": ".asdfasdfasdf.4",
+                            "firstName": null,
+                            "tdv2Crumb": "VabcdabcdIb6X"
+                        }
+                    },
+       */
+      Pattern p = Pattern.compile(".*\"tdv2Crumb\": *\"(.*?)\".*");
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
       String line = null;
       while ((line = bufferedReader.readLine()) != null) {
         // the matcher is slow, so try a quick string comparison first...
-        if(!line.contains("CrumbStore")) continue;
+        if(!line.contains("\"crumb\"")) continue;
         
         Matcher m = p.matcher(line);
         if (m.matches()) {
