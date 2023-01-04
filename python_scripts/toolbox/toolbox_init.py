@@ -5,6 +5,7 @@
 
 global moneydance
 
+import sys
 from java.lang import System, Runtime, Long, Runnable, Thread, InterruptedException
 from com.moneydance.util import Platform
 from java.io import File
@@ -12,6 +13,16 @@ from java.io import File
 def _specialPrint(_what):
     print(_what)
     System.err.write(_what)
+
+def returnPathStrings(fileReference, arePathsIdentical=False):
+    _pathStr = u""
+    if fileReference is not None and isinstance(fileReference, File):
+        _pathStr = u"'%s'" %(fileReference.getAbsolutePath())
+        if fileReference.getAbsolutePath() != fileReference.getCanonicalPath():
+            _pathStr += u" (alias to: '%s')" %(fileReference.getCanonicalPath())
+
+    if arePathsIdentical: return (fileReference.getAbsolutePath() == fileReference.getCanonicalPath())
+    return _pathStr
 
 
 _THIS_IS_ = u"toolbox"
@@ -42,17 +53,17 @@ class QuickDiag(Runnable):
         self.thisis = _thisis
 
     def run(self):
+        msg = u"\n"
         try:
             Thread.sleep(10 * 1000)     # Sleep to allow JVM Memory to settle down.....
             def convertBytesGBs(_size): return round((_size/(1000.0*1000.0*1000)),1)
             from com.moneydance.apps.md.controller import Common
-            msg = u"\n"
             msg += u"-----------------------------------------------------\n"
             msg += (u"%s - quick information:\n" %(self.thisis.capitalize()))
             msg += u"-----\n"
 
-            msg += (u"MD CONSOLE FILE LOCATION:       '%s'\n" %(self.mdRef.getLogFile().getCanonicalPath()))
-            msg += (u"MD CONFIG/PREFERENCES LOCATION: '%s'\n" %(Common.getPreferencesFile().getCanonicalPath()))
+            msg += (u"MD CONSOLE FILE LOCATION:       %s\n" %(returnPathStrings(self.mdRef.getLogFile())))
+            msg += (u"MD CONFIG/PREFERENCES LOCATION: %s\n" %(returnPathStrings(Common.getPreferencesFile())))
 
             msg += u"-----\n"
             from com.moneydance.apps.md.controller.io import FileUtils
@@ -83,7 +94,7 @@ class QuickDiag(Runnable):
             else:
                 backupFileTxt = u"(backup location exists)"
 
-            msg += (u"BACKUPS - Backup Folder:        '%s' %s\n" %(backupFolder.getCanonicalPath(), backupFileTxt))
+            msg += (u"BACKUPS - Backup Folder:        %s %s\n" %(returnPathStrings(backupFolder), backupFileTxt))
 
             msg += (u"..key - 'backup.location':      '%s'\n" %(self.mdRef.getPreferences().getSetting(u"backup.location", u"<not set>")))
             msg += (u"..key - 'backup.last_browsed':  '%s'\n" %(self.mdRef.getPreferences().getSetting(u"backup.last_browsed", u"<not set>")))
@@ -127,13 +138,17 @@ class QuickDiag(Runnable):
                 msg += u"\n"
                 _specialPrint(msg)
                 msg = u"-----------------------------------------------------\n"
-
                 Thread.sleep(60 * 1000)     # Sleep and repeat.....
 
         except InterruptedException: pass
 
         except:
-            _specialPrint(u"ERROR: %s quick information failed....\n" %(self.thisis.capitalize()))
+            if msg is not None and isinstance(msg, basestring):
+                msg += u"\n"
+                _specialPrint(msg)
+
+            _specialPrint(u"*** ERROR: %s quick information failed.... (%s, %s, line: %s)\n"
+                          %(self.thisis.capitalize(), unicode(sys.exc_info()[0]), unicode(sys.exc_info()[1]), unicode(sys.exc_info()[2].tb_lineno)))
 
 
 try:
