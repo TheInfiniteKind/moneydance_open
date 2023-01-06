@@ -9723,14 +9723,14 @@ Visit: %s (Author's site)
         # I would rather have called LocalStorage() to get the filepath, but it doesn't give the path
         # NOTE  - This backup copy will be encrypted, so you can just put it back to ./safe/settings.
         localStorage_file = File(os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getAbsolutePath(), "safe", "settings"))
-        copy_localStorage_filename = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getAbsolutePath(), "settings")
+        copy_localStorage_filename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), "settings")
 
         try:
-            newFileName = copy_localStorage_filename+get_filename_addition()+"_$SAVED$"
+            newFileName = copy_localStorage_filename+get_filename_addition() + "_$SAVED$"
             newFile = File(newFileName)
 
             IOUtils.copy(localStorage_file, newFile)
-            myPrint("B", "LocalStorage() ./safe/settings copied to %s prior to any changes...."%newFileName)
+            myPrint("DB", "LocalStorage() ./safe/settings copied to %s prior to any changes...." %(newFileName))
             return True
 
         except:
@@ -9750,7 +9750,7 @@ Visit: %s (Author's site)
             newFile = File(configFile.getParent(), newFileName)
 
             IOUtils.copy(configFile, newFile)
-            myPrint("B", "config.dict backup/copy made to %s prior to changes...."%newFileName)
+            myPrint("DB", "config.dict backup/copy made to %s prior to changes...." %(newFileName))
             return True
         except:
             myPrint("B","@@ ERROR - failed to backup/copy config.dict prior to changes!?")
@@ -28846,16 +28846,20 @@ now after saving the file, restart Moneydance
 
                 # ##########################################################################################################
                 if event.getActionCommand() == ToolboxMode.DEFAULT_CMD or event.getActionCommand() == ToolboxMode.DEFAULT_KEY_CMD:
-                    if not ToolboxMode.isUpdateMode() and myPopupAskQuestion(toolbox_frame_,
+                    if (not ToolboxMode.isUpdateMode() and
+                            (GlobalVars.lBypassAllBackupsAndDisclaimers_TB or myPopupAskQuestion(toolbox_frame_,
                                           "ENABLE UPDATE MODE",
                                           "UPDATE MODE >> DISCLAIMER: DO YOU ACCEPT THAT YOU USE THIS TOOLBOX AT YOUR OWN RISK?",
                                           JOptionPane.YES_NO_OPTION,
-                                          JOptionPane.ERROR_MESSAGE):
+                                          JOptionPane.ERROR_MESSAGE))):
 
-                        myPrint("B", "User accepted Disclaimer and agreed to enable Toolbox UPDATE mode (at own risk).....")
+                        if GlobalVars.lBypassAllBackupsAndDisclaimers_TB:
+                            myPrint("B", "User enabled Toolbox UPDATE mode. NOTE: Backups and disclaimer warnings are DISABLED")
+                        else:
+                            myPrint("B", "User accepted Disclaimer and agreed to enable Toolbox UPDATE mode (at own risk).....")
 
-                        backup = BackupButtonAction("Would you like to create a backup before enabling UPDATE mode?")
-                        backup.actionPerformed(None)
+                            backup = BackupButtonAction("Would you like to create a backup before enabling UPDATE mode?")
+                            backup.actionPerformed(None)
 
                         backup_local_storage_settings()
                         backup_config_dict()

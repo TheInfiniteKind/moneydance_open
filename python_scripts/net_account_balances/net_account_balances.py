@@ -98,7 +98,7 @@
 # build: 1018 - Change blink to per row... Added rounding(towards X) when auto-hiding rows with hide decimals enabled...
 # build: 1018 - Added Avg / by: value - when set, you can produce an average using custom divisor...
 # build: 1019 - Tweaks / fixes to auto-hide when average; location of average maths; fixed switchFromHomeScreen bug-ette;
-# build: 1019 - roundTowards when hiding decimals
+# build: 1019 - roundTowards() when hiding decimals; tweak common code
 
 # todo add as of balance date option (for non i/e with custom dates) - perhaps??
 
