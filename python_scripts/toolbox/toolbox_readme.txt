@@ -149,8 +149,8 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
     - MENU: Accounts & Categories tools
         - View Check number settings
         - DIAG - View Categories with zero balance. You can also inactivate using Update mode.
-        - DIAG - Produce report of Accounts and bank/account number information (Useful for legacy / Will making)
         - DIAG - View Accounts' shouldBeIncludedInNetWorth() settings...
+        - DIAG - Produce report of Accounts and bank/account number information (Useful for legacy / Will making)
 
     - MENU: Transactions tools
         - View Register Txn Sort Orders

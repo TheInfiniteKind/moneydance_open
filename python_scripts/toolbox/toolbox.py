@@ -564,6 +564,7 @@ else:
     GlobalVars.Strings.OFX_LAST_TXN_UPDATE = "ofx_last_txn_update"
     GlobalVars.Strings.MD_KEY_ASOF_PREF = "gen.rec_asof_enabled"
     GlobalVars.Strings.MD_KEY_OLFITID = "ol_fitid_"
+    GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW = "applies_to_net_worth"
 
     GlobalVars.Strings.EXTENSION_QL_ID = "securityquoteload"
     GlobalVars.Strings.EXTENSION_QER_ID = "yahooqt"
@@ -15135,13 +15136,23 @@ now after saving the file, restart Moneydance
         input_includeLiabilityAccounts = JCheckBox("include account type: Liability?",                                  GlobalVars.saveSettings_reportAccountNumbers.get("input_includeLiabilityAccounts",  True))
         input_includeLoanAccounts = JCheckBox("include account type: Loan?",                                            GlobalVars.saveSettings_reportAccountNumbers.get("input_includeLoanAccounts",       True))
 
-        input_includeBalance = JCheckBox("include account Balance(s)?",                                                 GlobalVars.saveSettings_reportAccountNumbers.get("input_includeBalance",            True))
+        input_includeBalance = JCheckBox("include account balance(s)?",                                                 GlobalVars.saveSettings_reportAccountNumbers.get("input_includeBalance",            True))
+        input_includeGrandTotalBalance = JCheckBox("include grand total (of listed account's balances)?",               GlobalVars.saveSettings_reportAccountNumbers.get("input_includeGrandTotalBalance",  False))
+
+        # balanceTypes = ["Balance", "Current Balance", "Cleared Balance"]
+        balanceTypes = ["Balance", "Current Balance"]                                                                   # Cleared Balance is probably useless
+        selectedBalanceType = GlobalVars.saveSettings_reportAccountNumbers.get("input_balanceType", "NOT FOUND")
+        if selectedBalanceType not in balanceTypes: selectedBalanceType = balanceTypes[0]
+        input_balanceType = JComboBox(balanceTypes)
+        input_balanceType.setSelectedItem(selectedBalanceType)
+
+        input_excludeNetWorthNO = JCheckBox("exclude accounts with shouldBeIncludedInNetWorth set to NO",               GlobalVars.saveSettings_reportAccountNumbers.get("input_excludeNetWorthNO",         False))
         input_includeZeroBalance = JCheckBox("include accounts with zero balance?",                                     GlobalVars.saveSettings_reportAccountNumbers.get("input_includeZeroBalance",        True))
         input_showZeroBalanceAsBlank = JCheckBox("show zero balances as blank?",                                        GlobalVars.saveSettings_reportAccountNumbers.get("input_showZeroBalanceAsBlank",    True))
         input_includeWhenDetailsMissing = JCheckBox("include when Account number/sort/routing details missing?",        GlobalVars.saveSettings_reportAccountNumbers.get("input_includeWhenDetailsMissing", True))
         input_includeHiddenHomePage = JCheckBox("include when 'Hide on summary page (if balance is zero) selected'?",   GlobalVars.saveSettings_reportAccountNumbers.get("input_includeHiddenHomePage",     True))
         input_includeInactive = JCheckBox("include inactive accounts?",                                                 GlobalVars.saveSettings_reportAccountNumbers.get("input_includeInactive",           False))
-        input_includeComments = JCheckBox("include comments?",                                                          GlobalVars.saveSettings_reportAccountNumbers.get("input_includeComments",           False))
+        input_includeComments = JCheckBox("include comments on report?",                                                GlobalVars.saveSettings_reportAccountNumbers.get("input_includeComments",           False))
         input_includeToolboxIgnore = JCheckBox("include when '%s' found inside comments?" %(TOOLBOX_IGNORE),            GlobalVars.saveSettings_reportAccountNumbers.get("input_includeToolboxIgnore",      False))
         input_includeCCExpiryDates = JCheckBox("include Credit Card expiry dates?",                                     GlobalVars.saveSettings_reportAccountNumbers.get("input_includeCCExpiryDates",      False))
         input_includeFileOpenDetails = JCheckBox("include Moneydance 'Master' password and confidential file details?", GlobalVars.saveSettings_reportAccountNumbers.get("input_includeFileOpenDetails",    False))
@@ -15167,14 +15178,17 @@ now after saving the file, restart Moneydance
         userFilters.add(JLabel(""), GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                                 onRow += 1
         userFilters.add(JLabel("Select report options:"), GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());           onRow += 1
         userFilters.add(input_includeBalance, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                       onRow += 1
+        userFilters.add(input_balanceType, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                          onRow += 1
         userFilters.add(input_includeZeroBalance, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                   onRow += 1
         userFilters.add(input_showZeroBalanceAsBlank, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());               onRow += 1
+        userFilters.add(input_includeGrandTotalBalance, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());             onRow += 1
+        userFilters.add(input_excludeNetWorthNO, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                    onRow += 1
         userFilters.add(input_includeWhenDetailsMissing, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());            onRow += 1
         userFilters.add(input_includeHiddenHomePage, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                onRow += 1
         userFilters.add(input_includeInactive, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                      onRow += 1
-        userFilters.add(input_includeComments, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                      onRow += 1
         userFilters.add(input_includeToolboxIgnore, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                 onRow += 1
         userFilters.add(input_includeCCExpiryDates, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                 onRow += 1
+        userFilters.add(input_includeComments, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                      onRow += 1
         userFilters.add(input_includeFileOpenDetails, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());               onRow += 1
         userFilters.add(JLabel("---"), GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                              onRow += 1
         userFilters.add(lbl_secretText, GridC.getc(onCol, onRow).wx(0.1).wy(0.1).leftInset(li).rightInset(ri).west());                             onRow += 1
@@ -15196,7 +15210,7 @@ now after saving the file, restart Moneydance
             if userAction != 1:
                 txt = "USER QUIT REPORT"
                 setDisplayStatus(txt, "B")
-                myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+                # myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
                 return
 
             selectedAccountTypes = False
@@ -15232,11 +15246,16 @@ now after saving the file, restart Moneydance
 
         colWidths = [13, 12, 10, 8, 5, 0, 0, 15, 13, 7, 9]
 
+        grandTotalTxt = ""
+        lFoundNWFlags = False
+
         for i in [0, 1]:
+
+            grandTotal = 0
 
             if i == 1:
                 colWidths[1] = 0        # Account Description should never get set...!?
-                colWidths[3] = colWidths[3] if input_includeBalance.isSelected() else 0
+                colWidths[3] = colWidths[3] if (input_includeBalance.isSelected() or input_includeGrandTotalBalance.isSelected()) else 0
                 colWidths[9] = colWidths[9] if input_includeCCExpiryDates.isSelected() else 0
                 colWidths[10] = colWidths[10] if input_includeComments.isSelected() else 0
 
@@ -15272,7 +15291,12 @@ now after saving the file, restart Moneydance
 
             for acct in allAccounts:
 
-                xBal = acct.getRecursiveBalance() if acct.getAccountType() == Account.AccountType.INVESTMENT else acct.getBalance()     # noqa
+                if input_balanceType.getSelectedItem() == balanceTypes[1]:
+                    xBal = acct.getRecursiveCurrentBalance() if acct.getAccountType() == Account.AccountType.INVESTMENT else acct.getCurrentBalance()       # noqa
+                # elif input_balanceType.getSelectedItem() == balanceTypes[2]:
+                #     xBal = acct.getRecursiveClearedBalance() if acct.getAccountType() == Account.AccountType.INVESTMENT else acct.getClearedBalance()       # noqa
+                else:
+                    xBal = acct.getRecursiveBalance() if acct.getAccountType() == Account.AccountType.INVESTMENT else acct.getBalance()                     # noqa
 
                 if not input_includeInactive.isSelected():
                     if (acct.getAccountOrParentIsInactive()): continue
@@ -15283,12 +15307,19 @@ now after saving the file, restart Moneydance
                 if not input_includeZeroBalance.isSelected():
                     if xBal == 0: continue
 
+                if input_excludeNetWorthNO.isSelected() and not acct.getBooleanParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, True):
+                    continue
+
                 if not input_includeToolboxIgnore.isSelected():
                     if TOOLBOX_IGNORE in acct.getComment().lower().strip(): continue
 
                 hiddenTxt = ""
                 if acct.getAccountOrParentIsInactive(): hiddenTxt += "I"
                 if acct.getHideOnHomePage() and xBal == 0: hiddenTxt += "H"
+
+                if not acct.getBooleanParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, True):
+                    lFoundNWFlags = True
+                    hiddenTxt += "N"
 
                 depth = (acct.getDepth() - 1)
                 extraPad = "" if (depth == 0) else " "
@@ -15315,6 +15346,13 @@ now after saving the file, restart Moneydance
                 currTxt = "" if acct.getCurrencyType() is baseCurr else acct.getCurrencyType().getIDString()
                 commentsTxt = acct.getComment().strip().replace("\n", "|").replace(TOOLBOX_IGNORE, "")
                 xBalTxt = "" if (xBal == 0 and input_showZeroBalanceAsBlank.isSelected()) else acct.getCurrencyType().formatFancy(xBal, MD_decimal)
+
+                if not input_includeBalance.isSelected(): xBalTxt = ""
+
+                grandTotalTxt = ""
+                if input_includeGrandTotalBalance.isSelected():
+                    grandTotal += CurrencyUtil.convertValue(xBal, acct.getCurrencyType(), baseCurr)
+                    grandTotalTxt = baseCurr.formatFancy(grandTotal, MD_decimal)
 
                 # noinspection PyUnresolvedReferences
                 if (acct.getAccountType() == Account.AccountType.CREDIT_CARD and input_includeCCExpiryDates.isSelected()
@@ -15348,7 +15386,7 @@ now after saving the file, restart Moneydance
                     colWidths[0] = max(colWidths[0], len(accountNameTxt))
                     colWidths[1] = max(colWidths[1], len(acct.getAccountDescription()))
                     colWidths[2] = max(colWidths[2], len(bankNameTxt))
-                    colWidths[3] = max(colWidths[3], len(xBalTxt))
+                    colWidths[3] = max(colWidths[3], len(xBalTxt), len(grandTotalTxt))
                     colWidths[4] = max(colWidths[4], len(currTxt))
                     colWidths[5] = max(colWidths[5], len(hiddenTxt))
                     colWidths[6] = max(colWidths[6], len(downloadEnabledTxt))
@@ -15376,13 +15414,35 @@ now after saving the file, restart Moneydance
                     pad(expiryTxt, colWidths[9]),
                     pad(commentsTxt, colWidths[10]))
 
+        if input_includeGrandTotalBalance.isSelected():
+            output += "%s %s %s %s\n" %(
+                pad("", colWidths[0], " "),
+                pad("", colWidths[1], " "),
+                pad("", colWidths[2], " "),
+                rpad("", colWidths[3], "=")
+            )
+            currTxt = "%s(%s)" %(baseCurr.getIDString(),baseCurr.getPrefix())
+
+            output += "%s %s %s %s %s - (Grand Total of accounts shown)\n\n" %(
+                pad("", colWidths[0]),
+                pad("", colWidths[1]),
+                pad("", colWidths[2]),
+                rpad(grandTotalTxt, colWidths[3]),
+                currTxt)
+
         output += "\n----------------------------------------------------------------------------------------------------------------------------\n"
+
+        if input_includeBalance.isSelected() or input_includeGrandTotalBalance.isSelected():
+            output += "**Balance type: %s\n" %(input_balanceType.getSelectedItem())
 
         if input_includeInactive.isSelected():
             output += "**KEY: 'I' = Account is Inactive...\n"
 
         if input_includeHiddenHomePage.isSelected():
             output += "**KEY: 'H' = Account is hidden on Home/Summary page...\n"
+
+        if lFoundNWFlags:
+            output += "**KEY: 'N' = Account is normally hidden from MD home screen NetWorth report...\n"
 
         if iCountOFXAccounts > 0 or iCountMDPlusAccounts > 0:
             if iCountMDPlusAccounts > 0:
@@ -15438,6 +15498,9 @@ now after saving the file, restart Moneydance
         GlobalVars.saveSettings_reportAccountNumbers["input_includeLiabilityAccounts"]      = input_includeLiabilityAccounts.isSelected()
         GlobalVars.saveSettings_reportAccountNumbers["input_includeLoanAccounts"]           = input_includeLoanAccounts.isSelected()
         GlobalVars.saveSettings_reportAccountNumbers["input_includeBalance"]                = input_includeBalance.isSelected()
+        GlobalVars.saveSettings_reportAccountNumbers["input_includeGrandTotalBalance"]      = input_includeGrandTotalBalance.isSelected()
+        GlobalVars.saveSettings_reportAccountNumbers["input_balanceType"]                   = input_balanceType.getSelectedItem()
+        GlobalVars.saveSettings_reportAccountNumbers["input_excludeNetWorthNO"]             = input_excludeNetWorthNO.isSelected()
         GlobalVars.saveSettings_reportAccountNumbers["input_includeZeroBalance"]            = input_includeZeroBalance.isSelected()
         GlobalVars.saveSettings_reportAccountNumbers["input_showZeroBalanceAsBlank"]        = input_showZeroBalanceAsBlank.isSelected()
         GlobalVars.saveSettings_reportAccountNumbers["input_includeWhenDetailsMissing"]     = input_includeWhenDetailsMissing.isSelected()
@@ -15459,8 +15522,6 @@ now after saving the file, restart Moneydance
         if MD_REF.getCurrentAccount().getBook() is None: return
 
         _THIS_METHOD_NAME = "View Accounts' shouldBeIncludedInNetWorth() settings"
-
-        PARAM_APPLIES_TO_NW = "applies_to_net_worth"
 
         output = "\n" \
                  "%s:\n" \
@@ -15497,7 +15558,7 @@ now after saving the file, restart Moneydance
             output += "%s %s %s %s\n" %(pad(acct.getFullAccountName(),50),
                                         pad(str(acct.getAccountType()),20),
                                         pad(str(acct.shouldBeIncludedInNetWorth()),30),
-                                        ("NOT SET" if (not acct.getParameter(PARAM_APPLIES_TO_NW, None)) else (str(acct.getBooleanParameter(PARAM_APPLIES_TO_NW, True)))))
+                                        ("NOT SET" if (not acct.getParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, None)) else (str(acct.getBooleanParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, True)))))
         output += "\n<END>"
 
         txt = "%s: - Displaying NetWorth Settings" %(_THIS_METHOD_NAME)
@@ -15515,8 +15576,6 @@ now after saving the file, restart Moneydance
         if MD_REF.getCurrentAccount().getBook() is None: return
 
         _THIS_METHOD_NAME = "EDIT an Account's shouldBeIncludedInNetWorth() setting"
-
-        PARAM_APPLIES_TO_NW = "applies_to_net_worth"
 
         allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(25))
         allAccounts = sorted(allAccounts, key=lambda x: (x.getAccountType(), x.getFullAccountName().upper()))
@@ -15541,7 +15600,7 @@ now after saving the file, restart Moneydance
 
             selectedAcct = selectedAcct.obj       # type: Account                                                       # noqa
 
-            currentNWsettingBool = selectedAcct.getBooleanParameter(PARAM_APPLIES_TO_NW, True)
+            currentNWsettingBool = selectedAcct.getBooleanParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, True)
 
             options = ["YES - Include", "NO - Exclude"]
             if currentNWsettingBool:
@@ -15565,15 +15624,15 @@ now after saving the file, restart Moneydance
 
             if options.index(selectedIncludeInNW) == 0:
                 # Include selected
-                selectedAcct.setParameter(PARAM_APPLIES_TO_NW, None)
+                selectedAcct.setParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, None)
             else:
                 # Exclude selected
-                selectedAcct.setParameter(PARAM_APPLIES_TO_NW, False)
+                selectedAcct.setParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, False)
 
             selectedAcct.syncItem()
             iCountChanges += 1
 
-            txt = "%s: Account: '%s' Parameter: '%s' set to %s" %(_THIS_METHOD_NAME, selectedAcct, PARAM_APPLIES_TO_NW, selectedIncludeInNW)
+            txt = "%s: Account: '%s' Parameter: '%s' set to %s" %(_THIS_METHOD_NAME, selectedAcct, GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, selectedIncludeInNW)
             setDisplayStatus(txt, "B"); myPrint("B", txt)
             logToolboxUpdates("edit_shouldBeIncludedInNetWorth_settings", txt)
             myPopupInformationBox(toolbox_frame_,txt)
@@ -27761,11 +27820,11 @@ now after saving the file, restart Moneydance
                     user_add_alternative_bank_number = MenuJRadioButton("FIX: Add alternative account numbers for 'Accounts and bank/account number' report (above)", False, updateMenu=True)
                     user_add_alternative_bank_number.setToolTipText("Enter alternative account number(s) to print in the 'Accounts and bank/account number' report above. THIS CHANGES DATA!")
 
-                    user_reportAccountNumbers = MenuJRadioButton("DIAG: Produce report of Accounts and bank/account number information (Useful for legacy / Will making)", False)
-                    user_reportAccountNumbers.setToolTipText("This produces a report of bank accounts along with account & sort numbers etc... ")
-
                     user_view_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("DIAG: View Accounts' shouldBeIncludedInNetWorth() settings...", False)
                     user_view_shouldBeIncludedInNetWorth_settings.setToolTipText("This will list all Accounts/Categories and the shouldBeIncludedInNetWorth() setting - USE UPDATE MODE TO EDIT")
+
+                    user_reportAccountNumbers = MenuJRadioButton("DIAG: Produce report of Accounts and bank/account number information (Useful for legacy / Will making)", False)
+                    user_reportAccountNumbers.setToolTipText("This produces a report of bank accounts along with account & sort numbers etc... ")
 
                     user_edit_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("FIX: Edit an Account's shouldBeIncludedInNetWorth() setting", False, updateMenu=True)
                     user_edit_shouldBeIncludedInNetWorth_settings.setToolTipText("This will allow you to edit an Account's shouldBeIncludedInNetWorth() setting. THIS CHANGES DATA!")
@@ -27790,8 +27849,8 @@ now after saving the file, restart Moneydance
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_view_check_number_settings)
                     userFilters.add(user_view_zero_bal_cats)
-                    userFilters.add(user_reportAccountNumbers)
                     userFilters.add(user_view_shouldBeIncludedInNetWorth_settings)
+                    userFilters.add(user_reportAccountNumbers)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
                         rows += 11
