@@ -147,6 +147,7 @@
 # build: 1056 - Accepted Pull Request from xx whereby Edit Security Decimals Places was changed to allow 16dpc. NOTE: 922.3372036854775807 is the max shares number MD can hold at 16dpc
 # build: 1056 - Added 'FIX: Add alternative account numbers for 'Accounts and bank/account number' report (above)' feature
 # build: 1056 - Added 'lBypassAllBackupsAndDisclaimers_TB' feature....
+# build: 1056 - Added launch check for base CurrencyType relative rate != 1.0; fixed diagnose/repair currency option to fix != 1.0 (properly)
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -9140,10 +9141,10 @@ Visit: %s (Author's site)
                 return
 
             VERBOSE = user_VERBOSE.isSelected()
-            lFixErrors=True
-            lFixWarnings=user_fixErrorsAndWarnings.isSelected()
-            lCurrencies=(user_fixOnlyCurrencies.isSelected() or user_fixBothCurrenciesAndSecurities.isSelected())
-            lSecurities=(user_fixOnlySecurities.isSelected() or user_fixBothCurrenciesAndSecurities.isSelected())
+            lFixErrors = True
+            lFixWarnings = user_fixErrorsAndWarnings.isSelected()
+            lCurrencies = (user_fixOnlyCurrencies.isSelected() or user_fixBothCurrenciesAndSecurities.isSelected())
+            lSecurities = (user_fixOnlySecurities.isSelected() or user_fixBothCurrenciesAndSecurities.isSelected())
 
         else:
 
@@ -9201,22 +9202,10 @@ Visit: %s (Author's site)
                         baseCurr.setParameter(PARAM_RATE, 1.0)
                         baseCurr.setParameter(PARAM_RRATE, 1.0)
                         baseCurr.setCurrencyParameter(None, PARAM_REL_CURR_ID, PARAM_RELATIVE_TO_CURRID, None)
+                        baseCurr.setRate(1.0, None)
 
                         txt = "@@BASE CURRENCY FIX APPLIED (set 'rrate' to 1.0) @@"
                         myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
-
-                # The Rate - should always be 1.0
-                # if baseCurr.getParameter(PARAM_RATE, None) is None or not isGoodRate(baseCurr.getDoubleParameter(PARAM_RATE, 0.0)) or baseCurr.getDoubleParameter(PARAM_RATE, 0.0) != 1.0:
-                #     txt = "@@ERROR@@ - base currency has (legacy) 'rate' <> 1: %s" %(baseCurr.getParameter(PARAM_RATE, None))
-                #     myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
-                #     lNeedFixScript = True
-                #     if lFix:
-                #         lSyncNeeded = True
-                #         baseCurr.setEditingMode()
-                #         baseCurr.setParameter(PARAM_RATE, 1.0)
-                #         baseCurr.setCurrencyParameter(None, PARAM_REL_CURR_ID, PARAM_RELATIVE_TO_CURRID, None)
-                #         txt = "@@BASE CURRENCY FIX APPLIED (set legacy 'rate' to 1.0) @@"
-                #         myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
 
                 if lSyncNeeded:
                     baseCurr.syncItem(); lSyncNeeded = False                                                            # noqa
@@ -29560,6 +29549,26 @@ now after saving the file, restart Moneydance
                                      lModal=False).go()
                 del allAccounts, output
 
+
+            # Check for base Currency rate != 1.0
+            _baseCurr = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+            _PARAM_RRATE = "rrate"
+            if (_baseCurr.getParameter(_PARAM_RRATE, None) is None
+                    or not isGoodRate(_baseCurr.getDoubleParameter(_PARAM_RRATE, 0.0))
+                    or _baseCurr.getDoubleParameter(_PARAM_RRATE, 0.0) != 1.0
+                    or _baseCurr.getRate(None) != 1.0):
+
+                statusTxt = "ERROR: Your base currency (relative) rate is NOT 1.0!"
+                output = ">> Use the 'Diagnose currencies / securities' to diagnose and then run the repair option..."
+                myPrint("B", statusTxt, output)
+                MyPopUpDialogBox(toolbox_frame_,
+                                 theStatus=statusTxt,
+                                 theMessage=output,
+                                 theTitle="ERROR - CURRENCY: BASE (RELATIVE) RATE NOT 1.0",
+                                 OKButtonText="ACKNOWLEDGE",
+                                 lAlertLevel=2,
+                                 lModal=False).go()
+            del _baseCurr, _PARAM_RRATE
 
             # Check for no currencies.. Popup alert message
             # noinspection PyUnresolvedReferences
