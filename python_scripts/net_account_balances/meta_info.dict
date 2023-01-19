@@ -2,11 +2,11 @@
   "id" = "net_account_balances"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1019"
+  "module_build" = "1020"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Custom Balances"
   "module_desc" = "Summary Page multi-row/currency widget that totals user-selected account/category/security balances (previously: Net Account Balances)"
   "mac_sandbox_friendly" = "true"
-  "news" = "New row formatting options (blink etc)...; New feature: display average balance using custom /by number; Small tweaks/fixes..."
+  "news" = "Bold'ified [sic] blinking cells..."
 }

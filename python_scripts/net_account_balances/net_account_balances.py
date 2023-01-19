@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1019 - Jan 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1020 - Jan 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -99,7 +99,9 @@
 # build: 1018 - Added Avg / by: value - when set, you can produce an average using custom divisor...
 # build: 1019 - Tweaks / fixes to auto-hide when average; location of average maths; fixed switchFromHomeScreen bug-ette;
 # build: 1019 - roundTowards() when hiding decimals; tweak common code
+# build: 1020 - Bold'ified [sic] blinking cells...
 
+# todo - Fix display bug when opening a new MD account window where NAB will disappear from the first window's home screen.. Caused as .view is being rebuilt by the order in which MD is sending commands...
 # todo add as of balance date option (for non i/e with custom dates) - perhaps??
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -108,7 +110,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1019"
+version_build = "1020"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -4251,7 +4253,7 @@ Visit: %s (Author's site)
                         myPrint("DB", ">> ERROR stopping blinker: id: %s" %(blinker.uuid))
                 del BlinkSwingTimer.ALL_BLINKERS[:]
 
-        def __init__(self, timeMS, swComponents, flipColor=None):
+        def __init__(self, timeMS, swComponents, flipColor=None, flipBold=False):
             with BlinkSwingTimer.blinker_LOCK:
                 self.uuid = UUID.randomUUID().toString()
                 self.isForeground = True
@@ -4264,9 +4266,13 @@ Visit: %s (Author's site)
 
                 self.swComponents = []
                 for swComponent in swComponents:
+                    font = swComponent.getFont()
                     self.swComponents.append([swComponent,
                                               swComponent.getForeground(),
-                                              swComponent.getBackground() if (flipColor is None) else flipColor])
+                                              swComponent.getBackground() if (flipColor is None) else flipColor,
+                                              font.deriveFont(font.getStyle() | Font.BOLD) if (flipBold) else font,
+                                              font.deriveFont(font.getStyle() & ~Font.BOLD) if (flipBold) else font
+                                              ])
                 super(self.__class__, self).__init__(max(timeMS, 1200), None)   # Less than 1000ms will prevent whole application from closing when requested...
                 self.addActionListener(self)
                 BlinkSwingTimer.ALL_BLINKERS.append(self)
@@ -4288,8 +4294,10 @@ Visit: %s (Author's site)
                         swComponent = self.swComponents[i][0]
                         fg = self.swComponents[i][1]
                         bg = self.swComponents[i][2]
-
+                        boldON = self.swComponents[i][3]
+                        boldOFF = self.swComponents[i][4]
                         swComponent.setForeground(fg if self.isForeground else bg)
+                        swComponent.setFont(boldON if self.isForeground else boldOFF)
 
                     self.countBlinkLoops += 1
                     self.isForeground = not self.isForeground
@@ -6117,7 +6125,7 @@ Visit: %s (Author's site)
                                     NAB.simulateTotal_label.setForeground(md.getUI().colors.positiveBalFG)
 
                             if NAB.savedBlinkTable[i]:
-                                BlinkSwingTimer(1200, [NAB.simulateTotal_label], flipColor=(MD_REF.getUI().getColors().defaultTextForeground)).start()
+                                BlinkSwingTimer(1200, [NAB.simulateTotal_label], flipColor=(MD_REF.getUI().getColors().defaultTextForeground), flipBold=True).start()
 
 
                 except InterruptedException:
@@ -8276,26 +8284,45 @@ Visit: %s (Author's site)
 
             elif (appEvent == "md:file:opened"):  # This is the key event when a file is opened
 
-                if GlobalVars.specialDebug: myPrint("B","%s SPECIAL DEBUG - Checking to see whether UI loaded and create application Frame" %(appEvent))
+                if GlobalVars.specialDebug: myPrint("B","'%s' >> SPECIAL DEBUG - Checking to see whether UI loaded and create application Frame" %(appEvent))
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
-                # class GetMoneydanceUIRunnable(Runnable):
-                #     def __init__(self, callingClass): self.callingClass = callingClass
-                #     def run(self):
-                #         if GlobalVars.specialDebug: myPrint("B", "... GetMoneydanceUIRunnable sleeping for 500ms...")
-                #         Thread.sleep(500)
-                #         if GlobalVars.specialDebug: myPrint("B", "... GetMoneydanceUIRunnable calling getMoneydanceUI()...")
-                #         self.callingClass.getMoneydanceUI()  # Check to see if the UI & dataset are loaded.... If so, create the JFrame too...
-                #
-                # if debug or GlobalVars.specialDebug: myPrint("B", "... firing off call to getMoneydanceUI() via new thread (so-as not to hang MD)...")
-                # _t = Thread(GetMoneydanceUIRunnable(self), "NAB_GetMoneydanceUIRunnable".lower())
-                # _t.setDaemon(True)
-                # _t.start()
-                #
-                # if GlobalVars.specialDebug: myPrint("B", "... end of routines after receiving  'md:file:opened' command....")
+                class GetMoneydanceUIRunnable(Runnable):
+                    def __init__(self, callingClass): self.callingClass = callingClass
+                    def run(self):
+                        cumulativeSleepTimeMS = 0
+                        abortAfterSleepMS = (1000.0 * 15)     # Abort after 15 seconds of waiting..... Tough luck....!
+                        sleepTimeMS = 500
+                        if GlobalVars.specialDebug or debug: myPrint("B", "... GetMoneydanceUIRunnable sleeping for %sms..." %(sleepTimeMS))
+                        Thread.sleep(sleepTimeMS)
+                        cumulativeSleepTimeMS += sleepTimeMS
+                        while cumulativeSleepTimeMS < abortAfterSleepMS:
+                            _bk = self.callingClass.moneydanceContext.getCurrentAccountBook()
+                            if _bk is not None:
+                                _syncer = _bk.getSyncer()
+                                if _syncer is not None:
+                                    if _syncer.isSyncing():
+                                        if GlobalVars.specialDebug or debug: myPrint("B", "... Moneydance appears to be syncing... will wait %sms..." %(sleepTimeMS))
+                                        Thread.sleep(sleepTimeMS)
+                                        cumulativeSleepTimeMS += sleepTimeMS
+                                        continue
+                                    else:
+                                        myPrint("B", "... Moneydance reports that it's NOT syncing... so will continue to load UI...")
+                            break
 
-                myPrint("DB","%s Checking to see if UI loaded and create application Frame" %(appEvent))
-                self.getMoneydanceUI()  # Check to see if the UI & dataset are loaded.... If so, create the JFrame too...
+                        if cumulativeSleepTimeMS >= abortAfterSleepMS: myPrint("B", "... WARNING: sleep/wait loop aborted (after %sms) waiting for MD sync to finish... Continuing anyway..." %(cumulativeSleepTimeMS))
+
+                        if GlobalVars.specialDebug or debug: myPrint("B", "... GetMoneydanceUIRunnable calling getMoneydanceUI()...")
+                        self.callingClass.getMoneydanceUI()  # Check to see if the UI & dataset are loaded.... If so, create the JFrame too...
+
+                if GlobalVars.specialDebug or debug: myPrint("B", "... firing off call to getMoneydanceUI() via new thread (so-as not to hang MD)...")
+                _t = Thread(GetMoneydanceUIRunnable(self), "NAB_GetMoneydanceUIRunnable".lower())
+                _t.setDaemon(True)
+                _t.start()
+
+                # myPrint("DB","%s Checking to see whether UI loaded and create application Frame" %(appEvent))
+                # self.getMoneydanceUI()  # Check to see if the UI & dataset are loaded.... If so, create the JFrame too...
+
                 myPrint("B", "... end of routines after receiving  'md:file:opened' command....")
 
 
@@ -9502,7 +9529,7 @@ Visit: %s (Author's site)
                         parent.validate()
                         parent = parent.getParent()
 
-                    if len(blinkers) > 0: BlinkSwingTimer(1200, blinkers, flipColor=(MD_REF.getUI().getColors().defaultTextForeground)).start()
+                    if len(blinkers) > 0: BlinkSwingTimer(1200, blinkers, flipColor=(MD_REF.getUI().getColors().defaultTextForeground), flipBold=True).start()
 
             def reallyRefresh(self):
 

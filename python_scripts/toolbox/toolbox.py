@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1056 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1057 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -148,6 +148,8 @@
 # build: 1056 - Added 'FIX: Add alternative account numbers for 'Accounts and bank/account number' report (above)' feature
 # build: 1056 - Added 'lBypassAllBackupsAndDisclaimers_TB' feature....
 # build: 1056 - Added launch check for base CurrencyType relative rate != 1.0; fixed diagnose/repair currency option to fix != 1.0 (properly)
+# build: 1057 - Changed errortrap in force disconnect md+ connection....
+# build: 1057 - Bold'ified [sic] blinking cells...
 
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -169,7 +171,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1056"
+version_build = "1057"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -529,8 +531,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.5
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4091
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.6
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4097
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -6525,7 +6527,7 @@ Visit: %s (Author's site)
 
         iCountFound = 0
         for sec in securities:
-            if sec.getCurrencyType() != CurrencyType.Type.SECURITY: continue                                       # noqa
+            if sec.getCurrencyType() != CurrencyType.Type.SECURITY: continue                                            # noqa
             for key in sec.getParameterKeys():
 
                 if key.startswith(PARAM_CURRID):
@@ -12892,8 +12894,9 @@ Visit: %s (Author's site)
                 plaidConnection.updateAccountList()
                 txt = "Plaid - called update account list..."
                 output += "%s\n" %(txt); myPrint("B", txt)
-            except Exception as e:
-                txt = "Unable to refresh accounts list after removing token(s). Error was: %s" %(e)
+            except:
+                e, exc_value, exc_traceback = sys.exc_info()                                                            # noqa
+                txt = "Unable to refresh accounts list after removing token(s)! Error was: '%s'" %(e)
                 output += "%s\n" %(txt); myPrint("B", txt)
                 dump_sys_error_to_md_console_and_errorlog()
 
@@ -26868,7 +26871,7 @@ now after saving the file, restart Moneydance
                         myPrint("DB", ">> ERROR stopping blinker: id: %s" %(blinker.uuid))
                 del BlinkSwingTimer.ALL_BLINKERS[:]
 
-        def __init__(self, timeMS, swComponents, flipColor=None):
+        def __init__(self, timeMS, swComponents, flipColor=None, flipBold=False):
             with BlinkSwingTimer.blinker_LOCK:
                 self.uuid = UUID.randomUUID().toString()
                 self.isForeground = True
@@ -26881,9 +26884,13 @@ now after saving the file, restart Moneydance
 
                 self.swComponents = []
                 for swComponent in swComponents:
+                    font = swComponent.getFont()
                     self.swComponents.append([swComponent,
                                               swComponent.getForeground(),
-                                              swComponent.getBackground() if (flipColor is None) else flipColor])
+                                              swComponent.getBackground() if (flipColor is None) else flipColor,
+                                              font.deriveFont(font.getStyle() | Font.BOLD) if (flipBold) else font,
+                                              font.deriveFont(font.getStyle() & ~Font.BOLD) if (flipBold) else font
+                                              ])
                 super(self.__class__, self).__init__(max(timeMS, 1200), None)   # Less than 1000ms will prevent whole application from closing when requested...
                 self.addActionListener(self)
                 BlinkSwingTimer.ALL_BLINKERS.append(self)
@@ -26905,8 +26912,10 @@ now after saving the file, restart Moneydance
                         swComponent = self.swComponents[i][0]
                         fg = self.swComponents[i][1]
                         bg = self.swComponents[i][2]
-
+                        boldON = self.swComponents[i][3]
+                        boldOFF = self.swComponents[i][4]
                         swComponent.setForeground(fg if self.isForeground else bg)
+                        swComponent.setFont(boldON if self.isForeground else boldOFF)
 
                     self.countBlinkLoops += 1
                     self.isForeground = not self.isForeground
