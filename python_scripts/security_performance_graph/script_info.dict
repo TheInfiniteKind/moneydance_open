@@ -2,7 +2,7 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "security_performance_graph.py"
+      "script_file" = "security_performance_graph_bootstrap.py"
       "name" = "Security Performance Graph"
     }
     {

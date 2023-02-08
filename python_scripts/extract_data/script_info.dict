@@ -2,7 +2,7 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "extract_data.py"
+      "script_file" = "extract_data_bootstrap.py"
       "name" = "Extract Data"
     }
     {

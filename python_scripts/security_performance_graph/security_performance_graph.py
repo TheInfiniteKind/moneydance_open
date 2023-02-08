@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# security_performance_graph.py build: 1002 - August 2022 - Stuart Beesley StuWareSoftSystems
+# security_performance_graph.py build: 1005 - Feb 2023 - Stuart Beesley StuWareSoftSystems
 
 # requires: MD 2021.1(3069) due to NPE on SwingUtilities - something to do with 'theGenerator.setInfo(reportSpec)'
 
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2022 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,9 @@
 # build: 1002 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
 # build: 1002 - Common code
 # build: 1002 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
+# build: 1003 - Tweak common code
+# build: 1004 - Tweak init message with time
+# build: 1005 - Added bootstrap to execute compiled version of extension (faster to load)....
 
 # todo - Memorise (save versions) along with choose/delete etc saved versions
 # todo - add markers for splits, buy/sells
@@ -45,7 +48,7 @@
 
 # SET THESE LINES
 myModuleID = u"security_performance_graph"
-version_build = "1002"
+version_build = "1005"
 MIN_BUILD_REQD = 3069
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -58,14 +61,25 @@ global security_performance_graph_frame_
 # SET LINES ABOVE ^^^^
 
 # COPY >> START
+import __builtin__ as builtins
+
+def checkObjectInNameSpace(objectName):
+    """Checks globals() and builtins for the existence of the object name (used for StuWareSoftSystems' bootstrap)"""
+    if objectName is None or not isinstance(objectName, basestring) or objectName == u"": return False
+    if objectName in globals(): return True
+    return objectName in dir(builtins)
+
+
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
 MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
-if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
-if u"moneydance_extension_loader" in globals():
+if MD_REF is None: raise Exception(u"CRITICAL ERROR - moneydance object/variable is None?")
+if checkObjectInNameSpace(u"moneydance_extension_loader"):
     MD_EXTENSION_LOADER = moneydance_extension_loader
 else:
     MD_EXTENSION_LOADER = None
+
+if (u"__file__" in globals() and __file__.startswith(u"bootstrapped_")): del __file__       # Prevent bootstrapped loader setting this....
 
 from java.lang import System, Runnable
 from javax.swing import JFrame, SwingUtilities, SwingWorker
@@ -185,7 +199,7 @@ elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"moneydance_extension_loader" not in globals():
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -805,21 +819,6 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
-    def doesUserAcceptDisclaimer(theParent, theTitle, disclaimerQuestion):
-        disclaimer = myPopupAskForInput(theParent,
-                                        theTitle,
-                                        "DISCLAIMER:",
-                                        "%s Type 'IAGREE' to continue.." %(disclaimerQuestion),
-                                        "NO",
-                                        False,
-                                        JOptionPane.ERROR_MESSAGE)
-        agreed = (disclaimer == "IAGREE")
-        if agreed:
-            myPrint("B", "%s: User AGREED to disclaimer question: '%s'" %(theTitle, disclaimerQuestion))
-        else:
-            myPrint("B", "%s: User DECLINED disclaimer question: '%s' - no action/changes made" %(theTitle, disclaimerQuestion))
-        return agreed
-
     def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
@@ -833,7 +832,7 @@ Visit: %s (Author's site)
                                                 _options[0])
 
         if response == 2:
-            myPrint("B", "User requested to create a backup before update/fix - calling moneydance 'Export Backup' routine...")
+            myPrint("B", "User requested to create a backup before update/fix - calling Moneydance's 'Export Backup' routine...")
             MD_REF.getUI().setStatus("%s is creating a backup...." %(GlobalVars.thisScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
             MD_REF.getUI().setStatus("%s create (export) backup process completed...." %(GlobalVars.thisScriptName),0)
@@ -845,36 +844,6 @@ Visit: %s (Author's site)
                 return True
 
         return False
-
-    def confirm_backup_confirm_disclaimer(theFrame, theTitleToDisplay, theAction):
-
-        if not myPopupAskQuestion(theFrame,
-                                  theTitle=theTitleToDisplay,
-                                  theQuestion=theAction,
-                                  theOptionType=JOptionPane.YES_NO_OPTION,
-                                  theMessageType=JOptionPane.ERROR_MESSAGE):
-
-            txt = "'%s' User did not say yes to '%s' - no changes made" %(theTitleToDisplay, theAction)
-            setDisplayStatus(txt, "R")
-            myPrint("B", txt)
-            myPopupInformationBox(theFrame,"User did not agree to proceed - no changes made...","NO UPDATE",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        if not myPopupAskBackup(theFrame, "Would you like to perform a backup before %s" %(theTitleToDisplay)):
-            txt = "'%s' - User chose to exit without the fix/update...."%(theTitleToDisplay)
-            setDisplayStatus(txt, "R")
-            myPrint("B","'%s' User aborted at the backup prompt to '%s' - no changes made" %(theTitleToDisplay, theAction))
-            myPopupInformationBox(theFrame,"User aborted at the backup prompt - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        if not doesUserAcceptDisclaimer(theFrame, theTitleToDisplay, theAction):
-            setDisplayStatus("'%s' - User declined the disclaimer - no changes made...." %(theTitleToDisplay), "R")
-            myPrint("B","'%s' User did not say accept Disclaimer to '%s' - no changes made" %(theTitleToDisplay, theAction))
-            myPopupInformationBox(theFrame,"User did not accept Disclaimer - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        myPrint("B","'%s' - User has been offered opportunity to create a backup and they accepted the DISCLAIMER on Action: %s - PROCEEDING" %(theTitleToDisplay, theAction))
-        return True
 
     # Copied MD_REF.getUI().askQuestion
     def myPopupAskQuestion(theParent=None,
@@ -1082,7 +1051,7 @@ Visit: %s (Author's site)
             return self.lResult[0]
 
         def go(self):
-            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "In MyPopUpDialogBox.", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
             class MyPopUpDialogBoxRunnable(Runnable):
@@ -1091,7 +1060,7 @@ Visit: %s (Author's site)
 
                 def run(self):                                                                                                      # noqa
 
-                    myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+                    myPrint("DB", "In MyPopUpDialogBoxRunnable.", inspect.currentframe().f_code.co_name, "()")
                     myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
                     # Create a fake JFrame so we can set the Icons...
@@ -2153,9 +2122,9 @@ Visit: %s (Author's site)
 
             # IntelliJ doesnt like the use of 'print' (as it's a keyword)
             try:
-                if "MD_REF" in globals():
+                if checkObjectInNameSpace("MD_REF"):
                     usePrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")
-                elif "moneydance" in globals():
+                elif checkObjectInNameSpace("moneydance"):
                     usePrintFontSize = eval("moneydance.getUI().getFonts().print.getSize()")
                 else:
                     usePrintFontSize = GlobalVars.defaultPrintFontSize  # Just in case cleanup_references() has tidied up once script ended
@@ -2549,7 +2518,7 @@ Visit: %s (Author's site)
                     theJText.setEditable(False)
                     theJText.setLineWrap(self.callingClass.lWrapText)
                     theJText.setWrapStyleWord(False)
-                    theJText.setFont( getMonoFont() )
+                    theJText.setFont(getMonoFont())
 
                     jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
                     jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
@@ -2734,9 +2703,9 @@ Visit: %s (Author's site)
             _label3.setForeground(getColorBlue())
             aboutPanel.add(_label3)
 
-            displayString=scriptExit
+            displayString = scriptExit
             displayJText = JTextArea(displayString)
-            displayJText.setFont( getMonoFont() )
+            displayJText.setFont(getMonoFont())
             displayJText.setEditable(False)
             displayJText.setLineWrap(False)
             displayJText.setWrapStyleWord(False)
@@ -2928,28 +2897,9 @@ Visit: %s (Author's site)
                 return fm
         return None
 
-    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)
+    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)                         # 2022.0
 
-    def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)
-
-    def shutdownMDPlusPoller():
-        if isMDPlusEnabledBuild():
-            myPrint("DB", "Shutting down the MD+ poller")
-            plusPoller = MD_REF.getUI().getPlusController()
-            if plusPoller is not None:
-                invokeMethodByReflection(plusPoller, "shutdown", None)
-                setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
-            # NOTE: MDPlus.licenseCache should be reset too, but it's a 'private static final' field....
-            #       hence restart MD if changing (importing/zapping) the license object
-            myPrint("DB", "... MD+ poller shutdown...")
-
-    def shutdownMDAlertController():
-        if isAlertControllerEnabledBuild():
-            myPrint("DB", "Shutting down the Alert Controller")
-            alertController = MD_REF.getUI().getAlertController()
-            if alertController is not None:
-                invokeMethodByReflection(alertController, "shutdown", None)
-                setFieldByReflection(MD_REF.getUI(), "alertController", None)
+    def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################

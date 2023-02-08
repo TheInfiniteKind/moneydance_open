@@ -173,7 +173,7 @@ CODING TIPS
     OnlinePayeeListener, OnlinePaymentListener, OnlineTxnListener, ReminderListener, TransactionListener
 
 - Quick Java tip on "context"
-    This is a reference to Main. In Python, you can access the variable "moneydance". In Java use the following for example:
+    This is a reference to Main. In Python, you can access (cast) the variable "moneydance". In Java use the following for example:
     com.moneydance.apps.md.controller.Main mdContext = (com.moneydance.apps.md.controller.Main) context;
 
 - Review:

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1018)
+# list_future_reminders.py (build: 1021) - Feb 2023
 
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2022 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -60,6 +60,9 @@
 # build: 1018 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
 # build: 1018 - Common code
 # build: 1018 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
+# build: 1019 - For Kevin Stembridge: added CMD-K to skip the next occurrence of all reminders...; Tweak common code...
+# build: 1020 - Tweaked init message with time
+# build: 1021 - Added bootstrap to execute compiled version of extension (faster to load)....
 
 # Displays Moneydance future reminders
 
@@ -71,7 +74,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1018"
+version_build = "1021"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -83,14 +86,25 @@ global list_future_reminders_frame_
 # SET LINES ABOVE ^^^^
 
 # COPY >> START
+import __builtin__ as builtins
+
+def checkObjectInNameSpace(objectName):
+    """Checks globals() and builtins for the existence of the object name (used for StuWareSoftSystems' bootstrap)"""
+    if objectName is None or not isinstance(objectName, basestring) or objectName == u"": return False
+    if objectName in globals(): return True
+    return objectName in dir(builtins)
+
+
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
 MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
-if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
-if u"moneydance_extension_loader" in globals():
+if MD_REF is None: raise Exception(u"CRITICAL ERROR - moneydance object/variable is None?")
+if checkObjectInNameSpace(u"moneydance_extension_loader"):
     MD_EXTENSION_LOADER = moneydance_extension_loader
 else:
     MD_EXTENSION_LOADER = None
+
+if (u"__file__" in globals() and __file__.startswith(u"bootstrapped_")): del __file__       # Prevent bootstrapped loader setting this....
 
 from java.lang import System, Runnable
 from javax.swing import JFrame, SwingUtilities, SwingWorker
@@ -210,7 +224,7 @@ elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"moneydance_extension_loader" not in globals():
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -385,6 +399,7 @@ else:
     # Other used by this program
     GlobalVars.saveStatusLabel = None
     GlobalVars.md_dateFormat = None
+    GlobalVars.MAX_END_DATE = 20991231
 
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
@@ -795,21 +810,6 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
-    def doesUserAcceptDisclaimer(theParent, theTitle, disclaimerQuestion):
-        disclaimer = myPopupAskForInput(theParent,
-                                        theTitle,
-                                        "DISCLAIMER:",
-                                        "%s Type 'IAGREE' to continue.." %(disclaimerQuestion),
-                                        "NO",
-                                        False,
-                                        JOptionPane.ERROR_MESSAGE)
-        agreed = (disclaimer == "IAGREE")
-        if agreed:
-            myPrint("B", "%s: User AGREED to disclaimer question: '%s'" %(theTitle, disclaimerQuestion))
-        else:
-            myPrint("B", "%s: User DECLINED disclaimer question: '%s' - no action/changes made" %(theTitle, disclaimerQuestion))
-        return agreed
-
     def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
@@ -823,7 +823,7 @@ Visit: %s (Author's site)
                                                 _options[0])
 
         if response == 2:
-            myPrint("B", "User requested to create a backup before update/fix - calling moneydance 'Export Backup' routine...")
+            myPrint("B", "User requested to create a backup before update/fix - calling Moneydance's 'Export Backup' routine...")
             MD_REF.getUI().setStatus("%s is creating a backup...." %(GlobalVars.thisScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
             MD_REF.getUI().setStatus("%s create (export) backup process completed...." %(GlobalVars.thisScriptName),0)
@@ -835,36 +835,6 @@ Visit: %s (Author's site)
                 return True
 
         return False
-
-    def confirm_backup_confirm_disclaimer(theFrame, theTitleToDisplay, theAction):
-
-        if not myPopupAskQuestion(theFrame,
-                                  theTitle=theTitleToDisplay,
-                                  theQuestion=theAction,
-                                  theOptionType=JOptionPane.YES_NO_OPTION,
-                                  theMessageType=JOptionPane.ERROR_MESSAGE):
-
-            txt = "'%s' User did not say yes to '%s' - no changes made" %(theTitleToDisplay, theAction)
-            setDisplayStatus(txt, "R")
-            myPrint("B", txt)
-            myPopupInformationBox(theFrame,"User did not agree to proceed - no changes made...","NO UPDATE",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        if not myPopupAskBackup(theFrame, "Would you like to perform a backup before %s" %(theTitleToDisplay)):
-            txt = "'%s' - User chose to exit without the fix/update...."%(theTitleToDisplay)
-            setDisplayStatus(txt, "R")
-            myPrint("B","'%s' User aborted at the backup prompt to '%s' - no changes made" %(theTitleToDisplay, theAction))
-            myPopupInformationBox(theFrame,"User aborted at the backup prompt - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        if not doesUserAcceptDisclaimer(theFrame, theTitleToDisplay, theAction):
-            setDisplayStatus("'%s' - User declined the disclaimer - no changes made...." %(theTitleToDisplay), "R")
-            myPrint("B","'%s' User did not say accept Disclaimer to '%s' - no changes made" %(theTitleToDisplay, theAction))
-            myPopupInformationBox(theFrame,"User did not accept Disclaimer - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        myPrint("B","'%s' - User has been offered opportunity to create a backup and they accepted the DISCLAIMER on Action: %s - PROCEEDING" %(theTitleToDisplay, theAction))
-        return True
 
     # Copied MD_REF.getUI().askQuestion
     def myPopupAskQuestion(theParent=None,
@@ -1072,7 +1042,7 @@ Visit: %s (Author's site)
             return self.lResult[0]
 
         def go(self):
-            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "In MyPopUpDialogBox.", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
             class MyPopUpDialogBoxRunnable(Runnable):
@@ -1081,7 +1051,7 @@ Visit: %s (Author's site)
 
                 def run(self):                                                                                                      # noqa
 
-                    myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+                    myPrint("DB", "In MyPopUpDialogBoxRunnable.", inspect.currentframe().f_code.co_name, "()")
                     myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
                     # Create a fake JFrame so we can set the Icons...
@@ -2143,9 +2113,9 @@ Visit: %s (Author's site)
 
             # IntelliJ doesnt like the use of 'print' (as it's a keyword)
             try:
-                if "MD_REF" in globals():
+                if checkObjectInNameSpace("MD_REF"):
                     usePrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")
-                elif "moneydance" in globals():
+                elif checkObjectInNameSpace("moneydance"):
                     usePrintFontSize = eval("moneydance.getUI().getFonts().print.getSize()")
                 else:
                     usePrintFontSize = GlobalVars.defaultPrintFontSize  # Just in case cleanup_references() has tidied up once script ended
@@ -2539,7 +2509,7 @@ Visit: %s (Author's site)
                     theJText.setEditable(False)
                     theJText.setLineWrap(self.callingClass.lWrapText)
                     theJText.setWrapStyleWord(False)
-                    theJText.setFont( getMonoFont() )
+                    theJText.setFont(getMonoFont())
 
                     jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
                     jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
@@ -2724,9 +2694,9 @@ Visit: %s (Author's site)
             _label3.setForeground(getColorBlue())
             aboutPanel.add(_label3)
 
-            displayString=scriptExit
+            displayString = scriptExit
             displayJText = JTextArea(displayString)
-            displayJText.setFont( getMonoFont() )
+            displayJText.setFont(getMonoFont())
             displayJText.setEditable(False)
             displayJText.setLineWrap(False)
             displayJText.setWrapStyleWord(False)
@@ -2918,28 +2888,9 @@ Visit: %s (Author's site)
                 return fm
         return None
 
-    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)
+    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)                         # 2022.0
 
-    def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)
-
-    def shutdownMDPlusPoller():
-        if isMDPlusEnabledBuild():
-            myPrint("DB", "Shutting down the MD+ poller")
-            plusPoller = MD_REF.getUI().getPlusController()
-            if plusPoller is not None:
-                invokeMethodByReflection(plusPoller, "shutdown", None)
-                setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
-            # NOTE: MDPlus.licenseCache should be reset too, but it's a 'private static final' field....
-            #       hence restart MD if changing (importing/zapping) the license object
-            myPrint("DB", "... MD+ poller shutdown...")
-
-    def shutdownMDAlertController():
-        if isAlertControllerEnabledBuild():
-            myPrint("DB", "Shutting down the Alert Controller")
-            alertController = MD_REF.getUI().getAlertController()
-            if alertController is not None:
-                invokeMethodByReflection(alertController, "shutdown", None)
-                setFieldByReflection(MD_REF.getUI(), "alertController", None)
+    def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -3468,12 +3419,12 @@ Visit: %s (Author's site)
                         for freq in range(0, len(rem.getRepeatWeeklyDays())):
                             if len(remfreq) > 0: remfreq += " & "
                             if weekly == Reminder.WEEKLY_EVERY:                remfreq += 'WEEKLY_EVERY'
-                            if weekly == Reminder.WEEKLY_EVERY_FIFTH:            remfreq += 'WEEKLY_EVERY_FIFTH'
-                            if weekly == Reminder.WEEKLY_EVERY_FIRST:            remfreq += 'WEEKLY_EVERY_FIRST'
-                            if weekly == Reminder.WEEKLY_EVERY_FOURTH:            remfreq += 'WEEKLY_EVERY_FOURTH'
-                            if weekly == Reminder.WEEKLY_EVERY_LAST:            remfreq += 'WEEKLY_EVERY_LAST'
-                            if weekly == Reminder.WEEKLY_EVERY_SECOND:            remfreq += 'WEEKLY_EVERY_SECOND'
-                            if weekly == Reminder.WEEKLY_EVERY_THIRD:            remfreq += 'WEEKLY_EVERY_THIRD'
+                            if weekly == Reminder.WEEKLY_EVERY_FIFTH:          remfreq += 'WEEKLY_EVERY_FIFTH'
+                            if weekly == Reminder.WEEKLY_EVERY_FIRST:          remfreq += 'WEEKLY_EVERY_FIRST'
+                            if weekly == Reminder.WEEKLY_EVERY_FOURTH:         remfreq += 'WEEKLY_EVERY_FOURTH'
+                            if weekly == Reminder.WEEKLY_EVERY_LAST:           remfreq += 'WEEKLY_EVERY_LAST'
+                            if weekly == Reminder.WEEKLY_EVERY_SECOND:         remfreq += 'WEEKLY_EVERY_SECOND'
+                            if weekly == Reminder.WEEKLY_EVERY_THIRD:          remfreq += 'WEEKLY_EVERY_THIRD'
 
                             if rem.getRepeatWeeklyDays()[freq] == 1: remfreq += '(on Sunday)'
                             if rem.getRepeatWeeklyDays()[freq] == 2: remfreq += '(on Monday)'
@@ -3489,8 +3440,8 @@ Visit: %s (Author's site)
                     if len(rem.getRepeatMonthly()) > 0 and rem.getRepeatMonthly()[0] > 0:
                         for freq in range(0, len(rem.getRepeatMonthly())):
                             if len(remfreq) > 0: remfreq += " & "
-                            if monthly == Reminder.MONTHLY_EVERY:                 remfreq += 'MONTHLY_EVERY'
-                            if monthly == Reminder.MONTHLY_EVERY_FOURTH:         remfreq += 'MONTHLY_EVERY_FOURTH'
+                            if monthly == Reminder.MONTHLY_EVERY:               remfreq += 'MONTHLY_EVERY'
+                            if monthly == Reminder.MONTHLY_EVERY_FOURTH:        remfreq += 'MONTHLY_EVERY_FOURTH'
                             if monthly == Reminder.MONTHLY_EVERY_OTHER:         remfreq += 'MONTHLY_EVERY_OTHER'
                             if monthly == Reminder.MONTHLY_EVERY_SIXTH:         remfreq += 'MONTHLY_EVERY_SIXTH'
                             if monthly == Reminder.MONTHLY_EVERY_THIRD:         remfreq += 'MONTHLY_EVERY_THIRD'
@@ -3500,7 +3451,7 @@ Visit: %s (Author's site)
                                 remfreq += '(on LAST_DAY_OF_MONTH)'
                             else:
                                 if 4 <= theday <= 20 or 24 <= theday <= 30: suffix = "th"
-                                else:                                        suffix = ["st", "nd", "rd"][theday % 10 - 1]
+                                else: suffix = ["st", "nd", "rd"][theday % 10 - 1]
 
                                 remfreq += '(on ' + str(theday) + suffix + ')'
 
@@ -3511,19 +3462,21 @@ Visit: %s (Author's site)
                         remfreq += 'YEARLY'
                         countfreqs += 1
 
-                    if len(remfreq) < 1 or countfreqs == 0:         remfreq = '!ERROR! NO ACTUAL FREQUENCY OPTIONS SET PROPERLY ' + remfreq
-                    if countfreqs > 1: remfreq = "**MULTI** " + remfreq													# noqa
+                    if len(remfreq) < 1 or countfreqs == 0:
+                        remfreq = '!ERROR! NO ACTUAL FREQUENCY OPTIONS SET PROPERLY ' + remfreq
+
+                    if countfreqs > 1:
+                        remfreq = "**MULTI** " + remfreq													            # noqa
 
                     todayInt = DateUtil.getStrippedDateInt()
                     lastdate = rem.getLastDateInt()
 
                     if lastdate < 1:  # Detect if an enddate is set
-                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR),20991231)
-                        nextDate = rem.getNextOccurance(stopDate)  # Use cutoff  far into the future
-
+                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
                     else:
-                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR),lastdate)
-                        nextDate = rem.getNextOccurance(stopDate)  # Stop at enddate
+                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), lastdate)
+
+                    nextDate = rem.getNextOccurance(stopDate)
 
                     if nextDate < 1:
                         continue
@@ -3540,7 +3493,7 @@ Visit: %s (Author's site)
                             myPopupInformationBox(list_future_reminders_frame_,"ERROR - Loop detected..?! Will exit (review console log)",theMessageType=JOptionPane.ERROR_MESSAGE)
                             raise Exception("Loop detected..? Aborting.... Reminder %s" %(rem))
 
-                        calcNext = myGetNextOccurance(rem,nextDate, stopDate)
+                        calcNext = myGetNextOccurance(rem, nextDate, stopDate)
 
                         if calcNext < 1:
                             break
@@ -3981,6 +3934,51 @@ Visit: %s (Author's site)
                     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
                     terminate_script()
 
+            class SkipReminders(AbstractAction):
+
+                # noinspection PyMethodMayBeStatic
+                # noinspection PyUnusedLocal
+                def actionPerformed(self, event):
+                    myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+                    if not myPopupAskQuestion(list_future_reminders_frame_, theTitle="SKIP ALL REMINDERS", theQuestion="Skip the next occurrence of ALL reminders?", theMessageType=JOptionPane.WARNING_MESSAGE):
+                        return
+
+                    skippedReminders = 0
+                    _msgPad = 100
+                    _msg = pad("Please wait:", _msgPad, padChar=".")
+                    pleaseWait = MyPopUpDialogBox(list_future_reminders_frame_, theStatus=_msg, theTitle=_msg, lModal=False, OKButtonText="WAIT")
+                    pleaseWait.go()
+
+                    myPrint("B", "User has requested to skip next occurrence of ALL reminders...")
+                    rems = MD_REF.getCurrentAccountBook().getReminders().getAllReminders()
+                    for r in rems:
+                        _msg = pad("Please wait: On reminder '%s'" %(r.getDescription()), _msgPad, padChar=".")
+                        pleaseWait.updateMessages(newTitle=_msg, newStatus=_msg)
+
+                        todayInt = DateUtil.getStrippedDateInt()
+                        lastdate = r.getLastDateInt()
+
+                        if lastdate < 1:
+                            stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
+                        else:
+                            stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), lastdate)
+
+                        nextDate = r.getNextOccurance(stopDate)
+                        if nextDate < 1:
+                            myPrint("B", "... not skipping reminder %s, as nextdate calculated as: %s" %(r, nextDate))
+                            continue
+
+                        myPrint("B", "... skipping reminder %s, setting acknowledged date to %s" %(r, nextDate))
+                        r.setAcknowledgedInt(nextDate)
+                        r.syncItem()
+                        skippedReminders += 1
+
+                    pleaseWait.updateMessages(newTitle="SKIP ALL REMINDERS", newStatus="FINISHED Skipping reminders:", newMessage="%s reminders skipped..." %(skippedReminders))
+
+                    myPrint("B", ">> FINISHED skipping the next occurrence of ALL reminders...");
+                    RefreshMenuAction().refresh()
+
+
             class PrintJTable(AbstractAction):
                 def __init__(self, _frame, _table, _title):
                     self._frame = _frame
@@ -3991,8 +3989,7 @@ Visit: %s (Author's site)
                     printJTable(_theFrame=self._frame, _theJTable=self._table, _theTitle=self._title)
 
             class ExtractMenuAction():
-                def __init__(self):
-                    pass
+                def __init__(self): pass
 
                 # noinspection PyMethodMayBeStatic
                 def extract_or_close(self):
@@ -4003,8 +4000,7 @@ Visit: %s (Author's site)
 
 
             class RefreshMenuAction():
-                def __init__(self):
-                    pass
+                def __init__(self): pass
 
                 # noinspection PyMethodMayBeStatic
                 def refresh(self):
@@ -4289,11 +4285,13 @@ Visit: %s (Author's site)
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut),  "print-me")
+                    list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_K, shortcut),  "skip-reminders")
 
                     if lAllowEscapeExitApp_SWSS:
                         list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
 
                     list_future_reminders_frame_.getRootPane().getActionMap().put("close-window", CloseAction())
+                    list_future_reminders_frame_.getRootPane().getActionMap().put("skip-reminders", SkipReminders())
 
 
                     if Platform.isOSX():
@@ -4379,7 +4377,8 @@ Visit: %s (Author's site)
 
                 GlobalVars.saveJTable.getTableHeader().setReorderingAllowed(True)
                 GlobalVars.saveJTable.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
-                GlobalVars.saveJTable.selectionMode = ListSelectionModel.SINGLE_SELECTION
+                GlobalVars.saveJTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+                # GlobalVars.saveJTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
                 fontSize = GlobalVars.saveJTable.getFont().getSize()+5
                 GlobalVars.saveJTable.setRowHeight(fontSize)

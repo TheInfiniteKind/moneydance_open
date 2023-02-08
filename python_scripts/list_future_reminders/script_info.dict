@@ -2,7 +2,7 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "list_future_reminders.py"
+      "script_file" = "list_future_reminders_bootstrap.py"
       "name" = "List Future Reminders"
     }
     {

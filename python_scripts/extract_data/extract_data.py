@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1025 - August 2021 - Stuart Beesley
+# extract_data.py - build: 1030 - Feb 2023 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -18,7 +18,7 @@
 
 # MIT License
 #
-# Copyright (c) 2021-2022 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -101,9 +101,13 @@
 # build: 1025 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
 # build: 1025 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
 # build: 1025 - Add date range selector/filter to extract_investment_registers
-# build: 1025 - Fix SG2020 cost_basis conversion back to back on certain non-base security situations (it assumed the cost basis was base)
-
-# todo - consider creating a Yahoo Finance portfolio upload format
+# build: 1025 - Fix SG2020 cost_basis conversion back to base on certain non-base security situations (it wrongly assumed the cost basis was always base)
+# build: 1026 - Tweak common code
+# build: 1027 - Tweak init message with time
+# build: 1028 - Added fields to extract investment transactions extract... SecurityID and [optional] security account information (e.g. type, apr, subtype etc)
+# build: 1029 - Added new extract_security_balances for Dainius Krusinskas: dainiusforex@gmail.com / dainius.krusinskas@outlook.com (dainiusforex)
+# build: 1029 - DAMN! I hit the method/file too large (to compile) problem.. Still not proud of the duplications and use of globals. Anyway, rejigged the script to put more sections in methods...
+# build: 1030 - Added bootstrap to execute compiled version of extension (faster to load)....
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -111,7 +115,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1025"
+version_build = "1030"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -123,14 +127,25 @@ global extract_data_frame_
 # SET LINES ABOVE ^^^^
 
 # COPY >> START
+import __builtin__ as builtins
+
+def checkObjectInNameSpace(objectName):
+    """Checks globals() and builtins for the existence of the object name (used for StuWareSoftSystems' bootstrap)"""
+    if objectName is None or not isinstance(objectName, basestring) or objectName == u"": return False
+    if objectName in globals(): return True
+    return objectName in dir(builtins)
+
+
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
 MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
-if MD_REF is None: raise Exception("CRITICAL ERROR - moneydance object/variable is None?")
-if u"moneydance_extension_loader" in globals():
+if MD_REF is None: raise Exception(u"CRITICAL ERROR - moneydance object/variable is None?")
+if checkObjectInNameSpace(u"moneydance_extension_loader"):
     MD_EXTENSION_LOADER = moneydance_extension_loader
 else:
     MD_EXTENSION_LOADER = None
+
+if (u"__file__" in globals() and __file__.startswith(u"bootstrapped_")): del __file__       # Prevent bootstrapped loader setting this....
 
 from java.lang import System, Runnable
 from javax.swing import JFrame, SwingUtilities, SwingWorker
@@ -250,7 +265,7 @@ elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"moneydance_extension_loader" not in globals():
+elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -382,7 +397,6 @@ else:
 
     GlobalVars.thisScriptName = u"%s.py(Extension)" %(myModuleID)
 
-
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
@@ -392,6 +406,7 @@ else:
     import subprocess
     from com.moneydance.apps.md.controller import Util
     from com.moneydance.apps.md.view.gui import ConsoleWindow, DateRangeChooser
+    from com.infinitekind.moneydance.model import SecurityType
 
     # from stockglance2020 and extract_reminders_csv
     from java.awt.event import AdjustmentListener
@@ -428,7 +443,7 @@ else:
     # Saved to parameters file
 
     # Common
-    global __extract_data, extract_data_frame_, extract_filename
+    global __extract_data, extract_filename
     global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
     global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
     global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
@@ -444,7 +459,7 @@ else:
 
     # from extract_investment_transactions_csv
     global lIncludeOpeningBalances, lAdjustForSplits
-    global lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT
+    global lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
     global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
 
     # from stockglance2020
@@ -519,12 +534,14 @@ else:
     saveDropDownAccountUUID_EAR = ""                                                                                    # noqa
     saveDropDownDateRange_EAR = ""                                                                                      # noqa
     lIncludeInternalTransfers_EAR = True                                                                                # noqa
+    dropDownAccount_EAR = None                                                                                          # noqa
 
     # from extract_investment_transactions_csv
     lIncludeOpeningBalances = True                                                                                      # noqa
     lAdjustForSplits = True                                                                                             # noqa
     lExtractAttachments_EIT = False                                                                                     # noqa
     lOmitLOTDataFromExtract_EIT = False                                                                                 # noqa
+    lExtractExtraSecurityAcctInfo = False                                                                               # noqa
     lFilterDateRange_EIT = False                                                                                        # noqa
     filterDateStart_EIT = 0                                                                                             # noqa
     filterDateEnd_EIT = 0                                                                                               # noqa
@@ -950,21 +967,6 @@ Visit: %s (Author's site)
             result+=ch
         return result
 
-    def doesUserAcceptDisclaimer(theParent, theTitle, disclaimerQuestion):
-        disclaimer = myPopupAskForInput(theParent,
-                                        theTitle,
-                                        "DISCLAIMER:",
-                                        "%s Type 'IAGREE' to continue.." %(disclaimerQuestion),
-                                        "NO",
-                                        False,
-                                        JOptionPane.ERROR_MESSAGE)
-        agreed = (disclaimer == "IAGREE")
-        if agreed:
-            myPrint("B", "%s: User AGREED to disclaimer question: '%s'" %(theTitle, disclaimerQuestion))
-        else:
-            myPrint("B", "%s: User DECLINED disclaimer question: '%s' - no action/changes made" %(theTitle, disclaimerQuestion))
-        return agreed
-
     def myPopupAskBackup(theParent=None, theMessage="What no message?!", lReturnTheTruth=False):
 
         _options=["STOP", "PROCEED WITHOUT BACKUP", "DO BACKUP NOW"]
@@ -978,7 +980,7 @@ Visit: %s (Author's site)
                                                 _options[0])
 
         if response == 2:
-            myPrint("B", "User requested to create a backup before update/fix - calling moneydance 'Export Backup' routine...")
+            myPrint("B", "User requested to create a backup before update/fix - calling Moneydance's 'Export Backup' routine...")
             MD_REF.getUI().setStatus("%s is creating a backup...." %(GlobalVars.thisScriptName),-1.0)
             MD_REF.getUI().saveToBackup(None)
             MD_REF.getUI().setStatus("%s create (export) backup process completed...." %(GlobalVars.thisScriptName),0)
@@ -990,36 +992,6 @@ Visit: %s (Author's site)
                 return True
 
         return False
-
-    def confirm_backup_confirm_disclaimer(theFrame, theTitleToDisplay, theAction):
-
-        if not myPopupAskQuestion(theFrame,
-                                  theTitle=theTitleToDisplay,
-                                  theQuestion=theAction,
-                                  theOptionType=JOptionPane.YES_NO_OPTION,
-                                  theMessageType=JOptionPane.ERROR_MESSAGE):
-
-            txt = "'%s' User did not say yes to '%s' - no changes made" %(theTitleToDisplay, theAction)
-            setDisplayStatus(txt, "R")
-            myPrint("B", txt)
-            myPopupInformationBox(theFrame,"User did not agree to proceed - no changes made...","NO UPDATE",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        if not myPopupAskBackup(theFrame, "Would you like to perform a backup before %s" %(theTitleToDisplay)):
-            txt = "'%s' - User chose to exit without the fix/update...."%(theTitleToDisplay)
-            setDisplayStatus(txt, "R")
-            myPrint("B","'%s' User aborted at the backup prompt to '%s' - no changes made" %(theTitleToDisplay, theAction))
-            myPopupInformationBox(theFrame,"User aborted at the backup prompt - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        if not doesUserAcceptDisclaimer(theFrame, theTitleToDisplay, theAction):
-            setDisplayStatus("'%s' - User declined the disclaimer - no changes made...." %(theTitleToDisplay), "R")
-            myPrint("B","'%s' User did not say accept Disclaimer to '%s' - no changes made" %(theTitleToDisplay, theAction))
-            myPopupInformationBox(theFrame,"User did not accept Disclaimer - no changes made...","DISCLAIMER",JOptionPane.ERROR_MESSAGE)
-            return False
-
-        myPrint("B","'%s' - User has been offered opportunity to create a backup and they accepted the DISCLAIMER on Action: %s - PROCEEDING" %(theTitleToDisplay, theAction))
-        return True
 
     # Copied MD_REF.getUI().askQuestion
     def myPopupAskQuestion(theParent=None,
@@ -1227,7 +1199,7 @@ Visit: %s (Author's site)
             return self.lResult[0]
 
         def go(self):
-            myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+            myPrint("DB", "In MyPopUpDialogBox.", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
             class MyPopUpDialogBoxRunnable(Runnable):
@@ -1236,7 +1208,7 @@ Visit: %s (Author's site)
 
                 def run(self):                                                                                                      # noqa
 
-                    myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
+                    myPrint("DB", "In MyPopUpDialogBoxRunnable.", inspect.currentframe().f_code.co_name, "()")
                     myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
                     # Create a fake JFrame so we can set the Icons...
@@ -2298,9 +2270,9 @@ Visit: %s (Author's site)
 
             # IntelliJ doesnt like the use of 'print' (as it's a keyword)
             try:
-                if "MD_REF" in globals():
+                if checkObjectInNameSpace("MD_REF"):
                     usePrintFontSize = eval("MD_REF.getUI().getFonts().print.getSize()")
-                elif "moneydance" in globals():
+                elif checkObjectInNameSpace("moneydance"):
                     usePrintFontSize = eval("moneydance.getUI().getFonts().print.getSize()")
                 else:
                     usePrintFontSize = GlobalVars.defaultPrintFontSize  # Just in case cleanup_references() has tidied up once script ended
@@ -2694,7 +2666,7 @@ Visit: %s (Author's site)
                     theJText.setEditable(False)
                     theJText.setLineWrap(self.callingClass.lWrapText)
                     theJText.setWrapStyleWord(False)
-                    theJText.setFont( getMonoFont() )
+                    theJText.setFont(getMonoFont())
 
                     jInternalFrame.getRootPane().getActionMap().put("close-window", self.callingClass.CloseAction(jInternalFrame))
                     jInternalFrame.getRootPane().getActionMap().put("search-window", SearchAction(jInternalFrame,theJText))
@@ -2879,9 +2851,9 @@ Visit: %s (Author's site)
             _label3.setForeground(getColorBlue())
             aboutPanel.add(_label3)
 
-            displayString=scriptExit
+            displayString = scriptExit
             displayJText = JTextArea(displayString)
-            displayJText.setFont( getMonoFont() )
+            displayJText.setFont(getMonoFont())
             displayJText.setEditable(False)
             displayJText.setLineWrap(False)
             displayJText.setWrapStyleWord(False)
@@ -3073,28 +3045,9 @@ Visit: %s (Author's site)
                 return fm
         return None
 
-    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)
+    def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)                         # 2022.0
 
-    def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)
-
-    def shutdownMDPlusPoller():
-        if isMDPlusEnabledBuild():
-            myPrint("DB", "Shutting down the MD+ poller")
-            plusPoller = MD_REF.getUI().getPlusController()
-            if plusPoller is not None:
-                invokeMethodByReflection(plusPoller, "shutdown", None)
-                setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
-            # NOTE: MDPlus.licenseCache should be reset too, but it's a 'private static final' field....
-            #       hence restart MD if changing (importing/zapping) the license object
-            myPrint("DB", "... MD+ poller shutdown...")
-
-    def shutdownMDAlertController():
-        if isAlertControllerEnabledBuild():
-            myPrint("DB", "Shutting down the Alert Controller")
-            alertController = MD_REF.getUI().getAlertController()
-            if alertController is not None:
-                invokeMethodByReflection(alertController, "shutdown", None)
-                setFieldByReflection(MD_REF.getUI(), "alertController", None)
+    def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -3125,8 +3078,11 @@ Visit: %s (Author's site)
         global lAllCategories_EAR, categoriesFilter_EAR
 
         # extract_investment_transactions_csv
-        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT
+        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
         global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
+
+        # extract_security_balances_csv
+        # None
 
         # extract_currency_history_csv
         global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
@@ -3200,9 +3156,13 @@ Visit: %s (Author's site)
         if GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits") is not None: lAdjustForSplits = GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits")
         if GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT") is not None: lExtractAttachments_EIT = GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT") is not None: lOmitLOTDataFromExtract_EIT = GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT")                                                                                  # noqa
+        if GlobalVars.parametersLoadedFromFile.get("lExtractExtraSecurityAcctInfo") is not None: lExtractExtraSecurityAcctInfo = GlobalVars.parametersLoadedFromFile.get("lExtractExtraSecurityAcctInfo")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("lFilterDateRange_EIT") is not None: lFilterDateRange_EIT = GlobalVars.parametersLoadedFromFile.get("lFilterDateRange_EIT")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("filterDateStart_EIT") is not None: filterDateStart_EIT = GlobalVars.parametersLoadedFromFile.get("filterDateStart_EIT")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("filterDateEnd_EIT") is not None: filterDateEnd_EIT = GlobalVars.parametersLoadedFromFile.get("filterDateEnd_EIT")                                                                                  # noqa
+
+        # extract_security_balances_csv
+        # None
 
         # extract_currency_history_csv
         if GlobalVars.parametersLoadedFromFile.get("lSimplify_ECH") is not None: lSimplify_ECH = GlobalVars.parametersLoadedFromFile.get("lSimplify_ECH")
@@ -3280,12 +3240,15 @@ Visit: %s (Author's site)
         # extract_investment_transactions_csv
         GlobalVars.parametersLoadedFromFile["lExtractAttachments_EIT"] = lExtractAttachments_EIT
         GlobalVars.parametersLoadedFromFile["lOmitLOTDataFromExtract_EIT"] = lOmitLOTDataFromExtract_EIT
+        GlobalVars.parametersLoadedFromFile["lExtractExtraSecurityAcctInfo"] = lExtractExtraSecurityAcctInfo
         GlobalVars.parametersLoadedFromFile["lFilterDateRange_EIT"] = lFilterDateRange_EIT
         GlobalVars.parametersLoadedFromFile["filterDateStart_EIT"] = filterDateStart_EIT
         GlobalVars.parametersLoadedFromFile["filterDateEnd_EIT"] = filterDateEnd_EIT
-
         GlobalVars.parametersLoadedFromFile["lIncludeOpeningBalances"] = lIncludeOpeningBalances
         GlobalVars.parametersLoadedFromFile["lAdjustForSplits"] = lAdjustForSplits
+
+        # extract_security_balances_csv
+        # None
 
         # extract_currency_history_csv
         GlobalVars.parametersLoadedFromFile["lSimplify_ECH"] = lSimplify_ECH
@@ -3352,7 +3315,7 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
-    if MD_REF.getCurrentAccount().getBook() is None:
+    if MD_REF.getCurrentAccountBook() is None:
         myPrint("B", "Moneydance appears to be empty - no data to scan - aborting...")
         myPopupInformationBox(None,"Moneydance appears to be empty - no data to scan - aborting...","EMPTY DATASET")
         raise(Exception("Moneydance appears to be empty - no data to scan - aborting..."))
@@ -3387,6 +3350,1953 @@ Visit: %s (Author's site)
     else:
         myPrint("DB",".. Main App Already within the EDT so calling naked...")
         MainAppRunnable().run()
+
+    def getExtractChoice(defaultSelection):
+        _exit = False
+
+        _userFilters = JPanel(GridLayout(0, 1))
+        user_stockglance2020 = JRadioButton("StockGlance2020 - display consolidated stock info on screen and/or extract to csv", False)
+        user_reminders = JRadioButton("Reminders - display on screen, and/or extract to csv", False)
+        user_account_txns = JRadioButton("Account register transactions - extract to csv (attachments optional)", False)
+        user_investment_txns = JRadioButton("Investment transactions - extract to csv (attachments optional)", False)
+        user_security_balances = JRadioButton("Security Balances - extract to csv", False)
+        user_price_history = JRadioButton("Currency price history - extract to csv (simple or detailed formats)", False)
+        user_AccountNumbers = JRadioButton("Produce report of Accounts and bank/account number information (Useful for legacy / Will making)", False)
+
+        bg = ButtonGroup()
+        bg.add(user_stockglance2020)
+        bg.add(user_reminders)
+        bg.add(user_account_txns)
+        bg.add(user_investment_txns)
+        bg.add(user_security_balances)
+        bg.add(user_price_history)
+        bg.add(user_AccountNumbers)
+        bg.clearSelection()
+
+        if defaultSelection is not None:
+            if defaultSelection == "_SG2020": user_stockglance2020.setSelected(True)
+            elif defaultSelection == "_ERTC": user_reminders.setSelected(True)
+            elif defaultSelection == "_EAR": user_account_txns.setSelected(True)
+            elif defaultSelection == "_EIT": user_investment_txns.setSelected(True)
+            elif defaultSelection == "_ESB": user_security_balances.setSelected(True)
+            elif defaultSelection == "_ECH": user_price_history.setSelected(True)
+
+        _userFilters.add(user_stockglance2020)
+        _userFilters.add(user_reminders)
+        _userFilters.add(user_account_txns)
+        _userFilters.add(user_investment_txns)
+        _userFilters.add(user_security_balances)
+        _userFilters.add(user_price_history)
+        _userFilters.add(user_AccountNumbers)
+
+        _lExtractStockGlance2020 = _lExtractReminders = _lExtractAccountTxns = _lExtractInvestmentTxns = _lExtractSecurityBalances = _lExtractCurrencyHistory = False
+
+        while True:
+            _options = ["EXIT", "PROCEED"]
+            _userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
+                                                        _userFilters,
+                                                        "EXTRACT DATA: SELECT OPTION",
+                                                        JOptionPane.OK_CANCEL_OPTION,
+                                                        JOptionPane.QUESTION_MESSAGE,
+                                                        getMDIcon(lAlwaysGetIcon=True),
+                                                        _options,
+                                                        _options[0]))
+            if _userAction != 1:
+                myPrint("B","User chose to exit....")
+                _exit = True
+                break
+
+            if user_stockglance2020.isSelected():
+                myPrint("B","StockGlance2020 investment extract option has been chosen")
+                _lExtractStockGlance2020 = True
+                break
+
+            if user_reminders.isSelected():
+                myPrint("B","Reminders display / extract option has been chosen")
+                _lExtractReminders = True
+                break
+
+            if user_account_txns.isSelected():
+                myPrint("B","Account Transactions extract option has been chosen")
+                _lExtractAccountTxns = True
+                break
+
+            if user_investment_txns.isSelected():
+                myPrint("B","Investment Transactions extract option has been chosen")
+                _lExtractInvestmentTxns = True
+                break
+
+            if user_security_balances.isSelected():
+                myPrint("B","Security Balances extract option has been chosen")
+                _lExtractSecurityBalances = True
+                break
+
+            if user_price_history.isSelected():
+                myPrint("B","Currency Price History extract option has been chosen")
+                _lExtractCurrencyHistory = True
+                break
+
+            if user_AccountNumbers.isSelected():
+                myPrint("B","Produce report of Accounts and bank/account number information (Useful for legacy / Will making) - has been chosen")
+                myPopupInformationBox(extract_data_frame_, "PLEASE USE Toolbox Extension >> 'MENU: Account & Category Tools' to produce the Account Numbers report", "USE TOOLBOX", theMessageType=JOptionPane.WARNING_MESSAGE)
+                continue
+
+            continue
+
+        if user_stockglance2020.isSelected():       newDefault = "_SG2020"
+        elif user_reminders.isSelected():           newDefault = "_ERTC"
+        elif user_account_txns.isSelected():        newDefault = "_EAR"
+        elif user_investment_txns.isSelected():     newDefault = "_EIT"
+        elif user_security_balances.isSelected():   newDefault = "_ESB"
+        elif user_price_history.isSelected():       newDefault = "_ECH"
+        else:                                       newDefault = None
+
+        return _exit, newDefault, _lExtractStockGlance2020, _lExtractReminders, _lExtractAccountTxns, _lExtractInvestmentTxns, _lExtractSecurityBalances, _lExtractCurrencyHistory
+
+    def setupExtractAccountTxnsParameters():
+        # ##############################################
+        # EXTRACT_ACCOUNT_REGISTERS_CSV PARAMETER SCREEN
+        # ##############################################
+
+        global debug
+        global lWriteParametersToExportFile_SWSS
+        global dropDownAccount_EAR
+
+        global lDidIUseAttachmentDir, csvfilename, lDisplayOnly
+        global baseCurrency
+        global transactionTable, dataKeys, attachmentDir, relativePath
+
+        global __extract_data, extract_filename
+        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+        global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
+        global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+        global whichDefaultExtractToRun_SWSS
+        global lIncludeSubAccounts_EAR, lIncludeOpeningBalances_EAR, userdateStart_EAR, userdateEnd_EAR, lAllTags_EAR, tagFilter_EAR
+        global lAllText_EAR, textFilter_EAR, lAllCategories_EAR, categoriesFilter_EAR, lExtractAttachments_EAR, saveDropDownAccountUUID_EAR, saveDropDownDateRange_EAR, lIncludeInternalTransfers_EAR
+
+        _exit = False
+
+        _userFilters = JPanel(GridLayout(0, 2))
+
+        class PanelAction(AbstractAction):
+
+            def __init__(self, thePanel):
+                self.thePanel=thePanel
+
+            def actionPerformed(self, event):
+                myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
+
+                theDateRangeDropDown = None
+                theAccountDropdown = None
+                theStartDate = None
+                theEndDate = None
+
+                theSubAccounts = None
+                theHideInactiveAccounts = None
+                theHideHiddenAccounts = None
+                theFilterAccounts = None
+                theFilterCurrency = None
+
+                _components = self.thePanel.getComponents()
+                for _theComponent in _components:
+                    if isinstance(_theComponent, (JComboBox, JTextField, JCheckBox)):
+                        if event.getSource().getName() == _theComponent.getName():
+                            if _theComponent.getName() == "dateDropdown": theDateRangeDropDown  = _theComponent
+                            if _theComponent.getName() == "accountDropdown": theAccountDropdown  = _theComponent
+
+                        if _theComponent.getName() == "user_selectDateStart": theStartDate  = _theComponent
+                        elif _theComponent.getName() == "user_selectDateEnd": theEndDate  = _theComponent
+                        elif _theComponent.getName() == "user_includeSubAccounts": theSubAccounts  = _theComponent
+                        elif _theComponent.getName() == "user_hideInactiveAccounts": theHideInactiveAccounts  = _theComponent
+                        elif _theComponent.getName() == "user_hideHiddenAccounts": theHideHiddenAccounts  = _theComponent
+                        elif _theComponent.getName() == "user_selectAccounts": theFilterAccounts  = _theComponent
+                        elif _theComponent.getName() == "user_selectCurrency": theFilterCurrency  = _theComponent
+
+                if not theDateRangeDropDown and not theAccountDropdown: return
+
+                if theDateRangeDropDown:
+                    _start, _end = getDateRange(theDateRangeDropDown.getSelectedItem())
+                    if theDateRangeDropDown.getSelectedItem() == "custom_date":
+                        theStartDate.setEnabled(True)
+                        theEndDate.setEnabled(True)
+                    else:
+                        theStartDate.setEnabled(False)
+                        theEndDate.setEnabled(False)
+
+                    # noinspection PyUnresolvedReferences
+                    theStartDate.setDateInt(_start)
+                    # noinspection PyUnresolvedReferences
+                    theEndDate.setDateInt(_end)
+
+                if theAccountDropdown:
+
+                    if isinstance(theAccountDropdown.getSelectedItem(),(str,unicode)):
+                        theSubAccounts.setEnabled(False)
+                        theHideInactiveAccounts.setEnabled(True)
+                        theHideHiddenAccounts.setEnabled(True)
+                        theFilterAccounts.setEnabled(True)
+                        theFilterCurrency.setEnabled(True)
+
+                        theSubAccounts.setSelected(False)
+
+                    else:
+                        theSubAccounts.setEnabled(True)
+                        theHideInactiveAccounts.setEnabled(False)
+                        theHideHiddenAccounts.setEnabled(False)
+                        theFilterAccounts.setEnabled(False)
+                        theFilterCurrency.setEnabled(False)
+
+                        theHideInactiveAccounts.setSelected(True)
+                        theHideHiddenAccounts.setSelected(True)
+                        theFilterAccounts.setText("ALL")
+                        theFilterCurrency.setText("ALL")
+
+                myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+                return
+
+
+        labelHideInactiveAccounts = JLabel("Hide Inactive Accounts?")
+        user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
+        user_hideInactiveAccounts.setName("user_hideInactiveAccounts")
+
+        labelHideHiddenAccounts = JLabel("Hide Hidden Accounts?")
+        user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
+        user_hideHiddenAccounts.setName("user_hideHiddenAccounts")
+
+        labelFilterCurrency = JLabel("Filter for Currency containing text '...' or ALL:")
+        user_selectCurrency = JTextField(12)
+        user_selectCurrency.setName("user_selectCurrency")
+        user_selectCurrency.setDocument(JTextFieldLimitYN(30, True, "CURR"))
+        if lAllCurrency: user_selectCurrency.setText("ALL")
+        else:            user_selectCurrency.setText(filterForCurrency)
+
+        # noinspection PyArgumentList
+        class MyAcctFilterForDropdown(AcctFilter):
+
+            def __init__(self):
+                super(AcctFilter, self).__init__()
+
+            def matches(self, acct):                                                                                        # noqa
+
+                # noinspection PyUnresolvedReferences
+                if not (acct.getAccountType() == Account.AccountType.BANK
+                        or acct.getAccountType() == Account.AccountType.CREDIT_CARD
+                        or acct.getAccountType() == Account.AccountType.LOAN
+                        or acct.getAccountType() == Account.AccountType.LIABILITY
+                        or acct.getAccountType() == Account.AccountType.ASSET):
+                    return False
+
+                # This logic replicates Moneydance AcctFilter.ACTIVE_ACCOUNTS_FILTER
+                if (acct.getAccountOrParentIsInactive()): return False
+                if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
+
+                return True
+
+        class StoreAccount:
+            def __init__(self, _acct):
+                if not isinstance(_acct, Account): raise Exception("Error: Object: %s(%s) is not an Account Object!" %(_acct, type(_acct)))
+                self.acct = _acct
+
+            def getAccount(self): return self.acct
+
+            def __str__(self):      return "%s : %s" %(self.getAccount().getAccountType(), self.getAccount().getAccountName())
+            def __repr__(self):     return self.__str__()
+            def toString(self):     return self.__str__()
+
+
+        labelSelectOneAccount = JLabel("Select One Account here....")
+        mdAcctList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilterForDropdown())
+        textToUse = "<NONE SELECTED - USE FILTERS BELOW>"
+
+        acctList = ArrayList()
+        acctList.add(0,textToUse)
+        for getAcct in mdAcctList: acctList.add(StoreAccount(getAcct))
+        del mdAcctList
+
+        accountDropdown = JComboBox(acctList)
+        accountDropdown.setName("accountDropdown")
+
+        if saveDropDownAccountUUID_EAR != "":
+            findAccount = AccountUtil.findAccountWithID(MD_REF.getRootAccount(), saveDropDownAccountUUID_EAR)
+            if findAccount is not None:
+                for acctObj in acctList:
+                    if isinstance(acctObj, StoreAccount) and acctObj.getAccount() == findAccount:
+                        accountDropdown.setSelectedItem(acctObj)
+                        break
+
+        labelFilterAccounts = JLabel("Filter for Accounts containing text '...' (or ALL):")
+        user_selectAccounts = JTextField(12)
+        user_selectAccounts.setName("user_selectAccounts")
+        user_selectAccounts.setDocument(JTextFieldLimitYN(30, True, "CURR"))
+        if lAllAccounts: user_selectAccounts.setText("ALL")
+        else:            user_selectAccounts.setText(filterForAccounts)
+
+        labelIncludeSubAccounts = JLabel("Include Sub Accounts?:")
+        user_includeSubAccounts = JCheckBox("",lIncludeSubAccounts_EAR)
+        user_includeSubAccounts.setName("user_includeSubAccounts")
+
+        labelSeparator1 = JLabel("--------------------------------------------------------------------")
+        labelSeparator2 = JLabel("--<<Select Account above *OR* ACCT filters below - BUT NOT BOTH>>---".upper())
+        labelSeparator2.setForeground(getColorBlue())
+        labelSeparator3 = JLabel("--------------------------------------------------------------------")                # noqa
+        labelSeparator4 = JLabel("--------------------------------------------------------------------")                # noqa
+        labelSeparator5 = JLabel("--------------------------------------------------------------------")
+        labelSeparator6 = JLabel("-------------<<Filters below are AND (not OR)>> --------------------")
+        labelSeparator6.setForeground(getColorBlue())
+        labelSeparator7 = JLabel("--------------------------------------------------------------------")
+        labelSeparator8 = JLabel("--------------------------------------------------------------------")
+
+        labelOpeningBalances = JLabel("Include Opening Balances?")
+        user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances_EAR)
+        user_selectOpeningBalances.setName("user_selectOpeningBalances")
+
+        if isinstance(accountDropdown.getSelectedItem(),(str,unicode)):
+            user_includeSubAccounts.setEnabled(False)
+            user_hideInactiveAccounts.setEnabled(True)
+            user_hideHiddenAccounts.setEnabled(True)
+            user_selectAccounts.setEnabled(True)
+            user_selectCurrency.setEnabled(True)
+
+            user_includeSubAccounts.setSelected(False)
+
+        else:
+            user_includeSubAccounts.setSelected(True)
+            user_hideInactiveAccounts.setEnabled(False)
+            user_hideHiddenAccounts.setEnabled(False)
+            user_selectAccounts.setEnabled(False)
+            user_selectCurrency.setEnabled(False)
+
+            user_hideInactiveAccounts.setSelected(True)
+            user_hideHiddenAccounts.setSelected(True)
+            user_selectAccounts.setText("ALL")
+            user_selectCurrency.setText("ALL")
+
+        # noinspection PyUnusedLocal
+        labelIncludeTransfers = JLabel("Include Transfers between Accounts Selected in this Extract?")
+        user_selectIncludeTransfers = JCheckBox("", lIncludeInternalTransfers_EAR)
+        user_selectIncludeTransfers.setName("user_selectIncludeTransfers")
+
+        dateOptions = [ "year_to_date",
+                        "fiscal_year_to_date",
+                        "last_fiscal_quarter",
+                        "quarter_to_date",
+                        "month_to_date",
+                        "this_year",
+                        "this_fiscal_year",
+                        "this_quarter",
+                        "this_month",
+                        "this_week",
+                        "last_year",
+                        "last_fiscal_year",
+                        "last_quarter",
+                        "last_month",
+                        "last_12_months",
+                        "last_365_days",
+                        "last_30_days",
+                        "last_1_day",
+                        "all_dates",
+                        "custom_date",
+                        "last_week",]
+
+        def getDateRange( selectedOption ):         # DateRange
+
+            todayInt = Util.getStrippedDateInt()
+
+            if selectedOption == "year_to_date":
+                return (DateUtil.firstDayInYear(todayInt), todayInt)
+            elif selectedOption ==  "quarter_to_date":
+                return (DateUtil.firstDayInQuarter(todayInt), todayInt)
+            elif selectedOption ==  "month_to_date":
+                return (DateUtil.firstDayInMonth(todayInt), todayInt)
+            elif selectedOption ==  "this_year":
+                return (DateUtil.firstDayInYear(todayInt), DateUtil.lastDayInYear(todayInt))
+            elif selectedOption ==  "this_fiscal_year":
+                return (DateUtil.firstDayInFiscalYear(todayInt), DateUtil.lastDayInFiscalYear(todayInt))
+            elif selectedOption ==  "fiscal_year_to_date":
+                return (DateUtil.firstDayInFiscalYear(todayInt), todayInt)
+            elif selectedOption ==  "last_fiscal_year":
+                return (DateUtil.decrementYear(DateUtil.firstDayInFiscalYear(todayInt)),
+                        DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(todayInt)))
+            elif selectedOption ==  "last_fiscal_quarter":
+                baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
+                return (DateUtil.firstDayInFiscalQuarter(baseDate), DateUtil.lastDayInFiscalQuarter(baseDate))
+            elif selectedOption ==  "this_quarter":
+                return (Util.firstDayInQuarter(todayInt), Util.lastDayInQuarter(todayInt))
+            elif selectedOption ==  "this_month":
+                return (Util.firstDayInMonth(todayInt), Util.lastDayInMonth(todayInt))
+            elif selectedOption ==  "this_week":
+                return (Util.firstDayInWeek(todayInt), Util.lastDayInWeek(todayInt))
+            elif selectedOption ==  "last_year":
+                return (Util.firstDayInYear(Util.decrementYear(todayInt)),
+                        Util.lastDayInYear(Util.decrementYear(todayInt)))
+            elif selectedOption ==  "last_quarter":
+                baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
+                return (DateUtil.firstDayInQuarter(baseDate), DateUtil.lastDayInQuarter(baseDate))
+            elif selectedOption ==  "last_month":
+                i = Util.firstDayInMonth(todayInt)
+                return (Util.incrementDate(i, 0, -1, 0), Util.incrementDate(i, 0, 0, -1))
+            elif selectedOption ==  "last_week":
+                firstDayInWeek = Util.firstDayInWeek(todayInt)
+                return (Util.incrementDate(firstDayInWeek, 0, 0, -7), Util.incrementDate(firstDayInWeek, 0, 0, -1))
+            elif selectedOption ==  "last_12_months":
+                firstDayInMonth = Util.firstDayInMonth(todayInt)
+                return (Util.incrementDate(firstDayInMonth, 0, -12, 0), Util.incrementDate(firstDayInMonth, 0, 0, -1))
+            elif selectedOption ==  "last_1_day":
+                return (Util.incrementDate(todayInt, 0, 0, -1), Util.incrementDate(todayInt, 0, 0, 0))
+            elif selectedOption == "last_30_days":
+                return (Util.incrementDate(todayInt, 0, 0, -30), todayInt)
+            elif selectedOption ==  "last_365_days":
+                return (Util.incrementDate(todayInt, 0, 0, -365), todayInt)
+            elif selectedOption ==  "custom_date":
+                pass
+            elif selectedOption ==  "all_dates":
+                pass
+            else:
+                pass
+                # raise(Exception("Error - date range incorrect"))
+
+            # cal = Calendar.getInstance()
+            # cal.add(1, 1)
+            return 19600101,20301231
+
+
+        dateDropdown = JComboBox(dateOptions)
+        dateDropdown.setName("dateDropdown")
+        if saveDropDownDateRange_EAR != "":
+            try:
+                dateDropdown.setSelectedItem(saveDropDownDateRange_EAR)
+            except:
+                pass
+
+
+        labelDateDropDown = JLabel("Select Date Range:")
+
+
+        labelDateStart = JLabel("Date range start:")
+        user_selectDateStart = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
+        user_selectDateStart.setName("user_selectDateStart")                                                        # noqa
+        user_selectDateStart.setEnabled(False)                                                                      # noqa
+        # user_selectDateStart.setDisabledTextColor(Color.gray)                                                       # noqa
+        user_selectDateStart.setDateInt(userdateStart_EAR)
+
+        labelDateEnd = JLabel("Date range end:")
+        user_selectDateEnd = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
+        user_selectDateEnd.setName("user_selectDateEnd")                                                            # noqa
+        user_selectDateEnd.setEnabled(False)                                                                        # noqa
+        # user_selectDateEnd.setDisabledTextColor(Color.gray)                                                         # noqa
+        user_selectDateEnd.setDateInt(userdateEnd_EAR)
+
+        if saveDropDownDateRange_EAR == "custom_date":
+            user_selectDateStart.setEnabled(True)                                                                   # noqa
+            user_selectDateEnd.setEnabled(True)                                                                     # noqa
+        else:
+            # Refresh the date range
+            user_selectDateStart.setEnabled(False)                                                                  # noqa
+            user_selectDateEnd.setEnabled(False)                                                                    # noqa
+            _s, _e = getDateRange(saveDropDownDateRange_EAR)
+            user_selectDateStart.setDateInt(_s)
+            user_selectDateEnd.setDateInt(_e)
+
+        labelTags = JLabel("Filter for Tags (separate with commas) or ALL:")
+        user_selectTags = JTextField(12)
+        user_selectTags.setName("user_selectTags")
+        user_selectTags.setDocument(JTextFieldLimitYN(30, True, "CURR"))
+        if lAllTags_EAR: user_selectTags.setText("ALL")
+        else:            user_selectTags.setText(tagFilter_EAR)
+
+        labelText = JLabel("Filter for Text in Description or Memo fields or ALL:")
+        user_selectText = JTextField(12)
+        user_selectText.setName("user_selectText")
+        user_selectText.setDocument(JTextFieldLimitYN(30, True, "CURR"))
+        if lAllText_EAR: user_selectText.setText("ALL")
+        else:            user_selectText.setText(textFilter_EAR)
+
+        labelCategories = JLabel("Filter for Text in Category or ALL:")
+        user_selectCategories = JTextField(12)
+        user_selectCategories.setName("user_selectCategories")
+        user_selectCategories.setDocument(JTextFieldLimitYN(30, True, "CURR"))
+        if lAllCategories_EAR: user_selectCategories.setText("ALL")
+        else:            user_selectCategories.setText(categoriesFilter_EAR)
+
+        labelAttachments = JLabel("Extract & Download Attachments?")
+        user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EAR)
+        user_selectExtractAttachments.setName("user_selectExtractAttachments")
+
+        dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+        labelDateFormat = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+        user_dateformat = JComboBox(dateStrings)
+        user_dateformat.setName("user_dateformat")
+
+        if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+        elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+        elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+        else: user_dateformat.setSelectedItem("yyyy/mm/dd")
+
+        labelStripASCII = JLabel("Strip non ASCII characters from CSV export?")
+        user_selectStripASCII = JCheckBox("", lStripASCII)
+        user_selectStripASCII.setName("user_selectStripASCII")
+
+        delimStrings = [";","|",","]
+        labelDelimiter = JLabel("Change CSV Export Delimiter from default to: '|,'")
+        user_selectDELIMITER = JComboBox(delimStrings)
+        user_selectDELIMITER.setName("user_selectDELIMITER")
+        user_selectDELIMITER.setSelectedItem(csvDelimiter)
+
+        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+        user_selectBOM.setName("user_selectBOM")
+
+        labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+        user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+        user_ExportParameters.setName("user_ExportParameters")
+
+        labelDEBUG = JLabel("Turn DEBUG Verbose messages on?")
+        user_selectDEBUG = JCheckBox("", debug)
+        user_selectDEBUG.setName("user_selectDEBUG")
+
+        labelSTATUSbar = JLabel("")
+        labelSTATUSbar.setName("labelSTATUSbar")
+
+        _userFilters.add(labelSelectOneAccount)
+        _userFilters.add(accountDropdown)
+        _userFilters.add(labelIncludeSubAccounts)
+        _userFilters.add(user_includeSubAccounts)
+        _userFilters.add(labelSeparator1)
+        _userFilters.add(labelSeparator2)
+        _userFilters.add(labelHideInactiveAccounts)
+        _userFilters.add(user_hideInactiveAccounts)
+        _userFilters.add(labelHideHiddenAccounts)
+        _userFilters.add(user_hideHiddenAccounts)
+        _userFilters.add(labelFilterAccounts)
+        _userFilters.add(user_selectAccounts)
+        _userFilters.add(labelFilterCurrency)
+        _userFilters.add(user_selectCurrency)
+        _userFilters.add(labelSeparator5)
+        _userFilters.add(labelSeparator6)
+
+        _userFilters.add(labelDateDropDown)
+        _userFilters.add(dateDropdown)
+
+        _userFilters.add(labelDateStart)
+        _userFilters.add(user_selectDateStart)
+        _userFilters.add(labelDateEnd)
+        _userFilters.add(user_selectDateEnd)
+        _userFilters.add(labelTags)
+        _userFilters.add(user_selectTags)
+        _userFilters.add(labelText)
+        _userFilters.add(user_selectText)
+        _userFilters.add(labelCategories)
+        _userFilters.add(user_selectCategories)
+        _userFilters.add(labelSeparator7)
+        _userFilters.add(labelSeparator8)
+        _userFilters.add(labelOpeningBalances)
+        _userFilters.add(user_selectOpeningBalances)
+        # _userFilters.add(labelIncludeTransfers)
+        # _userFilters.add(user_selectIncludeTransfers)
+        _userFilters.add(labelAttachments)
+        _userFilters.add(user_selectExtractAttachments)
+        _userFilters.add(labelDateFormat)
+        _userFilters.add(user_dateformat)
+        _userFilters.add(labelStripASCII)
+        _userFilters.add(user_selectStripASCII)
+        _userFilters.add(labelDelimiter)
+        _userFilters.add(user_selectDELIMITER)
+        _userFilters.add(labelBOM)
+        _userFilters.add(user_selectBOM)
+        _userFilters.add(labelExportParameters)
+        _userFilters.add(user_ExportParameters)
+        _userFilters.add(labelDEBUG)
+        _userFilters.add(user_selectDEBUG)
+
+        _userFilters.add(labelSTATUSbar)
+
+        components = _userFilters.getComponents()
+        for theComponent in components:
+            if isinstance(theComponent, (JComboBox,JTextField)):
+                theComponent.addActionListener(PanelAction(_userFilters))
+
+
+        options = ["ABORT", "CSV Export"]
+
+        while True:
+
+            userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
+                                                       _userFilters, "EXTRACT ACCOUNT REGISTERS: Set Script Parameters....",
+                                                       JOptionPane.OK_CANCEL_OPTION,
+                                                       JOptionPane.QUESTION_MESSAGE,
+                                                       getMDIcon(lAlwaysGetIcon=True),
+                                                       options, options[1]))
+            if userAction != 1:
+                myPrint("B", "User Cancelled Parameter selection.. Will abort..")
+                # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+                lDisplayOnly = False
+                _exit = True
+                break
+
+            if not (user_selectDateStart.getDateInt() <= user_selectDateEnd.getDateInt()
+                    and user_selectDateEnd.getDateInt() >= user_selectDateStart.getDateInt()):
+                user_selectDateStart.setForeground(getColorRed())                                               # noqa
+                user_selectDateEnd.setForeground(getColorRed())                                                 # noqa
+                labelSTATUSbar.setText(">> Error - date range incorrect, please try again... <<".upper())
+                labelSTATUSbar.setForeground(getColorRed())
+                continue
+
+            if user_selectTags.getText() != "ALL" and user_selectOpeningBalances.isSelected():
+                user_selectTags.setForeground(getColorRed())
+                user_selectOpeningBalances.setForeground(getColorRed())
+                labelSTATUSbar.setText(">> Error - You cannot filter on Tags and Include Opening Balances..... <<".upper())
+                labelSTATUSbar.setForeground(getColorRed())
+                continue
+
+            if user_selectText.getText() != "ALL" and user_selectOpeningBalances.isSelected():
+                user_selectText.setForeground(getColorRed())
+                user_selectOpeningBalances.setForeground(getColorRed())
+                labelSTATUSbar.setText(">> Error - You cannot filter on Text and Include Opening Balances..... <<".upper())
+                labelSTATUSbar.setForeground(getColorRed())
+                continue
+
+            if user_selectCategories.getText() != "ALL" and user_selectOpeningBalances.isSelected():
+                user_selectCategories.setForeground(getColorRed())
+                user_selectOpeningBalances.setForeground(getColorRed())
+                labelSTATUSbar.setText(">> Error - You cannot filter on Categories and Include Opening Balances..... <<".upper())
+                labelSTATUSbar.setForeground(getColorRed())
+                continue
+
+            user_selectDateStart.setForeground(saveColor)                                                           # noqa
+            user_selectDateEnd.setForeground(saveColor)                                                             # noqa
+            labelSTATUSbar.setText("")
+
+            if isinstance(accountDropdown.getSelectedItem(),(str,unicode)) and accountDropdown.getSelectedItem() == textToUse:
+                # So <NONE> Selected in Account dropdown....
+                if user_includeSubAccounts.isSelected():
+                    user_includeSubAccounts.setSelected(False)
+                    labelSTATUSbar.setText(">> Error - Dropdown Accounts <NONE> and Include Sub Accounts True... <<".upper())
+                    labelSTATUSbar.setForeground(getColorRed())
+                    user_includeSubAccounts.setForeground(getColorRed())
+                    accountDropdown.setForeground(getColorRed())
+                    continue
+            elif isinstance(accountDropdown.getSelectedItem(),(StoreAccount)):
+
+                if (user_selectAccounts.getText() != "ALL" or user_selectCurrency.getText() != "ALL"
+                        or (not user_hideInactiveAccounts.isSelected()) or (not user_hideHiddenAccounts.isSelected())):
+                    user_selectAccounts.setText("ALL")
+                    user_selectCurrency.setText("ALL")
+                    user_hideInactiveAccounts.setSelected(True)
+                    user_hideHiddenAccounts.setSelected(True)
+                    labelSTATUSbar.setText(">> Error - Dropdown Accounts Selected. FILTERS RESET TO DEFAULTS <<".upper())
+                    labelSTATUSbar.setForeground(getColorRed())
+                    user_selectAccounts.setForeground(getColorRed())
+                    user_selectCurrency.setForeground(getColorRed())
+                    user_hideHiddenAccounts.setForeground(getColorRed())
+                    user_hideInactiveAccounts.setForeground(getColorRed())
+                    continue
+            else:
+                myPrint("B", "@@@ LOGIC ERROR IN PARAMETER DROPDOWN - ABORTING")
+                raise(Exception("@@@ LOGIC ERROR IN PARAMETER DROPDOWN"))
+
+            accountDropdown.setForeground(saveColor)
+            user_includeSubAccounts.setForeground(saveColor)
+            user_selectAccounts.setForeground(saveColor)
+            user_selectCurrency.setForeground(saveColor)
+            user_hideHiddenAccounts.setForeground(saveColor)
+            user_hideInactiveAccounts.setForeground(saveColor)
+
+            break   # Loop
+
+        if not _exit:
+            myPrint("DB", "Parameters Captured",
+                    "DropdownAccount:", accountDropdown.getSelectedItem(),
+                    "SubActs:", user_includeSubAccounts.isSelected(),
+                    "InActAct:", user_hideInactiveAccounts.isSelected(),
+                    "HidAct:", user_hideHiddenAccounts.isSelected(),
+                    "Filter Accts:", user_selectAccounts.getText(),
+                    "Filter Curr:", user_selectCurrency.getText(),
+                    "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
+                    # "Incl Transfers:", user_selectIncludeTransfers.isSelected(),
+                    "Date Range:", dateDropdown.getSelectedItem(),
+                    "StartDate:", user_selectDateStart.getDateInt(),
+                    "EndDate:", user_selectDateEnd.getDateInt(),
+                    "DownldAttachments:", user_selectExtractAttachments.isSelected(),
+                    "Tags:", user_selectTags.getText(),
+                    "Text:", user_selectText.getText(),
+                    "Categories:", user_selectCategories.getText(),
+                    "User Date Format:", user_dateformat.getSelectedItem(),
+                    "Strip ASCII:", user_selectStripASCII.isSelected(),
+                    "Write BOM to file:", user_selectBOM.isSelected(),
+                    "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
+                    "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+                    "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
+            # endif
+
+            hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
+            hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
+            lIncludeSubAccounts_EAR = user_includeSubAccounts.isSelected()
+            lIncludeOpeningBalances_EAR = user_selectOpeningBalances.isSelected()
+            lIncludeInternalTransfers_EAR = user_selectIncludeTransfers.isSelected()
+            lExtractAttachments_EAR = user_selectExtractAttachments.isSelected()
+            lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+            lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
+
+            lStripASCII = user_selectStripASCII.isSelected()
+            debug = user_selectDEBUG.isSelected()
+
+            if user_selectTags.getText() == "ALL" or user_selectTags.getText().strip() == "":
+                lAllTags_EAR = True
+                tagFilter_EAR = "ALL"
+            else:
+                lAllTags_EAR = False
+                tagFilter_EAR = user_selectTags.getText()
+
+            if user_selectText.getText() == "ALL" or user_selectText.getText().strip() == "":
+                lAllText_EAR = True
+                textFilter_EAR = "ALL"
+            else:
+                lAllText_EAR = False
+                textFilter_EAR = user_selectText.getText()
+
+            if user_selectCategories.getText() == "ALL" or user_selectCategories.getText().strip() == "":
+                lAllCategories_EAR = True
+                categoriesFilter_EAR = "ALL"
+            else:
+                lAllCategories_EAR = False
+                categoriesFilter_EAR = user_selectCategories.getText()
+
+            userdateStart_EAR = user_selectDateStart.getDateInt()
+            userdateEnd_EAR = user_selectDateEnd.getDateInt()
+
+            if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+            elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+            elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+            elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
+            else:
+                # PROBLEM /  default
+                userdateformat = "%Y/%m/%d"
+
+
+            csvDelimiter = user_selectDELIMITER.getSelectedItem()
+            if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
+                myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+                csvDelimiter = ","
+            if GlobalVars.decimalCharSep == csvDelimiter:
+                myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
+                        GlobalVars.decimalCharSep, " - Proceeding without file export!!")
+                lDisplayOnly = True
+                myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
+                                            "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
+                                      "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+            saveDropDownDateRange_EAR = dateDropdown.getSelectedItem()
+
+            if isinstance(accountDropdown.getSelectedItem(), StoreAccount):
+                dropDownAccount_EAR = accountDropdown.getSelectedItem().getAccount()                            # noqa
+                # noinspection PyUnresolvedReferences
+                saveDropDownAccountUUID_EAR = dropDownAccount_EAR.getUUID()
+                lIncludeSubAccounts_EAR = user_includeSubAccounts.isSelected()
+                lAllAccounts = True
+                lAllCurrency = True
+                filterForAccounts = "ALL"
+                filterForCurrency = "ALL"
+                hideInactiveAccounts = True
+                hideHiddenAccounts = True
+            else:
+                dropDownAccount_EAR = None
+                saveDropDownAccountUUID_EAR = None
+                lIncludeSubAccounts_EAR = False
+                if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
+                    lAllAccounts = True
+                    filterForAccounts = "ALL"
+                else:
+                    lAllAccounts = False
+                    filterForAccounts = user_selectAccounts.getText()
+
+                if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
+                    lAllCurrency = True
+                    filterForCurrency = "ALL"
+                else:
+                    lAllCurrency = False
+                    filterForCurrency = user_selectCurrency.getText()
+
+
+            myPrint("DB", "DEBUG still turned ON (from Parameters)")
+
+            myPrint("B","User Parameters...")
+
+            if dropDownAccount_EAR:
+                # noinspection PyUnresolvedReferences
+                myPrint("B","Dropdown Account selected..: %s" %(dropDownAccount_EAR.getAccountName()))
+                myPrint("B","Include Sub Accounts.......: %s" %(lIncludeSubAccounts_EAR))
+            else:
+                myPrint("B","Hiding Inactive Accounts...: %s" %(hideInactiveAccounts))
+                myPrint("B","Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts))
+                myPrint("B","Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts))
+                myPrint("B","Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency))
+
+            myPrint("B","Include Opening Balances...: %s" %(lIncludeOpeningBalances_EAR))
+            # myPrint("B","Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR))
+            myPrint("B","Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR))
+            myPrint("B","Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR))
+            myPrint("B","Categories filter..........: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR))
+            myPrint("B","Download Attachments.......: %s" %(lExtractAttachments_EAR))
+            myPrint("B","Date range.................: %s" %(saveDropDownDateRange_EAR))
+            myPrint("B","Selected Start Date........: %s" %(userdateStart_EAR))
+            myPrint("B","Selected End Date..........: %s" %(userdateEnd_EAR))
+            myPrint("B", "user date format..........: %s" %(userdateformat))
+
+        return _exit
+
+    def setupExtractInvestmentAccountParameters():
+        # ####################################################
+        # EXTRACT_INVESTMENT_TRANSACTIONS_CSV PARAMETER SCREEN
+        # ####################################################
+
+        global debug
+        global lWriteParametersToExportFile_SWSS
+
+        global lDidIUseAttachmentDir, csvfilename, lDisplayOnly
+        global baseCurrency
+        global transactionTable, dataKeys, attachmentDir, relativePath
+
+        global __extract_data, extract_filename
+        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+        global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
+        global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+        global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
+        global whichDefaultExtractToRun_SWSS
+        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
+        global lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
+
+
+        label1 = JLabel("Hide Hidden Securities?")
+        user_hideHiddenSecurities = JCheckBox("", hideHiddenSecurities)
+
+        label2 = JLabel("Hide Inactive Accounts?")
+        user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
+
+        label3 = JLabel("Hide Hidden Accounts?")
+        user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
+
+        label4 = JLabel("Filter for Currency containing text '...' or ALL:")
+        user_selectCurrency = JTextField(5)
+        user_selectCurrency.setDocument(JTextFieldLimitYN(5, True, "CURR"))
+        if lAllCurrency: user_selectCurrency.setText("ALL")
+        else:            user_selectCurrency.setText(filterForCurrency)
+
+        label5 = JLabel("Filter for Security/Ticker containing text '...' or ALL:")
+        user_selectTicker = JTextField(12)
+        user_selectTicker.setDocument(JTextFieldLimitYN(12, True, "CURR"))
+        if lAllSecurity: user_selectTicker.setText("ALL")
+        else:            user_selectTicker.setText(filterForSecurity)
+
+        label6 = JLabel("Filter for Accounts containing text '...' (or ALL):")
+        user_selectAccounts = JTextField(12)
+        user_selectAccounts.setDocument(JTextFieldLimitYN(20, True, "CURR"))
+        if lAllAccounts: user_selectAccounts.setText("ALL")
+        else:            user_selectAccounts.setText(filterForAccounts)
+
+        user_dateRangeChooser = DateRangeChooser(MD_REF.getUI())
+
+        label_dateRange = JLabel("Filter transactions by date range:")
+        user_filterDateRange = JCheckBox("", lFilterDateRange_EIT)
+
+        label_dateStart = user_dateRangeChooser.getStartLabel()
+        if lFilterDateRange_EIT and filterDateStart_EIT != 0: user_dateRangeChooser.setStartDate(filterDateStart_EIT)
+        user_dateStart = user_dateRangeChooser.getStartField()
+        if lFilterDateRange_EIT and filterDateEnd_EIT != 0: user_dateRangeChooser.setEndDate(filterDateEnd_EIT)
+        label_dateEnd = user_dateRangeChooser.getEndLabel()
+        user_dateEnd = user_dateRangeChooser.getEndField()
+
+        label7 = JLabel("Include Opening Balances?")
+        user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances)
+
+        label8 = JLabel("Adjust for stock splits/")
+        user_selectAdjustSplits = JCheckBox("", lAdjustForSplits)
+
+        dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+        label9 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+        user_dateformat = JComboBox(dateStrings)
+
+        if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+        elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+        elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+        else: user_dateformat.setSelectedItem("yyyy/mm/dd")
+
+        labelOmitLOTDataFromExtract_EIT = JLabel("Omit Buy/Sell LOT Matching Data from extract file")
+        user_lOmitLOTDataFromExtract_EIT = JCheckBox("", lOmitLOTDataFromExtract_EIT)
+        user_lOmitLOTDataFromExtract_EIT.setName("user_lOmitLOTDataFromExtract_EIT")
+
+        labelExtractExtraSecurityAcctInfo = JLabel("Extract extra security account info")
+        user_lExtractExtraSecurityAcctInfo = JCheckBox("", lExtractExtraSecurityAcctInfo)
+        user_lExtractExtraSecurityAcctInfo.setName("user_lExtractExtraSecurityAcctInfo")
+
+        labelAttachments = JLabel("Extract & Download Attachments?")
+        user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EIT)
+        user_selectExtractAttachments.setName("user_selectExtractAttachments")
+
+        label10 = JLabel("Strip non ASCII characters from CSV export?")
+        user_selectStripASCII = JCheckBox("", lStripASCII)
+
+        delimStrings = [";","|",","]
+        label11 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
+        user_selectDELIMITER = JComboBox(delimStrings)
+        user_selectDELIMITER.setSelectedItem(csvDelimiter)
+
+        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+
+        labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+        user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+
+        label12 = JLabel("Turn DEBUG Verbose messages on?")
+        user_selectDEBUG = JCheckBox("", debug)
+
+        userFilters = JPanel(GridLayout(0, 2))
+        userFilters.add(label1)
+        userFilters.add(user_hideHiddenSecurities)
+        userFilters.add(label2)
+        userFilters.add(user_hideInactiveAccounts)
+        userFilters.add(label3)
+        userFilters.add(user_hideHiddenAccounts)
+        userFilters.add(label4)
+        userFilters.add(user_selectCurrency)
+        userFilters.add(label5)
+        userFilters.add(user_selectTicker)
+        userFilters.add(label6)
+        userFilters.add(user_selectAccounts)
+
+        # Date Range options
+        userFilters.add(JLabel("-"*30)); userFilters.add(JLabel("-"*30))
+        userFilters.add(label_dateRange)
+        userFilters.add(user_filterDateRange)
+        userFilters.add(user_dateRangeChooser.getChoiceLabel())
+        userFilters.add(user_dateRangeChooser.getChoice())
+        userFilters.add(label_dateStart)
+        userFilters.add(user_dateStart)
+        userFilters.add(label_dateEnd)
+        userFilters.add(user_dateEnd)
+        userFilters.add(JLabel("-"*30)); userFilters.add(JLabel("-"*30))
+
+        userFilters.add(label7)
+        userFilters.add(user_selectOpeningBalances)
+        userFilters.add(label8)
+        userFilters.add(user_selectAdjustSplits)
+        userFilters.add(labelOmitLOTDataFromExtract_EIT)
+        userFilters.add(user_lOmitLOTDataFromExtract_EIT)
+        userFilters.add(labelExtractExtraSecurityAcctInfo)
+        userFilters.add(user_lExtractExtraSecurityAcctInfo)
+        userFilters.add(labelAttachments)
+        userFilters.add(user_selectExtractAttachments)
+        userFilters.add(label9)
+        userFilters.add(user_dateformat)
+        userFilters.add(label10)
+        userFilters.add(user_selectStripASCII)
+        userFilters.add(label11)
+        userFilters.add(user_selectDELIMITER)
+        userFilters.add(labelBOM)
+        userFilters.add(user_selectBOM)
+        userFilters.add(labelExportParameters)
+        userFilters.add(user_ExportParameters)
+        userFilters.add(label12)
+        userFilters.add(user_selectDEBUG)
+
+        _exit = False
+        lDisplayOnly = False
+
+        options = ["ABORT", "CSV Export"]
+        userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT INVESTMENT TRANSACTIONS: Set Script Parameters....",
+                                                   JOptionPane.OK_CANCEL_OPTION,
+                                                   JOptionPane.QUESTION_MESSAGE,
+                                                   getMDIcon(lAlwaysGetIcon=True),
+                                                   options, options[1]))
+        if userAction == 1:  # Export
+            myPrint("DB", "Export chosen")
+            lDisplayOnly = False
+        else:
+            myPrint("B", "User Cancelled Parameter selection.. Will exit..")
+            # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+            lDisplayOnly = False
+            _exit = True
+
+        if not _exit:
+            myPrint("DB", "Parameters Captured",
+                    "Sec: ", user_hideHiddenSecurities.isSelected(),
+                    "InActAct:", user_hideInactiveAccounts.isSelected(),
+                    "HidAct:", user_hideHiddenAccounts.isSelected(),
+                    "Curr:", user_selectCurrency.getText(),
+                    "Ticker:", user_selectTicker.getText(),
+                    "Filter Accts:", user_selectAccounts.getText(),
+                    "Filter txns by date:", user_filterDateRange.isSelected(),
+                    "Filter txns start date:", user_dateRangeChooser.getDateRange().getStartDateInt(),
+                    "Filter txns end date:", user_dateRangeChooser.getDateRange().getEndDateInt(),
+                    "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
+                    "Adj Splits:", user_selectAdjustSplits.isSelected(),
+                    "OmitLOTData:", user_lOmitLOTDataFromExtract_EIT.isSelected(),
+                    "ExtraXtraSecAcctInfo:", user_lExtractExtraSecurityAcctInfo.isSelected(),
+                    "DownldAttachments:", user_selectExtractAttachments.isSelected(),
+                    "User Date Format:", user_dateformat.getSelectedItem(),
+                    "Strip ASCII:", user_selectStripASCII.isSelected(),
+                    "Write BOM to file:", user_selectBOM.isSelected(),
+                    "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+                    "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
+
+            hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
+            hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
+            hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
+
+            if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
+                lAllCurrency = True
+                filterForCurrency = "ALL"
+            else:
+                lAllCurrency = False
+                filterForCurrency = user_selectCurrency.getText()
+
+            if user_selectTicker.getText() == "ALL" or user_selectTicker.getText().strip() == "":
+                lAllSecurity = True
+                filterForSecurity = "ALL"
+            else:
+                lAllSecurity = False
+                filterForSecurity = user_selectTicker.getText()
+
+            if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
+                lAllAccounts = True
+                filterForAccounts = "ALL"
+            else:
+                lAllAccounts = False
+                filterForAccounts = user_selectAccounts.getText()
+
+            lFilterDateRange_EIT = user_filterDateRange.isSelected()
+            if lFilterDateRange_EIT:
+                filterDateStart_EIT = user_dateRangeChooser.getDateRange().getStartDateInt()
+                filterDateEnd_EIT = user_dateRangeChooser.getDateRange().getEndDateInt()
+            else:
+                filterDateStart_EIT = 0
+                filterDateEnd_EIT = 0
+
+            lIncludeOpeningBalances = user_selectOpeningBalances.isSelected()
+            lAdjustForSplits = user_selectAdjustSplits.isSelected()
+            lOmitLOTDataFromExtract_EIT = user_lOmitLOTDataFromExtract_EIT.isSelected()
+            lExtractExtraSecurityAcctInfo = user_lExtractExtraSecurityAcctInfo.isSelected()
+            lExtractAttachments_EIT = user_selectExtractAttachments.isSelected()
+
+            if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+            elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+            elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+            elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
+            else:
+                # PROBLEM /  default
+                userdateformat = "%Y/%m/%d"
+
+            lStripASCII = user_selectStripASCII.isSelected()
+
+            csvDelimiter = user_selectDELIMITER.getSelectedItem()
+            if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
+                myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+                csvDelimiter = ","
+            if GlobalVars.decimalCharSep == csvDelimiter:
+                myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
+                        GlobalVars.decimalCharSep, " - Proceeding without file export!!")
+                lDisplayOnly = True
+                myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
+                                            "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
+                                      "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+            lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+            lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
+
+            debug = user_selectDEBUG.isSelected()
+
+            myPrint("DB", "DEBUG turned ON")
+
+            myPrint("B","User Parameters...")
+            if hideHiddenSecurities:
+                myPrint("B", "Hiding Hidden Securities...")
+            else:
+                myPrint("B", "Including Hidden Securities...")
+            if hideInactiveAccounts:
+                myPrint("B", "Hiding Inactive Accounts...")
+            else:
+                myPrint("B", "Including Inactive Accounts...")
+
+            if hideHiddenAccounts:
+                myPrint("B", "Hiding Hidden Accounts...")
+            else:
+                myPrint("B", "Including Hidden Accounts...")
+
+            if lAllCurrency:
+                myPrint("B", "Selecting ALL Currencies...")
+            else:
+                myPrint("B", "Filtering for Currency containing: ", filterForCurrency)
+
+            if lAllSecurity:
+                myPrint("B", "Selecting ALL Securities...")
+            else:
+                myPrint("B", "Filtering for Security/Ticker containing: ", filterForSecurity)
+
+            if lFilterDateRange_EIT and filterDateStart_EIT != 0 and filterDateEnd_EIT != 0:
+                myPrint("B", "FILTERING Transactions by date range:... Start: %s End: %s"
+                        %(convertStrippedIntDateFormattedText(filterDateStart_EIT),
+                          convertStrippedIntDateFormattedText(filterDateEnd_EIT)))
+            else:
+                myPrint("B", "Selecting all dates (no date range filtering): ")
+
+            if lAllAccounts:
+                myPrint("B", "Selecting ALL Accounts...")
+            else:
+                myPrint("B", "Filtering for Accounts containing: ", filterForAccounts)
+
+            if lIncludeOpeningBalances:
+                myPrint("B", "Including Opening Balances...")
+            else:
+                myPrint("B", "Ignoring Opening Balances... ")
+
+            if lAdjustForSplits:
+                myPrint("B", "Script will adjust for Stock Splits...")
+            else:
+                myPrint("B", "Not adjusting for Stock Splits...")
+
+            if lOmitLOTDataFromExtract_EIT:
+                myPrint("B", "Script will OMIT Buy/Sell LOT matching data from extract file...")
+            else:
+                myPrint("B", "Buy/Sell LOT matching data will be included in the extract file...")
+
+            if lExtractExtraSecurityAcctInfo:
+                myPrint("B", "Script will extract any extra security account information...")
+            else:
+                myPrint("B", "Any existing extra security account information will NOT be included in the extract file...")
+
+            myPrint("B", "user date format....:", userdateformat)
+
+        return _exit
+
+    def setupExtractSecurityBalancesParameters():
+        # ##############################################
+        # EXTRACT_SECURITY_BALANCES_CSV PARAMETER SCREEN
+        # ##############################################
+
+        global debug
+        global lWriteParametersToExportFile_SWSS
+
+        global csvfilename, lDisplayOnly
+        global baseCurrency
+        global transactionTable, dataKeys
+
+        global __extract_data, extract_filename
+        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+        global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
+        global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+        global whichDefaultExtractToRun_SWSS
+
+        label1 = JLabel("Hide Hidden Securities?")
+        user_hideHiddenSecurities = JCheckBox("", hideHiddenSecurities)
+
+        label2 = JLabel("Hide Inactive Accounts?")
+        user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
+
+        label3 = JLabel("Hide Hidden Accounts?")
+        user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
+
+        label4 = JLabel("Filter for Currency containing text '...' or ALL:")
+        user_selectCurrency = JTextField(5)
+        user_selectCurrency.setDocument(JTextFieldLimitYN(5, True, "CURR"))
+        if lAllCurrency: user_selectCurrency.setText("ALL")
+        else:            user_selectCurrency.setText(filterForCurrency)
+
+        label5 = JLabel("Filter for Security/Ticker containing text '...' or ALL:")
+        user_selectTicker = JTextField(12)
+        user_selectTicker.setDocument(JTextFieldLimitYN(12, True, "CURR"))
+        if lAllSecurity: user_selectTicker.setText("ALL")
+        else:            user_selectTicker.setText(filterForSecurity)
+
+        label6 = JLabel("Filter for Accounts containing text '...' (or ALL):")
+        user_selectAccounts = JTextField(12)
+        user_selectAccounts.setDocument(JTextFieldLimitYN(20, True, "CURR"))
+        if lAllAccounts: user_selectAccounts.setText("ALL")
+        else:            user_selectAccounts.setText(filterForAccounts)
+
+        dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+        label9 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+        user_dateformat = JComboBox(dateStrings)
+
+        if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+        elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+        elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+        else: user_dateformat.setSelectedItem("yyyy/mm/dd")
+
+        label10 = JLabel("Strip non ASCII characters from CSV export?")
+        user_selectStripASCII = JCheckBox("", lStripASCII)
+
+        delimStrings = [";","|",","]
+        label11 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
+        user_selectDELIMITER = JComboBox(delimStrings)
+        user_selectDELIMITER.setSelectedItem(csvDelimiter)
+
+        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+
+        labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+        user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+
+        label12 = JLabel("Turn DEBUG Verbose messages on?")
+        user_selectDEBUG = JCheckBox("", debug)
+
+        userFilters = JPanel(GridLayout(0, 2))
+        userFilters.add(label1)
+        userFilters.add(user_hideHiddenSecurities)
+        userFilters.add(label2)
+        userFilters.add(user_hideInactiveAccounts)
+        userFilters.add(label3)
+        userFilters.add(user_hideHiddenAccounts)
+        userFilters.add(label4)
+        userFilters.add(user_selectCurrency)
+        userFilters.add(label5)
+        userFilters.add(user_selectTicker)
+        userFilters.add(label6)
+        userFilters.add(user_selectAccounts)
+
+        userFilters.add(JLabel("-"*30)); userFilters.add(JLabel("-"*30))
+
+        userFilters.add(label9)
+        userFilters.add(user_dateformat)
+        userFilters.add(label10)
+        userFilters.add(user_selectStripASCII)
+        userFilters.add(label11)
+        userFilters.add(user_selectDELIMITER)
+        userFilters.add(labelBOM)
+        userFilters.add(user_selectBOM)
+        userFilters.add(labelExportParameters)
+        userFilters.add(user_ExportParameters)
+        userFilters.add(label12)
+        userFilters.add(user_selectDEBUG)
+
+        _exit = False
+        lDisplayOnly = False
+
+        options = ["ABORT", "CSV Export"]
+        userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT SECURITY BALANCES: Set Script Parameters....",
+                                                   JOptionPane.OK_CANCEL_OPTION,
+                                                   JOptionPane.QUESTION_MESSAGE,
+                                                   getMDIcon(lAlwaysGetIcon=True),
+                                                   options, options[1]))
+        if userAction == 1:  # Export
+            myPrint("DB", "Export chosen")
+            lDisplayOnly = False
+        else:
+            myPrint("B", "User Cancelled Parameter selection.. Will exit..")
+            lDisplayOnly = False
+            _exit = True
+
+        if not _exit:
+            myPrint("DB", "Parameters Captured",
+                    "Sec: ", user_hideHiddenSecurities.isSelected(),
+                    "InActAct:", user_hideInactiveAccounts.isSelected(),
+                    "HidAct:", user_hideHiddenAccounts.isSelected(),
+                    "Curr:", user_selectCurrency.getText(),
+                    "Ticker:", user_selectTicker.getText(),
+                    "Filter Accts:", user_selectAccounts.getText(),
+                    "User Date Format:", user_dateformat.getSelectedItem(),
+                    "Strip ASCII:", user_selectStripASCII.isSelected(),
+                    "Write BOM to file:", user_selectBOM.isSelected(),
+                    "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+                    "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
+
+            hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
+            hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
+            hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
+
+            if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
+                lAllCurrency = True
+                filterForCurrency = "ALL"
+            else:
+                lAllCurrency = False
+                filterForCurrency = user_selectCurrency.getText()
+
+            if user_selectTicker.getText() == "ALL" or user_selectTicker.getText().strip() == "":
+                lAllSecurity = True
+                filterForSecurity = "ALL"
+            else:
+                lAllSecurity = False
+                filterForSecurity = user_selectTicker.getText()
+
+            if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
+                lAllAccounts = True
+                filterForAccounts = "ALL"
+            else:
+                lAllAccounts = False
+                filterForAccounts = user_selectAccounts.getText()
+
+            if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+            elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+            elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+            elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
+            else:
+                # PROBLEM /  default
+                userdateformat = "%Y/%m/%d"
+
+            lStripASCII = user_selectStripASCII.isSelected()
+
+            csvDelimiter = user_selectDELIMITER.getSelectedItem()
+            if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
+                myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+                csvDelimiter = ","
+            if GlobalVars.decimalCharSep == csvDelimiter:
+                myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
+                        GlobalVars.decimalCharSep, " - Proceeding without file export!!")
+                lDisplayOnly = True
+                myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
+                                            "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
+                                      "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+            lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+            lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
+
+            debug = user_selectDEBUG.isSelected()
+            myPrint("DB", "DEBUG turned ON")
+
+            myPrint("B","User Parameters...")
+            if hideHiddenSecurities:
+                myPrint("B", "Hiding Hidden Securities...")
+            else:
+                myPrint("B", "Including Hidden Securities...")
+            if hideInactiveAccounts:
+                myPrint("B", "Hiding Inactive Accounts...")
+            else:
+                myPrint("B", "Including Inactive Accounts...")
+
+            if hideHiddenAccounts:
+                myPrint("B", "Hiding Hidden Accounts...")
+            else:
+                myPrint("B", "Including Hidden Accounts...")
+
+            if lAllCurrency:
+                myPrint("B", "Selecting ALL Currencies...")
+            else:
+                myPrint("B", "Filtering for Currency containing: ", filterForCurrency)
+
+            if lAllSecurity:
+                myPrint("B", "Selecting ALL Securities...")
+            else:
+                myPrint("B", "Filtering for Security/Ticker containing: ", filterForSecurity)
+
+            if lAllAccounts:
+                myPrint("B", "Selecting ALL Accounts...")
+            else:
+                myPrint("B", "Filtering for Accounts containing: ", filterForAccounts)
+
+            myPrint("B", "user date format....:", userdateformat)
+
+
+        return _exit
+    
+    def setupExtractCurrencyHistoryParameters():
+        # ####################################################
+        # EXTRACT_CURRENCY_HISTORY_CSV PARAMETER SCREEN
+        # ####################################################
+
+        global debug
+        global lWriteParametersToExportFile_SWSS
+
+        global lDidIUseAttachmentDir, csvfilename, lDisplayOnly
+        global csvlines
+
+        global __extract_data, extract_filename
+        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+        global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
+        global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+        global whichDefaultExtractToRun_SWSS
+        global lSimplify_ECH, userdateStart_ECH, userdateEnd_ECH, hideHiddenCurrencies_ECH
+
+        dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+        # 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
+        label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+        user_dateformat = JComboBox(dateStrings)
+
+        if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+        elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+        elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+        else: user_dateformat.setSelectedItem("yyyy/mm/dd")
+
+        labelDateStart = JLabel("Date range start:")
+        user_selectDateStart = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
+        user_selectDateStart.setDateInt(userdateStart_ECH)
+
+        labelDateEnd = JLabel("Date range end:")
+        user_selectDateEnd = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
+        user_selectDateEnd.setDateInt(userdateEnd_ECH)
+        # user_selectDateEnd.gotoToday()
+
+        labelSimplify = JLabel("Simplify extract?")
+        user_selectSimplify = JCheckBox("", lSimplify_ECH)
+
+        labelHideHiddenCurrencies = JLabel("Hide Hidden Currencies?")
+        user_selectHideHiddenCurrencies = JCheckBox("", hideHiddenCurrencies_ECH)
+
+        label2 = JLabel("Strip non ASCII characters from CSV export?")
+        user_selectStripASCII = JCheckBox("", lStripASCII)
+
+        delimStrings = [";","|",","]
+        label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
+        user_selectDELIMITER = JComboBox(delimStrings)
+        user_selectDELIMITER.setSelectedItem(csvDelimiter)
+
+        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+
+        labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+        user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+
+        label4 = JLabel("Turn DEBUG Verbose messages on?")
+        user_selectDEBUG = JCheckBox("", debug)
+
+        userFilters = JPanel(GridLayout(0, 2))
+        userFilters.add(label1)
+        userFilters.add(user_dateformat)
+
+        userFilters.add(labelDateStart)
+        userFilters.add(user_selectDateStart)
+
+        userFilters.add(labelDateEnd)
+        userFilters.add(user_selectDateEnd)
+
+        userFilters.add(labelSimplify)
+        userFilters.add(user_selectSimplify)
+
+        userFilters.add(labelHideHiddenCurrencies)
+        userFilters.add(user_selectHideHiddenCurrencies)
+
+        userFilters.add(label2)
+        userFilters.add(user_selectStripASCII)
+        userFilters.add(label3)
+        userFilters.add(user_selectDELIMITER)
+        userFilters.add(labelBOM)
+        userFilters.add(user_selectBOM)
+        userFilters.add(labelExportParameters)
+        userFilters.add(user_ExportParameters)
+        userFilters.add(label4)
+        userFilters.add(user_selectDEBUG)
+
+        _exit = False
+        lDisplayOnly = False
+
+        options = ["Abort", "CSV Export"]
+
+        while True:
+
+            userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT CURRENCY HISTORY: Set Script Parameters....",
+                                                       JOptionPane.OK_CANCEL_OPTION,
+                                                       JOptionPane.QUESTION_MESSAGE,
+                                                       getMDIcon(lAlwaysGetIcon=True),
+                                                       options, options[1]))
+            if userAction != 1:
+                myPrint("B", "User Cancelled Parameter selection.. Will abort..")
+                # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+                lDisplayOnly = False
+                _exit = True
+                break
+
+            if user_selectDateStart.getDateInt() <= user_selectDateEnd.getDateInt() \
+                    and user_selectDateEnd.getDateInt() >= user_selectDateStart.getDateInt():
+                break   # Valid date range
+
+            myPrint("P","Error - date range incorrect, please try again...")
+            user_selectDateStart.setForeground(getColorRed())                                                   # noqa
+            user_selectDateEnd.setForeground(getColorRed())                                                     # noqa
+            continue   # Loop
+
+        if not _exit:
+            myPrint("DB", "Parameters Captured",
+                    "User Date Format:", user_dateformat.getSelectedItem(),
+                    "Simplify:", user_selectSimplify.isSelected(),
+                    "Hide Hidden Currencies:", user_selectHideHiddenCurrencies.isSelected(),
+                    "Start date:", user_selectDateStart.getDateInt(),
+                    "End date:", user_selectDateEnd.getDateInt(),
+                    "Strip ASCII:", user_selectStripASCII.isSelected(),
+                    "Write BOM to file:", user_selectBOM.isSelected(),
+                    "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
+                    "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+                    "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
+            # endif
+
+            if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+            elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+            elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+            elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
+            else:
+                # PROBLEM /  default
+                userdateformat = "%Y/%m/%d"
+
+            lSimplify_ECH = user_selectSimplify.isSelected()
+            hideHiddenCurrencies_ECH = user_selectHideHiddenCurrencies.isSelected()
+            userdateStart_ECH = user_selectDateStart.getDateInt()
+            userdateEnd_ECH = user_selectDateEnd.getDateInt()
+
+            lStripASCII = user_selectStripASCII.isSelected()
+
+            csvDelimiter = user_selectDELIMITER.getSelectedItem()
+            if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
+                myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+                csvDelimiter = ","
+            if GlobalVars.decimalCharSep == csvDelimiter:
+                myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
+                lDisplayOnly = True
+                myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
+                                            "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
+                                      "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+            lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+            lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
+
+            debug = user_selectDEBUG.isSelected()
+            myPrint("DB", "DEBUG turned ON")
+
+            myPrint("B","User Parameters...")
+
+            if lSimplify_ECH:
+                myPrint("B","Simplifying extract")
+            else:
+                myPrint("B","Providing a detailed extract")
+
+            myPrint("B","user date format....:", userdateformat)
+
+            myPrint("B", "Selected start date:", userdateStart_ECH)
+            myPrint("B", "Selected end date:", userdateEnd_ECH)
+
+            if hideHiddenCurrencies_ECH:
+                myPrint("B", "Hiding hidden currencies...")
+
+        return _exit
+
+    def setupExtractSG2020Parameters():
+        # ####################################################
+        # STOCKGLANCE2020 PARAMETER SCREEN
+        # ####################################################
+        global debug
+        global lWriteParametersToExportFile_SWSS
+
+        global lDidIUseAttachmentDir, csvfilename, lDisplayOnly
+        global baseCurrency, rawDataTable, rawFooterTable, headingNames
+        global StockGlanceInstance  # holds the instance of StockGlance2020()
+        global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW
+        global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
+        global acctSeparator
+
+        global __extract_data, extract_filename
+        global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+        global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
+        global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+        global whichDefaultExtractToRun_SWSS
+        global lIncludeCashBalances, _column_widths_SG2020
+        global lSplitSecuritiesByAccount, lExcludeTotalsFromCSV
+        global maxDecimalPlacesRounding_SG2020, lUseCurrentPrice_SG2020
+        global lIncludeFutureBalances_SG2020
+
+        label1 = JLabel("Hide Hidden Securities?")
+        user_hideHiddenSecurities = JCheckBox("", hideHiddenSecurities)
+
+        label2 = JLabel("Hide Inactive Accounts?")
+        user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
+
+        label3 = JLabel("Hide Hidden Accounts?")
+        user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
+
+        label4 = JLabel("Filter for Currency containing text '...' or ALL:")
+        user_selectCurrency = JTextField(5)
+        user_selectCurrency.setDocument(JTextFieldLimitYN(5, True, "CURR"))
+        if lAllCurrency: user_selectCurrency.setText("ALL")
+        else:            user_selectCurrency.setText(filterForCurrency)
+
+        label5 = JLabel("Filter for Security/Ticker containing text '...' or ALL:")
+        user_selectTicker = JTextField(12)
+        user_selectTicker.setDocument(JTextFieldLimitYN(12, True, "CURR"))
+        if lAllSecurity: user_selectTicker.setText("ALL")
+        else:            user_selectTicker.setText(filterForSecurity)
+
+        label6 = JLabel("Filter for Accounts containing text '...' (or ALL):")
+        user_selectAccounts = JTextField(12)
+        user_selectAccounts.setDocument(JTextFieldLimitYN(20, True, "CURR"))
+        if lAllAccounts: user_selectAccounts.setText("ALL")
+        else:            user_selectAccounts.setText(filterForAccounts)
+
+        label7 = JLabel("Include Cash Balances for each account?")
+        user_selectCashBalances = JCheckBox("", lIncludeCashBalances)
+
+        label7b = JLabel("Split Security Qtys by Account?")
+        user_splitSecurities = JCheckBox("", lSplitSecuritiesByAccount)
+
+        labelFutureBalances = JLabel("Include Future Balances (rather than current)?")
+        user_includeFutureBalances = JCheckBox("", lIncludeFutureBalances_SG2020)
+
+        label7c = JLabel("Exclude Totals from CSV extract (helps pivots)?")
+        user_excludeTotalsFromCSV = JCheckBox("", lExcludeTotalsFromCSV)
+
+        labelUseCurrentPrice = JLabel("Enabled = Use 'Current Price' (Not ticked = use latest dated price history price instead")
+        user_useCurrentPrice = JCheckBox("", lUseCurrentPrice_SG2020)
+
+        labelMaxDecimalRounding = JLabel("Enter the maximum decimal rounding to use on calculated price (0-12; default=4)")
+        user_maxDecimalRounding = JTextField(2)
+        user_maxDecimalRounding.setText(str(maxDecimalPlacesRounding_SG2020))
+
+        labelRC = JLabel("Reset Column Widths to Defaults?")
+        user_selectResetColumns = JCheckBox("", False)
+
+        label8 = JLabel("Strip non ASCII characters from CSV export?")
+        user_selectStripASCII = JCheckBox("", lStripASCII)
+
+        delimStrings = [";","|",","]
+        label9 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
+        user_selectDELIMITER = JComboBox(delimStrings)
+        user_selectDELIMITER.setSelectedItem(csvDelimiter)
+
+        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+
+        labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+        user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+
+        label10 = JLabel("Turn DEBUG Verbose messages on?")
+        user_selectDEBUG = JCheckBox("", debug)
+
+        userFilters = JPanel(GridLayout(0, 2))
+        userFilters.add(label1)
+        userFilters.add(user_hideHiddenSecurities)
+        userFilters.add(label2)
+        userFilters.add(user_hideInactiveAccounts)
+        userFilters.add(label3)
+        userFilters.add(user_hideHiddenAccounts)
+        userFilters.add(label4)
+        userFilters.add(user_selectCurrency)
+        userFilters.add(label5)
+        userFilters.add(user_selectTicker)
+        userFilters.add(label6)
+        userFilters.add(user_selectAccounts)
+        userFilters.add(label7)
+        userFilters.add(user_selectCashBalances)
+        userFilters.add(label7b)
+        userFilters.add(user_splitSecurities)
+        userFilters.add(labelFutureBalances)
+        userFilters.add(user_includeFutureBalances)
+        userFilters.add(label7c)
+        userFilters.add(user_excludeTotalsFromCSV)
+        userFilters.add(labelUseCurrentPrice)
+        userFilters.add(user_useCurrentPrice)
+        userFilters.add(labelMaxDecimalRounding)
+        userFilters.add(user_maxDecimalRounding)
+        userFilters.add(labelRC)
+        userFilters.add(user_selectResetColumns)
+        userFilters.add(label8)
+        userFilters.add(user_selectStripASCII)
+        userFilters.add(label9)
+        userFilters.add(user_selectDELIMITER)
+        userFilters.add(labelBOM)
+        userFilters.add(user_selectBOM)
+        userFilters.add(labelExportParameters)
+        userFilters.add(user_ExportParameters)
+        userFilters.add(label10)
+        userFilters.add(user_selectDEBUG)
+
+        _exit = False
+        lDisplayOnly = False
+
+        options = ["Abort", "Display & CSV Export", "Display Only"]
+        userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
+                                                   userFilters,
+                                                   "StockGlance2020 - Summarise Stocks/Funds: Set Script Parameters....",
+                                                   JOptionPane.OK_CANCEL_OPTION,
+                                                   JOptionPane.QUESTION_MESSAGE,
+                                                   getMDIcon(lAlwaysGetIcon=True),
+                                                   options,
+                                                   options[2]))
+        if userAction == 1:  # Display & Export
+            myPrint("DB", "Display and export chosen")
+            lDisplayOnly = False
+        elif userAction == 2:  # Display Only
+            lDisplayOnly = True
+            myPrint("DB", "Display only with no export chosen")
+        else:
+            # Abort
+            myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
+            # myPopupInformationBox(extract_data_frame_,"User Cancelled Parameter selection.. Will abort..","PARAMETERS")
+            lDisplayOnly = False
+            _exit = True
+
+        if not _exit:
+            if debug:
+                myPrint("DB", "Parameters Captured::",
+                        "Sec: ", user_hideHiddenSecurities.isSelected(),
+                        ", InActAct:", user_hideInactiveAccounts.isSelected(),
+                        ", HidAct:", user_hideHiddenAccounts.isSelected(),
+                        ", Curr:", user_selectCurrency.getText(),
+                        ", Ticker:", user_selectTicker.getText(),
+                        ", Filter Accts:", user_selectAccounts.getText(),
+                        ", Include Cash Balances:", user_selectCashBalances.isSelected(),
+                        ", Split Securities:", user_splitSecurities.isSelected(),
+                        ", Include Future Balances:", user_includeFutureBalances.isSelected(),
+                        ", Exclude Totals from CSV:", user_excludeTotalsFromCSV.isSelected(),
+                        ", Use Current Price:", user_useCurrentPrice.isSelected(),
+                        ", Max Decimal Places for price rounding (if not valid will default to 4):", user_maxDecimalRounding.getText(),
+                        ", Reset Columns:", user_selectResetColumns.isSelected(),
+                        ", Strip ASCII:", user_selectStripASCII.isSelected(),
+                        ", Write BOM to file:", user_selectBOM.isSelected(),
+                        ", Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
+                        ", Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+                        ", CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
+
+            if user_selectResetColumns.isSelected():
+                myPrint("B","User asked to reset columns.... Resetting Now....")
+                _column_widths_SG2020=[]  # This will invalidate the
+
+            hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
+            hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
+            hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
+
+            if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
+                lAllCurrency = True
+                filterForCurrency = "ALL"
+            else:
+                lAllCurrency = False
+                filterForCurrency = user_selectCurrency.getText()
+
+            if user_selectTicker.getText() == "ALL" or user_selectTicker.getText().strip() == "":
+                lAllSecurity = True
+                filterForSecurity = "ALL"
+            else:
+                lAllSecurity = False
+                filterForSecurity = user_selectTicker.getText()
+
+            if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
+                lAllAccounts = True
+                filterForAccounts = "ALL"
+            else:
+                lAllAccounts = False
+                filterForAccounts = user_selectAccounts.getText()
+
+            lIncludeCashBalances = user_selectCashBalances.isSelected()
+            lSplitSecuritiesByAccount = user_splitSecurities.isSelected()
+            lExcludeTotalsFromCSV = user_excludeTotalsFromCSV.isSelected()
+            lIncludeFutureBalances_SG2020 = user_includeFutureBalances.isSelected()
+
+            lUseCurrentPrice_SG2020 = user_useCurrentPrice.isSelected()
+            del user_useCurrentPrice, labelUseCurrentPrice
+
+            getVal = user_maxDecimalRounding.getText()
+            if StringUtils.isInteger(getVal) and int(getVal) >= 0 and int(getVal) <= 12:
+                maxDecimalPlacesRounding_SG2020 = int(getVal)
+            else:
+                myPrint("B", "Parameter Max Decimal Places '%s 'invalid, overriding to a default of max 4pc rounding...." %(getVal))
+                maxDecimalPlacesRounding_SG2020 = 4
+            del user_maxDecimalRounding, labelMaxDecimalRounding
+
+            lStripASCII = user_selectStripASCII.isSelected()
+
+            csvDelimiter = user_selectDELIMITER.getSelectedItem()
+            if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
+                myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+                csvDelimiter = ","
+            if GlobalVars.decimalCharSep == csvDelimiter:
+                myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
+                lDisplayOnly = True
+                myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
+                                            "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
+                                      "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+            lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+            lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
+
+            debug = user_selectDEBUG.isSelected()
+            myPrint("DB", "DEBUG turned on")
+
+            myPrint("B", "User Parameters...")
+            if hideHiddenSecurities:
+                myPrint("B", "Hiding Hidden Securities...")
+            else:
+                myPrint("B", "Including Hidden Securities...")
+            if hideInactiveAccounts:
+                myPrint("B", "Hiding Inactive Accounts...")
+            else:
+                myPrint("B", "Including Inactive Accounts...")
+
+            if hideHiddenAccounts:
+                myPrint("B", "Hiding Hidden Accounts...")
+            else:
+                myPrint("B", "Including Hidden Accounts...")
+
+            if lAllCurrency:
+                myPrint("B", "Selecting ALL Currencies...")
+            else:
+                myPrint("B", "Filtering for Currency containing: ", filterForCurrency)
+
+            if lAllSecurity:
+                myPrint("B", "Selecting ALL Securities...")
+            else:
+                myPrint("B", "Filtering for Security/Ticker containing: ", filterForSecurity)
+
+            if lAllAccounts:
+                myPrint("B", "Selecting ALL Accounts...")
+            else:
+                myPrint("B", "Filtering for Accounts containing: ", filterForAccounts)
+
+            if lIncludeCashBalances:
+                myPrint("B", "Including Cash Balances - WARNING - this is per account!")
+            else:
+                myPrint("B", "Excluding Cash Balances")
+
+            if lIncludeFutureBalances_SG2020:
+                myPrint("B", "Including Future Balances...")
+            else:
+                myPrint("B", "Including Current Balances Only....")
+
+            if lUseCurrentPrice_SG2020:
+                myPrint("B", "Will use Current Price (not the latest dated price history price...")
+            else:
+                myPrint("B", "Will use the latest dated price history price (not the current price)...")
+
+            myPrint("B", "Maximum rounding for decimal places on stock prices is set to: %s" %(maxDecimalPlacesRounding_SG2020))
+
+            if lSplitSecuritiesByAccount:
+                myPrint("B", "Splitting Securities by account - WARNING, this will disable sorting....")
+            else:
+                myPrint("B", "No Splitting Securities by account will be performed....")
+
+        return _exit
+
+    def setupExtractRemindersParameters():
+        # ####################################################
+        # EXTRACT_REMINDERS_CSV PARAMETER SCREEN
+        # ####################################################
+
+        global debug
+        global lWriteParametersToExportFile_SWSS
+
+        global lDidIUseAttachmentDir, csvfilename, lDisplayOnly
+        global baseCurrency, csvlines, csvheaderline, headerFormats
+        global table, focus, row, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
+
+        global __extract_data, extract_filename
+        global lStripASCII, scriptpath, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+        global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
+        global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+        global whichDefaultExtractToRun_SWSS
+        global _column_widths_ERTC
+
+        # 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
+        dateStrings = ["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
+
+        label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
+        user_dateformat = JComboBox(dateStrings)
+
+        if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
+        elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
+        elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
+        else: user_dateformat.setSelectedItem("yyyy/mm/dd")
+
+        labelRC = JLabel("Reset Column Widths to Defaults?")
+        user_selectResetColumns = JCheckBox("", False)
+
+        label2 = JLabel("Strip non ASCII characters from CSV export?")
+        user_selectStripASCII = JCheckBox("", lStripASCII)
+
+        delimStrings = [";","|",","]
+        label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
+        user_selectDELIMITER = JComboBox(delimStrings)
+        user_selectDELIMITER.setSelectedItem(csvDelimiter)
+
+        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
+
+        labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
+        user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
+
+        label4 = JLabel("Turn DEBUG Verbose messages on?")
+        user_selectDEBUG = JCheckBox("", debug)
+
+
+        userFilters = JPanel(GridLayout(0, 2))
+        userFilters.add(label1)
+        userFilters.add(user_dateformat)
+        userFilters.add(labelRC)
+        userFilters.add(user_selectResetColumns)
+        userFilters.add(label2)
+        userFilters.add(user_selectStripASCII)
+        userFilters.add(label3)
+        userFilters.add(user_selectDELIMITER)
+        userFilters.add(labelBOM)
+        userFilters.add(user_selectBOM)
+        userFilters.add(labelExportParameters)
+        userFilters.add(user_ExportParameters)
+        userFilters.add(label4)
+        userFilters.add(user_selectDEBUG)
+
+        _exit = False
+        lDisplayOnly = False
+
+        options = ["Abort", "Display & CSV Export", "Display Only"]
+        userAction = (JOptionPane.showOptionDialog( extract_data_frame_,
+                                                    userFilters,
+                                                    "EXTRACT REMINDERS: Set Script Parameters....",
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    JOptionPane.QUESTION_MESSAGE,
+                                                    getMDIcon(lAlwaysGetIcon=True),
+                                                    options,
+                                                    options[2])
+                      )
+        if userAction == 1:  # Display & Export
+            myPrint("DB", "Display and export chosen")
+            lDisplayOnly = False
+        elif userAction == 2:  # Display Only
+            lDisplayOnly = True
+            myPrint("DB", "Display only with no export chosen")
+        else:
+            # Abort
+            myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
+            # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
+            lDisplayOnly = False
+            _exit = True
+
+        if not _exit:
+
+            debug = user_selectDEBUG.isSelected()
+            myPrint("DB", "DEBUG turned on")
+
+            if debug:
+                myPrint("DB","Parameters Captured",
+                        "User Date Format:", user_dateformat.getSelectedItem(),
+                        "Reset Columns", user_selectResetColumns.isSelected(),
+                        "Strip ASCII:", user_selectStripASCII.isSelected(),
+                        "Write BOM to file:", user_selectBOM.isSelected(),
+                        "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
+                        "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
+                        "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
+            # endif
+
+            if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
+            elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
+            elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
+            elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
+            else:
+                # PROBLEM /  default
+                userdateformat = "%Y/%m/%d"
+
+            if user_selectResetColumns.isSelected():
+                myPrint("B","User asked to reset columns.... Resetting Now....")
+                _column_widths_ERTC=[]  # This will invalidate them
+
+            lStripASCII = user_selectStripASCII.isSelected()
+
+            csvDelimiter = user_selectDELIMITER.getSelectedItem()
+            if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
+                myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
+                csvDelimiter = ","
+            if GlobalVars.decimalCharSep == csvDelimiter:
+                myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
+                lDisplayOnly = True
+                myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
+                                            "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
+                                      "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
+
+            lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
+            lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
+
+            myPrint("B", "User Parameters...")
+            myPrint("B", "user date format....:", userdateformat)
+        return _exit
 
     try:
 
@@ -3544,7 +5454,6 @@ Visit: %s (Author's site)
             return
 
 
-
         csvfilename = None
 
         if GlobalVars.decimalCharSep != "." and csvDelimiter == ",": csvDelimiter = ";"  # Override for EU countries or where decimal point is actually a comma...
@@ -3554,93 +5463,13 @@ Visit: %s (Author's site)
 
         saveColor = JLabel("TEST").getForeground()
 
-        lExit = False
         lDisplayOnly = False
 
         # NOTE: I am not going to worry about the Swing EDT until we get to the true GUI elements... The next sections are quick
         # and simple JOptionPane's and should not be problematic.
 
-        if True:
-            userFilters = JPanel(GridLayout(0, 1))
-            user_stockglance2020 = JRadioButton("StockGlance2020 - display consolidated stock info on screen and/or extract to csv", False)
-            user_reminders = JRadioButton("Reminders - display on screen, and/or extract to csv", False)
-            user_account_txns = JRadioButton("Account register transactions - extract to csv (attachments optional)", False)
-            user_investment_txns = JRadioButton("Investment transactions - extract to csv (attachments optional)", False)
-            user_price_history = JRadioButton("Currency price history - extract to csv (simple or detailed formats)", False)
-
-            bg = ButtonGroup()
-            bg.add(user_stockglance2020)
-            bg.add(user_reminders)
-            bg.add(user_account_txns)
-            bg.add(user_investment_txns)
-            bg.add(user_price_history)
-            bg.clearSelection()
-
-            if whichDefaultExtractToRun_SWSS is not None:
-                if whichDefaultExtractToRun_SWSS == "_SG2020": user_stockglance2020.setSelected(True)
-                elif whichDefaultExtractToRun_SWSS == "_ERTC": user_reminders.setSelected(True)
-                elif whichDefaultExtractToRun_SWSS == "_EAR": user_account_txns.setSelected(True)
-                elif whichDefaultExtractToRun_SWSS == "_EIT": user_investment_txns.setSelected(True)
-                elif whichDefaultExtractToRun_SWSS == "_ECH": user_price_history.setSelected(True)
-
-            userFilters.add(user_stockglance2020)
-            userFilters.add(user_reminders)
-            userFilters.add(user_account_txns)
-            userFilters.add(user_investment_txns)
-            userFilters.add(user_price_history)
-
-            lExtractStockGlance2020 = lExtractReminders = lExtractAccountTxns = lExtractInvestmentTxns = lExtractCurrencyHistory = False
-
-            while True:
-                options = ["EXIT", "PROCEED"]
-                userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
-                                                           userFilters,
-                                                           "EXTRACT DATA: SELECT OPTION",
-                                                           JOptionPane.OK_CANCEL_OPTION,
-                                                           JOptionPane.QUESTION_MESSAGE,
-                                                           getMDIcon(lAlwaysGetIcon=True),
-                                                           options,
-                                                           options[0]))
-                if userAction != 1:
-                    myPrint("B","User chose to exit....")
-                    lExit = True
-                    break
-
-                if user_stockglance2020.isSelected():
-                    myPrint("B","StockGlance2020 investment extract option has been chosen")
-                    lExtractStockGlance2020 = True
-                    break
-
-                if user_reminders.isSelected():
-                    myPrint("B","Reminders display / extract option has been chosen")
-                    lExtractReminders = True
-                    break
-
-                if user_account_txns.isSelected():
-                    myPrint("B","Account Transactions extract option has been chosen")
-                    lExtractAccountTxns = True
-                    break
-
-                if user_investment_txns.isSelected():
-                    myPrint("B","Investment Transactions extract option has been chosen")
-                    lExtractInvestmentTxns = True
-                    break
-
-                if user_price_history.isSelected():
-                    myPrint("B","Currency Price History extract option has been chosen")
-                    lExtractCurrencyHistory = True
-                    break
-
-                continue
-
-            if user_stockglance2020.isSelected():   whichDefaultExtractToRun_SWSS = "_SG2020"
-            elif user_reminders.isSelected():       whichDefaultExtractToRun_SWSS = "_ERTC"
-            elif user_account_txns.isSelected():    whichDefaultExtractToRun_SWSS = "_EAR"
-            elif user_investment_txns.isSelected(): whichDefaultExtractToRun_SWSS = "_EIT"
-            elif user_price_history.isSelected():   whichDefaultExtractToRun_SWSS = "_ECH"
-            else:                                   whichDefaultExtractToRun_SWSS = None
-
-            del options, bg, userFilters, user_stockglance2020, user_reminders, user_account_txns, user_investment_txns, user_price_history
+        lExit, whichDefaultExtractToRun_SWSS, lExtractStockGlance2020, lExtractReminders, lExtractAccountTxns, lExtractInvestmentTxns, lExtractSecurityBalances, lExtractCurrencyHistory \
+            = getExtractChoice(whichDefaultExtractToRun_SWSS)
 
         if lExit:
             myPrint("B", "User chose to cancel at extract choice screen.... exiting")
@@ -3651,1527 +5480,22 @@ Visit: %s (Author's site)
             # Set up the parameters for each separate extract
 
             if lExtractAccountTxns:
-                # ##############################################
-                # EXTRACT_ACCOUNT_REGISTERS_CSV PARAMETER SCREEN
-                # ##############################################
-
-                dropDownAccount_EAR = None
-
-                userFilters = JPanel(GridLayout(0, 2))
-
-                class PanelAction(AbstractAction):
-
-                    def __init__(self, thePanel):
-                        self.thePanel=thePanel
-
-                    def actionPerformed(self, event):
-                        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event)
-
-                        theDateRangeDropDown = None
-                        theAccountDropdown = None
-                        theStartDate = None
-                        theEndDate = None
-
-                        theSubAccounts = None
-                        theHideInactiveAccounts = None
-                        theHideHiddenAccounts = None
-                        theFilterAccounts = None
-                        theFilterCurrency = None
-
-                        _components = self.thePanel.getComponents()
-                        for _theComponent in _components:
-                            if isinstance(_theComponent, (JComboBox, JTextField, JCheckBox)):
-                                if event.getSource().getName() == _theComponent.getName():
-                                    if _theComponent.getName() == "dateDropdown": theDateRangeDropDown  = _theComponent
-                                    if _theComponent.getName() == "accountDropdown": theAccountDropdown  = _theComponent
-
-                                if _theComponent.getName() == "user_selectDateStart": theStartDate  = _theComponent
-                                elif _theComponent.getName() == "user_selectDateEnd": theEndDate  = _theComponent
-                                elif _theComponent.getName() == "user_includeSubAccounts": theSubAccounts  = _theComponent
-                                elif _theComponent.getName() == "user_hideInactiveAccounts": theHideInactiveAccounts  = _theComponent
-                                elif _theComponent.getName() == "user_hideHiddenAccounts": theHideHiddenAccounts  = _theComponent
-                                elif _theComponent.getName() == "user_selectAccounts": theFilterAccounts  = _theComponent
-                                elif _theComponent.getName() == "user_selectCurrency": theFilterCurrency  = _theComponent
-
-                        if not theDateRangeDropDown and not theAccountDropdown: return
-
-                        if theDateRangeDropDown:
-                            _start, _end = getDateRange(theDateRangeDropDown.getSelectedItem())
-                            if theDateRangeDropDown.getSelectedItem() == "custom_date":
-                                theStartDate.setEnabled(True)
-                                theEndDate.setEnabled(True)
-                            else:
-                                theStartDate.setEnabled(False)
-                                theEndDate.setEnabled(False)
-
-                            # noinspection PyUnresolvedReferences
-                            theStartDate.setDateInt(_start)
-                            # noinspection PyUnresolvedReferences
-                            theEndDate.setDateInt(_end)
-
-                        if theAccountDropdown:
-
-                            if isinstance(theAccountDropdown.getSelectedItem(),(str,unicode)):
-                                theSubAccounts.setEnabled(False)
-                                theHideInactiveAccounts.setEnabled(True)
-                                theHideHiddenAccounts.setEnabled(True)
-                                theFilterAccounts.setEnabled(True)
-                                theFilterCurrency.setEnabled(True)
-
-                                theSubAccounts.setSelected(False)
-
-                            else:
-                                theSubAccounts.setEnabled(True)
-                                theHideInactiveAccounts.setEnabled(False)
-                                theHideHiddenAccounts.setEnabled(False)
-                                theFilterAccounts.setEnabled(False)
-                                theFilterCurrency.setEnabled(False)
-
-                                theHideInactiveAccounts.setSelected(True)
-                                theHideHiddenAccounts.setSelected(True)
-                                theFilterAccounts.setText("ALL")
-                                theFilterCurrency.setText("ALL")
-
-                        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-                        return
-
-
-                labelHideInactiveAccounts = JLabel("Hide Inactive Accounts?")
-                user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
-                user_hideInactiveAccounts.setName("user_hideInactiveAccounts")
-
-                labelHideHiddenAccounts = JLabel("Hide Hidden Accounts?")
-                user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
-                user_hideHiddenAccounts.setName("user_hideHiddenAccounts")
-
-                labelFilterCurrency = JLabel("Filter for Currency containing text '...' or ALL:")
-                user_selectCurrency = JTextField(12)
-                user_selectCurrency.setName("user_selectCurrency")
-                user_selectCurrency.setDocument(JTextFieldLimitYN(30, True, "CURR"))
-                if lAllCurrency: user_selectCurrency.setText("ALL")
-                else:            user_selectCurrency.setText(filterForCurrency)
-
-                # noinspection PyArgumentList
-                class MyAcctFilterForDropdown(AcctFilter):
-
-                    def __init__(self):
-                        super(AcctFilter, self).__init__()
-
-                    def matches(self, acct):                                                                                        # noqa
-
-                        # noinspection PyUnresolvedReferences
-                        if not (acct.getAccountType() == Account.AccountType.BANK
-                                or acct.getAccountType() == Account.AccountType.CREDIT_CARD
-                                or acct.getAccountType() == Account.AccountType.LOAN
-                                or acct.getAccountType() == Account.AccountType.LIABILITY
-                                or acct.getAccountType() == Account.AccountType.ASSET):
-                            return False
-
-                        # This logic replicates Moneydance AcctFilter.ACTIVE_ACCOUNTS_FILTER
-                        if (acct.getAccountOrParentIsInactive()): return False
-                        if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
-
-                        return True
-
-                class StoreAccount:
-                    def __init__(self, _acct):
-                        if not isinstance(_acct, Account): raise Exception("Error: Object: %s(%s) is not an Account Object!" %(_acct, type(_acct)))
-                        self.acct = _acct
-
-                    def getAccount(self): return self.acct
-
-                    def __str__(self):      return "%s : %s" %(self.getAccount().getAccountType(), self.getAccount().getAccountName())
-                    def __repr__(self):     return self.__str__()
-                    def toString(self):     return self.__str__()
-
-
-                labelSelectOneAccount = JLabel("Select One Account here....")
-                mdAcctList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(),MyAcctFilterForDropdown())
-                textToUse = "<NONE SELECTED - USE FILTERS BELOW>"
-
-                acctList = ArrayList()
-                acctList.add(0,textToUse)
-                for getAcct in mdAcctList: acctList.add(StoreAccount(getAcct))
-                del mdAcctList
-
-                accountDropdown = JComboBox(acctList)
-                accountDropdown.setName("accountDropdown")
-
-                if saveDropDownAccountUUID_EAR != "":
-                    findAccount = AccountUtil.findAccountWithID(MD_REF.getRootAccount(), saveDropDownAccountUUID_EAR)
-                    if findAccount is not None:
-                        for acctObj in acctList:
-                            if isinstance(acctObj, StoreAccount) and acctObj.getAccount() == findAccount:
-                                accountDropdown.setSelectedItem(acctObj)
-                                break
-
-                labelFilterAccounts = JLabel("Filter for Accounts containing text '...' (or ALL):")
-                user_selectAccounts = JTextField(12)
-                user_selectAccounts.setName("user_selectAccounts")
-                user_selectAccounts.setDocument(JTextFieldLimitYN(30, True, "CURR"))
-                if lAllAccounts: user_selectAccounts.setText("ALL")
-                else:            user_selectAccounts.setText(filterForAccounts)
-
-                labelIncludeSubAccounts = JLabel("Include Sub Accounts?:")
-                user_includeSubAccounts = JCheckBox("",lIncludeSubAccounts_EAR)
-                user_includeSubAccounts.setName("user_includeSubAccounts")
-
-                labelSeparator1 = JLabel("--------------------------------------------------------------------")
-                labelSeparator2 = JLabel("--<<Select Account above *OR* ACCT filters below - BUT NOT BOTH>>---".upper())
-                labelSeparator2.setForeground(getColorBlue())
-                labelSeparator3 = JLabel("--------------------------------------------------------------------")
-                labelSeparator4 = JLabel("--------------------------------------------------------------------")
-                labelSeparator5 = JLabel("--------------------------------------------------------------------")
-                labelSeparator6 = JLabel("-------------<<Filters below are AND (not OR)>> --------------------")
-                labelSeparator6.setForeground(getColorBlue())
-                labelSeparator7 = JLabel("--------------------------------------------------------------------")
-                labelSeparator8 = JLabel("--------------------------------------------------------------------")
-
-                labelOpeningBalances = JLabel("Include Opening Balances?")
-                user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances_EAR)
-                user_selectOpeningBalances.setName("user_selectOpeningBalances")
-
-                if isinstance(accountDropdown.getSelectedItem(),(str,unicode)):
-                    user_includeSubAccounts.setEnabled(False)
-                    user_hideInactiveAccounts.setEnabled(True)
-                    user_hideHiddenAccounts.setEnabled(True)
-                    user_selectAccounts.setEnabled(True)
-                    user_selectCurrency.setEnabled(True)
-
-                    user_includeSubAccounts.setSelected(False)
-
-                else:
-                    user_includeSubAccounts.setSelected(True)
-                    user_hideInactiveAccounts.setEnabled(False)
-                    user_hideHiddenAccounts.setEnabled(False)
-                    user_selectAccounts.setEnabled(False)
-                    user_selectCurrency.setEnabled(False)
-
-                    user_hideInactiveAccounts.setSelected(True)
-                    user_hideHiddenAccounts.setSelected(True)
-                    user_selectAccounts.setText("ALL")
-                    user_selectCurrency.setText("ALL")
-
-                labelIncludeTransfers = JLabel("Include Transfers between Accounts Selected in this Extract?")
-                user_selectIncludeTransfers = JCheckBox("", lIncludeInternalTransfers_EAR)
-                user_selectIncludeTransfers.setName("user_selectIncludeTransfers")
-
-                dateOptions = [ "year_to_date",
-                                "fiscal_year_to_date",
-                                "last_fiscal_quarter",
-                                "quarter_to_date",
-                                "month_to_date",
-                                "this_year",
-                                "this_fiscal_year",
-                                "this_quarter",
-                                "this_month",
-                                "this_week",
-                                "last_year",
-                                "last_fiscal_year",
-                                "last_quarter",
-                                "last_month",
-                                "last_12_months",
-                                "last_365_days",
-                                "last_30_days",
-                                "last_1_day",
-                                "all_dates",
-                                "custom_date",
-                                "last_week",]
-
-                def getDateRange( selectedOption ):         # DateRange
-
-                    todayInt = Util.getStrippedDateInt()
-
-                    if selectedOption == "year_to_date":
-                        return (DateUtil.firstDayInYear(todayInt), todayInt)
-                    elif selectedOption ==  "quarter_to_date":
-                        return (DateUtil.firstDayInQuarter(todayInt), todayInt)
-                    elif selectedOption ==  "month_to_date":
-                        return (DateUtil.firstDayInMonth(todayInt), todayInt)
-                    elif selectedOption ==  "this_year":
-                        return (DateUtil.firstDayInYear(todayInt), DateUtil.lastDayInYear(todayInt))
-                    elif selectedOption ==  "this_fiscal_year":
-                        return (DateUtil.firstDayInFiscalYear(todayInt), DateUtil.lastDayInFiscalYear(todayInt))
-                    elif selectedOption ==  "fiscal_year_to_date":
-                        return (DateUtil.firstDayInFiscalYear(todayInt), todayInt)
-                    elif selectedOption ==  "last_fiscal_year":
-                        return (DateUtil.decrementYear(DateUtil.firstDayInFiscalYear(todayInt)),
-                                DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(todayInt)))
-                    elif selectedOption ==  "last_fiscal_quarter":
-                        baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
-                        return (DateUtil.firstDayInFiscalQuarter(baseDate), DateUtil.lastDayInFiscalQuarter(baseDate))
-                    elif selectedOption ==  "this_quarter":
-                        return (Util.firstDayInQuarter(todayInt), Util.lastDayInQuarter(todayInt))
-                    elif selectedOption ==  "this_month":
-                        return (Util.firstDayInMonth(todayInt), Util.lastDayInMonth(todayInt))
-                    elif selectedOption ==  "this_week":
-                        return (Util.firstDayInWeek(todayInt), Util.lastDayInWeek(todayInt))
-                    elif selectedOption ==  "last_year":
-                        return (Util.firstDayInYear(Util.decrementYear(todayInt)),
-                                Util.lastDayInYear(Util.decrementYear(todayInt)))
-                    elif selectedOption ==  "last_quarter":
-                        baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
-                        return (DateUtil.firstDayInQuarter(baseDate), DateUtil.lastDayInQuarter(baseDate))
-                    elif selectedOption ==  "last_month":
-                        i = Util.firstDayInMonth(todayInt)
-                        return (Util.incrementDate(i, 0, -1, 0), Util.incrementDate(i, 0, 0, -1))
-                    elif selectedOption ==  "last_week":
-                        firstDayInWeek = Util.firstDayInWeek(todayInt)
-                        return (Util.incrementDate(firstDayInWeek, 0, 0, -7), Util.incrementDate(firstDayInWeek, 0, 0, -1))
-                    elif selectedOption ==  "last_12_months":
-                        firstDayInMonth = Util.firstDayInMonth(todayInt)
-                        return (Util.incrementDate(firstDayInMonth, 0, -12, 0), Util.incrementDate(firstDayInMonth, 0, 0, -1))
-                    elif selectedOption ==  "last_1_day":
-                        return (Util.incrementDate(todayInt, 0, 0, -1), Util.incrementDate(todayInt, 0, 0, 0))
-                    elif selectedOption == "last_30_days":
-                        return (Util.incrementDate(todayInt, 0, 0, -30), todayInt)
-                    elif selectedOption ==  "last_365_days":
-                        return (Util.incrementDate(todayInt, 0, 0, -365), todayInt)
-                    elif selectedOption ==  "custom_date":
-                        pass
-                    elif selectedOption ==  "all_dates":
-                        pass
-                    else:
-                        pass
-                        # raise(Exception("Error - date range incorrect"))
-
-                    # cal = Calendar.getInstance()
-                    # cal.add(1, 1)
-                    return 19600101,20301231
-
-
-                dateDropdown = JComboBox(dateOptions)
-                dateDropdown.setName("dateDropdown")
-                if saveDropDownDateRange_EAR != "":
-                    try:
-                        dateDropdown.setSelectedItem(saveDropDownDateRange_EAR)
-                    except:
-                        pass
-
-
-                labelDateDropDown = JLabel("Select Date Range:")
-
-
-                labelDateStart = JLabel("Date range start:")
-                user_selectDateStart = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
-                user_selectDateStart.setName("user_selectDateStart")                                                        # noqa
-                user_selectDateStart.setEnabled(False)                                                                      # noqa
-                # user_selectDateStart.setDisabledTextColor(Color.gray)                                                       # noqa
-                user_selectDateStart.setDateInt(userdateStart_EAR)
-
-                labelDateEnd = JLabel("Date range end:")
-                user_selectDateEnd = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
-                user_selectDateEnd.setName("user_selectDateEnd")                                                            # noqa
-                user_selectDateEnd.setEnabled(False)                                                                        # noqa
-                # user_selectDateEnd.setDisabledTextColor(Color.gray)                                                         # noqa
-                user_selectDateEnd.setDateInt(userdateEnd_EAR)
-
-                if saveDropDownDateRange_EAR == "custom_date":
-                    user_selectDateStart.setEnabled(True)                                                                   # noqa
-                    user_selectDateEnd.setEnabled(True)                                                                     # noqa
-                else:
-                    # Refresh the date range
-                    user_selectDateStart.setEnabled(False)                                                                  # noqa
-                    user_selectDateEnd.setEnabled(False)                                                                    # noqa
-                    _s, _e = getDateRange(saveDropDownDateRange_EAR)
-                    user_selectDateStart.setDateInt(_s)
-                    user_selectDateEnd.setDateInt(_e)
-
-                labelTags = JLabel("Filter for Tags (separate with commas) or ALL:")
-                user_selectTags = JTextField(12)
-                user_selectTags.setName("user_selectTags")
-                user_selectTags.setDocument(JTextFieldLimitYN(30, True, "CURR"))
-                if lAllTags_EAR: user_selectTags.setText("ALL")
-                else:            user_selectTags.setText(tagFilter_EAR)
-
-                labelText = JLabel("Filter for Text in Description or Memo fields or ALL:")
-                user_selectText = JTextField(12)
-                user_selectText.setName("user_selectText")
-                user_selectText.setDocument(JTextFieldLimitYN(30, True, "CURR"))
-                if lAllText_EAR: user_selectText.setText("ALL")
-                else:            user_selectText.setText(textFilter_EAR)
-
-                labelCategories = JLabel("Filter for Text in Category or ALL:")
-                user_selectCategories = JTextField(12)
-                user_selectCategories.setName("user_selectCategories")
-                user_selectCategories.setDocument(JTextFieldLimitYN(30, True, "CURR"))
-                if lAllCategories_EAR: user_selectCategories.setText("ALL")
-                else:            user_selectCategories.setText(categoriesFilter_EAR)
-
-                labelAttachments = JLabel("Extract & Download Attachments?")
-                user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EAR)
-                user_selectExtractAttachments.setName("user_selectExtractAttachments")
-
-                dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
-                labelDateFormat = JLabel("Select Output Date Format (default yyyy/mm/dd):")
-                user_dateformat = JComboBox(dateStrings)
-                user_dateformat.setName("user_dateformat")
-
-                if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
-                elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
-                elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
-                else: user_dateformat.setSelectedItem("yyyy/mm/dd")
-
-                labelStripASCII = JLabel("Strip non ASCII characters from CSV export?")
-                user_selectStripASCII = JCheckBox("", lStripASCII)
-                user_selectStripASCII.setName("user_selectStripASCII")
-
-                delimStrings = [";","|",","]
-                labelDelimiter = JLabel("Change CSV Export Delimiter from default to: '|,'")
-                user_selectDELIMITER = JComboBox(delimStrings)
-                user_selectDELIMITER.setName("user_selectDELIMITER")
-                user_selectDELIMITER.setSelectedItem(csvDelimiter)
-
-                labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
-                user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
-                user_selectBOM.setName("user_selectBOM")
-
-                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
-                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
-                user_ExportParameters.setName("user_ExportParameters")
-
-                labelDEBUG = JLabel("Turn DEBUG Verbose messages on?")
-                user_selectDEBUG = JCheckBox("", debug)
-                user_selectDEBUG.setName("user_selectDEBUG")
-
-                labelSTATUSbar = JLabel("")
-                labelSTATUSbar.setName("labelSTATUSbar")
-
-                userFilters.add(labelSelectOneAccount)
-                userFilters.add(accountDropdown)
-                userFilters.add(labelIncludeSubAccounts)
-                userFilters.add(user_includeSubAccounts)
-                userFilters.add(labelSeparator1)
-                userFilters.add(labelSeparator2)
-                userFilters.add(labelHideInactiveAccounts)
-                userFilters.add(user_hideInactiveAccounts)
-                userFilters.add(labelHideHiddenAccounts)
-                userFilters.add(user_hideHiddenAccounts)
-                userFilters.add(labelFilterAccounts)
-                userFilters.add(user_selectAccounts)
-                userFilters.add(labelFilterCurrency)
-                userFilters.add(user_selectCurrency)
-                userFilters.add(labelSeparator5)
-                userFilters.add(labelSeparator6)
-
-                userFilters.add(labelDateDropDown)
-                userFilters.add(dateDropdown)
-
-                userFilters.add(labelDateStart)
-                userFilters.add(user_selectDateStart)
-                userFilters.add(labelDateEnd)
-                userFilters.add(user_selectDateEnd)
-                userFilters.add(labelTags)
-                userFilters.add(user_selectTags)
-                userFilters.add(labelText)
-                userFilters.add(user_selectText)
-                userFilters.add(labelCategories)
-                userFilters.add(user_selectCategories)
-                userFilters.add(labelSeparator7)
-                userFilters.add(labelSeparator8)
-                userFilters.add(labelOpeningBalances)
-                userFilters.add(user_selectOpeningBalances)
-                # userFilters.add(labelIncludeTransfers)
-                # userFilters.add(user_selectIncludeTransfers)
-                userFilters.add(labelAttachments)
-                userFilters.add(user_selectExtractAttachments)
-                userFilters.add(labelDateFormat)
-                userFilters.add(user_dateformat)
-                userFilters.add(labelStripASCII)
-                userFilters.add(user_selectStripASCII)
-                userFilters.add(labelDelimiter)
-                userFilters.add(user_selectDELIMITER)
-                userFilters.add(labelBOM)
-                userFilters.add(user_selectBOM)
-                userFilters.add(labelExportParameters)
-                userFilters.add(user_ExportParameters)
-                userFilters.add(labelDEBUG)
-                userFilters.add(user_selectDEBUG)
-
-                userFilters.add(labelSTATUSbar)
-
-                components = userFilters.getComponents()
-                for theComponent in components:
-                    if isinstance(theComponent, (JComboBox,JTextField)):
-                        theComponent.addActionListener(PanelAction( userFilters ))
-
-
-                options = ["ABORT", "CSV Export"]
-
-                while True:
-
-                    userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
-                                                               userFilters, "EXTRACT ACCOUNT REGISTERS: Set Script Parameters....",
-                                                               JOptionPane.OK_CANCEL_OPTION,
-                                                               JOptionPane.QUESTION_MESSAGE,
-                                                               getMDIcon(lAlwaysGetIcon=True),
-                                                               options, options[1]))
-                    if userAction != 1:
-                        myPrint("B", "User Cancelled Parameter selection.. Will abort..")
-                        # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
-                        lDisplayOnly = False
-                        lExit = True
-                        break
-
-                    if not (user_selectDateStart.getDateInt() <= user_selectDateEnd.getDateInt()
-                            and user_selectDateEnd.getDateInt() >= user_selectDateStart.getDateInt()):
-                        user_selectDateStart.setForeground(getColorRed())                                               # noqa
-                        user_selectDateEnd.setForeground(getColorRed())                                                 # noqa
-                        labelSTATUSbar.setText(">> Error - date range incorrect, please try again... <<".upper())
-                        labelSTATUSbar.setForeground(getColorRed())
-                        continue
-
-                    if user_selectTags.getText() != "ALL" and user_selectOpeningBalances.isSelected():
-                        user_selectTags.setForeground(getColorRed())
-                        user_selectOpeningBalances.setForeground(getColorRed())
-                        labelSTATUSbar.setText(">> Error - You cannot filter on Tags and Include Opening Balances..... <<".upper())
-                        labelSTATUSbar.setForeground(getColorRed())
-                        continue
-
-                    if user_selectText.getText() != "ALL" and user_selectOpeningBalances.isSelected():
-                        user_selectText.setForeground(getColorRed())
-                        user_selectOpeningBalances.setForeground(getColorRed())
-                        labelSTATUSbar.setText(">> Error - You cannot filter on Text and Include Opening Balances..... <<".upper())
-                        labelSTATUSbar.setForeground(getColorRed())
-                        continue
-
-                    if user_selectCategories.getText() != "ALL" and user_selectOpeningBalances.isSelected():
-                        user_selectCategories.setForeground(getColorRed())
-                        user_selectOpeningBalances.setForeground(getColorRed())
-                        labelSTATUSbar.setText(">> Error - You cannot filter on Categories and Include Opening Balances..... <<".upper())
-                        labelSTATUSbar.setForeground(getColorRed())
-                        continue
-
-                    user_selectDateStart.setForeground(saveColor)                                                           # noqa
-                    user_selectDateEnd.setForeground(saveColor)                                                             # noqa
-                    labelSTATUSbar.setText("")
-
-                    if isinstance(accountDropdown.getSelectedItem(),(str,unicode)) and accountDropdown.getSelectedItem() == textToUse:
-                        # So <NONE> Selected in Account dropdown....
-                        if user_includeSubAccounts.isSelected():
-                            user_includeSubAccounts.setSelected(False)
-                            labelSTATUSbar.setText(">> Error - Dropdown Accounts <NONE> and Include Sub Accounts True... <<".upper())
-                            labelSTATUSbar.setForeground(getColorRed())
-                            user_includeSubAccounts.setForeground(getColorRed())
-                            accountDropdown.setForeground(getColorRed())
-                            continue
-                    elif isinstance(accountDropdown.getSelectedItem(),(StoreAccount)):
-
-                        if (user_selectAccounts.getText() != "ALL" or user_selectCurrency.getText() != "ALL"
-                                or (not user_hideInactiveAccounts.isSelected()) or (not user_hideHiddenAccounts.isSelected())):
-                            user_selectAccounts.setText("ALL")
-                            user_selectCurrency.setText("ALL")
-                            user_hideInactiveAccounts.setSelected(True)
-                            user_hideHiddenAccounts.setSelected(True)
-                            labelSTATUSbar.setText(">> Error - Dropdown Accounts Selected. FILTERS RESET TO DEFAULTS <<".upper())
-                            labelSTATUSbar.setForeground(getColorRed())
-                            user_selectAccounts.setForeground(getColorRed())
-                            user_selectCurrency.setForeground(getColorRed())
-                            user_hideHiddenAccounts.setForeground(getColorRed())
-                            user_hideInactiveAccounts.setForeground(getColorRed())
-                            continue
-                    else:
-                        myPrint("B", "@@@ LOGIC ERROR IN PARAMETER DROPDOWN - ABORTING")
-                        raise(Exception("@@@ LOGIC ERROR IN PARAMETER DROPDOWN"))
-
-                    accountDropdown.setForeground(saveColor)
-                    user_includeSubAccounts.setForeground(saveColor)
-                    user_selectAccounts.setForeground(saveColor)
-                    user_selectCurrency.setForeground(saveColor)
-                    user_hideHiddenAccounts.setForeground(saveColor)
-                    user_hideInactiveAccounts.setForeground(saveColor)
-
-                    break   # Loop
-
-                if not lExit:
-                    myPrint("DB", "Parameters Captured",
-                            "DropdownAccount:", accountDropdown.getSelectedItem(),
-                            "SubActs:", user_includeSubAccounts.isSelected(),
-                            "InActAct:", user_hideInactiveAccounts.isSelected(),
-                            "HidAct:", user_hideHiddenAccounts.isSelected(),
-                            "Filter Accts:", user_selectAccounts.getText(),
-                            "Filter Curr:", user_selectCurrency.getText(),
-                            "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
-                            # "Incl Transfers:", user_selectIncludeTransfers.isSelected(),
-                            "Date Range:", dateDropdown.getSelectedItem(),
-                            "StartDate:", user_selectDateStart.getDateInt(),
-                            "EndDate:", user_selectDateEnd.getDateInt(),
-                            "DownldAttachments:", user_selectExtractAttachments.isSelected(),
-                            "Tags:", user_selectTags.getText(),
-                            "Text:", user_selectText.getText(),
-                            "Categories:", user_selectCategories.getText(),
-                            "User Date Format:", user_dateformat.getSelectedItem(),
-                            "Strip ASCII:", user_selectStripASCII.isSelected(),
-                            "Write BOM to file:", user_selectBOM.isSelected(),
-                            "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
-                            "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
-                            "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
-                    # endif
-
-                    hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
-                    hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
-                    lIncludeSubAccounts_EAR = user_includeSubAccounts.isSelected()
-                    lIncludeOpeningBalances_EAR = user_selectOpeningBalances.isSelected()
-                    lIncludeInternalTransfers_EAR = user_selectIncludeTransfers.isSelected()
-                    lExtractAttachments_EAR = user_selectExtractAttachments.isSelected()
-                    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
-                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
-
-                    lStripASCII = user_selectStripASCII.isSelected()
-                    debug = user_selectDEBUG.isSelected()
-
-                    if user_selectTags.getText() == "ALL" or user_selectTags.getText().strip() == "":
-                        lAllTags_EAR = True
-                        tagFilter_EAR = "ALL"
-                    else:
-                        lAllTags_EAR = False
-                        tagFilter_EAR = user_selectTags.getText()
-
-                    if user_selectText.getText() == "ALL" or user_selectText.getText().strip() == "":
-                        lAllText_EAR = True
-                        textFilter_EAR = "ALL"
-                    else:
-                        lAllText_EAR = False
-                        textFilter_EAR = user_selectText.getText()
-
-                    if user_selectCategories.getText() == "ALL" or user_selectCategories.getText().strip() == "":
-                        lAllCategories_EAR = True
-                        categoriesFilter_EAR = "ALL"
-                    else:
-                        lAllCategories_EAR = False
-                        categoriesFilter_EAR = user_selectCategories.getText()
-
-                    userdateStart_EAR = user_selectDateStart.getDateInt()
-                    userdateEnd_EAR = user_selectDateEnd.getDateInt()
-
-                    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
-                    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
-                    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
-                    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
-                    else:
-                        # PROBLEM /  default
-                        userdateformat = "%Y/%m/%d"
-
-
-                    csvDelimiter = user_selectDELIMITER.getSelectedItem()
-                    if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-                        myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
-                        csvDelimiter = ","
-                    if GlobalVars.decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
-                                GlobalVars.decimalCharSep, " - Proceeding without file export!!")
-                        lDisplayOnly = True
-                        myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
-                                              "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
-
-                    saveDropDownDateRange_EAR = dateDropdown.getSelectedItem()
-
-                    if isinstance(accountDropdown.getSelectedItem(), StoreAccount):
-                        dropDownAccount_EAR = accountDropdown.getSelectedItem().getAccount()                            # noqa
-                        # noinspection PyUnresolvedReferences
-                        saveDropDownAccountUUID_EAR = dropDownAccount_EAR.getUUID()
-                        labelIncludeSubAccounts = user_includeSubAccounts.isSelected()
-                        lAllAccounts = True
-                        lAllCurrency = True
-                        filterForAccounts = "ALL"
-                        filterForCurrency = "ALL"
-                        hideInactiveAccounts = True
-                        hideHiddenAccounts = True
-                    else:
-                        dropDownAccount_EAR = None
-                        saveDropDownAccountUUID_EAR = None
-                        lIncludeSubAccounts_EAR = False
-                        if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
-                            lAllAccounts = True
-                            filterForAccounts = "ALL"
-                        else:
-                            lAllAccounts = False
-                            filterForAccounts = user_selectAccounts.getText()
-
-                        if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
-                            lAllCurrency = True
-                            filterForCurrency = "ALL"
-                        else:
-                            lAllCurrency = False
-                            filterForCurrency = user_selectCurrency.getText()
-
-
-                    myPrint("DB", "DEBUG still turned ON (from Parameters)")
-
-                    myPrint("B","User Parameters...")
-
-                    if dropDownAccount_EAR:
-                        # noinspection PyUnresolvedReferences
-                        myPrint("B","Dropdown Account selected..: %s" %(dropDownAccount_EAR.getAccountName()))
-                        myPrint("B","Include Sub Accounts.......: %s" %(lIncludeSubAccounts_EAR))
-                    else:
-                        myPrint("B","Hiding Inactive Accounts...: %s" %(hideInactiveAccounts))
-                        myPrint("B","Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts))
-                        myPrint("B","Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts))
-                        myPrint("B","Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency))
-
-                    myPrint("B","Include Opening Balances...: %s" %(lIncludeOpeningBalances_EAR))
-                    # myPrint("B","Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR))
-                    myPrint("B","Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR))
-                    myPrint("B","Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR))
-                    myPrint("B","Categories filter..........: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR))
-                    myPrint("B","Download Attachments.......: %s" %(lExtractAttachments_EAR))
-                    myPrint("B","Date range.................: %s" %(saveDropDownDateRange_EAR))
-                    myPrint("B","Selected Start Date........: %s" %(userdateStart_EAR))
-                    myPrint("B","Selected End Date..........: %s" %(userdateEnd_EAR))
-                    myPrint("B", "user date format..........: %s" %(userdateformat))
+                lExit = setupExtractAccountTxnsParameters()
 
             elif lExtractInvestmentTxns:
-                # ####################################################
-                # EXTRACT_INVESTMENT_TRANSACTIONS_CSV PARAMETER SCREEN
-                # ####################################################
+                lExit = setupExtractInvestmentAccountParameters()
 
-                label1 = JLabel("Hide Hidden Securities?")
-                user_hideHiddenSecurities = JCheckBox("", hideHiddenSecurities)
-
-                label2 = JLabel("Hide Inactive Accounts?")
-                user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
-
-                label3 = JLabel("Hide Hidden Accounts?")
-                user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
-
-                label4 = JLabel("Filter for Currency containing text '...' or ALL:")
-                user_selectCurrency = JTextField(5)
-                user_selectCurrency.setDocument(JTextFieldLimitYN(5, True, "CURR"))
-                if lAllCurrency: user_selectCurrency.setText("ALL")
-                else:            user_selectCurrency.setText(filterForCurrency)
-
-                label5 = JLabel("Filter for Security/Ticker containing text '...' or ALL:")
-                user_selectTicker = JTextField(12)
-                user_selectTicker.setDocument(JTextFieldLimitYN(12, True, "CURR"))
-                if lAllSecurity: user_selectTicker.setText("ALL")
-                else:            user_selectTicker.setText(filterForSecurity)
-
-                label6 = JLabel("Filter for Accounts containing text '...' (or ALL):")
-                user_selectAccounts = JTextField(12)
-                user_selectAccounts.setDocument(JTextFieldLimitYN(20, True, "CURR"))
-                if lAllAccounts: user_selectAccounts.setText("ALL")
-                else:            user_selectAccounts.setText(filterForAccounts)
-
-                user_dateRangeChooser = DateRangeChooser(MD_REF.getUI())
-
-                label_dateRange = JLabel("Filter transactions by date range:")
-                user_filterDateRange = JCheckBox("", lFilterDateRange_EIT)
-
-                label_dateStart = user_dateRangeChooser.getStartLabel()
-                if lFilterDateRange_EIT and filterDateStart_EIT != 0: user_dateRangeChooser.setStartDate(filterDateStart_EIT)
-                user_dateStart = user_dateRangeChooser.getStartField()
-                if lFilterDateRange_EIT and filterDateEnd_EIT != 0: user_dateRangeChooser.setEndDate(filterDateEnd_EIT)
-                label_dateEnd = user_dateRangeChooser.getEndLabel()
-                user_dateEnd = user_dateRangeChooser.getEndField()
-
-                label7 = JLabel("Include Opening Balances?")
-                user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances)
-
-                label8 = JLabel("Adjust for stock splits/")
-                user_selectAdjustSplits = JCheckBox("", lAdjustForSplits)
-
-                dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
-                label9 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
-                user_dateformat = JComboBox(dateStrings)
-
-                if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
-                elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
-                elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
-                else: user_dateformat.setSelectedItem("yyyy/mm/dd")
-
-                labelOmitLOTDataFromExtract_EIT = JLabel("Omit Buy/Sell LOT Matching Data from extract file")
-                user_lOmitLOTDataFromExtract_EIT = JCheckBox("", lOmitLOTDataFromExtract_EIT)
-                user_lOmitLOTDataFromExtract_EIT.setName("user_lOmitLOTDataFromExtract_EIT")
-
-                labelAttachments = JLabel("Extract & Download Attachments?")
-                user_selectExtractAttachments = JCheckBox("", lExtractAttachments_EIT)
-                user_selectExtractAttachments.setName("user_selectExtractAttachments")
-
-                label10 = JLabel("Strip non ASCII characters from CSV export?")
-                user_selectStripASCII = JCheckBox("", lStripASCII)
-
-                delimStrings = [";","|",","]
-                label11 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-                user_selectDELIMITER = JComboBox(delimStrings)
-                user_selectDELIMITER.setSelectedItem(csvDelimiter)
-
-                labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
-                user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
-
-                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
-                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
-
-                label12 = JLabel("Turn DEBUG Verbose messages on?")
-                user_selectDEBUG = JCheckBox("", debug)
-
-                userFilters = JPanel(GridLayout(0, 2))
-                userFilters.add(label1)
-                userFilters.add(user_hideHiddenSecurities)
-                userFilters.add(label2)
-                userFilters.add(user_hideInactiveAccounts)
-                userFilters.add(label3)
-                userFilters.add(user_hideHiddenAccounts)
-                userFilters.add(label4)
-                userFilters.add(user_selectCurrency)
-                userFilters.add(label5)
-                userFilters.add(user_selectTicker)
-                userFilters.add(label6)
-                userFilters.add(user_selectAccounts)
-
-                # Date Range options
-                userFilters.add(JLabel("-"*30)); userFilters.add(JLabel("-"*30))
-                userFilters.add(label_dateRange)
-                userFilters.add(user_filterDateRange)
-                userFilters.add(user_dateRangeChooser.getChoiceLabel())
-                userFilters.add(user_dateRangeChooser.getChoice())
-                userFilters.add(label_dateStart)
-                userFilters.add(user_dateStart)
-                userFilters.add(label_dateEnd)
-                userFilters.add(user_dateEnd)
-                userFilters.add(JLabel("-"*30)); userFilters.add(JLabel("-"*30))
-
-                userFilters.add(label7)
-                userFilters.add(user_selectOpeningBalances)
-                userFilters.add(label8)
-                userFilters.add(user_selectAdjustSplits)
-                userFilters.add(labelOmitLOTDataFromExtract_EIT)
-                userFilters.add(user_lOmitLOTDataFromExtract_EIT)
-                userFilters.add(labelAttachments)
-                userFilters.add(user_selectExtractAttachments)
-                userFilters.add(label9)
-                userFilters.add(user_dateformat)
-                userFilters.add(label10)
-                userFilters.add(user_selectStripASCII)
-                userFilters.add(label11)
-                userFilters.add(user_selectDELIMITER)
-                userFilters.add(labelBOM)
-                userFilters.add(user_selectBOM)
-                userFilters.add(labelExportParameters)
-                userFilters.add(user_ExportParameters)
-                userFilters.add(label12)
-                userFilters.add(user_selectDEBUG)
-
-                lExit = False
-                lDisplayOnly = False
-
-                options = ["ABORT", "CSV Export"]
-                userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT INVESTMENT TRANSACTIONS: Set Script Parameters....",
-                                                           JOptionPane.OK_CANCEL_OPTION,
-                                                           JOptionPane.QUESTION_MESSAGE,
-                                                           getMDIcon(lAlwaysGetIcon=True),
-                                                           options, options[1]))
-                if userAction == 1:  # Export
-                    myPrint("DB", "Export chosen")
-                    lDisplayOnly = False
-                else:
-                    myPrint("B", "User Cancelled Parameter selection.. Will exit..")
-                    # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
-                    lDisplayOnly = False
-                    lExit = True
-
-                if not lExit:
-                    myPrint("DB", "Parameters Captured",
-                            "Sec: ", user_hideHiddenSecurities.isSelected(),
-                            "InActAct:", user_hideInactiveAccounts.isSelected(),
-                            "HidAct:", user_hideHiddenAccounts.isSelected(),
-                            "Curr:", user_selectCurrency.getText(),
-                            "Ticker:", user_selectTicker.getText(),
-                            "Filter Accts:", user_selectAccounts.getText(),
-                            "Filter txns by date:", user_filterDateRange.isSelected(),
-                            "Filter txns start date:", user_dateRangeChooser.getDateRange().getStartDateInt(),
-                            "Filter txns end date:", user_dateRangeChooser.getDateRange().getEndDateInt(),
-                            "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
-                            "Adj Splits:", user_selectAdjustSplits.isSelected(),
-                            "OmitLOTData:", user_lOmitLOTDataFromExtract_EIT.isSelected(),
-                            "DownldAttachments:", user_selectExtractAttachments.isSelected(),
-                            "User Date Format:", user_dateformat.getSelectedItem(),
-                            "Strip ASCII:", user_selectStripASCII.isSelected(),
-                            "Write BOM to file:", user_selectBOM.isSelected(),
-                            "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
-                            "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
-
-                    hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
-                    hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
-                    hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
-
-                    if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
-                        lAllCurrency = True
-                        filterForCurrency = "ALL"
-                    else:
-                        lAllCurrency = False
-                        filterForCurrency = user_selectCurrency.getText()
-
-                    if user_selectTicker.getText() == "ALL" or user_selectTicker.getText().strip() == "":
-                        lAllSecurity = True
-                        filterForSecurity = "ALL"
-                    else:
-                        lAllSecurity = False
-                        filterForSecurity = user_selectTicker.getText()
-
-                    if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
-                        lAllAccounts = True
-                        filterForAccounts = "ALL"
-                    else:
-                        lAllAccounts = False
-                        filterForAccounts = user_selectAccounts.getText()
-
-                    lFilterDateRange_EIT = user_filterDateRange.isSelected()
-                    if lFilterDateRange_EIT:
-                        filterDateStart_EIT = user_dateRangeChooser.getDateRange().getStartDateInt()
-                        filterDateEnd_EIT = user_dateRangeChooser.getDateRange().getEndDateInt()
-                    else:
-                        filterDateStart_EIT = 0
-                        filterDateEnd_EIT = 0
-
-                    lIncludeOpeningBalances = user_selectOpeningBalances.isSelected()
-                    lAdjustForSplits = user_selectAdjustSplits.isSelected()
-                    lOmitLOTDataFromExtract_EIT = user_lOmitLOTDataFromExtract_EIT.isSelected()
-                    lExtractAttachments_EIT = user_selectExtractAttachments.isSelected()
-
-                    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
-                    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
-                    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
-                    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
-                    else:
-                        # PROBLEM /  default
-                        userdateformat = "%Y/%m/%d"
-
-                    lStripASCII = user_selectStripASCII.isSelected()
-
-                    csvDelimiter = user_selectDELIMITER.getSelectedItem()
-                    if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-                        myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
-                        csvDelimiter = ","
-                    if GlobalVars.decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:",
-                                GlobalVars.decimalCharSep, " - Proceeding without file export!!")
-                        lDisplayOnly = True
-                        myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
-                                              "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
-
-                    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
-                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
-
-                    debug = user_selectDEBUG.isSelected()
-
-                    myPrint("DB", "DEBUG turned ON")
-
-                    myPrint("B","User Parameters...")
-                    if hideHiddenSecurities:
-                        myPrint("B", "Hiding Hidden Securities...")
-                    else:
-                        myPrint("B", "Including Hidden Securities...")
-                    if hideInactiveAccounts:
-                        myPrint("B", "Hiding Inactive Accounts...")
-                    else:
-                        myPrint("B", "Including Inactive Accounts...")
-
-                    if hideHiddenAccounts:
-                        myPrint("B", "Hiding Hidden Accounts...")
-                    else:
-                        myPrint("B", "Including Hidden Accounts...")
-
-                    if lAllCurrency:
-                        myPrint("B", "Selecting ALL Currencies...")
-                    else:
-                        myPrint("B", "Filtering for Currency containing: ", filterForCurrency)
-
-                    if lAllSecurity:
-                        myPrint("B", "Selecting ALL Securities...")
-                    else:
-                        myPrint("B", "Filtering for Security/Ticker containing: ", filterForSecurity)
-
-                    if lFilterDateRange_EIT and filterDateStart_EIT != 0 and filterDateEnd_EIT != 0:
-                        myPrint("B", "FILTERING Transactions by date range:... Start: %s End: %s"
-                                %(convertStrippedIntDateFormattedText(filterDateStart_EIT),
-                                  convertStrippedIntDateFormattedText(filterDateEnd_EIT)))
-                    else:
-                        myPrint("B", "Selecting all dates (no date range filtering): ")
-
-                    if lAllAccounts:
-                        myPrint("B", "Selecting ALL Accounts...")
-                    else:
-                        myPrint("B", "Filtering for Accounts containing: ", filterForAccounts)
-
-                    if lIncludeOpeningBalances:
-                        myPrint("B", "Including Opening Balances...")
-                    else:
-                        myPrint("B", "Ignoring Opening Balances... ")
-
-                    if lAdjustForSplits:
-                        myPrint("B", "Script will adjust for Stock Splits...")
-                    else:
-                        myPrint("B", "Not adjusting for Stock Splits...")
-
-                    if lOmitLOTDataFromExtract_EIT:
-                        myPrint("B", "Script will OMIT Buy/Sell LOT matching data from extract file...")
-                    else:
-                        myPrint("B", "Buy/Sell LOT matching data will be included in the extract file...")
-
-                    myPrint("B", "user date format....:", userdateformat)
+            elif lExtractSecurityBalances:
+                lExit = setupExtractSecurityBalancesParameters()
 
             elif lExtractCurrencyHistory:
-                # ####################################################
-                # EXTRACT_CURRENCY_HISTORY_CSV PARAMETER SCREEN
-                # ####################################################
-
-                dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
-                # 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
-                label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
-                user_dateformat = JComboBox(dateStrings)
-
-                if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
-                elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
-                elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
-                else: user_dateformat.setSelectedItem("yyyy/mm/dd")
-
-                labelDateStart = JLabel("Date range start:")
-                user_selectDateStart = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
-                user_selectDateStart.setDateInt(userdateStart_ECH)
-
-                labelDateEnd = JLabel("Date range end:")
-                user_selectDateEnd = JDateField(MD_REF.getUI())   # Use MD API function (not std Python)
-                user_selectDateEnd.setDateInt(userdateEnd_ECH)
-                # user_selectDateEnd.gotoToday()
-
-                labelSimplify = JLabel("Simplify extract?")
-                user_selectSimplify = JCheckBox("", lSimplify_ECH)
-
-                labelHideHiddenCurrencies = JLabel("Hide Hidden Currencies?")
-                user_selectHideHiddenCurrencies = JCheckBox("", hideHiddenCurrencies_ECH)
-
-                label2 = JLabel("Strip non ASCII characters from CSV export?")
-                user_selectStripASCII = JCheckBox("", lStripASCII)
-
-                delimStrings = [";","|",","]
-                label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-                user_selectDELIMITER = JComboBox(delimStrings)
-                user_selectDELIMITER.setSelectedItem(csvDelimiter)
-
-                labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
-                user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
-
-                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
-                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
-
-                label4 = JLabel("Turn DEBUG Verbose messages on?")
-                user_selectDEBUG = JCheckBox("", debug)
-
-                userFilters = JPanel(GridLayout(0, 2))
-                userFilters.add(label1)
-                userFilters.add(user_dateformat)
-
-                userFilters.add(labelDateStart)
-                userFilters.add(user_selectDateStart)
-
-                userFilters.add(labelDateEnd)
-                userFilters.add(user_selectDateEnd)
-
-                userFilters.add(labelSimplify)
-                userFilters.add(user_selectSimplify)
-
-                userFilters.add(labelHideHiddenCurrencies)
-                userFilters.add(user_selectHideHiddenCurrencies)
-
-                userFilters.add(label2)
-                userFilters.add(user_selectStripASCII)
-                userFilters.add(label3)
-                userFilters.add(user_selectDELIMITER)
-                userFilters.add(labelBOM)
-                userFilters.add(user_selectBOM)
-                userFilters.add(labelExportParameters)
-                userFilters.add(user_ExportParameters)
-                userFilters.add(label4)
-                userFilters.add(user_selectDEBUG)
-
-                lExit = False
-                lDisplayOnly = False
-
-                options = ["Abort", "CSV Export"]
-
-                while True:
-
-                    userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT CURRENCY HISTORY: Set Script Parameters....",
-                                                               JOptionPane.OK_CANCEL_OPTION,
-                                                               JOptionPane.QUESTION_MESSAGE,
-                                                               getMDIcon(lAlwaysGetIcon=True),
-                                                               options, options[1]))
-                    if userAction != 1:
-                        myPrint("B", "User Cancelled Parameter selection.. Will abort..")
-                        # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
-                        lDisplayOnly = False
-                        lExit = True
-                        break
-
-                    if user_selectDateStart.getDateInt() <= user_selectDateEnd.getDateInt() \
-                            and user_selectDateEnd.getDateInt() >= user_selectDateStart.getDateInt():
-                        break   # Valid date range
-
-                    myPrint("P","Error - date range incorrect, please try again...")
-                    user_selectDateStart.setForeground(getColorRed())                                                   # noqa
-                    user_selectDateEnd.setForeground(getColorRed())                                                     # noqa
-                    continue   # Loop
-
-                if not lExit:
-                    myPrint("DB", "Parameters Captured",
-                            "User Date Format:", user_dateformat.getSelectedItem(),
-                            "Simplify:", user_selectSimplify.isSelected(),
-                            "Hide Hidden Currencies:", user_selectHideHiddenCurrencies.isSelected(),
-                            "Start date:", user_selectDateStart.getDateInt(),
-                            "End date:", user_selectDateEnd.getDateInt(),
-                            "Strip ASCII:", user_selectStripASCII.isSelected(),
-                            "Write BOM to file:", user_selectBOM.isSelected(),
-                            "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
-                            "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
-                            "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
-                    # endif
-
-                    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
-                    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
-                    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
-                    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
-                    else:
-                        # PROBLEM /  default
-                        userdateformat = "%Y/%m/%d"
-
-                    lSimplify_ECH = user_selectSimplify.isSelected()
-                    hideHiddenCurrencies_ECH = user_selectHideHiddenCurrencies.isSelected()
-                    userdateStart_ECH = user_selectDateStart.getDateInt()
-                    userdateEnd_ECH = user_selectDateEnd.getDateInt()
-
-                    lStripASCII = user_selectStripASCII.isSelected()
-
-                    csvDelimiter = user_selectDELIMITER.getSelectedItem()
-                    if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-                        myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
-                        csvDelimiter = ","
-                    if GlobalVars.decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
-                        lDisplayOnly = True
-                        myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
-                                              "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
-
-                    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
-                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
-
-                    debug = user_selectDEBUG.isSelected()
-                    myPrint("DB", "DEBUG turned ON")
-
-                    myPrint("B","User Parameters...")
-
-                    if lSimplify_ECH:
-                        myPrint("B","Simplifying extract")
-                    else:
-                        myPrint("B","Providing a detailed extract")
-
-                    myPrint("B","user date format....:", userdateformat)
-
-                    myPrint("B", "Selected start date:", userdateStart_ECH)
-                    myPrint("B", "Selected end date:", userdateEnd_ECH)
-
-                    if hideHiddenCurrencies_ECH:
-                        myPrint("B", "Hiding hidden currencies...")
+                lExit = setupExtractCurrencyHistoryParameters()
 
             elif lExtractStockGlance2020:
-                # ####################################################
-                # STOCKGLANCE2020 PARAMETER SCREEN
-                # ####################################################
-                label1 = JLabel("Hide Hidden Securities?")
-                user_hideHiddenSecurities = JCheckBox("", hideHiddenSecurities)
-
-                label2 = JLabel("Hide Inactive Accounts?")
-                user_hideInactiveAccounts = JCheckBox("", hideInactiveAccounts)
-
-                label3 = JLabel("Hide Hidden Accounts?")
-                user_hideHiddenAccounts = JCheckBox("", hideHiddenAccounts)
-
-                label4 = JLabel("Filter for Currency containing text '...' or ALL:")
-                user_selectCurrency = JTextField(5)
-                user_selectCurrency.setDocument(JTextFieldLimitYN(5, True, "CURR"))
-                if lAllCurrency: user_selectCurrency.setText("ALL")
-                else:            user_selectCurrency.setText(filterForCurrency)
-
-                label5 = JLabel("Filter for Security/Ticker containing text '...' or ALL:")
-                user_selectTicker = JTextField(12)
-                user_selectTicker.setDocument(JTextFieldLimitYN(12, True, "CURR"))
-                if lAllSecurity: user_selectTicker.setText("ALL")
-                else:            user_selectTicker.setText(filterForSecurity)
-
-                label6 = JLabel("Filter for Accounts containing text '...' (or ALL):")
-                user_selectAccounts = JTextField(12)
-                user_selectAccounts.setDocument(JTextFieldLimitYN(20, True, "CURR"))
-                if lAllAccounts: user_selectAccounts.setText("ALL")
-                else:            user_selectAccounts.setText(filterForAccounts)
-
-                label7 = JLabel("Include Cash Balances for each account?")
-                user_selectCashBalances = JCheckBox("", lIncludeCashBalances)
-
-                label7b = JLabel("Split Security Qtys by Account?")
-                user_splitSecurities = JCheckBox("", lSplitSecuritiesByAccount)
-
-                labelFutureBalances = JLabel("Include Future Balances (rather than current)?")
-                user_includeFutureBalances = JCheckBox("", lIncludeFutureBalances_SG2020)
-
-                label7c = JLabel("Exclude Totals from CSV extract (helps pivots)?")
-                user_excludeTotalsFromCSV = JCheckBox("", lExcludeTotalsFromCSV)
-
-                labelUseCurrentPrice = JLabel("Enabled = Use 'Current Price' (Not ticked = use latest dated price history price instead")
-                user_useCurrentPrice = JCheckBox("", lUseCurrentPrice_SG2020)
-
-                labelMaxDecimalRounding = JLabel("Enter the maximum decimal rounding to use on calculated price (0-12; default=4)")
-                user_maxDecimalRounding = JTextField(2)
-                user_maxDecimalRounding.setText(str(maxDecimalPlacesRounding_SG2020))
-
-                labelRC = JLabel("Reset Column Widths to Defaults?")
-                user_selectResetColumns = JCheckBox("", False)
-
-                label8 = JLabel("Strip non ASCII characters from CSV export?")
-                user_selectStripASCII = JCheckBox("", lStripASCII)
-
-                delimStrings = [";","|",","]
-                label9 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-                user_selectDELIMITER = JComboBox(delimStrings)
-                user_selectDELIMITER.setSelectedItem(csvDelimiter)
-
-                labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
-                user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
-
-                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
-                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
-
-                label10 = JLabel("Turn DEBUG Verbose messages on?")
-                user_selectDEBUG = JCheckBox("", debug)
-
-                userFilters = JPanel(GridLayout(0, 2))
-                userFilters.add(label1)
-                userFilters.add(user_hideHiddenSecurities)
-                userFilters.add(label2)
-                userFilters.add(user_hideInactiveAccounts)
-                userFilters.add(label3)
-                userFilters.add(user_hideHiddenAccounts)
-                userFilters.add(label4)
-                userFilters.add(user_selectCurrency)
-                userFilters.add(label5)
-                userFilters.add(user_selectTicker)
-                userFilters.add(label6)
-                userFilters.add(user_selectAccounts)
-                userFilters.add(label7)
-                userFilters.add(user_selectCashBalances)
-                userFilters.add(label7b)
-                userFilters.add(user_splitSecurities)
-                userFilters.add(labelFutureBalances)
-                userFilters.add(user_includeFutureBalances)
-                userFilters.add(label7c)
-                userFilters.add(user_excludeTotalsFromCSV)
-                userFilters.add(labelUseCurrentPrice)
-                userFilters.add(user_useCurrentPrice)
-                userFilters.add(labelMaxDecimalRounding)
-                userFilters.add(user_maxDecimalRounding)
-                userFilters.add(labelRC)
-                userFilters.add(user_selectResetColumns)
-                userFilters.add(label8)
-                userFilters.add(user_selectStripASCII)
-                userFilters.add(label9)
-                userFilters.add(user_selectDELIMITER)
-                userFilters.add(labelBOM)
-                userFilters.add(user_selectBOM)
-                userFilters.add(labelExportParameters)
-                userFilters.add(user_ExportParameters)
-                userFilters.add(label10)
-                userFilters.add(user_selectDEBUG)
-
-                lExit = False
-                lDisplayOnly = False
-
-                options = ["Abort", "Display & CSV Export", "Display Only"]
-                userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
-                                                           userFilters,
-                                                           "StockGlance2020 - Summarise Stocks/Funds: Set Script Parameters....",
-                                                           JOptionPane.OK_CANCEL_OPTION,
-                                                           JOptionPane.QUESTION_MESSAGE,
-                                                           getMDIcon(lAlwaysGetIcon=True),
-                                                           options,
-                                                           options[2]))
-                if userAction == 1:  # Display & Export
-                    myPrint("DB", "Display and export chosen")
-                    lDisplayOnly = False
-                elif userAction == 2:  # Display Only
-                    lDisplayOnly = True
-                    myPrint("DB", "Display only with no export chosen")
-                else:
-                    # Abort
-                    myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
-                    # myPopupInformationBox(extract_data_frame_,"User Cancelled Parameter selection.. Will abort..","PARAMETERS")
-                    lDisplayOnly = False
-                    lExit = True
-
-                if not lExit:
-                    if debug:
-                        myPrint("DB", "Parameters Captured::",
-                                "Sec: ", user_hideHiddenSecurities.isSelected(),
-                                ", InActAct:", user_hideInactiveAccounts.isSelected(),
-                                ", HidAct:", user_hideHiddenAccounts.isSelected(),
-                                ", Curr:", user_selectCurrency.getText(),
-                                ", Ticker:", user_selectTicker.getText(),
-                                ", Filter Accts:", user_selectAccounts.getText(),
-                                ", Include Cash Balances:", user_selectCashBalances.isSelected(),
-                                ", Split Securities:", user_splitSecurities.isSelected(),
-                                ", Include Future Balances:", user_includeFutureBalances.isSelected(),
-                                ", Exclude Totals from CSV:", user_excludeTotalsFromCSV.isSelected(),
-                                ", Use Current Price:", user_useCurrentPrice.isSelected(),
-                                ", Max Decimal Places for price rounding (if not valid will default to 4):", user_maxDecimalRounding.getText(),
-                                ", Reset Columns:", user_selectResetColumns.isSelected(),
-                                ", Strip ASCII:", user_selectStripASCII.isSelected(),
-                                ", Write BOM to file:", user_selectBOM.isSelected(),
-                                ", Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
-                                ", Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
-                                ", CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
-
-                    if user_selectResetColumns.isSelected():
-                        myPrint("B","User asked to reset columns.... Resetting Now....")
-                        _column_widths_SG2020=[]  # This will invalidate the
-
-                    hideHiddenSecurities = user_hideHiddenSecurities.isSelected()
-                    hideInactiveAccounts = user_hideInactiveAccounts.isSelected()
-                    hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
-
-                    if user_selectCurrency.getText() == "ALL" or user_selectCurrency.getText().strip() == "":
-                        lAllCurrency = True
-                        filterForCurrency = "ALL"
-                    else:
-                        lAllCurrency = False
-                        filterForCurrency = user_selectCurrency.getText()
-
-                    if user_selectTicker.getText() == "ALL" or user_selectTicker.getText().strip() == "":
-                        lAllSecurity = True
-                        filterForSecurity = "ALL"
-                    else:
-                        lAllSecurity = False
-                        filterForSecurity = user_selectTicker.getText()
-
-                    if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
-                        lAllAccounts = True
-                        filterForAccounts = "ALL"
-                    else:
-                        lAllAccounts = False
-                        filterForAccounts = user_selectAccounts.getText()
-
-                    lIncludeCashBalances = user_selectCashBalances.isSelected()
-                    lSplitSecuritiesByAccount = user_splitSecurities.isSelected()
-                    lExcludeTotalsFromCSV = user_excludeTotalsFromCSV.isSelected()
-                    lIncludeFutureBalances_SG2020 = user_includeFutureBalances.isSelected()
-
-                    lUseCurrentPrice_SG2020 = user_useCurrentPrice.isSelected()
-                    del user_useCurrentPrice, labelUseCurrentPrice
-
-                    getVal = user_maxDecimalRounding.getText()
-                    if StringUtils.isInteger(getVal) and int(getVal) >= 0 and int(getVal) <= 12:
-                        maxDecimalPlacesRounding_SG2020 = int(getVal)
-                    else:
-                        myPrint("B", "Parameter Max Decimal Places '%s 'invalid, overriding to a default of max 4pc rounding...." %(getVal))
-                        maxDecimalPlacesRounding_SG2020 = 4
-                    del user_maxDecimalRounding, labelMaxDecimalRounding
-
-                    lStripASCII = user_selectStripASCII.isSelected()
-
-                    csvDelimiter = user_selectDELIMITER.getSelectedItem()
-                    if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-                        myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
-                        csvDelimiter = ","
-                    if GlobalVars.decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
-                        lDisplayOnly = True
-                        myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
-                                              "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
-
-                    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
-                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
-
-                    debug = user_selectDEBUG.isSelected()
-                    myPrint("DB", "DEBUG turned on")
-
-                    myPrint("B", "User Parameters...")
-                    if hideHiddenSecurities:
-                        myPrint("B", "Hiding Hidden Securities...")
-                    else:
-                        myPrint("B", "Including Hidden Securities...")
-                    if hideInactiveAccounts:
-                        myPrint("B", "Hiding Inactive Accounts...")
-                    else:
-                        myPrint("B", "Including Inactive Accounts...")
-
-                    if hideHiddenAccounts:
-                        myPrint("B", "Hiding Hidden Accounts...")
-                    else:
-                        myPrint("B", "Including Hidden Accounts...")
-
-                    if lAllCurrency:
-                        myPrint("B", "Selecting ALL Currencies...")
-                    else:
-                        myPrint("B", "Filtering for Currency containing: ", filterForCurrency)
-
-                    if lAllSecurity:
-                        myPrint("B", "Selecting ALL Securities...")
-                    else:
-                        myPrint("B", "Filtering for Security/Ticker containing: ", filterForSecurity)
-
-                    if lAllAccounts:
-                        myPrint("B", "Selecting ALL Accounts...")
-                    else:
-                        myPrint("B", "Filtering for Accounts containing: ", filterForAccounts)
-
-                    if lIncludeCashBalances:
-                        myPrint("B", "Including Cash Balances - WARNING - this is per account!")
-                    else:
-                        myPrint("B", "Excluding Cash Balances")
-
-                    if lIncludeFutureBalances_SG2020:
-                        myPrint("B", "Including Future Balances...")
-                    else:
-                        myPrint("B", "Including Current Balances Only....")
-
-                    if lUseCurrentPrice_SG2020:
-                        myPrint("B", "Will use Current Price (not the latest dated price history price...")
-                    else:
-                        myPrint("B", "Will use the latest dated price history price (not the current price)...")
-
-                    myPrint("B", "Maximum rounding for decimal places on stock prices is set to: %s" %(maxDecimalPlacesRounding_SG2020))
-
-                    if lSplitSecuritiesByAccount:
-                        myPrint("B", "Splitting Securities by account - WARNING, this will disable sorting....")
-                    else:
-                        myPrint("B", "No Splitting Securities by account will be performed....")
+                lExit = setupExtractSG2020Parameters()
 
             elif lExtractReminders:
-                # ####################################################
-                # EXTRACT_REMINDERS_CSV PARAMETER SCREEN
-                # ####################################################
-
-                # 1=dd/mm/yyyy, 2=mm/dd/yyyy, 3=yyyy/mm/dd, 4=yyyymmdd
-                dateStrings = ["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
-
-                label1 = JLabel("Select Output Date Format (default yyyy/mm/dd):")
-                user_dateformat = JComboBox(dateStrings)
-
-                if userdateformat == "%d/%m/%Y": user_dateformat.setSelectedItem("dd/mm/yyyy")
-                elif userdateformat == "%m/%d/%Y": user_dateformat.setSelectedItem("mm/dd/yyyy")
-                elif userdateformat == "%Y%m%d": user_dateformat.setSelectedItem("yyyymmdd")
-                else: user_dateformat.setSelectedItem("yyyy/mm/dd")
-
-                labelRC = JLabel("Reset Column Widths to Defaults?")
-                user_selectResetColumns = JCheckBox("", False)
-
-                label2 = JLabel("Strip non ASCII characters from CSV export?")
-                user_selectStripASCII = JCheckBox("", lStripASCII)
-
-                delimStrings = [";","|",","]
-                label3 = JLabel("Change CSV Export Delimiter from default to: ';|,'")
-                user_selectDELIMITER = JComboBox(delimStrings)
-                user_selectDELIMITER.setSelectedItem(csvDelimiter)
-
-                labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
-                user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
-
-                labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
-                user_ExportParameters = JCheckBox("", lWriteParametersToExportFile_SWSS)
-
-                label4 = JLabel("Turn DEBUG Verbose messages on?")
-                user_selectDEBUG = JCheckBox("", debug)
-
-
-                userFilters = JPanel(GridLayout(0, 2))
-                userFilters.add(label1)
-                userFilters.add(user_dateformat)
-                userFilters.add(labelRC)
-                userFilters.add(user_selectResetColumns)
-                userFilters.add(label2)
-                userFilters.add(user_selectStripASCII)
-                userFilters.add(label3)
-                userFilters.add(user_selectDELIMITER)
-                userFilters.add(labelBOM)
-                userFilters.add(user_selectBOM)
-                userFilters.add(labelExportParameters)
-                userFilters.add(user_ExportParameters)
-                userFilters.add(label4)
-                userFilters.add(user_selectDEBUG)
-
-                lExit = False
-                lDisplayOnly = False
-
-                options = ["Abort", "Display & CSV Export", "Display Only"]
-                userAction = (JOptionPane.showOptionDialog( extract_data_frame_,
-                                                            userFilters,
-                                                            "EXTRACT REMINDERS: Set Script Parameters....",
-                                                            JOptionPane.OK_CANCEL_OPTION,
-                                                            JOptionPane.QUESTION_MESSAGE,
-                                                            getMDIcon(lAlwaysGetIcon=True),
-                                                            options,
-                                                            options[2])
-                              )
-                if userAction == 1:  # Display & Export
-                    myPrint("DB", "Display and export chosen")
-                    lDisplayOnly = False
-                elif userAction == 2:  # Display Only
-                    lDisplayOnly = True
-                    myPrint("DB", "Display only with no export chosen")
-                else:
-                    # Abort
-                    myPrint("DB", "User Cancelled Parameter selection.. Will abort..")
-                    # myPopupInformationBox(extract_data_frame_, "User Cancelled Parameter selection.. Will abort..", "PARAMETERS")
-                    lDisplayOnly = False
-                    lExit = True
-
-                if not lExit:
-
-                    debug = user_selectDEBUG.isSelected()
-                    myPrint("DB", "DEBUG turned on")
-
-                    if debug:
-                        myPrint("DB","Parameters Captured",
-                                "User Date Format:", user_dateformat.getSelectedItem(),
-                                "Reset Columns", user_selectResetColumns.isSelected(),
-                                "Strip ASCII:", user_selectStripASCII.isSelected(),
-                                "Write BOM to file:", user_selectBOM.isSelected(),
-                                "Write Parameters to end of exported file:", user_ExportParameters.isSelected(),
-                                "Verbose Debug Messages: ", user_selectDEBUG.isSelected(),
-                                "CSV File Delimiter:", user_selectDELIMITER.getSelectedItem())
-                    # endif
-
-                    if user_dateformat.getSelectedItem() == "dd/mm/yyyy": userdateformat = "%d/%m/%Y"
-                    elif user_dateformat.getSelectedItem() == "mm/dd/yyyy": userdateformat = "%m/%d/%Y"
-                    elif user_dateformat.getSelectedItem() == "yyyy/mm/dd": userdateformat = "%Y/%m/%d"
-                    elif user_dateformat.getSelectedItem() == "yyyymmdd": userdateformat = "%Y%m%d"
-                    else:
-                        # PROBLEM /  default
-                        userdateformat = "%Y/%m/%d"
-
-                    if user_selectResetColumns.isSelected():
-                        myPrint("B","User asked to reset columns.... Resetting Now....")
-                        _column_widths_ERTC=[]  # This will invalidate them
-
-                    lStripASCII = user_selectStripASCII.isSelected()
-
-                    csvDelimiter = user_selectDELIMITER.getSelectedItem()
-                    if csvDelimiter == "" or (not (csvDelimiter in ";|,")):
-                        myPrint("B", "Invalid Delimiter:", csvDelimiter, "selected. Overriding with:','")
-                        csvDelimiter = ","
-                    if GlobalVars.decimalCharSep == csvDelimiter:
-                        myPrint("B", "WARNING: The CSV file delimiter:", csvDelimiter, "cannot be the same as your decimal point character:", GlobalVars.decimalCharSep, " - Proceeding without file export!!")
-                        lDisplayOnly = True
-                        myPopupInformationBox(None, "ERROR - The CSV file delimiter: %s ""cannot be the same as your decimal point character: %s. "
-                                                    "Proceeding without file export (i.e. I will do nothing)!!" %(csvDelimiter, GlobalVars.decimalCharSep),
-                                              "INVALID FILE DELIMITER", theMessageType=JOptionPane.ERROR_MESSAGE)
-
-                    lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
-                    lWriteParametersToExportFile_SWSS = user_ExportParameters.isSelected()
-
-                    myPrint("B", "User Parameters...")
-                    myPrint("B", "user date format....:", userdateformat)
+                lExit = setupExtractRemindersParameters()
 
             else:
                 myPopupInformationBox(extract_data_frame_, "ERROR - Failed to detect correct parameter screen - will exit",theMessageType=JOptionPane.ERROR_MESSAGE)
@@ -5279,15 +5603,17 @@ Visit: %s (Author's site)
                     myPrint("B",  "Exclude Totals from CSV (to assist Pivot tables)..: %s" %(lExcludeTotalsFromCSV))
 
                 if lExtractAccountTxns:
-                    extract_filename="extract_account_registers"+currentDateTimeMarker()+".csv"
+                    extract_filename = "extract_account_registers" + currentDateTimeMarker() + ".csv"
                 elif lExtractInvestmentTxns:
-                    extract_filename="extract_investment_transactions"+currentDateTimeMarker()+".csv"
+                    extract_filename = "extract_investment_transactions" + currentDateTimeMarker() + ".csv"
+                elif lExtractSecurityBalances:
+                    extract_filename = "extract_security_balances" + currentDateTimeMarker() + ".csv"
                 elif lExtractCurrencyHistory:
-                    extract_filename="extract_currency_history"+currentDateTimeMarker()+".csv"
+                    extract_filename = "extract_currency_history" + currentDateTimeMarker() + ".csv"
                 elif lExtractStockGlance2020:
-                    extract_filename="stockglance2020_extract_stock_balances"+currentDateTimeMarker()+".csv"
+                    extract_filename = "stockglance2020_extract_stock_balances" + currentDateTimeMarker() + ".csv"
                 elif lExtractReminders:
-                    extract_filename="extract_reminders"+currentDateTimeMarker()+".csv"
+                    extract_filename = "extract_reminders" + currentDateTimeMarker() + ".csv"
 
                 def grabTheFile():
                     global lDisplayOnly, csvfilename, scriptpath
@@ -5659,11 +5985,11 @@ Visit: %s (Author's site)
                                                     balanceBaseSplit = (0.0 if (qtySplit is None) else (curr.getDoubleValue(qtySplit) * price / exchangeRate))  # Value in Base Currency
 
                                                     # costBasisBase = (0.0 if (securityCostBasis is None) else round(self.currXrate.getDoubleValue(securityCostBasis) / exchangeRate, 2))
-                                                    costBasisBase = (0.0 if (securityCostBasis is None) else round(self.currXrate.getDoubleValue(securityCostBasis), 2));
+                                                    costBasisBase = (0.0 if (securityCostBasis is None) else round(self.currXrate.getDoubleValue(securityCostBasis), 2))
                                                     gainBase = round(balanceBase, 2) - costBasisBase
 
                                                     # costBasisBaseSplit = round(self.currXrate.getDoubleValue(split_acct_array[iSplitAcctArray][2]) / exchangeRate, 2)
-                                                    costBasisBaseSplit = round(self.currXrate.getDoubleValue(split_acct_array[iSplitAcctArray][2]), 2);
+                                                    costBasisBaseSplit = round(self.currXrate.getDoubleValue(split_acct_array[iSplitAcctArray][2]), 2)
                                                     gainBaseSplit = round(balanceBaseSplit, 2) - costBasisBaseSplit
 
                                                     if debug:
@@ -6027,7 +6353,7 @@ Visit: %s (Author's site)
                             return theNumber
 
                         # noinspection PyArgumentList
-                        class MyAcctFilter(AcctFilter):
+                        class MyAcctFilterSG2020(AcctFilter):
 
                             def __init__(self, selectAccountType="ALL",                                                         # noqa
                                          hideInactiveAccounts=True,                                                             # noqa
@@ -6164,17 +6490,17 @@ Visit: %s (Author's site)
                             # So this little bit is going to find the other accounts that have a cash balance...
                             if lIncludeCashBalances:
                                 # noinspection PyUnresolvedReferences
-                                moreCashAccounts = AccountUtil.allMatchesForSearch(book,self.MyAcctFilter(Account.AccountType.INVESTMENT,
-                                                                                                          hideInactiveAccounts,
-                                                                                                          lAllAccounts,
-                                                                                                          filterForAccounts,
-                                                                                                          hideHiddenAccounts,
-                                                                                                          hideHiddenSecurities,
-                                                                                                          lAllCurrency,
-                                                                                                          filterForCurrency,
-                                                                                                          lAllSecurity,
-                                                                                                          filterForSecurity,
-                                                                                                          None))
+                                moreCashAccounts = AccountUtil.allMatchesForSearch(book,self.MyAcctFilterSG2020(Account.AccountType.INVESTMENT,
+                                                                                                                hideInactiveAccounts,
+                                                                                                                lAllAccounts,
+                                                                                                                filterForAccounts,
+                                                                                                                hideHiddenAccounts,
+                                                                                                                hideHiddenSecurities,
+                                                                                                                lAllCurrency,
+                                                                                                                filterForCurrency,
+                                                                                                                lAllSecurity,
+                                                                                                                filterForSecurity,
+                                                                                                                None))
                                 for acct in moreCashAccounts:
                                     curr = acct.getCurrencyType()
 
@@ -6189,17 +6515,17 @@ Visit: %s (Author's site)
 
 
                             # noinspection PyUnresolvedReferences
-                            for acct in AccountUtil.allMatchesForSearch(book, self.MyAcctFilter(Account.AccountType.SECURITY,
-                                                                                                hideInactiveAccounts,
-                                                                                                lAllAccounts,
-                                                                                                filterForAccounts,
-                                                                                                hideHiddenAccounts,
-                                                                                                hideHiddenSecurities,
-                                                                                                lAllCurrency,
-                                                                                                filterForCurrency,
-                                                                                                lAllSecurity,
-                                                                                                filterForSecurity,
-                                                                                                None)):
+                            for acct in AccountUtil.allMatchesForSearch(book, self.MyAcctFilterSG2020(Account.AccountType.SECURITY,
+                                                                                                    hideInactiveAccounts,
+                                                                                                    lAllAccounts,
+                                                                                                    filterForAccounts,
+                                                                                                    hideHiddenAccounts,
+                                                                                                    hideHiddenSecurities,
+                                                                                                    lAllCurrency,
+                                                                                                    filterForCurrency,
+                                                                                                    lAllSecurity,
+                                                                                                    filterForSecurity,
+                                                                                                    None)):
                                 curr = acct.getCurrencyType()
                                 account = accounts.get(curr)    # this returns None if curr doesn't exist yet
                                 total = totals.get(curr)        # this returns None if security/curr doesn't exist yet
@@ -6966,7 +7292,6 @@ Visit: %s (Author's site)
 
                                 myPrint("D","In ", inspect.currentframe().f_code.co_name, "()")
 
-                                # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
                                 if not lSplitSecuritiesByAccount:
                                     rawDataTable = sorted(rawDataTable, key=lambda x: (x[1].upper()))
 
@@ -7027,7 +7352,7 @@ Visit: %s (Author's site)
                                                              + str(sdf.format(today.getTime()))])
 
                                             writer.writerow([""])
-                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
 
                                             writer.writerow([""])
                                             writer.writerow(["User Parameters..."])
@@ -7191,7 +7516,7 @@ Visit: %s (Author's site)
                             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
                             if event.getActionCommand().lower().startswith("show reminder"):
-                                reminders = MD_REF.getCurrentAccount().getBook().getReminders()
+                                reminders = MD_REF.getCurrentAccountBook().getReminders()
                                 reminder = reminders.getAllReminders()[table.getValueAt(row, 0) - 1]
                                 MD_REF.getUI().showRawItemDetails(reminder, extract_data_frame_)
 
@@ -7231,7 +7556,7 @@ Visit: %s (Author's site)
 
                         root = MD_REF.getCurrentAccountBook()
 
-                        baseCurrency = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+                        baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                         rems = root.getReminders().getAllReminders()
 
@@ -8120,7 +8445,7 @@ Visit: %s (Author's site)
                         global EditedReminderCheck
 
                         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-                        reminders = MD_REF.getCurrentAccount().getBook().getReminders()
+                        reminders = MD_REF.getCurrentAccountBook().getReminders()
                         reminder = reminders.getAllReminders()[item-1]
                         myPrint("D", "Calling MD EditRemindersWindow() function...")
 
@@ -8165,7 +8490,6 @@ Visit: %s (Author's site)
 
                                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-                                # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
                                 # noinspection PyUnreachableCode
                                 if False:
                                     csvlines = sorted(csvlines, key=lambda x: (str(x[1]).upper()))
@@ -8239,7 +8563,7 @@ Visit: %s (Author's site)
                                                              + str(sdf.format(today.getTime()))])
 
                                             writer.writerow([""])
-                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
 
                                             writer.writerow([""])
                                             writer.writerow(["User Parameters..."])
@@ -8330,7 +8654,7 @@ Visit: %s (Author's site)
                         global lAllText_EAR, textFilter_EAR, lAllCategories_EAR, categoriesFilter_EAR, lExtractAttachments_EAR, saveDropDownAccountUUID_EAR, saveDropDownDateRange_EAR, lIncludeInternalTransfers_EAR
 
                         # noinspection PyArgumentList
-                        class MyAcctFilter(AcctFilter):
+                        class MyAcctFilterEAT(AcctFilter):
 
                             def __init__(self,
                                          _hideInactiveAccounts=True,
@@ -8407,12 +8731,13 @@ Visit: %s (Author's site)
                                 validAccountList = ArrayList()
                             validAccountList.add(0,dropDownAccount_EAR)
                         else:
-                            validAccountList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(),MyAcctFilter(_hideInactiveAccounts=hideInactiveAccounts,
-                                                                                                                                 _hideHiddenAccounts=hideHiddenAccounts,
-                                                                                                                                 _lAllAccounts=lAllAccounts,
-                                                                                                                                 _filterForAccounts=filterForAccounts,
-                                                                                                                                 _lAllCurrency=lAllCurrency,
-                                                                                                                                 _filterForCurrency=filterForCurrency))
+                            validAccountList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(),
+                                                                               MyAcctFilterEAT(_hideInactiveAccounts=hideInactiveAccounts,
+                                                                                               _hideHiddenAccounts=hideHiddenAccounts,
+                                                                                               _lAllAccounts=lAllAccounts,
+                                                                                               _filterForAccounts=filterForAccounts,
+                                                                                               _lAllCurrency=lAllCurrency,
+                                                                                               _filterForCurrency=filterForCurrency))
 
                         if debug:
                             myPrint("DB","%s Accounts selected in filters" %len(validAccountList))
@@ -8456,12 +8781,12 @@ Visit: %s (Author's site)
 
                         myPrint("DB", dataKeys)
 
-                        rootbook = MD_REF.getCurrentAccountBook()
+                        book = MD_REF.getCurrentAccountBook()
 
                         baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                         # noinspection PyArgumentList
-                        class MyTxnSearchCostBasis(TxnSearch):
+                        class MyTxnSearchCostBasisEAT(TxnSearch):
 
                             def __init__(self, _validAccounts):
                                 super(TxnSearch, self).__init__()
@@ -8480,7 +8805,7 @@ Visit: %s (Author's site)
                                 else:
                                     return False
 
-                        txns = rootbook.getTransactionSet().getTransactions(MyTxnSearchCostBasis(validAccountList))
+                        txns = book.getTransactionSet().getTransactions(MyTxnSearchCostBasisEAT(validAccountList))
 
                         iBal = 0
                         accountBalances = {}
@@ -8897,8 +9222,6 @@ Visit: %s (Author's site)
                                 for col in range(0, dataKeys["_ATTACHMENTLINK"][_COLUMN]):  # DO NOT MESS WITH ATTACHMENT LINK NAMES!!
                                     _theRow[col] = fixFormatsStr(_theRow[col])
 
-                            # NOTE - You can add sep= to beginning of file to tell Excel what delimiter you are using
-
                             # Write the csvlines to a file
                             myPrint("B", "Opening file and writing ", len(transactionTable), "records")
 
@@ -8955,7 +9278,7 @@ Visit: %s (Author's site)
                                                          + str(sdf.format(today.getTime()))])
 
                                         writer.writerow([""])
-                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
 
                                         writer.writerow([""])
                                         writer.writerow(["User Parameters..."])
@@ -9140,11 +9463,12 @@ Visit: %s (Author's site)
                         global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
                         global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
+                        global lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
                         global whichDefaultExtractToRun_SWSS
                         global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
 
                         # noinspection PyArgumentList
-                        class MyTxnSearchCostBasis(TxnSearch):
+                        class MyTxnSearchCostBasisEIT(TxnSearch):
 
                             def __init__(self,
                                          hideInactiveAccounts=False,                                                        # noqa
@@ -9305,7 +9629,7 @@ Visit: %s (Author's site)
                             # enddef
 
                         # noinspection PyArgumentList
-                        class MyAcctFilter(AcctFilter):
+                        class MyAcctFilterEIT(AcctFilter):
 
                             def __init__(self,
                                          hideInactiveAccounts=False,                                                        # noqa
@@ -9384,54 +9708,84 @@ Visit: %s (Author's site)
                                 return True
                             # enddef
 
-
+                        
                         _COLUMN = 0
                         _HEADING = 1
-                        dataKeys = {
-                            "_ACCOUNT":             [0, "Account"],
-                            "_DATE":                [1, "Date"],
-                            "_TAXDATE":             [2, "TaxDate"],
-                            "_CURR":                [3, "Currency"],
-                            "_SECURITY":            [4, "Security"],
-                            "_TICKER":              [5, "SecurityTicker"],
-                            "_SECCURR":             [6, "SecurityCurrency"],
-                            "_AVGCOST":             [7, "AverageCostControl"],
-                            "_ACTION":              [8, "Action"],
-                            "_TT":                  [9, "ActionType"],
-                            "_CHEQUE":              [10, "Cheque"],
-                            "_DESC":                [11, "Description"],
-                            "_MEMO":                [12, "Memo"],
-                            "_CLEARED":             [13, "Cleared"],
-                            "_TRANSFER":            [14, "Transfer"],
-                            "_CAT":                 [15, "Category"],
-                            "_SHARES":              [16, "Shares"],
-                            "_PRICE":               [17, "Price"],
-                            "_AMOUNT":              [18, "Amount"],
-                            "_FEE":                 [19, "Fee"],
-                            "_FEECAT":              [20, "FeeCategory"],
-                            "_TXNNETAMOUNT":        [21, "TransactionNetAmount"],
-                            "_CASHIMPACT":          [22, "CashImpact"],
-                            "_SHRSAFTERSPLIT":      [23, "CalculateSharesAfterSplit"],
-                            "_PRICEAFTERSPLIT":     [24, "CalculatePriceAfterSplit"],
-                            "_HASATTACHMENTS":      [25, "HasAttachments"],
-                            "_LOTS":                [26, "Lot Data"],
-                            "_ACCTCASHBAL":         [27, "AccountCashBalance"],
-                            "_SECSHRHOLDING":       [28, "SecurityShareHolding"],
-                            "_ATTACHMENTLINK":      [29, "AttachmentLink"],
-                            "_ATTACHMENTLINKREL":   [30, "AttachmentLinkRelative"],
-                            "_KEY":                 [31, "Key"],
-                            "_END":                 [32, "_END"]
-                        }
+
+                        dki = 0
+                        dataKeys = {}                                                                                   # noqa
+                        dataKeys["_ACCOUNT"]             = [dki, "Account"];                   dki += 1
+                        dataKeys["_DATE"]                = [dki, "Date"];                      dki += 1
+                        dataKeys["_TAXDATE"]             = [dki, "TaxDate"];                   dki += 1
+                        dataKeys["_CURR"]                = [dki, "Currency"];                  dki += 1
+                        dataKeys["_SECURITY"]            = [dki, "Security"];                  dki += 1
+                        dataKeys["_SECURITYID"]          = [dki, "SecurityID"];                dki += 1
+                        dataKeys["_TICKER"]              = [dki, "SecurityTicker"];            dki += 1
+                        dataKeys["_SECCURR"]             = [dki, "SecurityCurrency"];          dki += 1
+                        dataKeys["_AVGCOST"]             = [dki, "AverageCostControl"];        dki += 1
+
+                        if lExtractExtraSecurityAcctInfo:
+                            dataKeys["_SECINFO_TYPE"]              = [dki, "Sec_Type"];                     dki += 1
+                            dataKeys["_SECINFO_SUBTYPE"]           = [dki, "Sec_SubType"];                  dki += 1
+                            dataKeys["_SECINFO_STK_DIV"]           = [dki, "Sec_Stock_Div"];                dki += 1
+                            dataKeys["_SECINFO_CD_APR"]            = [dki, "Sec_CD_APR"];                   dki += 1
+                            dataKeys["_SECINFO_CD_COMPOUNDING"]    = [dki, "Sec_CD_Compounding"];           dki += 1
+                            dataKeys["_SECINFO_CD_YEARS"]          = [dki, "Sec_CD_Years"];                 dki += 1
+                            dataKeys["_SECINFO_BOND_TYPE"]         = [dki, "Sec_Bond_Type"];                dki += 1
+                            dataKeys["_SECINFO_BOND_FACEVALUE"]    = [dki, "Sec_Bond_FaceValue"];           dki += 1
+                            dataKeys["_SECINFO_BOND_MATURITYDATE"] = [dki, "Sec_Bond_MaturityDate"];        dki += 1
+                            dataKeys["_SECINFO_BOND_APR"]          = [dki, "Sec_Bond_APR"];                 dki += 1
+                            dataKeys["_SECINFO_STKOPT_CALLPUT"]    = [dki, "Sec_StockOpt_CallPut"];         dki += 1
+                            dataKeys["_SECINFO_STKOPT_STKPRICE"]   = [dki, "Sec_StockOpt_StockPrice"];      dki += 1
+                            dataKeys["_SECINFO_STKOPT_EXPRICE"]    = [dki, "Sec_StockOpt_ExercisePrice"];   dki += 1
+                            dataKeys["_SECINFO_STKOPT_EXMONTH"]    = [dki, "Sec_StockOpt_ExerciseMonth"];   dki += 1
+
+                        dataKeys["_ACTION"]              = [dki, "Action"];                    dki += 1
+                        dataKeys["_TT"]                  = [dki, "ActionType"];                dki += 1
+                        dataKeys["_CHEQUE"]              = [dki, "Cheque"];                    dki += 1
+                        dataKeys["_DESC"]                = [dki, "Description"];               dki += 1
+                        dataKeys["_MEMO"]                = [dki, "Memo"];                      dki += 1
+                        dataKeys["_CLEARED"]             = [dki, "Cleared"];                   dki += 1
+                        dataKeys["_TRANSFER"]            = [dki, "Transfer"];                  dki += 1
+                        dataKeys["_CAT"]                 = [dki, "Category"];                  dki += 1
+                        dataKeys["_SHARES"]              = [dki, "Shares"];                    dki += 1
+                        dataKeys["_PRICE"]               = [dki, "Price"];                     dki += 1
+                        dataKeys["_AMOUNT"]              = [dki, "Amount"];                    dki += 1
+                        dataKeys["_FEE"]                 = [dki, "Fee"];                       dki += 1
+                        dataKeys["_FEECAT"]              = [dki, "FeeCategory"];               dki += 1
+                        dataKeys["_TXNNETAMOUNT"]        = [dki, "TransactionNetAmount"];      dki += 1
+                        dataKeys["_CASHIMPACT"]          = [dki, "CashImpact"];                dki += 1
+                        dataKeys["_SHRSAFTERSPLIT"]      = [dki, "CalculateSharesAfterSplit"]; dki += 1
+                        dataKeys["_PRICEAFTERSPLIT"]     = [dki, "CalculatePriceAfterSplit"];  dki += 1
+                        dataKeys["_HASATTACHMENTS"]      = [dki, "HasAttachments"];            dki += 1
+                        dataKeys["_LOTS"]                = [dki, "Lot Data"];                  dki += 1
+                        dataKeys["_ACCTCASHBAL"]         = [dki, "AccountCashBalance"];        dki += 1
+                        dataKeys["_SECSHRHOLDING"]       = [dki, "SecurityShareHolding"];      dki += 1
+                        dataKeys["_ATTACHMENTLINK"]      = [dki, "AttachmentLink"];            dki += 1
+                        dataKeys["_ATTACHMENTLINKREL"]   = [dki, "AttachmentLinkRelative"];    dki += 1
+                        dataKeys["_KEY"]                 = [dki, "Key"];                       dki += 1
+                        dataKeys["_END"]                 = [dki, "_END"];                      dki += 1
 
                         transactionTable = []
 
                         myPrint("DB", dataKeys)
 
-                        rootbook = MD_REF.getCurrentAccountBook()
+                        book = MD_REF.getCurrentAccountBook()
 
                         baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
-                        txns = rootbook.getTransactionSet().getTransactions(MyTxnSearchCostBasis(hideInactiveAccounts,
+                        txns = book.getTransactionSet().getTransactions(MyTxnSearchCostBasisEIT(hideInactiveAccounts,
+                                                                                                lAllAccounts,
+                                                                                                filterForAccounts,
+                                                                                                hideHiddenAccounts,
+                                                                                                hideHiddenSecurities,
+                                                                                                lAllCurrency,
+                                                                                                filterForCurrency,
+                                                                                                lAllSecurity,
+                                                                                                filterForSecurity,
+                                                                                                None))
+
+                        validAccountList = AccountUtil.allMatchesForSearch(book, MyAcctFilterEIT(hideInactiveAccounts,
                                                                                                  lAllAccounts,
                                                                                                  filterForAccounts,
                                                                                                  hideHiddenAccounts,
@@ -9441,17 +9795,6 @@ Visit: %s (Author's site)
                                                                                                  lAllSecurity,
                                                                                                  filterForSecurity,
                                                                                                  None))
-
-                        validAccountList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(),MyAcctFilter(hideInactiveAccounts,
-                                                                                                                             lAllAccounts,
-                                                                                                                             filterForAccounts,
-                                                                                                                             hideHiddenAccounts,
-                                                                                                                             hideHiddenSecurities,
-                                                                                                                             lAllCurrency,
-                                                                                                                             filterForCurrency,
-                                                                                                                             lAllSecurity,
-                                                                                                                             filterForSecurity,
-                                                                                                                             None))
 
                         iCount = 0
                         iCountAttachmentsDownloaded = 0
@@ -9562,17 +9905,75 @@ Visit: %s (Author's site)
                             if txn.getTaxDateInt() != txn.getDateInt():
                                 _row[dataKeys["_TAXDATE"][_COLUMN]] = txn.getTaxDateInt()
 
+                            if lExtractExtraSecurityAcctInfo:
+                                _row[dataKeys["_SECINFO_TYPE"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_SUBTYPE"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_STK_DIV"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_CD_APR"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_CD_COMPOUNDING"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_CD_YEARS"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_BOND_TYPE"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_BOND_FACEVALUE"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_BOND_APR"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_STKOPT_CALLPUT"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_STKOPT_STKPRICE"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_STKOPT_EXPRICE"][_COLUMN]] = ""
+                                _row[dataKeys["_SECINFO_STKOPT_EXMONTH"][_COLUMN]] = ""
 
                             if securityTxn:
                                 _row[dataKeys["_SECURITY"][_COLUMN]] = safeStr(securityCurr.getName())
+                                _row[dataKeys["_SECURITYID"][_COLUMN]] = safeStr(securityCurr.getIDString())
                                 _row[dataKeys["_SECCURR"][_COLUMN]] = safeStr(securityCurr.getRelativeCurrency().getIDString())
                                 _row[dataKeys["_TICKER"][_COLUMN]] = safeStr(securityCurr.getTickerSymbol())
                                 _row[dataKeys["_SHARES"][_COLUMN]] = securityCurr.getDoubleValue(securityTxn.getValue())
                                 _row[dataKeys["_PRICE"][_COLUMN]] = acctCurr.getDoubleValue(securityTxn.getAmount())
                                 _row[dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
                                 _row[dataKeys["_SECSHRHOLDING"][_COLUMN]] = securityCurr.formatSemiFancy(securityAcct.getBalance(),GlobalVars.decimalCharSep)
+
+                                if lExtractExtraSecurityAcctInfo:
+                                    try:
+                                        _row[dataKeys["_SECINFO_TYPE"][_COLUMN]] = unicode(securityAcct.getSecurityType())
+                                        _row[dataKeys["_SECINFO_SUBTYPE"][_COLUMN]] = securityAcct.getSecuritySubType()
+
+                                        if securityAcct.getSecurityType() == SecurityType.STOCK:
+                                            _row[dataKeys["_SECINFO_STK_DIV"][_COLUMN]] = "" if (securityAcct.getDividend() == 0) else acctCurr.format(securityAcct.getDividend(), GlobalVars.decimalCharSep)
+
+                                        if securityAcct.getSecurityType() == SecurityType.MUTUAL: pass
+
+                                        if securityAcct.getSecurityType() == SecurityType.CD:
+                                            _row[dataKeys["_SECINFO_CD_APR"][_COLUMN]] = "" if (securityAcct.getAPR() == 0.0) else securityAcct.getAPR()
+                                            _row[dataKeys["_SECINFO_CD_COMPOUNDING"][_COLUMN]] = unicode(securityAcct.getCompounding())
+
+                                            numYearsChoice = ["0.5"]
+                                            for iYears in range(1, 51): numYearsChoice.append(str(iYears))
+                                            _row[dataKeys["_SECINFO_CD_YEARS"][_COLUMN]] = numYearsChoice[-1] if (len(numYearsChoice) < securityAcct.getNumYears()) else numYearsChoice[securityAcct.getNumYears()]
+
+                                        if securityAcct.getSecurityType() == SecurityType.BOND:
+                                            bondTypes = [MD_REF.getUI().getStr("gov_bond"), MD_REF.getUI().getStr("mun_bond"), MD_REF.getUI().getStr("corp_bond"), MD_REF.getUI().getStr("zero_bond")]
+
+                                            _row[dataKeys["_SECINFO_BOND_TYPE"][_COLUMN]] = "ERROR" if (securityAcct.getBondType() > len(bondTypes)) else bondTypes[securityAcct.getBondType()]
+                                            _row[dataKeys["_SECINFO_BOND_FACEVALUE"][_COLUMN]] = "" if (securityAcct.getFaceValue() == 0) else acctCurr.format(securityAcct.getFaceValue(), GlobalVars.decimalCharSep)
+                                            _row[dataKeys["_SECINFO_BOND_APR"][_COLUMN]] = "" if (securityAcct.getAPR() == 0.0) else securityAcct.getAPR()
+
+                                            if (securityAcct.getMaturity() != 0 and securityAcct.getMaturity() != 39600000):
+                                                _row[dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = DateUtil.convertLongDateToInt(securityAcct.getMaturity())
+
+                                        if securityAcct.getSecurityType() == SecurityType.OPTION:
+                                            _row[dataKeys["_SECINFO_STKOPT_CALLPUT"][_COLUMN]] = "Put" if securityAcct.getPut() else "Call"
+                                            _row[dataKeys["_SECINFO_STKOPT_STKPRICE"][_COLUMN]] = "" if (securityAcct.getOptionPrice() == 0.0) else securityAcct.getOptionPrice()
+                                            _row[dataKeys["_SECINFO_STKOPT_EXPRICE"][_COLUMN]] = "" if (securityAcct.getStrikePrice()) == 0 else acctCurr.format(securityAcct.getStrikePrice(), GlobalVars.decimalCharSep)
+
+                                            monthOptions = [MD_REF.getUI().getStr("january"), MD_REF.getUI().getStr("february"), MD_REF.getUI().getStr("march"), MD_REF.getUI().getStr("april"), MD_REF.getUI().getStr("may"), MD_REF.getUI().getStr("june"), MD_REF.getUI().getStr("july"), MD_REF.getUI().getStr("august"), MD_REF.getUI().getStr("september"), MD_REF.getUI().getStr("october"), MD_REF.getUI().getStr("november"), MD_REF.getUI().getStr("december")]
+                                            _row[dataKeys["_SECINFO_STKOPT_EXMONTH"][_COLUMN]] = "ERROR" if (securityAcct.getMonth() > len(monthOptions)) else monthOptions[securityAcct.getMonth()]
+
+                                        if securityAcct.getSecurityType() == SecurityType.OTHER: pass
+
+                                    except: pass
+
                             else:
                                 _row[dataKeys["_SECURITY"][_COLUMN]] = ""
+                                _row[dataKeys["_SECURITYID"][_COLUMN]] = ""
                                 _row[dataKeys["_SECCURR"][_COLUMN]] = ""
                                 _row[dataKeys["_TICKER"][_COLUMN]] = ""
                                 _row[dataKeys["_SHARES"][_COLUMN]] = 0
@@ -9724,7 +10125,7 @@ Visit: %s (Author's site)
                                 if not lOmitLOTDataFromExtract_EIT:
                                     lots = []
                                     for cbKey in cbTags.keys():
-                                        relatedCBTxn = rootbook.getTransactionSet().getTxnByID(cbKey)
+                                        relatedCBTxn = book.getTransactionSet().getTxnByID(cbKey)
                                         if relatedCBTxn is not None:
                                             lots.append([cbKey,
                                                          relatedCBTxn.getTransferType(),
@@ -9785,7 +10186,7 @@ Visit: %s (Author's site)
                                     iCount += 1
                                     continue
 
-                                for _i in range(0,len(attachmentFileList)):
+                                for _i in range(0, len(attachmentFileList)):
                                     rowCopy = deepcopy(masterRowCopy)  # Otherwise passes by references and future changes affect the original(s)
 
                                     if _i > 0:  # If not on first record, update the key...
@@ -9894,8 +10295,6 @@ Visit: %s (Author's site)
                                 for col in range(0, dataKeys["_SECSHRHOLDING"][_COLUMN]):
                                     _theRow[col] = fixFormatsStr(_theRow[col])
 
-                            # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
-
                             # Write the csvlines to a file
                             myPrint("B", "Opening file and writing ", len(transactionTable), "records")
 
@@ -9957,7 +10356,7 @@ Visit: %s (Author's site)
                                                          + str(sdf.format(today.getTime()))])
 
                                         writer.writerow([""])
-                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
 
                                         writer.writerow([""])
                                         writer.writerow(["User Parameters..."])
@@ -9978,6 +10377,7 @@ Visit: %s (Author's site)
                                         writer.writerow(["Adjust for Splits..........: %s" %(lAdjustForSplits)])
                                         writer.writerow(["Split Securities by Account: %s" %(userdateformat)])
                                         writer.writerow(["Omit LOT matching data.....: %s" %(lOmitLOTDataFromExtract_EIT)])
+                                        writer.writerow(["Extract extra Sec Acct Info: %s" %(lExtractExtraSecurityAcctInfo)])
                                         writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EIT)])
 
                                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
@@ -10117,10 +10517,473 @@ Visit: %s (Author's site)
                             if self.get():     # wait for task to complete
                                 cleanup_actions(extract_data_frame_)
                             else:
-                                myPopupInformationBox(extract_data_frame_, "ERROR: do_extract_account_registers() has failed (review console)!","ERROR", JOptionPane.ERROR_MESSAGE)
+                                myPopupInformationBox(extract_data_frame_, "ERROR: do_extract_investment_transactions() has failed (review console)!","ERROR", JOptionPane.ERROR_MESSAGE)
 
                     myPrint("DB",".. Running do_extract_investment_transactions() via SwingWorker...")
                     sw = ExtractInvestmentTxnsSwingWorker()
+                    sw.execute()
+
+
+                elif lExtractSecurityBalances:
+                    # ####################################################
+                    # EXTRACT_SECURITY_BALANCES_CSV EXECUTION
+                    # ####################################################
+
+                    def do_extract_security_balances():
+                        global csvfilename, lExit, lDisplayOnly
+                        global baseCurrency
+                        global transactionTable, dataKeys
+
+                        global __extract_data, extract_filename
+                        global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
+                        global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
+                        global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
+                        global whichDefaultExtractToRun_SWSS
+
+                        # noinspection PyArgumentList
+                        class MyAcctFilterESB(AcctFilter):
+
+                            def __init__(self,
+                                         _hideInactiveAccounts=True,
+                                         _lAllAccounts=True,
+                                         _filterForAccounts="ALL",
+                                         _hideHiddenAccounts=True,
+                                         _hideHiddenSecurities=True,
+                                         _lAllCurrency=True,
+                                         _filterForCurrency="ALL",
+                                         _lAllSecurity=True,
+                                         _filterForSecurity="ALL",
+                                         _findUUID=None):
+
+                                self.hideInactiveAccounts = _hideInactiveAccounts
+                                self.lAllAccounts = _lAllAccounts
+                                self.filterForAccounts = _filterForAccounts
+                                self.hideHiddenAccounts = _hideHiddenAccounts
+                                self.hideHiddenSecurities = _hideHiddenSecurities
+                                self.lAllCurrency = _lAllCurrency
+                                self.filterForCurrency = _filterForCurrency
+                                self.lAllSecurity = _lAllSecurity
+                                self.filterForSecurity = _filterForSecurity
+                                self.findUUID = _findUUID
+
+                            def matches(self, acct):
+                                if self.findUUID is not None:  # If UUID supplied, override all other parameters...
+                                    if acct.getUUID() == self.findUUID: return True
+                                    else: return False
+
+                                if acct.getAccountType() is not Account.AccountType.SECURITY:                           # noqa
+                                    return False
+
+                                if self.hideInactiveAccounts:
+                                    # This logic replicates Moneydance AcctFilter.ACTIVE_ACCOUNTS_FILTER
+                                    if (acct.getAccountOrParentIsInactive()): return False
+                                    if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
+
+                                theAcct = acct.getParentAccount()
+
+                                if (self.lAllAccounts
+                                        or (self.filterForAccounts.upper().strip() in theAcct.getFullAccountName().upper().strip())):
+                                    pass
+                                else: return False
+
+                                if ((not self.hideHiddenAccounts)
+                                        or (self.hideHiddenAccounts and not theAcct.getHideOnHomePage())):
+                                    pass
+                                else: return False
+
+                                curr = acct.getCurrencyType()
+                                currID = curr.getIDString()
+                                currName = curr.getName()
+
+                                # noinspection PyUnresolvedReferences
+                                if acct.getAccountType() == Account.AccountType.SECURITY:  # on Security Accounts, get the Currency from the Security master - else from the account)
+                                    if self.lAllSecurity:
+                                        pass
+                                    elif (self.filterForSecurity.upper().strip() in curr.getTickerSymbol().upper().strip()):
+                                        pass
+                                    elif (self.filterForSecurity.upper().strip() in curr.getName().upper().strip()):
+                                        pass
+                                    else: return False
+
+                                    if ((self.hideHiddenSecurities and not curr.getHideInUI()) or (not self.hideHiddenSecurities)):
+                                        pass
+                                    else:
+                                        return False
+
+                                    currID = curr.getRelativeCurrency().getIDString()
+                                    currName = curr.getRelativeCurrency().getName()
+
+                                else:
+                                    pass
+
+                                # All accounts and security records can have currencies
+                                if self.lAllCurrency:
+                                    pass
+                                elif (self.filterForCurrency.upper().strip() in currID.upper().strip()):
+                                    pass
+                                elif (self.filterForCurrency.upper().strip() in currName.upper().strip()):
+                                    pass
+
+                                else: return False
+
+                                return True
+
+                        _COLUMN = 0
+                        _HEADING = 1
+
+                        usedSecurityMasters = {}
+
+                        dki = 0
+                        dataKeys = {}                                                                                   # noqa
+                        dataKeys["_ACCOUNT"]                   = [dki, "Account"];                      dki += 1
+                        dataKeys["_ACCTCURR"]                  = [dki, "AcctCurrency"];                 dki += 1
+                        dataKeys["_BASECURR"]                  = [dki, "BaseCurrency"];                 dki += 1
+                        dataKeys["_SECURITY"]                  = [dki, "Security"];                     dki += 1
+                        dataKeys["_SECURITYID"]                = [dki, "SecurityID"];                   dki += 1
+                        dataKeys["_TICKER"]                    = [dki, "SecurityTicker"];               dki += 1
+                        dataKeys["_SECMSTRUUID"]               = [dki, "SecurityMasterUUID"];           dki += 1
+                        dataKeys["_AVGCOST"]                   = [dki, "AverageCostControl"];           dki += 1
+
+                        dataKeys["_SECINFO_TYPE"]              = [dki, "Sec_Type"];                     dki += 1
+                        dataKeys["_SECINFO_SUBTYPE"]           = [dki, "Sec_SubType"];                  dki += 1
+                        dataKeys["_SECINFO_STK_DIV"]           = [dki, "Sec_Stock_Div"];                dki += 1
+                        dataKeys["_SECINFO_CD_APR"]            = [dki, "Sec_CD_APR"];                   dki += 1
+                        dataKeys["_SECINFO_CD_COMPOUNDING"]    = [dki, "Sec_CD_Compounding"];           dki += 1
+                        dataKeys["_SECINFO_CD_YEARS"]          = [dki, "Sec_CD_Years"];                 dki += 1
+                        dataKeys["_SECINFO_BOND_TYPE"]         = [dki, "Sec_Bond_Type"];                dki += 1
+                        dataKeys["_SECINFO_BOND_FACEVALUE"]    = [dki, "Sec_Bond_FaceValue"];           dki += 1
+                        dataKeys["_SECINFO_BOND_MATURITYDATE"] = [dki, "Sec_Bond_MaturityDate"];        dki += 1
+                        dataKeys["_SECINFO_BOND_APR"]          = [dki, "Sec_Bond_APR"];                 dki += 1
+                        dataKeys["_SECINFO_STKOPT_CALLPUT"]    = [dki, "Sec_StockOpt_CallPut"];         dki += 1
+                        dataKeys["_SECINFO_STKOPT_STKPRICE"]   = [dki, "Sec_StockOpt_StockPrice"];      dki += 1
+                        dataKeys["_SECINFO_STKOPT_EXPRICE"]    = [dki, "Sec_StockOpt_ExercisePrice"];   dki += 1
+                        dataKeys["_SECINFO_STKOPT_EXMONTH"]    = [dki, "Sec_StockOpt_ExerciseMonth"];   dki += 1
+
+                        dataKeys["_SECSHRHOLDING"]             = [dki, "SecurityShareHolding"];         dki += 1
+                        dataKeys["_ACCTCOSTBASIS"]             = [dki, "AcctCostBasis"];                dki += 1
+                        dataKeys["_BASECOSTBASIS"]             = [dki, "BaseCostBasis"];                dki += 1
+                        dataKeys["_CURRENTPRICE"]              = [dki, "CurrentPrice"];                 dki += 1
+                        dataKeys["_SECRELCURR"]                = [dki, "SecurityRelCurrency"];          dki += 1
+                        dataKeys["_CURRENTPRICETOBASE"]        = [dki, "CurrentPriceToBase"];           dki += 1
+                        dataKeys["_CURRENTPRICEINVESTCURR"]    = [dki, "CurrentPriceInvestCurr"];       dki += 1
+                        dataKeys["_KEY"]                       = [dki, "Key"];                          dki += 1
+                        dataKeys["_END"]                       = [dki, "_END"];                         dki += 1
+
+                        transactionTable = []
+
+                        myPrint("DB", dataKeys)
+
+                        book = MD_REF.getCurrentAccountBook()
+                        baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+
+                        for sAcct in AccountUtil.allMatchesForSearch(book, MyAcctFilterESB(hideInactiveAccounts,
+                                                                                           lAllAccounts,
+                                                                                           filterForAccounts,
+                                                                                           hideHiddenAccounts,
+                                                                                           hideHiddenSecurities,
+                                                                                           lAllCurrency,
+                                                                                           filterForCurrency,
+                                                                                           lAllSecurity,
+                                                                                           filterForSecurity,
+                                                                                           None)):
+
+                            if sAcct.getAccountType() is not Account.AccountType.SECURITY: raise Exception("LOGIC ERROR")  # noqa
+
+                            investAcct = sAcct.getParentAccount()
+                            investAcctCurr = investAcct.getCurrencyType()
+
+                            securityAcct = sAcct
+                            securityCurr = securityAcct.getCurrencyType()  # the Security master record
+                            del sAcct
+
+                            _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+
+                            usedSecurityMasters[securityCurr] = True
+
+                            _row[dataKeys["_KEY"][_COLUMN]] = ""
+
+                            _row[dataKeys["_ACCOUNT"][_COLUMN]] = investAcct.getFullAccountName()
+                            _row[dataKeys["_ACCTCURR"][_COLUMN]] = investAcctCurr.getIDString()
+                            _row[dataKeys["_BASECURR"][_COLUMN]] = baseCurrency.getIDString()
+
+                            costBasis = InvestUtil.getCostBasis(securityAcct)
+                            costBasisBase = CurrencyUtil.convertValue(costBasis, investAcctCurr, baseCurrency)
+
+                            _row[dataKeys["_ACCTCOSTBASIS"][_COLUMN]] = investAcctCurr.getDoubleValue(costBasis)
+                            _row[dataKeys["_BASECOSTBASIS"][_COLUMN]] = baseCurrency.getDoubleValue(costBasisBase)
+
+                            _row[dataKeys["_SECURITY"][_COLUMN]] = unicode(securityCurr.getName())
+                            _row[dataKeys["_SECURITYID"][_COLUMN]] = unicode(securityCurr.getIDString())
+                            _row[dataKeys["_SECMSTRUUID"][_COLUMN]] = securityCurr.getUUID()
+                            _row[dataKeys["_TICKER"][_COLUMN]] = unicode(securityCurr.getTickerSymbol())
+                            _row[dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
+                            _row[dataKeys["_SECSHRHOLDING"][_COLUMN]] = securityCurr.getDoubleValue(securityAcct.getBalance())
+
+                            _row[dataKeys["_SECRELCURR"][_COLUMN]] = unicode(securityCurr.getRelativeCurrency().getIDString())
+
+                            _row[dataKeys["_CURRENTPRICE"][_COLUMN]] = (1.0 / securityCurr.getRelativeRate())
+                            _row[dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = (1.0 / securityCurr.getBaseRate())     # same as .getRate(None)
+                            _row[dataKeys["_CURRENTPRICEINVESTCURR"][_COLUMN]] = (1.0 / securityCurr.getRate(investAcctCurr))
+
+                            _row[dataKeys["_SECINFO_TYPE"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_SUBTYPE"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_STK_DIV"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_CD_APR"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_CD_COMPOUNDING"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_CD_YEARS"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_BOND_TYPE"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_BOND_FACEVALUE"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_BOND_APR"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_STKOPT_CALLPUT"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_STKOPT_STKPRICE"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_STKOPT_EXPRICE"][_COLUMN]] = ""
+                            _row[dataKeys["_SECINFO_STKOPT_EXMONTH"][_COLUMN]] = ""
+
+                            _row[dataKeys["_SECINFO_TYPE"][_COLUMN]] = unicode(securityAcct.getSecurityType())
+                            _row[dataKeys["_SECINFO_SUBTYPE"][_COLUMN]] = securityAcct.getSecuritySubType()
+
+                            if securityAcct.getSecurityType() == SecurityType.STOCK:
+                                _row[dataKeys["_SECINFO_STK_DIV"][_COLUMN]] = "" if (securityAcct.getDividend() == 0) else investAcctCurr.format(securityAcct.getDividend(), GlobalVars.decimalCharSep)
+
+                            if securityAcct.getSecurityType() == SecurityType.MUTUAL: pass
+
+                            if securityAcct.getSecurityType() == SecurityType.CD:
+                                _row[dataKeys["_SECINFO_CD_APR"][_COLUMN]] = "" if (securityAcct.getAPR() == 0.0) else securityAcct.getAPR()
+                                _row[dataKeys["_SECINFO_CD_COMPOUNDING"][_COLUMN]] = unicode(securityAcct.getCompounding())
+
+                                numYearsChoice = ["0.5"]
+                                for iYears in range(1, 51): numYearsChoice.append(str(iYears))
+                                _row[dataKeys["_SECINFO_CD_YEARS"][_COLUMN]] = numYearsChoice[-1] if (len(numYearsChoice) < securityAcct.getNumYears()) else numYearsChoice[securityAcct.getNumYears()]
+
+                            if securityAcct.getSecurityType() == SecurityType.BOND:
+                                bondTypes = [MD_REF.getUI().getStr("gov_bond"), MD_REF.getUI().getStr("mun_bond"), MD_REF.getUI().getStr("corp_bond"), MD_REF.getUI().getStr("zero_bond")]
+
+                                _row[dataKeys["_SECINFO_BOND_TYPE"][_COLUMN]] = "ERROR" if (securityAcct.getBondType() > len(bondTypes)) else bondTypes[securityAcct.getBondType()]
+                                _row[dataKeys["_SECINFO_BOND_FACEVALUE"][_COLUMN]] = "" if (securityAcct.getFaceValue() == 0) else investAcctCurr.format(securityAcct.getFaceValue(), GlobalVars.decimalCharSep)
+                                _row[dataKeys["_SECINFO_BOND_APR"][_COLUMN]] = "" if (securityAcct.getAPR() == 0.0) else securityAcct.getAPR()
+
+                                if (securityAcct.getMaturity() != 0 and securityAcct.getMaturity() != 39600000):
+                                    _row[dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = DateUtil.convertLongDateToInt(securityAcct.getMaturity())
+
+                            if securityAcct.getSecurityType() == SecurityType.OPTION:
+                                _row[dataKeys["_SECINFO_STKOPT_CALLPUT"][_COLUMN]] = "Put" if securityAcct.getPut() else "Call"
+                                _row[dataKeys["_SECINFO_STKOPT_STKPRICE"][_COLUMN]] = "" if (securityAcct.getOptionPrice() == 0.0) else securityAcct.getOptionPrice()
+                                _row[dataKeys["_SECINFO_STKOPT_EXPRICE"][_COLUMN]] = "" if (securityAcct.getStrikePrice()) == 0 else investAcctCurr.format(securityAcct.getStrikePrice(), GlobalVars.decimalCharSep)
+
+                                monthOptions = [MD_REF.getUI().getStr("january"), MD_REF.getUI().getStr("february"), MD_REF.getUI().getStr("march"), MD_REF.getUI().getStr("april"), MD_REF.getUI().getStr("may"), MD_REF.getUI().getStr("june"), MD_REF.getUI().getStr("july"), MD_REF.getUI().getStr("august"), MD_REF.getUI().getStr("september"), MD_REF.getUI().getStr("october"), MD_REF.getUI().getStr("november"), MD_REF.getUI().getStr("december")]
+                                _row[dataKeys["_SECINFO_STKOPT_EXMONTH"][_COLUMN]] = "ERROR" if (securityAcct.getMonth() > len(monthOptions)) else monthOptions[securityAcct.getMonth()]
+
+                            if securityAcct.getSecurityType() == SecurityType.OTHER: pass
+
+                            myPrint("D", _row)
+                            transactionTable.append(_row)
+
+                        # noinspection PyUnresolvedReferences
+                        unusedSecurityMasters = [secCurr for secCurr in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
+                                                 if (secCurr.getCurrencyType() is CurrencyType.Type.SECURITY and secCurr not in usedSecurityMasters)]
+
+                        if len(unusedSecurityMasters) > 0:
+                            myPrint("B", "Adding %s unused security master records....", len(unusedSecurityMasters))
+                            for secCurr in unusedSecurityMasters:
+
+                                _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                _row[dataKeys["_KEY"][_COLUMN]] = ""
+                                _row[dataKeys["_ACCOUNT"][_COLUMN]] = "__SecurityMaster__"
+                                _row[dataKeys["_BASECURR"][_COLUMN]] = baseCurrency.getIDString()
+
+                                _row[dataKeys["_SECURITY"][_COLUMN]] = unicode(secCurr.getName())
+                                _row[dataKeys["_SECURITYID"][_COLUMN]] = unicode(secCurr.getIDString())
+                                _row[dataKeys["_SECRELCURR"][_COLUMN]] = unicode(secCurr.getRelativeCurrency().getIDString())
+                                _row[dataKeys["_SECMSTRUUID"][_COLUMN]] = secCurr.getUUID()
+                                _row[dataKeys["_TICKER"][_COLUMN]] = unicode(secCurr.getTickerSymbol())
+                                _row[dataKeys["_SECSHRHOLDING"][_COLUMN]] = 0.0
+                                _row[dataKeys["_CURRENTPRICE"][_COLUMN]] = (1.0 / secCurr.getRelativeRate())
+                                _row[dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = (1.0 / secCurr.getBaseRate())          # same as .getRate(None)
+
+                                myPrint("D", _row)
+                                transactionTable.append(_row)
+
+                        myPrint("P","")
+                        myPrint("B", "Security Balance(s) Records selected:", len(transactionTable))
+                        ###########################################################################################################
+
+                        transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_SECURITY"][_COLUMN]].lower(),
+                                                                                   x[dataKeys["_ACCOUNT"][_COLUMN]].lower()))
+
+                        ###########################################################################################################
+
+
+                        def ExportDataToFile():
+                            global csvfilename, csvDelimiter
+                            global transactionTable, userdateformat
+                            global lWriteBOMToExportFile_SWSS
+
+                            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+                            headings = []
+                            sortDataFields = sorted(dataKeys.items(), key=lambda x: x[1][_COLUMN])
+                            for i in sortDataFields:
+                                headings.append(i[1][_HEADING])
+                            print
+
+                            myPrint("P", "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
+                            for _theRow in transactionTable:
+
+                                mDate = _theRow[dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]]
+                                if mDate is not None and mDate != "":
+                                    dateasdate = datetime.datetime.strptime(str(mDate), "%Y%m%d")                       # Convert to Date field
+                                    _dateoutput = dateasdate.strftime(userdateformat)
+                                    _theRow[dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = _dateoutput
+
+                                for col in range(0, dataKeys["_SECINFO_STK_DIV"][_COLUMN]):
+                                    _theRow[col] = fixFormatsStr(_theRow[col])
+
+                            # Write the csvlines to a file
+                            myPrint("B", "Opening file and writing ", len(transactionTable), "records")
+
+                            try:
+                                # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
+                                with open(csvfilename,"wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
+
+                                    if lWriteBOMToExportFile_SWSS:
+                                        csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
+
+                                    writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(csvDelimiter))
+
+                                    if csvDelimiter != ",":
+                                        writer.writerow(["sep=", ""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
+
+                                    writer.writerow(headings[:dataKeys["_KEY"][_COLUMN]])  # Print the header, but not the extra _field headings
+
+                                    try:
+                                        for i in range(0, len(transactionTable)):
+                                            writer.writerow(transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
+                                    except:
+                                        dump_sys_error_to_md_console_and_errorlog()
+                                        myPrint("B", "ERROR writing to CSV on row %s. Please review console" %i)
+                                        myPrint("B", transactionTable[i])
+                                        myPopupInformationBox(extract_data_frame_,"ERROR writing to CSV on row %s. Please review console" %i)
+                                        ConsoleWindow.showConsoleWindow(MD_REF.getUI())
+                                        raise Exception("Aborting")
+
+                                    if lWriteParametersToExportFile_SWSS:
+                                        today = Calendar.getInstance()
+                                        writer.writerow([""])
+                                        writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
+                                                         + version_build
+                                                         + ")  Moneydance Python Script - Date of Extract: "
+                                                         + str(sdf.format(today.getTime()))])
+
+                                        writer.writerow([""])
+                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
+
+                                        writer.writerow([""])
+                                        writer.writerow(["User Parameters..."])
+
+                                        writer.writerow(["Hiding Hidden Securities...: %s" %(hideHiddenSecurities)])
+                                        writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
+                                        writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
+                                        writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
+                                        writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
+                                        writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+
+                                myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
+
+                            except IOError, e:
+                                GlobalVars.lGlobalErrorDetected = True
+                                myPrint("B", "Oh no - File IO Error!", e)
+                                myPrint("B", "Path:", csvfilename)
+                                myPrint("B", "!!! ERROR - No file written - sorry! (was file open, permissions etc?)".upper())
+                                dump_sys_error_to_md_console_and_errorlog()
+                                myPopupInformationBox(extract_data_frame_,"Sorry - error writing to export file!", "FILE EXTRACT")
+
+                        # enddef
+
+                        def fixFormatsStr(theString, lNumber=False, sFormat=""):
+                            if isinstance(theString, bool): return theString
+                            if isinstance(theString, tuple): return theString
+                            if isinstance(theString, dict): return theString
+                            if isinstance(theString, list): return theString
+
+                            if isinstance(theString, int) or isinstance(theString, float) or isinstance(theString, long):
+                                lNumber = True
+
+                            if lNumber is None: lNumber = False
+                            if theString is None: theString = ""
+
+                            if sFormat == "%" and theString != "":
+                                theString = "{:.1%}".format(theString)
+                                return theString
+
+                            if lNumber: return str(theString)
+
+                            theString = theString.strip()  # remove leading and trailing spaces
+
+                            theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
+                            theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                            # theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
+                            # theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
+                            # theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
+
+                            if lStripASCII:
+                                all_ASCII = ''.join(char for char in theString if ord(char) < 128)  # Eliminate non ASCII printable Chars too....
+                            else:
+                                all_ASCII = theString
+                            return all_ASCII
+
+                        if len(transactionTable) > 0:
+
+                            ExportDataToFile()
+
+                            if not GlobalVars.lGlobalErrorDetected:
+                                MyPopUpDialogBox(extract_data_frame_,
+                                                 theStatus="Your extract has been created as requested:",
+                                                 theMessage="With %s rows\n" % (len(transactionTable)),
+                                                 theTitle=GlobalVars.thisScriptName,
+                                                 lModal=True).go()
+                                try:
+                                    helper_EIT = MD_REF.getPlatformHelper()
+                                    helper_EIT.openDirectory(File(csvfilename))
+                                except:
+                                    pass
+                        else:
+                            myPopupInformationBox(extract_data_frame_, "No records selected and no extract file created....", GlobalVars.thisScriptName)
+
+                        # delete references to large objects
+                        del transactionTable
+
+                    class ExtractSecurityBalancesSwingWorker(SwingWorker):
+
+                        # noinspection PyMethodMayBeStatic
+                        def doInBackground(self):
+                            myPrint("DB", "In ExtractSecurityBalancesSwingWorker()", inspect.currentframe().f_code.co_name, "()")
+                            myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+                            myPrint("DB", "... Calling do_extract_security_balances()")
+
+                            try:
+                                ct = Thread.currentThread()
+                                if "_extn_ED" not in ct.getName(): ct.setName(u"%s_extn_ED" %(ct.getName()))
+
+                                do_extract_security_balances()
+                            except:
+                                myPrint("B","@@ ERROR Detected in do_extract_security_balances()")
+                                dump_sys_error_to_md_console_and_errorlog()
+                                return False
+
+                            return True
+
+                        # noinspection PyMethodMayBeStatic
+                        def done(self):
+                            myPrint("DB", "In ExtractSecurityBalancesSwingWorker()", inspect.currentframe().f_code.co_name, "()")
+                            myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+                            if self.get():     # wait for task to complete
+                                cleanup_actions(extract_data_frame_)
+                            else:
+                                myPopupInformationBox(extract_data_frame_, "ERROR: do_extract_security_balances() has failed (review console)!","ERROR", JOptionPane.ERROR_MESSAGE)
+
+                    myPrint("DB",".. Running do_extract_security_balances() via SwingWorker...")
+                    sw = ExtractSecurityBalancesSwingWorker()
                     sw.execute()
 
 
@@ -10235,8 +11098,6 @@ Visit: %s (Author's site)
                             _SYMB =4
                             _SNAPDATE = 8
 
-
-                            # NOTE - You can add sep=; to beginning of file to tell Excel what delimiter you are using
                             if True:
                                 theTable = sorted(theTable, key=lambda x: (safeStr(x[_CURRNAME]).upper(),x[_SNAPDATE]))
 
@@ -10305,7 +11166,7 @@ Visit: %s (Author's site)
                                                              + str(sdf.format(today.getTime()))])
 
                                             writer.writerow([""])
-                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccount().getBook().getRootFolder()) ])
+                                            writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
 
                                             writer.writerow([""])
                                             writer.writerow(["User Parameters..."])

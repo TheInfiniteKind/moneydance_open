@@ -8,5 +8,5 @@
   "module_name" = "Toolbox"
   "module_desc" = "Infinite Kind support tool: Displays Moneydance settings, diagnoses issues, run fixes, and much more....."
   "mac_sandbox_friendly" = "false"
-  "news" = "tweaks/fixes; New feature: 'DIAG: Produce report of Accounts and bank/account number information'; Eliminated Advanced Mode"
+  "news" = "tweaks/fixes; New feature: 'DIAG: Produce report of Accounts and bank/account number information'; Eliminated Advanced Mode; NEW bootstrap pre-compiled launcher!"
 }

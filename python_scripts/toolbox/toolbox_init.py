@@ -6,13 +6,20 @@
 global moneydance
 
 import sys
+import datetime
 from java.lang import System, Runtime, Long, Runnable, Thread, InterruptedException
 from com.moneydance.util import Platform
+from com.moneydance.apps.md.controller import Common
 from java.io import File
 
+_THIS_IS_ = u"toolbox"
+
 def _specialPrint(_what):
+    dt = datetime.datetime.now().strftime(u"%Y/%m/%d-%H:%M:%S")
     print(_what)
+    System.err.write(_THIS_IS_ + u":" + dt + u": ")
     System.err.write(_what)
+    System.err.write("\n")
 
 def returnPathStrings(fileReference, arePathsIdentical=False):
     _pathStr = u""
@@ -25,27 +32,34 @@ def returnPathStrings(fileReference, arePathsIdentical=False):
     return _pathStr
 
 
-_THIS_IS_ = u"toolbox"
-
 _TOOLBOX_PREFERENCES_ZAPPER = u"toolbox_preferences_zapper"
 
 keysToZap = moneydance.getPreferences().getVectorSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
 if keysToZap is None:
     msgx = u"\n#############################################################################################################################\n"\
            u"%s: %s_init.py initializer script running - performing some quick checks, logging diagnostics, then will exit....\n"\
-           u"#############################################################################################################################\n\n" %(_THIS_IS_,_THIS_IS_)
+           u"#############################################################################################################################\n" %(_THIS_IS_,_THIS_IS_)
     _specialPrint(msgx)
 else:
     msgx = u"\n########################################################################################\n"\
            u"%s: %s_init.py initializer script running - EXECUTING PREFERENCES ZAPPER....\n"\
-           u"########################################################################################\n\n" %(_THIS_IS_,_THIS_IS_)
+           u"########################################################################################\n" %(_THIS_IS_,_THIS_IS_)
     _specialPrint(msgx)
 
     for zapKey in keysToZap:
-        _specialPrint(u".. Zapping: '%s'\n" %(zapKey))
+        _specialPrint(u".. Zapping: '%s'" %(zapKey))
         moneydance.getPreferences().setSetting(zapKey, None)
     moneydance.getPreferences().setSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
-    _specialPrint(u"############# FINISHED ZAPPING ########################\n")
+    _specialPrint(u"############# FINISHED ZAPPING ########################")
+
+def showMacAliasPath():
+    fRawPath = Common.getRootDirectory()
+    rawPath = fRawPath.getCanonicalPath()
+    checkForStr = u"/com.infinitekind.MoneydanceOSX/"
+    replaceWithStr = u"/Moneydance/"
+    if (Platform.isOSX() and fRawPath.exists() and fRawPath.isDirectory() and isinstance(rawPath, basestring) and checkForStr in rawPath):
+        return rawPath.replace(checkForStr, replaceWithStr)
+    return None
 
 class QuickDiag(Runnable):
     def __init__(self, mdRef, _thisis):
@@ -64,6 +78,9 @@ class QuickDiag(Runnable):
 
             msg += (u"MD CONSOLE FILE LOCATION:       %s\n" %(returnPathStrings(self.mdRef.getLogFile())))
             msg += (u"MD CONFIG/PREFERENCES LOCATION: %s\n" %(returnPathStrings(Common.getPreferencesFile())))
+
+            if showMacAliasPath():
+                msg += (u"... Mac Finder path for above:  '%s'\n" %(showMacAliasPath()))
 
             msg += u"-----\n"
             from com.moneydance.apps.md.controller.io import FileUtils
@@ -137,7 +154,7 @@ class QuickDiag(Runnable):
                 msg += u"-----------------------------------------------------\n"
                 msg += u"\n"
                 _specialPrint(msg)
-                msg = u"-----------------------------------------------------\n"
+                msg = u"\n-----------------------------------------------------\n"
                 Thread.sleep(60 * 1000)     # Sleep and repeat.....
 
         except InterruptedException: pass
@@ -147,7 +164,7 @@ class QuickDiag(Runnable):
                 msg += u"\n"
                 _specialPrint(msg)
 
-            _specialPrint(u"*** ERROR: %s quick information failed.... (%s, %s, line: %s)\n"
+            _specialPrint(u"*** ERROR: %s quick information failed.... (%s, %s, line: %s)"
                           %(self.thisis.capitalize(), unicode(sys.exc_info()[0]), unicode(sys.exc_info()[1]), unicode(sys.exc_info()[2].tb_lineno)))
 
 
@@ -155,9 +172,9 @@ try:
     for t in Thread.getAllStackTraces().keySet():
         for checkName in [u"toolbox_DownloadExtensionVersionData", u"%s_init_quickdiag" %(_THIS_IS_)]:
             if checkName.lower() in t.getName().lower() and t.isAlive():
-                _specialPrint(u"Interrupting old Thread '%s'(id: %s) which seems to still be alive\n" %(t, t.getId()))
+                _specialPrint(u"Interrupting old Thread '%s'(id: %s) which seems to still be alive" %(t, t.getId()))
                 t.interrupt()
-except: _specialPrint(u"%s - error interrupting old Thread... (continuing)\n" %(_THIS_IS_))
+except: _specialPrint(u"%s - error interrupting old Thread... (continuing)" %(_THIS_IS_))
 
 t = Thread(QuickDiag(moneydance, _THIS_IS_), u"%s_init_quickdiag" %(_THIS_IS_))
 t.setDaemon(True)

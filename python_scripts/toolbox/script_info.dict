@@ -2,7 +2,7 @@
   "actions" = (
     {
       "type" = "menu"
-      "script_file" = "toolbox.py"
+      "script_file" = "toolbox_bootstrap.py"
       "name" = "Toolbox"
       "module_name" = "Toolbox"
     }

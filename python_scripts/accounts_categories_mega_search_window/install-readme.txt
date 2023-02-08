@@ -1,8 +1,8 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! As of June 2021, most extensions available via the Moneydance menu >> Manage Extensions - Check there first !!
+!! From June 2021 on, most extensions available via the Moneydance menu >> Manage Extensions - Check there first !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-Author: Stuart Beesley - StuWareSoftSystems 2020-2022
+Author: Stuart Beesley - StuWareSoftSystems 2020-2023
 Visit: https://yogi1967.github.io/MoneydancePythonScripts/ for more downloads and information
 
 THESE ARE EXTENSIONS / SCRIPTS FOR MONEYDANCE WRITTEN IN PYTHON (JYTHON 2.7)
@@ -16,8 +16,19 @@ Extensions have a file extension of *.mxt
 Scripts have a file extension of *.py
 If you downloaded a zip file (extension *.zip) then unzip first in a directory of your choice to get at the file(s)
 
+########################################################################################################################
+NOTE: *.pyc files are CPython byte code files generated from the .py script. These are "helpers" to the Jython
+interpreter. Within the .mxt file you may also find a *$py.class file. This is a compiled version of the script
+for faster launch times. Some of my scripts are large and these "helpers" prevent a "method too large" RuntimeException.
+You don't normally need to worry about all this, but if you want to run the .py script manually (e.g. in Moneybot),
+then please ensure the .pyc file is placed in the same location as the .py script you are running.
+
+As of Feb 2023 the precompiled versions (*$py.class files) are included with a bootstrap.py loader for faster
+load times (avoids initial compile on launch). If the bootstrap fails to load this, then it will just run the script...
+########################################################################################################################
+
 Toolbox and net_account_balances are Extension format only - i.e. just the Toolbox.mxt file
-All the others have both Extension (*.mxt) and Script (*.py) formats
+All the others have both Extension (*.mxt) and Script (*.py) formats available within the zip.
 
 HOW DO YOU CHOOSE?
 - If you just want to run once and then never again, or very infrequently, choose the Script version.

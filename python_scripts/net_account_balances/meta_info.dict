@@ -8,5 +8,5 @@
   "module_name" = "Custom Balances"
   "module_desc" = "Summary Page multi-row/currency widget that totals user-selected account/category/security balances (previously: Net Account Balances)"
   "mac_sandbox_friendly" = "true"
-  "news" = "Bold'ified [sic] blinking cells..."
+  "news" = "Bold'ified [sic] blinking cells...; now works properly across multiple HomeScreen views; NEW bootstrap pre-compiled launcher!"
 }
