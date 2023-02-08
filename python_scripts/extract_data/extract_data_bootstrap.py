@@ -126,12 +126,15 @@ else:
     _specialPrint(u"@@ Will run pre-compiled script for best launch speed ('%s') @@" %(_launchedFile))
     _suffixIdx = 1
 
+if scriptStream is None: raise Exception(u"ERROR: Could not get the script (%s) from within the mxt" %(_launchedFile))
+
 _startTimeMs = System.currentTimeMillis()
 bootstrapped_extension = imp.load_module(_THIS_IS_,
                                          scriptStream,
                                          (u"bootstrapped_" + _launchedFile),
                                          imp.get_suffixes()[_suffixIdx])
 _specialPrint(u"BOOTSTRAP launched script in %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
+scriptStream.close()
 
 # if the extension is using an extension class, then pass pass back to Moneydance
 try: moneydance_extension = bootstrapped_extension.moneydance_extension
