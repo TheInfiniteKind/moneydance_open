@@ -38,6 +38,7 @@
 # build: 1003 - Tweak common code
 # build: 1004 - Tweak init message with time
 # build: 1005 - Added bootstrap to execute compiled version of extension (faster to load)....
+# build: 1005 - Fixed call to save_StuWareSoftSystems_parameters_to_file() without parameters - causing wrong pickle file to be written
 
 # todo - Memorise (save versions) along with choose/delete etc saved versions
 # todo - add markers for splits, buy/sells
@@ -4885,7 +4886,7 @@ Visit: %s (Author's site)
 
         # also do this here to save JTable column widths
         try:
-            save_StuWareSoftSystems_parameters_to_file()
+            save_StuWareSoftSystems_parameters_to_file(myFile="%s_extension.dict" %(myModuleID))
         except:
             myPrint("B", "Error - failed to save parameters to pickle file...!")
             dump_sys_error_to_md_console_and_errorlog()
