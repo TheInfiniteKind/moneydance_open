@@ -79,6 +79,8 @@ TIPS:
 - You can only move all/part of an investment account's initial [cash] balance from Source to Target as part of a
   transaction move. I.e. You cannot move the initial [cash] balance with no transactions. You should do this manually.
   Use Moneydance > highlight the investment account in the side bar > ACCOUNT > EDIT ACCOUNT to adjust initial balance.
+- MD2023 introduces Balance Adjustment (by adding to the opening / start balance). Any move will be blocked by this
+  utility until you manually remove the account's balance adjustment (Tools>Accounts>Select>Edit...)
 ------------------------------------------------------------------------------------------------------------------------
 INITIATION:
 You start the extension by selecting the Moneydance Extensions Menu and selecting: Toolbox: Move investment transactions

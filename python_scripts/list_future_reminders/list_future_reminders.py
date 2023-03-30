@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1021) - Feb 2023
+# list_future_reminders.py (build: 1023) - March 2023
+# Displays Moneydance future dated / scheduled reminders (along with options to auto-record, delete etc)
 
 ###############################################################################
 # MIT License
@@ -63,8 +64,12 @@
 # build: 1019 - For Kevin Stembridge: added CMD-K to skip the next occurrence of all reminders...; Tweak common code...
 # build: 1020 - Tweaked init message with time
 # build: 1021 - Added bootstrap to execute compiled version of extension (faster to load)....
-
-# Displays Moneydance future reminders
+# build: 1021 - Added right click, popup menu: Record all next occurrence(s) for same day/date.
+# build: 1021 - Fixed references to columns/rows mapping view to table model... ;->; Converted remaining globals...
+# build: 1021 - Save column order; Added skip all to right-click popup. Stop record next when not on the next occurrence...
+# build: 1021 - Save column sort and last viewed reminder too...
+# build: 1022 - Added right click, popup menu: Record all next occurrence(s) for same month
+# build: 1023 - MD2023 Fixes to common code
 
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
 
@@ -74,7 +79,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1021"
+version_build = "1023"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -360,18 +365,18 @@ else:
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
     import threading
-    from java.awt.event import MouseAdapter
+    from java.awt import Image
+    from java.awt.image import BufferedImage
+    from java.awt.event import FocusAdapter, MouseAdapter
     from java.util import Comparator
-    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu
+    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu, ImageIcon, RowFilter, RowSorter
     from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, TableRowSorter
     from javax.swing.border import CompoundBorder, MatteBorder
-    from javax.swing.event import TableColumnModelListener, ListSelectionListener, DocumentListener
+    from javax.swing.event import TableColumnModelListener, ListSelectionListener, DocumentListener, RowSorterEvent
     from java.lang import Number
     from com.infinitekind.util import StringUtils
     from com.moneydance.apps.md.controller import AppEventListener
     from com.moneydance.awt import QuickSearchField
-    from java.awt.event import FocusAdapter
-    from javax.swing import RowFilter
 
     # from com.moneydance.apps.md.view.gui import EditRemindersWindow
     from com.moneydance.apps.md.view.gui import LoanTxnReminderNotificationWindow
@@ -390,12 +395,8 @@ else:
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
 
-    # Saved to parameters file - common
-    global lAllowEscapeExitApp_SWSS
-
     # Saved to parameters file
-    global __list_future_reminders, _column_widths_LFR, daysToLookForward_LFR
-
+    global __list_future_reminders
     # Other used by this program
     GlobalVars.saveStatusLabel = None
     GlobalVars.md_dateFormat = None
@@ -405,9 +406,15 @@ else:
 
     # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
     # NOTE: You  can override in the pop-up screen
-    _column_widths_LFR = []                                                                                          	# noqa
-    daysToLookForward_LFR = 365                                                                                         # noqa
-    lAllowEscapeExitApp_SWSS = True                                                                                     # noqa
+    GlobalVars.save_columnSort_LFR = []
+    GlobalVars.save_lastViewedReminder_LFR = []
+    GlobalVars.save_column_widths_LFR = []
+    GlobalVars.save_column_order_LFR = []
+    GlobalVars.daysToLookForward_LFR = 365
+    GlobalVars.lAllowEscapeExitApp_SWSS = True
+
+    GlobalVars.smaller_ascendingSortIcon = None
+    GlobalVars.smaller_descendingSortIcon = None
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
     # COPY >> START
@@ -1443,16 +1450,12 @@ Visit: %s (Author's site)
             GlobalVars.parametersLoadedFromFile = {}
             return
 
-        old_dict_filename = os.path.join("..", myFile)
-
-        # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
-        if os.path.exists( migratedFilename ):
-
-            myPrint("DB", "loading parameters from non-encrypted Pickle file:", migratedFilename)
+        if os.path.exists(migratedFilename):
+            myPrint("DB", "loading parameters from (non-encrypted) Pickle file:", migratedFilename)
             myPrint("DB", "Parameter file", migratedFilename, "exists..")
             # Open the file
             try:
@@ -1473,34 +1476,17 @@ Visit: %s (Author's site)
                 myPrint("B", "Error: reached EOF on parameter file....")
                 GlobalVars.parametersLoadedFromFile = None
             except:
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[0])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[1])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Line Number: ", sys.exc_info()[2].tb_lineno)
-
-                # OK, so perhaps from older version - encrypted, try to read
-                try:
-                    local_storage = MD_REF.getCurrentAccountBook().getLocalStorage()
-                    istr = local_storage.openFileForReading(old_dict_filename)
-                    load_file = FileUtil.wrap(istr)
-                    # noinspection PyTypeChecker
-                    GlobalVars.parametersLoadedFromFile = pickle.load(load_file)
-                    load_file.close()
-                    myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
-                except:
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[0])
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[1])
-                    myPrint("B","Error opening Pickle File - Line Number: ", sys.exc_info()[2].tb_lineno)
-                    myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-                    GlobalVars.parametersLoadedFromFile = None
+                myPrint("B", "Error opening Pickle File Unexpected error:", sys.exc_info()[0], "Error:", sys.exc_info()[1], "Line:", sys.exc_info()[2].tb_lineno)
+                myPrint("B", ">> Will ignore saved parameters, and create a new file...")
+                GlobalVars.parametersLoadedFromFile = None
 
             if GlobalVars.parametersLoadedFromFile is None:
                 GlobalVars.parametersLoadedFromFile = {}
-                myPrint("DB","Parameters did not load, will keep defaults..")
+                myPrint("DB","Parameters did NOT load, will use defaults..")
             else:
                 myPrint("DB","Parameters successfully loaded from file...")
         else:
-            myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
-            myPrint("D", "Parameter Pickle file does not exist - will use default and create new file..")
+            myPrint("DB", "Parameter Pickle file does NOT exist - will use default and create new file..")
             GlobalVars.parametersLoadedFromFile = {}
 
         if not GlobalVars.parametersLoadedFromFile: return
@@ -1510,9 +1496,6 @@ Visit: %s (Author's site)
             myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         if GlobalVars.parametersLoadedFromFile.get("debug") is not None: debug = GlobalVars.parametersLoadedFromFile.get("debug")
-        if GlobalVars.parametersLoadedFromFile.get("lUseMacFileChooser") is not None:
-            myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
-            GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
         myPrint("DB","Parameter file loaded if present and GlobalVars.parametersLoadedFromFile{} dictionary set.....")
 
@@ -2902,11 +2885,8 @@ Visit: %s (Author's site)
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     def load_StuWareSoftSystems_parameters_into_memory():
 
-        # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD - Common variables
-        global lAllowEscapeExitApp_SWSS
-
         # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD
-        global __list_future_reminders, _column_widths_LFR, daysToLookForward_LFR
+        global __list_future_reminders
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()" )
         myPrint("DB", "Loading variables into memory...")
@@ -2915,10 +2895,13 @@ Visit: %s (Author's site)
 
         if GlobalVars.parametersLoadedFromFile.get("__list_future_reminders") is not None: __list_future_reminders = GlobalVars.parametersLoadedFromFile.get("__list_future_reminders")
 
-        if GlobalVars.parametersLoadedFromFile.get("lAllowEscapeExitApp_SWSS") is not None: lAllowEscapeExitApp_SWSS = GlobalVars.parametersLoadedFromFile.get("lAllowEscapeExitApp_SWSS")
+        if GlobalVars.parametersLoadedFromFile.get("lAllowEscapeExitApp_SWSS") is not None: GlobalVars.lAllowEscapeExitApp_SWSS = GlobalVars.parametersLoadedFromFile.get("lAllowEscapeExitApp_SWSS")
 
-        if GlobalVars.parametersLoadedFromFile.get("_column_widths_LFR") is not None: _column_widths_LFR = GlobalVars.parametersLoadedFromFile.get("_column_widths_LFR")
-        if GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR") is not None: daysToLookForward_LFR = GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR")
+        if GlobalVars.parametersLoadedFromFile.get("save_columnSort_LFR") is not None: GlobalVars.save_columnSort_LFR = GlobalVars.parametersLoadedFromFile.get("save_columnSort_LFR")
+        if GlobalVars.parametersLoadedFromFile.get("save_lastViewedReminder_LFR") is not None: GlobalVars.save_lastViewedReminder_LFR = GlobalVars.parametersLoadedFromFile.get("save_lastViewedReminder_LFR")
+        if GlobalVars.parametersLoadedFromFile.get("_column_widths_LFR") is not None: GlobalVars.save_column_widths_LFR = GlobalVars.parametersLoadedFromFile.get("_column_widths_LFR")
+        if GlobalVars.parametersLoadedFromFile.get("save_column_order_LFR") is not None: GlobalVars.save_column_order_LFR = GlobalVars.parametersLoadedFromFile.get("save_column_order_LFR")
+        if GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR") is not None: GlobalVars.daysToLookForward_LFR = GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR")
 
         myPrint("DB","parametersLoadedFromFile{} set into memory (as variables).....")
 
@@ -2935,9 +2918,12 @@ Visit: %s (Author's site)
         if GlobalVars.parametersLoadedFromFile is None: GlobalVars.parametersLoadedFromFile = {}
 
         GlobalVars.parametersLoadedFromFile["__list_future_reminders"] = version_build
-        GlobalVars.parametersLoadedFromFile["lAllowEscapeExitApp_SWSS"] = lAllowEscapeExitApp_SWSS
-        GlobalVars.parametersLoadedFromFile["_column_widths_LFR"] = _column_widths_LFR
-        GlobalVars.parametersLoadedFromFile["daysToLookForward_LFR"] = daysToLookForward_LFR
+        GlobalVars.parametersLoadedFromFile["lAllowEscapeExitApp_SWSS"] = GlobalVars.lAllowEscapeExitApp_SWSS
+        GlobalVars.parametersLoadedFromFile["save_columnSort_LFR"] = GlobalVars.save_columnSort_LFR
+        GlobalVars.parametersLoadedFromFile["save_lastViewedReminder_LFR"] = GlobalVars.save_lastViewedReminder_LFR
+        GlobalVars.parametersLoadedFromFile["_column_widths_LFR"] = GlobalVars.save_column_widths_LFR
+        GlobalVars.parametersLoadedFromFile["save_column_order_LFR"] = GlobalVars.save_column_order_LFR
+        GlobalVars.parametersLoadedFromFile["daysToLookForward_LFR"] = GlobalVars.daysToLookForward_LFR
 
         myPrint("DB","variables dumped from memory back into parametersLoadedFromFile{}.....")
 
@@ -2981,6 +2967,57 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    def getFieldByReflection(theObj, fieldName, isInt=False):
+        try: theClass = theObj.getClass()
+        except TypeError: theClass = theObj     # This catches where the object is already the Class
+        reflectField = None
+        while theClass is not None:
+            try:
+                reflectField = theClass.getDeclaredField(fieldName)
+                break
+            except NoSuchFieldException:
+                theClass = theClass.getSuperclass()
+        if reflectField is None: raise Exception("ERROR: could not find field: %s in class hierarchy" %(fieldName))
+        if Modifier.isPrivate(reflectField.getModifiers()): reflectField.setAccessible(True)
+        elif Modifier.isProtected(reflectField.getModifiers()): reflectField.setAccessible(True)
+        isStatic = Modifier.isStatic(reflectField.getModifiers())
+        if isInt: return reflectField.getInt(theObj if not isStatic else None)
+        return reflectField.get(theObj if not isStatic else None)
+
+    def invokeMethodByReflection(theObj, methodName, params, *args):
+        try: theClass = theObj.getClass()
+        except TypeError: theClass = theObj     # This catches where the object is already the Class
+        reflectMethod = None
+        while theClass is not None:
+            try:
+                if params is None:
+                    reflectMethod = theClass.getDeclaredMethod(methodName)
+                    break
+                else:
+                    reflectMethod = theClass.getDeclaredMethod(methodName, params)
+                    break
+            except NoSuchMethodException:
+                theClass = theClass.getSuperclass()
+        if reflectMethod is None: raise Exception("ERROR: could not find method: %s in class hierarchy" %(methodName))
+        reflectMethod.setAccessible(True)
+        return reflectMethod.invoke(theObj, *args)
+
+    def setFieldByReflection(theObj, fieldName, newValue):
+        try: theClass = theObj.getClass()
+        except TypeError: theClass = theObj     # This catches where the object is already the Class
+        reflectField = None
+        while theClass is not None:
+            try:
+                reflectField = theClass.getDeclaredField(fieldName)
+                break
+            except NoSuchFieldException:
+                theClass = theClass.getSuperclass()
+        if reflectField is None: raise Exception("ERROR: could not find field: %s in class hierarchy" %(fieldName))
+        if Modifier.isPrivate(reflectField.getModifiers()): reflectField.setAccessible(True)
+        elif Modifier.isProtected(reflectField.getModifiers()): reflectField.setAccessible(True)
+        isStatic = Modifier.isStatic(reflectField.getModifiers())
+        return reflectField.set(theObj if not isStatic else None, newValue)
+
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
 
     GlobalVars.md_dateFormat = MD_REF.getPreferences().getShortDateFormat()
@@ -3014,6 +3051,17 @@ Visit: %s (Author's site)
         myPrint("DB",".. Main App Already within the EDT so calling naked...")
         MainAppRunnable().run()
 
+    def scaleIcon(_icon):
+        scale = 0.7
+        bufferedImage = BufferedImage(_icon.getIconWidth(), _icon.getIconHeight(), BufferedImage.TYPE_INT_ARGB)
+        g = bufferedImage.createGraphics()
+        _icon.paintIcon(None, g, 0, 0)
+        g.dispose()
+        return ImageIcon(bufferedImage.getScaledInstance(int(_icon.getIconWidth() * scale), int(_icon.getIconHeight() * scale), Image.SCALE_SMOOTH))
+
+    GlobalVars.smaller_ascendingSortIcon = scaleIcon(UIManager.getIcon("Table.ascendingSortIcon"))
+    GlobalVars.smaller_descendingSortIcon = scaleIcon(UIManager.getIcon("Table.descendingSortIcon"))
+
     def isPreviewBuild():
         if MD_EXTENSION_LOADER is not None:
             try:
@@ -3025,12 +3073,17 @@ Visit: %s (Author's site)
             except: pass
         return False
 
+    def saveSelectedRowAndObject():
+        GlobalVars.saveSelectedRowIndex = GlobalVars.saveJTable.getSelectedRow()
+        convertSelectedRowToModelIndex = GlobalVars.saveJTable.convertRowIndexToModel(GlobalVars.saveSelectedRowIndex)
+        GlobalVars.saveLastReminderObj = GlobalVars.saveJTable.getModel().getValueAt(convertSelectedRowToModelIndex, GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT"))
+        return GlobalVars.saveSelectedRowIndex, GlobalVars.saveLastReminderObj
+
     def ShowEditForm():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
         myPrint("D", "Calling MD EditRemindersWindow() function...")
 
-        GlobalVars.saveSelectedRowIndex = GlobalVars.saveJTable.getSelectedRow()
-        GlobalVars.saveLastReminderObj = GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0)
+        saveSelectedRowAndObject()
 
         # EditRemindersWindow.editReminder(None, MD_REF.getUI(), GlobalVars.saveLastReminderObj)
 
@@ -3059,8 +3112,7 @@ Visit: %s (Author's site)
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
         myPrint("D", "Calling MD EditRemindersWindow() function...")
 
-        GlobalVars.saveSelectedRowIndex = GlobalVars.saveJTable.getSelectedRow()
-        GlobalVars.saveLastReminderObj = GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0)
+        saveSelectedRowAndObject()
 
         # EditRemindersWindow.editReminder(None, MD_REF.getUI(), GlobalVars.saveLastReminderObj)
 
@@ -3070,17 +3122,140 @@ Visit: %s (Author's site)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
+    def getReminderNextDate(_reminder):
+        _todayInt = DateUtil.getStrippedDateInt()
+        _lastdate = _reminder.getLastDateInt()
+        if _lastdate < 1:
+            stopDate = min(DateUtil.incrementDate(_todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
+        else:
+            stopDate = min(DateUtil.incrementDate(_todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), _lastdate)
+        return _reminder.getNextOccurance(stopDate)
+
+    def getCurrentSelectedDateInt():
+        jt = GlobalVars.saveJTable
+        convertSelectedRowToModelIndex = jt.convertRowIndexToModel(GlobalVars.saveSelectedRowIndex)
+        return jt.getModel().getValueAt(convertSelectedRowToModelIndex, GlobalVars.tableHeaderRowList.index("Next Due"))
+
+    def recordAllNextOccurrenceForSamePeriod(lDay=False, lMonth=False):
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        myPrint("DB", "recordAllNextOccurrenceForSamePeriod() - Parameter(s) selected: lDay=%s, lMonth=%s" %(lDay, lMonth))
+        if not lDay and not lMonth: raise Exception("LOGIC ERROR - select day or month parameter")
+
+        saveSelectedRowAndObject()
+
+        currentSelectedDate = getCurrentSelectedDateInt()
+        r = GlobalVars.saveLastReminderObj
+        firstDateToUse = lastDateToUse = nextDateToUseInt = getReminderNextDate(r)                                      # noqa
+
+        monthStr = "N/A"                                                                                                # noqa
+        if lMonth:
+            firstDateToUse = DateUtil.firstDayInMonth(firstDateToUse)
+            lastDateToUse = DateUtil.lastDayInMonth(firstDateToUse)
+            monthStr = str(firstDateToUse)[4:6]
+
+        if nextDateToUseInt < 1:
+            myPopupInformationBox(list_future_reminders_frame_,
+                                  "The next occurrence of selected reminder is non-existent or too far into the future (more than 5 years)",
+                                  "RECORD ALL NEXT FOR DATE/MONTH",
+                                  JOptionPane.WARNING_MESSAGE)
+            return
+
+        nextDateToUseTxt = convertStrippedIntDateFormattedText(nextDateToUseInt)
+
+        if nextDateToUseInt != currentSelectedDate:
+            if lDay:
+                txt = "Only select this option on the next / 1st occurrence of a 'seed' Reminder (DATE: %s)" %(nextDateToUseTxt)
+            else:
+                txt = "Only select this option on the next / 1st occurrence of a 'seed' Reminder (MONTH: '%s')" %(monthStr)
+            myPopupInformationBox(list_future_reminders_frame_, txt, "RECORD ALL NEXT FOR DATE/MONTH", JOptionPane.WARNING_MESSAGE)
+            return
+
+        remindersToRecord = []
+
+        reminderSet = MD_REF.getCurrentAccountBook().getReminders()
+        rems = reminderSet.getAllReminders()
+
+        for _r in rems:
+            _nextDate = getReminderNextDate(_r)
+            if _nextDate >= firstDateToUse and _nextDate <= lastDateToUse:
+                remindersToRecord.append(_r)
+        if len(remindersToRecord) < 1: raise Exception("LOGIC ERROR: No reminders to record selected for date: %s (or month: '%s')" %(nextDateToUseTxt, monthStr))
+
+        myPrint("DB", "recordAllNextOccurrenceForSamePeriod() - Date: %s (or month: '%s'), selected %s reminders...." %(nextDateToUseTxt, monthStr, len(remindersToRecord)))
+
+        if lDay:
+            txt = "Record next occurrences on %s reminders for same DATE: %s?" %(len(remindersToRecord), nextDateToUseTxt)
+        else:
+            txt = "Record next occurrences on %s reminders for same MONTH: '%s'?" %(len(remindersToRecord), monthStr)
+        if not myPopupAskQuestion(list_future_reminders_frame_, "RECORD NEXT", txt, theMessageType=JOptionPane.WARNING_MESSAGE):
+            return
+
+        myPrint("B", "recordAllNextOccurrenceForSamePeriod() - Date: %s (month: '%s'), %s reminders will record next occurrence...." %(nextDateToUseTxt, monthStr, len(remindersToRecord)))
+
+        myPrint("DB", "... removing reminder listener (before mass change)...")
+        MD_REF.getCurrentAccountBook().getReminders().removeReminderListener(GlobalVars.reminderListener)
+
+        iTotalOccurrences = 0
+
+        for remToRecord in remindersToRecord:
+            iRepeatsForSameReminder = 1
+            while True:
+                _commitDateLong = -1
+                if lDay:
+                    _commitDateLong = DateUtil.convertIntDateToLong(nextDateToUseInt)
+                    myPrint("B", "... recording reminder %s for date: %s (occurrence: %s)" %(remToRecord, nextDateToUseTxt, iRepeatsForSameReminder))
+                elif lMonth:
+                    _commitDateInt = getReminderNextDate(remToRecord)
+                    if _commitDateInt < firstDateToUse or _commitDateInt > lastDateToUse:
+                        break
+                    _commitDateTxt = convertStrippedIntDateFormattedText(_commitDateInt)
+                    _commitDateLong = DateUtil.convertIntDateToLong(_commitDateInt)
+                    myPrint("B", "... recording reminder %s for month: '%s' - date: %s (occurrence: %s)" %(remToRecord, monthStr, _commitDateTxt, iRepeatsForSameReminder))
+                    if iRepeatsForSameReminder > 31:
+                        raise Exception("LOGIC ERROR (loop abort): More than 31 repeat occurrences triggered for reminder (date: %s): %s" %(_commitDateTxt, remToRecord))
+                invokeMethodByReflection(reminderSet, "autoCommitReminder", [Date, Reminder, Boolean.TYPE], [_commitDateLong, remToRecord, True])
+                iRepeatsForSameReminder += 1
+                iTotalOccurrences += 1
+                if lDay: break
+
+        myPrint("DB", "... re-adding reminder listener (after mass change)...")
+        MD_REF.getCurrentAccountBook().getReminders().addReminderListener(GlobalVars.reminderListener)
+
+        if lDay:
+            txt = "FINISHED recording next occurrence(s) for DATE: %s on %s reminders (total occurrences: %s)" %(nextDateToUseTxt, len(remindersToRecord), iTotalOccurrences)
+        else:
+            txt = "FINISHED recording next occurrence(s) for MONTH: '%s' on %s reminders (total occurrences: %s)" %(monthStr, len(remindersToRecord), iTotalOccurrences)
+
+        myPrint("B", ">> %s >> triggering a table refresh...." %(txt))
+        RefreshMenuAction().refresh()
+
+        myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
     def recordNextReminderOccurrence():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
         myPrint("D", "Calling MD EditRemindersWindow() function...")
 
-        GlobalVars.saveSelectedRowIndex = GlobalVars.saveJTable.getSelectedRow()
-        GlobalVars.saveLastReminderObj = GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0)
+        saveSelectedRowAndObject()
 
         book = MD_REF.getCurrentAccountBook()
-        rdate = GlobalVars.saveLastReminderObj.getNextOccurance(DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, daysToLookForward_LFR))
+
+        currentSelectedDate = getCurrentSelectedDateInt()
+        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj)
+
         if rdate <= 0:
-            myPopupInformationBox(list_future_reminders_frame_,"The next occurrence of reminder is non-existent or too far into the future (more than 5 years")
+            myPopupInformationBox(list_future_reminders_frame_,
+                                  "The next occurrence of reminder is non-existent or too far into the future (more than 5 years)",
+                                  "RECORD NEXT",
+                                  JOptionPane.WARNING_MESSAGE)
+
+        elif rdate != currentSelectedDate:
+            nextDateToUseTxt = convertStrippedIntDateFormattedText(rdate)
+            myPopupInformationBox(list_future_reminders_frame_,
+                                  "Only select this option on the next occurrence of Reminder (which is: %s)" %(nextDateToUseTxt),
+                                  "RECORD NEXT",
+                                  JOptionPane.WARNING_MESSAGE)
+
         else:
             # noinspection PyUnresolvedReferences
             if GlobalVars.saveLastReminderObj.getReminderType() == Reminder.Type.TRANSACTION:
@@ -3098,48 +3273,102 @@ Visit: %s (Author's site)
 
             win.setVisible(True)
 
+    def skipReminders():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        if not myPopupAskQuestion(list_future_reminders_frame_, theTitle="SKIP ALL REMINDERS", theQuestion="Skip the next occurrence of ALL reminders?", theMessageType=JOptionPane.WARNING_MESSAGE):
+            return
+
+        skippedReminders = 0
+        _msgPad = 100
+        _msg = pad("Please wait:", _msgPad, padChar=".")
+        pleaseWait = MyPopUpDialogBox(list_future_reminders_frame_, theStatus=_msg, theTitle=_msg, lModal=False, OKButtonText="WAIT")
+        pleaseWait.go()
+
+        myPrint("B", "User has requested to skip next occurrence of ALL reminders...")
+
+        myPrint("DB", "... removing reminder listener (before mass change)...")
+        MD_REF.getCurrentAccountBook().getReminders().removeReminderListener(GlobalVars.reminderListener)
+
+        rems = MD_REF.getCurrentAccountBook().getReminders().getAllReminders()
+        for r in rems:
+            _msg = pad("Please wait: On reminder '%s'" %(r.getDescription()), _msgPad, padChar=".")
+            pleaseWait.updateMessages(newTitle=_msg, newStatus=_msg)
+
+            nextDate = getReminderNextDate(r)
+            if nextDate < 1:
+                myPrint("B", "... not skipping reminder %s, as next date calculated as: %s" %(r, nextDate))
+                continue
+
+            myPrint("B", "... skipping reminder %s, setting acknowledged date to %s" %(r, nextDate))
+            r.setAcknowledgedInt(nextDate)
+            r.syncItem()
+            skippedReminders += 1
+
+        pleaseWait.updateMessages(newTitle="SKIP ALL REMINDERS", newStatus="FINISHED Skipping reminders:", newMessage="%s reminders skipped..." %(skippedReminders))
+
+        myPrint("DB", "... re-adding reminder listener (after mass change)...")
+        MD_REF.getCurrentAccountBook().getReminders().addReminderListener(GlobalVars.reminderListener)
+
+        myPrint("B", ">> FINISHED skipping the next occurrence of ALL reminders - refreshing the table...")
+        RefreshMenuAction().refresh()
+
     class DoTheMenu(AbstractAction):
 
         def __init__(self): pass
 
         def actionPerformed(self, event):																				# noqa
             global debug                                                                # global as set here
-            global lAllowEscapeExitApp_SWSS                                             # global as set here
-            global _column_widths_LFR, daysToLookForward_LFR                            # global as set here
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("show reminder"):
+            if event.getActionCommand().lower().startswith("show reminder".lower()):
                 MD_REF.getUI().showRawItemDetails(GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0), list_future_reminders_frame_)
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("edit reminder"):
+            if event.getActionCommand().lower().startswith("edit reminder".lower()):
                 ShowEditForm()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("delete reminder"):
+            if event.getActionCommand().lower().startswith("delete reminder".lower()):
                 deleteReminder()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("page setup"):
+            if event.getActionCommand().lower().startswith("record next".lower()):
+                recordNextReminderOccurrence()
+
+            # ##########################################################################################################
+            if event.getActionCommand().lower().startswith("record all next occurrence(s) for same day".lower()):
+                recordAllNextOccurrenceForSamePeriod(lDay=True, lMonth=False)
+
+            # ##########################################################################################################
+            if event.getActionCommand().lower().startswith("record all next occurrence(s) for same month".lower()):
+                recordAllNextOccurrenceForSamePeriod(lDay=False, lMonth=True)
+
+            # ##########################################################################################################
+            if event.getActionCommand().lower().startswith("skip next occurrence of all reminders".lower()):
+                skipReminders()
+
+            # ##########################################################################################################
+            if event.getActionCommand().lower().startswith("page setup".lower()):
                 pageSetup()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("change look"):
+            if event.getActionCommand().lower().startswith("change look".lower()):
                 days = myPopupAskForInput(list_future_reminders_frame_,
                                           "LOOK FORWARD",
                                           "DAYS:",
                                           "Enter the number of days to look forward",
-                                          defaultValue=str(daysToLookForward_LFR))
+                                          defaultValue=str(GlobalVars.daysToLookForward_LFR))
 
                 if StringUtils.isEmpty(days): days = "0"
 
                 if StringUtils.isInteger(days) and int(days) > 0 and int(days) <= 365:
-                    daysToLookForward_LFR = int(days)
-                    myPrint("B","Days to look forward changed to %s" %(daysToLookForward_LFR))
+                    GlobalVars.daysToLookForward_LFR = int(days)
+                    myPrint("B","Days to look forward changed to %s" %(GlobalVars.daysToLookForward_LFR))
 
-                    formatDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(),0,0,daysToLookForward_LFR)
+                    formatDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, GlobalVars.daysToLookForward_LFR)
                     GlobalVars.saveStatusLabel.setText(">>: %s" %(convertStrippedIntDateFormattedText(formatDate)))
 
                     RefreshMenuAction().refresh()
@@ -3149,40 +3378,43 @@ Visit: %s (Author's site)
                     myPrint("DB","Invalid days entered.... doing nothing...")
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("debug"):
+            if event.getActionCommand().lower().startswith("debug".lower()):
                 debug = not debug
                 myPrint("B","DEBUG is now set to: %s" %(debug))
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("allow escape"):
-                lAllowEscapeExitApp_SWSS = not lAllowEscapeExitApp_SWSS
-                if lAllowEscapeExitApp_SWSS:
+            if event.getActionCommand().lower().startswith("allow escape".lower()):
+                GlobalVars.lAllowEscapeExitApp_SWSS = not GlobalVars.lAllowEscapeExitApp_SWSS
+                if GlobalVars.lAllowEscapeExitApp_SWSS:
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
                 else:
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).remove(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0))
 
-                myPrint("B","Escape key can exit the app's main screen: %s" %(lAllowEscapeExitApp_SWSS))
+                myPrint("B","Escape key can exit the app's main screen: %s" %(GlobalVars.lAllowEscapeExitApp_SWSS))
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("reset"):
-                _column_widths_LFR = []
+            if event.getActionCommand().lower().startswith("reset".lower()):
+                GlobalVars.save_column_widths_LFR = []
+                GlobalVars.save_column_order_LFR = []
+                GlobalVars.save_columnSort_LFR = []
+                GlobalVars.save_lastViewedReminder_LFR = []
                 RefreshMenuAction().refresh()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("refresh"):
+            if event.getActionCommand().lower().startswith("refresh".lower()):
                 RefreshMenuAction().refresh()
 
             # ##########################################################################################################
             if event.getActionCommand() == "About":
                 AboutThisScript(list_future_reminders_frame_).go()
 
-            if event.getActionCommand().lower().startswith("close"): terminate_script()
+            if event.getActionCommand().lower().startswith("close".lower()): terminate_script()
 
             # Save parameters now...
-            if (event.getActionCommand().lower().startswith("change look")
-                    or event.getActionCommand().lower().startswith("debug")
-                    or event.getActionCommand().lower().startswith("allow escape")
-                    or event.getActionCommand().lower().startswith("reset")):
+            if (event.getActionCommand().lower().startswith("change look".lower())
+                    or event.getActionCommand().lower().startswith("debug".lower())
+                    or event.getActionCommand().lower().startswith("allow escape".lower())
+                    or event.getActionCommand().lower().startswith("reset".lower())):
                 try:
                     save_StuWareSoftSystems_parameters_to_file()
                 except:
@@ -3472,22 +3704,18 @@ Visit: %s (Author's site)
                     lastdate = rem.getLastDateInt()
 
                     if lastdate < 1:  # Detect if an enddate is set
-                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
+                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
                     else:
-                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), lastdate)
+                        stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), lastdate)
 
                     nextDate = rem.getNextOccurance(stopDate)
+                    if nextDate < 1: continue
 
-                    if nextDate < 1:
-                        continue
-
-                    # nextDate = DateUtil.incrementDate(nextDate, 0, 0, -1)
-
-                    loopDetector=0
+                    loopDetector = 0
 
                     while True:
 
-                        loopDetector+=1
+                        loopDetector += 1
                         if loopDetector > 10000:
                             myPrint("B","Loop detected..? Breaking out.... Reminder %s" %(rem))
                             myPopupInformationBox(list_future_reminders_frame_,"ERROR - Loop detected..?! Will exit (review console log)",theMessageType=JOptionPane.ERROR_MESSAGE)
@@ -3495,8 +3723,7 @@ Visit: %s (Author's site)
 
                         calcNext = myGetNextOccurance(rem, nextDate, stopDate)
 
-                        if calcNext < 1:
-                            break
+                        if calcNext < 1: break
 
                         remdate = calcNext
 
@@ -3566,18 +3793,24 @@ Visit: %s (Author's site)
 
                 def columnRemoved(self, e): pass
 
-                def columnMoved(self, e): pass
-
-                # noinspection PyUnusedLocal
-                def columnMarginChanged(self, e):
-                    global _column_widths_LFR       # global as set here
+                def columnMoved(self, e):
+                    if e.getFromIndex() == e.getToIndex(): return
 
                     sourceModel = self.sourceTable.getColumnModel()
 
                     for _i in range(0, sourceModel.getColumnCount()):
-                        # Saving for later... Yummy!!
-                        _column_widths_LFR[_i] = sourceModel.getColumn(_i).getWidth()
-                        myPrint("D","Saving column %s as width %s for later..." %(_i,_column_widths_LFR[_i]))
+                        convert_i = self.sourceTable.convertModelColumnToViewColumntoView(_i)
+                        GlobalVars.save_column_order_LFR[convert_i] = _i
+                    myPrint("DB","Saving column order for later as: %s" %(GlobalVars.save_column_order_LFR))
+
+                # noinspection PyUnusedLocal
+                def columnMarginChanged(self, e):
+                    sourceModel = self.sourceTable.getColumnModel()
+
+                    for _i in range(0, sourceModel.getColumnCount()):
+                        convert_i = self.sourceTable.convertModelColumnToViewColumntoView(_i)
+                        GlobalVars.save_column_widths_LFR[_i] = sourceModel.getColumn(convert_i).getWidth()
+                        myPrint("D","Saving column %s as width %s for later..." %(_i, GlobalVars.save_column_widths_LFR[_i]))
 
 
             # The javax.swing package and its subpackages provide a fairly comprehensive set of default renderer implementations, suitable for customization via inheritance. A notable omission is the lack #of a default renderer for a JTableHeader in the public API. The renderer used by default is a Sun proprietary class, sun.swing.table.DefaultTableCellHeaderRenderer, which cannot be extended.
@@ -3642,8 +3875,6 @@ Visit: %s (Author's site)
                     self.setForeground(MD_REF.getUI().getColors().headerFG)
                     self.setBackground(MD_REF.getUI().getColors().headerBG1)
 
-                    # self.setHorizontalAlignment(JLabel.CENTER)
-
                     return self
 
                 # enddef
@@ -3657,32 +3888,28 @@ Visit: %s (Author's site)
                 # * @return the sort icon, or null if the column is unsorted.
                 # */
                 def _getIcon(self, table, column):																		# noqa
-                    sortKey = self.getSortKey(table, column)
-                    if (sortKey is not None and table.convertColumnIndexToView(sortKey.getColumn()) == column):
-                        x = (sortKey.getSortOrder())
-                        if x == SortOrder.ASCENDING: return UIManager.getIcon("Table.ascendingSortIcon")
-                        elif x == SortOrder.DESCENDING: return UIManager.getIcon("Table.descendingSortIcon")
-                        elif x == SortOrder.UNSORTED: return UIManager.getIcon("Table.naturalSortIcon")
-                    return None
-
-                # enddef
-
-                # /**
-                # * returns the current sort key, or null if the column is unsorted.
-                # *
-                # * @param table the table
-                # * @param column the column index
-                # * @return the SortKey, or null if the column is unsorted
-                # */
-                # noinspection PyMethodMayBeStatic
-                # noinspection PyUnusedLocal
-                def getSortKey(self, table, column):																	# noqa
                     rowSorter = table.getRowSorter()
-                    if (rowSorter is None): return None
-                    sortedColumns = rowSorter.getSortKeys()
-                    if (sortedColumns.size() > 0): return sortedColumns.get(0)
-                    return None
+                    if rowSorter is not None:
+                        sortedColumns = rowSorter.getSortKeys()
+                        if sortedColumns.size() > 0:
+                            for _i in range(0, sortedColumns.size()):
+                                sortedColKey = sortedColumns.get(_i)
+                                # myPrint("B", "***", "want col:", column, "key idx:", _i, "key col:", sortedColKey.getColumn(), "conv key column:", table.convertColumnIndexToView(sortedColKey.getColumn()));
+                                if table.convertColumnIndexToView(sortedColKey.getColumn()) == column:
+                                    primary = _i == 0
+                                    if primary:
+                                        sortA = UIManager.getIcon("Table.ascendingSortIcon")
+                                        sortD = UIManager.getIcon("Table.descendingSortIcon")
+                                    else:
+                                        sortA = GlobalVars.smaller_ascendingSortIcon
+                                        sortD = GlobalVars.smaller_descendingSortIcon
+                                    sortN = UIManager.getIcon("Table.naturalSortIcon")
 
+                                    so = sortedColKey.getSortOrder()
+                                    if so == SortOrder.ASCENDING: return sortA
+                                    elif so == SortOrder.DESCENDING: return sortD
+                                    elif so == SortOrder.UNSORTED: return sortN
+                    return None
 
             GlobalVars.baseCurrency = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
 
@@ -3832,13 +4059,17 @@ Visit: %s (Author's site)
                             return
                         try:
                             if GlobalVars.saveJTable.getSelectedRow() > 0:
-                                GlobalVars.saveSelectedRowIndex = GlobalVars.saveJTable.getSelectedRow()
-                                GlobalVars.saveLastReminderObj = GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0)
+                                saveSelectedRowAndObject()
                                 myPrint("DB","Reminder Obj saved:", GlobalVars.saveLastReminderObj)
                             else:
                                 GlobalVars.saveSelectedRowIndex = 0
                                 GlobalVars.saveLastReminderObj = None
                                 myPrint("DB","Reminder Obj UNSAVED:")
+
+                            if GlobalVars.saveLastReminderObj is not None and isinstance(GlobalVars.saveLastReminderObj, Reminder):
+                                GlobalVars.save_lastViewedReminder_LFR = [GlobalVars.saveLastReminderObj.getUUID(), getCurrentSelectedDateInt()]
+                            else:
+                                GlobalVars.save_lastViewedReminder_LFR = []
                         except:
                             myPrint("B","@@ Error managing internal selected objects list")
                             dump_sys_error_to_md_console_and_errorlog()
@@ -3935,48 +4166,13 @@ Visit: %s (Author's site)
                     terminate_script()
 
             class SkipReminders(AbstractAction):
-
                 # noinspection PyMethodMayBeStatic
                 # noinspection PyUnusedLocal
                 def actionPerformed(self, event):
+
                     myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-                    if not myPopupAskQuestion(list_future_reminders_frame_, theTitle="SKIP ALL REMINDERS", theQuestion="Skip the next occurrence of ALL reminders?", theMessageType=JOptionPane.WARNING_MESSAGE):
-                        return
-
-                    skippedReminders = 0
-                    _msgPad = 100
-                    _msg = pad("Please wait:", _msgPad, padChar=".")
-                    pleaseWait = MyPopUpDialogBox(list_future_reminders_frame_, theStatus=_msg, theTitle=_msg, lModal=False, OKButtonText="WAIT")
-                    pleaseWait.go()
-
-                    myPrint("B", "User has requested to skip next occurrence of ALL reminders...")
-                    rems = MD_REF.getCurrentAccountBook().getReminders().getAllReminders()
-                    for r in rems:
-                        _msg = pad("Please wait: On reminder '%s'" %(r.getDescription()), _msgPad, padChar=".")
-                        pleaseWait.updateMessages(newTitle=_msg, newStatus=_msg)
-
-                        todayInt = DateUtil.getStrippedDateInt()
-                        lastdate = r.getLastDateInt()
-
-                        if lastdate < 1:
-                            stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
-                        else:
-                            stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, daysToLookForward_LFR), lastdate)
-
-                        nextDate = r.getNextOccurance(stopDate)
-                        if nextDate < 1:
-                            myPrint("B", "... not skipping reminder %s, as nextdate calculated as: %s" %(r, nextDate))
-                            continue
-
-                        myPrint("B", "... skipping reminder %s, setting acknowledged date to %s" %(r, nextDate))
-                        r.setAcknowledgedInt(nextDate)
-                        r.syncItem()
-                        skippedReminders += 1
-
-                    pleaseWait.updateMessages(newTitle="SKIP ALL REMINDERS", newStatus="FINISHED Skipping reminders:", newMessage="%s reminders skipped..." %(skippedReminders))
-
-                    myPrint("B", ">> FINISHED skipping the next occurrence of ALL reminders...");
-                    RefreshMenuAction().refresh()
+                    skipReminders()
+                    myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
 
             class PrintJTable(AbstractAction):
@@ -4028,7 +4224,28 @@ Visit: %s (Author's site)
 
                 def __init__(self, tableModel):
                     super(JTable, self).__init__(tableModel)
+
+                    # As the table is loaded above, then the view and model columns will match for now...
                     self.fixTheRowSorter()
+
+                def sorterChanged(self, sortEvent):
+                    if sortEvent.getType() == RowSorterEvent.Type.SORT_ORDER_CHANGED:                                   # noqa
+                        myPrint("DB", "SORT CHANGED!", sortEvent, sortEvent.getSource())
+                        sorter = sortEvent.getSource()
+                        sortKeys = sorter.getSortKeys()
+                        newKeys = []
+                        for sk in sortKeys:
+                            newKeys.append([sk.getColumn(), sk.getSortOrder().toString()])
+                        myPrint("DB", "Saving sort keys as: '%s' (was: '%s')" %(newKeys, GlobalVars.save_columnSort_LFR))
+                        GlobalVars.save_columnSort_LFR = newKeys
+
+
+                def convertModelColumnToViewColumntoView(self, modelColIndex):
+                    for c in range(0, self.getColumnCount()):
+                        col = self.getColumnModel().getColumn(c)
+                        if col.getModelIndex() == modelColIndex:
+                            return c
+                    return -1
 
                 # noinspection PyMethodMayBeStatic
                 # noinspection PyUnusedLocal
@@ -4040,17 +4257,19 @@ Visit: %s (Author's site)
                 # noinspection PyMethodMayBeStatic
                 def getCellRenderer(self, row, column):																	# noqa
 
-                    if column == 0:
+                    convertColIdx = self.convertColumnIndexToModel(column)
+
+                    if convertColIdx == 0:
                         # renderer = MyPlainNumberRenderer()
                         renderer = DefaultTableCellRenderer()
-                    elif column == 1:
+                    elif convertColIdx == 1:
                         renderer = MyDateRenderer()
-                    elif GlobalVars.tableHeaderRowFormats[column][0] == Number:
+                    elif GlobalVars.tableHeaderRowFormats[convertColIdx][0] == Number:
                         renderer = MyNumberRenderer()
                     else:
                         renderer = DefaultTableCellRenderer()
 
-                    renderer.setHorizontalAlignment(GlobalVars.tableHeaderRowFormats[column][1])
+                    renderer.setHorizontalAlignment(GlobalVars.tableHeaderRowFormats[convertColIdx][1])
 
                     return renderer
 
@@ -4123,18 +4342,37 @@ Visit: %s (Author's site)
                 def fixTheRowSorter(self):  # by default everything gets converted to strings. We need to fix this and code for my string number formats
 
                     sorter = TableRowSorter()
-                    self.setRowSorter(sorter)
                     sorter.setModel(self.getModel())
                     for _i in range(0, self.getColumnCount()):
-                        if _i == 0:
+                        if _i == GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT"):
                             sorter.setComparator(_i, self.MyTextNumberComparator("%"))
-                        if _i == 4 or _i == 4:
+                        if _i == GlobalVars.tableHeaderRowList.index("Net Amount"):
                             sorter.setComparator(_i, self.MyTextNumberComparator("N"))
                         else:
                             sorter.setComparator(_i, self.MyTextNumberComparator("T"))
-                    self.getRowSorter().toggleSortOrder(1)
+
+                    try:
+                        if len(GlobalVars.save_columnSort_LFR) < 1:
+                            sorter.toggleSortOrder(1)
+                            myPrint("B", "Using default initial sort keys/order...")
+                        else:
+                            sortKeys = []
+                            for modelColumnIdx, sortTypeTxt in GlobalVars.save_columnSort_LFR:
+                                sortKeys.append(RowSorter.SortKey(modelColumnIdx, SortOrder.valueOf(sortTypeTxt)))          # noqa
+                            sorter.setSortKeys(sortKeys)
+                            myPrint("B", "Previous sort keys/order(s) restored:", GlobalVars.save_columnSort_LFR)
+                    except:
+                        myPrint("B", "Error restoring previously saved column sort keys/order! Will reset to default sort/order...")
+                        if debug: dump_sys_error_to_md_console_and_errorlog()
+                        GlobalVars.save_columnSort_LFR = []
+                        sorter.toggleSortOrder(1)
 
                     sorter.setRowFilter(GlobalVars.currentJTableSearchFilter)
+                    sorter.addRowSorterListener(self)
+                    self.setRowSorter(sorter)
+                    # myPrint("B", "***", sorter.getSortKeys(), len(sorter.getSortKeys()));
+                    # for x in sorter.getSortKeys(): myPrint("B", x, "col:", x.getColumn(), "so:", x.getSortOrder());
+
 
                 # make Banded rows
                 def prepareRenderer(self, renderer, _row, column):
@@ -4218,30 +4456,63 @@ Visit: %s (Author's site)
 
             def ReminderTable(tabledata, ind):
                 global list_future_reminders_frame_     # global as set here
-                global _column_widths_LFR                                          # global as set here
 
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", " - ind:", ind)
 
+                ####
                 myDefaultWidths = [0,100,175,500,125]    # Rem Obj, Date, AcctName, Desc, Rem Amount
-
-                validCount=0
-                lInvalidate=True
-                if _column_widths_LFR is not None and isinstance(_column_widths_LFR,(list)) and len(_column_widths_LFR) == len(myDefaultWidths):
-                    # if sum(_column_widths_LFR)<1:
-                    for width in _column_widths_LFR:
-                        if width >= 0 and width <= 1000:																	# noqa
+                validCount = 0
+                lInvalidate = True
+                if GlobalVars.save_column_widths_LFR is not None and isinstance(GlobalVars.save_column_widths_LFR,(list)) and len(GlobalVars.save_column_widths_LFR) == len(myDefaultWidths):
+                    for width in GlobalVars.save_column_widths_LFR:
+                        if width >= 0 and width <= 1000:																# noqa
                             validCount += 1
 
-                if validCount == len(myDefaultWidths): lInvalidate=False
+                if validCount == len(myDefaultWidths): lInvalidate = False
 
                 if lInvalidate:
                     myPrint("DB","Found invalid saved columns = resetting to defaults")
-                    myPrint("DB","Found: %s" %_column_widths_LFR)
-                    myPrint("DB","Resetting to: %s" %myDefaultWidths)
-                    _column_widths_LFR = myDefaultWidths
+                    myPrint("DB","Found: %s" %(GlobalVars.save_column_widths_LFR))
+                    myPrint("DB","Resetting to: %s" %(myDefaultWidths))
+                    GlobalVars.save_column_widths_LFR = myDefaultWidths
                 else:
-                    myPrint("DB","Valid column widths loaded - Setting to: %s" %_column_widths_LFR)
-                    myDefaultWidths = _column_widths_LFR
+                    myPrint("DB","Valid column widths loaded - Setting to: %s" %(GlobalVars.save_column_widths_LFR))
+                    myDefaultWidths = GlobalVars.save_column_widths_LFR
+
+                ####
+                myDefaultOrder = [n for n in range(0, len(myDefaultWidths))]
+
+                validCount = 0
+                lInvalidate = True
+                if GlobalVars.save_column_order_LFR is not None and isinstance(GlobalVars.save_column_order_LFR,(list)) and len(GlobalVars.save_column_order_LFR) == len(myDefaultOrder):
+                    for col in GlobalVars.save_column_order_LFR:
+
+                        if col >= 0 and col <= len(myDefaultOrder):
+                            validCount += 1
+
+                if validCount == len(myDefaultOrder): lInvalidate = False
+
+                if lInvalidate:
+                    myPrint("DB","Found invalid saved column order(s) = resetting to defaults")
+                    myPrint("DB","Found: %s" %(GlobalVars.save_column_order_LFR))
+                    myPrint("DB","Resetting to: %s" %(myDefaultOrder))
+                    GlobalVars.save_column_order_LFR = myDefaultOrder
+                else:
+                    myPrint("DB","Valid column order(s) loaded - Setting to: %s" %(GlobalVars.save_column_order_LFR))
+                    myDefaultOrder = GlobalVars.save_column_order_LFR
+
+                lDefaultColumnOrder = True
+                _i = 0
+                for col in myDefaultOrder:
+                    if _i != col:
+                        lDefaultColumnOrder = False
+                        break
+                    _i += 1
+                if lDefaultColumnOrder:
+                    myPrint("B", "Columns appear to be in default order..... No reordering....")
+                else:
+                    myPrint("B", "Reordered columns detected: Will reorder to '%s'" %(myDefaultOrder))
+                ####
 
                 # allcols = col0 + col1 + col2 + col3 + col4 + col5 + col6 + col7 + col8 + col9 + col10 + col11 + col12 + col13 + col14 + col15 + col16 + col17
                 allcols = sum(myDefaultWidths)
@@ -4267,6 +4538,8 @@ Visit: %s (Author's site)
 
                 GlobalVars.saveJTable = MyJTable(DefaultTableModel(tabledata, colnames))
 
+                dtm = DoTheMenu()
+
                 if ind == 0:  # Function can get called multiple times; only set main frames up once
                     # JFrame.setDefaultLookAndFeelDecorated(True)   # Note: Darcula Theme doesn't like this and seems to be OK without this statement...
                     titleExtraTxt = u"" if not isPreviewBuild() else u"<PREVIEW BUILD: %s>" %(version_build)
@@ -4287,7 +4560,7 @@ Visit: %s (Author's site)
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut),  "print-me")
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_K, shortcut),  "skip-reminders")
 
-                    if lAllowEscapeExitApp_SWSS:
+                    if GlobalVars.lAllowEscapeExitApp_SWSS:
                         list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
 
                     list_future_reminders_frame_.getRootPane().getActionMap().put("close-window", CloseAction())
@@ -4314,50 +4587,49 @@ Visit: %s (Author's site)
                     mb = JMenuBar()
 
                     menuO = JMenu("<html><B>MENU</b></html>")
-                    # menuO = JMenu("OPTIONS")
                     menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
-                    menuItemA = JMenuItem("About")
-                    menuItemA.setToolTipText("About...")
-                    menuItemA.addActionListener(DoTheMenu())
-                    menuO.add(menuItemA)
+                    menuItem = JMenuItem("About")
+                    menuItem.setToolTipText("About...")
+                    menuItem.addActionListener(dtm)
+                    menuO.add(menuItem)
 
-                    menuItemR = JMenuItem("Refresh Data/Default Sort")
-                    menuItemR.setToolTipText("Refresh (re-extract) the data, revert to default sort  order....")
-                    menuItemR.addActionListener(DoTheMenu())
-                    menuO.add(menuItemR)
+                    menuItem = JMenuItem("Refresh Data/Default Sort")
+                    menuItem.setToolTipText("Refresh (re-extract) the data, revert to default sort  order....")
+                    menuItem.addActionListener(dtm)
+                    menuO.add(menuItem)
 
-                    menuItemL = JMenuItem("Change look forward days")
-                    menuItemL.setToolTipText("Change the days to look forward")
-                    menuItemL.addActionListener(DoTheMenu())
-                    menuO.add(menuItemL)
+                    menuItem = JMenuItem("Change look forward days")
+                    menuItem.setToolTipText("Change the days to look forward")
+                    menuItem.addActionListener(dtm)
+                    menuO.add(menuItem)
 
-                    menuItemEsc = JCheckBoxMenuItem("Allow Escape to Exit")
-                    menuItemEsc.setToolTipText("When enabled, allows the Escape key to exit the main screen")
-                    menuItemEsc.addActionListener(DoTheMenu())
-                    menuItemEsc.setSelected(lAllowEscapeExitApp_SWSS)
-                    menuO.add(menuItemEsc)
+                    menuItem = JCheckBoxMenuItem("Allow Escape to Exit")
+                    menuItem.setToolTipText("When enabled, allows the Escape key to exit the main screen")
+                    menuItem.addActionListener(dtm)
+                    menuItem.setSelected(GlobalVars.lAllowEscapeExitApp_SWSS)
+                    menuO.add(menuItem)
 
-                    menuItemRC = JMenuItem("Reset default Column Widths")
-                    menuItemRC.setToolTipText("Reset default Column Widths")
-                    menuItemRC.addActionListener(DoTheMenu())
-                    menuO.add(menuItemRC)
+                    menuItem = JMenuItem("Reset default Column Order & Widths")
+                    menuItem.setToolTipText("Reset default Column Order & Widths")
+                    menuItem.addActionListener(dtm)
+                    menuO.add(menuItem)
 
-                    menuItemDEBUG = JCheckBoxMenuItem("Debug")
-                    menuItemDEBUG.addActionListener(DoTheMenu())
-                    menuItemDEBUG.setToolTipText("Enables script to output debug information (internal technical stuff)")
-                    menuItemDEBUG.setSelected(debug)
-                    menuO.add(menuItemDEBUG)
+                    menuItem = JCheckBoxMenuItem("Debug")
+                    menuItem.addActionListener(dtm)
+                    menuItem.setToolTipText("Enables script to output debug information (internal technical stuff)")
+                    menuItem.setSelected(debug)
+                    menuO.add(menuItem)
 
-                    menuItemPS = JMenuItem("Page Setup")
-                    menuItemPS.setToolTipText("Printer Page Setup....")
-                    menuItemPS.addActionListener(DoTheMenu())
-                    menuO.add(menuItemPS)
+                    menuItem = JMenuItem("Page Setup")
+                    menuItem.setToolTipText("Printer Page Setup....")
+                    menuItem.addActionListener(dtm)
+                    menuO.add(menuItem)
 
-                    menuItemE = JMenuItem("Close Window")
-                    menuItemE.setToolTipText("Exit and close the window")
-                    menuItemE.addActionListener(DoTheMenu())
-                    menuO.add(menuItemE)
+                    menuItem = JMenuItem("Close Window")
+                    menuItem.setToolTipText("Exit and close the window")
+                    menuItem.addActionListener(dtm)
+                    menuO.add(menuItem)
 
                     mb.add(menuO)
 
@@ -4387,13 +4659,24 @@ Visit: %s (Author's site)
                 GlobalVars.saveJTable.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ENTER"), "Enter")
                 GlobalVars.saveJTable.getActionMap().put("Enter", EnterAction())
 
-                for _i in range(0, GlobalVars.saveJTable.getColumnModel().getColumnCount()):
-                    tcm = GlobalVars.saveJTable.getColumnModel().getColumn(_i)
+                saveOriginalColumns = []
+                cm = GlobalVars.saveJTable.getColumnModel()
+                if cm.getColumnCount() != len(myDefaultOrder): raise Exception("CRITICAL LOGIC ERROR on column count() vs len(myDefaultOrder)")
+                for _i in range(0, cm.getColumnCount()):
+                    tcm = cm.getColumn(_i)
                     tcm.setPreferredWidth(myDefaultWidths[_i])
                     if myDefaultWidths[_i] == 0:
                         tcm.setMinWidth(0)
                         tcm.setMaxWidth(0)
                         tcm.setWidth(0)
+                    saveOriginalColumns.append(tcm)
+
+
+                # restore column order as per saved....
+                if not lDefaultColumnOrder:
+                    myPrint("DB", "... Reordering columns to:", myDefaultOrder)
+                    while cm.getColumnCount() != 0: cm.removeColumn(cm.getColumn(0))
+                    for savedCol in myDefaultOrder: cm.addColumn(saveOriginalColumns[savedCol])
 
                 cListener1 = ColumnChangeListener(GlobalVars.saveJTable)
                 # Put the listener here - else it sets the defaults wrongly above....
@@ -4404,17 +4687,33 @@ Visit: %s (Author's site)
                 # GlobalVars.saveJTable.setAutoCreateRowSorter(True) # DON'T DO THIS - IT WILL OVERRIDE YOUR NICE CUSTOM SORT
 
                 popupMenu = JPopupMenu()
-                editReminder = JMenuItem("Edit Reminder")
-                editReminder.addActionListener(DoTheMenu())
-                popupMenu.add(editReminder)
+                menuItem = JMenuItem("Edit Reminder")
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
 
-                showDetails = JMenuItem("Show Reminder's raw details")
-                showDetails.addActionListener(DoTheMenu())
-                popupMenu.add(showDetails)
+                menuItem = JMenuItem("Record next occurrence")
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
 
-                _deleteReminder = JMenuItem("Delete Reminder")
-                _deleteReminder.addActionListener(DoTheMenu())
-                popupMenu.add(_deleteReminder)
+                menuItem = JMenuItem("Show Reminder's raw details")
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
+
+                menuItem = JMenuItem("Delete Reminder")
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
+
+                menuItem = JMenuItem("Record all next occurrence(s) for same day")
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
+
+                menuItem = JMenuItem("Record all next occurrence(s) for same month")
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
+
+                menuItem = JMenuItem("Skip next occurrence of ALL reminders")
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
 
                 GlobalVars.saveJTable.addMouseListener(MyMouseListener)
                 GlobalVars.saveJTable.setComponentPopupMenu(popupMenu)
@@ -4430,8 +4729,8 @@ Visit: %s (Author's site)
                 GlobalVars.saveJTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF)
 
                 GlobalVars.saveScrollPane.setViewportView(GlobalVars.saveJTable)
-                if ind == 0:
 
+                if ind == 0:
                     searchPanel = JPanel(GridBagLayout())
                     searchPanel.setBorder(EmptyBorder(2, 2, 2, 2))
 
@@ -4439,10 +4738,10 @@ Visit: %s (Author's site)
 
                     btnChangeLookForward = JButton("Change Look Forward Days")
                     btnChangeLookForward.setToolTipText("Changes the current 'Look forward [x] days' setting...")
-                    btnChangeLookForward.addActionListener(DoTheMenu())
+                    btnChangeLookForward.addActionListener(dtm)
                     searchPanel.add(btnChangeLookForward, GridC.getc().xy(1,0).fillx().insets(0,2,0,2))
 
-                    formatDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(),0,0,daysToLookForward_LFR)
+                    formatDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, GlobalVars.daysToLookForward_LFR)
                     GlobalVars.saveStatusLabel.setText(">>: %s" %(convertStrippedIntDateFormattedText(formatDate)))
                     searchPanel.add(GlobalVars.saveStatusLabel, GridC.getc().xy(2,0).fillx().east().insets(0,2,0,2))
 
@@ -4466,15 +4765,45 @@ Visit: %s (Author's site)
 
                     list_future_reminders_frame_.isActiveInMoneydance = True
 
-                    if True or Platform.isOSX():
-                        # list_future_reminders_frame_.setAlwaysOnTop(True)
-                        list_future_reminders_frame_.toFront()
-
-                myPrint("DB","Adding MyListSelectionListener() to JTable:")
-                GlobalVars.saveJTable.getSelectionModel().addListSelectionListener(MyListSelectionListener())
+                    # if True or Platform.isOSX():
+                    #     # list_future_reminders_frame_.setAlwaysOnTop(True)
+                    #     list_future_reminders_frame_.toFront()
 
                 list_future_reminders_frame_.setVisible(True)
                 list_future_reminders_frame_.toFront()
+
+
+                if (GlobalVars.save_lastViewedReminder_LFR is not None
+                        and isinstance(GlobalVars.save_lastViewedReminder_LFR, list)
+                        and len(GlobalVars.save_lastViewedReminder_LFR) == 2):
+                    selectedReminder = False
+                    reselectReminder = None
+                    reselectOccurrenceDateInt = -1
+                    try:
+                        reselectReminder = MD_REF.getCurrentAccountBook().getItemForID(GlobalVars.save_lastViewedReminder_LFR[0])
+                        reselectOccurrenceDateInt = GlobalVars.save_lastViewedReminder_LFR[1]
+                        jt = GlobalVars.saveJTable
+                        if reselectReminder and jt.getRowCount() > 0:
+                            myPrint("B", "Will attempt to preselect last selected reminder: '%s' - Reoccurrence date: %s" %(reselectReminder, convertStrippedIntDateFormattedText(reselectOccurrenceDateInt)))
+                            remIdx = GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT")
+                            dateIdx = jt.convertModelColumnToViewColumntoView(GlobalVars.tableHeaderRowList.index("Next Due"))
+                            for rowViewIdx in range(0, jt.getRowCount()):
+                                remAtRow = jt.getValueAt(rowViewIdx, remIdx)
+                                dateIntAtRow = jt.getValueAt(rowViewIdx, dateIdx)
+                                if remAtRow is reselectReminder and dateIntAtRow == reselectOccurrenceDateInt:
+                                    jt.setRowSelectionInterval(rowViewIdx, rowViewIdx)
+                                    jt.scrollRectToVisible(jt.getCellRect(jt.getSelectedRow(), 0, True))
+                                    myPrint("B", "Preselected row %s, reminder: '%s' - Reoccurrence date: %s" %(rowViewIdx + 1, remAtRow, convertStrippedIntDateFormattedText(reselectOccurrenceDateInt)))
+                                    selectedReminder = True
+                                    break
+                    except: pass
+
+                    if not selectedReminder:
+                        GlobalVars.save_lastViewedReminder_LFR = []
+                        myPrint("B", "Failed to pre-select previously selected row: '%s' - Reoccurrence date: %s" %(reselectReminder, convertStrippedIntDateFormattedText(reselectOccurrenceDateInt)))
+
+                myPrint("DB","Adding MyListSelectionListener() to JTable:")
+                GlobalVars.saveJTable.getSelectionModel().addListSelectionListener(MyListSelectionListener())
 
                 if ind == 0:
 

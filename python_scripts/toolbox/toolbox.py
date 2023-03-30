@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1057 - November 2020 thru 2022 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1058 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -153,7 +153,17 @@
 # build: 1057 - Added MacOSx Finder path for internal root folder (fake alias)....; launch check for non-hierarchical security txn(s)
 # build: 1057 - Added bootstrap to execute compiled version of extension (faster to load)....
 # build: 1057 - Added launch detection for potential duplicate securities....
+# build: 1058 - Support for MD2023.0(5000) Kotlin compiled version(s)....; Wrapped responses that now return okio.BufferedSource instead of java.io.InputStream
+#               Kotlin affected LocalStorage and getSyncFolder methods: extract_attachments, Shrink Dataset, Load (old) Pickle file, advanced_options_decrypt_file_from_sync...
+#               More Kotlin fixes.... loadMDPreferences() to .readSet() call when using StringBuilder()...
+#               More Kotlin fixes.... Import MD+ Licence call to .getDecryptStream() needs BufferredSource.
+#               Clone Dataset - fix for new balance adjustment methods...; also outputs that show Start Balance...
+#               Fixed call to .updateFonts() with True parameter from MD2022.3(4077) onwards
+#               updated bundled toolbox_move_merge_investment_txns.py script to handle/block when balance adjustment detected...
+#               Updated reset window data methods to account for new/enhanced filter keys ("custom_filter_int" and "last_custom_filter_int")
+#               MD2023 fixes to common code...
 
+# todo - CMD-P select the pickle file to load/view/edit etc.....
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - change from str() to unicode() where appropriate...
@@ -174,7 +184,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1057"
+version_build = "1058"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -543,8 +553,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2022.6
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   4097
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.0
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5005
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -558,6 +568,7 @@ else:
     GlobalVars.MD_MDPLUS_TEST_UNIQUE_BANKING_SERVICES_BUILD = 4078          # 2022.4
     GlobalVars.MD_MULTI_OFX_TXN_DNLD_DATES_BUILD = 4074                     # 2022.3
     GlobalVars.MD_MDPLUS_GETPLAIDCLIENT_BUILD = 4090                        # 2022.5
+    GlobalVars.MD_KOTLIN_COMPILED_BUILD = 5000                              # 2023.0
 
     GlobalVars.fixRCurrencyCheck = 0
     GlobalVars.globalSaveFI_data = None
@@ -1639,16 +1650,12 @@ Visit: %s (Author's site)
             GlobalVars.parametersLoadedFromFile = {}
             return
 
-        old_dict_filename = os.path.join("..", myFile)
-
-        # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
-        if os.path.exists( migratedFilename ):
-
-            myPrint("DB", "loading parameters from non-encrypted Pickle file:", migratedFilename)
+        if os.path.exists(migratedFilename):
+            myPrint("DB", "loading parameters from (non-encrypted) Pickle file:", migratedFilename)
             myPrint("DB", "Parameter file", migratedFilename, "exists..")
             # Open the file
             try:
@@ -1669,34 +1676,17 @@ Visit: %s (Author's site)
                 myPrint("B", "Error: reached EOF on parameter file....")
                 GlobalVars.parametersLoadedFromFile = None
             except:
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[0])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[1])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Line Number: ", sys.exc_info()[2].tb_lineno)
-
-                # OK, so perhaps from older version - encrypted, try to read
-                try:
-                    local_storage = MD_REF.getCurrentAccountBook().getLocalStorage()
-                    istr = local_storage.openFileForReading(old_dict_filename)
-                    load_file = FileUtil.wrap(istr)
-                    # noinspection PyTypeChecker
-                    GlobalVars.parametersLoadedFromFile = pickle.load(load_file)
-                    load_file.close()
-                    myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
-                except:
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[0])
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[1])
-                    myPrint("B","Error opening Pickle File - Line Number: ", sys.exc_info()[2].tb_lineno)
-                    myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-                    GlobalVars.parametersLoadedFromFile = None
+                myPrint("B", "Error opening Pickle File Unexpected error:", sys.exc_info()[0], "Error:", sys.exc_info()[1], "Line:", sys.exc_info()[2].tb_lineno)
+                myPrint("B", ">> Will ignore saved parameters, and create a new file...")
+                GlobalVars.parametersLoadedFromFile = None
 
             if GlobalVars.parametersLoadedFromFile is None:
                 GlobalVars.parametersLoadedFromFile = {}
-                myPrint("DB","Parameters did not load, will keep defaults..")
+                myPrint("DB","Parameters did NOT load, will use defaults..")
             else:
                 myPrint("DB","Parameters successfully loaded from file...")
         else:
-            myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
-            myPrint("D", "Parameter Pickle file does not exist - will use default and create new file..")
+            myPrint("DB", "Parameter Pickle file does NOT exist - will use default and create new file..")
             GlobalVars.parametersLoadedFromFile = {}
 
         if not GlobalVars.parametersLoadedFromFile: return
@@ -1706,9 +1696,6 @@ Visit: %s (Author's site)
             myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         if GlobalVars.parametersLoadedFromFile.get("debug") is not None: debug = GlobalVars.parametersLoadedFromFile.get("debug")
-        if GlobalVars.parametersLoadedFromFile.get("lUseMacFileChooser") is not None:
-            myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
-            GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
         myPrint("DB","Parameter file loaded if present and GlobalVars.parametersLoadedFromFile{} dictionary set.....")
 
@@ -3903,6 +3890,17 @@ Visit: %s (Author's site)
     def isMDPlusGetPlaidClientEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_GETPLAIDCLIENT_BUILD)                        # 2022.5
 
     def isRRateCurrencyIssueFixedBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_RRATE_ISSUE_FIXED_BUILD)                                # 2021.2
+
+    def isKotlinCompiledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD)                                           # 2023.0(5000)
+
+    if isKotlinCompiledBuild():
+        from okio import BufferedSource, Buffer, Okio
+        if debug: myPrint("B", "** Kotlin compiled build detected, new libraries enabled.....")
+
+    def convertBufferedSourceToInputStream(bufferedSource):
+        if isKotlinCompiledBuild() and isinstance(bufferedSource, BufferedSource):
+            return bufferedSource.inputStream()
+        return bufferedSource
 
     if isMDPlusEnabledBuild():
         from com.moneydance.apps.md.controller import MDPlus
@@ -6273,7 +6271,7 @@ Visit: %s (Author's site)
         try:
             keyFile = File(MD_REF.getCurrentAccount().getBook().getRootFolder(), "key")
             fin = FileInputStream(keyFile)
-            keyInfo.readSet(fin)
+            keyInfo.readSet(fin)    # todo - ???
             fin.close()
         except: pass
         return keyInfo
@@ -8653,6 +8651,7 @@ Visit: %s (Author's site)
                 or theKey.endswith("rec_reg.debit")
                 or "col_widths." in theKey
                 or ("sel_" in theKey and theKey.endswith("_filter"))
+                or ("custom_filter" in theKey)
                 or "sel_inv_view" in theKey):
             return False
 
@@ -8719,17 +8718,15 @@ Visit: %s (Author's site)
         return True
 
     # noinspection PyUnusedLocal
-    def check_for_just_register_filters_window_display_data( theKey, theValue ):
+    def check_for_just_register_filters_window_display_data(theKey, theValue):
 
         # Assumes you have called check_for_window_display_data() first!
-
-        if  not ("sel_" in theKey and theKey.endswith("_filter") ):
-            return False
-
+        if "custom_filter" in theKey: return True
+        if  not ("sel_" in theKey and theKey.endswith("_filter") ): return False
         return True
 
     # noinspection PyUnusedLocal
-    def check_for_just_initial_view_filters_window_display_data( theKey, theValue ):
+    def check_for_just_initial_view_filters_window_display_data(theKey, theValue):
 
         if  not ("sel_" in theKey and theKey.endswith("_view") ):
             return False
@@ -8737,7 +8734,7 @@ Visit: %s (Author's site)
         return True
 
     # copied from Moneydance TxnRegister.class
-    def loadMDPreferences(dataObject,  preferencesKey, lGetDefaultForObject=True):   # dataObject should always = Account.
+    def loadMDPreferences(dataObject, preferencesKey, lGetDefaultForObject=True):   # dataObject should always = Account.
 
         preferencesKey = preferencesKey
 
@@ -8764,7 +8761,10 @@ Visit: %s (Author's site)
 
         params = SyncRecord()
         try:
-            params.readSet(StringReader(colWidthPrefs))
+            if isKotlinCompiledBuild():
+                params.readSet(Buffer().writeUtf8(colWidthPrefs))
+            else:
+                params.readSet(StringReader(colWidthPrefs))
         except IOException:
             myPrint("B", "Error parsing register settings: " + colWidthPrefs + " key=" + preferencesKey)
             return None
@@ -12383,8 +12383,12 @@ Visit: %s (Author's site)
         cipher = p_cipher.newInstance(encryptionKey)
         del encryptionKey
 
-        fin = FileInputStream(File(importFile))
-        import_decryptedStream = invokeMethodByReflection(cipher, "getDecryptStream", [InputStream], [fin])
+        if isKotlinCompiledBuild():
+            fin = Okio.buffer(Okio.source(FileInputStream(File(importFile))))
+            import_decryptedStream = invokeMethodByReflection(cipher, "getDecryptStream", [BufferedSource], [fin])
+        else:
+            fin = FileInputStream(File(importFile))
+            import_decryptedStream = invokeMethodByReflection(cipher, "getDecryptStream", [InputStream], [fin])
 
         try:
             importMDPlusData = StreamTable()
@@ -12393,6 +12397,7 @@ Visit: %s (Author's site)
             del cipher
             myPrint("DB","Import... StreamTable read & decrypted from file: %s" %(importFile))
         except:
+            if debug: dump_sys_error_to_md_console_and_errorlog()
             txt = "ERROR decrypting IMPORT file >> Wrong password entered? (review console) - NO CHANGES MADE!"
             setDisplayStatus(txt, "R"); myPrint("B", txt)
             myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME.upper(),JOptionPane.ERROR_MESSAGE)
@@ -14265,6 +14270,9 @@ Visit: %s (Author's site)
                                         output += "%s %s\n" % (pad("OFX Bill Pay Bank ID:",50),          selectedObject.getOFXBillPayBankID()             )
 
                                 output += "%s %s\n" % ( pad("Start Balance:",50),                        theCurr.getDoubleValue(selectedObject.getStartBalance()))
+                                if isKotlinCompiledBuild():
+                                    output += "%s %s\n" % ( pad("Unadjusted Start Balance:",50),         theCurr.getDoubleValue(selectedObject.getUnadjustedStartBalance()))
+                                    output += "%s %s\n" % ( pad("Balance Adjustment:",50),               theCurr.getDoubleValue(selectedObject.getBalanceAdjustment()))
                                 output += "%s %s\n" % ( pad("Balance:",50),                              theCurr.getDoubleValue(selectedObject.getBalance()))
                                 output += "%s %s\n" % ( pad("Cleared Balance:",50),                      theCurr.getDoubleValue(selectedObject.getClearedBalance()))
                                 output += "%s %s\n" % ( pad("Current Balance:",50),                      theCurr.getDoubleValue(selectedObject.getCurrentBalance()))
@@ -14510,13 +14518,13 @@ Visit: %s (Author's site)
 
                     # As all settings in memory actually come from config.dict (or go back to config.dict) then we look there instead to get the keys
                     st,tk = read_preferences_file(lSaveFirst=True)  # Must flush memory to disk first before we read the file....
-                    prefs=sorted(tk)
+                    prefs = sorted(tk)
 
                     for theKey in prefs:
                         value = st.get(theKey)
                         if lSync and not ("sync" in theKey.lower()): continue
                         if lOFX and not ("ofx" in theKey.lower() or "ol." in theKey.lower() or "olb." in theKey.lower()): continue
-                        if lSizes and not check_for_window_display_data(theKey,value): continue
+                        if lSizes and not check_for_window_display_data(theKey, value): continue
                         if lSearch:
                             myTestValue = value
                             if not isinstance(myTestValue,(str,unicode)): myTestValue  = repr(myTestValue)  # Force the StreamTable / StreamVector into a string for search comparison
@@ -14728,7 +14736,7 @@ Visit: %s (Author's site)
                                              or "olblink." in theKey.lower()
                                              or "olbfi" in theKey.lower()
                                              or "bpfi" in theKey.lower()): continue
-                            if lSizes and not check_for_window_display_data(theKey,value): continue
+                            if lSizes and not check_for_window_display_data(theKey, value): continue
                             if lSearch:
                                 if lKeys and not (searchWhat.lower() in theKey.lower()): continue
                                 elif lKeyData and not (searchWhat.lower() in value.lower()): continue
@@ -18570,7 +18578,7 @@ now after saving the file, restart Moneydance
                         myPrint("P", "Exporting attachment [%s]" %(os.path.basename(outputPath)))
                         try:
                             outStream = FileOutputStream(File(outputPath))
-                            inStream = MD_REF.getCurrentAccount().getBook().getLocalStorage().openFileForReading(attachTag)
+                            inStream = convertBufferedSourceToInputStream(MD_REF.getCurrentAccount().getBook().getLocalStorage().openFileForReading(attachTag))
                             IOUtils.copyStream(inStream, outStream)
                             outStream.close()
                             inStream.close()
@@ -18578,8 +18586,9 @@ now after saving the file, restart Moneydance
                                                 "%s %s %s %s %s .%s\n"
                                                 %(pad(str(txn.getAccount().getAccountType()),15),pad(txn.getAccount().getAccountName(),30),convertStrippedIntDateFormattedText(txn.getDateInt()),rpad(txn.getValue()/100.0,10),pad(txn.getDescription(),20),outputPath[len(exportFolder):])])
                         except:
-                            myPrint("B","Error extracting file - will SKIP : %s" %(outputPath))
-                            textLog += ("Error extracting file - will SKIP : %s\n" %(outputPath))
+                            txt = "Error extracting file - will SKIP : %s" %(outputPath)
+                            myPrint("B", txt)
+                            textLog += ("%s\n" %(txt))
                             iSkip += 1
 
             textRecords = sorted(textRecords, key=lambda _sort: (_sort[0], _sort[1], _sort[2]))
@@ -22943,7 +22952,10 @@ now after saving the file, restart Moneydance
         if lAnyFontChanges:
 
             try:
-                MD_REF.getUI().getFonts().updateFonts()
+                if int(MD_REF.getBuild()) > 4060:
+                    MD_REF.getUI().getFonts().updateFonts(True)     # from MD2022.3(4077) onwards...
+                else:
+                    MD_REF.getUI().getFonts().updateFonts()         # MD2022.2 and prior.....
                 txt = "MD Font Changes made (MD Fonts were also reinitialised) - YOU MIGHT NEED TO RESTART MONEYDANCE ANYWAY (config.dict was also backed up)...."
             except:
                 txt = "MD Font Changes made (failed to reinitialise MD Fonts) - PLEASE RESTART MONEYDANCE (config.dict was also backed up)...."
@@ -24097,6 +24109,7 @@ now after saving the file, restart Moneydance
                                 lastKey = theKey[:len(test)]
                                 configData.append("\nMONEYBOT:")
                             configData.append(pad(theKey+":",30) + MD_REF.getPreferences().getSetting(theKey, None).strip())
+                        break
                 if lFoundKeyTest: continue
 
                 test = "gui."
@@ -24113,7 +24126,7 @@ now after saving the file, restart Moneydance
 
                 lFoundKeyTest = False
                 for test in ["security_list", "curr_list", "ratioSettings.", "ol_acct_map_win"]:
-                    if theKey.startswith(test):
+                    if theKey.startswith(test) or "custom_filter" in theKey:
                         lFoundKeyTest = True
                         if lReset:
                             pass
@@ -24123,6 +24136,7 @@ now after saving the file, restart Moneydance
                                 lastKey = theKey[:len(test)]
                                 configData.append("\nMISC:")
                             configData.append(pad(theKey+":",30) + MD_REF.getPreferences().getSetting(theKey, None).strip())
+                        break
                 if lFoundKeyTest: continue
 
                 myPrint("B","@@ RESET WINDOW DATA - ERROR >> What is this key: %s ? @@" %theKey)
@@ -24144,9 +24158,10 @@ now after saving the file, restart Moneydance
                                          "rec_reg.credit",
                                          "rec_reg.debit" ]
 
-                keyIterator=[]
+                keyIterator = []
                 if lResetRegFilters:    keyIterator.append("sel_reg_filter")
                 if lResetRegFilters:    keyIterator.append("sel_invreg_filter")
+                if lResetRegFilters:    keyIterator.append("custom_filter_int")
                 if lResetRegViews:      keyIterator.append("sel_inv_view")
 
                 for acct in accounts:
@@ -24177,7 +24192,6 @@ now after saving the file, restart Moneydance
                                 if lReset:
                                     # NOTE: This really sets the preference in LocalStorage() with the acct's UUII+"." prepended as the key!!!! (Sneaky eh!!??)
                                     acct.setPreference(x, None)
-                                    # acct.syncItem() # Not entirely sure about this.... If Preference goes to LocalStorage() then Acct shouldn't be affected..
                                 else:
                                     if last != acct:
                                         last = acct
@@ -24245,7 +24259,7 @@ now after saving the file, restart Moneydance
 
                         for theTypeToCheck in dataPrefKeys_legacy:
 
-                            if theKey.endswith("."+theTypeToCheck):
+                            if theKey.endswith("." + theTypeToCheck):
 
                                 if lReset:
                                     LS.put(theKey, None)
@@ -24735,13 +24749,30 @@ now after saving the file, restart Moneydance
 
                 allAccounts = AccountUtil.allMatchesForSearch(newBook, AcctFilter.ALL_ACCOUNTS_FILTER)
                 for acct in allAccounts:
-                    currentInitialBal = acct.getStartBalance()
-                    if currentInitialBal != 0:
-                        rCurr = acct.getCurrencyType()
-                        output += "Setting account's initial / opening balance to zero (was: %s): %s\n"\
-                                  %(rCurr.formatFancy(currentInitialBal, MD_decimal), acct)
-                        acct.setStartBalance(0)
 
+                    lChangedBal = False
+                    if not isKotlinCompiledBuild():     # Pre MD2023 there was only start balance (no adjustment balance)
+                        xbal = acct.getStartBalance()
+                        if xbal != 0:
+                            rCurr = acct.getCurrencyType()
+                            output += "Setting account's initial / opening balance to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
+                            acct.setStartBalance(0)
+                            lChangedBal = True
+                    else:
+                        xbal = acct.getUnadjustedStartBalance()
+                        if xbal != 0:
+                            rCurr = acct.getCurrencyType()
+                            output += "Setting account's unadjusted initial / opening balance to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
+                            acct.setStartBalance(0)
+                            lChangedBal = True
+                        xbal = acct.getBalanceAdjustment()
+                        if xbal != 0:
+                            rCurr = acct.getCurrencyType()
+                            output += "Setting account's balance adjustment to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
+                            acct.setBalanceAdjustment(0)
+                            lChangedBal = True
+
+                    if lChangedBal:
                         SyncerDebug.changeState(debug)
                         newBook.logModifiedItem(acct)
                         SyncerDebug.resetState()
@@ -25639,7 +25670,7 @@ now after saving the file, restart Moneydance
     def getModifiedDatesFomZip(_storage, _archiveFile):
         """Interrogates a zip archive, then processes all entries, and determines the oldest and newest modified dates"""
 
-        zip_in = ZipInputStream(_storage.openFileForReading(_archiveFile))  # type: ZipInputStream
+        zip_in = ZipInputStream(convertBufferedSourceToInputStream(_storage.openFileForReading(_archiveFile)))  # type: ZipInputStream
         oldestMInt = newestMInt = 0
         try:
             while True:
@@ -26333,7 +26364,7 @@ now after saving the file, restart Moneydance
 
     def advanced_options_decrypt_file_from_sync():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-
+        
         _THIS_METHOD_NAME = "ADVANCED: EXTRACT/PEEK AT SYNC FILE"
 
         lFailTest = False
@@ -26344,8 +26375,7 @@ now after saving the file, restart Moneydance
         try:
             passphrase = MD_REF.getUI().getCurrentAccounts().getSyncEncryptionPassword()
             syncFolder = MD_REF.getUI().getCurrentAccounts().getSyncFolder()
-
-            encryptedTestBytes = IOUtils.readFully(syncFolder.readUnencrypted(KEY_TEST_FILE))
+            encryptedTestBytes = IOUtils.readFully(convertBufferedSourceToInputStream(syncFolder.readUnencrypted(KEY_TEST_FILE)))
             if encryptedTestBytes is None or len(encryptedTestBytes) <= 0:
                 myPrint("DB", "ERROR - The read of unencrypted data from Sync's 'key_test' returned None or zero bytes...")
                 lFailTest = True
@@ -26419,14 +26449,13 @@ now after saving the file, restart Moneydance
         fail = False
         readLines = None
         try:
-            readLines = IOUtils.readlines(syncFolder.readFile(truncatedPath))
+            readLines = IOUtils.readlines((syncFolder.readFile(truncatedPath)))
         except:
             fail = True
             myPrint("DB","Failed to read/decrypt.. Will try unencrypted")
-
         try:
             if fail:
-                readLines = IOUtils.readlines(syncFolder.readUnencrypted(truncatedPath))
+                readLines = IOUtils.readlines((syncFolder.readUnencrypted(truncatedPath)))
                 fail = False
         except:
             fail = True
@@ -27029,7 +27058,7 @@ now after saving the file, restart Moneydance
                     output += "%s(Ticker: %s, ID: %s)\n" %(sec.getName(), sec.getTickerSymbol(), sec.getIDString())
                 output += "\n<END>"
 
-                myPrint("DB", "detect_duplicate_securities() took %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0));
+                myPrint("DB", "detect_duplicate_securities() took %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
         except:
             myPrint("B", "@@ ERROR: .detect_duplicate_securities() has failed.... Ignoring (but please report to developer!)")
             dump_sys_error_to_md_console_and_errorlog()

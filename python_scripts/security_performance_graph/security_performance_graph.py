@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# security_performance_graph.py build: 1005 - Feb 2023 - Stuart Beesley StuWareSoftSystems
+# security_performance_graph.py build: 1006 - March 2023 - Stuart Beesley StuWareSoftSystems
 
 # requires: MD 2021.1(3069) due to NPE on SwingUtilities - something to do with 'theGenerator.setInfo(reportSpec)'
 
@@ -39,6 +39,8 @@
 # build: 1004 - Tweak init message with time
 # build: 1005 - Added bootstrap to execute compiled version of extension (faster to load)....
 # build: 1005 - Fixed call to save_StuWareSoftSystems_parameters_to_file() without parameters - causing wrong pickle file to be written
+# build: 1006 - Fixes for MD2023.0(5000) Kotlin compiled builds.... Fix SyncRecord().readSet() call.
+# build: 1006 - MD2023 fixes to common code...
 
 # todo - Memorise (save versions) along with choose/delete etc saved versions
 # todo - add markers for splits, buy/sells
@@ -49,7 +51,7 @@
 
 # SET THESE LINES
 myModuleID = u"security_performance_graph"
-version_build = "1005"
+version_build = "1006"
 MIN_BUILD_REQD = 3069
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -417,6 +419,7 @@ else:
     GlobalVars.extn_param_graph_params_SPG = None
     GlobalVars.extn_param_column_widths_SPG = []
     GlobalVars.Strings.GRAPH_NAME = u"Security Performance Graph"
+    GlobalVars.MD_KOTLIN_COMPILED_BUILD = 5000                                  # 2023.0 - Introduced Balance Adjustment
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
 
 
@@ -1453,16 +1456,12 @@ Visit: %s (Author's site)
             GlobalVars.parametersLoadedFromFile = {}
             return
 
-        old_dict_filename = os.path.join("..", myFile)
-
-        # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
-        if os.path.exists( migratedFilename ):
-
-            myPrint("DB", "loading parameters from non-encrypted Pickle file:", migratedFilename)
+        if os.path.exists(migratedFilename):
+            myPrint("DB", "loading parameters from (non-encrypted) Pickle file:", migratedFilename)
             myPrint("DB", "Parameter file", migratedFilename, "exists..")
             # Open the file
             try:
@@ -1483,34 +1482,17 @@ Visit: %s (Author's site)
                 myPrint("B", "Error: reached EOF on parameter file....")
                 GlobalVars.parametersLoadedFromFile = None
             except:
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[0])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[1])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Line Number: ", sys.exc_info()[2].tb_lineno)
-
-                # OK, so perhaps from older version - encrypted, try to read
-                try:
-                    local_storage = MD_REF.getCurrentAccountBook().getLocalStorage()
-                    istr = local_storage.openFileForReading(old_dict_filename)
-                    load_file = FileUtil.wrap(istr)
-                    # noinspection PyTypeChecker
-                    GlobalVars.parametersLoadedFromFile = pickle.load(load_file)
-                    load_file.close()
-                    myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
-                except:
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[0])
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[1])
-                    myPrint("B","Error opening Pickle File - Line Number: ", sys.exc_info()[2].tb_lineno)
-                    myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-                    GlobalVars.parametersLoadedFromFile = None
+                myPrint("B", "Error opening Pickle File Unexpected error:", sys.exc_info()[0], "Error:", sys.exc_info()[1], "Line:", sys.exc_info()[2].tb_lineno)
+                myPrint("B", ">> Will ignore saved parameters, and create a new file...")
+                GlobalVars.parametersLoadedFromFile = None
 
             if GlobalVars.parametersLoadedFromFile is None:
                 GlobalVars.parametersLoadedFromFile = {}
-                myPrint("DB","Parameters did not load, will keep defaults..")
+                myPrint("DB","Parameters did NOT load, will use defaults..")
             else:
                 myPrint("DB","Parameters successfully loaded from file...")
         else:
-            myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
-            myPrint("D", "Parameter Pickle file does not exist - will use default and create new file..")
+            myPrint("DB", "Parameter Pickle file does NOT exist - will use default and create new file..")
             GlobalVars.parametersLoadedFromFile = {}
 
         if not GlobalVars.parametersLoadedFromFile: return
@@ -1520,9 +1502,6 @@ Visit: %s (Author's site)
             myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         if GlobalVars.parametersLoadedFromFile.get("debug") is not None: debug = GlobalVars.parametersLoadedFromFile.get("debug")
-        if GlobalVars.parametersLoadedFromFile.get("lUseMacFileChooser") is not None:
-            myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
-            GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
         myPrint("DB","Parameter file loaded if present and GlobalVars.parametersLoadedFromFile{} dictionary set.....")
 
@@ -2935,7 +2914,6 @@ Visit: %s (Author's site)
         myPrint("DB","variables dumped from memory back into parametersLoadedFromFile{}.....:", GlobalVars.parametersLoadedFromFile)
         return
 
-    # Just grab debug etc... Nothing extra
     get_StuWareSoftSystems_parameters_from_file(myFile="%s_extension.dict" %(myModuleID))
 
     # clear up any old left-overs....
@@ -2973,6 +2951,12 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
+
+    def isKotlinCompiledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD)                                           # 2023.0(5000)
+
+    if isKotlinCompiledBuild():
+        from okio import BufferedSource, Buffer, Okio                                                                   # noqa
+        if debug: myPrint("B", "** Kotlin compiled build detected, new libraries enabled.....")
 
     def getPosNegColor(value):
         if value < 0.0:
@@ -6010,7 +5994,10 @@ Visit: %s (Author's site)
                         and isinstance(GlobalVars.extn_param_graph_params_SPG, (str, unicode))\
                         and len(GlobalVars.extn_param_graph_params_SPG)>2\
                         and GlobalVars.extn_param_graph_params_SPG.strip().startswith(":"):
-                    theParams.readSet(StringReader(GlobalVars.extn_param_graph_params_SPG))
+                    if isKotlinCompiledBuild():
+                        theParams.readSet(Buffer().writeUtf8(GlobalVars.extn_param_graph_params_SPG))
+                    else:
+                        theParams.readSet(StringReader(GlobalVars.extn_param_graph_params_SPG))
                     myPrint("DB","Graph parameters successfully loaded: %s" %(theParams))
                     reportSpec.setReportParameters(theParams)
                 else:

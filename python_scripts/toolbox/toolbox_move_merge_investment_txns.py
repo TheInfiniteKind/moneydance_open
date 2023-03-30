@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_move_merge_investment_txns.py build: 1004 - Feb 2023 - Stuart Beesley StuWareSoftSystems
+# toolbox_move_merge_investment_txns.py build: 1005 - March 2023 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -34,6 +34,8 @@
 # build: 1003 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
 # build: 1003 - Common code
 # build: 1004 - Added bootstrap to execute compiled version of extension (faster to load)....
+# build: 1005 - Cope with MD2023 new Balance Adjustment and changed meaning of Start Balance (i.e. block when adj != 0)
+# build: 1005 - MD2023 fixes to common code...
 
 # Allows the user to select investment transactions and then move them between accounts:
 # Can be called from the Extensions Menu (with/without txns selected); or from Toolbox menu
@@ -44,7 +46,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox_move_merge_investment_txns"
-version_build = "1004"
+version_build = "1005"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -345,6 +347,9 @@ else:
     GlobalVars.extn_param_shownHelpFile_MIT = None
     GlobalVars.Strings.EXTENSION_QL_ID = "securityquoteload"
     GlobalVars.Strings.EXTENSION_QER_ID = "yahooqt"
+
+    GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT = "baladj"
+    GlobalVars.MD_KOTLIN_COMPILED_BUILD = 5000                                  # 2023.0 - Introduced Balance Adjustment
     # >>> END THIS SCRIPT'S GLOBALS ####################################################################################
 
 
@@ -1381,16 +1386,12 @@ Visit: %s (Author's site)
             GlobalVars.parametersLoadedFromFile = {}
             return
 
-        old_dict_filename = os.path.join("..", myFile)
-
-        # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
-        if os.path.exists( migratedFilename ):
-
-            myPrint("DB", "loading parameters from non-encrypted Pickle file:", migratedFilename)
+        if os.path.exists(migratedFilename):
+            myPrint("DB", "loading parameters from (non-encrypted) Pickle file:", migratedFilename)
             myPrint("DB", "Parameter file", migratedFilename, "exists..")
             # Open the file
             try:
@@ -1411,34 +1412,17 @@ Visit: %s (Author's site)
                 myPrint("B", "Error: reached EOF on parameter file....")
                 GlobalVars.parametersLoadedFromFile = None
             except:
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[0])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[1])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Line Number: ", sys.exc_info()[2].tb_lineno)
-
-                # OK, so perhaps from older version - encrypted, try to read
-                try:
-                    local_storage = MD_REF.getCurrentAccountBook().getLocalStorage()
-                    istr = local_storage.openFileForReading(old_dict_filename)
-                    load_file = FileUtil.wrap(istr)
-                    # noinspection PyTypeChecker
-                    GlobalVars.parametersLoadedFromFile = pickle.load(load_file)
-                    load_file.close()
-                    myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
-                except:
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[0])
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[1])
-                    myPrint("B","Error opening Pickle File - Line Number: ", sys.exc_info()[2].tb_lineno)
-                    myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-                    GlobalVars.parametersLoadedFromFile = None
+                myPrint("B", "Error opening Pickle File Unexpected error:", sys.exc_info()[0], "Error:", sys.exc_info()[1], "Line:", sys.exc_info()[2].tb_lineno)
+                myPrint("B", ">> Will ignore saved parameters, and create a new file...")
+                GlobalVars.parametersLoadedFromFile = None
 
             if GlobalVars.parametersLoadedFromFile is None:
                 GlobalVars.parametersLoadedFromFile = {}
-                myPrint("DB","Parameters did not load, will keep defaults..")
+                myPrint("DB","Parameters did NOT load, will use defaults..")
             else:
                 myPrint("DB","Parameters successfully loaded from file...")
         else:
-            myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
-            myPrint("D", "Parameter Pickle file does not exist - will use default and create new file..")
+            myPrint("DB", "Parameter Pickle file does NOT exist - will use default and create new file..")
             GlobalVars.parametersLoadedFromFile = {}
 
         if not GlobalVars.parametersLoadedFromFile: return
@@ -1448,9 +1432,6 @@ Visit: %s (Author's site)
             myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         if GlobalVars.parametersLoadedFromFile.get("debug") is not None: debug = GlobalVars.parametersLoadedFromFile.get("debug")
-        if GlobalVars.parametersLoadedFromFile.get("lUseMacFileChooser") is not None:
-            myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
-            GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
         myPrint("DB","Parameter file loaded if present and GlobalVars.parametersLoadedFromFile{} dictionary set.....")
 
@@ -2905,6 +2886,8 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    def isKotlinCompiledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD)                                           # 2023.0(5000)
+
     # moved out of common code - these two methods are now slightly different from Toolbox main code...
     def doesUserAcceptDisclaimer(theParent, theTitle, disclaimerQuestion):
         disclaimer = myPopupAskForInput(theParent,
@@ -3655,6 +3638,45 @@ Visit: %s (Author's site)
                         myPopupInformationBox(toolbox_move_merge_investment_txns_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
                         continue
 
+                    #### New for MD2023 - Balance Adjustment handling (or rather blocking....!)
+                    selAcct = user_selectSourceAccount.getSelectedItem()
+                    if isinstance(selAcct, Account): pass
+
+                    if isKotlinCompiledBuild():
+                        balAdj = selAcct.getBalanceAdjustment()
+                        if (balAdj != 0):
+                            balAdjTxt = selAcct.getCurrencyType().formatSemiFancy(balAdj, MD_decimal)
+                            txt = "%s: ERROR - Remove Source Account's Balance Adjustment (of %s) before proceeding" %(_THIS_METHOD_NAME, balAdjTxt)
+                            myPopupInformationBox(toolbox_move_merge_investment_txns_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                            continue
+                    else:
+                        balAdj = selAcct.getLongParameter(GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT, 0)
+                        if (balAdj != 0):
+                            balAdjTxt = selAcct.getCurrencyType().formatSemiFancy(balAdj, MD_decimal)
+                            txt = "%s: ERROR - Source Account has Balance Adjustment (of %s) from MD2023+ REMOVE FIRST!" %(_THIS_METHOD_NAME, balAdjTxt)
+                            myPopupInformationBox(toolbox_move_merge_investment_txns_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                            continue
+
+                    selAcct = user_selectTargetAccount.getSelectedItem()
+                    if isinstance(selAcct, Account): pass
+
+                    if isKotlinCompiledBuild():
+                        balAdj = selAcct.getBalanceAdjustment()
+                        if (balAdj != 0):
+                            balAdjTxt = selAcct.getCurrencyType().formatSemiFancy(balAdj, MD_decimal)
+                            txt = "%s: ERROR - Remove Target Account's Balance Adjustment (of %s) before proceeding" %(_THIS_METHOD_NAME, balAdjTxt)
+                            myPopupInformationBox(toolbox_move_merge_investment_txns_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                            continue
+                    else:
+                        balAdj = selAcct.getLongParameter(GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT, 0)
+                        if (balAdj != 0):
+                            balAdjTxt = selAcct.getCurrencyType().formatSemiFancy(balAdj, MD_decimal)
+                            txt = "%s: ERROR - Target Account has Balance Adjustment (of %s) from MD2023+ REMOVE FIRST!" %(_THIS_METHOD_NAME, balAdjTxt)
+                            myPopupInformationBox(toolbox_move_merge_investment_txns_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+                            continue
+                    del selAcct, balAdj
+                    ################################################################################
+
                     if (MD_REF.getCurrentAccountBook().getTransactionSet().getTransactionsForAccount(user_selectSourceAccount.getSelectedItem()).getSize() < 1
                             and (user_selectSourceAccount.getSelectedItem().getStartBalance() == 0 or not user_mergeCashBalances.isSelected())):    # noqa
                         txt = "%s: ERROR - Source Account has no transactions and no initial [cash] balance to move" %(_THIS_METHOD_NAME)
@@ -3698,6 +3720,18 @@ Visit: %s (Author's site)
 
                 if isinstance(sourceAccount, Account): pass
                 if isinstance(targetAccount, Account): pass
+
+                # Belt and braces - block if detected somehow.....
+                balAdjS = sourceAccount.getLongParameter(GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT, 0)
+                if balAdjS != 0:
+                    raise Exception("LOGIC ERROR. Source Acct: '%s' cannot have an '%s' parameter set (value: %s)"
+                                    %(sourceAccount.getAccountName(), GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT, balAdjS))
+                balAdjT = targetAccount.getLongParameter(GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT, 0)
+                if balAdjT != 0:
+                    raise Exception("LOGIC ERROR. Target Acct: '%s' cannot have an '%s' parameter set (value: %s)"
+                                    %(targetAccount.getAccountName(), GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT, balAdjT))
+                del balAdjS, balAdjT
+
 
                 lFilterSecurities = user_enableSecurityFilter.isSelected()
                 filterSecurityList = [user_filterSecurity.getSelectedItem().getAccount()] if lFilterSecurities else []  # noqa

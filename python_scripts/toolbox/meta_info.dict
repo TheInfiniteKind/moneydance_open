@@ -2,11 +2,11 @@
   "id" = "toolbox"
   "extension_type" = "python"
   "vendor" = "The Infinite Kind (co-authored with Stuart Beesley - StuWareSoftSystems)"
-  "module_build" = "1057"
+  "module_build" = "1058"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Toolbox"
   "module_desc" = "Infinite Kind support tool: Displays Moneydance settings, diagnoses issues, run fixes, and much more....."
   "mac_sandbox_friendly" = "false"
-  "news" = "tweaks/fixes; New feature: 'DIAG: Produce report of Accounts and bank/account number information'; Eliminated Advanced Mode; NEW bootstrap pre-compiled launcher!"
+  "news" = "Technical fixes for MD2023(5000) KOTLIN compiled build(s)..."
 }

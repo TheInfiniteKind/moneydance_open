@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1030 - Feb 2023 - Stuart Beesley
+# extract_data.py - build: 1031 - Feb 2023 - Stuart Beesley
 
 # Consolidation of prior scripts into one:
 # stockglance2020.py
@@ -108,6 +108,11 @@
 # build: 1029 - Added new extract_security_balances for Dainius Krusinskas: dainiusforex@gmail.com / dainius.krusinskas@outlook.com (dainiusforex)
 # build: 1029 - DAMN! I hit the method/file too large (to compile) problem.. Still not proud of the duplications and use of globals. Anyway, rejigged the script to put more sections in methods...
 # build: 1030 - Added bootstrap to execute compiled version of extension (faster to load)....
+# build: 1031 - MD2023 (Kotlin compiled version) fixes - especially for (now unadjusted) Start Balance(s) and new Balance Adjustment(s)....
+#               Fix common code for MD2023...
+
+# todo - extract budget data?
+# todo - import excel writer?
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -115,7 +120,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1030"
+version_build = "1031"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -397,6 +402,8 @@ else:
 
     GlobalVars.thisScriptName = u"%s.py(Extension)" %(myModuleID)
 
+    GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT = "baladj"
+    GlobalVars.MD_KOTLIN_COMPILED_BUILD = 5000                                  # 2023.0 - Introduced Balance Adjustment
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
@@ -452,13 +459,14 @@ else:
     # from extract_account_registers_csv
     global lIncludeSubAccounts_EAR
     global lIncludeOpeningBalances_EAR
+    global lIncludeBalanceAdjustments_EAR
     global userdateStart_EAR, userdateEnd_EAR
     global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
     global saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
     global lAllText_EAR, textFilter_EAR, lAllCategories_EAR, categoriesFilter_EAR
 
     # from extract_investment_transactions_csv
-    global lIncludeOpeningBalances, lAdjustForSplits
+    global lIncludeOpeningBalances, lIncludeBalanceAdjustments, lAdjustForSplits
     global lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
     global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
 
@@ -522,6 +530,7 @@ else:
     # from extract_account_registers_csv
     lIncludeSubAccounts_EAR = False                                                                                     # noqa
     lIncludeOpeningBalances_EAR = True                                                                                  # noqa
+    lIncludeBalanceAdjustments_EAR = True                                                                                # noqa
     userdateStart_EAR = 19600101                                                                                        # noqa
     userdateEnd_EAR = 20301231                                                                                          # noqa
     lAllTags_EAR = True                                                                                                 # noqa
@@ -538,6 +547,7 @@ else:
 
     # from extract_investment_transactions_csv
     lIncludeOpeningBalances = True                                                                                      # noqa
+    lIncludeBalanceAdjustments = True                                                                                   # noqa
     lAdjustForSplits = True                                                                                             # noqa
     lExtractAttachments_EIT = False                                                                                     # noqa
     lOmitLOTDataFromExtract_EIT = False                                                                                 # noqa
@@ -1600,16 +1610,12 @@ Visit: %s (Author's site)
             GlobalVars.parametersLoadedFromFile = {}
             return
 
-        old_dict_filename = os.path.join("..", myFile)
-
-        # Pickle was originally encrypted, no need, migrating to unencrypted
-        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(),myFile)
+        migratedFilename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), myFile)
 
         myPrint("DB", "Now checking for parameter file:", migratedFilename)
 
-        if os.path.exists( migratedFilename ):
-
-            myPrint("DB", "loading parameters from non-encrypted Pickle file:", migratedFilename)
+        if os.path.exists(migratedFilename):
+            myPrint("DB", "loading parameters from (non-encrypted) Pickle file:", migratedFilename)
             myPrint("DB", "Parameter file", migratedFilename, "exists..")
             # Open the file
             try:
@@ -1630,34 +1636,17 @@ Visit: %s (Author's site)
                 myPrint("B", "Error: reached EOF on parameter file....")
                 GlobalVars.parametersLoadedFromFile = None
             except:
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[0])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Unexpected error ", sys.exc_info()[1])
-                myPrint("B","Error opening Pickle File (will try encrypted version) - Line Number: ", sys.exc_info()[2].tb_lineno)
-
-                # OK, so perhaps from older version - encrypted, try to read
-                try:
-                    local_storage = MD_REF.getCurrentAccountBook().getLocalStorage()
-                    istr = local_storage.openFileForReading(old_dict_filename)
-                    load_file = FileUtil.wrap(istr)
-                    # noinspection PyTypeChecker
-                    GlobalVars.parametersLoadedFromFile = pickle.load(load_file)
-                    load_file.close()
-                    myPrint("B","Success loading Encrypted Pickle file - will migrate to non encrypted")
-                except:
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[0])
-                    myPrint("B","Opening Encrypted Pickle File - Unexpected error ", sys.exc_info()[1])
-                    myPrint("B","Error opening Pickle File - Line Number: ", sys.exc_info()[2].tb_lineno)
-                    myPrint("B", "Error: Pickle.load() failed.... Is this a restored dataset? Will ignore saved parameters, and create a new file...")
-                    GlobalVars.parametersLoadedFromFile = None
+                myPrint("B", "Error opening Pickle File Unexpected error:", sys.exc_info()[0], "Error:", sys.exc_info()[1], "Line:", sys.exc_info()[2].tb_lineno)
+                myPrint("B", ">> Will ignore saved parameters, and create a new file...")
+                GlobalVars.parametersLoadedFromFile = None
 
             if GlobalVars.parametersLoadedFromFile is None:
                 GlobalVars.parametersLoadedFromFile = {}
-                myPrint("DB","Parameters did not load, will keep defaults..")
+                myPrint("DB","Parameters did NOT load, will use defaults..")
             else:
                 myPrint("DB","Parameters successfully loaded from file...")
         else:
-            myPrint("J", "Parameter Pickle file does not exist - will use default and create new file..")
-            myPrint("D", "Parameter Pickle file does not exist - will use default and create new file..")
+            myPrint("DB", "Parameter Pickle file does NOT exist - will use default and create new file..")
             GlobalVars.parametersLoadedFromFile = {}
 
         if not GlobalVars.parametersLoadedFromFile: return
@@ -1667,9 +1656,6 @@ Visit: %s (Author's site)
             myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         if GlobalVars.parametersLoadedFromFile.get("debug") is not None: debug = GlobalVars.parametersLoadedFromFile.get("debug")
-        if GlobalVars.parametersLoadedFromFile.get("lUseMacFileChooser") is not None:
-            myPrint("B", "Detected old lUseMacFileChooser parameter/variable... Will delete it...")
-            GlobalVars.parametersLoadedFromFile.pop("lUseMacFileChooser", None)  # Old variable - not used - delete from parameter file
 
         myPrint("DB","Parameter file loaded if present and GlobalVars.parametersLoadedFromFile{} dictionary set.....")
 
@@ -3070,7 +3056,7 @@ Visit: %s (Author's site)
         global whichDefaultExtractToRun_SWSS, lWriteParametersToExportFile_SWSS, lAllowEscapeExitApp_SWSS
 
         # extract_account_registers_csv
-        global lIncludeOpeningBalances_EAR
+        global lIncludeOpeningBalances_EAR, lIncludeBalanceAdjustments_EAR
         global userdateStart_EAR, userdateEnd_EAR, lIncludeSubAccounts_EAR
         global lAllTags_EAR, tagFilter_EAR, lExtractAttachments_EAR
         global saveDropDownAccountUUID_EAR, lIncludeInternalTransfers_EAR, saveDropDownDateRange_EAR
@@ -3078,7 +3064,7 @@ Visit: %s (Author's site)
         global lAllCategories_EAR, categoriesFilter_EAR
 
         # extract_investment_transactions_csv
-        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
+        global lIncludeOpeningBalances, lIncludeBalanceAdjustments, lAdjustForSplits, lExtractAttachments_EIT, lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
         global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
 
         # extract_security_balances_csv
@@ -3147,12 +3133,14 @@ Visit: %s (Author's site)
         if GlobalVars.parametersLoadedFromFile.get("categoriesFilter_EAR") is not None: categoriesFilter_EAR = GlobalVars.parametersLoadedFromFile.get("categoriesFilter_EAR")
         if GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EAR") is not None: lExtractAttachments_EAR = GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EAR")
         if GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances_EAR") is not None: lIncludeOpeningBalances_EAR = GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances_EAR")
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeBalanceAdjustments_EAR") is not None: lIncludeBalanceAdjustments_EAR = GlobalVars.parametersLoadedFromFile.get("lIncludeBalanceAdjustments_EAR")
         if GlobalVars.parametersLoadedFromFile.get("saveDropDownAccountUUID_EAR") is not None: saveDropDownAccountUUID_EAR = GlobalVars.parametersLoadedFromFile.get("saveDropDownAccountUUID_EAR")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("saveDropDownDateRange_EAR") is not None: saveDropDownDateRange_EAR = GlobalVars.parametersLoadedFromFile.get("saveDropDownDateRange_EAR")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("lIncludeInternalTransfers_EAR") is not None: lIncludeInternalTransfers_EAR = GlobalVars.parametersLoadedFromFile.get("lIncludeInternalTransfers_EAR")                                                                                  # noqa
 
         # extract_investment_transactions_csv
         if GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances") is not None: lIncludeOpeningBalances = GlobalVars.parametersLoadedFromFile.get("lIncludeOpeningBalances")
+        if GlobalVars.parametersLoadedFromFile.get("lIncludeBalanceAdjustments") is not None: lIncludeBalanceAdjustments = GlobalVars.parametersLoadedFromFile.get("lIncludeBalanceAdjustments")
         if GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits") is not None: lAdjustForSplits = GlobalVars.parametersLoadedFromFile.get("lAdjustForSplits")
         if GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT") is not None: lExtractAttachments_EIT = GlobalVars.parametersLoadedFromFile.get("lExtractAttachments_EIT")                                                                                  # noqa
         if GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT") is not None: lOmitLOTDataFromExtract_EIT = GlobalVars.parametersLoadedFromFile.get("lOmitLOTDataFromExtract_EIT")                                                                                  # noqa
@@ -3224,6 +3212,7 @@ Visit: %s (Author's site)
         # extract_account_registers_csv
         GlobalVars.parametersLoadedFromFile["lIncludeSubAccounts_EAR"] = lIncludeSubAccounts_EAR
         GlobalVars.parametersLoadedFromFile["lIncludeOpeningBalances_EAR"] = lIncludeOpeningBalances_EAR
+        GlobalVars.parametersLoadedFromFile["lIncludeBalanceAdjustments_EAR"] = lIncludeBalanceAdjustments_EAR
         GlobalVars.parametersLoadedFromFile["userdateStart_EAR"] = userdateStart_EAR
         GlobalVars.parametersLoadedFromFile["userdateEnd_EAR"] = userdateEnd_EAR
         GlobalVars.parametersLoadedFromFile["lAllTags_EAR"] = lAllTags_EAR
@@ -3245,6 +3234,7 @@ Visit: %s (Author's site)
         GlobalVars.parametersLoadedFromFile["filterDateStart_EIT"] = filterDateStart_EIT
         GlobalVars.parametersLoadedFromFile["filterDateEnd_EIT"] = filterDateEnd_EIT
         GlobalVars.parametersLoadedFromFile["lIncludeOpeningBalances"] = lIncludeOpeningBalances
+        GlobalVars.parametersLoadedFromFile["lIncludeBalanceAdjustments"] = lIncludeBalanceAdjustments
         GlobalVars.parametersLoadedFromFile["lAdjustForSplits"] = lAdjustForSplits
 
         # extract_security_balances_csv
@@ -3314,6 +3304,16 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
+
+    def isKotlinCompiledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD)                                           # 2023.0(5000)
+
+    def getUnadjustedStartBalance(theAccount):
+        if isKotlinCompiledBuild(): return theAccount.getUnadjustedStartBalance()
+        return theAccount.getStartBalance()
+
+    def getBalanceAdjustment(theAccount):
+        if isKotlinCompiledBuild(): return theAccount.getBalanceAdjustment()
+        return theAccount.getLongParameter(GlobalVars.Strings.MD_KEY_BALANCE_ADJUSTMENT, 0)
 
     if MD_REF.getCurrentAccountBook() is None:
         myPrint("B", "Moneydance appears to be empty - no data to scan - aborting...")
@@ -3471,7 +3471,7 @@ Visit: %s (Author's site)
         global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
         global whichDefaultExtractToRun_SWSS
-        global lIncludeSubAccounts_EAR, lIncludeOpeningBalances_EAR, userdateStart_EAR, userdateEnd_EAR, lAllTags_EAR, tagFilter_EAR
+        global lIncludeSubAccounts_EAR, lIncludeOpeningBalances_EAR, lIncludeBalanceAdjustments_EAR, userdateStart_EAR, userdateEnd_EAR, lAllTags_EAR, tagFilter_EAR
         global lAllText_EAR, textFilter_EAR, lAllCategories_EAR, categoriesFilter_EAR, lExtractAttachments_EAR, saveDropDownAccountUUID_EAR, saveDropDownDateRange_EAR, lIncludeInternalTransfers_EAR
 
         _exit = False
@@ -3646,9 +3646,13 @@ Visit: %s (Author's site)
         labelSeparator7 = JLabel("--------------------------------------------------------------------")
         labelSeparator8 = JLabel("--------------------------------------------------------------------")
 
-        labelOpeningBalances = JLabel("Include Opening Balances?")
+        labelOpeningBalances = JLabel("Include Unadjusted Opening Balances?")
         user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances_EAR)
         user_selectOpeningBalances.setName("user_selectOpeningBalances")
+
+        labelBalancesAdjustments = JLabel("Include Balance Adjustments?")
+        user_selectBalanceAdjustments = JCheckBox("", lIncludeBalanceAdjustments_EAR)
+        user_selectBalanceAdjustments.setName("user_selectBalanceAdjustments")
 
         if isinstance(accountDropdown.getSelectedItem(),(str,unicode)):
             user_includeSubAccounts.setEnabled(False)
@@ -3891,6 +3895,8 @@ Visit: %s (Author's site)
         _userFilters.add(labelSeparator8)
         _userFilters.add(labelOpeningBalances)
         _userFilters.add(user_selectOpeningBalances)
+        _userFilters.add(labelBalancesAdjustments)
+        _userFilters.add(user_selectBalanceAdjustments)
         # _userFilters.add(labelIncludeTransfers)
         # _userFilters.add(user_selectIncludeTransfers)
         _userFilters.add(labelAttachments)
@@ -3941,24 +3947,27 @@ Visit: %s (Author's site)
                 labelSTATUSbar.setForeground(getColorRed())
                 continue
 
-            if user_selectTags.getText() != "ALL" and user_selectOpeningBalances.isSelected():
+            if user_selectTags.getText() != "ALL" and (user_selectOpeningBalances.isSelected() or user_selectBalanceAdjustments.isSelected()):
                 user_selectTags.setForeground(getColorRed())
                 user_selectOpeningBalances.setForeground(getColorRed())
-                labelSTATUSbar.setText(">> Error - You cannot filter on Tags and Include Opening Balances..... <<".upper())
+                user_selectBalanceAdjustments.setForeground(getColorRed())
+                labelSTATUSbar.setText(">> Error: CANNOT filter on Tags & Balances <<".upper())
                 labelSTATUSbar.setForeground(getColorRed())
                 continue
 
-            if user_selectText.getText() != "ALL" and user_selectOpeningBalances.isSelected():
+            if user_selectText.getText() != "ALL" and (user_selectOpeningBalances.isSelected() or user_selectBalanceAdjustments.isSelected()):
                 user_selectText.setForeground(getColorRed())
                 user_selectOpeningBalances.setForeground(getColorRed())
-                labelSTATUSbar.setText(">> Error - You cannot filter on Text and Include Opening Balances..... <<".upper())
+                user_selectBalanceAdjustments.setForeground(getColorRed())
+                labelSTATUSbar.setText(">> Error: CANNOT filter on Text & Balances <<".upper())
                 labelSTATUSbar.setForeground(getColorRed())
                 continue
 
-            if user_selectCategories.getText() != "ALL" and user_selectOpeningBalances.isSelected():
+            if user_selectCategories.getText() != "ALL" and (user_selectOpeningBalances.isSelected() or user_selectBalanceAdjustments.isSelected()):
                 user_selectCategories.setForeground(getColorRed())
                 user_selectOpeningBalances.setForeground(getColorRed())
-                labelSTATUSbar.setText(">> Error - You cannot filter on Categories and Include Opening Balances..... <<".upper())
+                user_selectBalanceAdjustments.setForeground(getColorRed())
+                labelSTATUSbar.setText(">> Error: CANNOT filter on Categories & Balances <<".upper())
                 labelSTATUSbar.setForeground(getColorRed())
                 continue
 
@@ -3970,7 +3979,7 @@ Visit: %s (Author's site)
                 # So <NONE> Selected in Account dropdown....
                 if user_includeSubAccounts.isSelected():
                     user_includeSubAccounts.setSelected(False)
-                    labelSTATUSbar.setText(">> Error - Dropdown Accounts <NONE> and Include Sub Accounts True... <<".upper())
+                    labelSTATUSbar.setText(">> Error: Dropdown Accounts <NONE> & Include Sub Accts <<".upper())
                     labelSTATUSbar.setForeground(getColorRed())
                     user_includeSubAccounts.setForeground(getColorRed())
                     accountDropdown.setForeground(getColorRed())
@@ -4011,7 +4020,8 @@ Visit: %s (Author's site)
                     "HidAct:", user_hideHiddenAccounts.isSelected(),
                     "Filter Accts:", user_selectAccounts.getText(),
                     "Filter Curr:", user_selectCurrency.getText(),
-                    "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
+                    "Incl Unadjusted Open Bals:", user_selectOpeningBalances.isSelected(),
+                    "Incl Bal Adjs:", user_selectBalanceAdjustments.isSelected(),
                     # "Incl Transfers:", user_selectIncludeTransfers.isSelected(),
                     "Date Range:", dateDropdown.getSelectedItem(),
                     "StartDate:", user_selectDateStart.getDateInt(),
@@ -4032,6 +4042,7 @@ Visit: %s (Author's site)
             hideHiddenAccounts = user_hideHiddenAccounts.isSelected()
             lIncludeSubAccounts_EAR = user_includeSubAccounts.isSelected()
             lIncludeOpeningBalances_EAR = user_selectOpeningBalances.isSelected()
+            lIncludeBalanceAdjustments_EAR = user_selectBalanceAdjustments.isSelected()
             lIncludeInternalTransfers_EAR = user_selectIncludeTransfers.isSelected()
             lExtractAttachments_EAR = user_selectExtractAttachments.isSelected()
             lWriteBOMToExportFile_SWSS = user_selectBOM.isSelected()
@@ -4123,24 +4134,25 @@ Visit: %s (Author's site)
 
             if dropDownAccount_EAR:
                 # noinspection PyUnresolvedReferences
-                myPrint("B","Dropdown Account selected..: %s" %(dropDownAccount_EAR.getAccountName()))
-                myPrint("B","Include Sub Accounts.......: %s" %(lIncludeSubAccounts_EAR))
+                myPrint("B","Dropdown Account selected.........: %s" %(dropDownAccount_EAR.getAccountName()))
+                myPrint("B","Include Sub Accounts..............: %s" %(lIncludeSubAccounts_EAR))
             else:
-                myPrint("B","Hiding Inactive Accounts...: %s" %(hideInactiveAccounts))
-                myPrint("B","Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts))
-                myPrint("B","Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts))
-                myPrint("B","Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency))
+                myPrint("B","Hiding Inactive Accounts..........: %s" %(hideInactiveAccounts))
+                myPrint("B","Hiding Hidden Accounts............: %s" %(hideHiddenAccounts))
+                myPrint("B","Account filter....................: %s '%s'" %(lAllAccounts,filterForAccounts))
+                myPrint("B","Currency filter...................: %s '%s'" %(lAllCurrency,filterForCurrency))
 
-            myPrint("B","Include Opening Balances...: %s" %(lIncludeOpeningBalances_EAR))
-            # myPrint("B","Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR))
-            myPrint("B","Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR))
-            myPrint("B","Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR))
-            myPrint("B","Categories filter..........: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR))
-            myPrint("B","Download Attachments.......: %s" %(lExtractAttachments_EAR))
-            myPrint("B","Date range.................: %s" %(saveDropDownDateRange_EAR))
-            myPrint("B","Selected Start Date........: %s" %(userdateStart_EAR))
-            myPrint("B","Selected End Date..........: %s" %(userdateEnd_EAR))
-            myPrint("B", "user date format..........: %s" %(userdateformat))
+            myPrint("B","Include Unadjusted Opening Balances...: %s" %(lIncludeOpeningBalances_EAR))
+            myPrint("B","Include Balance Adjustments...........: %s" %(lIncludeBalanceAdjustments_EAR))
+            # myPrint("B","Include Acct Transfers................: %s" %(lIncludeInternalTransfers_EAR))
+            myPrint("B","Tag filter............................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR))
+            myPrint("B","Text filter...........................: %s '%s'" %(lAllText_EAR,textFilter_EAR))
+            myPrint("B","Categories filter.....................: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR))
+            myPrint("B","Download Attachments..................: %s" %(lExtractAttachments_EAR))
+            myPrint("B","Date range............................: %s" %(saveDropDownDateRange_EAR))
+            myPrint("B","Selected Start Date...................: %s" %(userdateStart_EAR))
+            myPrint("B","Selected End Date.....................: %s" %(userdateEnd_EAR))
+            myPrint("B", "user date format.....................: %s" %(userdateformat))
 
         return _exit
 
@@ -4162,7 +4174,7 @@ Visit: %s (Author's site)
         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
         global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
         global whichDefaultExtractToRun_SWSS
-        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
+        global lIncludeOpeningBalances, lIncludeBalanceAdjustments, lAdjustForSplits, lExtractAttachments_EIT
         global lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
 
 
@@ -4205,8 +4217,11 @@ Visit: %s (Author's site)
         label_dateEnd = user_dateRangeChooser.getEndLabel()
         user_dateEnd = user_dateRangeChooser.getEndField()
 
-        label7 = JLabel("Include Opening Balances?")
+        label7 = JLabel("Include Unadjusted Opening Balances?")
         user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances)
+
+        label7b = JLabel("Include Balance Adjustments?")
+        user_selectBalanceAdjustments = JCheckBox("", lIncludeBalanceAdjustments)
 
         label8 = JLabel("Adjust for stock splits/")
         user_selectAdjustSplits = JCheckBox("", lAdjustForSplits)
@@ -4277,6 +4292,8 @@ Visit: %s (Author's site)
 
         userFilters.add(label7)
         userFilters.add(user_selectOpeningBalances)
+        userFilters.add(label7b)
+        userFilters.add(user_selectBalanceAdjustments)
         userFilters.add(label8)
         userFilters.add(user_selectAdjustSplits)
         userFilters.add(labelOmitLOTDataFromExtract_EIT)
@@ -4327,7 +4344,8 @@ Visit: %s (Author's site)
                     "Filter txns by date:", user_filterDateRange.isSelected(),
                     "Filter txns start date:", user_dateRangeChooser.getDateRange().getStartDateInt(),
                     "Filter txns end date:", user_dateRangeChooser.getDateRange().getEndDateInt(),
-                    "Incl Open Bals:", user_selectOpeningBalances.isSelected(),
+                    "Incl Unadjusted Open Bals:", user_selectOpeningBalances.isSelected(),
+                    "Incl Bal Adjs:", user_selectBalanceAdjustments.isSelected(),
                     "Adj Splits:", user_selectAdjustSplits.isSelected(),
                     "OmitLOTData:", user_lOmitLOTDataFromExtract_EIT.isSelected(),
                     "ExtraXtraSecAcctInfo:", user_lExtractExtraSecurityAcctInfo.isSelected(),
@@ -4372,6 +4390,7 @@ Visit: %s (Author's site)
                 filterDateEnd_EIT = 0
 
             lIncludeOpeningBalances = user_selectOpeningBalances.isSelected()
+            lIncludeBalanceAdjustments = user_selectBalanceAdjustments.isSelected()
             lAdjustForSplits = user_selectAdjustSplits.isSelected()
             lOmitLOTDataFromExtract_EIT = user_lOmitLOTDataFromExtract_EIT.isSelected()
             lExtractExtraSecurityAcctInfo = user_lExtractExtraSecurityAcctInfo.isSelected()
@@ -4444,9 +4463,14 @@ Visit: %s (Author's site)
                 myPrint("B", "Filtering for Accounts containing: ", filterForAccounts)
 
             if lIncludeOpeningBalances:
-                myPrint("B", "Including Opening Balances...")
+                myPrint("B", "Including Unadjusted Opening Balances...")
             else:
-                myPrint("B", "Ignoring Opening Balances... ")
+                myPrint("B", "Ignoring Unadjusted Opening Balances... ")
+
+            if lIncludeBalanceAdjustments:
+                myPrint("B", "Including Balance Adjustments...")
+            else:
+                myPrint("B", "Ignoring Balance Adjustments... ")
 
             if lAdjustForSplits:
                 myPrint("B", "Script will adjust for Stock Splits...")
@@ -8650,7 +8674,7 @@ Visit: %s (Author's site)
                         global hideInactiveAccounts, hideHiddenAccounts, hideHiddenSecurities
                         global lAllSecurity, filterForSecurity, lAllAccounts, filterForAccounts, lAllCurrency, filterForCurrency
                         global whichDefaultExtractToRun_SWSS
-                        global lIncludeSubAccounts_EAR, lIncludeOpeningBalances_EAR, userdateStart_EAR, userdateEnd_EAR, lAllTags_EAR, tagFilter_EAR
+                        global lIncludeSubAccounts_EAR, lIncludeOpeningBalances_EAR, lIncludeBalanceAdjustments_EAR, userdateStart_EAR, userdateEnd_EAR, lAllTags_EAR, tagFilter_EAR
                         global lAllText_EAR, textFilter_EAR, lAllCategories_EAR, categoriesFilter_EAR, lExtractAttachments_EAR, saveDropDownAccountUUID_EAR, saveDropDownDateRange_EAR, lIncludeInternalTransfers_EAR
 
                         # noinspection PyArgumentList
@@ -8840,8 +8864,14 @@ Visit: %s (Author's site)
                         copyValidAccountList = ArrayList()
                         if lIncludeOpeningBalances_EAR:
                             for acctBal in validAccountList:
-                                if acctBal.getStartBalance() != 0:
+                                if getUnadjustedStartBalance(acctBal) != 0:
                                     if userdateStart_EAR <= acctBal.getCreationDateInt() <= userdateEnd_EAR:
+                                        copyValidAccountList.add(acctBal)
+
+                        if lIncludeBalanceAdjustments_EAR:
+                            for acctBal in validAccountList:
+                                if getBalanceAdjustment(acctBal) != 0:
+                                    if acctBal not in copyValidAccountList:
                                         copyValidAccountList.add(acctBal)
 
                         for txn in txns:
@@ -8856,8 +8886,7 @@ Visit: %s (Author's site)
                             acctCurr = txnAcct.getCurrencyType()  # Currency of the txn
 
                             # Only include opening balances if not filtering records.... (this is caught during parameter selection earlier)
-                            if lIncludeOpeningBalances_EAR:
-
+                            if (lIncludeOpeningBalances_EAR or lIncludeBalanceAdjustments_EAR):
                                 if txnAcct in copyValidAccountList:
                                     copyValidAccountList.remove(txnAcct)
 
@@ -8865,31 +8894,59 @@ Visit: %s (Author's site)
                                     pass
                                 else:
                                     accountBalances[txnAcct] = True
-                                    if userdateStart_EAR <= txnAcct.getCreationDateInt() <= userdateEnd_EAR:
-                                        openBal = acctCurr.getDoubleValue(txnAcct.getStartBalance())
-                                        if openBal != 0:
-                                            iBal+=1
+                                    if (lIncludeOpeningBalances_EAR):
+                                        if userdateStart_EAR <= txnAcct.getCreationDateInt() <= userdateEnd_EAR:
+                                            openBal = acctCurr.getDoubleValue(getUnadjustedStartBalance(txnAcct))
+                                            if openBal != 0:
+                                                iBal += 1
+                                                _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                                _row[dataKeys["_KEY"][_COLUMN]] = txnAcct.getUUID()
+                                                _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(txnAcct.getAccountType())
+                                                _row[dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
+                                                _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
+                                                _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL (UNADJUSTED) OPENING BALANCE"
+                                                _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
+                                                _row[dataKeys["_DATE"][_COLUMN]] = txnAcct.getCreationDateInt()
+                                                _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
+                                                if acctCurr == baseCurrency:
+                                                    _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = openBal
+                                                    _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = openBal
+                                                else:
+                                                    _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
+                                                    _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
+                                                    _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = openBal
+                                                    _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = openBal
+
+                                                myPrint("D", _row)
+                                                transactionTable.append(_row)
+                                                del openBal
+
+                                    if (lIncludeBalanceAdjustments_EAR):
+                                        adjBal = acctCurr.getDoubleValue(getBalanceAdjustment(txnAcct))
+                                        if adjBal != 0:
+                                            iBal += 1
                                             _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
                                             _row[dataKeys["_KEY"][_COLUMN]] = txnAcct.getUUID()
                                             _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(txnAcct.getAccountType())
                                             _row[dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
                                             _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
-                                            _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL OPENING BALANCE"
+                                            _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL BALANCE ADJUSTMENT (MD2023 onwards)"
                                             _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
-                                            _row[dataKeys["_DATE"][_COLUMN]] = txnAcct.getCreationDateInt()
+                                            _row[dataKeys["_DATE"][_COLUMN]] = DateUtil.getStrippedDateInt()
                                             _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
                                             if acctCurr == baseCurrency:
-                                                _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = openBal
-                                                _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = openBal
+                                                _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = adjBal
+                                                _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = adjBal
                                             else:
-                                                _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
-                                                _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
-                                                _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = openBal
-                                                _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = openBal
+                                                _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
+                                                _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
+                                                _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = adjBal
+                                                _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = adjBal
 
 
                                             myPrint("D", _row)
                                             transactionTable.append(_row)
+                                            del adjBal
 
                             keyIndex = 0
                             _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
@@ -9136,36 +9193,65 @@ Visit: %s (Author's site)
                                         keyIndex += 1
                                         iCount += 1
 
-                        if lIncludeOpeningBalances_EAR and len(copyValidAccountList)>0:
+                        if (lIncludeOpeningBalances_EAR or lIncludeBalanceAdjustments_EAR) and len(copyValidAccountList) > 0:
                             myPrint("DB","Now iterating remaining %s Accounts with no txns for balances...." %(len(copyValidAccountList)))
 
                             # Yes I should just move this section from above so the code is not inefficient....
                             for acctBal in copyValidAccountList:
 
                                 acctCurr = acctBal.getCurrencyType()  # Currency of the acct
-                                openBal = acctCurr.getDoubleValue(acctBal.getStartBalance())
 
-                                iBal+=1
-                                _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
-                                _row[dataKeys["_KEY"][_COLUMN]] = acctBal.getUUID()
-                                _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(acctBal.getAccountType())
-                                _row[dataKeys["_ACCOUNT"][_COLUMN]] = acctBal.getFullAccountName()
-                                _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
-                                _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL OPENING BALANCE"
-                                _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
-                                _row[dataKeys["_DATE"][_COLUMN]] = acctBal.getCreationDateInt()
-                                _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
-                                if acctCurr == baseCurrency:
-                                    _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = openBal
-                                    _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = openBal
-                                else:
-                                    _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
-                                    _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
-                                    _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = openBal
-                                    _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = openBal
+                                if (lIncludeOpeningBalances_EAR):
+                                    openBal = acctCurr.getDoubleValue(getUnadjustedStartBalance(acctBal))
+                                    if openBal != 0:
+                                        iBal += 1
+                                        _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                        _row[dataKeys["_KEY"][_COLUMN]] = acctBal.getUUID()
+                                        _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(acctBal.getAccountType())
+                                        _row[dataKeys["_ACCOUNT"][_COLUMN]] = acctBal.getFullAccountName()
+                                        _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
+                                        _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL (UNADJUSTED) OPENING BALANCE"
+                                        _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
+                                        _row[dataKeys["_DATE"][_COLUMN]] = acctBal.getCreationDateInt()
+                                        _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
+                                        if acctCurr == baseCurrency:
+                                            _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = openBal
+                                            _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = openBal
+                                        else:
+                                            _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
+                                            _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
+                                            _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = openBal
+                                            _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = openBal
 
-                                myPrint("D", _row)
-                                transactionTable.append(_row)
+                                        myPrint("D", _row)
+                                        transactionTable.append(_row)
+                                        del openBal
+
+                                if (lIncludeBalanceAdjustments_EAR):
+                                    adjBal = acctCurr.getDoubleValue(getBalanceAdjustment(acctBal))
+                                    if adjBal != 0:
+                                        iBal += 1
+                                        _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                        _row[dataKeys["_KEY"][_COLUMN]] = acctBal.getUUID()
+                                        _row[dataKeys["_ACCOUNTTYPE"][_COLUMN]] = safeStr(acctBal.getAccountType())
+                                        _row[dataKeys["_ACCOUNT"][_COLUMN]] = acctBal.getFullAccountName()
+                                        _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
+                                        _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL BALANCE ADJUSTMENT (MD2023 onwards)"
+                                        _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
+                                        _row[dataKeys["_DATE"][_COLUMN]] = DateUtil.getStrippedDateInt()
+                                        _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
+                                        if acctCurr == baseCurrency:
+                                            _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = adjBal
+                                            _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = adjBal
+                                        else:
+                                            _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
+                                            _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
+                                            _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = adjBal
+                                            _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = adjBal
+
+                                        myPrint("D", _row)
+                                        transactionTable.append(_row)
+                                        del adjBal
 
                         myPrint("P","")
                         myPrint("B", "Account Register Transaction Records (Parents, Splits, Attachments) selected:", len(transactionTable) )
@@ -9173,7 +9259,7 @@ Visit: %s (Author's site)
                         if iCountAttachmentsDownloaded:
                             myPrint("B", ".. and I downloaded %s attachments for you too" %iCountAttachmentsDownloaded )
 
-                        if iBal: myPrint("B", "...and %s Manual Opening Balance entries created too..." %iBal)
+                        if iBal: myPrint("B", "...and %s Manual Opening Balance / Adjustment (MD2023 onwards) entries created too..." %iBal)
 
                         if iAttachmentErrors: myPrint("B", "@@ ...and %s Attachment Errors..." %iAttachmentErrors)
                         ###########################################################################################################
@@ -9285,24 +9371,25 @@ Visit: %s (Author's site)
 
                                         if dropDownAccount_EAR:
                                             # noinspection PyUnresolvedReferences
-                                            writer.writerow(["Dropdown Account selected..: %s" %(dropDownAccount_EAR.getAccountName())])
-                                            writer.writerow(["Include Sub Accounts.......: %s" %(lIncludeSubAccounts_EAR)])
+                                            writer.writerow(["Dropdown Account selected......: %s" %(dropDownAccount_EAR.getAccountName())])
+                                            writer.writerow(["Include Sub Accounts...........: %s" %(lIncludeSubAccounts_EAR)])
                                         else:
-                                            writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
-                                            writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
-                                            writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
-                                            writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+                                            writer.writerow(["Hiding Inactive Accounts.......: %s" %(hideInactiveAccounts)])
+                                            writer.writerow(["Hiding Hidden Accounts.........: %s" %(hideHiddenAccounts)])
+                                            writer.writerow(["Account filter.................: %s '%s'" %(lAllAccounts,filterForAccounts)])
+                                            writer.writerow(["Currency filter................: %s '%s'" %(lAllCurrency,filterForCurrency)])
 
-                                        writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances_EAR)])
-                                        # writer.writerow(["Include Acct Transfers.....: %s" %(lIncludeInternalTransfers_EAR)])
-                                        writer.writerow(["Tag filter.................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR)])
-                                        writer.writerow(["Text filter................: %s '%s'" %(lAllText_EAR,textFilter_EAR)])
-                                        writer.writerow(["Category filter............: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR)])
-                                        writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EAR)])
-                                        writer.writerow(["Date range.................: %s" %(saveDropDownDateRange_EAR)])
-                                        writer.writerow(["Selected Start Date........: %s" %(userdateStart_EAR)])
-                                        writer.writerow(["Selected End Date..........: %s" %(userdateEnd_EAR)])
-                                        writer.writerow(["user date format...........: %s" %(userdateformat)])
+                                        writer.writerow(["Include Unadjusted Opening Balances: %s" %(lIncludeOpeningBalances_EAR)])
+                                        writer.writerow(["Include Balance Adjustments........: %s" %(lIncludeBalanceAdjustments_EAR)])
+                                        # writer.writerow(["Include Acct Transfers............: %s" %(lIncludeInternalTransfers_EAR)])
+                                        writer.writerow(["Tag filter.........................: %s '%s'" %(lAllTags_EAR,tagFilter_EAR)])
+                                        writer.writerow(["Text filter........................: %s '%s'" %(lAllText_EAR,textFilter_EAR)])
+                                        writer.writerow(["Category filter....................: %s '%s'" %(lAllCategories_EAR,categoriesFilter_EAR)])
+                                        writer.writerow(["Download Attachments...............: %s" %(lExtractAttachments_EAR)])
+                                        writer.writerow(["Date range.........................: %s" %(saveDropDownDateRange_EAR)])
+                                        writer.writerow(["Selected Start Date................: %s" %(userdateStart_EAR)])
+                                        writer.writerow(["Selected End Date..................: %s" %(userdateEnd_EAR)])
+                                        writer.writerow(["user date format...................: %s" %(userdateformat)])
 
                                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
@@ -9465,7 +9552,7 @@ Visit: %s (Author's site)
                         global lFilterDateRange_EIT, filterDateStart_EIT, filterDateEnd_EIT
                         global lOmitLOTDataFromExtract_EIT, lExtractExtraSecurityAcctInfo
                         global whichDefaultExtractToRun_SWSS
-                        global lIncludeOpeningBalances, lAdjustForSplits, lExtractAttachments_EIT
+                        global lIncludeOpeningBalances, lIncludeBalanceAdjustments, lAdjustForSplits, lExtractAttachments_EIT
 
                         # noinspection PyArgumentList
                         class MyTxnSearchCostBasisEIT(TxnSearch):
@@ -9809,9 +9896,15 @@ Visit: %s (Author's site)
                         copyValidAccountList = ArrayList()
                         if lIncludeOpeningBalances:
                             for acctBal in validAccountList:
-                                if acctBal.getStartBalance() != 0:
+                                if getUnadjustedStartBalance(acctBal) != 0:
                                     if (not lFilterDateRange_EIT or
                                             (lFilterDateRange_EIT and acctBal.getCreationDateInt() >= filterDateStart_EIT and acctBal.getCreationDateInt() <= filterDateEnd_EIT)):
+                                        copyValidAccountList.add(acctBal)
+
+                        if lIncludeBalanceAdjustments:
+                            for acctBal in validAccountList:
+                                if getBalanceAdjustment(acctBal) != 0:
+                                    if acctBal not in copyValidAccountList:
                                         copyValidAccountList.add(acctBal)
 
                         for txn in txns:
@@ -9819,35 +9912,57 @@ Visit: %s (Author's site)
                             txnAcct = txn.getAccount()
                             acctCurr = txnAcct.getCurrencyType()  # Currency of the Investment Account
 
-                            if lIncludeOpeningBalances:
+                            if (lIncludeOpeningBalances or lIncludeBalanceAdjustments):
 
-                                if txnAcct in copyValidAccountList: copyValidAccountList.remove(txnAcct)
+                                if txnAcct in copyValidAccountList:
+                                    copyValidAccountList.remove(txnAcct)
 
                                 if accountBalances.get(txnAcct):
                                     pass
 
-                                elif (lFilterDateRange_EIT
-                                      and (txnAcct.getCreationDateInt() < filterDateStart_EIT or txnAcct.getCreationDateInt() > filterDateEnd_EIT)):
-                                    pass
-
                                 else:
                                     accountBalances[txnAcct] = True
-                                    openBal = acctCurr.getDoubleValue(txnAcct.getStartBalance())
-                                    if openBal != 0:
-                                        iBal+=1
-                                        _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
-                                        _row[dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
-                                        _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
-                                        _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL OPENING BALANCE"
-                                        _row[dataKeys["_ACTION"][_COLUMN]] = "OpenBal"
-                                        _row[dataKeys["_TT"][_COLUMN]] = "MANUAL"
-                                        _row[dataKeys["_DATE"][_COLUMN]] = txnAcct.getCreationDateInt()
-                                        _row[dataKeys["_AMOUNT"][_COLUMN]] = openBal
-                                        _row[dataKeys["_CASHIMPACT"][_COLUMN]] = openBal
-                                        _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(txnAcct.getBalance())
 
-                                        myPrint("D", _row)
-                                        transactionTable.append(_row)
+                                    if (not lFilterDateRange_EIT
+                                            or (txnAcct.getCreationDateInt() >= filterDateStart_EIT and txnAcct.getCreationDateInt() <= filterDateEnd_EIT)):
+
+                                        if (lIncludeOpeningBalances):
+                                            openBal = acctCurr.getDoubleValue(getUnadjustedStartBalance(txnAcct))
+                                            if openBal != 0:
+                                                iBal += 1
+                                                _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                                _row[dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
+                                                _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
+                                                _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL (UNADJUSTED) OPENING BALANCE"
+                                                _row[dataKeys["_ACTION"][_COLUMN]] = "OpenBal"
+                                                _row[dataKeys["_TT"][_COLUMN]] = "MANUAL"
+                                                _row[dataKeys["_DATE"][_COLUMN]] = txnAcct.getCreationDateInt()
+                                                _row[dataKeys["_AMOUNT"][_COLUMN]] = openBal
+                                                _row[dataKeys["_CASHIMPACT"][_COLUMN]] = openBal
+                                                _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(txnAcct.getBalance())
+
+                                                myPrint("D", _row)
+                                                transactionTable.append(_row)
+                                                del openBal
+
+                                    if (lIncludeBalanceAdjustments):
+                                        adjBal = acctCurr.getDoubleValue(getBalanceAdjustment(txnAcct))
+                                        if adjBal != 0:
+                                            iBal += 1
+                                            _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                            _row[dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
+                                            _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
+                                            _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL BALANCE ADJUSTMENT (MD2023 onwards)"
+                                            _row[dataKeys["_ACTION"][_COLUMN]] = "BalAdj"
+                                            _row[dataKeys["_TT"][_COLUMN]] = "MANUAL"
+                                            _row[dataKeys["_DATE"][_COLUMN]] = DateUtil.getStrippedDateInt()
+                                            _row[dataKeys["_AMOUNT"][_COLUMN]] = adjBal
+                                            _row[dataKeys["_CASHIMPACT"][_COLUMN]] = adjBal
+                                            _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(txnAcct.getBalance())
+
+                                            myPrint("D", _row)
+                                            transactionTable.append(_row)
+                                            del adjBal
 
                             if lFilterDateRange_EIT and (txn.getDateInt() < filterDateStart_EIT or txn.getDateInt() > filterDateEnd_EIT):
                                 continue
@@ -10156,7 +10271,7 @@ Visit: %s (Author's site)
                                     holdTheLocations.append(txn.getAttachmentTag(_attachKey))
 
                                 # ok, we should still be on the first record here.... and we want to download attachments....
-                                attachmentFileList=[]
+                                attachmentFileList= []
                                 attachmentKeys = holdTheKeys                                                                # noqa
                                 attachmentLocations = holdTheLocations
                                 uniqueFileString=" "*5
@@ -10221,28 +10336,49 @@ Visit: %s (Author's site)
                                 transactionTable.append(_row)
                                 iCount += 1
 
-                        if lIncludeOpeningBalances and len(copyValidAccountList)>0:
-                            myPrint("DB","Now iterating remaining %s Accounts with no txns for balances...." %(len(copyValidAccountList)))
+                        if (lIncludeOpeningBalances or lIncludeBalanceAdjustments) and len(copyValidAccountList) > 0:
+                            myPrint("DB","Now iterating remaining %s Accounts with no txns for opening balances / manual adjustments (MD2023 onwards)...." %(len(copyValidAccountList)))
 
                             # Yes I should just move this section from above so the code is not inefficient....
                             for acctBal in copyValidAccountList:
                                 acctCurr = acctBal.getCurrencyType()  # Currency of the Investment Account
-                                openBal = acctCurr.getDoubleValue(acctBal.getStartBalance())
-                                if openBal != 0:
-                                    iBal+=1
-                                    _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
-                                    _row[dataKeys["_ACCOUNT"][_COLUMN]] = acctBal.getFullAccountName()
-                                    _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
-                                    _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL OPENING BALANCE"
-                                    _row[dataKeys["_ACTION"][_COLUMN]] = "OpenBal"
-                                    _row[dataKeys["_TT"][_COLUMN]] = "MANUAL"
-                                    _row[dataKeys["_DATE"][_COLUMN]] = acctBal.getCreationDateInt()
-                                    _row[dataKeys["_AMOUNT"][_COLUMN]] = openBal
-                                    _row[dataKeys["_CASHIMPACT"][_COLUMN]] = openBal
-                                    _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(acctBal.getBalance())
+                                openBal = acctCurr.getDoubleValue(getUnadjustedStartBalance(acctBal))
+                                if (lIncludeOpeningBalances):
+                                    if openBal != 0:
+                                        iBal+=1
+                                        _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                        _row[dataKeys["_ACCOUNT"][_COLUMN]] = acctBal.getFullAccountName()
+                                        _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
+                                        _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL (UNADJUSTED) OPENING BALANCE"
+                                        _row[dataKeys["_ACTION"][_COLUMN]] = "OpenBal"
+                                        _row[dataKeys["_TT"][_COLUMN]] = "MANUAL"
+                                        _row[dataKeys["_DATE"][_COLUMN]] = acctBal.getCreationDateInt()
+                                        _row[dataKeys["_AMOUNT"][_COLUMN]] = openBal
+                                        _row[dataKeys["_CASHIMPACT"][_COLUMN]] = openBal
+                                        _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(acctBal.getBalance())
 
-                                    myPrint("D", _row)
-                                    transactionTable.append(_row)
+                                        myPrint("D", _row)
+                                        transactionTable.append(_row)
+                                        del openBal
+
+                                if (lIncludeBalanceAdjustments):
+                                    adjBal = acctCurr.getDoubleValue(getBalanceAdjustment(acctBal))
+                                    if adjBal != 0:
+                                        iBal+=1
+                                        _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
+                                        _row[dataKeys["_ACCOUNT"][_COLUMN]] = acctBal.getFullAccountName()
+                                        _row[dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
+                                        _row[dataKeys["_DESC"][_COLUMN]] = "MANUAL BALANCE ADJUSTMENT (MD2023 onwards)"
+                                        _row[dataKeys["_ACTION"][_COLUMN]] = "BalAdj"
+                                        _row[dataKeys["_TT"][_COLUMN]] = "MANUAL"
+                                        _row[dataKeys["_DATE"][_COLUMN]] = DateUtil.getStrippedDateInt()
+                                        _row[dataKeys["_AMOUNT"][_COLUMN]] = adjBal
+                                        _row[dataKeys["_CASHIMPACT"][_COLUMN]] = adjBal
+                                        _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(acctBal.getBalance())
+
+                                        myPrint("D", _row)
+                                        transactionTable.append(_row)
+                                        del adjBal
 
                         myPrint("P","")
                         myPrint("B", "Investment Transaction Records selected:", len(transactionTable) )
@@ -10250,7 +10386,7 @@ Visit: %s (Author's site)
                         if iCountAttachmentsDownloaded:
                             myPrint("B", ".. and I downloaded %s attachments for you too" %iCountAttachmentsDownloaded )
 
-                        if iBal: myPrint("B", "...and %s Manual Opening Balance entries created too..." %iBal)
+                        if iBal: myPrint("B", "...and %s Manual Opening Balance / Adjustment (MD2023 onwards) entries created too..." %iBal)
 
                         if iAttachmentErrors: myPrint("B", "@@ ...and %s Attachment Errors..." %iAttachmentErrors)
                         ###########################################################################################################
@@ -10361,24 +10497,25 @@ Visit: %s (Author's site)
                                         writer.writerow([""])
                                         writer.writerow(["User Parameters..."])
 
-                                        writer.writerow(["Hiding Hidden Securities...: %s" %(hideHiddenSecurities)])
-                                        writer.writerow(["Hiding Inactive Accounts...: %s" %(hideInactiveAccounts)])
-                                        writer.writerow(["Hiding Hidden Accounts.....: %s" %(hideHiddenAccounts)])
-                                        writer.writerow(["Security filter............: %s '%s'" %(lAllSecurity,filterForSecurity)])
-                                        writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
-                                        writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
+                                        writer.writerow(["Hiding Hidden Securities...........: %s" %(hideHiddenSecurities)])
+                                        writer.writerow(["Hiding Inactive Accounts...........: %s" %(hideInactiveAccounts)])
+                                        writer.writerow(["Hiding Hidden Accounts.............: %s" %(hideHiddenAccounts)])
+                                        writer.writerow(["Security filter....................: %s '%s'" %(lAllSecurity,filterForSecurity)])
+                                        writer.writerow(["Account filter.....................: %s '%s'" %(lAllAccounts,filterForAccounts)])
+                                        writer.writerow(["Currency filter....................: %s '%s'" %(lAllCurrency,filterForCurrency)])
 
-                                        writer.writerow(["Txn Date filter............: %s %s" %(lFilterDateRange_EIT,
+                                        writer.writerow(["Txn Date filter....................: %s %s" %(lFilterDateRange_EIT,
                                                          "" if (not lFilterDateRange_EIT) else "(start date: %s, end date: %s"
                                                                        %(convertStrippedIntDateFormattedText(filterDateStart_EIT),
                                                                          convertStrippedIntDateFormattedText(filterDateEnd_EIT)))])
 
-                                        writer.writerow(["Include Opening Balances...: %s" %(lIncludeOpeningBalances)])
-                                        writer.writerow(["Adjust for Splits..........: %s" %(lAdjustForSplits)])
-                                        writer.writerow(["Split Securities by Account: %s" %(userdateformat)])
-                                        writer.writerow(["Omit LOT matching data.....: %s" %(lOmitLOTDataFromExtract_EIT)])
-                                        writer.writerow(["Extract extra Sec Acct Info: %s" %(lExtractExtraSecurityAcctInfo)])
-                                        writer.writerow(["Download Attachments.......: %s" %(lExtractAttachments_EIT)])
+                                        writer.writerow(["Include Unadjusted Opening Balances: %s" %(lIncludeOpeningBalances)])
+                                        writer.writerow(["Include Balance Adjustments........: %s" %(lIncludeBalanceAdjustments)])
+                                        writer.writerow(["Adjust for Splits..................: %s" %(lAdjustForSplits)])
+                                        writer.writerow(["Split Securities by Account........: %s" %(userdateformat)])
+                                        writer.writerow(["Omit LOT matching data.............: %s" %(lOmitLOTDataFromExtract_EIT)])
+                                        writer.writerow(["Extract extra Sec Acct Info........: %s" %(lExtractExtraSecurityAcctInfo)])
+                                        writer.writerow(["Download Attachments...............: %s" %(lExtractAttachments_EIT)])
 
                                 myPrint("B", "CSV file " + csvfilename + " created, records written, and file closed..")
 
