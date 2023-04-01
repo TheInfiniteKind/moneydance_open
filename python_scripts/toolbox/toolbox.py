@@ -162,6 +162,7 @@
 #               updated bundled toolbox_move_merge_investment_txns.py script to handle/block when balance adjustment detected...
 #               Updated reset window data methods to account for new/enhanced filter keys ("custom_filter_int" and "last_custom_filter_int")
 #               MD2023 fixes to common code...
+#               Quick check for earlier MD2023 Sync issue repair flagged......
 
 # todo - CMD-P select the pickle file to load/view/edit etc.....
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
@@ -553,8 +554,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5005
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.1
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5006
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -591,6 +592,8 @@ else:
     GlobalVars.Strings.MD_KEY_ASOF_PREF = "gen.rec_asof_enabled"
     GlobalVars.Strings.MD_KEY_OLFITID = "ol_fitid_"
     GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW = "applies_to_net_worth"
+    
+    GlobalVars.Strings.MD_KEY_STORAGE_5006SYNCFIX = "pre-5006-sync_backtrack"     # MD2023.1(5006) fix for earlier Sync Issue
 
     GlobalVars.Strings.EXTENSION_QL_ID = "securityquoteload"
     GlobalVars.Strings.EXTENSION_QER_ID = "yahooqt"
@@ -4043,7 +4046,7 @@ Visit: %s (Author's site)
         """Calculates and returns the size of the Moneydance dataset in bytes (or MBs when _lReturnMBs=True), and file count"""
 
         if whichBook is None or not isinstance(whichBook, AccountBook):
-            book = MD_REF.getCurrentAccount().getBook()
+            book = MD_REF.getCurrentAccountBook()
         else:
             book = whichBook
 
@@ -4860,7 +4863,7 @@ Visit: %s (Author's site)
             saveFiles = {}
             saveArchiveFiles = {}
 
-            myDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+            myDataset = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
 
             errorDirs = []
 
@@ -4878,7 +4881,7 @@ Visit: %s (Author's site)
                 myPrint("B","@@ Error accessing internalDir: '%s' - skipping...." %(internalDir))
                 errorDirs.append(internalDir)
 
-            parentofDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getParent()
+            parentofDataset = MD_REF.getCurrentAccountBook().getRootFolder().getParent()
             if os.path.exists(parentofDataset):
                 try:
                     dirList =  os.listdir(parentofDataset)
@@ -5015,7 +5018,7 @@ Visit: %s (Author's site)
         """Analyses the objects contained in the specified AccountBook. Returns a printable string"""
 
         if whichBook is None or not isinstance(whichBook, AccountBook):
-            book = MD_REF.getCurrentAccount().getBook()
+            book = MD_REF.getCurrentAccountBook()
         else:
             book = whichBook
         if book is None: return "<NO ACCOUNT BOOK SPECIFIED OR FOUND>"
@@ -5154,6 +5157,16 @@ Visit: %s (Author's site)
 
         textArray.append(return_critical_javaio_temp_dir_msg())
 
+        # Check for MD2023.1(5006) Earlier Sync Issue Fix...
+        syncIssueFix = MD_REF.getCurrentAccountBook().getLocalStorage().getString(GlobalVars.Strings.MD_KEY_STORAGE_5006SYNCFIX, None)
+        if syncIssueFix is not None:
+            txt = ("** NOTE: Detected that Sync issue fix for versions MD2023.0 (builds 5000 thru 5005) has been applied... (flag: '%s': %s) **"
+                   %(GlobalVars.Strings.MD_KEY_STORAGE_5006SYNCFIX, syncIssueFix))
+            myPrint("B", txt)
+            if debug: textArray.append(u"%s\n" %(txt))
+
+        del syncIssueFix
+
         textArray.append(u"Moneydance Version / Build:          %s" %(MD_REF.getVersion()) + u"  Build: %s" %(MD_REF.getBuild()))
         textArray.append(u"Moneydance Config file reports:      %s" %MD_REF.getUI().getPreferences().getSetting(u"current_version", u""))
         textArray.append(u"Moneydance updater version to track: %s" %MD_REF.getUI().getPreferences().getSetting(u"updater.version_to_track",u""))
@@ -5236,11 +5249,11 @@ Visit: %s (Author's site)
         if license2008:      textArray.append(u" >old licenses (2008): " + license2008)
         if license2004:      textArray.append(u" >old licenses (2004): " + license2004)
 
-        if not MD_REF.getCurrentAccount().getBook(): textArray.append(u"Moneydance datafile is empty")
+        if not MD_REF.getCurrentAccountBook(): textArray.append(u"Moneydance datafile is empty")
         x = MD_REF.getUI().getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_CURRENT_ACCOUNT_BOOK, None)
         y = MD_REF.getUI().getPreferences().getSetting(u"current_account_file", None)
 
-        theExtn = os.path.splitext((MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()))
+        theExtn = os.path.splitext((MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()))
 
         if x:
             textArray.append(u"\n"
@@ -5249,7 +5262,7 @@ Visit: %s (Author's site)
             textArray.append(u"\n"
                              u"Current Dataset:               '%s'" %(y))
 
-        textArray.append(u"Full location of this Dataset: %s" %(returnPathStrings(MD_REF.getCurrentAccount().getBook().getRootFolder())))
+        textArray.append(u"Full location of this Dataset: %s" %(returnPathStrings(MD_REF.getCurrentAccountBook().getRootFolder())))
 
         x = find_the_program_install_dir()
         if x and Platform.isOSX() and System.getProperty(u"install4j.exeDir", "") != "":     # Special 'not normal' check.... will normally never trigger
@@ -5292,7 +5305,7 @@ Visit: %s (Author's site)
         textArray.append(u"Dataset size: %sMBs (%s files)\n" %(x,y))
         myPrint("B", "Dataset size: %sMBs (%s files)\n" %(x,y))
 
-        storage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+        storage = MD_REF.getCurrentAccountBook().getLocalStorage()
         fileUUID = storage.getStr(u"netsync.dropbox.fileid", u"MISSING")
         migratedFileUUID = storage.getStr(u"migrated.netsync.dropbox.fileid", u"")
 
@@ -5335,8 +5348,8 @@ Visit: %s (Author's site)
         textArray.append(u"Secret internal KEY used for dataset encryption seed: %s" %(x))
         del keyInfo
 
-        if MD_REF.getCurrentAccount().getBook().getLocalStorage().getString("md.crypto_level", None):
-            x = u"Encryption level - Moneydance reports 'md.crypto_level' set as: %s" %(MD_REF.getCurrentAccount().getBook().getLocalStorage().getString("md.crypto_level", None))
+        if MD_REF.getCurrentAccountBook().getLocalStorage().getString("md.crypto_level", None):
+            x = u"Encryption level - Moneydance reports 'md.crypto_level' set as: %s" %(MD_REF.getCurrentAccountBook().getLocalStorage().getString("md.crypto_level", None))
             textArray.append(x)
 
         x = u"Toolbox's actual 'test' of your Encryption key/passphrase reports: %s\n" %(getMDEncryptionKey())
@@ -5492,7 +5505,7 @@ Visit: %s (Author's site)
 
         textArray.append(u"\nFOLDER / FILE LOCATIONS")
 
-        textArray.append(u"MD Dataset internal top level (root) Directory: %s" %(returnPathStrings(MD_REF.getCurrentAccount().getBook().getRootFolder().getParent())))
+        textArray.append(u"MD Dataset internal top level (root) Directory: %s" %(returnPathStrings(MD_REF.getCurrentAccountBook().getRootFolder().getParent())))
         textArray.append(u"Auto Backup Folder:                             %s " %(returnPathStrings(FileUtils.getBackupDir(MD_REF.getPreferences()))))
         textArray.append(u"(Last backup location:                          '%s')" %(MD_REF.getUI().getPreferences().getSetting(u"backup.last_saved", u"")))
 
@@ -5669,7 +5682,7 @@ Visit: %s (Author's site)
         textArray.append(u"Use Bank Dates for Merged Transactions:                           %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"olb.prefer_bank_dates", False)))
         textArray.append(u"Ignore Transaction Types in Favor of Amount Signs:                %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"prefer_amt_sign_to_txn_type", False)))
 
-        dataStorage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+        dataStorage = MD_REF.getCurrentAccountBook().getLocalStorage()
         autocommit = not dataStorage or dataStorage.getBoolean(u"do_autocommits",MD_REF.getUI().getCurrentAccounts().isMasterSyncNode())
         textArray.append(u"Auto-Commit Reminders (applies to current file on this computer): %s" %(autocommit))
 
@@ -5838,11 +5851,11 @@ Visit: %s (Author's site)
         memz = []
 
         iCount = 0
-        for x in MD_REF.getCurrentAccount().getBook().getMemorizedItems().getMemorizedGraphs():
+        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs():
             iCount += 1
             memz.append("Graph: %s" % (x.getName()))
 
-        for x in MD_REF.getCurrentAccount().getBook().getMemorizedItems().getMemorizedReports():
+        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports():
             iCount += 1
             memz.append("Report: %s" % (x.getName()))
 
@@ -5853,7 +5866,7 @@ Visit: %s (Author's site)
         memz.append("\nYOUR MEMORIZED REPORTS in detail\n ======================\n")
 
         iGs = 0
-        for x in MD_REF.getCurrentAccount().getBook().getMemorizedItems().getMemorizedGraphs():
+        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs():
             if iGs:
                 memz.append("\n ---")
             iGs += 1
@@ -5869,7 +5882,7 @@ Visit: %s (Author's site)
                     memz.append(">> Parameter key: %s: %s" %(yy, y.get(yy)))
 
         iRs = 0
-        for x in MD_REF.getCurrentAccount().getBook().getMemorizedItems().getMemorizedReports():
+        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports():
             if iRs or iGs:
                 memz.append("\n ---")
             iRs += 1
@@ -6145,7 +6158,7 @@ Visit: %s (Author's site)
         theSortData.append("\nDATA SAVED INTERNALLY BY (ACTIVE) ACCOUNT")
         theSortData.append("-----------------------------------------\n")
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(1))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(1))
         for acct in accounts:
 
             for x in GlobalVars.Strings.CONFIG_COLWIDTHS:
@@ -6224,7 +6237,7 @@ Visit: %s (Author's site)
             theData.append(" >>Show Print-Check Option: %s" %(x.getIncludePrintCheckMarker()))
             theData.append("\n")
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(3))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(3))
 
         for acct in accounts:
 
@@ -6269,7 +6282,7 @@ Visit: %s (Author's site)
     def loadKeyFile():
         keyInfo = SyncRecord()
         try:
-            keyFile = File(MD_REF.getCurrentAccount().getBook().getRootFolder(), "key")
+            keyFile = File(MD_REF.getCurrentAccountBook().getRootFolder(), "key")
             fin = FileInputStream(keyFile)
             keyInfo.readSet(fin)    # todo - ???
             fin.close()
@@ -6319,7 +6332,7 @@ Visit: %s (Author's site)
 
     def check_dropbox_and_suppress_warnings():
 
-        dataFile = MD_REF.getCurrentAccount().getBook().getRootFolder()
+        dataFile = MD_REF.getCurrentAccountBook().getRootFolder()
         suppressFile = File(dataFile, "suppress_file_in_dropbox_restriction.txt")
 
         fileIsUnderDropbox = False
@@ -6336,7 +6349,7 @@ Visit: %s (Author's site)
     def isMulti_OFXLastTxnUpdate_build(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MULTI_OFX_TXN_DNLD_DATES_BUILD)     # 2022.3
 
     def OFX_view_all_last_txn_download_dates():
-        accountsDL = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(21))
+        accountsDL = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(21))
         accountsDL = sorted(accountsDL, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
         outputDates = "\nBANK OFX: LAST DOWNLOADED TRANSACTION DATE(s)\n" \
@@ -6388,7 +6401,7 @@ Visit: %s (Author's site)
                  "%s\n\n" %(_THIS_METHOD_NAME, ("-"*len(_THIS_METHOD_NAME)))
 
         enabledAccounts = {}
-        allActiveAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(0))
+        allActiveAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(0))
 
         count = 0
 
@@ -6508,7 +6521,7 @@ Visit: %s (Author's site)
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         _THIS_METHOD_NAME = "OFX: View Security's hidden CUSIP settings"
 
@@ -6542,7 +6555,7 @@ Visit: %s (Author's site)
 
         output += "\n"
 
-        securities = sorted(MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies(),
+        securities = sorted(MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies(),
                             key=lambda x: (x.getCurrencyType(), x.getName().upper()))
 
         iCountFound = 0
@@ -6609,11 +6622,11 @@ Visit: %s (Author's site)
                 return
 
             if objWhat.index(selectedObjType) == _OBJOFXTXNS:
-                accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(15))
+                accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(15))
             elif objWhat.index(selectedObjType) == _OBJOFXOLPAYEES:
-                accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(16))
+                accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(16))
             elif objWhat.index(selectedObjType) == _OBJOFXOLPAYMNT:
-                accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(17))
+                accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(17))
             else: continue
 
             accountsListForOlTxns = sorted(accountsListForOlTxns, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
@@ -6760,7 +6773,7 @@ Visit: %s (Author's site)
 
         # Build a list of Moneydance accounts that are enabled for download and have a service profile linked....
         listAccountMDProxies = []
-        olAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(11))
+        olAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(11))
         if len(olAccounts) > 0:
             for acctObj in olAccounts:
                 acct = acctObj                                 # type: Account
@@ -6799,7 +6812,7 @@ Visit: %s (Author's site)
             OFX.append(forceDisconnectMDPlusConnection(lReturnConnectionInfoOnly=True))
 
 
-        for service in MD_REF.getCurrentAccount().getBook().getOnlineInfo().getAllServices():
+        for service in MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices():
 
             # Find the MD accounts specifically linked to this service profile
             thisServiceMDAccountProxies = []
@@ -7336,7 +7349,7 @@ Visit: %s (Author's site)
                     return True
                 else:
                     # Check for accounts using avg cost control with LOTS set....
-                    txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTransactionsForAccount(acct)
+                    txnSet = MD_REF.getCurrentAccountBook().getTransactionSet().getTransactionsForAccount(acct)
                     for theTxn in txnSet:
                         if (InvestUtil.isSaleTransaction(theTxn.getParentTxn().getInvestTxnType())
                                 and (theTxn.getParameter("cost_basis", None) is not None)):
@@ -7445,12 +7458,12 @@ Visit: %s (Author's site)
         payeesListID = theAcct.getParameter("ol_payees_list_id", None)
 
         if payeesListID is not None:
-            payeesObj = MD_REF.getCurrentAccount().getBook().getItemForID(payeesListID)    # type: SyncableItem
+            payeesObj = MD_REF.getCurrentAccountBook().getItemForID(payeesListID)    # type: SyncableItem
             if payeesObj is not None and isinstance(payeesObj, OnlinePayeeList):
                 return payeesObj    # type: OnlinePayeeList
 
-        # payees = OnlinePayeeList(MD_REF.getCurrentAccount().getBook())   # type: OnlinePayeeList
-        # MD_REF.getCurrentAccount().getBook().logModifiedItem(payees)
+        # payees = OnlinePayeeList(MD_REF.getCurrentAccountBook())   # type: OnlinePayeeList
+        # MD_REF.getCurrentAccountBook().logModifiedItem(payees)
         # theAcct.setOnlinePayees(payees)
         # return payees
 
@@ -7459,12 +7472,12 @@ Visit: %s (Author's site)
     def MyGetOnlinePayments(theAcct):       # Use my version to prevent creation of default record(s)
         paymentsListID = theAcct.getParameter("ol_payments_list_id", None)
         if paymentsListID is not None:
-            paymentsObj = MD_REF.getCurrentAccount().getBook().getItemForID(paymentsListID)      # type: SyncableItem
+            paymentsObj = MD_REF.getCurrentAccountBook().getItemForID(paymentsListID)      # type: SyncableItem
             if paymentsObj is not None and isinstance(paymentsObj, OnlinePaymentList):
                 return paymentsObj  # type: OnlinePaymentList
 
-        # payments = OnlinePaymentList(MD_REF.getCurrentAccount().getBook())   # type: OnlinePaymentList
-        # MD_REF.getCurrentAccount().getBook().logModifiedItem(payments)
+        # payments = OnlinePaymentList(MD_REF.getCurrentAccountBook())   # type: OnlinePaymentList
+        # MD_REF.getCurrentAccountBook().logModifiedItem(payments)
         # theAcct.setOnlinePayments(payments)
         # return payments
 
@@ -7477,7 +7490,7 @@ Visit: %s (Author's site)
         defaultTxnsListID = myID + ".oltxns"
 
         if myID is not None and myID != "":
-            defaultTxnList = MD_REF.getCurrentAccount().getBook().getItemForID(defaultTxnsListID)   # type: SyncableItem
+            defaultTxnList = MD_REF.getCurrentAccountBook().getItemForID(defaultTxnsListID)   # type: SyncableItem
             if defaultTxnList is not None and isinstance(defaultTxnList, OnlineTxnList):
                 return defaultTxnList
 
@@ -7487,15 +7500,15 @@ Visit: %s (Author's site)
                 txnsListID = defaultTxnsListID
 
         if txnsListID is not None and txnsListID != "":
-            txnsObj = MD_REF.getCurrentAccount().getBook().getItemForID(txnsListID)              # type: SyncableItem
+            txnsObj = MD_REF.getCurrentAccountBook().getItemForID(txnsListID)              # type: SyncableItem
             if (txnsObj is not None and isinstance(txnsObj, OnlineTxnList)):
                 return txnsObj
 
         # WE DON'T WANT TO DO THIS!
         # if myID is not None and myID != "":
-        #     txns = OnlineTxnList(MD_REF.getCurrentAccount().getBook())                 # type: OnlineTxnList
+        #     txns = OnlineTxnList(MD_REF.getCurrentAccountBook())                 # type: OnlineTxnList
         #     txns.setParameter("id", defaultTxnsListID)
-        #     MD_REF.getCurrentAccount().getBook().logModifiedItem(txns)
+        #     MD_REF.getCurrentAccountBook().logModifiedItem(txns)
         #     return txns
         #
         return None
@@ -7817,7 +7830,7 @@ Visit: %s (Author's site)
 
         myPrint("B", "Analysing whether you can delete a Currency, or show where it's used....")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         book = MD_REF.getCurrentAccountBook()
         allCurrencies = book.getCurrencies().getAllCurrencies()
@@ -7874,7 +7887,7 @@ Visit: %s (Author's site)
 
         myPrint("B", "Looking for Currency: %s %s" %(selectedCurrency, selectedCurrency.getName()) )                    # noqa
 
-        base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+        base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
         lFailTests = False
         if selectedCurrency == base:
@@ -7921,7 +7934,7 @@ Visit: %s (Author's site)
 
         myPrint("B", "Script running to analyse whether you can delete a Security, or show where it's used....")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         usageCount = 0
         sumShares = 0
@@ -8004,14 +8017,14 @@ Visit: %s (Author's site)
 
         myPrint("B", "Script is analysing your (hidden) Currency/Security decimal place settings...........")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         iWarnings = 0
         myLen = 50
 
         decimalPoint_MD = MD_REF.getPreferences().getDecimalChar()
 
-        currs = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        currs = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
 
         currs = sorted(currs, key=lambda x: safeStr(x.getName()).upper())
 
@@ -8086,7 +8099,7 @@ Visit: %s (Author's site)
     def manually_edit_price_date_field():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
         if not (ToolboxMode.isUpdateMode()): return
 
         currencies = list_security_currency_price_date(autofix=False, justProvideFilter=True)
@@ -8254,7 +8267,7 @@ Visit: %s (Author's site)
 
     def check_all_currency_raw_rates_ok(filterType=None):
 
-        _currs = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        _currs = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
         for _curr in _currs:
             if filterType and _curr.getCurrencyType() != filterType: continue
             if not checkCurrencyRawRatesOK(_curr):
@@ -8267,7 +8280,7 @@ Visit: %s (Author's site)
 
         if justProvideFilter: autofix = False
 
-        if MD_REF.getCurrentAccount().getBook() is None: return None
+        if MD_REF.getCurrentAccountBook() is None: return None
 
         listCurrs = []
         currs_to_fix = []
@@ -8318,7 +8331,7 @@ Visit: %s (Author's site)
 
         iWarnings = 0
 
-        currs = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        currs = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
         currs = sorted(currs, key=lambda x: (x.getCurrencyType(), x.getName().upper()))
 
         if justProvideFilter and lEverything: return currs
@@ -8332,7 +8345,7 @@ Visit: %s (Author's site)
             return (curr_sec.getIDString() + ":" + curr_sec.getIDString())
 
         MD_decimal = MD_REF.getPreferences().getDecimalChar()
-        base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+        base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
         def analyse_curr(theCurr, theType):
             output = ""                                                                                                 # noqa
@@ -8545,7 +8558,7 @@ Visit: %s (Author's site)
         _CURRS_FIX_RELCURR = 3
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         for fix_reqd in currs_to_fix:
@@ -8580,7 +8593,7 @@ Visit: %s (Author's site)
             curr.syncItem()
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         txt = "AUTOFIX: %s records updated" %(len(currs_to_fix))
@@ -9072,7 +9085,7 @@ Visit: %s (Author's site)
         # reset_relative_currencies.py
         myPrint("B", "Script running to %s ..............." %(_THIS_METHOD_NAME))
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         VERBOSE = True
         lFixErrors = lFixWarnings = False
@@ -9182,7 +9195,7 @@ Visit: %s (Author's site)
         lNeedFixScript = False
         iWarnings = 0
 
-        currencies = MD_REF.getCurrentAccount().getBook().getCurrencies()
+        currencies = MD_REF.getCurrentAccountBook().getCurrencies()
         baseCurr = currencies.getBaseType()
 
         output = "%s: \n" \
@@ -9202,7 +9215,7 @@ Visit: %s (Author's site)
                           % (lFixErrors, lFixWarnings, lCurrencies, lSecurities, VERBOSE)
 
                 MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-                MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+                MD_REF.getCurrentAccountBook().setRecalcBalances(False)
                 MD_REF.getUI().setSuspendRefresh(True)
 
             # ##########################################################################################################
@@ -9255,7 +9268,7 @@ Visit: %s (Author's site)
                     output += "\nBase currency has no historical prices. This is correct\n"
 
                 # Check Root account's currency is base
-                root = MD_REF.getCurrentAccount().getBook().getRootAccount()
+                root = MD_REF.getCurrentAccountBook().getRootAccount()
                 if root.getCurrencyType() != baseCurr:
                     lNeedFixScript = True
 
@@ -9612,7 +9625,7 @@ Visit: %s (Author's site)
         finally:
             if lFix:
                 MD_REF.saveCurrentAccount()
-                MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+                MD_REF.getCurrentAccountBook().setRecalcBalances(True)
                 MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         if lFix:
@@ -9732,11 +9745,11 @@ Visit: %s (Author's site)
     def backup_local_storage_settings( lSaveFirst=True ):
 
         if lSaveFirst:
-            MD_REF.getCurrentAccount().getBook().getLocalStorage().save()  # Flush settings to disk before changes
+            MD_REF.getCurrentAccountBook().getLocalStorage().save()  # Flush settings to disk before changes
 
         # I would rather have called LocalStorage() to get the filepath, but it doesn't give the path
         # NOTE  - This backup copy will be encrypted, so you can just put it back to ./safe/settings.
-        localStorage_file = File(os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getAbsolutePath(), "safe", "settings"))
+        localStorage_file = File(os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), "safe", "settings"))
         copy_localStorage_filename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), "settings")
 
         try:
@@ -9959,7 +9972,7 @@ Visit: %s (Author's site)
         if confirm_backup_confirm_disclaimer(jif,_THIS_METHOD_NAME,"Clear Authentication Password(s) for service:%s?" %(service)):
             # noinspection PyUnresolvedReferences
             service.clearAuthenticationCache()
-            MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
+            MD_REF.getCurrentAccountBook().getLocalStorage().save()
 
             txt = "%s: Password(s) for %s have been cleared" %(_THIS_METHOD_NAME, service)
             setDisplayStatus(txt, "B"); myPrint("B", txt)
@@ -10003,7 +10016,7 @@ Visit: %s (Author's site)
 
         if confirm_backup_confirm_disclaimer(jif,_THIS_METHOD_NAME,"Clear Authentication All Password(s) for **ALL** service(s)?"):
             MD_REF.getUI().getOnlineManager().clearAuthenticationCache()
-            MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
+            MD_REF.getCurrentAccountBook().getLocalStorage().save()
 
             txt = "%s: **ALL** Password(s) for ALL Services have been cleared" %(_THIS_METHOD_NAME)
             setDisplayStatus(txt, "B"); myPrint("B", txt)
@@ -10140,10 +10153,10 @@ Visit: %s (Author's site)
 
         authObj.setNewPassword(newPassword)
 
-        MD_REF.getCurrentAccount().getBook().getLocalStorage().cacheAuthentication(selectedAuthKeyRecord.theKey, authObj.getNewEncodedAuthObj().toCacheString())
+        MD_REF.getCurrentAccountBook().getLocalStorage().cacheAuthentication(selectedAuthKeyRecord.theKey, authObj.getNewEncodedAuthObj().toCacheString())
         # service.cacheAuthentication(selectedAuthKeyRecord.theKey, authObj.getNewEncodedAuthObj().toCacheString())
 
-        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
+        MD_REF.getCurrentAccountBook().getLocalStorage().save()
 
         txt = "%s: UserID: %s Password set to: %s" %(_THIS_METHOD_NAME, authObj.getUserId(), authObj.getNewPassword())
         setDisplayStatus(txt, "B"); myPrint("B", txt)
@@ -10184,7 +10197,7 @@ Visit: %s (Author's site)
         specificAuthKeyPrefix = authKeyPrefix+"::" + NEW_TIK_FI_ID + "::"
         defaultUserPrefix = authKeyPrefix+"_default_user"+"::" + NEW_TIK_FI_ID
 
-        root = MD_REF.getCurrentAccount().getBook().getRootAccount()
+        root = MD_REF.getCurrentAccountBook().getRootAccount()
         rootKeys = list(sorted(root.getParameterKeys()))
 
         pdfURL = "https://github.com/yogi1967/MoneydancePythonScripts/raw/master/source/useful_scripts/ofx_create_new_usaa_bank_custom_profile.pdf"
@@ -10292,7 +10305,7 @@ Visit: %s (Author's site)
             return
 
         ####################################################################################################################
-        serviceList = MD_REF.getCurrentAccount().getBook().getOnlineInfo().getAllServices()  # type: [OnlineService]
+        serviceList = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()  # type: [OnlineService]
 
         deleteServices = []
         for svc in serviceList:
@@ -10310,7 +10323,7 @@ Visit: %s (Author's site)
                     service.clearAuthenticationCache()
                     service.deleteItem()
                     myPrint("B","Deleted existing (old) USAA service profile: %s" %(service))
-                MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
+                MD_REF.getCurrentAccountBook().getLocalStorage().save()
                 cleanupMissingOnlineBankingLinks(lAutoPurge=True)
 
         del serviceList, deleteServices
@@ -10372,10 +10385,10 @@ Visit: %s (Author's site)
     def manualEditOfRootUserIDs():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         userIDKeyPrefix="ofx.client_uid"
-        root = MD_REF.getCurrentAccount().getBook().getRootAccount()
+        root = MD_REF.getCurrentAccountBook().getRootAccount()
 
         _DELETEONE  = 0
         _DELETEALL  = 1
@@ -10713,7 +10726,7 @@ Visit: %s (Author's site)
         if security.getCurrencyType() != CurrencyType.Type.SECURITY:
             return 0
 
-        acctHoldings = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(22))
+        acctHoldings = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(22))
         balance = 0
         for acct in acctHoldings:
             if acct.getCurrencyType() == security:
@@ -10794,10 +10807,10 @@ Visit: %s (Author's site)
 
         _THIS_METHOD_NAME = "OFX: update OFXLastTxnUpdate date".upper()
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
         if not (ToolboxMode.isUpdateMode()): return
 
-        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(15))
+        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(15))
         accountsListForOlTxns = sorted(accountsListForOlTxns, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
 
         selectedAcct = JOptionPane.showInputDialog(toolbox_frame_,
@@ -10913,11 +10926,11 @@ Visit: %s (Author's site)
 
         _THIS_METHOD_NAME = "OFX: reset all OFXLastTxnUpdate dates".upper()
 
-        if MD_REF.getCurrentAccount().getBook() is None:    return
+        if MD_REF.getCurrentAccountBook() is None:    return
         if not (ToolboxMode.isUpdateMode()):                    return
         if not isMulti_OFXLastTxnUpdate_build():            return
 
-        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(15))
+        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(15))
         accountsListForOlTxns = sorted(accountsListForOlTxns, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
 
         selectedAcct = JOptionPane.showInputDialog(toolbox_frame_,
@@ -10960,7 +10973,7 @@ Visit: %s (Author's site)
         # delete_orphaned_downloaded_txn_lists.py
 
         # CREATE TEST DATA
-        # allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), AcctFilter.NON_CATEGORY_FILTER)
+        # allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), AcctFilter.NON_CATEGORY_FILTER)
         # for acct in allAccounts:
         #     if "TEST"  != acct.getFullAccountName().upper() and "TEST2"  != acct.getFullAccountName().upper(): continue
         #     print "found: %s" %(acct)
@@ -10979,11 +10992,11 @@ Visit: %s (Author's site)
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
         if not (ToolboxMode.isUpdateMode()): return
 
         # quick check first...
-        olTxnLists = MD_REF.getCurrentAccount().getBook().getItemsWithType("oltxns")
+        olTxnLists = MD_REF.getCurrentAccountBook().getItemsWithType("oltxns")
         lAny = False
         for txnList in olTxnLists:
             if txnList.getTxnCount() > 0:
@@ -11004,7 +11017,7 @@ Visit: %s (Author's site)
 
         myPrint("B","Purging / cleaning all OnlineTxnList Cached txns.....")
 
-        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), AcctFilter.NON_CATEGORY_FILTER)
+        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), AcctFilter.NON_CATEGORY_FILTER)
 
         output = "PURGE/CLEAN ALL CACHED OnlineTxnList TXN RECORDS\n" \
                  " ===============================================\n\n"
@@ -11059,7 +11072,7 @@ Visit: %s (Author's site)
 
         output += "\n--------\n\n"
 
-        MD_REF.getCurrentAccount().getBook().logRemovedItems(olTxnLists)
+        MD_REF.getCurrentAccountBook().logRemovedItems(olTxnLists)
 
         SyncerDebug.resetState()
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes....
@@ -11067,7 +11080,7 @@ Visit: %s (Author's site)
         if shouldSaveTrunk:
             myPrint("J","Purge/Clean ALL OnlineTxnList objects - Saving Trunk file now....")
             output+=("SAVING TRUNK FILE...\n")
-            MD_REF.getCurrentAccount().getBook().saveTrunkFile()
+            MD_REF.getCurrentAccountBook().saveTrunkFile()
         else:
             myPrint("J","Purge/Clean ALL OnlineTxnList objects - NO CHANGES MADE....")
             output+=("Purge/Clean ALL OnlineTxnList objects - NO CHANGES MADE....\n")
@@ -11092,10 +11105,10 @@ Visit: %s (Author's site)
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
         if not (ToolboxMode.isUpdateMode()): return
 
-        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(18))
+        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(18))
         accountsListForOlTxns = sorted(accountsListForOlTxns, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
 
         selectedAcct = JOptionPane.showInputDialog(toolbox_frame_,
@@ -11182,13 +11195,13 @@ Visit: %s (Author's site)
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         countCachedAccounts = 0
         countCachedTxns = 0
 
         myPrint("DB","Quick check looking for Cached OFX Downloaded txns (that shouldn't be there)")
-        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(18))
+        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(18))
         for acct in accountsListForOlTxns:
             cached = MyGetDownloadedTxns(acct)
             if cached.getTxnCount() > 0:
@@ -11204,7 +11217,7 @@ Visit: %s (Author's site)
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         if not isCachingPasswords():
             myPopupInformationBox(toolbox_frame_,"WARNING: Your system is not setup to cache/store Authentication details!","Manage OFX Authentication",JOptionPane.ERROR_MESSAGE)
@@ -11449,7 +11462,7 @@ Visit: %s (Author's site)
         # Find Securities with CUSIP(s) set...
         dropdownSecs = ArrayList()
         allSecs = ArrayList()
-        currencies = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
         for curr in currencies:
             if curr.getCurrencyType() != CurrencyType.Type.SECURITY: continue
             allSecs.append(curr)
@@ -11553,7 +11566,7 @@ Visit: %s (Author's site)
 
         if lMove:
             dropdownSecsMoveTo = ArrayList()
-            currencies = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+            currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
             for curr in currencies:
                 if curr.getCurrencyType() != CurrencyType.Type.SECURITY: continue                               # noqa
                 if curr == selectedSecurity: continue
@@ -11746,7 +11759,7 @@ Visit: %s (Author's site)
             service.clearAuthenticationCache()
             # noinspection PyUnresolvedReferences
             service.deleteItem()
-            LS = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+            LS = MD_REF.getCurrentAccountBook().getLocalStorage()
             LS.save()
 
             cleanupMissingOnlineBankingLinks(lAutoPurge=True)
@@ -11780,7 +11793,7 @@ Visit: %s (Author's site)
         invalidBillPayLinks = []
 
         myPrint("B","Searching for Account Online Banking / Bill Pay links with no profile (general cleanup routine)....")
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(26))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(26))
 
         for a in accounts:
 
@@ -12192,7 +12205,7 @@ Visit: %s (Author's site)
             del mdp_cache
 
             output += "\n>>Account Mappings Object's PARAMETER KEYS (MD2022 onwards)\n"
-            mappingObject = MD_REF.getCurrentAccount().getBook().getItemForID("online_acct_mapping")
+            mappingObject = MD_REF.getCurrentAccountBook().getItemForID("online_acct_mapping")
             if mappingObject is None:
                 output += "<NO ACCOUNT MAPPING OBJECT FOUND>\n"
             else:
@@ -12565,7 +12578,7 @@ Visit: %s (Author's site)
         serviceList = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
         for sv in serviceList:
             if sv.getTIKServiceID() == "md:plaid": deleteServiceList.append(sv)
-        if len(deleteServiceList) > 0: MD_REF.getCurrentAccount().getBook().logRemovedItems(deleteServiceList)
+        if len(deleteServiceList) > 0: MD_REF.getCurrentAccountBook().logRemovedItems(deleteServiceList)
 
         PLAID_MAP_KEY = "map.md:plaid:::"
         mappingObject = MD_REF.getCurrentAccountBook().getItemForID("online_acct_mapping")
@@ -12960,7 +12973,7 @@ Visit: %s (Author's site)
     def forgetOFXImportLink():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(10))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(10))
         selectedAccount = JOptionPane.showInputDialog(toolbox_frame_,
                                                       "Select an account (only these have remembered links)",
                                                       "FORGET OFX banking link",
@@ -13251,29 +13264,29 @@ Visit: %s (Author's site)
             repTable=ArrayList()
             if report_or_graph_or_all == "ALL":
                 if memorized_default_or_all == "ALL":
-                    return MD_REF.getCurrentAccount().getBook().getMemorizedItems().getAllItems()
+                    return MD_REF.getCurrentAccountBook().getMemorizedItems().getAllItems()
                 elif memorized_default_or_all == "MEMORIZED":
-                    return  MD_REF.getCurrentAccount().getBook().getMemorizedItems().getAllMemorizedItems()
+                    return  MD_REF.getCurrentAccountBook().getMemorizedItems().getAllMemorizedItems()
                 elif memorized_default_or_all == "DEFAULT":
-                    theReports = MD_REF.getCurrentAccount().getBook().getMemorizedItems().getAllItems()
+                    theReports = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllItems()
                 else:
                     assert("ERROR - Report  type not defined: %s %s" %(memorized_default_or_all,report_or_graph_or_all))
             elif report_or_graph_or_all == "REPORT":
                 if memorized_default_or_all == "ALL":
-                    return MD_REF.getCurrentAccount().getBook().getMemorizedItems().getAllReports()
+                    return MD_REF.getCurrentAccountBook().getMemorizedItems().getAllReports()
                 elif memorized_default_or_all == "MEMORIZED":
-                    return  MD_REF.getCurrentAccount().getBook().getMemorizedItems().getMemorizedReports()
+                    return  MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports()
                 elif memorized_default_or_all == "DEFAULT":
-                    theReports = MD_REF.getCurrentAccount().getBook().getMemorizedItems().getAllReports()
+                    theReports = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllReports()
                 else:
                     assert("ERROR - Report  type not defined: %s %s" %(memorized_default_or_all,report_or_graph_or_all))
             elif report_or_graph_or_all == "GRAPH":
                 if memorized_default_or_all == "ALL":
-                    return MD_REF.getCurrentAccount().getBook().getMemorizedItems().getAllGraphs()
+                    return MD_REF.getCurrentAccountBook().getMemorizedItems().getAllGraphs()
                 elif memorized_default_or_all == "MEMORIZED":
-                    return  MD_REF.getCurrentAccount().getBook().getMemorizedItems().getMemorizedGraphs()
+                    return  MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs()
                 elif memorized_default_or_all == "DEFAULT":
-                    theReports = MD_REF.getCurrentAccount().getBook().getMemorizedItems().getAllGraphs()
+                    theReports = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllGraphs()
                 else:
                     assert("ERROR - Report  type not defined: %s %s" %(memorized_default_or_all,report_or_graph_or_all))
             else:
@@ -13289,26 +13302,26 @@ Visit: %s (Author's site)
         objects = None
         try:
             if objWhat.index(selectedObjType) == _OBJROOT:
-                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(12))
+                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(12))
                 # The palaver below is to get the list sorted.....
                 objects = ArrayList()
                 for o in obj_x: objects.add(o)
                 objects = objects.toArray()
             elif objWhat.index(selectedObjType) == _OBJACCT:
-                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(7))
+                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(7))
                 # The palaver below is to get the list sorted.....
                 obj_x = sorted(obj_x, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
                 objects = ArrayList()
                 for o in obj_x: objects.add(o)
                 objects = objects.toArray()
             elif objWhat.index(selectedObjType) == _OBJCAT:
-                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(8)).toArray()
+                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(8)).toArray()
                 obj_x = sorted(obj_x, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
                 objects = ArrayList()
                 for o in obj_x: objects.add(o)
                 objects = objects.toArray()
             elif objWhat.index(selectedObjType) == _OBJACCTSEC:
-                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(9)).toArray()
+                obj_x = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(9)).toArray()
                 obj_x = sorted(obj_x, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
                 objects = ArrayList()
                 for o in obj_x: objects.add(o)
@@ -13342,14 +13355,14 @@ Visit: %s (Author's site)
                 objects = root.getAddresses().getAllEntries()
                 objects = sorted(objects, key=lambda x: (x.getName().upper()))
             elif objWhat.index(selectedObjType) == _OBJOFXONLINE:
-                objects = MD_REF.getCurrentAccount().getBook().getOnlineInfo().getAllServices()
+                objects = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
                 objects = sorted(objects, key=lambda x: (x.getFIName().upper()))
             elif objWhat.index(selectedObjType) == _OBJBYUUID:
                 pass
             elif objWhat.index(selectedObjType) == _OBJTRANSACTION:
                 pass
             elif objWhat.index(selectedObjType) == _OBJSECSUBTYPES:
-                item = MD_REF.getCurrentAccount().getBook().getItemForID("security_subtypes")             # type: MoneydanceSyncableItem
+                item = MD_REF.getCurrentAccountBook().getItemForID("security_subtypes")             # type: MoneydanceSyncableItem
                 if item is None:
                     txt = "%s: Sorry - You don't have a 'security_subtypes' to view..!" %(titleStr)
                     setDisplayStatus(txt, "R")
@@ -13367,7 +13380,7 @@ Visit: %s (Author's site)
                 else:
                     objects = [item]
             elif objWhat.index(selectedObjType) == _OBJOFXMAPPINGS:
-                item = MD_REF.getCurrentAccount().getBook().getItemForID("online_acct_mapping")           # type: MoneydanceSyncableItem
+                item = MD_REF.getCurrentAccountBook().getItemForID("online_acct_mapping")           # type: MoneydanceSyncableItem
                 if item is None:
                     txt = "%s: Sorry - You don't have an OFX Account Mappings object to view..!" %(titleStr)
                     setDisplayStatus(txt, "R")
@@ -13381,11 +13394,11 @@ Visit: %s (Author's site)
 
                 accountsListForOlTxns = None
                 if objWhat.index(selectedObjType) == _OBJOFXTXNS:
-                    accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(15))
+                    accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(15))
                 elif objWhat.index(selectedObjType) == _OBJOFXOLPAYEES:
-                    accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(16))
+                    accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(16))
                 elif objWhat.index(selectedObjType) == _OBJOFXOLPAYMNT:
-                    accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(17))
+                    accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(17))
 
                 accountsListForOlTxns = sorted(accountsListForOlTxns, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
 
@@ -13501,9 +13514,9 @@ Visit: %s (Author's site)
                 setDisplayStatus(txt, "R")
                 return None, lReportDefaultsSelected
 
-            selectedObject = MD_REF.getCurrentAccount().getBook().getItemForID(theUUID.strip())
+            selectedObject = MD_REF.getCurrentAccountBook().getItemForID(theUUID.strip())
             if selectedObject is None:
-                txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+                txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
                 selectedObject = txnSet.getTxnByID(theUUID.strip())
                 if selectedObject is None:
                     selectedObject = TxnUtil.getTxnByID(txnSet, theUUID.strip())
@@ -13579,7 +13592,7 @@ Visit: %s (Author's site)
         return objects, lReportDefaultsSelected
 
     def removeInternalFilesSettings():
-        thisDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+        thisDataset = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
 
         filesToRemove = []
         for wrapper in AccountBookUtil.getInternalAccountBooks():
@@ -13726,7 +13739,7 @@ Visit: %s (Author's site)
     def removeExternalFilesSettings():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         if not backup_config_dict():
             txt = "Remove files from 'External' (non-default) file list in File/Open - Error backing up config.dict preferences file - no changes made...."
@@ -13738,7 +13751,7 @@ Visit: %s (Author's site)
         cleanup_external_files_setting(lAutoPurge=True)
 
         prefs = MD_REF.getUI().getPreferences()
-        thisDataset = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+        thisDataset = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
 
         externalFilesVector = prefs.getVectorSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, StreamVector())
 
@@ -13908,10 +13921,10 @@ Visit: %s (Author's site)
         _authenticationCache = SyncRecord()
 
         try:
-            LS = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+            LS = MD_REF.getCurrentAccountBook().getLocalStorage()
             LS.save()
 
-            localFile = File(os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getAbsolutePath(), "safe", "settings"))
+            localFile = File(os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), "safe", "settings"))
             if localFile.exists() and localFile.canRead():
                 inx = LS.openFileForReading("settings")
                 _storage.readSet(inx)
@@ -13940,7 +13953,7 @@ Visit: %s (Author's site)
         def actionPerformed(self, event):
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
-            if MD_REF.getCurrentAccount().getBook() is None: return
+            if MD_REF.getCurrentAccountBook() is None: return
 
             output = ""
 
@@ -14097,7 +14110,7 @@ Visit: %s (Author's site)
                     setDisplayStatus(txt, "B")
                     return
 
-                baseCurr = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+                baseCurr = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                 objects, lReportDefaultsSelected = get_the_objects_for_curious_view_and_advanced_edit(objWhat, selectedObjType, "%s" % (titleText), lFindInUpdateMode)
                 if self.EDIT_MODE:
@@ -14626,7 +14639,7 @@ Visit: %s (Author's site)
                         splitKey = theKey.split('.')
                         if splitKey[0] != last:
                             last = splitKey[0]
-                            lookupAcct = MD_REF.getCurrentAccount().getBook().getAccountByUUID(splitKey[0])
+                            lookupAcct = MD_REF.getCurrentAccountBook().getAccountByUUID(splitKey[0])
                             if lookupAcct:
                                 output += ("\n>> Account: %s\n" %(lookupAcct.getFullAccountName()))
                             else:
@@ -14637,7 +14650,7 @@ Visit: %s (Author's site)
                 if selectedWhat == what[_ACCTKEYS] or lSync or lOFX or lSizes or lSearch:  # Accounts (excluding Root)
 
                     output += "\n ====== ACCOUNTS' PARAMETER KEYS  (Preferences will mostly be in Local Storage) ======\n"
-                    accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(5))
+                    accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(5))
                     lastAcct = None
                     for acct in accounts:
 
@@ -14771,7 +14784,7 @@ Visit: %s (Author's site)
                     output += "\n (NOTE: More information will be in view bank service / login profiles)\n"
 
                     lastService = None
-                    services = MD_REF.getCurrentAccount().getBook().getOnlineInfo().getAllServices()
+                    services = MD_REF.getCurrentAccountBook().getOnlineInfo().getAllServices()
                     for service in services:
                         keys = sorted(service.getParameterKeys())
                         for theKey in keys:
@@ -14805,7 +14818,7 @@ Visit: %s (Author's site)
                         del licenseObject
 
                     output += "\n ========= OFX Account Mappings Object's PARAMETER KEYS (MD2022 onwards) =========\n"
-                    mappingObject = MD_REF.getCurrentAccount().getBook().getItemForID("online_acct_mapping")
+                    mappingObject = MD_REF.getCurrentAccountBook().getItemForID("online_acct_mapping")
                     if mappingObject is None:
                         output += "<NO ACCOUNT MAPPING OBJECT FOUND>\n"
                     else:
@@ -14854,12 +14867,12 @@ Visit: %s (Author's site)
 
             backup_extn = "_$SAVED$"
 
-            backup_localStorage_path = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath())
+            backup_localStorage_path = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath())
             backup_config_path = os.path.dirname(Common.getPreferencesFile().getCanonicalPath())
             # backup_custom_theme_path = os.path.dirname(ThemeInfo.customThemeFile.getCanonicalPath())
 
             settingsFile = "settings"
-            # backup_localStorage_filename = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getAbsolutePath(), "settings")
+            # backup_localStorage_filename = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getAbsolutePath(), "settings")
             # configFile = Common.getPreferencesFile().getName()
             # themeFile = ThemeInfo.customThemeFile.getName()
 
@@ -15128,7 +15141,7 @@ now after saving the file, restart Moneydance
                 def __repr__(self): return self.__str__()
                 def toString(self): return self.__str__()
 
-            allAccounts = [StoreAltAccountList(acct) for acct in AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), AcctFilter.ALL_ACCOUNTS_FILTER) if acct.getAccountType() in includedAccountTypes]
+            allAccounts = [StoreAltAccountList(acct) for acct in AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), AcctFilter.ALL_ACCOUNTS_FILTER) if acct.getAccountType() in includedAccountTypes]
             allAccounts = sorted(allAccounts, key=lambda sort_x: (sort_x.obj.getAccountType(), sort_x.obj.getFullAccountName().upper()))
 
             while True:
@@ -15276,7 +15289,7 @@ now after saving the file, restart Moneydance
         if input_includeLiabilityAccounts.isSelected():     includedAccountTypes.append(Account.AccountType.LIABILITY)      # noqa
         if input_includeLoanAccounts.isSelected():          includedAccountTypes.append(Account.AccountType.LOAN)           # noqa
 
-        allAccounts = [acct for acct in AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), AcctFilter.ALL_ACCOUNTS_FILTER) if acct.getAccountType() in includedAccountTypes]
+        allAccounts = [acct for acct in AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), AcctFilter.ALL_ACCOUNTS_FILTER) if acct.getAccountType() in includedAccountTypes]
         allAccounts = sorted(allAccounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
         iCountOFXAccounts = 0
@@ -15520,7 +15533,7 @@ now after saving the file, restart Moneydance
 
             output += "\n----------------------------------------------------------------------------------------------------------------------------\n"
             output += "Confidential details needed to open Moneydance dataset:\n".upper()
-            output += "- Location of dataset: '%s'\n" %(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath())
+            output += "- Location of dataset: '%s'\n" %(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath())
             output += "- This application: '%s' Version: %s(%s) - License key: %s\n" %(find_the_program_install_dir(), MD_REF.getVersion(), MD_REF.getBuild(), licenseKey)
             output += "- Master password used to open this dataset: %s\n" %(MD_enc)
             output += "- Syncing: %s - Sync password: %s\n" %(syncMethodTxt, MD_syn)
@@ -15566,7 +15579,7 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         _THIS_METHOD_NAME = "View Accounts' shouldBeIncludedInNetWorth() settings"
 
@@ -15598,7 +15611,7 @@ now after saving the file, restart Moneydance
 
         output += "\n"
 
-        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(25))
+        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(25))
         allAccounts = sorted(allAccounts, key=lambda x: (x.getAccountType(), x.getFullAccountName().upper()))
 
         for acct in allAccounts:
@@ -15620,11 +15633,11 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         _THIS_METHOD_NAME = "EDIT an Account's shouldBeIncludedInNetWorth() setting"
 
-        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(25))
+        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(25))
         allAccounts = sorted(allAccounts, key=lambda x: (x.getAccountType(), x.getFullAccountName().upper()))
 
         newAccounts = []
@@ -15708,12 +15721,12 @@ now after saving the file, restart Moneydance
         else:
             myPrint("B", "Script running to de-activate your Categories with Zero Balance...............")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         output = ""
         output += "Analysing your categories for Zero Balances....\n\n"
 
-        baseCurr = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+        baseCurr = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
 
         # ==========================================
@@ -15756,7 +15769,7 @@ now after saving the file, restart Moneydance
 
 
         # Now the Categories
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(4))    # This returns active and inactive accounts
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(4))    # This returns active and inactive accounts
         accounts = sorted(accounts, key=lambda x: (x.getAccountType(), safeStr(x.getFullAccountName()).upper()))
 
         categoriesToInactivate = {}
@@ -16030,7 +16043,7 @@ now after saving the file, restart Moneydance
         myPrint("B", ">> User selected to Inactivate %s Zero Balance Categories!?" %(iCountForInactivation))
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         for cat in categoriesToInactivate.keys():
@@ -16040,7 +16053,7 @@ now after saving the file, restart Moneydance
                 cat.syncItem()
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         txt = "FIX - %s Categories with Zero Balances made Inactive as requested!" %(iCountForInactivation)
@@ -16129,7 +16142,7 @@ now after saving the file, restart Moneydance
                   "--------------------------------\n\n"
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes...
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         iCountErrors, x = check_fix_accounts(lFix=True)
@@ -16137,10 +16150,10 @@ now after saving the file, restart Moneydance
         output += "\n<END>"
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
         root = MD_REF.getRootAccount()
-        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+        MD_REF.getCurrentAccountBook().notifyAccountModified(root)
 
         txt = "FIXED %s invalid Parent Accounts" %(iCountErrors)
         setDisplayStatus(txt, "DG"); myPrint("B", txt)
@@ -16190,7 +16203,7 @@ now after saving the file, restart Moneydance
         root.setAccountName(bookName)
         root.syncItem()
 
-        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+        MD_REF.getCurrentAccountBook().notifyAccountModified(root)
 
         txt = "Root Account Name changed to : %s" %(bookName)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -16226,7 +16239,7 @@ now after saving the file, restart Moneydance
             return
         del ask
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(19))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(19))
         accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
         newAccounts = []
         for acct in accounts:
@@ -16304,18 +16317,18 @@ now after saving the file, restart Moneydance
                 %(selectedAccount.getFullAccountName(),selectedAccount.getAccountType(),selectedType))                  # noqa
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         selectedAccount.setAccountType(selectedType)                                                                    # noqa
         selectedAccount.syncItem()                                                                                      # noqa
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         root = MD_REF.getRootAccount()
-        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+        MD_REF.getCurrentAccountBook().notifyAccountModified(root)
 
         txt = "The Account: %s has been changed to Type: %s - PLEASE REVIEW & THEN MANUALLY RESTART MD" %(selectedAccount.getAccountName(),selectedAccount.getAccountType())  # noqa
         setDisplayStatus(txt, "R")
@@ -16358,7 +16371,7 @@ now after saving the file, restart Moneydance
                 currencies.append(c)
         currencies = sorted(currencies, key=lambda sort_x: (sort_x.getName().upper()))
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(19))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(19))
         accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
         newAccounts = []
         for acct in accounts:
@@ -16420,18 +16433,18 @@ now after saving the file, restart Moneydance
                 %(selectedAccount.getFullAccountName(),selectedAccount.getCurrencyType(),selectedCurrency))
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         selectedAccount.setCurrencyType(selectedCurrency)
         selectedAccount.syncItem()
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)
 
         root = MD_REF.getRootAccount()
-        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+        MD_REF.getCurrentAccountBook().notifyAccountModified(root)
 
         txt = "Account/Category: %s has been changed to Curr: %s - PLEASE REVIEW & THEN MANUALLY RESTART MD WHEN FINISHED"\
               %(selectedAccount.getAccountName(),selectedAccount.getCurrencyType())
@@ -16469,7 +16482,7 @@ now after saving the file, restart Moneydance
             return
         del ask
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(19))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(19))
         accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
         currencies = []
@@ -16513,7 +16526,7 @@ now after saving the file, restart Moneydance
                 %(len(accounts),selectedCurrency))     # noqa
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         accountsChanged = 0
@@ -16531,11 +16544,11 @@ now after saving the file, restart Moneydance
             accountsChanged += 1
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)
 
         root = MD_REF.getRootAccount()
-        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+        MD_REF.getCurrentAccountBook().notifyAccountModified(root)
 
         txt = "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES: %s Accts / Cats changed to curr: %s - MONEYDANCE WILL NOW RESTART - PLEASE REVIEW RESULTS" %(accountsChanged,selectedCurrency)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -16579,7 +16592,7 @@ now after saving the file, restart Moneydance
 
         includeSecurities = myPopupAskQuestion(toolbox_frame_, _THIS_METHOD_NAME.upper(),  "Include Security records in the FROM/TO currency switch too?")
 
-        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(19))
+        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(19))
         allAccounts = sorted(allAccounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
         currencies = []
@@ -16659,7 +16672,7 @@ now after saving the file, restart Moneydance
                 %(_THIS_METHOD_NAME, selectedFromCurrency, selectedToCurrency, len(replaceAccts), len(replaceSecurities)))
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         for acct in replaceAccts:
@@ -16674,11 +16687,11 @@ now after saving the file, restart Moneydance
                 sec.syncItem()
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)
 
         root = MD_REF.getRootAccount()
-        MD_REF.getCurrentAccount().getBook().notifyAccountModified(root)
+        MD_REF.getCurrentAccountBook().notifyAccountModified(root)
 
         txt = ("%s: %s Accts / Cats, and %s Securities, changed from curr: %s to %s - MD WILL RESTART - PLEASE REVIEW RESULTS"
                %(_THIS_METHOD_NAME, len(replaceAccts), len(replaceSecurities), selectedFromCurrency, selectedToCurrency))
@@ -16884,7 +16897,7 @@ now after saving the file, restart Moneydance
 
         myPrint(u"D", u"In ", inspect.currentframe().f_code.co_name, u"()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         txt = "fix_invalid_relative_currency_rates"
         if not perform_qer_quote_loader_check(toolbox_frame_, txt): return
@@ -16943,7 +16956,7 @@ now after saving the file, restart Moneydance
                   u" ==============\n\n"
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         for curr in currencies:
@@ -16958,7 +16971,7 @@ now after saving the file, restart Moneydance
         myPrint(u"P", output)
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         output += "\n<END"
@@ -16978,7 +16991,7 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, u"()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         txt = "Fix Invalid Price History Records"
         if not perform_qer_quote_loader_check(toolbox_frame_, txt): return
@@ -16990,7 +17003,7 @@ now after saving the file, restart Moneydance
 
         output += "** Wild rates set to %s <= (rate) >= %s\n" %((1.0 / upperLimit), upperLimit)
 
-        allSnaps = MD_REF.getCurrentAccount().getBook().getItemsWithType(CurrencySnapshot.SYNCABLE_TYPE_VALUE)
+        allSnaps = MD_REF.getCurrentAccountBook().getItemsWithType(CurrencySnapshot.SYNCABLE_TYPE_VALUE)
         output += "\nFound price history records (snaps): %s" %(len(allSnaps))
 
         iGood = 0
@@ -17052,13 +17065,13 @@ now after saving the file, restart Moneydance
         SyncerDebug.changeState(debug)
 
         output += "Logging snaps with 'wild' rates for deletion....\n"
-        MD_REF.getCurrentAccount().getBook().logRemovedItems(badSnaps)
+        MD_REF.getCurrentAccountBook().logRemovedItems(badSnaps)
 
         SyncerDebug.resetState()
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
         output += "Flushing dataset changes in memory back to disk....\n"
-        MD_REF.getCurrentAccount().getBook().saveTrunkFile()
+        MD_REF.getCurrentAccountBook().saveTrunkFile()
 
         txt = "%s snaps with 'wild' rates DELETED." %(len(badSnaps))
         myPrint("B", txt); output += "%s\n\n" %(txt)
@@ -17096,7 +17109,7 @@ now after saving the file, restart Moneydance
             return
         del ask
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(20))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(20))
         accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
         newAccounts = []
@@ -17136,7 +17149,7 @@ now after saving the file, restart Moneydance
             return
         endDate = dateField.getDateInt()
 
-        txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+        txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
         txns = txnSet.iterableTxns()
 
         iTxnsFound = 0
@@ -17160,7 +17173,7 @@ now after saving the file, restart Moneydance
         myPrint("B","@@ User requested to REVERSE the (%s) Txn Amounts on Account %s between %s to %s - APPLYING UPDATE NOW...." %(iTxnsFound, selectedAccount, convertStrippedIntDateFormattedText(startDate), convertStrippedIntDateFormattedText(endDate)))
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         for txn in txns:
@@ -17185,7 +17198,7 @@ now after saving the file, restart Moneydance
             ptxn.syncItem()
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         txt = "REVERSE %s Txns Amounts on Account %s between %s - %s COMPLETED - PLEASE REVIEW" %(iTxnsFound,selectedAccount,convertStrippedIntDateFormattedText(startDate), convertStrippedIntDateFormattedText(endDate))
@@ -17220,7 +17233,7 @@ now after saving the file, restart Moneydance
             return
         del ask
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(20))
+        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(20))
         accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
         newAccounts = []
@@ -17260,7 +17273,7 @@ now after saving the file, restart Moneydance
             return
         endDate = dateField.getDateInt()
 
-        txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+        txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
         txns = txnSet.iterableTxns()
 
         iTxnsFound = 0
@@ -17296,7 +17309,7 @@ now after saving the file, restart Moneydance
                 %(iTxnsFound, selectedAccount, convertStrippedIntDateFormattedText(startDate), convertStrippedIntDateFormattedText(endDate)))
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         for txn in txns:
@@ -17337,7 +17350,7 @@ now after saving the file, restart Moneydance
                 ptxn.syncItem()
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         txt = "REVERSE %s Txns Exchange Rates on Account %s between %s - %s COMPLETED - PLEASE REVIEW"\
@@ -17392,7 +17405,7 @@ now after saving the file, restart Moneydance
     def checkForTxnsAssignedRoot(lFix=False, accounts=None):
         if lFix and accounts is None: raise Exception("ERROR: checkForTxnsAssignedRoot() Fix, accounts must not be None")
         _countValid = _countAssignedRoot = _countInvestmentAssignedRoot = 0
-        txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+        txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
         for txn in txnSet:
             if not isinstance(txn, ParentTxn): continue
             if isTxnAccountAssignedRoot(txn, lFix, accounts):
@@ -17599,9 +17612,9 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
-        if MD_REF.getCurrentAccount().getBook().getSyncer() is None: return
-        if MD_REF.getCurrentAccount().getBook().getSyncer().getSyncedDocument() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
+        if MD_REF.getCurrentAccountBook().getSyncer() is None: return
+        if MD_REF.getCurrentAccountBook().getSyncer().getSyncedDocument() is None: return
 
         txt = "Purge/Thin Price History"
         if not perform_qer_quote_loader_check(toolbox_frame_, txt): return
@@ -17623,7 +17636,7 @@ now after saving the file, restart Moneydance
                 if objectType == CurrencyType.SYNCABLE_TYPE_VALUE: xx = " (Currency/Security records)"                     # noqa
                 if objectType == CurrencySnapshot.SYNCABLE_TYPE_VALUE: xx = " (Currency/Security price history records)"   # noqa
                 if objectType == CurrencySplit.SYNCABLE_TYPE_VALUE: xx = " (Security Stock Split records)"                 # noqa
-                objects = MD_REF.getCurrentAccount().getBook().getItemsWithType(objectType)
+                objects = MD_REF.getCurrentAccountBook().getItemsWithType(objectType)
                 text+="  %s: %s %s\n"%(pad(objectType, 9), rpad(len(objects), 12), xx)
             text += "\n"
             return text
@@ -17639,7 +17652,7 @@ now after saving the file, restart Moneydance
                 if not (isinstance(mdItem, MoneydanceSyncableItem)): continue
                 if mdItem.getParameter("obj_type", None) != CurrencySnapshot.SYNCABLE_TYPE_VALUE: continue
                 saveRawSnaps[mdItem.getParameter("id")] = mdItem
-            _currencies = MD_REF.getCurrentAccount().getBook().getCurrencies()
+            _currencies = MD_REF.getCurrentAccountBook().getCurrencies()
             for _curr in _currencies:
                 snapshots = _curr.getSnapshots()
                 for snap in snapshots:
@@ -17668,9 +17681,9 @@ now after saving the file, restart Moneydance
                     else:
                         text+=" >> Orp/Dup: %s\n" %(_x)
 
-            for snap in MD_REF.getCurrentAccount().getBook().getItemsWithType(CurrencySnapshot.SYNCABLE_TYPE_VALUE):
+            for snap in MD_REF.getCurrentAccountBook().getItemsWithType(CurrencySnapshot.SYNCABLE_TYPE_VALUE):
                 totalSnaps += 1
-                if snap.getParameter("curr", None) is None or MD_REF.getCurrentAccount().getBook().getItemForID(snap.getParameter("curr", None)) is None:
+                if snap.getParameter("curr", None) is None or MD_REF.getCurrentAccountBook().getItemForID(snap.getParameter("curr", None)) is None:
                     if not saveRawSnaps.get(snap.getParameter("id",None)):
                         orphanSnaps += 1
                         saveRawSnaps[snap.getParameter("id")] = snap
@@ -17697,7 +17710,7 @@ now after saving the file, restart Moneydance
 
         def snaps_by_currency():
             text = ""
-            _currencies = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+            _currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
             _currencies = sorted(_currencies, key=lambda sort_x: (sort_x.getName().upper()))
             lastC = None
             # noinspection PyUnresolvedReferences
@@ -17722,7 +17735,7 @@ now after saving the file, restart Moneydance
 
         def does_base_has_snaps(lDelete=False, lVerbose=True):
 
-            baseCurr = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+            baseCurr = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
             baseSnapshots = baseCurr.getSnapshots()
 
             iCountBaseSnapsDeleted = 0
@@ -17775,7 +17788,7 @@ now after saving the file, restart Moneydance
 
         dropdownCurrs = ArrayList()
         dropdownSecs = ArrayList()
-        currencies = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
         for curr in currencies:
             if curr.getCurrencyType() == CurrencyType.Type.CURRENCY: dropdownCurrs.add(curr)                            # noqa
             if curr.getCurrencyType() == CurrencyType.Type.SECURITY: dropdownSecs.add(curr)                             # noqa
@@ -17796,7 +17809,7 @@ now after saving the file, restart Moneydance
                         "Purge Mode (Delete all older than cutoff)",
                         "Only Delete Orphans Mode (No Purge/Thin, just Delete Orphans)"]
 
-        if MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType().getSnapshots().size()>0:
+        if MD_REF.getCurrentAccountBook().getCurrencies().getBaseType().getSnapshots().size()>0:
             purgeStrings.append("Only Delete Base Records (No Purge/Thin, just Delete Base Records)")
 
         labelPurgeOrThinMode = JLabel("Select the mode of operation:")
@@ -17838,7 +17851,7 @@ now after saving the file, restart Moneydance
 
         labelPurgeBase = JLabel("While Purging/Thinning, also delete all Snapshots found on Base Currency?")
         user_purgeBase = JCheckBox("(will delete all Base Currency snapshots)", False)
-        user_purgeBase.setEnabled(MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType().getSnapshots().size()>0 )
+        user_purgeBase.setEnabled(MD_REF.getCurrentAccountBook().getCurrencies().getBaseType().getSnapshots().size()>0 )
         user_purgeBase.setName("user_purgeBase")
         user_purgeBase.setEnabled(False)
 
@@ -17926,7 +17939,7 @@ now after saving the file, restart Moneydance
                         the_includeCurrencies.setEnabled(True)
                         the_includeSecurities.setEnabled(True)
                         the_purgeOrphans.setEnabled(self.iOrphs>0)
-                        the_purgeBase.setEnabled(MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType().getSnapshots().size()>0)
+                        the_purgeBase.setEnabled(MD_REF.getCurrentAccountBook().getCurrencies().getBaseType().getSnapshots().size()>0)
                         the_SaveTrunk.setEnabled(True)
                         the_VERBOSE.setEnabled(True)
                     elif the_purgeOrThinMode.getSelectedItem().lower().startswith("Purge Mode".lower()):        # noqa
@@ -17937,7 +17950,7 @@ now after saving the file, restart Moneydance
                         the_includeCurrencies.setEnabled(True)
                         the_includeSecurities.setEnabled(True)
                         the_purgeOrphans.setEnabled(self.iOrphs>0)
-                        the_purgeBase.setEnabled(MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType().getSnapshots().size()>0)
+                        the_purgeBase.setEnabled(MD_REF.getCurrentAccountBook().getCurrencies().getBaseType().getSnapshots().size()>0)
                         the_SaveTrunk.setEnabled(True)
                         the_VERBOSE.setEnabled(True)
                     elif the_purgeOrThinMode.getSelectedItem().lower().startswith("Only Delete Orphans".lower()):  # noqa
@@ -17960,7 +17973,7 @@ now after saving the file, restart Moneydance
                         else:
                             the_purgeOrThinMode.setSelectedIndex(0)
                     elif the_purgeOrThinMode.getSelectedItem().lower().startswith("Only Delete Base Records".lower()):  # noqa
-                        if MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType().getSnapshots().size()>0:
+                        if MD_REF.getCurrentAccountBook().getCurrencies().getBaseType().getSnapshots().size()>0:
                             the_age_limit_days.setEnabled(False)
                             the_age_limit_days.setText("")
                             the_max_days_between_thinned.setText("")
@@ -18122,7 +18135,7 @@ now after saving the file, restart Moneydance
                 user_purgeBase.setForeground(saveColor)
                 user_purgeOrThinMode.setForeground(saveColor)
 
-            if (purgeBase or purgeBaseONLY) and MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType().getSnapshots().size() < 1:
+            if (purgeBase or purgeBaseONLY) and MD_REF.getCurrentAccountBook().getCurrencies().getBaseType().getSnapshots().size() < 1:
                 user_purgeBase.setForeground(getColorRed())
                 user_purgeOrThinMode.setForeground(getColorRed())
                 labelSTATUS.setText("ERROR: You have no Base Currency snapshot records to delete - please deselect these options")
@@ -18256,7 +18269,7 @@ now after saving the file, restart Moneydance
 
         def prune_all_snapshots(THIN_MODE, age_limit_days, max_days_between_thinned, incCurrencies, incSecurities, lVerbose=False, lDelete=False):       # noqa
             countTheChanges = 0
-            _currs = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+            _currs = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
             lastC = None
             text = ""
 
@@ -18337,7 +18350,7 @@ now after saving the file, restart Moneydance
                         for _o in filteredOrphanList:
                             text += "Logging 'Orphan' to delete: %s\n" %(repr(_o))
                             myPrint("B","Logging 'Orphan' to delete: %s" %(repr(_o)))
-                    MD_REF.getCurrentAccount().getBook().logRemovedItems(filteredOrphanList)
+                    MD_REF.getCurrentAccountBook().logRemovedItems(filteredOrphanList)
                     iPurgeCount += len(filteredOrphanList)
                 else:
                     if lVerbose:
@@ -18397,7 +18410,7 @@ now after saving the file, restart Moneydance
 
         if not simulate:
             MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
             SyncerDebug.changeState(debug)
 
@@ -18424,7 +18437,7 @@ now after saving the file, restart Moneydance
         if not simulate:
             SyncerDebug.resetState()
             MD_REF.saveCurrentAccount()
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         if confirmedSaveTrunk:
@@ -18432,7 +18445,7 @@ now after saving the file, restart Moneydance
                 if totalChangesMade > 0:
                     myPrint("B","%s PRICE HISTORY: Calling saveTrunkFile()...." %(ThnPurgeTxt))
                     diagDisplay += "\n\n ======\nSaving Trunk File.....\n ======\n\n"
-                    MD_REF.getCurrentAccount().getBook().saveTrunkFile()
+                    MD_REF.getCurrentAccountBook().saveTrunkFile()
                 else:
                     myPrint("B","%s PRICE HISTORY: No changes made - so NOT Calling saveTrunkFile()...." %(ThnPurgeTxt))
                     diagDisplay += "No changes made, so **NOT** Saving Trunk File.....\n"
@@ -18548,7 +18561,7 @@ now after saving the file, restart Moneydance
         if not lExit and theDir is not None:
             exportFolder = theDir
 
-            txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+            txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
 
             File(exportFolder).mkdirs()
 
@@ -18578,7 +18591,7 @@ now after saving the file, restart Moneydance
                         myPrint("P", "Exporting attachment [%s]" %(os.path.basename(outputPath)))
                         try:
                             outStream = FileOutputStream(File(outputPath))
-                            inStream = convertBufferedSourceToInputStream(MD_REF.getCurrentAccount().getBook().getLocalStorage().openFileForReading(attachTag))
+                            inStream = convertBufferedSourceToInputStream(MD_REF.getCurrentAccountBook().getLocalStorage().openFileForReading(attachTag))
                             IOUtils.copyStream(inStream, outStream)
                             outStream.close()
                             inStream.close()
@@ -18633,7 +18646,7 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         if lFix:
             MyPopUpDialogBox(toolbox_frame_,
@@ -18652,7 +18665,7 @@ now after saving the file, restart Moneydance
         scanningMsg.go()
 
         myPrint("P", "Scanning database for attachment data..")
-        book = MD_REF.getCurrentAccount().getBook()
+        book = MD_REF.getCurrentAccountBook()
 
         attachmentList = {}
         attachmentLocations = {}
@@ -18668,7 +18681,7 @@ now after saving the file, restart Moneydance
 
         diagDisplay = "ANALYSIS OF ATTACHMENTS\n\n"
 
-        attachmentFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe", MD_REF.getCurrentAccountBook().getAttachmentsFolder())
+        attachmentFullPath = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), "safe", MD_REF.getCurrentAccountBook().getAttachmentsFolder())
 
         LS = MD_REF.getCurrentAccountBook().getLocalStorage()
 
@@ -18876,7 +18889,7 @@ now after saving the file, restart Moneydance
             diagDisplay += (x + "\n\n")
             myPrint("P", "")
             setDisplayStatus(x.upper(), "R"); myPrint("B", x)
-            x = "Base Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe","")
+            x = "Base Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), "safe","")
             myPrint("B", x)
             diagDisplay += (x + "\n")
             lErrors = True
@@ -18906,7 +18919,7 @@ now after saving the file, restart Moneydance
         if iAttachmentsFound:
             diagDisplay += "\n\nLISTING VALID ATTACHMENTS FOR REFERENCE\n"
             diagDisplay += " ======================================\n"
-            x = "\nBase Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe","")
+            x = "\nBase Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), "safe","")
             diagDisplay += (x + "\n-----------\n")
 
             for validLocation in attachmentLocations:
@@ -18987,7 +19000,7 @@ now after saving the file, restart Moneydance
                         break
 
                     try:
-                        tmpDir = File(MD_REF.getCurrentAccount().getBook().getRootFolder(), "tmp")
+                        tmpDir = File(MD_REF.getCurrentAccountBook().getRootFolder(), "tmp")
                         tmpDir.mkdirs()
                         attachFileName = (File(tmpDir, selectedOrphan[0])).getName()                                    # noqa
                         tmpFile = File.createTempFile(str(System.currentTimeMillis() % 10000L), attachFileName, tmpDir)
@@ -19062,9 +19075,9 @@ now after saving the file, restart Moneydance
     def detect_fix_nonlinked_investment_security_records():
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
-        nonLinkedSecurityAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(24))
+        nonLinkedSecurityAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(24))
 
         if len(nonLinkedSecurityAccounts) < 1:
             txt = "Congratulations - No Investment Security Accounts not properly linked to a Security Master were detected - No changes made!"
@@ -19090,7 +19103,7 @@ now after saving the file, restart Moneydance
             return
 
         securities = []
-        currencies = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
         for currSec in currencies:
             if currSec.getCurrencyType() != CurrencyType.Type.SECURITY: continue                                        # noqa
             securities.append(currSec)
@@ -19141,7 +19154,7 @@ now after saving the file, restart Moneydance
     def fix_invalidLotRecords():
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         PARAMETER_KEY = "toolbox_fix_invalid_lots"
         PARAMETER_KEY_COST_BASIS = "cost_basis"
@@ -19153,7 +19166,7 @@ now after saving the file, restart Moneydance
 
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
-        allSecurityAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(2))
+        allSecurityAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(2))
         if len(allSecurityAccounts) < 1:
             txt = "No Securities exist within Investment Accounts to check - No changes made!"
             setDisplayStatus(txt, "B"); myPrint("DB",txt)
@@ -19314,7 +19327,7 @@ now after saving the file, restart Moneydance
         _THIS_METHOD_NAME = "Edit a Security's Decimal Places setting"
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
@@ -19360,7 +19373,7 @@ now after saving the file, restart Moneydance
 
             # Sweep One - gather the potential targets by duplicate Ticker Symbol....
             allSecurities = []
-            currencies = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+            currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
             for currSec in currencies:
                 if currSec.getCurrencyType() != CurrencyType.Type.SECURITY: continue
                 allSecurities.append(StoreSecurity(currSec))
@@ -19435,7 +19448,7 @@ now after saving the file, restart Moneydance
                 del maxDigits, oldWholeDigitsMax, newWholeDigitsMax, oldMaxNumber
 
             # MyAcctFilter() - 22 Security Sub Accounts; 23 Investment Accounts
-            allInvestmentSecurityAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(22))
+            allInvestmentSecurityAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(22))
 
             iTotalTxns = 0
             iTotalBalance = 0
@@ -19632,7 +19645,7 @@ now after saving the file, restart Moneydance
 
             myPrint("DB","Flushing dataset pre-merge changes in memory to sync... and disabling balance recalculation(s) / display refresh(es)..")
             MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the merge..
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
 
             # Do this first, so that the 'internal' MD maths on the txn edits work with the new dpc settings.....
@@ -19816,7 +19829,7 @@ now after saving the file, restart Moneydance
 
             myPrint("DB","Saving dataset after %s changes in memory to sync... and re-enabling balance recalculation(s) and display refresh(es).." %(_THIS_METHOD_NAME))
             MD_REF.saveCurrentAccount()
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
             pleaseWait.kill()                                                                                           # noqa
@@ -19857,7 +19870,7 @@ now after saving the file, restart Moneydance
 
                 txt = "... Saving Trunk to flush all changes back to disk now ...."
                 myPrint("B", txt); output += "\n%s\n" %(txt)
-                MD_REF.getCurrentAccount().getBook().saveTrunkFile()
+                MD_REF.getCurrentAccountBook().saveTrunkFile()
                 pleaseWait.kill()
 
             if newDecimal < oldDecimal and lUsingLotControl:
@@ -19897,7 +19910,7 @@ now after saving the file, restart Moneydance
     def fix_duplicate_securities_within_same_investment_account():
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         _THIS_METHOD_NAME = "Repair duplicate Securities:".upper()
 
@@ -19905,7 +19918,7 @@ now after saving the file, restart Moneydance
 
         PARAMETER_KEY = "toolbox_duplicate_security_fix"
 
-        book = MD_REF.getCurrentAccount().getBook()
+        book = MD_REF.getCurrentAccountBook()
         allAccounts = AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER)
 
         if detect_non_hier_sec_acct_or_orphan_txns() > 0:
@@ -19990,7 +20003,7 @@ now after saving the file, restart Moneydance
                         lUsesAverageCostDifferent = True
                         lCostBasisFlagWarning = True
 
-                    txns = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTransactionsForAccount(subAcct)
+                    txns = MD_REF.getCurrentAccountBook().getTransactionSet().getTransactionsForAccount(subAcct)
                     output += ("...... Sub security account (%s): %s Txn count: %s %s\n" %(subAcct.getUUID(), subAcct.getAccountName(), txns.getSize(),
                                                                                            "" if not lUsesAverageCostDifferent else "(WARNING: Cost Basis Flags different (Avg Cst vs Lot Control)"))
 
@@ -20018,7 +20031,7 @@ now after saving the file, restart Moneydance
 
                 acctToKeep = captureIllogicalAccount.illogicalSecurities[secCurr][0]
                 for subAcct in list(captureIllogicalAccount.illogicalSecurities[secCurr]):
-                    txns = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTransactionsForAccount(subAcct)
+                    txns = MD_REF.getCurrentAccountBook().getTransactionSet().getTransactionsForAccount(subAcct)
                     if subAcct == acctToKeep:
                         output += ("...... Keeping sub security account (%s) as the primary for: %s (with: %s txns) Cost Basis: '%s'\n" %(subAcct.getUUID(), subAcct.getAccountName(), txns.getSize(),
                                                                                                                                           "Average Cost" if (subAcct.getUsesAverageCost()) else "LOT Control"))
@@ -20039,7 +20052,7 @@ now after saving the file, restart Moneydance
 
         output += "\n"
         for subAcct in accountsToDelete:
-            txns = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTransactionsForAccount(subAcct)
+            txns = MD_REF.getCurrentAccountBook().getTransactionSet().getTransactionsForAccount(subAcct)
             if txns.getSize() != 0:
                 txt = "ERROR: Something's gone wrong! Resulting txn count should be ZERO! Acct: %s (CONSIDER RESTORE!)" %(subAcct)
                 output += "%s\n" %(txt)
@@ -20052,7 +20065,7 @@ now after saving the file, restart Moneydance
         if lCostBasisFlagWarning:
             output += ("\n\nWARNING - you had Cost Basis (Average Cost Basis vs LOT Control) flag differences. Please review these settings (and update your LOT matching if appropriate)\n\n")
 
-        MD_REF.getCurrentAccount().getBook().logRemovedItems(accountsToDelete)
+        MD_REF.getCurrentAccountBook().logRemovedItems(accountsToDelete)
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
 
         txt = "SUCCESS / FINISHED - Please review your investment portfolios"
@@ -20069,7 +20082,7 @@ now after saving the file, restart Moneydance
     def merge_duplicate_securities():
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         _THIS_METHOD_NAME = "Merge 'Duplicate' Securities (by 'ticker')"
 
@@ -20094,12 +20107,12 @@ now after saving the file, restart Moneydance
 
         try:
 
-            base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+            base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
             # Sweep One - gather the potential targets by duplicate Ticker Symbol....
             dup_securities = OrderedDict()
             securities = []
-            currencies = sorted(MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies(),
+            currencies = sorted(MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies(),
                                 key=lambda x: (x.getCurrencyType(), x.getName().upper(), x.getTickerSymbol(), x.getIDString()))
 
             for currSec in currencies:
@@ -20429,7 +20442,7 @@ now after saving the file, restart Moneydance
             del selectedSecurity
 
             # MyAcctFilter() - 22 Security Sub Accounts; 23 Investment Accounts
-            allInvestmentAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(23))
+            allInvestmentAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(23))
 
             output += "\nAnalysis of Securities to Merge - Ticker '%s' - %s:\n\n" %(tickerToMerge.getTicker(),tickerToMerge.getName())
 
@@ -20525,7 +20538,7 @@ now after saving the file, restart Moneydance
             def isSecurityHeldWithinAnyInvestmentAccount(_theSecurity):
 
                 # MyAcctFilter() - 22 Security Sub Accounts; 23 Investment Accounts
-                _subAccts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(22))
+                _subAccts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(22))
 
                 for _subAcct in _subAccts:
                     # noinspection PyUnresolvedReferences
@@ -20853,7 +20866,7 @@ now after saving the file, restart Moneydance
 
             myPrint("DB","Flushing dataset pre-merge changes in memory to sync... and disabling balance recalculation(s) / display refresh(es)..")
             MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the merge..
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
 
             ############################################################################################################
@@ -21097,7 +21110,7 @@ now after saving the file, restart Moneydance
 
             myPrint("DB","Saving dataset merge 'duplicate' security changes in memory to sync... and re-enabling balance recalculation(s) and display refresh(es)..")
             MD_REF.saveCurrentAccount()
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
             pleaseWait.kill()                                                                                           # noqa
@@ -21136,7 +21149,7 @@ now after saving the file, restart Moneydance
 
                 txt = "... Saving Trunk to flush all changes back to disk now ...."
                 myPrint("B", txt); output += "\n%s\n" %(txt)
-                MD_REF.getCurrentAccount().getBook().saveTrunkFile()
+                MD_REF.getCurrentAccountBook().saveTrunkFile()
                 pleaseWait.kill()
 
             if lErrorDeletingSecuritySubAccounts or lErrorDeletingSecurities:
@@ -21174,7 +21187,7 @@ now after saving the file, restart Moneydance
 
     def move_merge_investment_txns():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         _THIS_METHOD_NAME = "Move/Merge Investment Accounts"
 
@@ -21194,7 +21207,7 @@ now after saving the file, restart Moneydance
         PARAMETER_KEY = "toolbox_fix_non_hier_sec_acct_txns"
 
         book = MD_REF.getCurrentAccountBook()
-        base = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+        base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
         # fix_non-hierarchical_security_account_txns.py
         # (replaces fix_investment_txns_to_wrong_security.py)
@@ -21210,7 +21223,7 @@ now after saving the file, restart Moneydance
                  " =====================================================================================================\n\n"
 
         try:
-            txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+            txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
             txns = list(txnSet.iterableTxns())      # copy into list() to prevent concurrent modification when modifying.....
             fields = InvestFields()
 
@@ -21322,7 +21335,7 @@ now after saving the file, restart Moneydance
                 lFixedOrphans = True
 
                 # Create a new list of txns
-                txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
+                txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
                 txns = list(txnSet.iterableTxns())      # copy into list() to prevent concurrent modification when modifying.....
 
             ############################################################################################################
@@ -21470,14 +21483,14 @@ now after saving the file, restart Moneydance
                       "------------------------------------------------------------\n\n"
 
             MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the move/changes..
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(False)
             MD_REF.getUI().setSuspendRefresh(True)
 
             x, iCountErrors, iCountUnfixable, iErrorsFixed = review_security_accounts(txns, FIX_MODE=True)
             del txns, txnSet
 
             MD_REF.saveCurrentAccount()
-            MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+            MD_REF.getCurrentAccountBook().setRecalcBalances(True)
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
             output += x
@@ -21586,7 +21599,7 @@ now after saving the file, restart Moneydance
             return
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(False)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
         for t in toDelete:
@@ -21594,7 +21607,7 @@ now after saving the file, restart Moneydance
             t.deleteItem()
 
         MD_REF.saveCurrentAccount()
-        MD_REF.getCurrentAccount().getBook().setRecalcBalances(True)
+        MD_REF.getCurrentAccountBook().setRecalcBalances(True)
         MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
         txt = "%s Invalid One-Sided Transactions DELETED!" %(len(toDelete))
@@ -21608,7 +21621,7 @@ now after saving the file, restart Moneydance
     def convert_stock_avg_cst_control():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
@@ -21622,7 +21635,7 @@ now after saving the file, restart Moneydance
             myPopupInformationBox(toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
-        accountsList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(14))
+        accountsList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(14))
         accountsList = sorted(accountsList, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
 
         accountSec = JOptionPane.showInputDialog(toolbox_frame_,
@@ -21707,7 +21720,7 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         selectHomeScreen()      # Stops the LOT Control box popping up.....
 
@@ -21721,7 +21734,7 @@ now after saving the file, restart Moneydance
             myPopupInformationBox(toolbox_frame_,"NO CHANGES MADE!",theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
-        accountsList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(13))
+        accountsList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(13))
         accountsList = sorted(accountsList, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
 
         accountSec = JOptionPane.showInputDialog(toolbox_frame_,
@@ -21979,7 +21992,7 @@ now after saving the file, restart Moneydance
     def show_open_share_lots():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         class LotInfo:
             def __init__(self, _date, _buyPrice, _availableShares, _costBasis, _currentPrice, _currentValue):
@@ -22099,7 +22112,7 @@ now after saving the file, restart Moneydance
 
         _THIS_METHOD_NAME = "DIAGNOSE MATCHED LOT DATA"
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         book = MD_REF.getCurrentAccountBook()
         date = datetime.datetime.today()
@@ -22278,7 +22291,7 @@ now after saving the file, restart Moneydance
                 Common.getPreferencesFile(),
                 ThemeInfo.customThemeFile,
                 MD_REF.getLogFile(),
-                MD_REF.getCurrentAccount().getBook().getRootFolder(),
+                MD_REF.getCurrentAccountBook().getRootFolder(),
                 Common.getFeatureModulesDirectory(),
                 FileUtils.getBackupDir(MD_REF.getPreferences()),
                 File(MD_REF.getUI().getPreferences().getSetting("backup.last_saved", ""))]
@@ -22490,7 +22503,7 @@ now after saving the file, restart Moneydance
         if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return
         if not backup_config_dict():  return
 
-        fCurrentFilePath = MD_REF.getCurrentAccount().getBook().getRootFolder()
+        fCurrentFilePath = MD_REF.getCurrentAccountBook().getRootFolder()
         currentFilePath = fCurrentFilePath.getCanonicalPath()
 
         newName = currentName
@@ -23695,7 +23708,7 @@ now after saving the file, restart Moneydance
             myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
-        dropdownAccts=AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(5))
+        dropdownAccts=AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(5))
         dropdownAccts=sorted(dropdownAccts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))  # type: [Account]
         dropdownAccts.insert(0,"<NONE: USE QIF SPECIFIED>")
 
@@ -23715,14 +23728,14 @@ now after saving the file, restart Moneydance
         user_selectDecimal.setSelectedIndex(0)
 
         dropdownCurrs=[]
-        currencies = MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies()
+        currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
         for curr in currencies:
             if curr.getCurrencyType() != CurrencyType.Type.CURRENCY: continue                                           # noqa
             dropdownCurrs.append(curr)
         dropdownCurrs=sorted(dropdownCurrs, key=lambda sort_x: (sort_x.getName().upper()))
         label_currency = JLabel("Select Default Currency for any Accounts created:")
         user_currency = JComboBox(dropdownCurrs)
-        user_currency.setSelectedItem(MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType())
+        user_currency.setSelectedItem(MD_REF.getCurrentAccountBook().getCurrencies().getBaseType())
 
         IMPORT_TYPE = ["QIF_MODE_TRANSFER", "QIF_MODE_DOWNLOAD"]
         # label_import_type = JLabel("Select Import Type")
@@ -23862,7 +23875,7 @@ now after saving the file, restart Moneydance
         myPrint("B",theMsg)
         myPrint("J",">>EXECUTING IMPORT................\n")
 
-        MD_REF.importQIFIntoAccount(    MD_REF.getCurrentAccount().getBook(),
+        MD_REF.importQIFIntoAccount(    MD_REF.getCurrentAccountBook(),
                                             File(QIFfilename),
                                             theQIFFormat,                           # one of Common.QIF_FORMAT_MMDDYY, QIF_FORMAT_YYMMDD, QIF_FORMAT_DDMMYY, QIF_FORMAT_AUTO
                                             user_selectDecimal.getSelectedItem(),   # your decimal place character.
@@ -24147,7 +24160,7 @@ now after saving the file, restart Moneydance
 
             if lResetAll or lResetRegFilters or lResetRegViews:
                 # Now get the same data for each account
-                accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), MyAcctFilter(6))
+                accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(6))
 
                 if not lReset:
                     configData.append("\nDATA STORED INTERNALLY BY ACCOUNT (not config.dict):")
@@ -24267,7 +24280,7 @@ now after saving the file, restart Moneydance
                                     splitKey = theKey.split('.')
                                     if splitKey[0] != last:
                                         last = splitKey[0]
-                                        lookupAcct = MD_REF.getCurrentAccount().getBook().getAccountByUUID(splitKey[0])
+                                        lookupAcct = MD_REF.getCurrentAccountBook().getAccountByUUID(splitKey[0])
                                         if lookupAcct:
                                             configData.append("\n>>Account: %s" %(lookupAcct.getAccountName()))
                                         else:
@@ -24281,7 +24294,7 @@ now after saving the file, restart Moneydance
                             if theKey.endswith(".col_widths."+theTypeToCheck):
 
                                 splitKey = theKey.split('.')
-                                lookupAcct = MD_REF.getCurrentAccount().getBook().getAccountByUUID(splitKey[0])
+                                lookupAcct = MD_REF.getCurrentAccountBook().getAccountByUUID(splitKey[0])
 
                                 if lookupAcct: continue     # Found one, probably caught above, so skip
 
@@ -24317,7 +24330,7 @@ now after saving the file, restart Moneydance
                             splitKey = theKey.split('.')
                             if splitKey[0] != last:
                                 last = splitKey[0]
-                                lookupAcct = MD_REF.getCurrentAccount().getBook().getAccountByUUID(splitKey[0])
+                                lookupAcct = MD_REF.getCurrentAccountBook().getAccountByUUID(splitKey[0])
                                 if lookupAcct:
                                     configData.append("\n>>Account: %s" %(lookupAcct.getAccountName()))
                                 else:
@@ -24385,7 +24398,7 @@ now after saving the file, restart Moneydance
         get_set_config(st, tk, True, lAll, lWinLocations, lRegFilters, lRegViews)
 
         MD_REF.savePreferences()                                        # save config.dict
-        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()   # Flush local storage to safe/settings
+        MD_REF.getCurrentAccountBook().getLocalStorage().save()   # Flush local storage to safe/settings
 
         txt = "SUCCESS - %s data reset in config.dict config file, internally by Account & Local Storage.. RESTART MD" %(resetWhat)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -24415,7 +24428,7 @@ now after saving the file, restart Moneydance
             return
 
         if confirm_backup_confirm_disclaimer(toolbox_frame_, "SUPPRESS DROPBOX WARNING", "Suppress 'Your data is stored in a shared folder' (Dropbox) message?"):
-            suppressFile = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "suppress_file_in_dropbox_restriction.txt")
+            suppressFile = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), "suppress_file_in_dropbox_restriction.txt")
             if not os.path.exists(suppressFile):
                 try:
                     x = open(suppressFile, "w")
@@ -24451,7 +24464,7 @@ now after saving the file, restart Moneydance
             return
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
-        MD_REF.getCurrentAccount().getBook().saveTrunkFile()
+        MD_REF.getCurrentAccountBook().saveTrunkFile()
 
         txt = "%s: Save Trunk Executed!" %(_THIS_METHOD_NAME)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -24491,7 +24504,7 @@ now after saving the file, restart Moneydance
 
         currentName = currentBook.getName().strip()
 
-        fCurrentFilePath = MD_REF.getCurrentAccount().getBook().getRootFolder()
+        fCurrentFilePath = MD_REF.getCurrentAccountBook().getRootFolder()
         currentFilePath = fCurrentFilePath.getCanonicalPath()
 
         # newName = AccountBook.stripNonFilenameSafeCharacters(currentName+"_CLONE_%s" %(System.currentTimeMillis()))
@@ -24994,7 +25007,7 @@ now after saving the file, restart Moneydance
         SyncerDebug.changeState(debug)
 
         if lSyncPush:
-            MD_REF.getCurrentAccount().getBook().getSyncer().forceResyncFromLocal()
+            MD_REF.getCurrentAccountBook().getSyncer().forceResyncFromLocal()
             myPrint("B", "@@ Called .getSyncer().forceResyncFromLocal() to Force Push (Re)Sync to remotes...")
             # storage.writeToFileAtomically(PyByteArray(), PUSH_RESYNC)
             # myPrint("B", "@@ Created: %s" %(PUSH_RESYNC))
@@ -25003,7 +25016,7 @@ now after saving the file, restart Moneydance
             MD_REF.getUI().getCurrentAccounts().setNeedsResetFromSyncFolder()
             myPrint("B", "@@ Called .getCurrentAccounts().setNeedsResetFromSyncFolder() to Force Pull (Re)Sync from remotes...")
 
-            # MD_REF.getCurrentAccount().getBook().getSyncer().resetSyncingAndWaitForRemoteData()
+            # MD_REF.getCurrentAccountBook().getSyncer().resetSyncingAndWaitForRemoteData()
             # myPrint("B", "@@ Called .getSyncer().resetSyncingAndWaitForRemoteData() to Force Pull (Re)Sync from remotes...")
 
             # storage.writeToFileAtomically(PyByteArray(), PULL_RESYNC)
@@ -25084,7 +25097,7 @@ now after saving the file, restart Moneydance
     def advanced_options_edit_parameter_keys():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         if not myPopupAskQuestion(toolbox_frame_,"ADVANCED: EDIT OBJs MODE","DANGER - ARE YOU SURE YOU WANT TO VISIT THIS FUNCTION?", theMessageType=JOptionPane.ERROR_MESSAGE):
             txt = "ADVANCED: Edit Obj Mode - User declined to proceed - aborting.."
@@ -25342,7 +25355,7 @@ now after saving the file, restart Moneydance
     def remove_int_external_files_settings():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         options = ["Remove 'External' entries from File>Open menu [and optionally DELETE dataset from disk too]",
                    "DELETE 'Internal' / Default location dataset(s) from Disk (which will also remove entry from File>Open)"]
@@ -25409,7 +25422,7 @@ now after saving the file, restart Moneydance
     def advanced_options_edit_prefs():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
-        if MD_REF.getCurrentAccount().getBook() is None: return
+        if MD_REF.getCurrentAccountBook() is None: return
 
         _ADVANCED_CONFIGADD          = 0
         _ADVANCED_CONFIGCHG          = 1
@@ -25727,7 +25740,7 @@ now after saving the file, restart Moneydance
 
         MD_REF.saveCurrentAccount()
 
-        safeFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe")
+        safeFullPath = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), "safe")
 
         fp = os.path.join(safeFullPath, PROCESSED_FILES)
         if not os.path.exists(fp):
@@ -26031,7 +26044,7 @@ now after saving the file, restart Moneydance
         MD_REF.savePreferences()
 
         output += "Flushing memory and saving local storage settings to disk....\n"
-        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()
+        MD_REF.getCurrentAccountBook().getLocalStorage().save()
 
         output += "Flushing memory and saving in memory dataset changes to disk (log files)....\n"
         MD_REF.saveCurrentAccount()
@@ -26041,7 +26054,7 @@ now after saving the file, restart Moneydance
 
         if not SIMULATE and SAVE_TRUNK:  # Now that we check processed.dct, not strictly necessary....
             output += "Flushing dataset back to trunk file....\n"
-            MD_REF.getCurrentAccount().getBook().saveTrunkFile()
+            MD_REF.getCurrentAccountBook().saveTrunkFile()
 
         output += "\n" \
                   "DELETING LOG FILES...\n" \
@@ -26117,7 +26130,7 @@ now after saving the file, restart Moneydance
         myPopupInformationBox(toolbox_frame_, "Select a non-encrypted file. It will be encrypted and saved to TMP directory of current dataset (details in console log)")
 
         LS = MD_REF.getCurrentAccountBook().getLocalStorage()
-        # startingFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath())
+        # startingFullPath = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath())
 
         theTitle = "Select file to import (encrypt) and save in the LocalStorage TMP directory"
         selectedFile = getFileFromFileChooser(toolbox_frame_,     # Parent frame or None
@@ -26154,7 +26167,7 @@ now after saving the file, restart Moneydance
             LS.writeFile(tmpFile, fis)
             fis.close()
             helper = MD_REF.getPlatformHelper()
-            helper.openDirectory(File(os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe","tmp")))
+            helper.openDirectory(File(os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), "safe","tmp")))
         except:
             txt = "%s: SORRY - Failed to import (encrypt) file %s (view console error log)" %(_THIS_METHOD_NAME, selectedFile)
             setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -26218,7 +26231,7 @@ now after saving the file, restart Moneydance
                                              "I will decrypt and save it to TMP directory in this current dataset (details in console log)")
 
         LS = MD_REF.getCurrentAccountBook().getLocalStorage()
-        internalSafeFullPath = os.path.join(MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath(), "safe")
+        internalSafeFullPath = os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), "safe")
 
         selectedFile = file_chooser_wrapper(_THIS_METHOD_NAME, internalSafeFullPath, "Select Moneydance internal file to extract and copy to TMP directory", "EXTRACT")
         if selectedFile is None: return
@@ -26232,7 +26245,7 @@ now after saving the file, restart Moneydance
 
         truncatedPath = selectedFile[searchForSafe+len(".moneydance"+os.path.sep+"safe"+os.path.sep):]
 
-        tmpDir = File(MD_REF.getCurrentAccount().getBook().getRootFolder(), "tmp")
+        tmpDir = File(MD_REF.getCurrentAccountBook().getRootFolder(), "tmp")
         tmpDir.mkdirs()
         copyFileName = File(selectedFile).getName()
         tmpFile = File.createTempFile(str(System.currentTimeMillis() % 10000L), "-"+copyFileName, tmpDir)
@@ -26611,7 +26624,7 @@ now after saving the file, restart Moneydance
             return
 
         MD_REF.getUI().getCurrentAccounts().setIsMasterSyncNode(False)
-        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()        # Flush local storage to safe/settings
+        MD_REF.getCurrentAccountBook().getLocalStorage().save()        # Flush local storage to safe/settings
 
         txt = "%s: Dataset DEMOTED to Secondary (non-Primary/Master) Node - MONEYDANCE WILL NOW RESTART" %(_THIS_METHOD_NAME)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -26629,7 +26642,7 @@ now after saving the file, restart Moneydance
         _PARAM_KEY = "netsync.sync_type"
         _NONE = "none"
 
-        storage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+        storage = MD_REF.getCurrentAccountBook().getLocalStorage()
 
         if storage.get(_PARAM_KEY) is None or storage.get(_PARAM_KEY) == _NONE:
             txt = "Your Sync is already disabled/turned off! NO ACTION TAKEN"
@@ -26647,7 +26660,7 @@ now after saving the file, restart Moneydance
             return
 
         storage.put(_PARAM_KEY, _NONE)
-        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()        # Flush local storage to safe/settings
+        MD_REF.getCurrentAccountBook().getLocalStorage().save()        # Flush local storage to safe/settings
 
         txt = "Sync ('%s')has been force disabled/turned OFF - MONEYDANCE WILL NOW RESTART" %(_PARAM_KEY)
         setDisplayStatus(txt, "R"); myPrint("B", txt)
@@ -26684,7 +26697,7 @@ now after saving the file, restart Moneydance
 
         _THIS_METHOD_NAME = "ADVANCED: FORCE RESET SYNC SETTINGS"
 
-        storage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+        storage = MD_REF.getCurrentAccountBook().getLocalStorage()
 
         if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Force reset all Sync settings, generate new SyncID & disable Sync?"):
             return
@@ -26770,7 +26783,7 @@ now after saving the file, restart Moneydance
 
         shouldDownloadAllAttachments = getShouldDownloadAllAttachments()
 
-        storage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+        storage = MD_REF.getCurrentAccountBook().getLocalStorage()
 
         if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Toggle Sync Download Attachments setting to: %s"
                                                                                     %("OFF" if shouldDownloadAllAttachments else "ON")):
@@ -26795,7 +26808,7 @@ now after saving the file, restart Moneydance
 
     def checkForREADONLY():
         checkDropbox = tell_me_if_dropbox_folder_exists()
-        datasetPath = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+        datasetPath = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
 
         if not os.access(datasetPath, os.W_OK) or (checkDropbox and not os.access(checkDropbox, os.W_OK)):
             myPrint("B", "@@@ ERROR: YOUR KEY FOLDERS ARE NOT WRITABLE! @@@")
@@ -27270,13 +27283,13 @@ now after saving the file, restart Moneydance
 
                 uuid = uuid.strip()
 
-                obj = MD_REF.getCurrentAccount().getBook().getItemForID(uuid)
-                if obj is None: obj = MD_REF.getCurrentAccount().getBook().getItemForID(uuid.lower())                   # noqa
+                obj = MD_REF.getCurrentAccountBook().getItemForID(uuid)
+                if obj is None: obj = MD_REF.getCurrentAccountBook().getItemForID(uuid.lower())                   # noqa
 
                 # We search Txns too as Splits by their UUID (for example) can only be found this way...
-                if obj is None: obj = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTxnByID(uuid)
-                if obj is None: obj = MD_REF.getCurrentAccount().getBook().getTransactionSet().getTxnByID(uuid.lower()) # noqa
-                if obj is None: obj = TxnUtil.getTxnByID(MD_REF.getCurrentAccount().getBook().getTransactionSet(), uuid)
+                if obj is None: obj = MD_REF.getCurrentAccountBook().getTransactionSet().getTxnByID(uuid)
+                if obj is None: obj = MD_REF.getCurrentAccountBook().getTransactionSet().getTxnByID(uuid.lower()) # noqa
+                if obj is None: obj = TxnUtil.getTxnByID(MD_REF.getCurrentAccountBook().getTransactionSet(), uuid)
 
                 if obj is None: return
 
@@ -28689,7 +28702,7 @@ now after saving the file, restart Moneydance
 
                     _NONE = "none"
                     _PARAM_KEY = "netsync.sync_type"
-                    storage = MD_REF.getCurrentAccount().getBook().getLocalStorage()
+                    storage = MD_REF.getCurrentAccountBook().getLocalStorage()
 
                     while True:
                         if MD_REF.getCurrentAccountBook() is None: return
@@ -28777,7 +28790,7 @@ now after saving the file, restart Moneydance
                             return
 
                         MD_REF.getUI().getCurrentAccounts().setIsMasterSyncNode(True)
-                        MD_REF.getCurrentAccount().getBook().getLocalStorage().save()        # Flush local storage to safe/settings
+                        MD_REF.getCurrentAccountBook().getLocalStorage().save()        # Flush local storage to safe/settings
 
                         txt = "Dataset Promoted to Primary/Master Node/Dataset - MONEYDANCE WILL NOW RESTART"
                         setDisplayStatus(txt, "R")
@@ -28812,7 +28825,7 @@ now after saving the file, restart Moneydance
                 # diag = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False, OKButtonText="WAIT")
                 # diag.go()
 
-                startDir = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+                startDir = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
                 output += "Dataset path: %s\n\n" %(startDir)
 
                 attach = MD_REF.getCurrentAccountBook().getAttachmentsFolder()
@@ -29376,7 +29389,7 @@ now after saving the file, restart Moneydance
                 fixInvalidWindowLocations_button.setVisible(False)
                 GlobalVars.allButtonsList.append(fixInvalidWindowLocations_button)
 
-            if MD_REF.getCurrentAccount().getBook().getLocalStorage().getStr("migrated.netsync.dropbox.fileid", None):
+            if MD_REF.getCurrentAccountBook().getLocalStorage().getStr("migrated.netsync.dropbox.fileid", None):
                 FixDropboxOneWaySync_button = MyJButton("<html><center>FIX: Remove Legacy<BR>Dropbox Sync Key</center></html>", adhocButton=True)
                 FixDropboxOneWaySync_button.setToolTipText("This removes the key 'migrated.netsync.dropbox.fileid' to fix Dropbox One-way & iCloud Syncing issues (reset_sync_and_dropbox_settings.py)")
                 FixDropboxOneWaySync_button.addActionListener(self.FixDropboxOneWaySyncButtonAction(FixDropboxOneWaySync_button))
@@ -29700,7 +29713,7 @@ now after saving the file, restart Moneydance
             # Check for accounts that have both OFX and MD+ configured.....
             if isMDPlusEnabledBuild():
                 output = None
-                allAccounts = sorted(AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccount().getBook(), AcctFilter.ALL_ACCOUNTS_FILTER), key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+                allAccounts = sorted(AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), AcctFilter.ALL_ACCOUNTS_FILTER), key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
                 for acct in allAccounts:
                     if not acct.canDownloadTxns(): continue
                     lOFXConfigured = lMDPlusConfigured = False
@@ -29751,7 +29764,7 @@ now after saving the file, restart Moneydance
 
             # Check for no currencies.. Popup alert message
             # noinspection PyUnresolvedReferences
-            allCurrs = [c for c in MD_REF.getCurrentAccount().getBook().getCurrencies().getAllCurrencies() if c.getCurrencyType() == CurrencyType.Type.CURRENCY]
+            allCurrs = [c for c in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies() if c.getCurrencyType() == CurrencyType.Type.CURRENCY]
             if len(allCurrs) < 1:
                 MyPopUpDialogBox(toolbox_frame_, "PROBLEM DETECTED",
                                                  "You seem to have no Currencies?!\n" 
@@ -29894,7 +29907,7 @@ now after saving the file, restart Moneydance
 
             # Check for repeated opening of backup files
             try:
-                datapath = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+                datapath = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
                 datafile = os.path.basename(datapath)
                 datafilenew = datafile.replace(".moneydance","")
                 if len(datafilenew) > 17:
@@ -29942,7 +29955,7 @@ Script/extension is analysing your moneydance & system settings....
     else:
 
         # Check based on fix_restored_accounts.py
-        _root = MD_REF.getCurrentAccount().getBook().getRootAccount()   # Should never happen!
+        _root = MD_REF.getCurrentAccountBook().getRootAccount()   # Should never happen!
         if _root is None or _root.getAccountType() != Account.AccountType.ROOT:                                         # noqa
             msg = "@@ ERROR: Detected that your ROOT Account is Missing or not type ROOT! Contact support or the Author of Toolbox for a fix"
             myPrint("B", msg)
