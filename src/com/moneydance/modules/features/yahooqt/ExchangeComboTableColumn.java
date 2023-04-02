@@ -129,6 +129,7 @@ public class ExchangeComboTableColumn extends TableColumn
       JLabel result = (JLabel) super.getTableCellRendererComponent(table, value, isSelected,
               hasFocus, row, column);
       result.setBorder(getComponentBorder(false, hasFocus));
+      if(table==null) return result; // skip further configuration if table==null (ie the scrollpane is calculating sizes)
       if (_isHeaderCell) {
         final JTableHeader header = table.getTableHeader();
         if (header != null) {
@@ -151,7 +152,7 @@ public class ExchangeComboTableColumn extends TableColumn
             result.setBackground(_mdGui.getColors().homePageAltBG);
           }
         }
-        SecuritySymbolTableModel model = (SecuritySymbolTableModel)table.getModel();
+        SecuritySymbolTableModel model = (SecuritySymbolTableModel) table.getModel();
         result.setToolTipText(model.getToolTip(row, column));
       } // if not the header
       return result;

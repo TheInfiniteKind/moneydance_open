@@ -10,8 +10,9 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.DateRange;
 import com.infinitekind.util.DateUtil;
+import com.moneydance.modules.features.yahooqt.tdameritrade.Candle;
+import com.moneydance.modules.features.yahooqt.tdameritrade.History;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ import java.util.List;
 /**
  * Stores the result of an attempt to retrieve information for a security or currency
  */
-class DownloadInfo {
+public class DownloadInfo {
   CurrencyType security;
   CurrencyType relativeCurrency; // the currency in which prices are specified by the source
   String fullTickerSymbol;
@@ -41,23 +42,23 @@ class DownloadInfo {
   String toolTip;
   String resultText;
   
-  List<DownloadException> errors = new ArrayList<>();
-  private List<StockRecord> history = new ArrayList<>();
+  final List<DownloadException> errors = new ArrayList<>();
+  private final List<StockRecord> history = new ArrayList<>();
   
-  DownloadInfo(CurrencyType security, BaseConnection connection) {
+  DownloadInfo(CurrencyType security, DownloadModel model) {
     this.security = security;
-    if(connection==null) {
+    if(model==null) {
       this.skipped = true;
       return;
     }
     if (security.getCurrencyType() == CurrencyType.Type.SECURITY) {
-      initFromSecurity(connection);
+      initFromSecurity(model);
     } else {
-      initFromCurrency(connection);
+      initFromCurrency();
     }
   }
   
-  private void initFromSecurity(BaseConnection connection) {
+  private void initFromSecurity(DownloadModel model) {
     SymbolData symbolData = SQUtil.parseTickerSymbol(security);
     if(symbolData==null) {
       isValidForDownload = false;
@@ -65,12 +66,12 @@ class DownloadInfo {
       return;
     }
     
-    exchange = connection.getExchangeForSecurity(symbolData, security);
+    exchange = model.getExchangeForSecurity(symbolData, security);
     if (exchange != null) {
       priceMultiplier = exchange.getPriceMultiplier();
     }
     
-    fullTickerSymbol = connection.getFullTickerSymbol(symbolData, exchange);
+    fullTickerSymbol = model.getFullTickerSymbol(symbolData, exchange);
     if(fullTickerSymbol==null) {
       isValidForDownload = false;
       recordError("No ticker symbol for: '" + security);
@@ -82,7 +83,7 @@ class DownloadInfo {
     
     // check for a relative currency that is specific to the provider/exchange
     if (relativeCurrency == null) {
-      String currID = connection.getCurrencyCodeForQuote(security.getTickerSymbol(), exchange);
+      String currID = model.getCurrencyCodeForQuote(security.getTickerSymbol(), exchange);
       if (!SQUtil.isBlank(currID)) {
         relativeCurrency = security.getBook().getCurrencies().getCurrencyByIDString(currID);
       }
@@ -105,13 +106,14 @@ class DownloadInfo {
   }
 
   
-  private void initFromCurrency(BaseConnection connection) {
+  private void initFromCurrency() {
     fullTickerSymbol = security.getIDString();
     relativeCurrency = security.getBook().getCurrencies().getBaseType();
     isValidForDownload = fullTickerSymbol.length()==3 && relativeCurrency.getIDString().length()==3;
     
     if(fullTickerSymbol.equals(relativeCurrency.getIDString())) { // the base currency is always 1.0
       isValidForDownload = false;
+      this.rate = 1.0;
       recordError("Base currency rate is a constant 1.0");
     } else if(!isValidForDownload) {
       recordError("Invalid currency symbol: '"+fullTickerSymbol
@@ -205,10 +207,8 @@ class DownloadInfo {
   }
   
   public void buildPriceDisplay(CurrencyType priceCurrency, char decimal) {
-    if (history != null) {
-      for (StockRecord record : history) {
-        record.updatePriceDisplay(priceCurrency, decimal);
-      }
+    for (StockRecord record : history) {
+      record.updatePriceDisplay(priceCurrency, decimal);
     }
   }
   
@@ -299,13 +299,11 @@ class DownloadInfo {
       long amount = (record.closeRate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / record.closeRate);
       record.priceDisplay = relativeCurrency.formatFancy(amount, model.getDecimalDisplayChar());
     }
-    
-    long amount = (rate == 0.0) ? 0 : relativeCurrency.getLongValue(1.0 / rate);
-    final char decimal = model.getPreferences().getDecimalChar();
+    StockRecord latest = findMostRecentValidRecord();
     return MessageFormat.format(model.getResources().getString(L10NStockQuotes.SECURITY_PRICE_DISPLAY_FMT),
                                 security.getName(),
                                 model.getUIDateFormat().format(DateUtil.getStrippedDateInt()),
-                                relativeCurrency.formatFancy(amount, decimal));
+                                latest.priceDisplay);
   }
   
   String buildPriceLogText(StockQuotesModel model) {
@@ -344,4 +342,16 @@ class DownloadInfo {
     }
   }
   
+  public void addHistory(History history)
+  {
+  	if (history.candles != null)
+	{
+		history.candles.stream().forEach(candle -> addDayOfData(candle));
+	}
+  }
+  
+  private void addDayOfData(Candle candle)
+  {
+  	history.add(new StockRecord(candle, priceMultiplier));
+  }
 }

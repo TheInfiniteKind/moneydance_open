@@ -14,10 +14,11 @@ import com.infinitekind.moneydance.model.Legacy;
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.moneydance.apps.md.controller.time.TimeInterval;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Stock Quote Utility methods. Most are copied from MD2010r2+ StringUtils or UiUtil, but this
@@ -56,15 +57,9 @@ final class SQUtil {
   }
 
   static String urlEncode(final String toEncode) {
-    String result;
-    try {
-      result = URLEncoder.encode(toEncode, N12EStockQuotes.URL_ENC);
-    } catch (UnsupportedEncodingException e) {
-      result = toEncode;
-    }
-    return result;
+    return URLEncoder.encode(toEncode, StandardCharsets.UTF_8);
   }
-
+  
   static int getNextDate(int date, TimeInterval interval) {
     switch (interval) {
       case WEEK: return Util.incrementDate(date, 0, 0, 7);
@@ -148,7 +143,7 @@ final class SQUtil {
    * @param candidate the String to evaluate.
    * @return true if candidate is null or "" (empty string)
    */
-  static boolean isEmpty(String candidate) {
+  private static boolean isEmpty(String candidate) {
     return candidate == null || candidate.length() == 0;
   }
 
@@ -263,7 +258,7 @@ final class SQUtil {
    * MD2015+ UUID-based identifier, then the old integer identifier, followed by the 
    * text currency ID which is usually based on the currency code or ticker symbol. */
   public static CurrencyType getCurrencyWithID(AccountBook book, String currencyID) {
-    if(book==null || SQUtil.isEmpty(currencyID)) return null;
+    if(book==null || isBlank(currencyID)) return null;
     CurrencyTable table = book.getCurrencies();
     if(table==null) return null;
     

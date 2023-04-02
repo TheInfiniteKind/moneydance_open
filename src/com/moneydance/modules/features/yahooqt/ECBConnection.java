@@ -2,7 +2,7 @@ package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.DateUtil;
-import com.moneydance.util.StringUtils;
+import com.infinitekind.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -169,11 +169,11 @@ public class ECBConnection extends BaseConnection {
    * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
    */
   public void updateExchangeRate(DownloadInfo downloadInfo) {
-    downloadInfo.recordError("Implementation error: IEXTrading does not provide exchange rates");
+    downloadInfo.recordError("Implementation error: ECB offers exchange rates in batch, so you shouldn't see this message.");
   }
   
   protected void updateSecurity(DownloadInfo downloadInfo) {
-    downloadInfo.recordError("Implementation error: IEXTrading connection should batch requests");
+    downloadInfo.recordError("Implementation error: ECB does not offer security prices");
   }
   
 

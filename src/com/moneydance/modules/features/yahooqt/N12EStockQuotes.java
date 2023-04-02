@@ -9,6 +9,9 @@
 package com.moneydance.modules.features.yahooqt;
 
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 /**
  * <p>Non-localizable (N12E) string statics. Keeping all strings out of the Java code makes it
  * much easier to know that everything is localized. Additionally, it forces the developer to
@@ -45,17 +48,6 @@ class N12EStockQuotes {
   static final String SIZE_KEY = "yahooqt.size";
   /** Stores the window location of the main configuration dialog. */
   static final String LOCATION_KEY = "yahooqt.location";
-
-  /**
-   * The character set to encode web URLs in. Per
-   * <a href="http://www.ietf.org/rfc/rfc1738.txt">RFC 1738</a>, "URLs are written only with the
-   * graphic printable characters of the US-ASCII coded character set." However, the Javadoc for
-   * {@link java.net.URLEncoder} specifies that the W3C states that UTF-8 be used. Since UTF-8 is
-   * one of the standard character sets that must be defined by every Java implementation, we simply
-   * select it for encoding the URLs. See "Standard charsets" under
-   * {@link java.nio.charset.Charset}.
-   */
-  static final String URL_ENC = "UTF-8";
 
   /** Event fired when a new file is opened.   */
   static final String MD_OPEN_EVENT_ID = "md:file:opened";

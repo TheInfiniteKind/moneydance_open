@@ -30,18 +30,12 @@ public abstract class BaseConnection {
 
   private final String connectionID;
   private final int _capabilities;
-  protected final StockQuotesModel model;
-  
-  private BaseConnection() {
-    model = null;
-    _capabilities = 0;
-    this.connectionID = "test";
-  }
+  protected final DownloadModel model;
   
   public BaseConnection(String connectionID, StockQuotesModel model, final int capabilities) {
     this.connectionID = connectionID;
-    this.model = model;
     this._capabilities = capabilities;
+    this.model = new DownloadModel(model, this);
   }
 
   public final String getConnectionID() {
@@ -66,7 +60,9 @@ public abstract class BaseConnection {
    * @return the currency code from the ticker symbol, or if no embedded currency, the currency code
    * as specified by the given stock exchange.
    */
-  public abstract String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange);
+  public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange) {
+    return null;
+  }
 
 
   /**
@@ -91,7 +87,7 @@ public abstract class BaseConnection {
     ResourceProvider res = model.getResources();
     float progressPercent = 0.0f;
     final float progressIncrement = currenciesToUpdate.isEmpty() ? 1.0f :
-                                    100.0f / (float)currenciesToUpdate.size();
+                                    1.0f / (float)currenciesToUpdate.size();
     for (DownloadInfo downloadInfo : currenciesToUpdate) {
       System.err.println("updating currency: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
       updateExchangeRate(downloadInfo);
@@ -106,10 +102,10 @@ public abstract class BaseConnection {
                                           downloadInfo.security.getIDString(),
                                           downloadInfo.relativeCurrency.getIDString());
       } else {
-        message = downloadInfo.buildRateDisplayText(model);
-        logMessage = downloadInfo.buildRateLogText(model);
+        message = downloadInfo.buildRateDisplayText(model.getQuotesModel());
+        logMessage = downloadInfo.buildRateLogText(model.getQuotesModel());
       }
-      model.showProgress(progressPercent, message);
+      model.getQuotesModel().showProgress(progressPercent, message);
       if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
       didUpdateItem(downloadInfo);
     }
@@ -118,10 +114,10 @@ public abstract class BaseConnection {
   }
   
   public boolean updateSecurities(List<DownloadInfo> securitiesToUpdate) {
-    ResourceProvider res = model.getResources();
+    ResourceProvider res = model.getQuotesModel().getResources();
     float progressPercent = 0.0f;
     final float progressIncrement = securitiesToUpdate.isEmpty() ? 1.0f :
-                                    100.0f / (float)securitiesToUpdate.size();
+                                    1.0f / (float)securitiesToUpdate.size();
     boolean success = true;
     for (DownloadInfo downloadInfo : securitiesToUpdate) {
       System.err.println("updating security: "+downloadInfo.security+" ("+downloadInfo.fullTickerSymbol+")");
@@ -136,10 +132,10 @@ public abstract class BaseConnection {
                                           downloadInfo.security.getIDString(),
                                           downloadInfo.relativeCurrency.getIDString());
       } else {
-        message = downloadInfo.buildPriceDisplayText(model);
-        logMessage = downloadInfo.buildPriceLogText(model);
+        message = downloadInfo.buildPriceDisplayText(model.getQuotesModel());
+        logMessage = downloadInfo.buildPriceLogText(model.getQuotesModel());
       }
-      model.showProgress(progressPercent, message);
+      model.getQuotesModel().showProgress(progressPercent, message);
       if(Main.DEBUG_YAHOOQT) System.err.println(logMessage);
       
       didUpdateItem(downloadInfo);
@@ -158,7 +154,7 @@ public abstract class BaseConnection {
    * the current data file, the method does nothing.
    */
   public void setDefaultCurrency() {
-    final Account root = model.getRootAccount();
+    final Account root = model.getQuotesModel().getRootAccount();
     if (root == null) return;
     CurrencyType currency = root.getBook().getCurrencies().getCurrencyByIDString("USD");
     if (currency == null) return;
@@ -200,63 +196,38 @@ public abstract class BaseConnection {
     }
   }
 
-  /**
-   * Return the currency appropriate for the price quotes for the given security. For example a
-   * U.S. stock is quoted in U.S. Dollars but a Brazilian stock could be quoted in Brazilian reals.
-   * @param securityCurrency The security to query.
-   * @return The currency that price quotes should use, or <code>null</code> if it cannot be
-   * determined.
-   */
-  public CurrencyType getPriceCurrency(CurrencyType securityCurrency) {
-    // first check for a currency override in the symbol
-    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
-    if (parsedSymbol == null) return null;
-    CurrencyTable cTable = model.getRootAccount() == null ? null : model.getRootAccount().getBook().getCurrencies();
-    if (cTable == null) return null;
-    if (!SQUtil.isBlank(parsedSymbol.currencyCode)) {
-      // see if the override currency exists in the file
-      CurrencyType override = cTable.getCurrencyByIDString(parsedSymbol.currencyCode);
-      if (override != null) return override;
-    }
-    StockExchange exchange = getExchangeForSecurity(parsedSymbol, securityCurrency);
-    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
-    if (fullTickerSymbol == null) return null;
-    String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
-    // get the currency that the prices are specified in
-    return cTable.getCurrencyByIDString(priceCurrencyId);
-  }
-
-  /**
-   * Obtain the associated stock exchange for a particular security. This method first checks if
-   * the user has put any overrides in the security symbol. An override can be a Google prefix
-   * (such as 'LON:') or a Yahoo suffix (such as '.L'). If an override exists and maps to an
-   * exchange, then that exchange is returned. Otherwise the exchange listed in the symbol map
-   * for the security is used.
-   * @param symbol           The parsed symbol along with any overrides entered by the user.
-   * @param securityCurrency The security currency.
-   * @return The appropriate stock exchange definition to use for the given security.
-   */
-  protected StockExchange getExchangeForSecurity(SymbolData symbol, CurrencyType securityCurrency) {
-    if (!SQUtil.isBlank(symbol.prefix)) {
-      // check for a Google prefix override
-      StockExchange result = model.getExchangeList().findByGooglePrefix(symbol.prefix);
-      if (result != null) return result;
-    }
-    if (!SQUtil.isBlank(symbol.suffix)) {
-      // check for a Yahoo exchange suffix override
-      StockExchange result = model.getExchangeList().findByYahooSuffix(symbol.suffix);
-      if (result != null) return result;
-    }
-    // go with the exchange the user assigned to the security
-    return model.getSymbolMap().getExchangeForCurrency(securityCurrency);
-  }
+//  /**
+//   * Return the currency appropriate for the price quotes for the given security. For example a
+//   * U.S. stock is quoted in U.S. Dollars but a Brazilian stock could be quoted in Brazilian reals.
+//   * @param securityCurrency The security to query.
+//   * @return The currency that price quotes should use, or <code>null</code> if it cannot be
+//   * determined.
+//   */
+//  public CurrencyType getPriceCurrency(CurrencyType securityCurrency) {
+//    // first check for a currency override in the symbol
+//    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
+//    if (parsedSymbol == null) return null;
+//    CurrencyTable cTable = model.getRootAccount() == null ? null : model.getRootAccount().getBook().getCurrencies();
+//    if (cTable == null) return null;
+//    if (!SQUtil.isBlank(parsedSymbol.currencyCode)) {
+//      // see if the override currency exists in the file
+//      CurrencyType override = cTable.getCurrencyByIDString(parsedSymbol.currencyCode);
+//      if (override != null) return override;
+//    }
+//    StockExchange exchange = downloadInfo.getExchangeForSecurity(parsedSymbol, securityCurrency);
+//    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
+//    if (fullTickerSymbol == null) return null;
+//    String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
+//    // get the currency that the prices are specified in
+//    return cTable.getCurrencyByIDString(priceCurrencyId);
+//  }
   
   protected String getTimeZoneID() {
     // the default time zone is EDT in the U.S.
     return "America/New_York";  // could possibly also use 'US/Eastern'
   }
 
-  protected StockQuotesModel getModel() { return model; }
+  protected DownloadModel getModel() { return model; }
 
   protected String getCookie() { return null; }
   
@@ -266,7 +237,7 @@ public abstract class BaseConnection {
 
   protected DownloadException buildDownloadException(DownloadInfo securityCurrency, int result) {
     String message;
-    final ResourceProvider resources = model.getResources();
+    final ResourceProvider resources = model.getQuotesModel().getResources();
     switch (result) {
       case SnapshotImporter.ERROR_NO_INPUT_STREAM:
         message = resources.getString(L10NStockQuotes.IMPORT_ERROR_NO_INPUT_STREAM);
@@ -449,7 +420,7 @@ public abstract class BaseConnection {
           security.setDecimalPlaces(4);
           ctable.addCurrencyType(security);
         }
-        securities.add(new DownloadInfo(security, securityConnection));
+        securities.add(new DownloadInfo(security, securityConnection.getModel()));
       }
     }
     
@@ -465,7 +436,7 @@ public abstract class BaseConnection {
           currency.setDecimalPlaces(2);
           ctable.addCurrencyType(currency);
         }
-        currencies.add(new DownloadInfo(currency, currencyConnection));
+        currencies.add(new DownloadInfo(currency, currencyConnection.getModel()));
       }
     }
     

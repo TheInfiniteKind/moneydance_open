@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class StockQuotesModel extends BasePropertyChangeReporter
 {
-  static final NoConnection NO_CONNECTION = new NoConnection();
+  private static final NoConnection NO_CONNECTION = new NoConnection();
   private final StockExchangeList _exchangeList = new StockExchangeList();
   private final SymbolMap _symbolMap = new SymbolMap(_exchangeList);
   private final Map<CurrencyType, Set<Account>> _securityMap =
@@ -64,6 +64,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     dateFormat = new CustomDateFormat("ymd");
     
     _tableModel = new SecuritySymbolTableModel(this);
+    if (_preferences == null)
+    {
+      _preferences = UserPreferences.getInstance();
+    }
   }
 
   void setResources(final ResourceProvider resources) {
@@ -155,7 +159,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   Account getRootAccount() {
-    return book.getRootAccount();
+    return book==null ? null : book.getRootAccount();
   }
 
   AccountBook getBook() {
@@ -452,8 +456,10 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     _connectionList = new ArrayList<BaseConnection>();
     _connectionList.add(new IEXConnection(this));
     _connectionList.add(new AlphavantageConnection(this));
+    _connectionList.add(new TDAmeritradeConnection(this));
     //_connectionList.add(YahooConnection.getCurrenciesConnection(this)); // omitting yahoo rates since ECB bas much faster results
     _connectionList.add(YahooConnection.getDefaultConnection(this));
+    //_connectionList.add(FTConnection.getDefaultConnection(this));
     //_connectionList.add(YahooConnection.getUKConnection(this)); // omitting because https://ichart.yahoo.com/table.csv no longer resolves
     
     //_connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));

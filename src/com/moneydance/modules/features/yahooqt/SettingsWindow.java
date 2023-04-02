@@ -9,10 +9,11 @@
 package com.moneydance.modules.features.yahooqt;
 
 import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.CurrencyTable;
+import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.Util;
-import com.infinitekind.moneydance.model.CurrencyTable;
 import com.moneydance.apps.md.controller.time.TimeInterval;
 import com.moneydance.apps.md.view.gui.MDColors;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
@@ -20,25 +21,21 @@ import com.moneydance.apps.md.view.gui.OKButtonListener;
 import com.moneydance.apps.md.view.gui.OKButtonPanel;
 import com.moneydance.awt.GridC;
 import com.moneydance.awt.JDateField;
-import com.infinitekind.util.StringUtils;
 import com.moneydance.util.UiUtil;
 
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.event.MouseInputAdapter;
-import javax.swing.table.*;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridBagLayout;
-import java.awt.Point;
-import java.awt.Toolkit;
-import java.awt.Window;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableColumnModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
+import java.awt.*;
 import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -67,6 +64,7 @@ public class SettingsWindow
   private Action downloadAction;
   private Action testAction;
   private JButton testButton;
+  private JButton _apiKeyButton;
   
   private IntervalChooser _intervalSelect;
   private JDateField _nextDate;
@@ -110,6 +108,7 @@ public class SettingsWindow
   public void setVisible(boolean visible) {
     if (visible) {
       _model.buildSecurityMap();
+      updateAPIKeyButton();
       setSecurityTableColumnSizes();
       // display the last update date in the test status area
       updateStatusBlurb();
@@ -128,15 +127,19 @@ public class SettingsWindow
     // stock historical quotes
     _historyConnectionSelect = new JComboBox<>(_model.getConnectionList(BaseConnection.HISTORY_SUPPORT));
     _historyConnectionSelect.setSelectedItem(_model.getSelectedHistoryConnection());
+    _historyConnectionSelect.addItemListener(arg -> updateAPIKeyButton());
+    
     // currency exchange rates
     _ratesConnectionSelect = new JComboBox<>(_model.getConnectionList(BaseConnection.EXCHANGE_RATES_SUPPORT));
     _ratesConnectionSelect.setSelectedItem(_model.getSelectedExchangeRatesConnection());
-
     
     setAPIKeyAction = new AbstractAction() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        AlphavantageConnection.getAPIKey(_model, true);
+        BaseConnection bc = (BaseConnection) _historyConnectionSelect.getModel().getSelectedItem();
+        if (bc instanceof  APIKeyConnection) {
+          ((APIKeyConnection) bc).getAPIKey(true);
+        }
       }
     };
     setAPIKeyAction.putValue(Action.NAME, _resources.getString(L10NStockQuotes.SET_API_KEY));
@@ -155,6 +158,9 @@ public class SettingsWindow
     };
 
     statusSummaryPanel.setEditable(false);
+    statusSummaryPanel.setFocusable(false);
+    statusSummaryPanel.setForeground(new JLabel("x").getForeground());
+    statusSummaryPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
     statusSummaryPanel.addHyperlinkListener(new HyperlinkListener() {
       @Override
       public void hyperlinkUpdate(HyperlinkEvent event) {
@@ -204,7 +210,9 @@ public class SettingsWindow
     fieldPanel.add(new JLabel(SQUtil.getLabelText(_resources, L10NStockQuotes.SECURITIES_CONNECTION)),
                    GridC.getc(0, 1).label());
     fieldPanel.add(_historyConnectionSelect, GridC.getc(1, 1).field());
-    fieldPanel.add(new JButton(setAPIKeyAction), GridC.getc(1, 2).field());
+    
+    _apiKeyButton = new JButton(setAPIKeyAction);
+    fieldPanel.add(_apiKeyButton, GridC.getc(1, 2).field());
     
     // gap in middle
     fieldPanel.add(Box.createHorizontalStrut(UiUtil.DLG_HGAP), GridC.getc(2, 0));
@@ -256,7 +264,16 @@ public class SettingsWindow
     // setup actions for the controls
     addActions(context);
   }
-
+  
+  private void updateAPIKeyButton() {
+    BaseConnection bc = (BaseConnection) _historyConnectionSelect.getModel().getSelectedItem();
+    if (bc instanceof APIKeyConnection) {
+      _apiKeyButton.setVisible(true);
+    } else {
+      _apiKeyButton.setVisible(false);
+    }
+  }
+  
   private void setupTestControls() {
     if (_showingTestInfo) {
       _showTestLabel.setText(_resources.getString(L10NStockQuotes.BASIC));
@@ -270,10 +287,21 @@ public class SettingsWindow
       _table.getColumnModel().removeColumn(_testColumn);
     }
   }
-  
 
+
+
+  /**
+   * Return the hex string for the given colour. This does _not_ include any 0x or # prefix
+   * and is only the 6 digit hexadecimal string.
+   */
+  public static String hexStringForColor(Color color) {
+    if(color==null) return "";
+    return String.format("%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
+  }
+  
   private void updateStatusBlurb() {
-    StringBuilder msg = new StringBuilder("<html><body style=\"text-align:center; font: sans;\">");
+    String fgColor = hexStringForColor(new JLabel().getForeground());
+    StringBuilder msg = new StringBuilder("<html><body style=\"text-align:center; font: sans; color: #"+fgColor+";\">");
     if (_model.getRootAccount() != null) {
       String messageFormat = _resources.getString(L10NStockQuotes.LAST_UPDATE_FMT);
       int lastRateDate = _model.getRatesLastUpdateDate();
@@ -290,6 +318,7 @@ public class SettingsWindow
     
     statusSummaryPanel.setContentType("text/html");
     statusSummaryPanel.setText(msg.toString());
+    statusSummaryPanel.setBorder(null);
   }
 
   private String getDateText(final int date) {
@@ -308,7 +337,7 @@ public class SettingsWindow
     });
     final MouseInputAdapter mouseInputListener = new MouseInputAdapter() {
       @Override
-      public void mouseClicked(MouseEvent e) {
+      public void mouseReleased(MouseEvent e) {
         if (SwingUtilities.isLeftMouseButton(e)) {
           _showingTestInfo = !_showingTestInfo;
           if (_showingTestInfo) {
@@ -367,7 +396,7 @@ public class SettingsWindow
     // the only way to get mouse clicks is to attach a listener to the header
     tableHeader.addMouseListener(new MouseAdapter() {
       @Override
-      public void mouseClicked(MouseEvent event) {
+      public void mouseReleased(MouseEvent event) {
         final JTableHeader header = (JTableHeader) event.getSource();
         TableColumnModel columnModel = header.getColumnModel();
         int viewColumn = header.columnAtPoint(event.getPoint());
@@ -385,7 +414,7 @@ public class SettingsWindow
     _table.setDefaultRenderer(TableColumn.class, _tableRenderer);
     _table.addMouseListener(new MouseAdapter() {
       @Override
-      public void mouseClicked(MouseEvent event) {
+      public void mouseReleased(MouseEvent event) {
         // if the user clicks on a test result cell and there's a tooltip to show, put the tooltip
         // in a message dialog.
         TableColumnModel columnModel = _table.getColumnModel();
@@ -512,7 +541,7 @@ public class SettingsWindow
 
     // name and number of shares
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.NAME_COL, 150,
-            new SecurityNameCellRenderer(_model.getGUI()), null));
+												new SecurityNameCellRenderer(_model.getGUI()), null));
     col.setHeaderValue(_model.getGUI().getStr("curr_type_sec"));
     columnModel.addColumn(col = new TableColumn(SecuritySymbolTableModel.SYMBOL_COL, 40,
                                                 _tableRenderer,
@@ -570,6 +599,7 @@ public class SettingsWindow
     // find the maximum width of the columns - there may be more columns in the model than in the view
     final int viewColumnCount = _table.getColumnModel().getColumnCount();
     int[] widths = new int[viewColumnCount];
+    widths[0] = 35;
     for (int column = 0; column < viewColumnCount; column++) {
       for (int row = 0; row < _table.getRowCount(); row++) {
         TableCellRenderer renderer = _table.getCellRenderer(row, column);
@@ -584,6 +614,7 @@ public class SettingsWindow
         }
       }
     }
+    
     // set the last column to be as big as the biggest column - all extra space should be given to
     // the last column
     int maxWidth = 0;
@@ -668,8 +699,10 @@ public class SettingsWindow
   public void propertyChange(PropertyChangeEvent event) {
     final String name = event.getPropertyName();
     if (N12EStockQuotes.STATUS_UPDATE.equals(name)) {
-      final String status = (String) event.getNewValue();
-      statusSummaryPanel.setText(status == null ? " " : status);
+      String status = (String) event.getNewValue();
+      status = status==null ? " " : status;
+      statusSummaryPanel.setContentType("text/plain");
+      statusSummaryPanel.setText(status);
     } else if (N12EStockQuotes.DOWNLOAD_BEGIN.equals(name)) {
       final String text = _model.getGUI().getStr("cancel");
       UiUtil.runOnUIThread(new Runnable() {
@@ -701,13 +734,15 @@ public class SettingsWindow
     public UseColumnRenderer(final MoneydanceGUI mdGui) {
       super();
       _mdGui = mdGui;
-      setHorizontalAlignment(JLabel.CENTER);
-      setBorderPainted(true);
+      putClientProperty("JComponent.isCellEditor", true);
     }
 
     public Component getTableCellRendererComponent(JTable table, Object value,
                                                    boolean isSelected, boolean hasFocus,
                                                    int row, int column) {
+      setHorizontalAlignment(JLabel.CENTER);
+      setOpaque(false);
+      setBorderPainted(false);
       if (isSelected) {
         setForeground(table.getSelectionForeground());
         setBackground(table.getSelectionBackground());
@@ -734,8 +769,6 @@ public class SettingsWindow
 
     public UseColumnHeaderRenderer() {
       super();
-      setHorizontalAlignment(JLabel.CENTER);
-      setBorderPainted(false);
       _renderer.add(this);
       JLabel arrow = new JLabel();
       arrow.setIcon(ExchangeComboTableColumn.ARROW_ICON);
@@ -745,7 +778,12 @@ public class SettingsWindow
     public Component getTableCellRendererComponent(JTable table, Object value,
                                                    boolean isSelected, boolean hasFocus,
                                                    int row, int column) {
-      final JTableHeader header = table.getTableHeader();
+      setHorizontalAlignment(JLabel.CENTER);
+      setBorderPainted(false);
+      
+      // beware: if table==null then the vaqua scrollpane is calculating sizes
+      
+      final JTableHeader header = table==null ? null : table.getTableHeader();
       if (header != null) {
         setForeground(header.getForeground());
         setBackground(header.getBackground());
@@ -754,10 +792,10 @@ public class SettingsWindow
       _renderer.setBorder(UIManager.getBorder("TableHeader.cellBorder"));
       // show a checkbox that is enabled and off if all are off, enabled and on if all are on,
       // or disabled and on if some are enabled and some are not
-      final SecuritySymbolTableModel tableModel = (SecuritySymbolTableModel) table.getModel();
-      final boolean anySecuritySelected = tableModel.anySymbolEnabled();
+      final SecuritySymbolTableModel tableModel = table==null ? null : (SecuritySymbolTableModel)table.getModel();
+      final boolean anySecuritySelected = tableModel==null ? false : tableModel.anySymbolEnabled();
       setSelected(anySecuritySelected);
-      setEnabled(!anySecuritySelected || tableModel.allSymbolsEnabled());
+      setEnabled(!anySecuritySelected || (tableModel==null || tableModel.allSymbolsEnabled()));
       return _renderer;
     }
   }

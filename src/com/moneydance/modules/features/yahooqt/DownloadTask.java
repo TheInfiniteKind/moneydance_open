@@ -74,7 +74,8 @@ public class DownloadTask implements Callable<Boolean> {
     for(CurrencyType curr : _model.getBook().getCurrencies()) {
       boolean isSecurity = curr.getCurrencyType() == CurrencyType.Type.SECURITY;
       BaseConnection downloader = isSecurity ? pricesDownloader : ratesDownloader;
-      DownloadInfo currInfo = new DownloadInfo(curr, downloader);
+      if (downloader==null) continue; // no downloader is configured for this currency
+      DownloadInfo currInfo = new DownloadInfo(curr, downloader.getModel());
       SecuritySymbolTableModel.SecurityEntry tableEntry = tableModel.getEntryByCurrency(curr);
       if((isSecurity && !_model.getSymbolMap().getIsCurrencyUsed(curr)) 
          || !currInfo.isValidForDownload 

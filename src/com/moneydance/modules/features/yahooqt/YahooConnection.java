@@ -15,10 +15,8 @@ import com.infinitekind.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -33,7 +31,6 @@ public class YahooConnection extends BaseConnection {
   
   private static final SimpleDateFormat SNAPSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
   private static final String crumbleLink = "https://finance.yahoo.com/quote/%1$s/history?p=%1$s";
-  private static final String crumbleRegEx = ".*\"CrumbStore\":[{]\"crumb\":\"(.*?)\"}.*";
   
   private static enum YahooConnectionType {
     DEFAULT, UK, CURRENCIES;
@@ -205,23 +202,7 @@ public class YahooConnection extends BaseConnection {
     if (SQUtil.isBlank(suffix)) return parsedSymbol.symbol;
     return parsedSymbol.symbol + suffix;
   }
-
-  public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange)
-  {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
-    // check if this symbol overrides the exchange and the currency code
-    int periodIdx = rawTickerSymbol.lastIndexOf('.');
-    if(periodIdx>0) {
-      String marketID = rawTickerSymbol.substring(periodIdx+1);
-      if(marketID.indexOf("-")>=0) {
-        // the currency ID was encoded along with the market ID
-        return StringUtils.fieldIndex(marketID, '-', 1);
-      }
-    }
-    return exchange.getCurrencyCode();
-  }
-
-
+  
   /**
    * Update the exchange rate for the given currency using Yahoo's CURR1CURR2=X ticker symbol lookup
    * 
@@ -248,7 +229,7 @@ public class YahooConnection extends BaseConnection {
     urlStr.append("&f=sl1d1t1c1ohgv"); // format of each line
     urlStr.append("&e=.csv");          // response format
     urlStr.append("&crumb=");       // crumble
-    urlStr.append(crumble);
+    urlStr.append(SQUtil.urlEncode(crumble));
     
     boolean foundRate = false;
     Exception error = null;
@@ -358,17 +339,8 @@ public class YahooConnection extends BaseConnection {
     cal.add(Calendar.DATE, -dateRange.getNumDays());
     long startTimeInEpoch = cal.getTimeInMillis() / 1000;
     
-    String encTicker;
-    try {
-      encTicker = URLEncoder.encode(fullTickerSymbol, N12EStockQuotes.URL_ENC);
-    } catch (UnsupportedEncodingException ignore) {
-      // should never happen, as the US-ASCII character set is one that is required to be
-      // supported by every Java implementation
-      encTicker = fullTickerSymbol;
-    }
-    
     // add the parameters
-    result.append(encTicker);       // symbol
+    result.append(SQUtil.urlEncode(fullTickerSymbol));       // symbol
     result.append("?period1=");     // start date
     result.append(startTimeInEpoch);
     result.append("&period2=");     // end date
@@ -376,14 +348,14 @@ public class YahooConnection extends BaseConnection {
     result.append("&interval=1d");  // interval
     result.append("&events=history"); // history
     result.append("&crumb=");       // crumble
-    result.append(crumble);
+    result.append(SQUtil.urlEncode(crumble));
     
     return result.toString();
   }
   
   
   public String toString() {
-    StockQuotesModel model = getModel();
+    DownloadModel model = getModel();
     return model==null ? "??" : model.getResources().getString(getConnectionID());
   }
   
@@ -394,7 +366,7 @@ public class YahooConnection extends BaseConnection {
       String urlString = String.format(crumbleLink, fullTickerSymbol);
       URL url = new URL(urlString);
       HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
-      urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11");
+      //urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11");
 
       int respCode = urlConn.getResponseCode();
       if (respCode < 200 | respCode >= 300) {
@@ -407,10 +379,18 @@ public class YahooConnection extends BaseConnection {
         int endIdx = cookieValue.indexOf(";");
         cookie = endIdx >= 0 ? cookieValue.substring(0, endIdx) : cookieValue.trim();
       }
-      Pattern p = Pattern.compile(crumbleRegEx);
+
+      /*
+       We need to find the tdv2Crumb, as in the following:
+          "RequestPlugin":{"user":{"crumb":"K.xOasdfasdfBnPmH","firstName":null,"tdv2Crumb":"t3YKasdfasdfOXgy"}}
+       */
+      Pattern p = Pattern.compile(".*\"tdv2Crumb\": *\"(.*?)\".*");
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
       String line = null;
       while ((line = bufferedReader.readLine()) != null) {
+        // the matcher is slow, so try a quick string comparison first...
+        if(!line.contains("\"crumb\"")) continue;
+        
         Matcher m = p.matcher(line);
         if (m.matches()) {
           crumble = m.group(1);
@@ -423,7 +403,7 @@ public class YahooConnection extends BaseConnection {
       System.err.println("yahoo: set/updated cookie and/or crumble in " + ((System.currentTimeMillis()-startTime)/1000.0) + " seconds");
     }
     
-    return cookie!=null && crumble!=null;
+    return crumble!=null;
   }
 
 }

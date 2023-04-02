@@ -718,7 +718,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         _findResults.addMouseListener(new MouseAdapter()
         {
             @Override
-            public void mouseClicked(MouseEvent e)
+            public void mouseReleased(MouseEvent e)
             {
                 if (SwingUtilities.isLeftMouseButton(e) && (e.getClickCount() > 1))
                 {

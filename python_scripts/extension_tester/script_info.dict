@@ -1,0 +1,33 @@
+{
+  "actions" = (
+    {
+      "type" = "initializer"
+      "script_file" = "extension_tester.py"
+    }
+    {
+      "type" = "menu"
+      "script_file" = "menu_action_one.py"
+      "name" = "Extension Tester >> ONE"
+    }
+    {
+      "type" = "menu"
+      "script_file" = "menu_action_two.py"
+      "name" = "Extension Tester >> TWO"
+    }
+    {
+      "type" = "method"
+      "method" = "invoke"
+      "script_file" = "invoke.py"
+    }
+    {
+      "type" = "method"
+      "method" = "handle_event"
+      "script_file" = "handle_event.py"
+    }
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "unload.py"
+    }
+  )
+}

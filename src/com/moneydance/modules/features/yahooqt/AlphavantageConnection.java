@@ -28,7 +28,8 @@ import java.util.List;
  * Note: connections are *heavily* throttled to avoid Alphavantage's low threshold for
  * rejecting frequent connections.
  */
-public class AlphavantageConnection extends BaseConnection {
+public class AlphavantageConnection extends APIKeyConnection
+{
   private static final SimpleDateFormat SNAPSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
   
   public static final String PREFS_KEY = "alphavantage";
@@ -59,7 +60,7 @@ public class AlphavantageConnection extends BaseConnection {
   }
   
   
-  static synchronized String getAPIKey(final StockQuotesModel model, final boolean evenIfAlreadySet) {
+  public String getAPIKey(final boolean evenIfAlreadySet) {
     if(!evenIfAlreadySet && cachedAPIKey!=null) return cachedAPIKey;
     
     if(model==null) return null;
@@ -105,7 +106,7 @@ public class AlphavantageConnection extends BaseConnection {
             return;
           }
           
-          if(!SQUtil.isEmpty(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE)) {
+          if(!SQUtil.isBlank(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE)) {
             root.setParameter("alphavantage.apikey", inputString);
             model.getPreferences().setSetting("alphavantage_apikey", inputString);
             root.syncItem();
@@ -113,7 +114,7 @@ public class AlphavantageConnection extends BaseConnection {
             return;
           } else {
             // the user left the field blank or entered an invalid key
-            model.getGUI().beep();
+            model.beep();
           }
         }
       }
@@ -131,40 +132,9 @@ public class AlphavantageConnection extends BaseConnection {
     return cachedAPIKey;
   } 
   
-  
-  
-  
-  
-  @Override
-  public String getFullTickerSymbol(SymbolData parsedSymbol, StockExchange exchange) {
-    if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) return null;
-    // check if the exchange was already added on, which will override the selected exchange
-    if (!SQUtil.isBlank(parsedSymbol.suffix)) {
-      return parsedSymbol.symbol + parsedSymbol.suffix;
-    }
-    // Check if the selected exchange has a Yahoo suffix or not. If it does, add it.
-    String suffix = exchange.getSymbolYahoo();
-    if (SQUtil.isBlank(suffix)) return parsedSymbol.symbol;
-    return parsedSymbol.symbol + suffix;
-  }
-
-  @Override
-  public String getCurrencyCodeForQuote(String rawTickerSymbol, StockExchange exchange) {
-    if (SQUtil.isBlank(rawTickerSymbol)) return null;
-    // check if this symbol overrides the exchange and the currency code
-    int periodIdx = rawTickerSymbol.lastIndexOf('.');
-    if(periodIdx>0) {
-      String marketID = rawTickerSymbol.substring(periodIdx+1);
-      if(marketID.contains("-")) {
-        // the currency ID was encoded along with the market ID
-        return StringUtils.fieldIndex(marketID, '-', 1);
-      }
-    }
-    return exchange.getCurrencyCode();
-  }
-  
+	
   public String toString() {
-    StockQuotesModel model = getModel();
+    DownloadModel model = getModel();
     return model==null ? "" : model.getResources().getString("alphavantage");
   }
 
@@ -177,7 +147,7 @@ public class AlphavantageConnection extends BaseConnection {
     String baseCurrencyID = downloadInfo.relativeCurrency.getIDString().toUpperCase();
     if(!downloadInfo.isValidForDownload) return;
     
-    String apiKey = getAPIKey(getModel(), false);
+    String apiKey = getAPIKey(false);
     if(apiKey==null) {
       downloadInfo.recordError("No Alphavantage API Key Provided");
       return;
@@ -237,14 +207,13 @@ public class AlphavantageConnection extends BaseConnection {
   }
   
   protected String getCurrentPriceHeader() {
-    return "date,open,high,low,close,adjusted_close,volume,dividend_amount,splitdividendevents";
-    //return "date,open,high,low,close,volume";
+    return "date,open,high,low,close,volume";
   }
   
   public String getHistoryURL(String fullTickerSymbol) {
-    String apiKey = getAPIKey(getModel(), false);
+    String apiKey = getAPIKey(false);
     return apiKey==null ? null :
-           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED"+
+           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY"+
            "&symbol="+SQUtil.urlEncode(fullTickerSymbol)+
            "&apikey="+SQUtil.urlEncode(apiKey)+
            "&datatype=csv"+

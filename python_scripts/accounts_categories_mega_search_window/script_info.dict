@@ -1,0 +1,23 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "accounts_categories_mega_search_window_bootstrap.py"
+      "name" = "Accounts & Categories Mega Search Window"
+    }
+    {
+      "type" = "initializer"
+      "script_file" = "accounts_categories_mega_search_window_init.py"
+    }
+    {
+      "type" = "method"
+      "method" = "invoke"
+      "script_file" = "accounts_categories_mega_search_window_invoke.py"
+    }
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "accounts_categories_mega_search_window_unload.py"
+    }
+  )
+}

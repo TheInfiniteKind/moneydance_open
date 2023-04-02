@@ -1,8 +1,8 @@
 {
   "vendor" = "The Infinite Kind"
-  "module_build" = "103"
-  "minbuild" = "1000"
-  "vendor_url" = "http://infinitekind.com"
+  "module_build" = "105"
+  "minbuild" = "2006"
+  "vendor_url" = "https://infinitekind.com"
   "module_name" = "Security Price Entry"
   "desc" = "Provides a quicker and easier way to enter recent prices for multiple securities."
 }

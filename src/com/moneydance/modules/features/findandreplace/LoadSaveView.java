@@ -80,7 +80,7 @@ public class LoadSaveView extends JPanel
         _loadSaveLabel.addMouseListener(new MouseAdapter()
         {
             @Override
-            public void mouseClicked(MouseEvent e)
+            public void mouseReleased(MouseEvent e)
             {
                 showSavedSearchMenu(loadParent, mdGui, resources);
             }

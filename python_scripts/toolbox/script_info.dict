@@ -1,0 +1,34 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "toolbox_bootstrap.py"
+      "name" = "Toolbox"
+      "module_name" = "Toolbox"
+    }
+    {
+      "type" = "menu"
+      "script_file" = "toolbox_move_merge_investment_txns.py"
+      "name" = "Toolbox: Move investment transactions"
+    }
+    {
+      "type" = "menu"
+      "script_file" = "toolbox_total_selected_transactions.py"
+      "name" = "Toolbox: Total selected transactions"
+    }
+    {
+      "type" = "initializer"
+      "script_file" = "toolbox_init.py"
+    }
+    {
+      "type" = "method"
+      "method" = "invoke"
+      "script_file" = "toolbox_invoke.py"
+    }    
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "toolbox_unload.py"
+    }
+  )
+}

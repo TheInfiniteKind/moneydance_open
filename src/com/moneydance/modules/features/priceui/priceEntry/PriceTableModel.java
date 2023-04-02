@@ -74,9 +74,7 @@ public class PriceTableModel extends AbstractTableModel {
       double rate = 1 / Util.safeRate(security.getUserRate());
       
       if (relativeCurrency != null) {
-        long one = security.parse("1.0", '.');
-        rate = relativeCurrency.getDoubleValue(CurrencyUtil.convertValue(one, security, relativeCurrency));
-        
+        rate = CurrencyUtil.getUserRate(security, relativeCurrency);
         currentPrice = (relativeCurrency.getPrefix() + " " +
                         StringUtils.formatShortRate(rate, decimalChar) +
                         " " + relativeCurrency.getSuffix()).trim();
@@ -311,7 +309,7 @@ public class PriceTableModel extends AbstractTableModel {
         secRow.newPrice = (Double)value;
       } else {
         double d = StringUtils.parseRate(String.valueOf(value), decimalChar);
-        secRow.newPrice = d==0 ? new Double(d) : null;
+        secRow.newPrice = d==0 ? null : d;
       }
       fireTableCellUpdated (row, col);
     }

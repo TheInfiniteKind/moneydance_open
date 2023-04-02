@@ -766,7 +766,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 	  }
   }
 
-  public void addAccountToTable(Map<Integer, String> accounts, DefaultTableModel dataModel) {
+  public void addAccountToTable(Map<String, String> accounts, DefaultTableModel dataModel) {
 	    if(accounts.size() < 1) return;
 
 	    //outputArea.append("Start addAccountToTable("+dataMap+")\n");

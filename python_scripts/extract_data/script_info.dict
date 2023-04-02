@@ -1,0 +1,23 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "extract_data_bootstrap.py"
+      "name" = "Extract Data"
+    }
+    {
+      "type" = "initializer"
+      "script_file" = "extract_data_init.py"
+    }
+    {
+      "type" = "method"
+      "method" = "invoke"
+      "script_file" = "extract_data_invoke.py"
+    }
+    {
+      "type" = "method"
+      "method" = "unload"
+      "script_file" = "extract_data_unload.py"
+    }
+  )
+}
