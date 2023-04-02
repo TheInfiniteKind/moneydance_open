@@ -213,7 +213,7 @@ public class AlphavantageConnection extends APIKeyConnection
   public String getHistoryURL(String fullTickerSymbol) {
     String apiKey = getAPIKey(false);
     return apiKey==null ? null :
-           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY"+
+           "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED"+
            "&symbol="+SQUtil.urlEncode(fullTickerSymbol)+
            "&apikey="+SQUtil.urlEncode(apiKey)+
            "&datatype=csv"+

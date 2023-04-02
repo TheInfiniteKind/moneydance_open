@@ -73,7 +73,7 @@ public abstract class SnapshotImporter
   private boolean _useExpectedDateFormat = false;
   /** Since the default is comma-delimited, the decimal character is by default a '.' */
   private char _decimal = '.';
-  private boolean _autoDetectFormat = false;
+  private boolean _autoDetectFormat = true;
   private double _priceMultiplier = 1.0;
 
   private Exception _lastException = null;
@@ -337,6 +337,9 @@ public abstract class SnapshotImporter
     } catch (IOException error) {
       System.err.println("Error while importing history: "+error);
       errorCount = ERROR_NOT_TEXT_DATA;
+      _lastException = error;
+    } catch (Exception error) {
+      _lastException = error;
     } finally {
       try {
         in.close();
