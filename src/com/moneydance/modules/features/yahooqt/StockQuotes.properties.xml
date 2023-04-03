@@ -127,6 +127,10 @@
 	<entry key="alphavantage.apikey_title">Enter Alphavantage API Key</entry>
 	<entry key="alphavantage.apikey_action">Get Alphavantage API Key</entry>
 
+    <entry key="iextrading.apikey_msg">Please register with IEX Cloud to receive an API key that can be used to download rates and price information. Please enter that key below to continue.</entry>
+	<entry key="iextrading.apikey_title">Enter IEX Cloud API Key</entry>
+	<entry key="iextrading.apikey_action">Get IEX Cloud API Key</entry>
+
 	<entry key="tdameritrade.apikey_msg">Please register with TD Ameritrade to receive an API key that can be used to download rates and price information. Please enter that key below to continue.</entry>
 	<entry key="tdameritrade.apikey_title">Enter TD Ameritrade API Key</entry>
 	<entry key="tdameritrade.apikey_action">Get TD Ameritrade API Key</entry>

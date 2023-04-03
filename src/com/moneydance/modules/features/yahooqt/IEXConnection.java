@@ -5,7 +5,17 @@ import com.google.gson.reflect.TypeToken;
 import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.DateUtil;
 import com.infinitekind.util.StringUtils;
+import com.moneydance.awt.GridC;
+import com.moneydance.awt.JLinkLabel;
+import com.moneydance.awt.JTextPanel;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
@@ -66,6 +76,99 @@ public class IEXConnection extends BaseConnection {
     return exchange.getCurrencyCode();
   }
   
+  private static String cachedAPIKey = null;
+	private static long suppressAPIKeyRequestUntilTime = 0;
+
+  public String getAPIKey(final boolean evenIfAlreadySet)	{
+		if (!evenIfAlreadySet && cachedAPIKey != null) return cachedAPIKey;
+		
+		if (model == null) return null;
+		
+		AccountBook book = model.getBook();
+		if (book == null) return null;
+		
+		final Account root = book.getRootAccount();
+		String apiKey = root.getParameter("iextrading.apikey",
+										  model.getPreferences().getSetting("iextrading_apikey", null));
+		if (!evenIfAlreadySet && !StringUtils.isBlank(apiKey))
+		{
+			return apiKey;
+		}
+		
+		if (!evenIfAlreadySet && suppressAPIKeyRequestUntilTime > System.currentTimeMillis())
+		{ // further requests for the key have been suppressed
+			return null;
+		}
+		
+		final String existingAPIKey = apiKey;
+		Runnable uiActions = new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				JPanel p = new JPanel(new GridBagLayout());
+				AbstractAction signupAction = new AbstractAction()
+				{
+					@Override
+					public void actionPerformed(ActionEvent e)
+					{
+						model.showURL("https://iexcloud.io/console/");
+					}
+				};
+				String defaultAPIKey = existingAPIKey != null ? existingAPIKey : "";
+				signupAction.putValue(Action.NAME, model.getResources().getString("iextrading.apikey_action"));
+				JLinkLabel linkButton = new JLinkLabel(signupAction);
+				p.add(new JTextPanel(model.getResources().getString("iextrading.apikey_msg")),
+					  GridC.getc(0, 0).wxy(1, 1));
+				p.add(linkButton,
+					  GridC.getc(0, 1).center().insets(12, 16, 0, 16));
+				while (true)
+				{
+					String inputString = JOptionPane.showInputDialog(null, p, defaultAPIKey);
+					if (inputString == null)
+					{ // the user canceled the prompt, so let's not ask again for 5 minutes unless this prompt was forced
+						if (!evenIfAlreadySet)
+						{
+							suppressAPIKeyRequestUntilTime = System.currentTimeMillis() + 1000 * 60 * 5;
+						}
+						return;
+					}
+					
+					if (!SQUtil.isBlank(inputString) && !inputString.equals(JOptionPane.UNINITIALIZED_VALUE))
+					{
+						root.setParameter("iextrading.apikey", inputString);
+						model.getPreferences().setSetting("iextrading_apikey", inputString);
+						root.syncItem();
+						cachedAPIKey = inputString;
+						return;
+					}
+					else
+					{
+						// the user left the field blank or entered an invalid key
+						model.beep();
+					}
+				}
+			}
+		};
+		
+		if (SwingUtilities.isEventDispatchThread())
+		{
+			uiActions.run();
+		}
+		else
+		{
+			try
+			{
+				SwingUtilities.invokeAndWait(uiActions);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+		}
+		return cachedAPIKey;
+	}
+  
   public String toString() {
     return model==null ? "" : model.getResources().getString("iextrading");
   }
@@ -123,9 +226,16 @@ public class IEXConnection extends BaseConnection {
       results.put(secInfo.fullTickerSymbol.toLowerCase(), secInfo);
     }
     
-    String urlStr = "https://api.iextrading.com/1.0/stock/market/batch?symbols="
-                    + symbolList.toString()
-                    + "&types=chart&range=1m&chartLast=5";
+    //https://cloud.iexapis.com/v1/stock/market/batch?symbols=AAPL,BAC&types=chart&range=1m&chartLast=5&token={PRIVATE_TOKEN}
+    String apiKey = getAPIKey(false);
+    if(apiKey==null) {
+      System.err.println("No IEX Cloud API Key Provided");
+      return false;
+    }
+    String urlStr = "https://cloud.iexapis.com/v1/stock/market/batch?"
+                    + "symbols=" + symbolList.toString()
+                    + "&types=chart&range=1m&chartLast=5"
+                    + "&token=" + SQUtil.urlEncode(apiKey);
     System.err.println("getting history using url: "+ urlStr);
 
     Map<String,Map<String,List<Map<String,Object>>>> info;
