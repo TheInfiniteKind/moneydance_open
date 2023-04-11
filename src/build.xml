@@ -334,6 +334,32 @@ http://jakarta.apache.org/ant/index.html
     <move file="${src}/s-yahoofx.mxt" tofile="${dist}/yahoofx.mxt"/>
   </target>
 
+  <target name="stockglance" depends="init">
+    <javac target="11" source="11" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/stockglance/**"/>
+
+    <jar destfile="${dist}/stockglance.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/stockglance/meta_info.dict
+             com/moneydance/modules/features/stockglance/*.gif
+             com/moneydance/modules/features/stockglance/*.jpg
+             com/moneydance/modules/features/stockglance/*.jpeg"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/stockglance/**"/>
+    </jar>
+
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${extprivkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="stockglance"/>
+      <arg line="${dist}/stockglance.mxt"/>
+    </java>
+    <move file="${src}/s-stockglance.mxt" tofile="${dist}/stockglance.mxt"/>
+  </target>
+
 
   <target name="balpred" depends="init">
     <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
