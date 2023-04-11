@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1021 - March 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1022 - April 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -116,6 +116,8 @@
 # build: 1020 - Added capability for other extensions to request the last set of results using invoke "net_account_balances:customevent:returnLastResults"
 # build: 1020 - Added bootstrap to execute compiled version of extension (faster to load)....
 # build: 1021 - MD2023 fixes to common code...
+# build: 1022 - More MD2023 fixes; launch - configuring StreamVector lefties/righties etc...
+#               Tweak isSwingComponentInvalid() to ignore .isValid()....
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -125,7 +127,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1021"
+version_build = "1022"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -4274,9 +4276,16 @@ Visit: %s (Author's site)
     def isSwingComponentValid(swComponent): return not isSwingComponentInvalid(swComponent)
 
     def isSwingComponentInvalid(swComponent):
+
+        if debug:
+            myPrint("B", "isSwingComponentInvalid(), swComponent is None: %s, !isVisible(): %s, !isValid(): %s, !isDisplayable(): %s, getWindowAncestor() is None: %s"
+                    % (swComponent is None, not swComponent.isVisible(), not swComponent.isValid(), not swComponent.isDisplayable(), SwingUtilities.getWindowAncestor(swComponent) is None))
+
+        # return (swComponent is None
+        #         or not swComponent.isVisible() or not swComponent.isValid() or not swComponent.isDisplayable()
+        #         or SwingUtilities.getWindowAncestor(swComponent) is None)
         return (swComponent is None
-                or not swComponent.isVisible() or not swComponent.isValid() or not swComponent.isDisplayable()
-                or SwingUtilities.getWindowAncestor(swComponent) is None)
+                or not swComponent.isVisible() or not swComponent.isDisplayable() or SwingUtilities.getWindowAncestor(swComponent) is None)
 
     class BlinkSwingTimer(SwingTimer, ActionListener):
         ALL_BLINKERS = []
@@ -4838,7 +4847,8 @@ Visit: %s (Author's site)
             myPrint("DB", "Confirming WidgetID: %s exists in Summary Page layout (somewhere)" %(widgetID))
             for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties], [KEY_UNUSED, unused]]:
                 for iIndex in range(0, where.size()):
-                    theID = where.elementAt(iIndex)
+                    # theID = where.elementAt(iIndex)
+                    theID = where.get(iIndex)
                     if theID == widgetID:
                         myPrint("DB", ".. WidgetID: '%s' found in '%s' on row: %s" %(theID, where_key, iIndex+1))
                         iCount += 1
@@ -4848,7 +4858,11 @@ Visit: %s (Author's site)
                 return
 
             myPrint("B", ".. Widget: '%s'... Adding to first position in '%s' (Summary Page top left)"  %(widgetID, KEY_LEFTIES))
-            lefties.insertElementAt(widgetID, 0)
+
+            if isinstance(lefties, StreamVector): pass
+
+            # lefties.insertElementAt(widgetID, 0)
+            lefties.add(0, widgetID)
 
             prefs.setSetting(KEY_LEFTIES, lefties)
 
@@ -4879,7 +4893,8 @@ Visit: %s (Author's site)
                     while where.lastIndexOf(theID) > where.indexOf(theID):
                         myPrint("DB", ".. Removing duplicated WidgetID: '%s' from '%s' layout area (row: %s)"
                                 %(theID, where_key, where.lastIndexOf(theID)+1))
-                        where.removeElementAt(where.lastIndexOf(theID))
+                        # where.removeElementAt(where.lastIndexOf(theID))
+                        where.remove(where.lastIndexOf(theID))
 
             # Check we don't have both new and legacy IDs...
             for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties]]:
@@ -4894,7 +4909,8 @@ Visit: %s (Author's site)
                 if legacyID in where:
                     myPrint("DB", ".. Legacy WidgetID: '%s' found in '%s'.. Migrating to latestID ('%s') in layout (row: %s)"
                             %(legacyID, where_key, widgetID, where.lastIndexOf(legacyID)+1))
-                    where.insertElementAt(widgetID, where.indexOf(legacyID))
+                    # where.insertElementAt(widgetID, where.indexOf(legacyID))
+                    where.add(where.indexOf(legacyID), widgetID)
                     where.remove(legacyID)
 
             # Make sure not in lefties and righties...
@@ -4916,7 +4932,8 @@ Visit: %s (Author's site)
 
             if widgetID not in lefties and widgetID not in righties:
                 myPrint("B", ".. Widget: '%s'... Adding to first position in '%s' (Summary Page top left)"  %(widgetID, KEY_LEFTIES))
-                lefties.insertElementAt(widgetID, 0)
+                # lefties.insertElementAt(widgetID, 0)
+                lefties.add(0, widgetID)
 
             prefs.setSetting(KEY_LEFTIES,   lefties)
             prefs.setSetting(KEY_RIGHTIES,  righties)

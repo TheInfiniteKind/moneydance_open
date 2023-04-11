@@ -25,12 +25,11 @@ http://jakarta.apache.org/ant/index.html
   <property name="optimize"  value="off"/>
   <property name="javac-target" value="1.8"/>
   <property name="javac-source" value="1.8" />
-  <property name="bootclasspath"  value="../lib/jdk_1.8_rt.jar"/>
 
   <path id="classpath">
     <pathelement path="../lib/extadmin.jar"/>
     <pathelement path="../lib/moneydance-dev.jar"/>
-    <pathelement path="../lib/moneydance-private.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
+    <pathelement path="../lib/moneydance.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
 
     <pathelement path="../lib/mdadmin.jar"/> <!-- Since mdadmin has a StringUtils, it needs to come after moneydance.jar -->
     <pathelement path="../lib/jfreechart-1.0.13.jar"/>
@@ -76,7 +75,7 @@ http://jakarta.apache.org/ant/index.html
             <include name="contact.*" />
           </fileset>
         </copy>
-        <javac target="@{javac-target}" bootclasspath="${bootclasspath}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+        <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
           classpathref="classpath"  destdir="${build}"
           includes="com/moneydance/modules/features/@{feature}/**"
           includeAntRuntime="false" />
@@ -121,9 +120,7 @@ http://jakarta.apache.org/ant/index.html
   <target name="findandreplace" depends="findandreplace-compile">
     <java newenvironment="true"
       classpathref="classpath"
-      classname="com.moneydance.admin.KeyAdmin"
-      fork="true">
-      <sysproperty key="moneydance_key_pass" value="${keypass}"/>
+      classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
       <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
@@ -203,7 +200,7 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="detailedbudget" depends="init" description="build the detailedbudget.mxt">
     <build-mxt feature="detailedbudget" javac-source="${javac-source}" javac-target="${javac-source}" />
-    <!--<copy file="${dist}/detailedbudget.mxt" tofile="${install}/detailedbudget.mxt" verbose="true" failonerror="false" />-->
+    <!--<copy file="${dist}/debtinsights.mxt" tofile="${install}/debtinsights.mxt" verbose="true" failonerror="false" />-->
   </target>
 
   <target name="txfexport" depends="init" description="build the TXF export extension">
@@ -351,7 +348,7 @@ http://jakarta.apache.org/ant/index.html
       <fileset dir="${build}" includes="com/moneydance/modules/features/stockglance/**"/>
     </jar>
 
-    <java newenvironment="true"
+    <java newenvironment="true" 
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
@@ -362,6 +359,7 @@ http://jakarta.apache.org/ant/index.html
     </java>
     <move file="${src}/s-stockglance.mxt" tofile="${dist}/stockglance.mxt"/>
   </target>
+
 
   <target name="balpred" depends="init">
     <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
@@ -545,21 +543,22 @@ http://jakarta.apache.org/ant/index.html
     <move file="${src}/s-txtimport.mxt" tofile="${dist}/txtimport.mxt"/>
   </target>
 
-<!--  <target name="pythonsample" depends="init">-->
-<!--    <jar destfile="${dist}/pythonsample.mxt">-->
-<!--      <fileset dir="${src}/python_sample_extension" includes="**"/>-->
-<!--    </jar>-->
-<!--    <java newenvironment="true"-->
-<!--          classpathref="classpath"-->
-<!--          classname="com.moneydance.admin.KeyAdmin">-->
-<!--      <arg value="signextjar"/>-->
-<!--      <arg value="${extprivkeyfile}"/>-->
-<!--      <arg value="${extprivkeyid}"/>-->
-<!--      <arg value="pythonsample"/>-->
-<!--      <arg line="${dist}/pythonsample.mxt"/>-->
-<!--    </java>-->
-<!--    <move file="${src}/s-pythonsample.mxt" tofile="${dist}/pythonsample.mxt"/>-->
-<!--  </target>-->
+  <target name="pythonsample" depends="init">
+    <jar destfile="${dist}/pythonsample.mxt">
+      <fileset dir="${src}/python_sample_extension" includes="**"/>
+    </jar>
+    <java newenvironment="true"
+          classpathref="classpath"
+          classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${extprivkeyfile}"/>
+      <arg value="${extprivkeyid}"/>
+      <arg value="pythonsample"/>
+      <arg line="${dist}/pythonsample.mxt"/>
+    </java>
+    <move file="${src}/s-pythonsample.mxt" tofile="${dist}/pythonsample.mxt"/>
+  </target>
+
 
   <target name="featureloader" depends="init" description="build the featureloader.mxt">
     <build-mxt feature="featureloader" javac-source="${javac-source}" javac-target="${javac-source}" />
@@ -606,7 +605,6 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="genkeys">
     <java
-      fork="true"
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
       <arg value="genkey"/>
@@ -615,6 +613,6 @@ http://jakarta.apache.org/ant/index.html
     </java>
   </target>
 
-  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport,featureloader,findandreplace"/>
+  <target name="all" depends="yahooqt,balpred,console,cmdline,yahoofx,txtimport,featureloader,findandreplace,pythonsample"/>
 
 </project>
