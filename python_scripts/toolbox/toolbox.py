@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1058 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1059 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -163,6 +163,8 @@
 #               Updated reset window data methods to account for new/enhanced filter keys ("custom_filter_int" and "last_custom_filter_int")
 #               MD2023 fixes to common code...
 #               Quick check for earlier MD2023 Sync issue repair flagged......
+# build: 1059 - MD2023.2(5007); Launch check for invalid 'processed.dct' file (I have seen this as a folder!?)....
+#               Change isSwingComponentInvalid() not to check for .isValid()...
 
 # todo - CMD-P select the pickle file to load/view/edit etc.....
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
@@ -185,7 +187,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1058"
+version_build = "1059"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -554,8 +556,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.1
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5006
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5007
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -26945,9 +26947,16 @@ now after saving the file, restart Moneydance
     def isSwingComponentValid(swComponent): return not isSwingComponentInvalid(swComponent)
 
     def isSwingComponentInvalid(swComponent):
+
+        if debug:
+            myPrint("B", "isSwingComponentInvalid(), swComponent is None: %s, !isVisible(): %s, !isValid(): %s, !isDisplayable(): %s, getWindowAncestor() is None: %s"
+                    % (swComponent is None, not swComponent.isVisible(), not swComponent.isValid(), not swComponent.isDisplayable(), SwingUtilities.getWindowAncestor(swComponent) is None))
+
+        # return (swComponent is None
+        #         or not swComponent.isVisible() or not swComponent.isValid() or not swComponent.isDisplayable()
+        #         or SwingUtilities.getWindowAncestor(swComponent) is None)
         return (swComponent is None
-                or not swComponent.isVisible() or not swComponent.isValid() or not swComponent.isDisplayable()
-                or SwingUtilities.getWindowAncestor(swComponent) is None)
+                or not swComponent.isVisible() or not swComponent.isDisplayable() or SwingUtilities.getWindowAncestor(swComponent) is None)
 
     class BlinkSwingTimer(SwingTimer, ActionListener):
         ALL_BLINKERS = []
@@ -29926,6 +29935,33 @@ now after saving the file, restart Moneydance
             except: pass
 
             checkForREADONLY()
+
+            # Check for incorrect / invalid processed.dct file (I have seen this appear as a folder!?)...
+            PROCESSED_FILES = "tiksync/processed.dct"
+            try:
+                _testOpen = MD_REF.getCurrentAccountBook().getLocalStorage().openFileForReading(PROCESSED_FILES)
+                _testOpen.close()
+                myPrint("DB", "Test opening internal '%s' file successful...!" %(PROCESSED_FILES))
+                del _testOpen
+            except:
+                e, exc_value, exc_traceback = sys.exc_info()                                                            # noqa
+                myPrint("B", "*** CRITICAL ERROR DETECTED. Could not open '%s'.. Error: '%s' >> QUIT MONEYDANCE AND RESOLVE PROBLEM" %(PROCESSED_FILES, e))
+                dump_sys_error_to_md_console_and_errorlog()
+                MyPopUpDialogBox(toolbox_frame_, "CRITICAL PROBLEM DETECTED",
+                                                 "Internal '%s' file could not be opened!\n" 
+                                                 "Error: '%s'\n"
+                                                 "Review console for more details....\n"
+                                                 "(Contact IK Support for help)\n"
+                                                 "PLEASE QUIT MONEYDANCE UNTIL THIS ISSUE IS FIXED!\n"
+                                                        %(PROCESSED_FILES, exc_value),
+                                                 theTitle="CRITICAL ERROR - INTERNAL FILE",
+                                                 OKButtonText="ACKNOWLEDGE",
+                                                 lAlertLevel=2,
+                                                 lModal=False).go()
+                disableToolboxButtons()
+            del PROCESSED_FILES
+
+
             MD_REF.getUI().setStatus("%s is loaded and running.." %(myModuleID.capitalize()), 0.0)
             ################################################################################################################
             ############# END OF OpenDisplay() #############################################################################
