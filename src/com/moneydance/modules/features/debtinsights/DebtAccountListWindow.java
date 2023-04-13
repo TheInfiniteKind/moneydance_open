@@ -99,32 +99,6 @@ public class DebtAccountListWindow extends JFrame implements ActionListener
 		super.processEvent(evt);
 	}
 	
-	//
-	// private class ConsoleStream
-	// extends OutputStream
-	// implements Runnable
-	// {
-	// @Override
-	// public void write(int b)
-	// throws IOException
-	// {
-	// accountListArea.append(String.valueOf((char)b));
-	// repaint();
-	// }
-	//
-	// @Override
-	// public void write(byte[] b)
-	// throws IOException
-	// {
-	// accountListArea.append(new String(b));
-	// repaint();
-	// }
-	// @Override
-	// public void run() {
-	// accountListArea.repaint();
-	// }
-	// }
-	
 	void goAway()
 	{
 		setVisible(false);

@@ -14,15 +14,12 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.MouseEvent;
 
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 import javax.swing.border.Border;
 
 import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.CurrencyType;
+import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.GridC;
 import com.moneydance.awt.JLinkLabel;
 import com.moneydance.modules.features.debtinsights.DebtAmountWrapper;
@@ -97,6 +94,11 @@ public class CreditCardViewPanel extends DebtViewPanel
 			Color negFGColor = this.acctView.getMDGUI().getColors().negativeBalFG;
 			balanceLbl.setForeground(negFGColor);
 		}
+		if (amt > 0L && Main.getWidgetEnhancedColors())
+		{
+			Color posColor = Util.getPositiveGreen();
+			balanceLbl.setForeground(posColor);
+		}
 
 		for (int i=0; i < labels.length; i++)
 		{
@@ -154,11 +156,12 @@ public class CreditCardViewPanel extends DebtViewPanel
 	protected void setHeaderLabels(CurrencyType baseCurr, 
 									DebtAmountWrapper amountWrapper)
 	{
-		super.setHeaderLabels(baseCurr, amountWrapper);
+		super.setHeaderLabels(base, amountWrapper);
 //		if (this.ccAccountView ==null) this.ccAccountView = (CreditCardAccountView) acctView;
 		this.creditLimitTypeLbl.setText(getCreditLimitType().getMenuName()); 
 	}
 	
+
 	@Override
 	protected JLabel getAccountTypeSpecificLabel()
 	{

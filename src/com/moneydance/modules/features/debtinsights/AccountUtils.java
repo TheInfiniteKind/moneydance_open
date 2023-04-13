@@ -86,7 +86,7 @@ public final class AccountUtils
 				limit += BetterLoanAccount.getInterestPayment(sub);
 			}
 		}
-		return limit;
+		return Math.min(0, limit);
 	}
 	
 	

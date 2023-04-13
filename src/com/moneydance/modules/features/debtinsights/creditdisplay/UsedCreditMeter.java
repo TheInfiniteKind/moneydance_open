@@ -9,9 +9,13 @@
  */
 package com.moneydance.modules.features.debtinsights.creditdisplay;
 
+import javax.swing.*;
 import javax.swing.plaf.ProgressBarUI;
 
 import com.infinitekind.moneydance.model.*;
+import com.moneydance.modules.features.debtinsights.Main;
+import com.moneydance.modules.features.debtinsights.Util;
+import com.moneydance.modules.features.debtinsights.ui.viewpanel.CreditCardViewPanel;
 
 
 public class UsedCreditMeter extends BarDisplay
@@ -21,6 +25,18 @@ public class UsedCreditMeter extends BarDisplay
 	private UsedCreditMeter()
 	{
 	}
+
+	@Override
+	public JComponent getComponent(CreditCardViewPanel ccvp, Account acct, long balanceAmt)
+	{
+		JComponent bar = super.getComponent(ccvp, acct, balanceAmt);
+		Util.logConsole(true, "UCM.getComponent()...");
+		if (Main.getWidgetEnhancedColors()) {
+			bar.setForeground(ccvp.getAcctView().getMDGUI().getColors().negativeBalFG);
+		}
+		return bar;
+	}
+
 
 	@Override
 	protected int getValue(Account acct, long balanceAmt)

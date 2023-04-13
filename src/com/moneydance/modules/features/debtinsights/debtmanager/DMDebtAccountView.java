@@ -29,11 +29,23 @@ public class DMDebtAccountView extends GenericDebtAccountView
 		Arrays.asList(new Account.AccountType[] { Account.AccountType.CREDIT_CARD,
 																							Account.AccountType.LOAN });
 	
-	public DMDebtAccountView(MoneydanceGUI mdGUI)
+//	public DMDebtAccountView(MoneydanceGUI mdGUI) {
+//		super(mdGUI, "internal.cc_accts",
+//				null,
+//				"home_cc_balances",
+//				UserPreferences.GUI_HOME_CC_BAL,
+//		        UserPreferences.GUI_HOME_CC_EXP);
+//		setAccountTypes(this.debtAccountTypes);
+//	}
+
+	public DMDebtAccountView(MoneydanceGUI mdGUI, String expandedPrefKey)
 	{
-		super(mdGUI, "internal.cc_accts", null, 
-				"home_cc_balances", UserPreferences.GUI_HOME_CC_BAL,
-		        UserPreferences.GUI_HOME_CC_EXP);
+		super(mdGUI, "internal.cc_accts",
+				null,
+				"home_cc_balances",
+				UserPreferences.GUI_HOME_CC_BAL,
+		        expandedPrefKey);
+
 		setAccountTypes(this.debtAccountTypes);
 	}
 	
@@ -43,18 +55,23 @@ public class DMDebtAccountView extends GenericDebtAccountView
     @Override
     public JComponent getGUIView(AccountBook AccountBook)
     {
-		if (this.debtView != null) return this.debtView;
-		synchronized (this)
-		{
-			if (this.debtView == null)
-			{
-				this.debtView = new DebtManagerPanel(this);
-				this.debtView.setBorder(MoneydanceLAF.homePageBorder);
-			}
-			return this.debtView;
-		}
-    }
+        Util.logConsole(true, ".getGUIView() called (book: " + book + ")");
+        if (book == null){
+            return null;
+        }
+		return this.debtView;
 
+//		if (this.debtView != null) return this.debtView;
+//		synchronized (this)
+//		{
+//			if (this.debtView == null)
+//			{
+//				this.debtView = new DebtManagerPanel(this);
+//				this.debtView.setBorder(MoneydanceLAF.homePageBorder);
+//			}
+//			return this.debtView;
+//		}
+    }
 
 	public String getCCLimitTypeStr(int balType)
 	{

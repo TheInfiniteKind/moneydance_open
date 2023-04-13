@@ -9,6 +9,7 @@
  */
 package com.moneydance.modules.features.debtinsights.creditdisplay;
 
+import java.awt.*;
 import java.util.Collections;
 import java.util.List;
 
@@ -64,7 +65,18 @@ public class CreditLimitDisplay extends NumericDisplay
 		
 		CurrencyType baseCurr = root.getCurrencies().getBaseType();
 
-		return new JLabel(baseCurr.formatFancy(creditLimit, ccvp.getDec()), SwingConstants.RIGHT);
+		JLabel lbl = new JLabel(base.formatFancy(creditLimit, ccvp.getDec()), SwingConstants.RIGHT);
+
+		if (creditLimit > 0) {
+			if (Main.getWidgetEnhancedColors())
+				lbl.setForeground(Util.getPositiveGreen());
+		}
+		if (creditLimit < 0) {
+			Color negFGColor = ccvp.getAcctView().getMDGUI().getColors().negativeBalFG;
+			lbl.setForeground(negFGColor);
+		}
+
+		return lbl;
 	}
 
 

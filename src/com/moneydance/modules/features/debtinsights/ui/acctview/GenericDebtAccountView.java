@@ -12,6 +12,7 @@ package com.moneydance.modules.features.debtinsights.ui.acctview;
 
 import com.infinitekind.moneydance.model.Account;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.modules.features.debtinsights.Util;
 
 public class GenericDebtAccountView extends DebtAccountView
 {
@@ -61,6 +62,7 @@ public class GenericDebtAccountView extends DebtAccountView
 	@Override
 	public String getSectionExpandedPref()
 	{
+		Util.logConsole(true, "GDAV.getSectionExpandedPref(): " + this.expandedPref);
 		return this.expandedPref;
 	}
 }

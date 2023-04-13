@@ -9,15 +9,15 @@
  */
 package com.moneydance.modules.features.debtinsights.creditdisplay;
 
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JProgressBar;
+import javax.swing.*;
 import javax.swing.plaf.ProgressBarUI;
 
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.modules.features.debtinsights.model.BetterCreditCardAccount;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.CreditCardViewPanel;
+
+import java.awt.*;
 
 
 public abstract class BarDisplay implements CreditLimitComponent
@@ -37,13 +37,18 @@ public abstract class BarDisplay implements CreditLimitComponent
 //		long min = getMin(acct);
 //		long max = getMax(acct);
 //		long bal = getValue(acct,balanceAmt);
-		
-		JProgressBar bar = new JProgressBar(JProgressBar.HORIZONTAL,getMin(acct), getMax(acct));
+
+		JProgressBar bar = new JProgressBar(JProgressBar.HORIZONTAL, getMin(acct), getMax(acct));
+		bar.setBorder(BorderFactory.createEmptyBorder());
+
 		bar.setValue(getValue(acct, balanceAmt));
-		
-		if (getProgressBarUI() != null)
-			bar.setUI(getProgressBarUI());
-		
+		Util.logConsole(true, "BarDisplay.getComponent()...");
+
+		if (getProgressBarUI() != null) {
+			ProgressBarUI ui = getProgressBarUI();
+			bar.setUI(ui);
+		}
+
 		return bar;
 	}
 	
