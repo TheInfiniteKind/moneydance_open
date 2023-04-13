@@ -1,9 +1,10 @@
 {
-  "vendor" = "Robert Schmid"
-  "module_build" = "11"
-  "minbuild" = "1000"
+  "id" = "debtinsights"
+  "vendor" = "Updated: Stuart Beesley - StuWareSoftSystems (original: Robert Schmid)"
+  "module_build" = "1000"
+  "minbuild" = "1372"
   "vendor.url" = ""
   "module_name" = "Debt Insights"
-  "module_desc" = "<html><body><title>Debt Insights</title><p>Provides new features to provide insights for credit card and loan debt including;</p><ul><li>Credit Limits on applicable accounts<li>An enhanced Credit Card View for the Home Page<li>A new Window showing Debt Accounts in an interactive manner</ul></body></html>"
+  "module_desc" = "<html><body><title>Debt Insights</title><p>Provides new features to provide insights for credit card and loan debt including;</p><ul><li>Credit Limits on applicable accounts<li>An enhanced Credit Card View for the Home Page<li>A new Window showing Debt Accounts in an interactive manner<li>Runs on MD2015.8(1372) onwards...</ul></body></html>"
   "desc" = "Tools for Analyzing Credit Card and Loan Accounts together as related Debt Accounts"
 }

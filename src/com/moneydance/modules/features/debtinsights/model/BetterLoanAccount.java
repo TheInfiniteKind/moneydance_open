@@ -16,8 +16,11 @@ import java.util.List;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.BalanceType;
 import com.moneydance.modules.features.debtinsights.AccountUtils;
+import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Strings;
+import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
+import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 
 /**
  * Essentially a giant wrapper around CreditCardAccount.  There is no good way
@@ -27,8 +30,7 @@ import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
  * 
  * @author Robert Schmid
  */
-public class BetterLoanAccount 
-	extends DebtAccount
+public class BetterLoanAccount extends DebtAccount
 {
 	private Account wrappedAcct;
 	
@@ -58,65 +60,112 @@ public class BetterLoanAccount
 		return wrappedAcct;
 	}
 	
-	public static long getCalculatedPayment(Account wrappedAcct)
+	public static long getCalculatedPayment(Account wrappedAcct){
+		return getCalculatedPayment(wrappedAcct, false);
+	}
+
+	public static long getCalculatedPayment(Account wrappedAcct, boolean recursive)
 	{
-		long pmt = wrappedAcct.getPaymentSchedule().getMonthlyPayment();
-		if (pmt == 0 && wrappedAcct.getSubAccountCount() > 0)
+		long pmt = 0L;
+		if (!wrappedAcct.getAccountOrParentIsInactive()) {
+			pmt += wrappedAcct.getPaymentSchedule().getMonthlyPayment();
+		}
+
+//		if (pmt == 0 && wrappedAcct.getSubAccountCount() > 0)
+//		{
+//			for (Account sub : wrappedAcct.getSubAccounts()) {
+//				if (!sub.getAccountOrParentIsInactive()) {
+//					pmt += getCalculatedPayment(sub);
+//				}
+//			}
+//		}
+
+        pmt = -Math.abs(pmt);
+
+		if (recursive)
 		{
 			for (Account sub : wrappedAcct.getSubAccounts()) {
-				pmt += getCalculatedPayment(sub);
+				if (!sub.getAccountOrParentIsInactive()) {
+	                pmt += CurrencyUtil.convertValue(getCalculatedPayment(sub, recursive), sub.getCurrencyType(), wrappedAcct.getCurrencyType());
+				}
 			}
 		}
-		
-		return -Math.abs(pmt);
+
+		return pmt;
 	}
 	
-	public static String getAccountNumber(Account wrappedAcct)
-	{
-		return Strings.BLANK + wrappedAcct.getAccountNum();
-	}
+//	public static String getAccountNumber(Account wrappedAcct)
+//	{
+//		return Strings.BLANK + wrappedAcct.getAccountNum();
+//	}
 
 	public static long getNextPayment(Account wrappedAcct)
 	{
-		return getCalculatedPayment(wrappedAcct);
+		return getNextPayment(wrappedAcct, false);
+	}
+
+	public static long getNextPayment(Account wrappedAcct, boolean recursive)
+	{
+		return getCalculatedPayment(wrappedAcct, recursive);
 	}
 
 	
-//	@Override
 //	public long getInterestPayment()
 //	{
 //		return (long) Math.round(wrappedAcct.getCurrentBalance() * getAPR()/1200f);
 //	}
-	
-	public static long getInterestPayment(Account wrappedAcct)
-	{
-		long pmt = (long) Math.round(wrappedAcct.getCurrentBalance() * getAPR(wrappedAcct)/1200f);
-		if (pmt == 0 && wrappedAcct.getSubAccountCount() > 0)
-		{
-			for (Account sub: wrappedAcct.getSubAccounts())	{
-				pmt += getInterestPayment(sub);
-			}
-		}
-		return pmt;
+//
+	public static long getInterestPayment(Account acct) {
+		return getInterestPayment(acct, false);
 	}
-	
-  
-	public static long getDisplayBalance(Account wrappedAcct, BalanceType bType)
-	{
-		switch (bType)
-		{
-			case BALANCE:
-				return wrappedAcct.getBalance();
-			case CLEARED_BALANCE:
-				return wrappedAcct.getClearedBalance();
-			case CURRENT_BALANCE:
-				return wrappedAcct.getCurrentBalance();
-			case CONFIRMED_BALANCE:
-				return wrappedAcct.getConfirmedBalance();
-			default:
-				return wrappedAcct.getBalance();
-		}
+
+	public static long getInterestPayment(Account acct, boolean recursive){
+		return getInterestPayment(acct, false, null, recursive);
 	}
+
+	public static long getInterestPayment(Account wrappedAcct, boolean convertToBase, DebtViewPanel ccvp) {
+		return getInterestPayment(wrappedAcct, convertToBase, ccvp, false);
+	}
+
+	public static long getInterestPayment(Account wrappedAcct, boolean convertToBase, DebtViewPanel ccvp, boolean recursive)
+	{
+		CurrencyType base = Main.getMDMain().getCurrentAccountBook().getCurrencies().getBaseType();
+
+		//		long bal = wrappedAcct.getCurrentBalance();
+
+//		BalanceType balType = ccvp != null ? ccvp.getBalanceType() : BalanceType.CURRENT_BALANCE;
+		BalanceType balType = Main.getWidgetCalculationBalanceTypeChoiceAsBalanceType();
+		long bal = AccountUtils.getActiveXRecursiveBalance(wrappedAcct, balType);
+		long interest = 0L;
+
+		long convBal = convertToBase ? CurrencyUtil.convertValue(bal, wrappedAcct.getCurrencyType(), base) : bal;
+		interest += Math.round(convBal * getAPR(wrappedAcct) / 1200f);		// Divide by 100 and then by 12 months!
+		Util.logConsole(true, "BLA.getInterestPayment() BT: " + balType + " Acct: " + wrappedAcct + " Bal: " + bal + "int: " + interest);
+
+//		if (recursive) {
+//			for (Account sub : wrappedAcct.getSubAccounts()) {
+//				interest += CurrencyUtil.convertValue(getInterestPayment(sub, convertToBase, ccvp, recursive), sub.getCurrencyType(), wrappedAcct.getCurrencyType());
+//			}
+//		}
+
+		return Math.min(0, interest);
+	}
+
+
+//	public static long getDisplayBalance(Account wrappedAcct, BalanceType bType)
+//	{
+//		switch (bType)
+//		{
+//			case CLEARED_BALANCE:
+//				return wrappedAcct.getClearedBalance();
+//			case CURRENT_BALANCE:
+//				return wrappedAcct.getCurrentBalance();
+//			case CONFIRMED_BALANCE:
+//				return wrappedAcct.getConfirmedBalance();
+//			default:
+//				return wrappedAcct.getBalance();
+//		}
+//	}
 
 	public static long getCreditDisplay(Account wrappedAcct, BalanceType bType, CreditLimitType cType)
 	{

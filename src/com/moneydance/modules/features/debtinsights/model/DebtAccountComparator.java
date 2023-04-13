@@ -14,6 +14,8 @@ import java.util.Comparator;
 import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.AccountUtil;
 import com.moneydance.apps.md.controller.BalanceType;
+import com.moneydance.modules.features.debtinsights.Main;
+import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
 import com.moneydance.modules.features.debtinsights.debtmanager.DebtManagerPanel;
 import com.moneydance.modules.features.debtinsights.debtmanager.Header;
@@ -36,12 +38,13 @@ public class DebtAccountComparator implements Comparator<Account>
 		this.bType = panel.getBalanceType();
 		if (panel instanceof DebtManagerPanel)
 		{
+			Util.logConsole(true, "Inside: DebtAccountComparator constructor... DMP detected...");
+			this.bType = Main.getWidgetCalculationBalanceTypeChoiceAsBalanceType();
 			this.cType = DebtManagerPanel.getCreditLimitType();
 		}
 		this.order = order;
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked"})
 	@Override
 	public int compare(Account a1, Account a2)
 	{

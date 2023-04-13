@@ -10,6 +10,7 @@
 package com.moneydance.modules.features.debtinsights.ui.acctview;
 
 import javax.swing.Icon;
+import com.moneydance.apps.md.view.gui.MDImages;
 
 
 public interface IconToggle

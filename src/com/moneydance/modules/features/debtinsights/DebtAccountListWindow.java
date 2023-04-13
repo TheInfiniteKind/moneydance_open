@@ -1,6 +1,6 @@
-/************************************************************\
- *       Copyright (C) 2001 Appgen Personal Software        *
-\************************************************************/
+//************************************************************
+//*       Copyright (C) 2001 Appgen Personal Software        *
+//************************************************************
 
 package com.moneydance.modules.features.debtinsights;
 
@@ -38,11 +38,9 @@ public class DebtAccountListWindow extends JFrame implements ActionListener
 		this.extension = extension;
 		
 		accountListArea = new JTextArea();
-		
-		StringBuffer acctStr = new StringBuffer();
 
 		accountListArea.setEditable(false);
-		accountListArea.setText(acctStr.toString());
+		accountListArea.setText("");
 		inputArea = new JTextField();
 		inputArea.setEditable(true);
 		clearButton = new JButton("Clear");

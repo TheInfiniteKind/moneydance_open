@@ -19,15 +19,15 @@ import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.AccountBook;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.MoneydanceLAF;
+import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
 import com.moneydance.modules.features.debtinsights.ui.acctview.GenericDebtAccountView;
 
 public class DMDebtAccountView extends GenericDebtAccountView
 {
-	public String creditLimitTypePref = "gui.home.cc_limit_type";
-	public List<Account.AccountType> debtAccountTypes = 
-		Arrays.asList(new Account.AccountType[] { Account.AccountType.CREDIT_CARD,
-																							Account.AccountType.LOAN });
+
+	public List<Account.AccountType> debtAccountTypes =
+		Arrays.asList(Account.AccountType.CREDIT_CARD,Account.AccountType.LOAN);
 	
 //	public DMDebtAccountView(MoneydanceGUI mdGUI) {
 //		super(mdGUI, "internal.cc_accts",
@@ -49,11 +49,8 @@ public class DMDebtAccountView extends GenericDebtAccountView
 		setAccountTypes(this.debtAccountTypes);
 	}
 	
-	/* (non-Javadoc)
-     * @see com.moneydance.modules.features.debtinsights.BetterAccountView#getGUIView(com.infinitekind.moneydance.model.AccountBook)
-     */
     @Override
-    public JComponent getGUIView(AccountBook AccountBook)
+    public JComponent getGUIView(AccountBook book)
     {
         Util.logConsole(true, ".getGUIView() called (book: " + book + ")");
         if (book == null){

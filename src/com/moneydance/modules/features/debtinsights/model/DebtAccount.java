@@ -11,6 +11,7 @@ package com.moneydance.modules.features.debtinsights.model;
 
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.BalanceType;
+import com.moneydance.modules.features.debtinsights.AccountUtils;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
 
 
@@ -36,24 +37,26 @@ public abstract class DebtAccount
     }
   }
   
-  public static long getDisplayBalance(Account acct, BalanceType bType) {
-    switch (acct.getAccountType()) {
-      case CREDIT_CARD:
-        return BetterCreditCardAccount.getDisplayBalance(acct, bType);
-      case LOAN:
-        return BetterLoanAccount.getDisplayBalance(acct, bType);
-      default:
-        return 0;
-    }
-
-  }
+//  public static long getDisplayBalance(Account acct, BalanceType bType) {
+//	  return AccountUtils.getActiveXBalance(acct, bType);
+//
+//	  //    switch (acct.getAccountType()) {
+//      case CREDIT_CARD:
+//        return BetterCreditCardAccount.getDisplayBalance(acct, bType);
+//      case LOAN:
+//        return BetterLoanAccount.getDisplayBalance(acct, bType);
+//      default:
+//        return 0;
+//    }
+//
+//  }
 
 	public static long getNextPayment(Account acct) {
 		switch (acct.getAccountType()) {
 			case CREDIT_CARD:
-				return BetterCreditCardAccount.getNextPayment(acct);
+				return BetterCreditCardAccount.getNextPayment(acct, true);
 			case LOAN:
-				return BetterLoanAccount.getNextPayment(acct);
+				return BetterLoanAccount.getNextPayment(acct, true);
 			default:
 				return 0;
 		}
@@ -62,9 +65,9 @@ public abstract class DebtAccount
 	public static long getInterestPayment(Account acct) {
 		switch (acct.getAccountType()) {
 			case CREDIT_CARD:
-				return BetterCreditCardAccount.getInterestPayment(acct);
+				return BetterCreditCardAccount.getInterestPayment(acct, true);
 			case LOAN:
-				return BetterLoanAccount.getInterestPayment(acct);
+				return BetterLoanAccount.getInterestPayment(acct, true);
 			default:
 				return 0;
 		}

@@ -14,6 +14,7 @@ import java.awt.event.MouseEvent;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 
+import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 
 
@@ -28,6 +29,7 @@ public class GroupListener extends TableHeaderListener
 	@Override
 	public void mouseClicked(MouseEvent paramMouseEvent)
 	{
+		Util.logConsole(true, "**** mouseClicked() ***");;
 		this.viewPanel.toggleShowHierarchy((JLabel) this.source);
 //		-  U+2796
 //		+  U+2795	

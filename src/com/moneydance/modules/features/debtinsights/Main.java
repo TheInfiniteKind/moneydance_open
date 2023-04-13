@@ -1,165 +1,363 @@
-/************************************************************\
- *       Copyright (C) 2001 Appgen Personal Software        *
-\************************************************************/
+// UPDATED BY STUART BEESLEY - StuWareSoftSystems - March 2023
+// Original Author: 2001 Appgen Personal Software >> Robert Schmid
+// Restricted to MD2015.8(1372) onwards
+
+// Build: 1000 - Fix Home Screen widget popup in showBalanceTypePopup() causing...:
+// 			   - NullPointerException: Cannot invoke "java.io.InputStream.markSupported()" because "<parameter1>" is null
+// 			   - Fix DebtManagerWindow() crashing due to icon issues (missing and size -1 in VAQua)
+// 				 Exception in thread "AWT-EventQueue-0" java.lang.IllegalArgumentException: Width (-1) and height (-1) cannot be <= 0
+// 			   - Changed Summary Screen widget title, Main Window title and Extension title - to make all consistent...
+//             - Enhanced with necessary methods to handle unload, re-installs, handleEvent(s) etc...; refresh home screen etc...
+//             - Added setup options on the popup manager window. Now allow user to fix calculations or use dynamic balances...
+//             - Added help button and guidance
+//             - Added options to allow user to override MD Payment Plan to Balance rather than Current/Cleared Balance
+//             - Don't allow available credit to go negative; don't allow interest to go positive....
+//             - Lots more to mention... A complete overhaul....! ;->
+
+// todo - Replace ProgressBarUI (etc) in BarDisplay.java - so that we can use better colors on all platforms.
+// todo - The popup window hierarchy toggle icon only works on first window opening.. After this, it's dead!?
 
 package com.moneydance.modules.features.debtinsights;
 
-import java.awt.Image;
-import java.awt.Toolkit;
-import java.io.ByteArrayOutputStream;
-
-import com.moneydance.apps.md.controller.FeatureModule;
-import com.moneydance.apps.md.controller.FeatureModuleContext;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.moneydance.apps.md.controller.*;
+import com.moneydance.apps.md.view.gui.MainFrame;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.awt.AwtUtil;
 import com.moneydance.modules.features.debtinsights.debtmanager.DebtManagerWindow;
 import com.moneydance.modules.features.debtinsights.ui.acctview.CreditCardAccountView;
 
-/**
- * Pluggable module used to give users access to a Account List interface to
- * Moneydance.
- */
+import javax.swing.*;
 
-public class Main extends FeatureModule
-{
-	//private static Log log = LogFactory.getLog(Main.class);
-	private DebtAccountListWindow	accountListWindow	= null;
-	private DebtManagerWindow	debtManagerWindow	= null;
+public class Main extends FeatureModule implements PreferencesListener {
 
-	@Override
-	public void init()
-	{
-		// the first thing we will do is register this module to be invoked
-		// via the application toolbar
-		FeatureModuleContext context = getContext();
-		try
-		{
-			context.registerFeature(this, "debtmanager",
-			        getIcon(), "Debt Insights");
-			context.registerHomePageView(this,
-			        new CreditCardAccountView(this)); //.getAccountBook()));			
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace(System.err);
-		}
-	}
+    public static final int MIN_MD_BUILD = 1372;    // Runs on MD2015.8(1372) onwards...
 
-	@Override
-	public void cleanup()
-	{
-		closeConsole();
-	}
+    public static boolean DEBUG = false;
+    public static boolean PREVIEW_BUILD = false;
 
-	private Image getIcon()
-	{
-		try
-		{
-			ClassLoader cl = getClass().getClassLoader();
-			java.io.InputStream in = cl
-			        .getResourceAsStream("/com/moneydance/modules/features/debtinsights/icon.gif");
-			if (in != null)
-			{
-				ByteArrayOutputStream bout = new ByteArrayOutputStream(1000);
-				byte buf[] = new byte[256];
-				int n = 0;
-				while ((n = in.read(buf, 0, buf.length)) >= 0)
-					bout.write(buf, 0, n);
-				return Toolkit.getDefaultToolkit().createImage(
-				        bout.toByteArray());
-			}
-		}
-		catch (Throwable e)
-		{
-		}
-		return null;
-	}
+    public static final String EXTN_ID = "debtinsights";
+    public static final String EXTN_NAME = "Debt Insights";
+    public static final String EXTN_WIDGET_ID = EXTN_ID + "_creditcard";  // If you change this you will loose the home screen saved location settings...
+    public static com.moneydance.apps.md.controller.Main MD_REF;
+    public static final String EXTN_WIDGET_NAME_KEY = EXTN_ID + "_widgetname";
+    public static final String EXTN_WIDGET_ENHANCED_COLORS_KEY = EXTN_ID + "_enhancedcolors";
+    public static final String EXTN_WIDGET_DEBUG_KEY = EXTN_ID + "_debug";
+    public static final String EXTN_WIDGET_FORCE_VALUES_BASE_CURRENCY_KEY = EXTN_ID + "_forcebasecurrency";
+    public static final String EXTN_WIDGET_OVERRIDE_PAYMENT_PLAN_BALANCE_KEY = EXTN_ID + "_overridepaymentplanbalance";
+    public static final String EXTN_WIDGET_BALANCETYPE_CHOICE_KEY = EXTN_ID + "_balancetypechoice";
+    public static final int EXTN_WIDGET_BALANCETYPE_CHOICE_KEY_PERCOLUMN = -1;
+    public static final String EXTN_WIDGET_NAME_DEFAULT = EXTN_NAME + ": CCards";
 
-	/** Process an invokation of this module with the given URI */
-	@Override
-	public void invoke(String uri)
-	{
-		String command = uri;
-		int theIdx = uri.indexOf('?');
-		if (theIdx >= 0)
-		{
-			command = uri.substring(0, theIdx);
-		}
-		else
-		{
-			theIdx = uri.indexOf(':');
-			if (theIdx >= 0)
-			{
-				command = uri.substring(0, theIdx);
-			}
-		}
+    public static final String EXTN_MD_CCLIMIT_PREF_KEY = "gui.home.cc_limit_type";
 
-		if (command.equals("debtmanager"))
-		{
-			creditCardReport();
-		}
-	}
+    public static CreditCardAccountView widgetViewReference = null;
 
-	@Override
-	public String getName()
-	{
-		return "Debt Insights";
-	}
+    public boolean allowActive = true;
+    public boolean killSwitch = false;
 
-	private synchronized void creditCardReport()
-	{
-		if (debtManagerWindow == null)
-		{
-			debtManagerWindow = new DebtManagerWindow(getMDGUI());
-		}
-		if (this.debtManagerWindow.refresh())
-		{
-			this.debtManagerWindow.pack();
-			this.debtManagerWindow.toFront();
-			this.debtManagerWindow.requestFocus();
-			AwtUtil.centerWindow(debtManagerWindow);
-			debtManagerWindow.setVisible(true);
-		}
-		else
-		{
-			this.debtManagerWindow.dispose();
-			this.debtManagerWindow = null;
-		}
-	}
-	
-	FeatureModuleContext getUnprotectedContext()
-	{
-		return getContext();
-	}
+    public DebtManagerWindow debtManagerWindow = null;
 
-	synchronized void closeConsole()
-	{
-		if (accountListWindow != null)
-		{
-			accountListWindow.goAway();
-			accountListWindow = null;
-			System.gc();
-		}
-	}
-	
+    public static final String EXTN_CMD = "debtoverview";
+    public static final String EXTN_OVERVIEW_TITLE = "Debt Overview";
+    public static final String EXPAND_SUBS_KEY = EXTN_ID + "_gui_expand_subaccts";
+    public static final String EXPAND_SUBS_POPUP_KEY = EXTN_ID + "_popup_gui_expand_subaccts";
 
-    public com.moneydance.apps.md.controller.Main getMDMain()
-    {
-        return (com.moneydance.apps.md.controller.Main) getUnprotectedContext();
+    public static final String POPUP_GUI_HOME_CC_EXPANDED = UserPreferences.GUI_HOME_CC_EXP + "_" + EXTN_ID + "_popupwindow";
+
+    @Override
+    public void init() {
+        // the first thing we will do is register this module to be invoked
+        // via the application toolbar
+
+        boolean installDetected = false;
+
+        FeatureModuleContext context = getContext();
+
+        MD_REF = (com.moneydance.apps.md.controller.Main) context;
+
+        if (context.getBuild() < MIN_MD_BUILD) {
+            Util.logConsole("ALERT: This extension/widget is only supported on MD2015.8(1372) onwards... Quitting.....");
+            return;
+        }
+
+        if (SwingUtilities.isEventDispatchThread()) {
+            installDetected = true;
+            Util.logConsole("Detected extension install... Performing additional install/activation routines...");
+            selectHomeScreen();
+            getMDMain().getUI().setStatus(EXTN_NAME + " Installing.....", 0);
+
+            if (getPreviewBuild()) {
+                Util.logConsole(String.format("*** Running PREVIEW BUILD(%s) ***", getBuild()));
+            }
+
+            Util.logConsole(String.format("CONFIG: Widget Name: '%s', Enh Colors: %s, Calculation Balance Type: %s : %s, Override MD's Payment Plan x Balance to Balance: %s, Debug: %s, Convert widget values to base currency: %s",
+                    getWidgetName(),
+                    getWidgetEnhancedColors(),
+                    getWidgetCalculationBalanceTypeChoice(),
+                    (getWidgetCalculationBalanceTypeChoice() == Main.EXTN_WIDGET_BALANCETYPE_CHOICE_KEY_PERCOLUMN) ? "DYNAMIC PER WIDGET COLUMN" : "FIXED as '" + getMDGUI().getResources().getBalanceType(Main.getWidgetCalculationBalanceTypeChoiceAsBalanceType()) + "'",
+                    getWidgetOverridePaymentPlanBalance() ? "ON" : "OFF",
+                    getDebug() ? "ON" : "OFF",
+                    getWidgetForceValuesBaseCurrency() ? "ON" : "OFF"));
+        }
+
+        preferencesUpdated();
+        getMDMain().getPreferences().addListener(this);
+
+        try {
+            context.registerFeature(this, EXTN_CMD, null, EXTN_NAME + " (" + EXTN_OVERVIEW_TITLE + ")");
+
+            widgetViewReference = new CreditCardAccountView(this);
+            context.registerHomePageView(this, widgetViewReference);
+
+            Util.logConsole("Initialised... Build:" + getBuild());
+            Util.logConsole("... widget name set to '" + getWidgetName());
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        }
+
+        if (installDetected){
+            fireMDPreferencesUpdated();
+        }
+
     }
 
-    public MoneydanceGUI getMDGUI() {
-			return (MoneydanceGUI)getMDMain().getUI();
+    public static int getMDCCBalanceTypeSetting(){
+        return getMDMain().getPreferences().getIntSetting(UserPreferences.GUI_HOME_CC_BAL, BalanceType.CURRENT_BALANCE.ordinal());
     }
-	
 
-//	/* (non-Javadoc)
-//	 * @see com.moneydance.apps.md.controller.FeatureModule#handleEvent(java.lang.String)
-//	 */
-	@Override
-	public void handleEvent(String appEvent)
-	{
-		super.handleEvent(appEvent);
-	}
+    public static void setMDCCBalanceTypeSetting(int newSetting){
+		getMDMain().getPreferences().setSetting(UserPreferences.GUI_HOME_CC_BAL, newSetting);
+        Util.logConsole(true, String.format("MD Preference '%s' set to %s", UserPreferences.GUI_HOME_CC_BAL, newSetting));
+    }
 
+    public static String getWidgetName(){
+        return getMDMain().getPreferences().getSetting(Main.EXTN_WIDGET_NAME_KEY, Main.EXTN_WIDGET_NAME_DEFAULT);}
+
+    public static void setWidgetName(String newWidgetName){
+        getMDMain().getPreferences().setSetting(Main.EXTN_WIDGET_NAME_KEY, newWidgetName);
+        Util.logConsole("New Summary Screen widget name: '" + newWidgetName + "'");
+    }
+
+    public static boolean getWidgetEnhancedColors(){
+        return getMDMain().getPreferences().getBoolSetting(Main.EXTN_WIDGET_ENHANCED_COLORS_KEY, false);}
+
+    public static void setWidgetEnhancedColors(boolean newSetting){
+        getMDMain().getPreferences().setSetting(Main.EXTN_WIDGET_ENHANCED_COLORS_KEY, newSetting);
+        Util.logConsole("Widget enhanced colors toggled: " + (Main.getWidgetEnhancedColors() ? "ON" : "OFF"));
+    }
+
+    public static boolean getWidgetForceValuesBaseCurrency(){
+        return getMDMain().getPreferences().getBoolSetting(Main.EXTN_WIDGET_FORCE_VALUES_BASE_CURRENCY_KEY, false);}
+
+    public static void setWidgetForceValuesBaseCurrency(boolean newSetting){
+        getMDMain().getPreferences().setSetting(Main.EXTN_WIDGET_FORCE_VALUES_BASE_CURRENCY_KEY, newSetting);
+        Util.logConsole("Convert widget values to your base currency: " + (Main.getWidgetForceValuesBaseCurrency() ? "ON" : "OFF"));
+    }
+
+    public static CurrencyType getWidgetValueConversionCurrencyType(CurrencyType defaultCurrType){
+        boolean forceBase = getWidgetForceValuesBaseCurrency();
+        CurrencyType base = Main.getMDMain().getCurrentAccountBook().getCurrencies().getBaseType();
+        return (forceBase || defaultCurrType == null) ? base : defaultCurrType;
+    }
+
+    public static boolean getDebug(){
+        Main.DEBUG = getMDMain().getPreferences().getBoolSetting(Main.EXTN_WIDGET_DEBUG_KEY, Main.DEBUG);
+        return Main.DEBUG;
+    }
+
+    public static boolean getPreviewBuild(){return Main.PREVIEW_BUILD; }
+
+    public static void setDebug(boolean newSetting){
+        Main.DEBUG = newSetting;
+        getMDMain().getPreferences().setSetting(Main.EXTN_WIDGET_DEBUG_KEY, Main.DEBUG);
+        Util.logConsole("Widget DEBUG toggled: " + (Main.getDebug() ? "ON" : "OFF"));
+    }
+
+    public static boolean getWidgetOverridePaymentPlanBalance(){
+        return getMDMain().getPreferences().getBoolSetting(Main.EXTN_WIDGET_OVERRIDE_PAYMENT_PLAN_BALANCE_KEY, false);}
+
+    public static void setWidgetOverridePaymentPlanBalance(boolean newSetting){
+        getMDMain().getPreferences().setSetting(Main.EXTN_WIDGET_OVERRIDE_PAYMENT_PLAN_BALANCE_KEY, newSetting);
+        Util.logConsole("Widget override MD's payment plan xBalance (to always use Balance) toggled to: " + (Main.getWidgetOverridePaymentPlanBalance() ? "ON" : "OFF"));
+    }
+
+    public static int getWidgetCalculationBalanceTypeChoice(){
+        return getMDMain().getPreferences().getIntSetting(EXTN_WIDGET_BALANCETYPE_CHOICE_KEY, EXTN_WIDGET_BALANCETYPE_CHOICE_KEY_PERCOLUMN);}
+
+    public static BalanceType getWidgetCalculationBalanceTypeChoiceAsBalanceType() {
+        int balTypeChoice = getWidgetCalculationBalanceTypeChoice();
+        if (balTypeChoice == EXTN_WIDGET_BALANCETYPE_CHOICE_KEY_PERCOLUMN) {
+            balTypeChoice = getMDCCBalanceTypeSetting();
+        }
+        return BalanceType.fromInt(balTypeChoice);
+    }
+
+    public static void setWidgetCalculationBalanceTypeChoice(int newChoice){
+        getMDMain().getPreferences().setSetting(Main.EXTN_WIDGET_BALANCETYPE_CHOICE_KEY, newChoice);
+        Util.logConsole(String.format("Credit calculation's Balance Type set to: %s : %s",
+                getWidgetCalculationBalanceTypeChoice(),
+                (getWidgetCalculationBalanceTypeChoice() == Main.EXTN_WIDGET_BALANCETYPE_CHOICE_KEY_PERCOLUMN) ? "DYNAMIC PER WIDGET COLUMN" : "FIXED as '" + getMDGUI().getResources().getBalanceType(Main.getWidgetCalculationBalanceTypeChoiceAsBalanceType()) + "'"));
+
+    }
+
+    public void preferencesUpdated(){
+        Util.logConsole(true, "Inside .preferencesUpdated() ...");
+    }
+
+    public void fireMDPreferencesUpdated() {
+        Util.logConsole(true, "Triggering an update to the Summary/Home Page View");
+        getMDMain().getPreferences().firePreferencesUpdated();
+    }
+
+    @Override
+    public void cleanup() {
+        // I don't this this is ever called by Moneydance!?
+        Util.logConsole(true, "Cleanup() called....");
+        closeConsole();
+        widgetViewReference = null;
+    }
+
+    @Override
+    public void unload() {
+        Util.logConsole(true, "Unload() called.... Unloading and activating killSwitch...");
+        killSwitch = true;
+        closeConsole();
+        widgetViewReference = null;
+        getMDMain().getPreferences().removeListener(this);
+        getMDMain().getUI().setStatus(EXTN_NAME + " unloaded...", 0);
+    }
+
+    /**
+     * Process an invocation of this module with the given URI
+     */
+    @Override
+    public void invoke(String uri) {
+        String command = uri;
+        int theIdx = uri.indexOf('?');
+        if (theIdx >= 0) {
+            command = uri.substring(0, theIdx);
+        } else {
+            theIdx = uri.indexOf(':');
+            if (theIdx >= 0) {
+                command = uri.substring(0, theIdx);
+            }
+        }
+
+        if (command.equals(EXTN_CMD)) {
+            creditCardReport();
+        } else {
+            Util.logConsole(true, "** did not process command: '" + command + "'");
+        }
+    }
+
+    @Override
+    public String getName() {
+        return EXTN_NAME;
+    }
+
+    public synchronized void creditCardReportRefresh() {
+        if (this.debtManagerWindow != null) {
+            Util.logConsole(true, "Inside: creditCardReportRefresh() - calling DMW.refresh()");
+            this.debtManagerWindow.refresh();
+        }
+    }
+
+    public synchronized void creditCardReportDispose() {
+        if (this.debtManagerWindow != null) {
+            Util.logConsole(true, "(indirectly called via Home Screen Popup Balance Change...) About to Frame dispose()...");
+            this.debtManagerWindow.dispose();
+            this.debtManagerWindow = null;
+        }
+    }
+
+    private synchronized void creditCardReport() {
+        if (debtManagerWindow == null) {
+            Util.logConsole(true, "About to launch new frame...");
+            debtManagerWindow = new DebtManagerWindow(getMDGUI(), this);
+            Util.logConsole(true, "Created new frame...");
+        }
+        if (this.debtManagerWindow.refresh()) {
+            Util.logConsole(true, "Frame inside .refresh()...");
+            this.debtManagerWindow.pack();
+            this.debtManagerWindow.toFront();
+            this.debtManagerWindow.requestFocus();
+            debtManagerWindow.setVisible(true);
+            Util.logConsole(true, "AFTER .refresh()...");
+        } else {
+            Util.logConsole(true, "About to Frame dispose()...");
+            this.debtManagerWindow.dispose();
+            this.debtManagerWindow = null;
+            Util.logConsole(true, "AFTER Frame dispose()...");
+        }
+    }
+
+    synchronized void closeConsole() {
+        Util.logConsole(true, "closeConsole() called...");
+        if (debtManagerWindow != null) {
+            debtManagerWindow.goAway();
+            Util.logConsole(true, "... after .goAway()...");
+            debtManagerWindow = null;
+        }
+    }
+
+    public static com.moneydance.apps.md.controller.Main getMDMain() {
+        return MD_REF;
+    }
+
+    public static FeatureModuleContext getUnprotectedContext() {
+        return getMDMain();
+    }
+
+    public static MoneydanceGUI getMDGUI() {
+        return (MoneydanceGUI) getMDMain().getUI();
+    }
+
+    @Override
+    public void handleEvent(String appEvent) {
+        Util.logConsole(true, "handleEvent() - Event '" + appEvent + "'");
+
+        if (killSwitch){
+            Util.logConsole(true, ".... ignoring as killSwitch set....");
+            widgetViewReference = null;
+            return;
+        }
+
+        switch (appEvent) {
+            case "md:file:closing":
+            case "md:file:closed":
+            case "md:app:exiting":
+                allowActive = false;
+                break;
+            case "md:file:opened":
+                allowActive = true;
+                break;
+            default:
+                Util.logConsole(true, ".... ignoring: '" + appEvent + "'");
+        }
+        //            "md:file:opening";
+        //            "md:file:presave"
+        //            "md:file:postsave"
+        //            "md:account:select"
+        //            "md:account:root"
+        //            "md:graphreport"
+        //            "md:viewbudget"
+        //            "md:viewreminders"
+        //            "md:licenseupdated"
+    }
+
+    public void selectHomeScreen() {
+        try {
+            MainFrame fmf = getMDGUI().getFirstMainFrame();
+            if (fmf == null) {return;}
+            Account currentViewAccount = fmf.getSelectedAccount();
+            if (currentViewAccount != getMDMain().getRootAccount()) {
+                Util.logConsole(true, "Switched to Home Page Summary Page (from: " + currentViewAccount + ")");
+                getMDGUI().getFirstMainFrame().selectAccount(getMDMain().getRootAccount());
+            }
+            } catch(Exception e){
+                Util.logConsole("@@ Error switching to Summary Page (Home Page) - ignoring and continuing...");
+                e.printStackTrace(System.err);
+            }
+        }
 }

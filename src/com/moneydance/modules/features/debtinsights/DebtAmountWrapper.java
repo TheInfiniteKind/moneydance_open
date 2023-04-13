@@ -14,14 +14,12 @@ import com.infinitekind.moneydance.model.Account;
 public class DebtAmountWrapper
 {
 
-//	public CurrencyType	currency;
 	private long		amount;
 	public boolean		hasValidAccts	= false;
 	private double		cumulativeRate;
 
 	public DebtAmountWrapper()
 	{
-//		this.currency = paramCurrencyType;
 	}
 
 	public void scannedAccount(Account acct)

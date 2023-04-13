@@ -9,6 +9,8 @@
  */
 package com.moneydance.modules.features.debtinsights.debtmanager;
 
+import com.moneydance.modules.features.debtinsights.Util;
+
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
@@ -32,7 +34,7 @@ public enum Flag
 		}
 		catch (IOException e)
 		{
-			System.err.println("Error: " + e);
+			Util.logConsole("Error: " + e);
 		}
 	}
 	

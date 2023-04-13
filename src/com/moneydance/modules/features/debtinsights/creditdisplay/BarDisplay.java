@@ -13,6 +13,9 @@ import javax.swing.*;
 import javax.swing.plaf.ProgressBarUI;
 
 import com.infinitekind.moneydance.model.*;
+import com.moneydance.apps.md.view.gui.budgetbars.BudgetBarUI;
+import com.moneydance.modules.features.debtinsights.Main;
+import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.model.BetterCreditCardAccount;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.CreditCardViewPanel;
