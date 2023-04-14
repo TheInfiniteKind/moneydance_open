@@ -9463,7 +9463,7 @@ Visit: %s (Author's site)
                                     nameLabel = SpecialJLinkLabel(wrc.getNewRowText(), "showConfig?%s" %(str(onRow)), wrc.getJustification())
 
                                     if balanceOrAverage is None:
-                                        netTotalLbl = JLinkLabel("" if (wrc.getBlankZero()) else GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower(),
+                                        netTotalLbl = JLinkLabel("  " if (wrc.getBlankZero()) else GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower(),
                                                                  "showConfig?%s" %(str(onRow)),
                                                                  JLabel.RIGHT)
                                         netTotalLbl.setFont((md.getUI().getFonts()).mono)                               # noqa
@@ -9471,7 +9471,7 @@ Visit: %s (Author's site)
                                     else:
 
                                         if (balanceOrAverage == 0 and wrc.getBlankZero()):
-                                            theFormattedValue = ""
+                                            theFormattedValue = "  "
                                         else:
                                             theFormattedValue = formatFancy(self.netAmountTable[i][_curIdx],
                                                                             balanceOrAverage,
