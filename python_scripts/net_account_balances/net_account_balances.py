@@ -118,6 +118,7 @@
 # build: 1021 - MD2023 fixes to common code...
 # build: 1022 - More MD2023 fixes; launch - configuring StreamVector lefties/righties etc...
 #               Tweak isSwingComponentInvalid() to ignore .isValid()....
+#               Added config to allow row name to contain <xxx> configuration variables.....
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -3349,12 +3350,14 @@ Visit: %s (Author's site)
     def wrap_HTML_italics(_textToWrap):
         return "<html><i>%s</i></html>" %(html_strip_chars(_textToWrap))
 
-    def wrap_HTML_small(_bigText, _smallText, _smallColor=None, stripBigChars=True, stripSmallChars=True):
+    def wrap_HTML_small(_bigText, _smallText, _smallColor=None, stripBigChars=True, stripSmallChars=True, _bigColor=None):
+        if _bigColor is None: _bigColor = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
+        _bigColorHex = AwtUtil.hexStringForColor(_bigColor)
         if _smallColor is None: _smallColor = GlobalVars.CONTEXT.getUI().colors.tertiaryTextFG
         _smallColorHex = AwtUtil.hexStringForColor(_smallColor)
         _htmlBigText = html_strip_chars(_bigText) if stripBigChars else _bigText
         _htmlSmallText = html_strip_chars(_smallText) if stripSmallChars else _smallText
-        return "<html>%s<small><font color=#%s>%s</font></small></html>" %(_htmlBigText, _smallColorHex, _htmlSmallText)
+        return "<html><font color=#%s>%s</font><small><font color=#%s>%s</font></small></html>" %(_bigColorHex, _htmlBigText, _smallColorHex, _htmlSmallText)
 
     class StoreAccountList():
 
@@ -6152,10 +6155,11 @@ Visit: %s (Author's site)
                         lUseAverage = (NAB.savedDisplayAverageTable[i] != 1.0)
                         balanceOrAverage = totalBalanceTable[i][_valIdx]
 
+                        wrc = WidgetRowConfig(NAB.savedWidgetName[i], "")
                         if NAB.savedHideRowWhenXXXTable[i] == GlobalVars.HIDE_ROW_WHEN_ALWAYS:
                             NAB.simulateTotal_label.setText(GlobalVars.WIDGET_ROW_DISABLED)
                         elif balanceOrAverage is None:
-                            NAB.simulateTotal_label.setText(GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower())
+                            NAB.simulateTotal_label.setText("  " if wrc.getBlankZero() else GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower())
                         else:
                             showCurrText = ""
                             if totalBalanceTable[i][_curIdx] is not baseCurr: showCurrText = " (%s)" %(totalBalanceTable[i][_curIdx].getIDString())
@@ -6166,13 +6170,16 @@ Visit: %s (Author's site)
                                 balanceOrAverage = totalBalanceTable[i][_curIdx].getLongValue(totalBalanceTable[i][_curIdx].getDoubleValue(balanceOrAverage) / NAB.savedDisplayAverageTable[i])
                                 myPrint("DB", ":: Row: %s using average / by: %s" %(i+1, NAB.savedDisplayAverageTable[i]))
 
-                            theFormattedValue = formatFancy(totalBalanceTable[i][_curIdx],
-                                                            balanceOrAverage,
-                                                            NAB.decimal,
-                                                            fancy=(not NAB.savedDisableCurrencyFormatting[i]),
-                                                            indianFormat=NAB.savedUseIndianNumberFormat,
-                                                            includeDecimals=(not NAB.savedHideDecimals),
-                                                            roundingTarget=(0.0 if (not NAB.savedHideDecimals) else NAB.savedHideRowXValueTable[i]))
+                            if (balanceOrAverage == 0 and wrc.getBlankZero()):
+                                theFormattedValue = "  "
+                            else:
+                                theFormattedValue = formatFancy(totalBalanceTable[i][_curIdx],
+                                                                balanceOrAverage,
+                                                                NAB.decimal,
+                                                                fancy=(not NAB.savedDisableCurrencyFormatting[i]),
+                                                                indianFormat=NAB.savedUseIndianNumberFormat,
+                                                                includeDecimals=(not NAB.savedHideDecimals),
+                                                                roundingTarget=(0.0 if (not NAB.savedHideDecimals) else NAB.savedHideRowXValueTable[i]))
 
                             resultTxt = wrap_HTML_small(theFormattedValue, showCurrText + showAverageText, altFG)
                             NAB.simulateTotal_label.setText(resultTxt)
@@ -8586,6 +8593,64 @@ Visit: %s (Author's site)
             g2d.setStroke(self.underlineStroke)
             g2d.draw(line)
 
+
+    class WidgetRowConfig:
+        WIDGET_ROW_BLANKZERO = "<blankzero>"
+        WIDGET_ROW_BLANKROWNAME = "<blankrowname>"
+        WIDGET_ROW_RIGHTROWNAME = "<rightrowname>"
+        WIDGET_ROW_CENTERROWNAME = "<centerrowname>"
+        WIDGET_ROW_REDROWNAME = "<redrowname>"
+        WIDGET_ROW_BLUEROWNAME = "<bluerowname>"
+        WIDGET_ROW_LIGHTGREYROWNAME = "<lightgreyrowname>"
+
+        def __init__(self, _rowText, _smallText, _smallColor=None, stripBigChars=True, stripSmallChars=True):
+            self.originalRowText = _rowText
+            self.newRowText = None
+            self.color = None
+            self.blankRow = False
+            self.blankZero = False
+            self.justification = JLabel.LEFT
+
+            if (WidgetRowConfig.WIDGET_ROW_BLUEROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_BLUEROWNAME, "")
+                self.color = getColorBlue()
+
+            if (WidgetRowConfig.WIDGET_ROW_REDROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_REDROWNAME, "")
+                self.color = getColorRed()
+
+            if (WidgetRowConfig.WIDGET_ROW_LIGHTGREYROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_LIGHTGREYROWNAME, "")
+                self.color = MD_REF.getUI().getColors().tertiaryTextFG
+
+            if (WidgetRowConfig.WIDGET_ROW_BLANKZERO in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_BLANKZERO, "")
+                self.blankZero = True
+
+            if (WidgetRowConfig.WIDGET_ROW_RIGHTROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_RIGHTROWNAME, "")
+                self.justification = JLabel.RIGHT
+
+            if (WidgetRowConfig.WIDGET_ROW_CENTERROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_CENTERROWNAME, "")
+                self.justification = JLabel.CENTER
+
+            if (WidgetRowConfig.WIDGET_ROW_BLANKROWNAME in _rowText):
+                _rowText = ""
+                self.blankRow = True
+
+            self.newRowText = wrap_HTML_small(_rowText,
+                                              _smallText,
+                                              _smallColor=_smallColor,
+                                              stripBigChars=stripBigChars,
+                                              stripSmallChars=stripSmallChars,
+                                              _bigColor=self.color)
+
+        def getNewRowText(self): return self.newRowText
+        def getBlankZero(self): return self.blankZero
+        def getJustification(self): return self.justification
+
+
     class MyHomePageView(HomePageView, AccountListener, CurrencyListener):
 
         HPV = None
@@ -9392,23 +9457,29 @@ Visit: %s (Author's site)
                                     if lUseAverage: myPrint("DB", ":: Row: %s using average / by: %s" %(onRow, NAB.savedDisplayAverageTable[i]))
                                     if lUseAverage: showAverageText = " (Avg/by: %s)" %(NAB.savedDisplayAverageTable[i])
 
-                                    rowText = wrap_HTML_small(NAB.savedWidgetName[i], self.netAmountTable[i][_secLabelTextIdx] + showCurrText + showAverageText, altFG)
+                                    wrc = WidgetRowConfig(NAB.savedWidgetName[i], self.netAmountTable[i][_secLabelTextIdx] + showCurrText + showAverageText, altFG)
+                                    # rowText = wrap_HTML_small(NAB.savedWidgetName[i], self.netAmountTable[i][_secLabelTextIdx] + showCurrText + showAverageText, altFG)
 
-                                    nameLabel = SpecialJLinkLabel(rowText, "showConfig?%s" %(str(onRow)), JLabel.LEFT)
+                                    nameLabel = SpecialJLinkLabel(wrc.getNewRowText(), "showConfig?%s" %(str(onRow)), wrc.getJustification())
 
                                     if balanceOrAverage is None:
-                                        netTotalLbl = JLinkLabel(GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower(), "showConfig?%s" %(str(onRow)), JLabel.RIGHT)
+                                        netTotalLbl = JLinkLabel("" if (wrc.getBlankZero()) else GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower(),
+                                                                 "showConfig?%s" %(str(onRow)),
+                                                                 JLabel.RIGHT)
                                         netTotalLbl.setFont((md.getUI().getFonts()).mono)                               # noqa
 
                                     else:
 
-                                        theFormattedValue = formatFancy(self.netAmountTable[i][_curIdx],
-                                                                        balanceOrAverage,
-                                                                        NAB.decimal,
-                                                                        fancy=(not NAB.savedDisableCurrencyFormatting[i]),
-                                                                        indianFormat=NAB.savedUseIndianNumberFormat,
-                                                                        includeDecimals=(not NAB.savedHideDecimals),
-                                                                        roundingTarget=(0.0 if (not NAB.savedHideDecimals) else NAB.savedHideRowXValueTable[i]))
+                                        if (balanceOrAverage == 0 and wrc.getBlankZero()):
+                                            theFormattedValue = ""
+                                        else:
+                                            theFormattedValue = formatFancy(self.netAmountTable[i][_curIdx],
+                                                                            balanceOrAverage,
+                                                                            NAB.decimal,
+                                                                            fancy=(not NAB.savedDisableCurrencyFormatting[i]),
+                                                                            indianFormat=NAB.savedUseIndianNumberFormat,
+                                                                            includeDecimals=(not NAB.savedHideDecimals),
+                                                                            roundingTarget=(0.0 if (not NAB.savedHideDecimals) else NAB.savedHideRowXValueTable[i]))
 
                                         netTotalLbl = SpecialJLinkLabel(theFormattedValue, "showConfig?%s" %(onRow), JLabel.RIGHT)
                                         netTotalLbl.setFont((md.getUI().getFonts()).mono)                               # noqa

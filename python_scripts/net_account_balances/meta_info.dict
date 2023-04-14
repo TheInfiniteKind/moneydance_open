@@ -8,5 +8,5 @@
   "module_name" = "Custom Balances"
   "module_desc" = "Summary Page multi-row/currency widget that totals user-selected account/category/security balances (previously: Net Account Balances)"
   "mac_sandbox_friendly" = "true"
-  "news" = "MD2023 fixes to common code..."
+  "news" = "MD2023 fixes to common code...; Added <config> style codes to row name (for hide/color etc) - Refer online help..."
 }

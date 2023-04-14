@@ -123,6 +123,16 @@ This extension creates a 'widget' that displays Totals for items you select on t
   - You can create illogical totals (e.g. by adding Securities to Income). NAB tries to detect these issues.
   - It will alert you if any are found. Help>Console Window will show you the details of any warnings
 
+- ROW NAME Configuration Options:
+  - You can embed the following text (lowercase) in the Row Name field to configure the row as follows:
+    <blankzero>         When the result is zero, then this presents the total as blank/empty
+    <blankrowname>      Forces this row name to appear blank/empty
+    <rightrowname>      Right justifies the row name
+    <centerrowname>     Center justifies the row name
+    <redrowname>        Changes the row name to appear in red colour
+    <bluerowname>       Changes the row name to appear in blue colour
+    <lightgreyrowname>  Changes the row name to appear in light grey colour
+
 - Options Menu:
   - You can disable the Widget's Display Name Title. This prevents the title appearing on the Summary Page widget
   - You can change the default setting AutoSum for new rows that you insert/create. It does not affect existing rows
