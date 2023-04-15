@@ -3350,14 +3350,23 @@ Visit: %s (Author's site)
     def wrap_HTML_italics(_textToWrap):
         return "<html><i>%s</i></html>" %(html_strip_chars(_textToWrap))
 
-    def wrap_HTML_small(_bigText, _smallText, _smallColor=None, stripBigChars=True, stripSmallChars=True, _bigColor=None):
-        if _bigColor is None: _bigColor = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
-        _bigColorHex = AwtUtil.hexStringForColor(_bigColor)
+    def wrap_HTML_small(_bigText, _smallText, _smallColor=None, stripBigChars=True, stripSmallChars=True, _bigColor=None, _italics=False, _bold=False, _html=False):
+        if _html:
+            htmlBigText = _bigText
+        else:
+            if _bigColor is None: _bigColor = GlobalVars.CONTEXT.getUI().colors.defaultTextForeground
+            _bigColorHex = AwtUtil.hexStringForColor(_bigColor)
+            strippedBigText = html_strip_chars(_bigText) if stripBigChars else _bigText
+            htmlBigText = "<font color=#%s>%s</font>" %(_bigColorHex, strippedBigText)
+            if (_bold): htmlBigText = "<b>%s</b>" %(htmlBigText)
+            if (_italics): htmlBigText = "<i>%s</i>" %(htmlBigText)
+
         if _smallColor is None: _smallColor = GlobalVars.CONTEXT.getUI().colors.tertiaryTextFG
         _smallColorHex = AwtUtil.hexStringForColor(_smallColor)
-        _htmlBigText = html_strip_chars(_bigText) if stripBigChars else _bigText
         _htmlSmallText = html_strip_chars(_smallText) if stripSmallChars else _smallText
-        return "<html><font color=#%s>%s</font><small><font color=#%s>%s</font></small></html>" %(_bigColorHex, _htmlBigText, _smallColorHex, _htmlSmallText)
+        convertedSmallText = "<small><font color=#%s>%s</font></small>" %(_smallColorHex, _htmlSmallText)
+
+        return "<html>%s%s</html>" %(htmlBigText, convertedSmallText)
 
     class StoreAccountList():
 
@@ -8595,13 +8604,16 @@ Visit: %s (Author's site)
 
 
     class WidgetRowConfig:
-        WIDGET_ROW_BLANKZERO = "<blankzero>"
-        WIDGET_ROW_BLANKROWNAME = "<blankrowname>"
-        WIDGET_ROW_RIGHTROWNAME = "<rightrowname>"
-        WIDGET_ROW_CENTERROWNAME = "<centerrowname>"
-        WIDGET_ROW_REDROWNAME = "<redrowname>"
-        WIDGET_ROW_BLUEROWNAME = "<bluerowname>"
-        WIDGET_ROW_LIGHTGREYROWNAME = "<lightgreyrowname>"
+        WIDGET_ROW_BLANKZERO = "<#bz>"
+        WIDGET_ROW_BLANKROWNAME = "<#brn>"
+        WIDGET_ROW_RIGHTROWNAME = "<#jr>"
+        WIDGET_ROW_CENTERROWNAME = "<#jc>"
+        WIDGET_ROW_REDROWNAME = "<#cre>"
+        WIDGET_ROW_BLUEROWNAME = "<#cbl>"
+        WIDGET_ROW_LIGHTGREYROWNAME = "<#cgr>"
+        WIDGET_ROW_BOLDROWNAME = "<#bo>"
+        WIDGET_ROW_ITALICSROWNAME = "<#it>"
+        WIDGET_ROW_HTMLROWNAME = "<#html>"
 
         def __init__(self, _rowText, _smallText, _smallColor=None, stripBigChars=True, stripSmallChars=True):
             self.originalRowText = _rowText
@@ -8609,6 +8621,9 @@ Visit: %s (Author's site)
             self.color = None
             self.blankRow = False
             self.blankZero = False
+            self.bold = False
+            self.italics = False
+            self.html = False
             self.justification = JLabel.LEFT
 
             if (WidgetRowConfig.WIDGET_ROW_BLUEROWNAME in _rowText):
@@ -8622,6 +8637,18 @@ Visit: %s (Author's site)
             if (WidgetRowConfig.WIDGET_ROW_LIGHTGREYROWNAME in _rowText):
                 _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_LIGHTGREYROWNAME, "")
                 self.color = MD_REF.getUI().getColors().tertiaryTextFG
+
+            if (WidgetRowConfig.WIDGET_ROW_BOLDROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_BOLDROWNAME, "")
+                self.bold = True
+
+            if (WidgetRowConfig.WIDGET_ROW_ITALICSROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_ITALICSROWNAME, "")
+                self.italics = True
+
+            if (WidgetRowConfig.WIDGET_ROW_HTMLROWNAME in _rowText):
+                _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_HTMLROWNAME, "")
+                self.html = True
 
             if (WidgetRowConfig.WIDGET_ROW_BLANKZERO in _rowText):
                 _rowText = _rowText.replace(WidgetRowConfig.WIDGET_ROW_BLANKZERO, "")
@@ -8644,7 +8671,10 @@ Visit: %s (Author's site)
                                               _smallColor=_smallColor,
                                               stripBigChars=stripBigChars,
                                               stripSmallChars=stripSmallChars,
-                                              _bigColor=self.color)
+                                              _bigColor=self.color,
+                                              _italics=self.italics,
+                                              _bold=self.bold,
+                                              _html=self.html)
 
         def getNewRowText(self): return self.newRowText
         def getBlankZero(self): return self.blankZero

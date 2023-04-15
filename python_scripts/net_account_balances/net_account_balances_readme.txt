@@ -125,13 +125,16 @@ This extension creates a 'widget' that displays Totals for items you select on t
 
 - ROW NAME Configuration Options:
   - You can embed the following text (lowercase) in the Row Name field to configure the row as follows:
-    <blankzero>         When the result is zero, then this presents the total as blank/empty
-    <blankrowname>      Forces this row name to appear blank/empty
-    <rightrowname>      Right justifies the row name
-    <centerrowname>     Center justifies the row name
-    <redrowname>        Changes the row name to appear in red colour
-    <bluerowname>       Changes the row name to appear in blue colour
-    <lightgreyrowname>  Changes the row name to appear in light grey colour
+    <#bz>   = This presents the total that is zero as blank/empty
+    <#brn>  = Forces row name to be blank/empty
+    <#jr>   = Right justifies the row name
+    <#jc>   = Center justifies the row name
+    <#cre>  = Changes the row name to appear in red colour
+    <#cbl>  = Changes the row name to appear in blue colour
+    <#cgr>  = Changes the row name to appear in light grey colour
+    <#bo>   = Changes the row name to appear in bold
+    <#it>   = Changes the row name to appear in italics
+    <#html> = EXPERIMENTAL - USE WITH CARE: Takes your row name as html encoded text (do NOT wrap with <html> </html>)..
 
 - Options Menu:
   - You can disable the Widget's Display Name Title. This prevents the title appearing on the Summary Page widget
