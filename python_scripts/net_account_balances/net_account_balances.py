@@ -118,7 +118,8 @@
 # build: 1021 - MD2023 fixes to common code...
 # build: 1022 - More MD2023 fixes; launch - configuring StreamVector lefties/righties etc...
 #               Tweak isSwingComponentInvalid() to ignore .isValid()....
-#               Added config to allow row name to contain <xxx> configuration variables.....
+#               Added config to allow row name to contain <xxx> configuration variables..... (also html)
+#               Switch html_strip_chars() to use StringEscapeUtils.escapeHtml4()
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -424,6 +425,8 @@ else:
     from com.infinitekind.moneydance.model import AccountListener, AbstractTxn, CurrencyListener, DateRange
     # from com.infinitekind.moneydance.model import TxnIterator
     from com.infinitekind.util import StringUtils, StreamVector
+
+    from org.apache.commons.lang3 import StringEscapeUtils
 
     from javax.swing import JList, ListSelectionModel, DefaultComboBoxModel, DefaultListSelectionModel, JSeparator
     from javax.swing import DefaultListCellRenderer, BorderFactory, Timer as SwingTimer
@@ -3342,10 +3345,11 @@ Visit: %s (Author's site)
         def matchesAll(self):   return True
 
     def html_strip_chars(_textToStrip):
-        _textToStrip = _textToStrip.replace("  ","&nbsp;&nbsp;")
-        _textToStrip = _textToStrip.replace("<","&lt;")
-        _textToStrip = _textToStrip.replace(">","&gt;")
-        return _textToStrip
+        # _textToStrip = _textToStrip.replace("  ","&nbsp;&nbsp;")
+        # _textToStrip = _textToStrip.replace("<","&lt;")
+        # _textToStrip = _textToStrip.replace(">","&gt;")
+        # return _textToStrip
+        return StringEscapeUtils.escapeHtml4(_textToStrip)
 
     def wrap_HTML_italics(_textToWrap):
         return "<html><i>%s</i></html>" %(html_strip_chars(_textToWrap))
