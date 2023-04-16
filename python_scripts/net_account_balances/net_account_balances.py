@@ -3345,11 +3345,12 @@ Visit: %s (Author's site)
         def matchesAll(self):   return True
 
     def html_strip_chars(_textToStrip):
+        _textToStrip = StringEscapeUtils.escapeHtml4(_textToStrip)
+        _textToStrip = _textToStrip.replace("  ","&nbsp;&nbsp;")
         # _textToStrip = _textToStrip.replace("  ","&nbsp;&nbsp;")
         # _textToStrip = _textToStrip.replace("<","&lt;")
         # _textToStrip = _textToStrip.replace(">","&gt;")
-        # return _textToStrip
-        return StringEscapeUtils.escapeHtml4(_textToStrip)
+        return _textToStrip
 
     def wrap_HTML_italics(_textToWrap):
         return "<html><i>%s</i></html>" %(html_strip_chars(_textToWrap))
