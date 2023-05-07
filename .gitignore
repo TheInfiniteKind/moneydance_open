@@ -14,3 +14,7 @@ lib/moneydance-private.jar
 lib/moneydance.jar
 lib/jdk_1.8_rt.jar
 MoneydanceOpen.iws
+/python_scripts/*$py.class
+/python_scripts/*.pyc
+!bin/python2.7
+!bin/repackage-jython

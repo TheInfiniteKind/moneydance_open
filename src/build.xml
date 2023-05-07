@@ -26,6 +26,8 @@ http://jakarta.apache.org/ant/index.html
   <property name="javac-target" value="1.8"/>
   <property name="javac-source" value="1.8" />
   <property name="bootclasspath"  value="../lib/jdk_1.8_rt.jar"/>
+<!--  <property name="python-executable-full-path" location="/Users/stu/.pyenv/shims/python2.7"/>-->
+  <property name="python-executable-full-path" location="../bin/python2.7"/>
 
   <path id="classpath">
     <pathelement path="../lib/extadmin.jar"/>
@@ -36,6 +38,7 @@ http://jakarta.apache.org/ant/index.html
     <pathelement path="../lib/jfreechart-1.0.13.jar"/>
     <pathelement path="../lib/jcommon-1.0.16.jar"/>
     <pathelement path="../lib/gson-2.8.7.jar"/>
+    <pathelement path="../lib/mdpython.jar"/> <!-- Used for Python pre-compile -->
   </path>
 
   <target name="init">
@@ -476,6 +479,10 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="toolbox" depends="init">
+    <antcall target="pre-compile-python" inheritall="true" inheritrefs="true">
+      <param name="feature" value="toolbox" />
+      <param name="python-base" value="${python-src}/toolbox" />
+    </antcall>
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="toolbox" />
       <param name="python-base" value="${python-src}/toolbox" />
@@ -483,6 +490,10 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="extract_data" depends="init">
+    <antcall target="pre-compile-python" inheritall="true" inheritrefs="true">
+      <param name="feature" value="extract_data" />
+      <param name="python-base" value="${python-src}/extract_data" />
+    </antcall>
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="extract_data" />
       <param name="python-base" value="${python-src}/extract_data" />
@@ -490,6 +501,10 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="list_future_reminders" depends="init">
+    <antcall target="pre-compile-python" inheritall="true" inheritrefs="true">
+      <param name="feature" value="list_future_reminders" />
+      <param name="python-base" value="${python-src}/list_future_reminders" />
+    </antcall>
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="list_future_reminders" />
       <param name="python-base" value="${python-src}/list_future_reminders" />
@@ -497,6 +512,10 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="net_account_balances" depends="init">
+    <antcall target="pre-compile-python" inheritall="true" inheritrefs="true">
+      <param name="feature" value="net_account_balances" />
+      <param name="python-base" value="${python-src}/net_account_balances" />
+    </antcall>
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="net_account_balances" />
       <param name="python-base" value="${python-src}/net_account_balances" />
@@ -511,6 +530,10 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="security_performance_graph" depends="init">
+    <antcall target="pre-compile-python" inheritall="true" inheritrefs="true">
+      <param name="feature" value="security_performance_graph" />
+      <param name="python-base" value="${python-src}/security_performance_graph" />
+    </antcall>
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="security_performance_graph" />
       <param name="python-base" value="${python-src}/security_performance_graph" />
@@ -603,6 +626,32 @@ http://jakarta.apache.org/ant/index.html
       <arg value="${dist}"/>
     </java>
     <copy file="${dist}/${feature}.mxt" tofile="${install}/${feature}.mxt" verbose="true" failonerror="false" />
+    <delete file="${python-base}/${feature}.pyc" verbose="false" failonerror="false" />
+    <delete file="${python-base}/${feature}$py.class" verbose="false" failonerror="false" />
+  </target>
+
+  <target name="pre-compile-python" description="pre-compile python to generate both pyc and .class files" unless="dont_compile">
+    <delete file="${python-base}/${feature}.pyc" verbose="false" failonerror="false" />
+    <exec executable="${python-executable-full-path}"
+      failonerror="true"
+      failifexecutionfails="true"
+      searchpath="true"
+      >
+      <arg value="-m"/>
+      <arg value="py_compile"/>
+      <arg value="${python-base}/${feature}.py"/>
+    </exec>
+
+    <delete file="${python-base}/${feature}$py.class" verbose="false" failonerror="false" />
+    <java newenvironment="true"
+      failonerror="true"
+      classpathref="classpath"
+      classname="org.python.util.jython"
+      fork="true">
+      <arg value="-c"/>
+      <arg value="import compileall; compileall.compile_file('${python-base}/${feature}.py')"/>
+    </java>
+
   </target>
 
   <target name="genkeys">
