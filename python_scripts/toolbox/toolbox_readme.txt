@@ -85,7 +85,7 @@ Features:
 ** Toolbox turns on all Moneydance's internal DEBUG messages at startup. This puts extra messages into the Console window
    This is a useful tip - i.e. have the console window open and you will get more information when running tasks (e.g. OFX)
 
-NOTE: Where CMD is specified, this may be CTRL (or ALT) in Windows / Linux
+NOTE: Where CMD is specified, this will be CTRL in Windows / Linux (or ALT if that does not work)...
 
 CMD-I           This  Help Instruction Information
 CMD-F           Search for text in display windows
@@ -93,9 +93,10 @@ CMD-O           Copy all outputs to Clipboard
 CMD-SHIFT-U     Examine an object's raw data - enter the Object's UUID
 CMD-SHIFT-+     Unlock Toolbox (Contact Author for password and usage) - (Might be CMD-SHIFT-= on some keyboards)
 
-Toolbox also installs two new Extensions Menu options (which allow the user to select register transactions before running):
+Toolbox also installs three new Extensions Menu options (first two: select register transactions before running):
     - Toolbox: Move Investment Transactions
     - Toolbox: Total Selected Transactions
+    - Toolbox: Zap md+ (default) memo fields
 
 TOOLBAR / MENU BAR Contains the following:
     - Toolbox Options menu

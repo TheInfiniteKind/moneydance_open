@@ -17,6 +17,11 @@
       "name" = "Toolbox: Total selected transactions"
     }
     {
+      "type" = "menu"
+      "script_file" = "toolbox_zap_mdplus_default_memo_fields.py"
+      "name" = "Toolbox: Zap md+ (default) memo fields"
+    }
+    {
       "type" = "initializer"
       "script_file" = "toolbox_init.py"
     }

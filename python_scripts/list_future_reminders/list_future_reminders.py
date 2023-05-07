@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1023) - March 2023
+# list_future_reminders.py (build: 1024) - April 2023
 # Displays Moneydance future dated / scheduled reminders (along with options to auto-record, delete etc)
 
 ###############################################################################
@@ -70,6 +70,8 @@
 # build: 1021 - Save column sort and last viewed reminder too...
 # build: 1022 - Added right click, popup menu: Record all next occurrence(s) for same month
 # build: 1023 - MD2023 Fixes to common code
+# build: 1024 - Fix QuickSearch() field...
+# build: 1024 - Common code tweaks...
 
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
 
@@ -79,7 +81,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1023"
+version_build = "1024"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -313,6 +315,12 @@ else:
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
     from java.nio.charset import Charset
+
+    if int(MD_REF.getBuild()) >= 3067:
+        from com.moneydance.apps.md.view.gui.theme import ThemeInfo                                                     # noqa
+    else:
+        from com.moneydance.apps.md.view.gui.theme import Theme as ThemeInfo                                            # noqa
+
     if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                          AccountBook, AccountBookWrapper, Long, Integer, Boolean,
                          JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
@@ -352,13 +360,14 @@ else:
             i_am_an_extension_so_run_headless = None
             parametersLoadedFromFile = {}
             thisScriptName = None
-            MD_MDPLUS_BUILD = 4040
-            MD_ALERTCONTROLLER_BUILD = 4077
+            MD_MDPLUS_BUILD = 4040                          # 2022.0
+            MD_ALERTCONTROLLER_BUILD = 4077                 # 2022.3
             def __init__(self): pass    # Leave empty
 
             class Strings:
                 def __init__(self): pass    # Leave empty
 
+    GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME = "gui.current_theme"
     GlobalVars.thisScriptName = u"%s.py(Extension)" %(myModuleID)
 
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
@@ -367,7 +376,7 @@ else:
     import threading
     from java.awt import Image
     from java.awt.image import BufferedImage
-    from java.awt.event import FocusAdapter, MouseAdapter
+    from java.awt.event import FocusAdapter, MouseAdapter, KeyAdapter
     from java.util import Comparator
     from javax.swing import SortOrder, ListSelectionModel, JPopupMenu, ImageIcon, RowFilter, RowSorter
     from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, TableRowSorter
@@ -777,9 +786,12 @@ Visit: %s (Author's site)
     def isMDThemeVAQua():
         if Platform.isOSX():
             try:
-                currentTheme = MD_REF.getUI().getCurrentTheme()
-                if ".vaqua" in safeStr(currentTheme.getClass()).lower(): return True
-            except: pass
+                # currentTheme = MD_REF.getUI().getCurrentTheme()       # Not reset when changed in-session as it's a final variable!
+                # if ".vaqua" in safeStr(currentTheme.getClass()).lower(): return True
+                currentTheme = ThemeInfo.themeForID(MD_REF.getUI(), MD_REF.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID))
+                if ".vaqua" in currentTheme.getClass().getName().lower(): return True                                   # noqa
+            except:
+                myPrint("B", "@@ Error in isMDThemeVAQua() - Alert author! Error:", sys.exc_info()[1])
         return False
 
     def isIntelX86_32bit():
@@ -1591,8 +1603,9 @@ Visit: %s (Author's site)
         return text
 
     def getColorBlue():
-        if not isMDThemeDark() and not isMacDarkModeDetected(): return(Color.BLUE)
-        return (MD_REF.getUI().getColors().defaultTextForeground)
+        # if not isMDThemeDark() and not isMacDarkModeDetected(): return(MD_REF.getUI().getColors().reportBlueFG)
+        # return (MD_REF.getUI().getColors().defaultTextForeground)
+        return MD_REF.getUI().getColors().reportBlueFG
 
     def getColorRed(): return (MD_REF.getUI().getColors().errorMessageForeground)
 
@@ -4431,21 +4444,65 @@ Visit: %s (Author's site)
                     if len(_searchFilter) < 1:
                         GlobalVars.currentJTableSearchFilter = None
                     else:
-                        GlobalVars.currentJTableSearchFilter = RowFilter.regexFilter("(?i)" + _searchFilter)            # noqa
+                        GlobalVars.currentJTableSearchFilter = RowFilter.regexFilter("(?i)" + _searchFilter)
+                    myPrint("DB", "... set/updated search filter to:", GlobalVars.currentJTableSearchFilter)
                     sorter = GlobalVars.saveJTable.getRowSorter()
-                    sorter.setRowFilter(GlobalVars.currentJTableSearchFilter)                                           # noqa
+                    sorter.setRowFilter(GlobalVars.currentJTableSearchFilter)
+                    GlobalVars.saveJTable.getModel().fireTableDataChanged()
+                    self._theSearchField.repaint()
 
-
-            # noinspection PyUnusedLocal
             class MyFocusAdapter(FocusAdapter):
                 def __init__(self, _searchField, _document):
                     self._searchField = _searchField
                     self._document = _document
+                # noinspection PyUnusedLocal
                 def focusGained(self, e): self._searchField.setCaretPosition(self._document.getLength())
+
+            class MyKeyAdapter(KeyAdapter):
+                def keyPressed(self, evt):
+                    if (evt.getKeyCode() == KeyEvent.VK_ENTER):
+                        evt.getSource().transferFocus()
+
+            class MyJTextFieldEscapeAction(AbstractAction):
+                def __init__(self): pass
+
+                def actionPerformed(self, evt):
+                    myPrint("DB", "In MyJTextFieldEscapeAction:actionPerformed():", evt)
+                    jtf = evt.getSource()
+                    invokeMethodByReflection(jtf, "cancelEntry", None)
+                    jtf.dispatchEvent(KeyEvent(SwingUtilities.getWindowAncestor(jtf),
+                                               KeyEvent.KEY_PRESSED,
+                                               System.currentTimeMillis(),
+                                               0,
+                                               KeyEvent.VK_ESCAPE,
+                                               Character.valueOf(" ")))
+
+            class MyQuickSearchField(QuickSearchField):
+                def __init__(self, *args, **kwargs):
+                    super(self.__class__, self).__init__(*args, **kwargs)
+                    self.setFocusable(True)
+                    self.addKeyListener(MyKeyAdapter())
+
+                def setEscapeCancelsTextAndEscapesWindow(self, cancelsAndEscapes):
+                    if cancelsAndEscapes:
+                        self.getInputMap(self.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "override_escape")
+                        self.getActionMap().put("override_escape", MyJTextFieldEscapeAction())
+                    else:
+                        self.getInputMap(self.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), None)
+
+                def toString(self):
+                    return self.getPlaceholderText() + " " + self.getText()
+
+                def updateUI(self):
+                    super(self.__class__, self).updateUI()
+                    self.setForeground(GlobalVars.CONTEXT.getUI().getColors().reportBlueFG)
+
 
             GlobalVars.currentJTableSearchFilter = None
 
-            GlobalVars.mySearchField = QuickSearchField()
+            GlobalVars.mySearchField = MyQuickSearchField()
+            if GlobalVars.lAllowEscapeExitApp_SWSS:
+                GlobalVars.mySearchField.setEscapeCancelsTextAndEscapesWindow(True)
             GlobalVars.mySearchField.setPlaceholderText("Search reminders...")
             document = GlobalVars.mySearchField.getDocument()                                                           # noqa
             document.addDocumentListener(MyDocListener(GlobalVars.mySearchField))

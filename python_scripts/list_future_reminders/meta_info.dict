@@ -2,11 +2,11 @@
   "id" = "list_future_reminders"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1023"
+  "module_build" = "1024"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "List Future Reminders"
   "module_desc" = "Lists future reminders on screen - Allows you to specify how far forward you look...."
   "mac_sandbox_friendly" = "true"
-  "news" = "MD2023 fixes to common code..."
+  "news" = "MD2023 fixes to common code...; fix QuickSearch() field"
 }

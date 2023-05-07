@@ -165,6 +165,12 @@
 #               Quick check for earlier MD2023 Sync issue repair flagged......
 # build: 1059 - MD2023.2(5007); Launch check for invalid 'processed.dct' file (I have seen this as a folder!?)....
 #               Change isSwingComponentInvalid() not to check for .isValid()...
+#               Fixed Windows, (hot) keystrokes to use CTRL when attached to Menus so they are consistent (also with MD)...
+#               Tweak to IAGREE message - wrap to next line...
+#               Fix CMD-M (CTRL-M) that didn't work on Windows.... (keystroke 'm' not passed to .getActionCommand())
+#               Tweak startup check messages detect_non_hier_sec_acct_or_orphan_txns()....
+#               Common code tweaks...
+#               Added 'toolbox_zap_mdplus_default_memo_fields' menu option
 
 # todo - CMD-P select the pickle file to load/view/edit etc.....
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
@@ -423,6 +429,12 @@ else:
     from java.io import FileNotFoundException, FilenameFilter, File, FileInputStream, FileOutputStream, IOException, StringReader
     from java.io import BufferedReader, InputStreamReader
     from java.nio.charset import Charset
+
+    if int(MD_REF.getBuild()) >= 3067:
+        from com.moneydance.apps.md.view.gui.theme import ThemeInfo                                                     # noqa
+    else:
+        from com.moneydance.apps.md.view.gui.theme import Theme as ThemeInfo                                            # noqa
+
     if isinstance(None, (JDateField,CurrencyUtil,Reminder,ParentTxn,SplitTxn,TxnSearch, JComboBox, JCheckBox,
                          AccountBook, AccountBookWrapper, Long, Integer, Boolean,                          
                          JTextArea, JMenuBar, JMenu, JMenuItem, JCheckBoxMenuItem, JFileChooser, JDialog,
@@ -469,6 +481,7 @@ else:
             class Strings:
                 def __init__(self): pass    # Leave empty
 
+    GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME = "gui.current_theme"
     GlobalVars.thisScriptName = u"%s.py(Extension)" %(myModuleID)
 
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
@@ -505,18 +518,13 @@ else:
 
     from com.google.gson import Gson
 
-    # renamed in MD build 3067
-    if int(MD_REF.getBuild()) >= 3067:
-        from com.moneydance.apps.md.view.gui.theme import ThemeInfo                                                     # noqa
-    else:
-        from com.moneydance.apps.md.view.gui.theme import Theme as ThemeInfo                                            # noqa
-
     try:
         if Platform.isOSX() and int(MD_REF.getBuild()) >= 3088:
             from com.moneydance.apps.md.view.gui.sync import ICloudSyncConfigurer
             from com.moneydance.apps.md.controller.sync import ICloudContainer
     except: pass
 
+    from com.moneydance.apps.md.view.gui import MoneydanceGUI
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
     from com.moneydance.apps.md.controller import MDException, Util, AppEventListener, PreferencesListener
     from com.moneydance.apps.md.controller import ModuleLoader, ModuleMetaData, LocalStorageCipher, Common, BalanceType
@@ -982,9 +990,12 @@ Visit: %s (Author's site)
     def isMDThemeVAQua():
         if Platform.isOSX():
             try:
-                currentTheme = MD_REF.getUI().getCurrentTheme()
-                if ".vaqua" in safeStr(currentTheme.getClass()).lower(): return True
-            except: pass
+                # currentTheme = MD_REF.getUI().getCurrentTheme()       # Not reset when changed in-session as it's a final variable!
+                # if ".vaqua" in safeStr(currentTheme.getClass()).lower(): return True
+                currentTheme = ThemeInfo.themeForID(MD_REF.getUI(), MD_REF.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID))
+                if ".vaqua" in currentTheme.getClass().getName().lower(): return True                                   # noqa
+            except:
+                myPrint("B", "@@ Error in isMDThemeVAQua() - Alert author! Error:", sys.exc_info()[1])
         return False
 
     def isIntelX86_32bit():
@@ -1796,8 +1807,9 @@ Visit: %s (Author's site)
         return text
 
     def getColorBlue():
-        if not isMDThemeDark() and not isMacDarkModeDetected(): return(Color.BLUE)
-        return (MD_REF.getUI().getColors().defaultTextForeground)
+        # if not isMDThemeDark() and not isMacDarkModeDetected(): return(MD_REF.getUI().getColors().reportBlueFG)
+        # return (MD_REF.getUI().getColors().defaultTextForeground)
+        return MD_REF.getUI().getColors().reportBlueFG
 
     def getColorRed(): return (MD_REF.getUI().getColors().errorMessageForeground)
 
@@ -3261,7 +3273,8 @@ Visit: %s (Author's site)
             disclaimer = myPopupAskForInput(theParent,
                                             theTitle,
                                             "DISCLAIMER:",
-                                            "%s Type 'IAGREE' to continue.." %(disclaimerQuestion),
+                                            # "%s Type 'IAGREE' to continue.." %(disclaimerQuestion),
+                                            "Type 'IAGREE' to continue..",
                                             "NO",
                                             False,
                                             JOptionPane.ERROR_MESSAGE)
@@ -4033,7 +4046,7 @@ Visit: %s (Author's site)
                 myPrint("DB", "** AppleScript: USER CANCELLED FILE SELECTION ** ")
                 return None
             if result != 0:
-                myPrint("B", "ERROR: AppleScript returned error:", result, err)
+                myPrint("DB", "ERROR: AppleScript returned error:", result, err)
                 return None
             _theFile = BufferedReader(InputStreamReader(process.getInputStream())).readLine()
             myPrint("DB", "AppleScript - User selected file:", _theFile, "Exists:", File(_theFile).exists())
@@ -5418,8 +5431,8 @@ Visit: %s (Author's site)
         y = u"(DARK THEME)" if (isMDThemeDark()) else u""
         z = u"(Mac Dark Mode detected)" if (Platform.isOSX() and isMacDarkModeDetected()) else u""
 
-        textArray.append(u"Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID), x, y, z))
-        myPrint("B", "Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID), x, y, z))
+        textArray.append(u"Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID), x, y, z))
+        myPrint("B", "Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID), x, y, z))
 
         # noinspection PyUnresolvedReferences
         if not os.path.exists(ThemeInfo.customThemeFile.getCanonicalPath()):
@@ -5622,7 +5635,7 @@ Visit: %s (Author's site)
         textArray.append(u"Show All Accounts in Popup:          %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gui.show_all_accts_in_popup", False)))
         textArray.append(u"Beep when Transactions Change:       %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"beep_on_transaction_change", True)))
         if float(MD_REF.getBuild()) < 3032:
-            textArray.append(u"Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID)))
+            textArray.append(u"Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)))
         textArray.append(u"Show Selection Details:              %s" %(MD_REF.getUI().getPreferences().getSetting(u"details_view_mode", u"inwindow")))
         textArray.append(u"Side Bar Balance Type:               %s" %(MD_REF.getUI().getPreferences().getSideBarBalanceType()))
         textArray.append(u"Date Format:                         %s" %(MD_REF.getUI().getPreferences().getSetting(u"date_format", None)))
@@ -5653,7 +5666,7 @@ Visit: %s (Author's site)
 
         if float(MD_REF.getBuild()) >= 3032:
             textArray.append(u"\n>> APPEARANCE")
-            textArray.append(u"Theme:                               %s" %(MD_REF.getUI().getPreferences().getSetting(u"gui.current_theme", ThemeInfo.DEFAULT_THEME_ID)))
+            textArray.append(u"Theme:                               %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)))
             if (MD_REF.getUI().getPreferences().getSetting(u"main_font")) != u"null":
                 textArray.append(u"Font:                                %s" %(MD_REF.getUI().getPreferences().getSetting(u"main_font")))
             else:
@@ -8640,18 +8653,18 @@ Visit: %s (Author's site)
 
     def check_for_window_display_data(theKey, theValue):
 
-        if not isinstance(theValue, (str,unicode)):             return False
-        if theKey.startswith("gui.current_theme"):              return False
-        if theKey.startswith("gui.dashboard.item"):             return False
-        if theKey.startswith("gui.font_increment"):             return False
-        if theKey.startswith("gui.new_txn_on_record"):          return False
-        if theKey.startswith("gui.quickdecimal"):               return False
-        if theKey.startswith("gui.register_follows_txns"):      return False
-        if theKey.startswith("gui.show_all_accts_in_popup"):    return False
-        if theKey.startswith("gui.source_list_visible"):        return False
+        if not isinstance(theValue, (str,unicode)):                         return False
+        if theKey.startswith(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME):   return False
+        if theKey.startswith("gui.dashboard.item"):                         return False
+        if theKey.startswith("gui.font_increment"):                         return False
+        if theKey.startswith("gui.new_txn_on_record"):                      return False
+        if theKey.startswith("gui.quickdecimal"):                           return False
+        if theKey.startswith("gui.register_follows_txns"):                  return False
+        if theKey.startswith("gui.show_all_accts_in_popup"):                return False
+        if theKey.startswith("gui.source_list_visible"):                    return False
 
         # Preferences Home Screen options
-        if theKey.startswith("gui.home"):                       return False
+        if theKey.startswith("gui.home"):                                   return False
 
         if not (theKey.startswith("ext_mgmt_win")
                 or theKey.startswith("security_list")
@@ -10674,7 +10687,7 @@ Visit: %s (Author's site)
 
         scriptToRun = "ofx_populate_multiple_userids.py"
 
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME,"Execute the script: %s?" %(scriptToRun)):
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME,"Execute script: %s?" %(scriptToRun)):
             return False
 
         return scriptRunner(scriptToRun, _THIS_METHOD_NAME)
@@ -10686,7 +10699,7 @@ Visit: %s (Author's site)
 
         scriptToRun = "ofx_create_new_usaa_bank_custom_profile.py"
 
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME,"Execute the script: %s?" %(scriptToRun)):
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_,_THIS_METHOD_NAME,"Execute script: %s?" %(scriptToRun)):
             return False
 
         return scriptRunner(scriptToRun, _THIS_METHOD_NAME)
@@ -21521,7 +21534,7 @@ now after saving the file, restart Moneydance
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
-    def detect_non_hier_sec_acct_or_orphan_txns():
+    def detect_non_hier_sec_acct_or_orphan_txns(startupCheck=False):
         if MD_REF.getCurrentAccountBook() is None: return 0
         txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
         txns = txnSet.iterableTxns()
@@ -21542,14 +21555,16 @@ now after saving the file, restart Moneydance
 
             if fields.hasSecurity and not acct.isAncestorOf(fields.security):
                 count_the_errors += 1
-                myPrint("B", "ERROR: Txn for Security %s found within Investment Account %s that is cross linked to another account (or Security is orphaned)!\n"
-                             "txn:\n%s\n" %(fields.security, acct, txn.getSyncInfo().toMultilineHumanReadableString()))
+                if debug or not startupCheck:
+                    myPrint("B", "ERROR: Txn for Security %s found within Investment Account %s that is cross linked to another account (or Security is orphaned)!\n"
+                                 "txn:\n%s\n" %(fields.security, acct, txn.getSyncInfo().toMultilineHumanReadableString()))
         del txnSet, txns
 
         if count_the_errors:
             myPrint("B", "ERROR: %s investment txn(s) with cross-linked securities detected" %(count_the_errors))
         else:
-            myPrint("DB", "NOTE: No investment txn(s) with cross-linked securities were detected - phew!")
+            if debug or startupCheck:
+                myPrint("B", "NOTE: No investment txn(s) with cross-linked securities were detected...")
 
         return count_the_errors
 
@@ -28959,7 +28974,8 @@ now after saving the file, restart Moneydance
 
         class DoTheMenu(AbstractAction):
 
-            def __init__(self): pass
+            def __init__(self, specialCMD=False):
+                self.specialCMD = specialCMD
 
             def actionPerformed(self, event):
                 global debug        # Global must be here as we set this variable (i.e. do not create a local instance/copy)
@@ -28968,19 +28984,19 @@ now after saving the file, restart Moneydance
                 myPrint("DB", "DoTheMenu() - Command: '%s'" %(event.getActionCommand()))
 
                 # ##########################################################################################################
-                if event.getActionCommand() == "Page Setup":
+                if event.getActionCommand().lower() == "page_setup":
                     pageSetup()
 
                 # ##########################################################################################################
-                if event.getActionCommand() == "Help":
+                if event.getActionCommand().lower() == "help":
                     DisplayHelp().actionPerformed(None)
 
                 # ##########################################################################################################
-                if event.getActionCommand() == "About Toolbox":
+                if event.getActionCommand().lower() == "about_toolbox":
                     AboutThisScript(toolbox_frame_).go()
 
                 # ##########################################################################################################
-                if event.getActionCommand() == "About Moneydance":
+                if event.getActionCommand().lower() == "about_moneydance":
                     # MD_REF.getUI().showAbout()
                     abtWin = AboutWindow(MD_REF.getUI(), toolbox_frame_)
 
@@ -28990,7 +29006,7 @@ now after saving the file, restart Moneydance
                     abtWin.setVisible(True)
 
                 # ##########################################################################################################
-                if event.getActionCommand() == "Auto Prune Internal Backups":
+                if event.getActionCommand().lower() == "auto_prune_internal_backups":
 
                     if not GlobalVars.lAutoPruneInternalBackups_TB:
                         if not myPopupAskQuestion(toolbox_frame_,
@@ -29015,7 +29031,7 @@ now after saving the file, restart Moneydance
                         prune_internal_backups()
 
                 # ##########################################################################################################
-                if event.getActionCommand().lower() == "Disable Backup & Disclaimer warnings".lower():
+                if event.getActionCommand().lower() == "disable_backups_disclaimers":
 
                     if not GlobalVars.lBypassAllBackupsAndDisclaimers_TB:
                         if not myPopupAskQuestion(toolbox_frame_,
@@ -29044,7 +29060,7 @@ now after saving the file, restart Moneydance
                     GlobalVars.mainPnl_backupWarningsDisabled_lbl.setText("<BACKUP/DISCLAIMERS OFF>" if GlobalVars.lBypassAllBackupsAndDisclaimers_TB else "")
 
                 # ##########################################################################################################
-                if event.getActionCommand().lower() == "Debug".lower():
+                if event.getActionCommand().lower() == "debug":
                     if debug:
                         txt = "Script Debug mode disabled"
                         setDisplayStatus(txt, "DG")
@@ -29056,7 +29072,7 @@ now after saving the file, restart Moneydance
                     GlobalVars.mainPnl_debug_lbl.setText("<DEBUG ON>" if debug else "")
 
                 # ##########################################################################################################
-                if event.getActionCommand() == "Copy all Output to Clipboard":
+                if event.getActionCommand().lower() == "copy_output_clipboard":
                     if GlobalVars.lCopyAllToClipBoard_TB:
                         txt = "Diagnostic outputs will NOT be copied to Clipboard"
                         setDisplayStatus(txt, "DG")
@@ -29067,7 +29083,8 @@ now after saving the file, restart Moneydance
                     GlobalVars.lCopyAllToClipBoard_TB = not GlobalVars.lCopyAllToClipBoard_TB
 
                 # ##########################################################################################################
-                if event.getActionCommand() == ToolboxMode.DEFAULT_CMD or event.getActionCommand() == ToolboxMode.DEFAULT_KEY_CMD:
+                if ((event.getActionCommand() == ToolboxMode.DEFAULT_CMD or event.getActionCommand() == ToolboxMode.DEFAULT_KEY_CMD)
+                        or self.specialCMD):
                     if (not ToolboxMode.isUpdateMode() and
                             (GlobalVars.lBypassAllBackupsAndDisclaimers_TB or myPopupAskQuestion(toolbox_frame_,
                                           "ENABLE UPDATE MODE",
@@ -29102,10 +29119,10 @@ now after saving the file, restart Moneydance
 
                 # ##########################################################################################################
                 # Save parameters now...
-                if (event.getActionCommand().lower() == "Copy all Output to Clipboard".lower()
-                        or event.getActionCommand().lower() == "Debug".lower()
-                        or event.getActionCommand().lower() == "Auto Prune Internal Backups".lower()
-                        or event.getActionCommand().lower() == "Disable Backup & Disclaimer warnings".lower()):
+                if (event.getActionCommand().lower() == "copy_output_clipboard"
+                        or event.getActionCommand().lower() == "debug"
+                        or event.getActionCommand().lower() == "auto_prune_internal_backups"
+                        or event.getActionCommand().lower() == "disable_backups_disclaimers"):
 
                     try:
                         save_StuWareSoftSystems_parameters_to_file()
@@ -29153,7 +29170,8 @@ now after saving the file, restart Moneydance
 
             doTheMenu = self.DoTheMenu()
 
-            shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+            # shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+            shortcut = MoneydanceGUI.ACCELERATOR_MASK
 
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, (shortcut | Event.SHIFT_MASK)), "unlock-window")   # So Plus on Mac...
             toolbox_frame_.getRootPane().getActionMap().put("unlock-window", self.UnlockAction(toolbox_frame_))
@@ -29178,7 +29196,7 @@ now after saving the file, restart Moneydance
             toolbox_frame_.getRootPane().getActionMap().put("display-help", DisplayHelp())
 
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(ToolboxMode.DEFAULT_KEY, shortcut), ToolboxMode.DEFAULT_CMD)
-            toolbox_frame_.getRootPane().getActionMap().put(ToolboxMode.DEFAULT_CMD, doTheMenu)
+            toolbox_frame_.getRootPane().getActionMap().put(ToolboxMode.DEFAULT_CMD, self.DoTheMenu(True))
 
             frame_width = min(GetFirstMainFrame.DEFAULT_MAX_WIDTH, min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.95,0)))))
             frame_height = min(screenSize.height-20, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.95,0))))
@@ -29466,8 +29484,8 @@ now after saving the file, restart Moneydance
             mainPnl.add(self.myScrollPane, GridC.getc(onCol, onRow).fillboth().colspan(colSpan).wx(99.0).wy(99.0))
 
             keyToUse = shortcut
-            if Platform.isWindows():
-                keyToUse = InputEvent.ALT_MASK
+            # if Platform.isWindows():
+            #     keyToUse = InputEvent.ALT_MASK
 
             if Platform.isOSX():
                 save_useScreenMenuBar= System.getProperty("apple.laf.useScreenMenuBar")
@@ -29481,12 +29499,16 @@ now after saving the file, restart Moneydance
             SetupMDColors.updateUI()
 
             mb = JMenuBar()
-            menu1 = JMenu("<html><b>TOOLBOX Options</b></html>")
+            if Platform.isMac():
+                menu1 = JMenu("<html><b>TOOLBOX Options</b></html>")
+            else:
+                menu1 = JMenu("<html><b><u>T</u>OOLBOX Options</b></html>")     # html breaks the Mnemonic....
             # menu1 = JMenu("TOOLBOX Options")
             menu1.setMnemonic(KeyEvent.VK_T)
             menu1.setForeground(SetupMDColors.FOREGROUND_REVERSED); menu1.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
             menuItemD = JCheckBoxMenuItem("Debug")
+            menuItemD.setActionCommand("debug")
             menuItemD.setMnemonic(KeyEvent.VK_D)
             menuItemD.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, (keyToUse | Event.SHIFT_MASK)))
             menuItemD.addActionListener(doTheMenu)
@@ -29495,6 +29517,7 @@ now after saving the file, restart Moneydance
             menu1.add(menuItemD)
 
             menuItemC = JCheckBoxMenuItem("Copy all Output to Clipboard")
+            menuItemC.setActionCommand("copy_output_clipboard")
             menuItemC.setMnemonic(KeyEvent.VK_O)  # Can't think of a spare letter to use!!!!
             menuItemC.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, keyToUse))
             menuItemC.addActionListener(doTheMenu)
@@ -29503,6 +29526,7 @@ now after saving the file, restart Moneydance
             menu1.add(menuItemC)
 
             menuItemP = JCheckBoxMenuItem("Auto Prune Internal Backups")
+            menuItemP.setActionCommand("auto_prune_internal_backups")
             menuItemP.setMnemonic(KeyEvent.VK_B)
             menuItemP.addActionListener(doTheMenu)
             menuItemP.setToolTipText("Enables auto pruning of the internal backups that Toolbox makes of config.dict, custom_theme.properties, and ./safe/settings")
@@ -29510,24 +29534,28 @@ now after saving the file, restart Moneydance
             menu1.add(menuItemP)
 
             menuItemW = JCheckBoxMenuItem("Disable Backup & Disclaimer warnings")
+            menuItemW.setActionCommand("disable_backups_disclaimers")
             menuItemW.addActionListener(doTheMenu)
             menuItemW.setToolTipText("Disables all Toolbox's warnings about backups and disclaimers")
             menuItemW.setSelected(GlobalVars.lBypassAllBackupsAndDisclaimers_TB)
             menu1.add(menuItemW)
 
             menuItemF = JMenuItem("Find/Search")
+            menuItemF.setActionCommand("find_search")
             menuItemF.setMnemonic(KeyEvent.VK_F)
             menuItemF.setToolTipText("Finds text within the main display window..")
             menuItemF.addActionListener(mySearchAction)
             menu1.add(menuItemF)
 
             menuItemPS = JMenuItem("Page Setup")
+            menuItemPS.setActionCommand("page_setup")
             menuItemPS.setMnemonic(KeyEvent.VK_P)
             menuItemPS.setToolTipText("Printer Page Setup")
             menuItemPS.addActionListener(doTheMenu)
             menu1.add(menuItemPS)
 
             menuItem2 = JMenuItem("Exit")
+            menuItem2.setActionCommand("exit")
             menuItem2.setMnemonic(KeyEvent.VK_E)
             menuItem2.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, keyToUse))
             menuItem2.addActionListener(self.CloseAction(toolbox_frame_))
@@ -29536,12 +29564,16 @@ now after saving the file, restart Moneydance
 
             mb.add(menu1)
 
-            menuH = JMenu("<html><B>Help/About</b></html>")
+            if Platform.isMac():
+                menuH = JMenu("<html><B>Help/About/Info</b></html>")     # html breaks the Mnemonic....
+            else:
+                menuH = JMenu("<html><B>Help/About/<u>I</u>nfo</b></html>")     # html breaks the Mnemonic....
             # menuH = JMenu("HELP")
             menuH.setMnemonic(KeyEvent.VK_I)
             menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
-            menuItemH = JMenuItem("Help")
+            menuItemH = JMenuItem("Help/Info")
+            menuItemH.setActionCommand("help")
             menuItemH.setMnemonic(KeyEvent.VK_I)
             menuItemH.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, keyToUse))
             menuItemH.setToolTipText("Display Help")
@@ -29549,12 +29581,14 @@ now after saving the file, restart Moneydance
             menuH.add(menuItemH)
 
             menuItemA = JMenuItem("About Toolbox")
+            menuItemA.setActionCommand("about_toolbox")
             menuItemA.setMnemonic(KeyEvent.VK_A)
             menuItemA.setToolTipText("About...")
             menuItemA.addActionListener(doTheMenu)
             menuH.add(menuItemA)
 
             menuItemAMD = JMenuItem("About Moneydance")
+            menuItemAMD.setActionCommand("about_moneydance")
             menuItemAMD.setToolTipText("About...")
             menuItemAMD.addActionListener(doTheMenu)
             menuH.add(menuItemAMD)
@@ -29693,7 +29727,7 @@ now after saving the file, restart Moneydance
             ############################################################################################################
 
             # Look for security txns not properly linked back to the parent investment account
-            if detect_non_hier_sec_acct_or_orphan_txns() > 0:
+            if detect_non_hier_sec_acct_or_orphan_txns(startupCheck=True) > 0:
                 statusTxt = "ERROR - Cross-linked (or Orphaned) security txn(s) detected.. Review Console!"
                 output = ">> Run 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)'..."
                 myPrint("B", statusTxt, output)
