@@ -42,6 +42,9 @@ http://jakarta.apache.org/ant/index.html
   </path>
 
   <target name="init">
+    <echo message="OS Name is:         ${os.name}" />
+    <echo message="OS Architecture is: ${os.arch}" />
+    <echo message="OS Version is:      ${os.version}" />
     <mkdir dir="${dist}"/>
     <mkdir dir="${build}"/>
 
@@ -631,6 +634,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="pre-compile-python" description="pre-compile python to generate both pyc and .class files" unless="dont_compile">
+    <echo message="PRE-COMPILING Jython to create CPython bytecode .pyc file" />
     <delete file="${python-base}/${feature}.pyc" verbose="false" failonerror="false" />
     <exec executable="${python-executable-full-path}"
       failonerror="true"
@@ -642,6 +646,7 @@ http://jakarta.apache.org/ant/index.html
       <arg value="${python-base}/${feature}.py"/>
     </exec>
 
+    <echo message="COMPILING Jython script to create java $py.class file" />
     <delete file="${python-base}/${feature}$py.class" verbose="false" failonerror="false" />
     <java newenvironment="true"
       failonerror="true"
