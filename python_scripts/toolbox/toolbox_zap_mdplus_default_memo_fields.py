@@ -3027,7 +3027,7 @@ Visit: %s (Author's site)
         try:
             ORIG_MEMO_TAG = OnlineTxnMerger.ORIG_MEMO_TAG
 
-            lookbackMonths = 2
+            lookbackMonths = 36
             startDate = DateUtil.incrementDate(DateUtil.convertDateToInt(DateUtil.firstDayInMonth(DateUtil.getStrippedDateObj())), 0, -lookbackMonths, 0)
             endDate = DateUtil.getStrippedDateInt()
             dateRange = DateRange(Integer(startDate), Integer(endDate))
@@ -3046,7 +3046,7 @@ Visit: %s (Author's site)
 
             for acct in allActiveAccounts:
                 if isinstance(acct, Account): pass
-                if acct.getAccountType() not in [Account.AccountType.BANK, Account.AccountType.CREDIT_CARD]:            # noqa
+                if acct.getAccountType() not in [Account.AccountType.BANK, Account.AccountType.CREDIT_CARD, Account.AccountType.INVESTMENT]:    # noqa
                     continue
 
                 msg = pad("Please wait: Account: '%s'" %(acct), _msgPad, padChar=".")
@@ -3068,7 +3068,7 @@ Visit: %s (Author's site)
                     if "mdplus:" not in fiid: continue
 
                     olMemo = txn.getParameter(ORIG_MEMO_TAG, "").strip().lower()
-                    if olMemo is "": continue
+                    if olMemo == "": continue
 
                     txnMemo = txn.getMemo().strip().lower()
 
@@ -3100,22 +3100,22 @@ Visit: %s (Author's site)
                                                                   sort_x.getParentTxn().getDateInt(),
                                                                   sort_x.getParentTxn().getValue()))
 
-        OUTPUT_DESC_LENGTH = 100
+        OUTPUT_DESC_LENGTH = 60
         OUTPUT_MEMO_LENGTH = 100
 
         outputTxt += "%s %s %s %s %s%s %s %s\n" \
                      "%s %s %s %s %s%s %s %s\n" \
-                  %(pad("Account Type:", 20),
-                    pad("Account Name:", 30),
-                    pad("Currency:", 10),
+                  %(pad("Account Type:", 13),
+                    pad("Account Name:", 26),
+                    pad("Curr:", 5),
                     pad("Txn Date:", 10),
                     pad("", 3),
                     pad("Txn Description:", OUTPUT_DESC_LENGTH),
                     pad("Txn Memo:", OUTPUT_MEMO_LENGTH),
                     rpad("Txn Value:",15),
-                    pad("", 20, padChar="-"),
-                    pad("", 30, padChar="-"),
-                    pad("", 10, padChar="-"),
+                    pad("", 13, padChar="-"),
+                    pad("", 26, padChar="-"),
+                    pad("", 5, padChar="-"),
                     pad("", 10, padChar="-"),
                     pad("", 3),
                     pad("", OUTPUT_DESC_LENGTH, padChar="-"),
@@ -3134,9 +3134,9 @@ Visit: %s (Author's site)
             #     iCountPotentialDescMemoSwaps += 1
 
             outputTxt += "%s %s %s %s %s%s %s %s\n" \
-                      %(pad(pAcct.getAccountType(), 20),
-                        padTruncateWithDots(pAcct.getAccountName(), 30),
-                        padTruncateWithDots(pAcctCurr.getIDString(), 10),
+                      %(pad(pAcct.getAccountType(), 13),
+                        padTruncateWithDots(pAcct.getAccountName(), 26),
+                        padTruncateWithDots(pAcctCurr.getIDString(), 5),
                         pad(convertStrippedIntDateFormattedText(pTxn.getDateInt()), 10),
                         pad("**", 3) if lPotentialDescMemoSwap else pad("", 3),
                         padTruncateWithDots(pTxn.getDescription(), OUTPUT_DESC_LENGTH),
