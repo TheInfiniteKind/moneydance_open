@@ -69,7 +69,8 @@ http://jakarta.apache.org/ant/index.html
           </fileset>
         </delete>
         <!-- copy all non java files for this feature -->
-        <copy todir="${build}">
+        <copy preservelastmodified="true"
+              todir="${build}">
           <fileset dir="${src}">
             <include name="com/moneydance/modules/features/@{feature}/**" />
             <include name="license.txt" />
@@ -78,7 +79,8 @@ http://jakarta.apache.org/ant/index.html
           </fileset>
         </copy>
         <!-- move license and contact to book of mxt -->
-        <copy todir="${build}">
+        <copy preservelastmodified="true"
+              todir="${build}">
           <fileset dir="${src}/com/moneydance/modules/features/@{feature}">
             <include name="contact.*" />
           </fileset>
