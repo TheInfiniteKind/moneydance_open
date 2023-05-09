@@ -359,22 +359,28 @@ class StockGlance implements HomePageView {
         }
 
         private Double getAdjRelativeRate(CurrencyType curr, int asOfDate, int interval) {
-            // getSnapshotForDate does not take into account the interval. It looks for a snap before
-            // the date, and if none is found, it looks after the date.
+            // getSnapshotForDate does not take into account the interval. It
+            // looks for a snap before the date, and if none is found, it looks
+            // after the date.
             CurrencySnapshot snap = curr.getSnapshotForDate(asOfDate);
-            int snapDate = snap.getDateInt();
-            //System.err.println(curr+" "+asOfDate+" "+interval+" "+snap);
-            // First look in interval before the date: (T-I .. T]
-            if ((DateUtil.incrementDate(asOfDate, 0, 0, -interval) < snapDate) && (snapDate <= asOfDate)) {
-                return 1.0 / curr.adjustRateForSplitsInt(snapDate, snap.getRate());
+            if (snap != null) {
+                int snapDate = snap.getDateInt();
+                // System.err.println(curr+" "+asOfDate+" "+interval+" "+snap);
+                // First look in interval before the date: (T-I .. T]
+                if ((DateUtil.incrementDate(asOfDate, 0, 0, -interval) < snapDate) && (snapDate <= asOfDate)) {
+                    return 1.0 / curr.adjustRateForSplitsInt(snapDate, snap.getRate());
+                }
+                // Now look in interval after the date: [T .. T+I)
+                snap = curr.getSnapshotForDate(asOfDate + interval);
+                if ((snap != null)
+                        && (asOfDate <= snapDate)
+                        && (snapDate < DateUtil.incrementDate(asOfDate, 0, 0, interval))) {
+                    return 1.0 / curr.adjustRateForSplitsInt(snapDate, snap.getRate());
+                }
             }
-            // Now look in interval after the date: [T .. T+I)
-            snap = curr.getSnapshotForDate(asOfDate + interval);
-            if ((asOfDate <= snapDate) && (snapDate < DateUtil.incrementDate(asOfDate, 0, 0, interval))) {
-                return 1.0 / curr.adjustRateForSplitsInt(snapDate, snap.getRate());
-            }
+            // No rate in interval
             return Double.NaN;
-         }
+        }
 
         // Return the date that is delta days before startDate
         private int backDays(Calendar startDate, int delta) {
