@@ -26,8 +26,7 @@ http://jakarta.apache.org/ant/index.html
   <property name="javac-target" value="1.8"/>
   <property name="javac-source" value="1.8" />
   <property name="bootclasspath"  value="../lib/jdk_1.8_rt.jar"/>
-<!--  <property name="python-executable-full-path" location="/Users/stu/.pyenv/shims/python2.7"/>-->
-  <property name="python-executable-full-path" location="../bin/python2.7"/>
+  <property name="python-executable" value="python2.7"/>  <!-- Need to use correct version if running ANT on Windows and Linux etc -->
 
   <path id="classpath">
     <pathelement path="../lib/extadmin.jar"/>
@@ -41,10 +40,11 @@ http://jakarta.apache.org/ant/index.html
     <pathelement path="../lib/mdpython.jar"/> <!-- Used for Python pre-compile -->
   </path>
 
-  <target name="init">
-    <echo message="OS Name is:         ${os.name}" />
-    <echo message="OS Architecture is: ${os.arch}" />
-    <echo message="OS Version is:      ${os.version}" />
+    <target name="init">
+    <echo level="info" message="ANT Build Running.... Executing INIT" />
+    <echo level="verbose" message="OS Name is:         ${os.name}" />
+    <echo level="verbose" message="OS Architecture is: ${os.arch}" />
+    <echo level="verbose" message="OS Version is:      ${os.version}" />
     <mkdir dir="${dist}"/>
     <mkdir dir="${build}"/>
 
@@ -56,6 +56,7 @@ http://jakarta.apache.org/ant/index.html
       <attribute name="javac-target" />
       <attribute name="javac-source" />
       <sequential>
+        <echo level="info" message="BUILD of '@{feature}' Java extension started..." />
         <delete file="${dist}/@{feature}.mxt" />
         <!--
           since there isn't separate build directories for each feature,
@@ -93,6 +94,7 @@ http://jakarta.apache.org/ant/index.html
       	<antcall target="sign" inheritall="true" inheritrefs="true">
       	  <param name="feature" value="@{feature}" />
       	</antcall>
+        <echo level="info" message="BUILD of '@{feature}' Python extension COMPLETED" />
       </sequential>
     </macrodef>
 
@@ -140,7 +142,6 @@ http://jakarta.apache.org/ant/index.html
     <move file="${src}/s-findandreplace.mxt" tofile="${dist}/findandreplace.mxt" verbose="true" failonerror="false" />
     <!--<copy file="${dist}/findandreplace.mxt" tofile="${install}/findandreplace.mxt" verbose="true" failonerror="false" />-->
   </target>
-
 
   <target name="mikebalpred" depends="init">
     <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
@@ -254,10 +255,6 @@ http://jakarta.apache.org/ant/index.html
     -->
   </target>
 
-
-
-
-
   <target name="miscdebug" depends="init">
 	  <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
            classpathref="classpath"  destdir="${build}"
@@ -280,7 +277,6 @@ http://jakarta.apache.org/ant/index.html
     </java>
     <move file="${src}/s-miscdebug.mxt" tofile="${dist}/miscdebug.mxt"/>
   </target>
-
 
   <target name="ratios-compile" depends="init">
     <javac target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
@@ -318,7 +314,6 @@ http://jakarta.apache.org/ant/index.html
     <move file="${src}/s-ratios.mxt" tofile="${dist}/ratios.mxt" verbose="true" failonerror="false" />
     <copy file="${dist}/ratios.mxt" tofile="${install}/ratios.mxt" verbose="true" failonerror="false" />
   </target>
-
 
   <target name="yahoofx" depends="init">
     <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
@@ -368,7 +363,6 @@ http://jakarta.apache.org/ant/index.html
     </java>
     <move file="${src}/s-stockglance.mxt" tofile="${dist}/stockglance.mxt"/>
   </target>
-
 
   <target name="balpred" depends="init">
     <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
@@ -599,19 +593,22 @@ http://jakarta.apache.org/ant/index.html
   
   <target name="sign" description="sign the mxt" unless="dont_sign">
   	<fail unless="feature" message="Please specify property feature" />
-    <java newenvironment="true"
-      classpathref="classpath"
-      classname="com.moneydance.admin.KeyAdmin"
-      fork="true">
-      <sysproperty key="moneydance_key_pass" value="${keypass}"/>
-      <arg value="signextjar"/>
-      <arg value="${extprivkeyfile}"/>
-      <arg value="${privkeyid}"/>
-      <arg value="${feature}"/>
-      <arg line="${dist}/${feature}.mxt"/>
+    <echo level="info" message="SIGNING ${feature}.mxt...:" />
+    <java failonerror="true"
+          newenvironment="true"
+          classpathref="classpath"
+          classname="com.moneydance.admin.KeyAdmin"
+          fork="true">
+          <sysproperty key="moneydance_key_pass" value="${keypass}"/>
+          <arg value="signextjar"/>
+          <arg value="${extprivkeyfile}"/>
+          <arg value="${privkeyid}"/>
+          <arg value="${feature}"/>
+          <arg line="${dist}/${feature}.mxt"/>
     </java>
     <move file="./s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
     <copy file="${dist}/${feature}.mxt" tofile="${install}/${feature}.mxt" verbose="true" failonerror="false" />
+    <echo level="info" message="FINISHED signing mxt..." />
   </target>
 
   <target name="package-python-mxt" description="package and sign python scripts into an extension file" unless="dont_sign">
@@ -634,9 +631,12 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="pre-compile-python" description="pre-compile python to generate both pyc and .class files" unless="dont_compile">
-    <echo message="PRE-COMPILING Jython to create CPython bytecode .pyc file" />
+    <fail unless="python-executable" message="Please specify the 'python-executable' name as a parameter" />
+
+    <echo level="info" message="PRE-COMPILING Jython to create CPython bytecode .pyc file" />
     <delete file="${python-base}/${feature}.pyc" verbose="false" failonerror="false" />
-    <exec executable="${python-executable-full-path}"
+    <exec executable="${python-executable}"
+      resolveexecutable="true"
       failonerror="true"
       failifexecutionfails="true"
       searchpath="true"
@@ -646,7 +646,7 @@ http://jakarta.apache.org/ant/index.html
       <arg value="${python-base}/${feature}.py"/>
     </exec>
 
-    <echo message="COMPILING Jython script to create java $py.class file" />
+    <echo level="verbose" message="COMPILING Jython script to create java $py.class file" />
     <delete file="${python-base}/${feature}$py.class" verbose="false" failonerror="false" />
     <java newenvironment="true"
       failonerror="true"
@@ -657,10 +657,13 @@ http://jakarta.apache.org/ant/index.html
       <arg value="import compileall; compileall.compile_file('${python-base}/${feature}.py')"/>
     </java>
 
+    <echo level="info" message="COMPILATION routines COMPLETED" />
+
   </target>
 
   <target name="genkeys">
     <java
+      failonerror="true"
       fork="true"
       classpathref="classpath"
       classname="com.moneydance.admin.KeyAdmin">
