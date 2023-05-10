@@ -9,12 +9,12 @@ user.properties
 src/priv_key
 src/pub_key
 src/user.properties
-lib/moneydance-dev.jar
-lib/moneydance-private.jar
-lib/moneydance.jar
-lib/jdk_1.8_rt.jar
+lib/moneydance*.jar
+lib/jdk*.jar
+lib/okio*.jar
+lib/plaid*.jar
+lib/commons*.jar
 MoneydanceOpen.iws
 /python_scripts/*$py.class
 /python_scripts/*.pyc
-!bin/python2.7
 !bin/repackage-jython

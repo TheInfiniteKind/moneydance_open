@@ -2,7 +2,7 @@
 <module type="JAVA_MODULE" version="4">
   <component name="FacetManager">
     <facet type="Python" name="Python">
-      <configuration sdkName="" />
+      <configuration sdkName="Jython 2.7 (via pyenv)" />
     </facet>
   </component>
   <component name="ModuleRunConfigurationManager">
@@ -19,16 +19,16 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/gson-2.5.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/gson-2.8.7.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jcommon-1.0.12.jar!/" />
@@ -37,7 +37,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jfreechart-1.0.13.jar!/" />
@@ -46,7 +46,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/moneyPieSupport.jar!/" />
@@ -57,7 +57,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/TableLayout-bin-jdk1.5-2009-08-26.jar!/" />
@@ -66,7 +66,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jsoup-1.11.3.jar!/" />
@@ -76,5 +76,6 @@
       </library>
     </orderEntry>
     <orderEntry type="module" module-name="MoneydanceDesktop" />
+    <orderEntry type="library" name="Jython 2.7 (via pyenv) interpreter library" level="application" />
   </component>
 </module>
