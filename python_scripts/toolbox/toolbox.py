@@ -172,6 +172,7 @@
 #               Common code tweaks...
 #               Added 'toolbox_zap_mdplus_default_memo_fields' menu option
 
+# todo - Change JMenuBar in all extensions.... Swap in a parent JRootPanne etc...
 # todo - CMD-P select the pickle file to load/view/edit etc.....
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -9965,7 +9966,7 @@ Visit: %s (Author's site)
             keys = sorted(_auth.keys())                                                                                 # noqa
             for theKey in keys:
                 value = _auth.get(theKey)                                                                               # noqa
-                output += pad("Key:%s" %(theKey),40)+" Value: %s\n" %(value.strip())
+                output += pad("Key:%s" %(theKey),40)+" Value: %s\n" %(value.strip())                                    # noqa
         else:
             if not lCachePasswords: output += "** Your system is not setup to cache passwords... Cannot display this session's cache **\n"
             output += "<NONE>\n"
@@ -10015,7 +10016,7 @@ Visit: %s (Author's site)
             keys = sorted(_auth.keys())                                                                                 # noqa
             for theKey in keys:
                 value = _auth.get(theKey)                                                                               # noqa
-                output += pad("Key:%s" %(theKey),40)+" Value: %s\n" %(value.strip())
+                output += pad("Key:%s" %(theKey),40)+" Value: %s\n" %(value.strip())                                    # noqa
         else:
             if not lCachePasswords: output += "** Your system is not setup to cache passwords... Cannot display this session's cache **\n"
             output += "<NONE>\n"
@@ -14488,8 +14489,8 @@ Visit: %s (Author's site)
                                     output += "<-- Oldest (max) 5 records -->>\n"
                                     while iCountSnapsPrinted <= maxToPrint:
                                         snaps[iSnap].itemWillSync(dummySyncR)
-                                        output += dummySyncR.toMultilineHumanReadableString()+"---\n"
-                                        dummySyncR.clear()                                                                  # noqa
+                                        output += dummySyncR.toMultilineHumanReadableString()+"---\n"                   # noqa
+                                        dummySyncR.clear()                                                              # noqa
                                         iSnap += 1
                                         iCountSnapsPrinted += 1
                                         if iCountSnapsPrinted >= snaps.size() or iSnap >= snaps.size(): break
@@ -14612,9 +14613,9 @@ Visit: %s (Author's site)
                         for theKey in keys:
                             value = _auth.get(theKey)                                                                   # noqa
                             if lSearch:
-                                if lKeys and not (searchWhat.lower() in theKey.lower()): continue
-                                elif lKeyData and not (searchWhat.lower() in value.lower()): continue
-                            output += pad("Key:%s" %theKey,90)+" Value: %s\n" %(redactAuth(value.strip()))
+                                if lKeys and not (searchWhat.lower() in theKey.lower()): continue                       # noqa
+                                elif lKeyData and not (searchWhat.lower() in value.lower()): continue                   # noqa
+                            output += pad("Key:%s" %theKey,90)+" Value: %s\n" %(redactAuth(value.strip()))              # noqa
                     else:
                         if not lCachePasswords:
                             output += "** Your system is not setup to cache passwords... Cannot display this session's cache **\n"

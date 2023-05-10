@@ -6304,8 +6304,8 @@ Visit: %s (Author's site)
                 AUTO_HIDE_LOOKUP_ERROR = "<!LOOKUP ERROR!>"
                 FILTERED_TXT = "<FILTERED OUT>"
                 HAS_GROUPID_TXT = "<groupid: {}>"
-                DEFAULT_START_SMALL_LEN = 56
-                DEFAULT_START_BIG_LEN = 3
+                # DEFAULT_START_SMALL_LEN = 56
+                # DEFAULT_START_BIG_LEN = 3
 
                 red = getColorRed()
 

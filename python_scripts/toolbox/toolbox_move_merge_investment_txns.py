@@ -4053,10 +4053,10 @@ Visit: %s (Author's site)
                         pTxn = srcTxn.getParentTxn()
                         iCountLoops += 1
 
-                        output += ".. *** LOOP DETECTED %s %s %s %s ***\n" %(convertStrippedIntDateFormattedText(pTxn.getDateInt()),
-                                                       pad(pTxn.getInvestTxnType().getIDString(),12),
-                                                       pad(pTxn.getDescription()+pTxn.getMemo(),60),
-                                                       rpad(sourceAccount.getCurrencyType().formatFancy(srcTxn.getValue(),MD_decimal),18))
+                        output += ".. *** LOOP DETECTED %s %s %s %s ***\n" %(convertStrippedIntDateFormattedText(pTxn.getDateInt()),            # noqa
+                                                       pad(pTxn.getInvestTxnType().getIDString(),12),                                           # noqa
+                                                       pad(pTxn.getDescription()+pTxn.getMemo(),60),                                            # noqa
+                                                       rpad(sourceAccount.getCurrencyType().formatFancy(srcTxn.getValue(),MD_decimal),18))      # noqa
 
                     del tmpTxns
 
@@ -4168,17 +4168,17 @@ Visit: %s (Author's site)
                                         lLotErrorsABORT = True
                                         output += "... ERROR:    '%s' Buy (id: %s dated: %s) matched to sale (id: %s) dated: %s appears in BOTH to and from txn sets?\n"\
                                                   %(pad(secTxn.getAccount().getAccountName(),50),txnID,convertStrippedIntDateFormattedText(checkIDWithinFrom.getDateInt()),secTxn.getUUID(), convertStrippedIntDateFormattedText(secTxn.getDateInt()))
-                                    elif checkIDWithinOther is not None and cbTags[txnID] != 0:
+                                    elif checkIDWithinOther is not None and cbTags[txnID] != 0:                         # noqa
                                         lMoveWouldSeparateMatchedLOTs = True
                                         lAnyTagChanges = True   # Essentially we skipped this tag and didn't add it to the dictionary...
                                         output += "... ERROR:    '%s' Buy (id: %s dated: %s) matched to sale (id: %s) dated: %s would be separated by this move!\n"\
                                                   %(pad(secTxn.getAccount().getAccountName(),50),txnID,convertStrippedIntDateFormattedText(checkIDWithinOther.getDateInt()),secTxn.getUUID(), convertStrippedIntDateFormattedText(secTxn.getDateInt()))
-                                    elif checkIDWithinOther is not None and cbTags[txnID] == 0:  # Yup - you can get records matched with a ZERO qty... Ignore these
+                                    elif checkIDWithinOther is not None and cbTags[txnID] == 0:  # noqa - # Yup - you can get records matched with a ZERO qty... Ignore these
                                         lAnyTagChanges = True   # Silently ignore - Essentially we skipped this tag and didn't add it to the dictionary...
                                         output += "... IGNORING: '%s' Buy (id: %s dated: %s) ZERO matched to sale (id: %s) dated: %s would be separated by this move! Will be ignored/deleted\n"\
                                                   %(pad(secTxn.getAccount().getAccountName(),50),txnID,convertStrippedIntDateFormattedText(checkIDWithinOther.getDateInt()),secTxn.getUUID(), convertStrippedIntDateFormattedText(secTxn.getDateInt()))
                                     else:
-                                        newTags[txnID] = cbTags[txnID]
+                                        newTags[txnID] = cbTags[txnID]                                                  # noqa
                                         if debug:
                                             output += "... VALID:    '%s' Buy (id: %s dated: %s) matched to sale (id: %s) dated: %s is not being separated\n"\
                                                       %(pad(secTxn.getAccount().getAccountName(),50),txnID,convertStrippedIntDateFormattedText(checkIDWithinSame.getDateInt()),secTxn.getUUID(), convertStrippedIntDateFormattedText(secTxn.getDateInt()))
@@ -4602,10 +4602,10 @@ Visit: %s (Author's site)
                             srcTxn.setAccount(targetAccount)
                             srcTxn.setParameter(PARAMETER_KEY,True)
                             pTxn.syncItem()
-                            output += ".. %s %s %s %s\n" %(convertStrippedIntDateFormattedText(pTxn.getDateInt()),
-                                                           pad(pTxn.getInvestTxnType().getIDString(),12),
-                                                           pad(pTxn.getDescription()+pTxn.getMemo(),60),
-                                                           rpad(sourceAccount.getCurrencyType().formatFancy(srcTxn.getValue(),MD_decimal),18))
+                            output += ".. %s %s %s %s\n" %(convertStrippedIntDateFormattedText(pTxn.getDateInt()),                              # noqa
+                                                           pad(pTxn.getInvestTxnType().getIDString(),12),                                       # noqa
+                                                           pad(pTxn.getDescription()+pTxn.getMemo(),60),                                        # noqa
+                                                           rpad(sourceAccount.getCurrencyType().formatFancy(srcTxn.getValue(),MD_decimal),18))  # noqa
                             continue
 
                         # Thus, we are on a parent...
@@ -4635,10 +4635,10 @@ Visit: %s (Author's site)
                         srcTxn.setAccount(targetAccount)
 
                         srcTxn.syncItem()
-                        output += ".. %s %s %s %s %s\n" %(convertStrippedIntDateFormattedText(srcTxn.getDateInt()),
-                                                          pad(srcTxn.getInvestTxnType().getIDString(),12),
-                                                          pad(srcTxn.getDescription()+srcTxn.getMemo(),60),
-                                                          rpad(sourceAccount.getCurrencyType().formatFancy(srcTxn.getValue(),MD_decimal),18),
+                        output += ".. %s %s %s %s %s\n" %(convertStrippedIntDateFormattedText(srcTxn.getDateInt()),                             # noqa
+                                                          pad(srcTxn.getInvestTxnType().getIDString(),12),                                      # noqa
+                                                          pad(srcTxn.getDescription()+srcTxn.getMemo(),60),                                     # noqa
+                                                          rpad(sourceAccount.getCurrencyType().formatFancy(srcTxn.getValue(),MD_decimal),18),   # noqa
                                                           "")
 
                     del copyTxns, tmpTxns

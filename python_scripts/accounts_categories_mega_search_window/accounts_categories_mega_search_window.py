@@ -3049,13 +3049,13 @@ Visit: %s (Author's site)
         class MyQuickFieldDocumentListener(DocumentListener):
             def __init__(self, source): self.source = source
 
-            def insertUpdate(self, evt):
+            def insertUpdate(self, evt):                                                                                # noqa
                 self.source.repaint()
 
-            def removeUpdate(self, evt):
+            def removeUpdate(self, evt):                                                                                # noqa
                 self.source.repaint()
 
-            def changedUpdate(self, evt):
+            def changedUpdate(self, evt):                                                                               # noqa
                 self.source.repaint()
 
         class MyQuickSearchField(QuickSearchField):
