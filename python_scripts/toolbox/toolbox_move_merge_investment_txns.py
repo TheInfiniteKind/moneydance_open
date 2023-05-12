@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_move_merge_investment_txns.py build: 1006 - May 2023 - Stuart Beesley StuWareSoftSystems
+# toolbox_move_merge_investment_txns.py build: 1007 - May 2023 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -37,6 +37,7 @@
 # build: 1005 - Cope with MD2023 new Balance Adjustment and changed meaning of Start Balance (i.e. block when adj != 0)
 # build: 1005 - MD2023 fixes to common code...
 # build: 1006 - Common code tweaks
+# build: 1007 - Fix missing reference to CurrencyTable class
 
 # Allows the user to select investment transactions and then move them between accounts:
 # Can be called from the Extensions Menu (with/without txns selected); or from Toolbox menu
@@ -247,7 +248,7 @@ else:
     from com.infinitekind.util import DateUtil, CustomDateFormat, StringUtils
 
     from com.infinitekind.moneydance.model import *
-    from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
+    from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil, CurrencyTable
     from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
     from com.moneydance.apps.md.controller import AccountBookWrapper
@@ -4461,7 +4462,7 @@ Visit: %s (Author's site)
                                 subAcctBal = acct.getBalance()
                                 subAcctCostBasis = InvestUtil.getCostBasis(acct)
                                 # price = (1.0 / _subAcctRelCurr.adjustRateForSplitsInt(DateUtil.convertCalToInt(today), _subAcctRelCurr.getRelativeRate()))                        # noqa
-                                price = CurrencyTable.getUserRate(_subAcctRelCurr, _acctRelCurr)                                # noqa
+                                price = CurrencyTable.getUserRate(_subAcctRelCurr, _acctRelCurr)
 
                                 _totals[0] += _subAcctRelCurr.getDoubleValue(subAcctBal)
                                 _totals[1] += _acctRelCurr.getDoubleValue(subAcctCostBasis)
