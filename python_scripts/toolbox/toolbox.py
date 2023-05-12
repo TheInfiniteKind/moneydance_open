@@ -171,6 +171,8 @@
 #               Tweak startup check messages detect_non_hier_sec_acct_or_orphan_txns()....
 #               Common code tweaks...
 #               Added 'toolbox_zap_mdplus_default_memo_fields' menu option
+#               Enhanced: detect_non_hier_sec_acct_or_orphan_txns() and fix_non_hier_sec_acct_txns() for when investment txn is sitting in a non investment account
+#                         Usually caused by batch change category feature view viewing a xfr split in a non investment register (should be blocked really).
 
 # todo - Change JMenuBar in all extensions.... Swap in a parent JRootPanne etc...
 # todo - CMD-P select the pickle file to load/view/edit etc.....
@@ -17301,13 +17303,13 @@ now after saving the file, restart Moneydance
             acct = txn.getAccount()
             if not acct == selectedAccount: continue
 
-            if txn.getParentTxn() == txn:   # Parent
+            if isinstance(txn, ParentTxn):   # Parent
                 for splitNum in range(0, txn.getSplitCount()):
                     split = txn.getSplit(splitNum)
                     if split.getAmount() != split.getValue():
                         iTxnsFound += 1
                         break
-            else:   # Split
+            else:                           # Split
                 if txn.getAmount() != txn.getValue():
                     iTxnsFound += 1
 
@@ -21239,6 +21241,11 @@ now after saving the file, restart Moneydance
                  " =====================================================================================================\n\n"
 
         try:
+
+            def getAccountTypeTxt(acct):
+                _at = acct.getAccountType()
+                return ("Investment" if (_at == Account.AccountType.INVESTMENT) else "NON INVESTMENT(%s)" %(_at))   # noqa
+
             txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
             txns = list(txnSet.iterableTxns())      # copy into list() to prevent concurrent modification when modifying.....
             fields = InvestFields()
@@ -21251,7 +21258,19 @@ now after saving the file, restart Moneydance
             for _txn in txns:
                 if not isinstance(_txn, ParentTxn): continue   # only work with parent transactions
                 _acct = _txn.getAccount()
-                if _acct.getAccountType() != Account.AccountType.INVESTMENT: continue                                   # noqa
+                _acctType = _acct.getAccountType()
+
+                if _acctType == Account.AccountType.SECURITY:                                                           # noqa
+                    # Should never happen - abort early.....
+                    txt = "ERROR: Found Parent Txn where the Txn's Account Type is a SECURITY (review console for details)!"
+                    myPrint("B", txt, "Txn follows..:")
+                    myPrint("B", _txn.toMultilineString())
+                    setDisplayStatus(txt, "B")
+                    myPopupInformationBox(toolbox_frame_, txt, "ERROR", theMessageType=JOptionPane.ERROR_MESSAGE)
+                    return
+
+                if _acctType != Account.AccountType.INVESTMENT: continue                                                # noqa
+
                 fields.setFieldStatus(_txn)
 
                 if fields.hasSecurity and fields.security is None:
@@ -21262,7 +21281,7 @@ now after saving the file, restart Moneydance
                     saveInvestmentAccountsNeedingDummy[_acct] = True
 
             if iOrphans:
-                txt = "ERROR: %s investment txn(s) with 'Orphaned' securities detected (probably an old QIF import or User has force removed a Security from this Investment Account)" %(iOrphans)
+                txt = "ERROR: %s investment txn(s) with 'Orphaned' securities detected (probably an old QIF import or User has force removed Security from Investment Account)" %(iOrphans)
                 if not autofix:
                     MyPopUpDialogBox(toolbox_frame_,
                                      txt,
@@ -21363,11 +21382,14 @@ now after saving the file, restart Moneydance
                 errors_fixed = 0
                 text = ""
                 for txn in _txns:
-                    if txn.getParentTxn() != txn: continue   # only work with parent transactions
+                    if not isinstance(txn, ParentTxn): continue   # only work with parent transactions
 
                     acct = txn.getAccount()
-                    # noinspection PyUnresolvedReferences
-                    if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
+                    acctType = acct.getAccountType()
+
+                    # if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
+
+                    isSittingInInvestmentAccount = acctType == Account.AccountType.INVESTMENT                           # noqa
 
                     # at this point we are only dealing with investment parent txns
                     fields.setFieldStatus(txn)
@@ -21375,73 +21397,101 @@ now after saving the file, restart Moneydance
                     if fields.hasSecurity and not acct.isAncestorOf(fields.security):
                         count_the_errors += 1
                         txnTxt = txn.toMultilineString().replace(";",";\n")
-                        text+=("Must fix txn %s\n"
-                               "%s\n"
-                               " > in %s with sec acct %s\n" %(fields.txnType, txnTxt, acct, fields.security.getFullAccountName()))
-                        # This fix assumes that the split / security bit should sit within the txn's parent account. It seeks for the same
-                        # security in this account and reattaches it.
+                        text += ("Must fix txn %s\n"
+                                 "%s\n"
+                                 " > in '%s' with sec acct '%s'\n" %(fields.txnType,
+                                                                 txnTxt,
+                                                                 acct,
+                                                                 (None if (fields.security is None) else fields.security.getFullAccountName())))
 
-                        # Alternatively you could txn.setAccount() to be the split security's parent account
-                        # e.g. txn.setAccount(fields.security.getParentAccount())
+                        if not isSittingInInvestmentAccount:
+                            if fields.security is None:
+                                text += ("** CANNOT FIX Txn where the Parent is sitting within an %s account and the SECURITY is NONE - SKIPPING **"
+                                         %(getAccountTypeTxt(acct)))
+                                continue
 
-                        secCurr = fields.security.getCurrencyType()
-                        correctSecAcct = None
-                        for subacct in AccountUtil.getAccountIterator(acct):
-                            if subacct.getCurrencyType() == secCurr:
-                                correctSecAcct = subacct
-                                break
-
-                        if not correctSecAcct:
-                            if FIX_MODE:
-                                _txt = ".. Security sub-acct '%s' not found within this Investment account '%s' - so manually creating/adding..." %(secCurr.getName(), acct)
-                                text += "%s\n" %(_txt); myPrint("B",_txt)
-
-                                # need to create the Security sub-account in this Investment Account....
-                                newSecurityAcct = Account.makeAccount(MD_REF.getCurrentAccountBook(), Account.AccountType.SECURITY, acct)   # noqa
-                                newSecurityAcct.setEditingMode()
-                                newSecurityAcct.getUUID()
-                                newSecurityAcct.setAccountName(fields.security.getAccountName())
-                                newSecurityAcct.setCurrencyType(fields.security.getCurrencyType())
-                                newSecurityAcct.setStartBalance(0)
-
-                                newSecurityAcct.setUsesAverageCost(fields.security.getUsesAverageCost())
-                                newSecurityAcct.setBroker(fields.security.getBroker())
-                                newSecurityAcct.setBrokerPhone(fields.security.getBrokerPhone())
-                                newSecurityAcct.setAPR(fields.security.getAPR())
-                                newSecurityAcct.setBondType(fields.security.getBondType())
-                                newSecurityAcct.setComment(fields.security.getComment())
-                                newSecurityAcct.setCompounding(fields.security.getCompounding())
-                                newSecurityAcct.setFaceValue(fields.security.getFaceValue())
-                                newSecurityAcct.setMaturity(fields.security.getMaturity())
-                                newSecurityAcct.setMonth(fields.security.getMonth())
-                                newSecurityAcct.setNumYears(fields.security.getNumYears())
-                                newSecurityAcct.setPut(fields.security.getPut())
-                                newSecurityAcct.setOptionPrice(fields.security.getOptionPrice())
-                                newSecurityAcct.setDividend(fields.security.getDividend())
-                                newSecurityAcct.setExchange(fields.security.getExchange())
-                                newSecurityAcct.setSecurityType(fields.security.getSecurityType())
-                                newSecurityAcct.setSecuritySubType(fields.security.getSecuritySubType())
-                                newSecurityAcct.setStrikePrice(fields.security.getStrikePrice())
-
-                                for param in ["hide","hide_on_hp","ol.haspendingtxns", "ol.new_txn_count"]:
-                                    newSecurityAcct.setParameter(param, fields.security.getParameter(param))
-
-                                newSecurityAcct.setParameter(PARAMETER_KEY,True)
-                                newSecurityAcct.syncItem()
-
-                                correctSecAcct = newSecurityAcct
-                            else:
-                                text+=(" -> will need to auto-create/add Security and then assign txn to %s\n" %(acct))
-
-                        if correctSecAcct:
+                            # This fix is for where the investment txn is not sitting within an Investment account (batch change on xfr category usually)...
+                            text += " >> LOGICAL ERROR as Parent txn is sitting within an %s account **\n" %(getAccountTypeTxt(acct))
+                            correctParentAcct = fields.security.getParentAccount()
                             if FIX_MODE:
                                 errors_fixed += 1
-                                text+=(" -> ASSIGNING txn to %s\n" %(correctSecAcct.getFullAccountName()))
-                                fields.security = correctSecAcct
-                                fields.storeFields(txn)
+                                text += (" -> ASSIGNING txn's Parent account to '%s'\n" %(correctParentAcct))
+                                txn.setAccount(correctParentAcct)
                                 txn.syncItem()
                             else:
-                                text+=(" -> need to assign txn to %s\n" %(correctSecAcct.getFullAccountName()))
+                                text+=(" -> need to assign txn's Parent account to '%s'\n" %(correctParentAcct))
+                            continue
+                        else:
+                            # This fix assumes that the split / security bit should sit within the txn's parent account. It seeks for the same
+                            # security in this account and reattaches it.
+
+                            # Alternatively you could txn.setAccount() to be the split security's parent account
+                            # e.g. txn.setAccount(fields.security.getParentAccount())
+
+                            if fields.security is None:
+                                _txt = "LOGIC ERROR: Should not be possible?"
+                                myPrint("B", _txt)
+                                myPrint("B", txn.toMultilineString())
+                                raise Exception(_txt)
+
+                            secCurr = fields.security.getCurrencyType()
+                            correctSecAcct = None
+                            for subacct in AccountUtil.getAccountIterator(acct):
+                                if subacct.getCurrencyType() == secCurr:
+                                    correctSecAcct = subacct
+                                    break
+
+                            if not correctSecAcct:
+                                if FIX_MODE:
+                                    _txt = ".. Security sub-acct '%s' not found within this Investment account '%s' - so manually creating/adding..." %(secCurr.getName(), acct)
+                                    text += "%s\n" %(_txt); myPrint("B",_txt)
+
+                                    # need to create the Security sub-account in this Investment Account....
+                                    newSecurityAcct = Account.makeAccount(MD_REF.getCurrentAccountBook(), Account.AccountType.SECURITY, acct)   # noqa
+                                    newSecurityAcct.setEditingMode()
+                                    newSecurityAcct.getUUID()
+                                    newSecurityAcct.setAccountName(fields.security.getAccountName())
+                                    newSecurityAcct.setCurrencyType(fields.security.getCurrencyType())
+                                    newSecurityAcct.setStartBalance(0)
+
+                                    newSecurityAcct.setUsesAverageCost(fields.security.getUsesAverageCost())
+                                    newSecurityAcct.setBroker(fields.security.getBroker())
+                                    newSecurityAcct.setBrokerPhone(fields.security.getBrokerPhone())
+                                    newSecurityAcct.setAPR(fields.security.getAPR())
+                                    newSecurityAcct.setBondType(fields.security.getBondType())
+                                    newSecurityAcct.setComment(fields.security.getComment())
+                                    newSecurityAcct.setCompounding(fields.security.getCompounding())
+                                    newSecurityAcct.setFaceValue(fields.security.getFaceValue())
+                                    newSecurityAcct.setMaturity(fields.security.getMaturity())
+                                    newSecurityAcct.setMonth(fields.security.getMonth())
+                                    newSecurityAcct.setNumYears(fields.security.getNumYears())
+                                    newSecurityAcct.setPut(fields.security.getPut())
+                                    newSecurityAcct.setOptionPrice(fields.security.getOptionPrice())
+                                    newSecurityAcct.setDividend(fields.security.getDividend())
+                                    newSecurityAcct.setExchange(fields.security.getExchange())
+                                    newSecurityAcct.setSecurityType(fields.security.getSecurityType())
+                                    newSecurityAcct.setSecuritySubType(fields.security.getSecuritySubType())
+                                    newSecurityAcct.setStrikePrice(fields.security.getStrikePrice())
+
+                                    for param in ["hide","hide_on_hp","ol.haspendingtxns", "ol.new_txn_count"]:
+                                        newSecurityAcct.setParameter(param, fields.security.getParameter(param))
+
+                                    newSecurityAcct.setParameter(PARAMETER_KEY,True)
+                                    newSecurityAcct.syncItem()
+
+                                    correctSecAcct = newSecurityAcct
+                                else:
+                                    text+=(" -> will need to auto-create/add Security and then assign txn to %s\n" %(acct))
+
+                            if correctSecAcct:
+                                if FIX_MODE:
+                                    errors_fixed += 1
+                                    text+=(" -> ASSIGNING txn to '%s'\n" %(correctSecAcct.getFullAccountName()))
+                                    fields.security = correctSecAcct
+                                    fields.storeFields(txn)
+                                    txn.syncItem()
+                                else:
+                                    text+=(" -> need to assign txn to '%s'\n" %(correctSecAcct.getFullAccountName()))
 
                 del _txns
                 return text, count_the_errors, count_unfixable_yet, errors_fixed
@@ -21538,34 +21588,58 @@ now after saving the file, restart Moneydance
     def detect_non_hier_sec_acct_or_orphan_txns(startupCheck=False):
         if MD_REF.getCurrentAccountBook() is None: return 0
         txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
-        txns = txnSet.iterableTxns()
         fields = InvestFields()
         count_the_errors = 0
+        count_non_investment_account_errors = 0
 
-        for txn in txns:
+        # noinspection PyUnresolvedReferences
+        ATI = Account.AccountType.INVESTMENT
+
+        startTimeMS = System.currentTimeMillis()
+
+        for txn in txnSet:
 
             if not isinstance(txn, ParentTxn): continue   # only work with parent transactions
 
             acct = txn.getAccount()
+            acctType = acct.getAccountType()
 
             # noinspection PyUnresolvedReferences
-            if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
+            if acctType == Account.AccountType.SECURITY:
+                myPrint("B", "*** MAJOR ERROR: Txn is a Parent AND its a SECURITY ACCOUNT:")
+                myPrint("B", txn.toMultilineString())
+                count_the_errors += 1
+                continue
 
-            # at this point we are only dealing with investment parent txns
+            # Check(s) expanded to include all Account Types (as Security records should only be within Investment Accounts)
             fields.setFieldStatus(txn)
 
             if fields.hasSecurity and not acct.isAncestorOf(fields.security):
                 count_the_errors += 1
+
+                # noinspection PyUnresolvedReferences
+                if acctType != ATI:
+                    count_non_investment_account_errors += 1
+
                 if debug or not startupCheck:
-                    myPrint("B", "ERROR: Txn for Security %s found within Investment Account %s that is cross linked to another account (or Security is orphaned)!\n"
-                                 "txn:\n%s\n" %(fields.security, acct, txn.getSyncInfo().toMultilineHumanReadableString()))
-        del txnSet, txns
+                    myPrint("B", "ERROR: Txn for Security %s found within '%s' Account %s that is cross linked to another account (or Security is orphaned)!\n"
+                                 "txn:\n%s\n" %(fields.security,
+                                                ("Investment" if (acctType == ATI) else "** NON INVESTMENT(%s)" %(acctType)),
+                                                acct,
+                                                txn.toMultilineString()))
+        del txnSet
 
         if count_the_errors:
             myPrint("B", "ERROR: %s investment txn(s) with cross-linked securities detected" %(count_the_errors))
+            if count_non_investment_account_errors:
+                myPrint("B", ".... *** AND %s investment txn(s) with cross-linked securities detected found in NON INVESTMENT ACCOUNTS! ***" %(count_non_investment_account_errors))
         else:
             if debug or startupCheck:
                 myPrint("B", "NOTE: No investment txn(s) with cross-linked securities were detected...")
+
+        if debug:
+            myPrint("B", ".... check took: %s seconds..." %((System.currentTimeMillis() - startTimeMS) / 1000.0))
+
 
         return count_the_errors
 
@@ -22029,10 +22103,10 @@ now after saving the file, restart Moneydance
 
         output+='Outstanding Tax Lots as of %s\n\n'%(date.strftime(convertMDShortDateFormat_strftimeFormat()))
 
-        iFound=0
+        iFound = 0
         for secAcct in AccountUtil.getAccountIterator(book):
             if secAcct.getAccountType() !=  secAcct.AccountType.SECURITY: continue
-            if secAcct.getUsesAverageCost():                           continue
+            if secAcct.getUsesAverageCost(): continue
 
             curr = secAcct.getCurrencyType()
             rcurr = secAcct.getCurrencyType().getRelativeCurrency()
