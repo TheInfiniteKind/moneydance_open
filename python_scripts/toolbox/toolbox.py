@@ -175,7 +175,9 @@
 #                         Usually caused by batch change category feature view viewing a xfr split in a non investment register (should be blocked really).
 #               Fix to missing class reference in 'buddy' toolbox_move_merge_investment_txns.py script....
 
-# todo - Change JMenuBar in all extensions.... Swap in a parent JRootPanne etc...
+# todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
+
+# todo - Change JMenuBar in all extensions.... Swap in a parent JRootPane etc...
 # todo - CMD-P select the pickle file to load/view/edit etc.....
 # todo - Clone Dataset - stage-2 - date and keep some data/balances (what about Loan/Liability/Investment accounts... (Fake cat for cash)?
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
@@ -21286,13 +21288,16 @@ now after saving the file, restart Moneydance
                 if not autofix:
                     MyPopUpDialogBox(toolbox_frame_,
                                      txt,
-                                     "It's highly likely that you have: either a) old QIF Import data (that was improperly imported)... or\n"
-                                     "b) you have clicked 'Actions' > 'Remove Security' from an Investment Account..\n"
-                                     ".. and that this Security had linked Transactions... You would have been warned and asked to respond 'yes'\n"
-                                     ".. this will have deleted Buy/Sell TXNs and partially removed the Security from other TXNs like buy/Sell/Xfr etc\n"
-                                     "- These are 'illogical' and 'damaged' records.... The proper 'security' linkage is irrecoverable.\n"
-                                     "... Toolbox can 'repair' these txns by assigning a 'dummy' security which you can edit/change later.\n"
-                                     "**OR** You can restore, or manually edit and repair the TXNs with your own knowledge of what security was lost...",
+                                     "It's highly likely that you have...:\n"
+                                     "a) Historical QIF Import data (improperly imported); OR\n"
+                                     "b) Dividend txns that were downloaded from QIF/OFX/MD+ with no Security assigned; OR\n"
+                                     "c) You have previously clicked 'Actions' > 'Remove Security' from an Investment Account..:\n"
+                                     ".. and where this Security had linked Transactions... You would have been warned and asked to respond 'yes'\n"
+                                     ".. this will have deleted Buy/Sell txns and partially removed the Security from other related txns (e.g. Div, MiscInc/Exp etc)\n"
+                                     ".. these are 'illogical' and/or 'damaged' records.... The proper 'security' linkage is irrecoverable\n"
+                                     ">> Toolbox can 'repair' these txns by assigning a 'dummy' security which you can edit/change later.\n"
+                                     "(suggestion: for a/b above where it's mainly Dividends, use Tools/Securities. Rename security 'TOOLBOX' to 'Dividends(Misc)')\n"
+                                     "**OR** You can restore, or manually edit and repair the txns with your own knowledge of what security was lost...",
                                      theTitle=_THIS_METHOD_NAME,
                                      OKButtonText="ACKNOWLEDGED",
                                      lAlertLevel=1).go()
