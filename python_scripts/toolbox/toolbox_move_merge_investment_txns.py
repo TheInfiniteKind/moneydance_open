@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_move_merge_investment_txns.py build: 1007 - May 2023 - Stuart Beesley StuWareSoftSystems
+# toolbox_move_merge_investment_txns.py build: 1008 - May 2023 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -38,6 +38,7 @@
 # build: 1005 - MD2023 fixes to common code...
 # build: 1006 - Common code tweaks
 # build: 1007 - Fix missing reference to CurrencyTable class
+# build: 1008 - Tweak pre-selected txns detection routing for Bank Register 'issue'. Also copy latest detect_non_hier_sec_acct_or_orphan_txns()
 
 # Allows the user to select investment transactions and then move them between accounts:
 # Can be called from the Extensions Menu (with/without txns selected); or from Toolbox menu
@@ -48,7 +49,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox_move_merge_investment_txns"
-version_build = "1006"
+version_build = "1008"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -342,6 +343,7 @@ else:
 
     # >>> THIS SCRIPT'S IMPORTS ########################################################################################
     from javax.swing import JSplitPane
+    from java.awt import CardLayout
     from com.moneydance.apps.md.view.gui.acctpanels import BankAcctPanel
     from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel, TxnSearchWindow
     from com.moneydance.apps.md.view.gui.txnreg import TxnRegister, TxnRegisterList
@@ -3237,14 +3239,27 @@ Visit: %s (Author's site)
                     try:
                         accountPanel = secondary_window.getAccountPanel()
                         if not accountPanel: continue
+                        if isinstance(accountPanel, JPanel): pass
                     except:
                         myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
                         continue
 
                     account_panel_component = None
-                    for account_panel_component in secondary_window.getAccountPanel().getComponents():                  # noqa
-                        myPrint("DB", ".. hunting for TxnRegister...")
-                        foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+
+                    myPrint("DB", ".. hunting for TxnRegister...")
+
+                    if isinstance(accountPanel.getLayout(), CardLayout) and isinstance(accountPanel, InvestAccountDetailPanel):
+
+                        cPnl = getFieldByReflection(accountPanel, "contentPanel")
+                        for account_panel_component in cPnl.getComponents():
+                            if not isinstance(account_panel_component, JPanel) or not account_panel_component.isVisible(): continue
+                            foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                            break
+                    else:
+                        for account_panel_component in accountPanel.getComponents():
+                            foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                            if foundTxnRegister:
+                                break
 
                 if not foundTxnRegister:
                     myPrint("DB", "Failed to find TxnRegister in '%s'" %(account_panel_component))
@@ -3273,36 +3288,62 @@ Visit: %s (Author's site)
 
         if lRunningFromToolbox or GlobalVars.selectedInvestmentTransactionsList:
 
-            def detect_non_hier_sec_acct_or_orphan_txns():
-
-                txnSet = MD_REF.getCurrentAccount().getBook().getTransactionSet()
-                txns = txnSet.iterableTxns()
+            # Copied from Toolbox main code....
+            def detect_non_hier_sec_acct_or_orphan_txns(startupCheck=False):
+                if MD_REF.getCurrentAccountBook() is None: return 0
+                txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
                 fields = InvestFields()
-
                 count_the_errors = 0
+                count_non_investment_account_errors = 0
 
-                for txn in txns:
+                # noinspection PyUnresolvedReferences
+                ATI = Account.AccountType.INVESTMENT
+
+                startTimeMS = System.currentTimeMillis()
+
+                for txn in txnSet:
 
                     if not isinstance(txn, ParentTxn): continue   # only work with parent transactions
 
                     acct = txn.getAccount()
+                    acctType = acct.getAccountType()
 
                     # noinspection PyUnresolvedReferences
-                    if acct.getAccountType() != Account.AccountType.INVESTMENT: continue
+                    if acctType == Account.AccountType.SECURITY:
+                        myPrint("B", "*** MAJOR ERROR: Txn is a Parent AND its a SECURITY ACCOUNT:")
+                        myPrint("B", txn.toMultilineString())
+                        count_the_errors += 1
+                        continue
 
-                    # at this point we are only dealing with investment parent txns
+                    # Check(s) expanded to include all Account Types (as Security records should only be within Investment Accounts)
                     fields.setFieldStatus(txn)
 
                     if fields.hasSecurity and not acct.isAncestorOf(fields.security):
                         count_the_errors += 1
-                        myPrint("B", "ERROR: Txn for Security %s found within Investment Account %s that is cross linked to another account (or Security is orphaned)!\n"
-                                     "txn:\n%s\n" %(fields.security, acct, txn.getSyncInfo().toMultilineHumanReadableString()))
-                del txnSet, txns
+
+                        # noinspection PyUnresolvedReferences
+                        if acctType != ATI:
+                            count_non_investment_account_errors += 1
+
+                        if debug or not startupCheck:
+                            myPrint("B", "ERROR: Txn for Security %s found within '%s' Account %s that is cross linked to another account (or Security is orphaned)!\n"
+                                         "txn:\n%s\n" %(fields.security,
+                                                        ("Investment" if (acctType == ATI) else "** NON INVESTMENT(%s)" %(acctType)),
+                                                        acct,
+                                                        txn.toMultilineString()))
+                del txnSet
 
                 if count_the_errors:
                     myPrint("B", "ERROR: %s investment txn(s) with cross-linked securities detected" %(count_the_errors))
+                    if count_non_investment_account_errors:
+                        myPrint("B", ".... *** AND %s investment txn(s) with cross-linked securities detected found in NON INVESTMENT ACCOUNTS! ***" %(count_non_investment_account_errors))
                 else:
-                    myPrint("DB", "NOTE: No investment txn(s) with cross-linked securities were detected - phew!")
+                    if debug or startupCheck:
+                        myPrint("B", "NOTE: No investment txn(s) with cross-linked securities were detected...")
+
+                if debug:
+                    myPrint("B", ".... check took: %s seconds..." %((System.currentTimeMillis() - startTimeMS) / 1000.0))
+
 
                 return count_the_errors
 
@@ -3424,6 +3465,8 @@ Visit: %s (Author's site)
                 if lRunningFromToolbox:
                     labelMsg = JLabel("Without filters all transactions from source account will be moved/merged into target Account")
                 else:
+                    myPrint("B", ">> Account: '%s' >> %s txn(s) pre-selected for move/merge feature...."
+                            %(GlobalVars.selectedInvestmentTransactionsList[0].getAccount(), len(GlobalVars.selectedInvestmentTransactionsList)))
                     labelMsg = JLabel("The %s txn(s) you have selected will be moved to the target account" %(len(GlobalVars.selectedInvestmentTransactionsList)))
                 labelMsg.setForeground(getColorBlue())
 
