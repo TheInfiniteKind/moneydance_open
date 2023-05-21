@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_total_selected_transactions.py build: 1014 - March 2023 - Stuart Beesley StuWareSoftSystems
+# toolbox_total_selected_transactions.py build: 1015 - May 2023 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -49,6 +49,7 @@
 # build: 1012 - Added bootstrap to execute compiled version of extension (faster to load)....
 # build: 1013 - MD2023 fixes to common code...
 # build: 1014 - Common code tweaks
+# build: 1015 - Fix for when Bank Register selected in Investment Account (rather than main Investment Register)
 
 # Looks for an Account register that has focus and then totals the selected transactions. If any found, displays on screen
 # NOTE: 1st Aug 2021 - As a result of creating this extension, IK stated this would be core functionality in preview build 3070+
@@ -60,7 +61,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox_total_selected_transactions"
-version_build = "1014"
+version_build = "1015"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -354,6 +355,7 @@ else:
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
     from javax.swing import JSplitPane
+    from java.awt import CardLayout
     from com.moneydance.apps.md.view.gui.acctpanels import BankAcctPanel
     from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel, TxnSearchWindow
     from com.moneydance.apps.md.view.gui.txnreg import TxnRegister, TxnRegisterList
@@ -2960,7 +2962,7 @@ Visit: %s (Author's site)
             comps = swingComponent.getComponents()
 
             for _c in comps:
-                if isinstance(_c,targetComponent):
+                if isinstance(_c, targetComponent):
                     return _c
                 result = hunt_component(_c, targetComponent)
                 if result:
@@ -3230,8 +3232,8 @@ Visit: %s (Author's site)
 
                 continue
 
-            if not secondary_window.isFocused():                                                                            # noqa
-                myPrint("DB", "Skipping Non-Focused Secondary Window: '%s'" %(secondary_window.getTitle()))                 # noqa
+            if not secondary_window.isFocused():                                                                        # noqa
+                myPrint("DB", "Skipping Non-Focused Secondary Window: '%s'" %(secondary_window.getTitle()))             # noqa
                 continue
             else:
                 myPrint("DB", "Secondary Window: '%s' - isFocused: %s, isVisible: %s, hasFocus: %s"
@@ -3249,14 +3251,27 @@ Visit: %s (Author's site)
                 try:
                     accountPanel = secondary_window.getAccountPanel()
                     if not accountPanel: continue
+                    if isinstance(accountPanel, JPanel): pass
                 except:
                     myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
                     continue
 
                 account_panel_component = None
-                for account_panel_component in secondary_window.getAccountPanel().getComponents():                      # noqa
-                    myPrint("DB", ".. hunting for TxnRegister...")
-                    foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+
+                myPrint("DB", ".. hunting for TxnRegister...")
+
+                if isinstance(accountPanel.getLayout(), CardLayout) and isinstance(accountPanel, InvestAccountDetailPanel):
+
+                    cPnl = getFieldByReflection(accountPanel, "contentPanel")
+                    for account_panel_component in cPnl.getComponents():
+                        if not isinstance(account_panel_component, JPanel) or not account_panel_component.isVisible(): continue
+                        foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                        break
+                else:
+                    for account_panel_component in accountPanel.getComponents():
+                        foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                        if foundTxnRegister:
+                            break
 
             if not foundTxnRegister:
                 myPrint("DB", "Failed to find TxnRegister in '%s'" %(account_panel_component))
