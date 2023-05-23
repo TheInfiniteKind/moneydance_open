@@ -3239,6 +3239,9 @@ Visit: %s (Author's site)
                 myPrint("DB", "Secondary Window: '%s' - isFocused: %s, isVisible: %s, hasFocus: %s"
                         %(secondary_window.getTitle(), secondary_window.isFocused(), secondary_window.isVisible(), secondary_window.hasFocus()))    # noqa
 
+            # note: you could just hunt for TxnRegisterList down all components where .isVisible()... This works...
+            #       but... it will get the wrong register in investment accounts when Bank Register is selected....
+
             if isinstance(secondary_window, TxnSearchWindow):
                 myPrint("DB","Special handling for TxnSearchWindow....")
 
