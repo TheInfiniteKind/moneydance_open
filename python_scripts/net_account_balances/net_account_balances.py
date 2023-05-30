@@ -7585,16 +7585,14 @@ Visit: %s (Author's site)
                             else:
                                 myPrint("DB", "... Invalid custom dates, reverting to defaults...")
 
-                            tmpPanel = JPanel()
-                            tmpPanel.add(dateRanger.getChoice())
-                            tmpPanel.add(dateRanger.getStartField())
-                            tmpPanel.add(dateRanger.getEndField())
-                            options=["SAVE DATES","Cancel"]
-                            if (JOptionPane.showOptionDialog(NAB.theFrame, tmpPanel, "Enter Custom Date Range:",
+                            options = ["SAVE DATES", "Cancel"]
+                            getFieldByReflection(dateRanger, "startField").addKeyListener(MyKeyAdapter())
+                            getFieldByReflection(dateRanger, "endField").addKeyListener(MyKeyAdapter())
+                            if (JOptionPane.showOptionDialog(NAB.theFrame, dateRanger.getPanel(), "Enter Custom Date Range:",
                                                              JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
                                                              NAB.moneydanceContext.getUI().getIcon(GlobalVars.Strings.MD_GLYPH_APPICON_64),
                                                              options,
-                                                             options[0])
+                                                             None)
                                     != 0):
                                 myPrint("DB", "... User aborted entering new custom dates....")
 
@@ -9028,7 +9026,7 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.currency_COMBO, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).colspan(2).fillx())
                     onCol += 2
 
-                    NAB.disableCurrencyFormatting_CB = MyJCheckBox("Disable Currency Formatting", True)
+                    NAB.disableCurrencyFormatting_CB = MyJCheckBox("Disable Currency Formatting", False)
                     NAB.disableCurrencyFormatting_CB.putClientProperty("%s.id" %(NAB.myModuleID), "disableCurrencyFormatting_CB")
                     NAB.disableCurrencyFormatting_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.disableCurrencyFormatting_CB.setName("disableCurrencyFormatting_CB")
@@ -9181,7 +9179,7 @@ Visit: %s (Author's site)
                     controlPnl.add(separatorSelector_pnl, GridC.getc(onCol, onRow).leftInset(colInsetFiller+2).rightInset(colRightInset).fillx().pady(pady).filly().west())
                     onCol += 1
 
-                    NAB.blinkRow_CB = MyJCheckBox("Blink", True)
+                    NAB.blinkRow_CB = MyJCheckBox("Blink", False)
                     NAB.blinkRow_CB.putClientProperty("%s.id" %(NAB.myModuleID), "blinkRow_CB")
                     NAB.blinkRow_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.blinkRow_CB.setName("blinkRow_CB")
@@ -9262,7 +9260,7 @@ Visit: %s (Author's site)
                     operateOnAnotherRow_pnl.add(NAB.otherRowMathsOperator_COMBO, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
                     onUtiliseOtherRowCol += 1
 
-                    NAB.otherRowIsPercent_CB = MyJCheckBox("Format as %", True)
+                    NAB.otherRowIsPercent_CB = MyJCheckBox("Format as %", False)
                     NAB.otherRowIsPercent_CB.putClientProperty("%s.id" %(NAB.myModuleID), "otherRowIsPercent_CB")
                     NAB.otherRowIsPercent_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.otherRowIsPercent_CB.setName("otherRowIsPercent_CB")
@@ -9395,7 +9393,7 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.includeInactive_COMBO, GridC.getc(onCol, onRow).leftInset(colLeftInset).topInset(topInset+3).fillx())
                     onCol += 1
 
-                    NAB.filterOutZeroBalAccts_INACTIVE_CB = MyJCheckBox("Filter Out Zeros Inactive", True)
+                    NAB.filterOutZeroBalAccts_INACTIVE_CB = MyJCheckBox("Filter Out Zeros Inactive", False)
                     NAB.filterOutZeroBalAccts_INACTIVE_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOutZeroBalAccts_INACTIVE_CB")
                     NAB.filterOutZeroBalAccts_INACTIVE_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.filterOutZeroBalAccts_INACTIVE_CB.setName("filterOutZeroBalAccts_INACTIVE_CB")
@@ -9404,7 +9402,7 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.filterOutZeroBalAccts_INACTIVE_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).bottomInset(bottomInset).colspan(1).fillboth())
                     onCol += 1
 
-                    NAB.filterIncludeSelected_CB = MyJCheckBox("Filter Include Selected", True)
+                    NAB.filterIncludeSelected_CB = MyJCheckBox("Filter Include Selected", False)
                     NAB.filterIncludeSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterIncludeSelected_CB")
                     NAB.filterIncludeSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.filterIncludeSelected_CB.setName("filterIncludeSelected_CB")
@@ -9441,7 +9439,7 @@ Visit: %s (Author's site)
 
                     topInset = 0
 
-                    NAB.filterOutZeroBalAccts_ACTIVE_CB = MyJCheckBox("Filter Out Zeros Active", True)
+                    NAB.filterOutZeroBalAccts_ACTIVE_CB = MyJCheckBox("Filter Out Zeros Active", False)
                     NAB.filterOutZeroBalAccts_ACTIVE_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOutZeroBalAccts_ACTIVE_CB")
                     NAB.filterOutZeroBalAccts_ACTIVE_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.filterOutZeroBalAccts_ACTIVE_CB.setName("filterOutZeroBalAccts_ACTIVE_CB")
@@ -9450,7 +9448,7 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.filterOutZeroBalAccts_ACTIVE_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).bottomInset(bottomInset).colspan(1).fillboth())
                     onCol += 1
 
-                    NAB.filterOnlyShowSelected_CB = MyJCheckBox("Only Show Selected", True)
+                    NAB.filterOnlyShowSelected_CB = MyJCheckBox("Only Show Selected", False)
                     NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyShowSelected_CB")
                     NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.filterOnlyShowSelected_CB.setName("filterOnlyShowSelected_CB")
