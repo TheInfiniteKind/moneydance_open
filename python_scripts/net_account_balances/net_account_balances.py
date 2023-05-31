@@ -9260,7 +9260,7 @@ Visit: %s (Author's site)
                     operateOnAnotherRow_pnl.add(NAB.otherRowMathsOperator_COMBO, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
                     onUtiliseOtherRowCol += 1
 
-                    NAB.otherRowIsPercent_CB = MyJCheckBox("Format as %", False)
+                    NAB.otherRowIsPercent_CB = MyJCheckBox("Format as %", True)
                     NAB.otherRowIsPercent_CB.putClientProperty("%s.id" %(NAB.myModuleID), "otherRowIsPercent_CB")
                     NAB.otherRowIsPercent_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.otherRowIsPercent_CB.setName("otherRowIsPercent_CB")
