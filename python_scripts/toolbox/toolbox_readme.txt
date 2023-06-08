@@ -208,6 +208,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - Reset/Fix/Edit/Add CUSIP Banking Link. This is the link for downloaded securities.... (remove_ofx_security_bindings.py and change-security-cusip.py)
         - Update OFX Last Txn Update Date (Downloaded) field for an account (MD versions >= 2022 can now use Online menu, Setup Online Banking, Reset Sync Date)
         - Reset ALL OFX Last Txn Update Dates (default, OFX and MD+) (MD 2022.3(4074) onwards)
+        - Remove (hidden) downloaded OFX/MD+ data from Transactions within an Account (useful to address as_of reconcile date issues)
         - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank) (remove_one_service.py)
         - Cleanup missing Online Banking Links (NOTE: This is always called when running 'Delete OFX Banking Logon Profile / Service' above
         - OFX Authentication Management (various functions to manage authentication, UserIDs, ClientUIDs)

@@ -174,6 +174,7 @@
 #               Enhanced: detect_non_hier_sec_acct_or_orphan_txns() and fix_non_hier_sec_acct_txns() for when investment txn is sitting in a non investment account
 #                         Usually caused by batch change category feature view viewing a xfr split in a non investment register (should be blocked really).
 #               Fix to missing class reference in 'buddy' toolbox_move_merge_investment_txns.py script....
+#               Added "Remove (hidden) downloaded OFX/MD+ data from Transactions within an Account" feature
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -10988,6 +10989,118 @@ Visit: %s (Author's site)
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
+
+    def OFX_removeDownloadedDataFromTxns():
+        """Wipes OFX/MD+ hidden data from txns"""
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        _THIS_METHOD_NAME = "OFX: Remove downloaded OFX/MD+ data from Txns".upper()
+
+        if MD_REF.getCurrentAccountBook() is None: return
+        if not (ToolboxMode.isUpdateMode()): return
+
+        accountsListForOlTxns = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(0))
+        accountsListForOlTxns = sorted(accountsListForOlTxns, key=lambda sort_x: (sort_x.getFullAccountName().upper()))
+
+        selectedAcct = JOptionPane.showInputDialog(toolbox_frame_,
+                                                   "Select Acct to remove (hidden) OFX/MD+ data:",
+                                                   "Select ACCOUNT",
+                                                   JOptionPane.INFORMATION_MESSAGE,
+                                                   getMDIcon(lAlwaysGetIcon=True),
+                                                   accountsListForOlTxns,
+                                                   None)
+        if not selectedAcct:
+            txt = "%s: No Account was selected.." %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            return
+
+        if isinstance(selectedAcct, Account): pass
+
+        options = ["Remove the hidden OFX/MD+ downloaded data within this Acct",
+                   "Disable (rename) the hidden OFX/MD+ downloaded data within this Acct"]
+
+        selectedRemoveDisableOption = JOptionPane.showInputDialog(toolbox_frame_,
+                                                           "Select Remove or Disable option?",
+                                                           _THIS_METHOD_NAME.upper(),
+                                                           JOptionPane.WARNING_MESSAGE,
+                                                           getMDIcon(None),
+                                                           options,
+                                                           None)
+
+        if not selectedRemoveDisableOption:
+            txt = "%s: User did not select a Remove or Disable option - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Remove/disable hidden OFX/MD+ data from selected account?"):
+            return
+
+        pleaseWait = MyPopUpDialogBox(toolbox_frame_,
+                                      "Please wait: executing OFX/MD+ hidden data changes....",
+                                      theTitle=_THIS_METHOD_NAME.upper(),
+                                      lModal=False,
+                                      OKButtonText="WAIT")
+        pleaseWait.go()
+
+        lRemove  = (options.index(selectedRemoveDisableOption) == 0)
+
+        olTxnRecord = selectedAcct.getDownloadedTxns()
+        txns = selectedAcct.getBook().getTransactionSet().getTransactionsForAccount(selectedAcct)
+        olTxns = []
+        for txn in txns:
+            if not txn.wasDownloaded(): continue
+            olTxns.append(txn)
+
+        myPrint("B", "Found: %s txns with downloaded data.... Option: '%s' selected" %(len(olTxns), "REMOVE" if lRemove else "DISABLE"))
+
+        MD_REF.saveCurrentAccount()
+
+        if olTxnRecord is not None:
+            myPrint("B", "Removing 'OnlineTxnList' record...")
+            olTxnRecord.deleteItem()
+
+        if len(olTxns) > 0:
+            myPrint("B", "Amending transactions......")
+            for txn in olTxns:
+
+                pTxn = txn.getParentTxn()
+                pTxn.setEditingMode()
+
+                save_fiid = txn.getFIID()
+                txn.setFIID(None)
+
+                saved_fitid_data = []
+                for pKey in list(txn.getParameterKeys()):
+                    if (pKey.startswith(AbstractTxn.TAG_FITID_PREFIX)):
+                        saved_fitid_data.append([pKey, txn.getParameter(pKey, None)])
+                        txn.setParameter(pKey, None)
+
+                if not lRemove:
+                    txn.setParameter("DISABLED_" + AbstractTxn.TAG_FI_ID, save_fiid)
+                    for fitidKey, fitidValue in saved_fitid_data:
+                        txn.setParameter("DISABLED_" + fitidKey, fitidValue)
+                else:
+
+                    for pKey in list(txn.getParameterKeys()):
+                        if (pKey.startswith("ol.")):
+                            txn.setParameter(pKey, None)
+
+                pTxn.syncItem()
+
+        MD_REF.saveCurrentAccount()
+
+        pleaseWait.kill()
+
+        whatTxt = "REMOVED" if lRemove else "DISABLED"
+
+        txt = "%s: Option: Data '%s' from %s txns" %(_THIS_METHOD_NAME, whatTxt, len(olTxns))
+        setDisplayStatus(txt, "R"); myPrint("B", txt)
+        logToolboxUpdates("OFX_removeDownloadedDataFromTxns", txt)
+
+        play_the_money_sound()
+        myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
 
     def OFX_delete_ALL_saved_online_txns():
         # delete_intermediate_downloaded_transaction_caches.py
@@ -27450,6 +27563,9 @@ now after saving the file, restart Moneydance
                     user_reset_OFXLastTxnUpdate_dates = MenuJRadioButton("Reset ALL OFX Last Txn Update Dates (default, OFX and MD+) (MD 2022.3(4074) onwards)", False, updateMenu=True, secondaryEnabled=(isMulti_OFXLastTxnUpdate_build()))
                     user_reset_OFXLastTxnUpdate_dates.setToolTipText("Allows you to reset ALL the last download txn dates used to set the start date for txn downloads (2022.3(4074) onwards) - THIS CHANGES DATA!")
 
+                    user_removeDownloadedDataFromTxns = MenuJRadioButton("Remove (hidden) downloaded OFX/MD+ data from Transactions within an Account", False, updateMenu=True)
+                    user_removeDownloadedDataFromTxns.setToolTipText("Will remove/disable hidden OFX/MD+ data from Transactions (useful to address as_of reconcile date issues) - THIS CHANGES DATA!")
+
                     user_deleteOFXBankingLogonProfile = MenuJRadioButton("Delete OFX Banking Service / Logon Profile (remove_one_service.py)", False, updateMenu=True)
                     user_deleteOFXBankingLogonProfile.setToolTipText("This will allow you to delete an Online Banking logon / service profile (service) from Moneydance. E.g. you will have to set this up again. THIS CHANGES DATA! (remove_one_service.py)")
 
@@ -27509,7 +27625,7 @@ now after saving the file, restart Moneydance
                     # userFilters.add(user_toggleOFXDebug)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 12
+                        rows += 13
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
                         if not ToolboxMode.isUpdateMode():
@@ -27520,6 +27636,7 @@ now after saving the file, restart Moneydance
                         userFilters.add(user_manageCUSIPLink)
                         userFilters.add(user_updateOFXLastTxnUpdate)
                         userFilters.add(user_reset_OFXLastTxnUpdate_dates)
+                        userFilters.add(user_removeDownloadedDataFromTxns)
                         userFilters.add(user_deleteOFXBankingLogonProfile)
                         userFilters.add(user_cleanupMissingOnlineBankingLinks)
                         userFilters.add(user_authenticationManagement)
@@ -27580,6 +27697,7 @@ now after saving the file, restart Moneydance
                         if user_createUSAAProfile.isSelected():                         createUSAAProfile()
                         if user_updateOFXLastTxnUpdate.isSelected():                    OFX_update_OFXLastTxnUpdate()
                         if user_reset_OFXLastTxnUpdate_dates.isSelected():              OFX_reset_OFXLastTxnUpdate_dates()
+                        if user_removeDownloadedDataFromTxns.isSelected():              OFX_removeDownloadedDataFromTxns()
                         if user_searchOFXData.isSelected():                             CuriousViewInternalSettingsButtonAction(lOFX=True).actionPerformed("")
                         if user_viewListALLMDServices.isSelected():                     download_md_fiscal_setup()
                         if user_view_CUSIP_settings.isSelected():                       OFX_view_CUSIP_settings()
