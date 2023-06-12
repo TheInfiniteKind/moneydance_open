@@ -183,8 +183,7 @@ BACKUP/RESTORE
 ROW NAME FORMATTING (OPTIONAL)
 
 - ROW NAME Configuration Options:
-  - You can embed the following text (lowercase) in the Row Name field to configure the row as follows:
-    <#bz>   = Forces any total to appear blank when zero
+  - You can embed the following text (lowercase) in the Row Name field to configure the row / total (value) as follows:
     <#brn>  = Forces row name to be blank/empty
     <#jr>   = Row name justify: right
     <#jc>   = Row name justify: center
@@ -194,8 +193,16 @@ ROW NAME FORMATTING (OPTIONAL)
     <#fbo>  = Row name font:    bold
     <#fun>  = Row name font:    underline
     <#fit>  = Row name font:    italics
+    <#bzv>  = Forces any total (value) to appear blank when zero
+    <#cvre>  = Value colour:  red
+    <#cvbl>  = Value colour:  blue
+    <#cvgr>  = Value colour:  light grey
+    <#fvbo>  = Value font:    bold
+    <#fvun>  = Value font:    underline
+    <#fvit>  = Value font:    italics
     <#nud>  = No special underline dots...
     <#fud>  = Force special underline dots...
+
     NOTE: Underline dots will always be turned off if you justify center the text...
 
     <#html> = EXPERIMENTAL - USE WITH CARE: Takes your row name as html encoded text (do NOT wrap with <html> </html>)..

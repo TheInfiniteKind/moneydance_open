@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1026 - May 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1027 - June 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -127,8 +127,12 @@
 #               Changed parameter load/save routines to use getattr() setattr() etc (rather than hardcode the list)....
 #               Tweaked HideAction() to push a windowClosing event....
 # build: 1026 - also added in CMD-SHIFT-L and the lastResultsBalanceTable... Also used in the Row Selector updater...
+# build: 1027 - Added value color formatting options/codes (refer help file for codes)
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
+
+# todo add print option
+# todo ability to control decimal point? Perhaps per row, not global?
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -136,7 +140,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1026"
+version_build = "1027"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -454,6 +458,7 @@ else:
 
     from java.awt import FontMetrics, Event
     from java.awt import RenderingHints, BasicStroke, Graphics2D, Rectangle
+    from java.awt.font import TextAttribute
     from java.awt.event import FocusAdapter, MouseListener, ActionListener, KeyAdapter
     from java.awt.geom import Path2D
     from java.lang import StringBuilder
@@ -7215,13 +7220,16 @@ Visit: %s (Author's site)
                         elif balanceOrAverage is None and NAB.isRowFilteredOutByGroupID(i):
                             NAB.simulateTotal_label.setText("  " if tdfsc.getBlankZero() else GlobalVars.DEFAULT_WIDGET_ROW_HIDDEN_BY_FILTER.lower())
                             NAB.simulateTotal_label.setForeground(md.getUI().getColors().errorMessageForeground)
+                            NAB.simulateTotal_label.setFont(tdfsc.getValueFont(False))
 
                         elif balanceOrAverage is None:
                             NAB.simulateTotal_label.setText("  " if tdfsc.getBlankZero() else GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower())
+                            NAB.simulateTotal_label.setFont(tdfsc.getValueFont(False))
 
                         elif balanceObj.isUORError():
                             NAB.simulateTotal_label.setText(CalculatedBalance.DEFAULT_WIDGET_ROW_UOR_ERROR.lower())
                             NAB.simulateTotal_label.setForeground(md.getUI().getColors().errorMessageForeground)
+                            NAB.simulateTotal_label.setFont(tdfsc.getValueFont(False))
 
                         else:
                             showCurrText = ""
@@ -7241,7 +7249,6 @@ Visit: %s (Author's site)
                                 else:
                                     showUsesOtherRowTxt = " (uor: %s)" %(newTargetIdx+1)
 
-
                             if (balanceOrAverage == 0 and tdfsc.getBlankZero()):
                                 theFormattedValue = "  "
                             else:
@@ -7259,13 +7266,8 @@ Visit: %s (Author's site)
                                         and not NAB.savedDisableCurrencyFormatting[i]):
                                     theFormattedValue += " %"
 
-                            if balanceOrAverage < 0:
-                                NAB.simulateTotal_label.setForeground(md.getUI().getColors().negativeBalFG)
-                            else:
-                                if "default" == ThemeInfo.themeForID(md.getUI(), md.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)).getThemeID():
-                                    NAB.simulateTotal_label.setForeground(md.getUI().getColors().budgetHealthyColor)
-                                else:
-                                    NAB.simulateTotal_label.setForeground(md.getUI().getColors().positiveBalFG)
+                            NAB.simulateTotal_label.setFont(tdfsc.getValueFont())
+                            NAB.simulateTotal_label.setForeground(tdfsc.getValueColor(balanceOrAverage))
 
                             resultTxt = wrap_HTML_BIG_small(theFormattedValue, showCurrText + showAverageText + showUsesOtherRowTxt, altFG)
                             NAB.simulateTotal_label.setText(resultTxt)
@@ -8778,7 +8780,6 @@ Visit: %s (Author's site)
                     NAB.rowSelected_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "rowSelected_COMBO")
                     NAB.rowSelected_COMBO.setToolTipText("Select the row you would like to configure")
                     NAB.rowSelected_COMBO.addActionListener(NAB.saveActionListener)
-                    # NAB.rowSelected_COMBO.setFont((GlobalVars.CONTEXT.getUI().getFonts()).mono);
 
                     selectRow_pnl.add(NAB.rowSelected_COMBO, GridC.getc(onSelectCol, onSelectRow).leftInset(colLeftInset).wx(0.1).west())
                     onSelectCol += 1
@@ -10107,16 +10108,13 @@ Visit: %s (Author's site)
             g2d.setStroke(self.underlineStroke)
             g2d.draw(line)
 
-
     class TextDisplayForSwingConfig:
-        WIDGET_ROW_BLANKZERO = "<#bz>"
         WIDGET_ROW_BLANKROWNAME = "<#brn>"
         WIDGET_ROW_RIGHTROWNAME = "<#jr>"
         WIDGET_ROW_CENTERROWNAME = "<#jc>"
         WIDGET_ROW_REDROWNAME = "<#cre>"
         WIDGET_ROW_BLUEROWNAME = "<#cbl>"
         WIDGET_ROW_LIGHTGREYROWNAME = "<#cgr>"
-        WIDGET_ROW_DIMMEDROWNAME = "<#cdm>"
         WIDGET_ROW_BOLDROWNAME = "<#fbo>"
         WIDGET_ROW_ITALICSROWNAME = "<#fit>"
         WIDGET_ROW_UNDERLINESROWNAME = "<#fun>"
@@ -10124,20 +10122,35 @@ Visit: %s (Author's site)
         WIDGET_ROW_FORCE_UNDERLINE_DOTS = "<#fud>"
         WIDGET_ROW_HTMLROWNAME = "<#html>"
 
+        WIDGET_ROW_BLANKZEROVALUE = "<#bzv>"
+
+        WIDGET_ROW_VALUE_RED = "<#cvre>"
+        WIDGET_ROW_VALUE_BLUE = "<#cvbl>"
+        WIDGET_ROW_VALUE_LIGHTGREY = "<#cvgr>"
+        WIDGET_ROW_VALUE_BOLD = "<#fvbo>"
+        WIDGET_ROW_VALUE_ITALICS = "<#fvit>"
+        WIDGET_ROW_VALUE_UNDERLINE = "<#fvun>"
+
         def __init__(self, _rowText, _smallText, _smallColor=None, stripBigChars=True, stripSmallChars=True):
+            self.ui = GlobalVars.CONTEXT.getUI()
+            self.mono = self.ui.getFonts().mono
             self.originalRowText = _rowText
             self.swingComponentText = None
             self.color = None
             self.blankRow = False
-            self.blankZero = False
             self.bold = False
             self.italics = False
             self.underline = False
             self.forceUnderlineDots = False
             self.noUnderlineDots = False
             self.html = False
-            self.disableBlinkOnValue = False
             self.justification = JLabel.LEFT
+            self.disableBlinkOnValue = False
+            self.blankZero = False
+            self.valueColor = None
+            self.valueBold = False
+            self.valueItalics = False
+            self.valueUnderline = False
 
             if (self.__class__.WIDGET_ROW_BLUEROWNAME in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_BLUEROWNAME, "")
@@ -10167,9 +10180,33 @@ Visit: %s (Author's site)
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_HTMLROWNAME, "")
                 self.html = True
 
-            if (self.__class__.WIDGET_ROW_BLANKZERO in _rowText):
-                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_BLANKZERO, "")
+            if (self.__class__.WIDGET_ROW_BLANKZEROVALUE in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_BLANKZEROVALUE, "")
                 self.blankZero = True
+
+            if (self.__class__.WIDGET_ROW_VALUE_BLUE in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_BLUE, "")
+                self.valueColor = getColorBlue()
+
+            if (self.__class__.WIDGET_ROW_VALUE_RED in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_RED, "")
+                self.valueColor = getColorRed()
+
+            if (self.__class__.WIDGET_ROW_VALUE_LIGHTGREY in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_LIGHTGREY, "")
+                self.valueColor = GlobalVars.CONTEXT.getUI().getColors().tertiaryTextFG
+
+            if (self.__class__.WIDGET_ROW_VALUE_BOLD in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_BOLD, "")
+                self.valueBold = True
+
+            if (self.__class__.WIDGET_ROW_VALUE_ITALICS in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_ITALICS, "")
+                self.valueItalics = True
+
+            if (self.__class__.WIDGET_ROW_VALUE_UNDERLINE in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_UNDERLINE, "")
+                self.valueUnderline = True
 
             if (self.__class__.WIDGET_ROW_RIGHTROWNAME in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_RIGHTROWNAME, "")
@@ -10216,6 +10253,33 @@ Visit: %s (Author's site)
         def isNoUnderlineDots(self): return self.noUnderlineDots
         def isForceUnderlineDots(self): return self.forceUnderlineDots
         def getDisableBlinkonValue(self): return self.disableBlinkOnValue
+        def getValueBold(self): return self.valueBold
+        def getValueItalics(self): return self.valueItalics
+        def getValueUnderline(self): return self.valueUnderline
+
+        def getValueColor(self, resultValue=-1):
+            if self.valueColor is not None:
+                return self.valueColor
+            if resultValue < 0:
+                return self.ui.getColors().negativeBalFG
+            else:
+                if "default" == ThemeInfo.themeForID(self.ui,
+                        self.ui.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)).getThemeID():
+                    return self.ui.getColors().budgetHealthyColor
+                else:
+                    return self.ui.getColors().positiveBalFG
+
+        def getValueFont(self, enhanceFormat=True):
+            font = self.mono                                                                                            # type: Font
+            if enhanceFormat:
+                if self.getValueBold() or self.getValueItalics() or self.getValueUnderline():
+                    fa = font.getAttributes()
+                    if self.getValueBold(): fa.put(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD)
+                    if self.getValueItalics(): fa.put(TextAttribute.POSTURE, TextAttribute.POSTURE_OBLIQUE)
+                    if self.getValueUnderline(): fa.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON)
+                    font = font.deriveFont(fa)
+            return font
+
 
     class MyHomePageView(HomePageView, AccountListener, CurrencyListener):
 
@@ -11130,15 +11194,15 @@ Visit: %s (Author's site)
                                                                         "showConfig?%s" %(str(onRow)),
                                                                         JLabel.RIGHT,
                                                                         tdfsc=tdfsc)
-                                        netTotalLbl.setFont((md.getUI().getFonts()).mono)                               # noqa
+                                        netTotalLbl.setFont(tdfsc.getValueFont(False))
 
                                     elif balanceObj.isUORError():
                                         netTotalLbl = SpecialJLinkLabel(CalculatedBalance.DEFAULT_WIDGET_ROW_UOR_ERROR.lower(),
                                                                         "showConfig?%s" %(str(onRow)),
                                                                         JLabel.RIGHT,
                                                                         tdfsc=tdfsc)
-                                        netTotalLbl.setFont((md.getUI().getFonts()).mono)                               # noqa
-                                        netTotalLbl.setForeground(md.getUI().getColors().errorMessageForeground)        # noqa
+                                        netTotalLbl.setFont(tdfsc.getValueFont(False))
+                                        netTotalLbl.setForeground(md.getUI().getColors().errorMessageForeground)
 
                                     else:
 
@@ -11161,15 +11225,8 @@ Visit: %s (Author's site)
                                                 theFormattedValue += " %"
 
                                         netTotalLbl = SpecialJLinkLabel(theFormattedValue, "showConfig?%s" %(onRow), JLabel.RIGHT, tdfsc=tdfsc)
-                                        netTotalLbl.setFont((md.getUI().getFonts()).mono)                               # noqa
-
-                                        if balanceOrAverage < 0:
-                                            netTotalLbl.setForeground(md.getUI().getColors().negativeBalFG)             # noqa
-                                        else:
-                                            if "default" == ThemeInfo.themeForID(md.getUI(), md.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)).getThemeID():
-                                                netTotalLbl.setForeground(md.getUI().getColors().budgetHealthyColor)    # noqa
-                                            else:
-                                                netTotalLbl.setForeground(md.getUI().getColors().positiveBalFG)         # noqa
+                                        netTotalLbl.setFont(tdfsc.getValueFont())
+                                        netTotalLbl.setForeground(tdfsc.getValueColor(balanceOrAverage))
 
                                     nameLabel.setBorder(_view.nameBorder)                                               # noqa
                                     netTotalLbl.setBorder(_view.amountBorder)                                           # noqa
@@ -11424,10 +11481,12 @@ Visit: %s (Author's site)
                 myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
                 super(self.__class__, self).updateUI()
 
+
+
+
         # Sets the view as active or inactive. When not active, a view should not have any registered listeners
         # with other parts of the program. This will be called when an view is added to the home page,
         # or the home page is refreshed after not being visible for a while.
-
 
         def setActive(self, active):
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
@@ -11466,8 +11525,6 @@ Visit: %s (Author's site)
                 self.refresher.enqueueRefresh()
             else:
                 myPrint("DB", "... refresher is None - just returning without refresh...")
-
-
 
         def reallyRefresh(self):
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
@@ -11557,7 +11614,6 @@ Visit: %s (Author's site)
                 sw = self.BuildHomePageWidgetSwingWorker(pleaseWaitLabel, self)
                 sw.execute()
 
-
         # Called when the view should clean up everything. For example, this is called when a file is closed and the GUI
         #  is reset. The view should disconnect from any resources that are associated with the currently opened data file.
         def reset(self):
@@ -11565,7 +11621,6 @@ Visit: %s (Author's site)
             myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
             myPrint("DB", ".... .reset() (as of build 1020) doing nothing")
-
 
         def unload(self):   # This is my own method (not overridden from HomePageView)
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
