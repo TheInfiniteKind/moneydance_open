@@ -56,9 +56,14 @@ WARNINGS:
 
 EXAMINING THE CHOICES/CONFIGURATION:
 
+- Hide Decimal places: Will hide decimal places on the selected row's calculated balance (e.g. 1.99 will show as 1)
+                       This option impacts auto-hide logic in some situations - refer: Hide row when options....
+                       NOTE: Rounding towards X will be triggered for display formatting when this option selected:
+                       ... This means if X=1 for example, then 0.1 thru 1.9 would show as 1 (not zero)
+
 - Hide row when options: Never, Always(Disable), balance=X, balance >= X, balance <= X. DEFAULT FOR X is ZERO
 ... You can set X to any value (positive or negative)
-    NOTE: If you select Menu Option 'Hide Decimal Places', AND auto-hide row when balance=X,
+    NOTE: If you select row option 'Hide Decimal Places', AND auto-hide row when balance=X,
           AND set X to a value with no decimals, then the calculated balance will be rounded when comparing to X.
           Rounding will be towards X... This means that X=0 would include -0.99 to +0.99 (example)
 
@@ -165,10 +170,6 @@ OPTIONS MENU
   - Show Dashes instead of Zeros: Changes the display so that you get '-' instead of '£ 0.0'
   - Treat Securities with Zero Balance as Inactive: If a Security holds zero units, it will be treated as Inactive
   - Use Indian numbering format: On numbers greater than 10,000 group in powers of 100 (e.g. 10,00,000 not 1,000,000)
-  - Hide Decimal places: Will hide all decimal places on calculated balances (e.g. 1.99 will show as 1)
-                         This option impacts auto-hide logic in some situations - refer: Hide row when options....
-                         NOTE: Rounding towards X will be triggered for display formatting when this option selected:
-                         ... This means if X=1 for example, then 0.1 thru 1.9 would show as 1 (not zero)
   - Display underline dots: Display 'underline' dots that fill the blank space between row names and values
 
 BACKUP/RESTORE
