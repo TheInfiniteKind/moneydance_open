@@ -109,8 +109,8 @@ EXAMINING THE CHOICES/CONFIGURATION:
                        .. The search for warnings stops after the first occurrence of each type of error it finds....
 
 - Active / Inactive Accounts:
-  - MD ALWAYS includes the total balance(s) of all child accounts in an account's total.. Irrespective of Active/Inactive
-  - Thus if you select Active only and select an account which contains inactive children, it will include inactive balances
+  - MD ALWAYS includes the total balance(s) of all child accounts in an account's total. Irrespective of Active/Inactive
+  - Thus if you select Active only and select an account containing inactive children, it will include inactive balances
   - When using AutoSum in this situation you will get a warning on screen
   - You will also see a small (3 vertical bars) icon to the right of account totals in the list window when this occurs.
 
@@ -228,7 +228,7 @@ FILTERS (OPTIONAL)
    only the row(s) containing "2" will appear on the widget (this would include groups with id "123")
    NOTE: You can filter multiple 'Group IDs' by separating with ';'
          Enter '!' (not) to make the filter include rows that do NOT have the requested filters
-         Enter '&' (and) to make the filter include rows where all the requested filters match                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         Enter '|' (or)  to make the filter include rows where any of the requested filters match [DEFAULT]
+         Enter '&' (and) to make the filter include rows where all the requested filters match
                         NOTE: |(or) is default - will be the default anyway unless '!' or '&' used
 
    WARNING: Only enter one of '!|&' characters as only one search type can be used within a single filter.
