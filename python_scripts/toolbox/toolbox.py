@@ -175,6 +175,7 @@
 #                         Usually caused by batch change category feature view viewing a xfr split in a non investment register (should be blocked really).
 #               Fix to missing class reference in 'buddy' toolbox_move_merge_investment_txns.py script....
 #               Added "Remove (hidden) downloaded OFX/MD+ data from Transactions within an Account" feature
+#               Renamed script to toolbox_zap_mdplus_ofx_default_memo_fields.py. Now fixes OFX too...
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 

@@ -3050,7 +3050,7 @@ Visit: %s (Author's site)
             raise QuickAbortThisScriptException
 
         lDetectedBuddyRunning = False
-        for checkFr in [u"toolbox", u"toolbox_move_merge_investment_txns", u"toolbox_total_selected_transactions", u"toolbox_zap_mdplus_default_memo_fields"]:
+        for checkFr in [u"toolbox", u"toolbox_move_merge_investment_txns", u"toolbox_total_selected_transactions", u"toolbox_zap_mdplus_ofx_default_memo_fields"]:
             if getMyJFrame(checkFr) is not None:
                 lDetectedBuddyRunning = True
 

@@ -18,8 +18,8 @@
     }
     {
       "type" = "menu"
-      "script_file" = "toolbox_zap_mdplus_default_memo_fields.py"
-      "name" = "Toolbox: Zap md+ (default) memo fields"
+      "script_file" = "toolbox_zap_mdplus_ofx_default_memo_fields.py"
+      "name" = "Toolbox: Zap ofx/md+ (default) memo fields"
     }
     {
       "type" = "initializer"
