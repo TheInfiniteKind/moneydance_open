@@ -129,6 +129,7 @@
 # build: 1026 - also added in CMD-SHIFT-L and the lastResultsBalanceTable... Also used in the Row Selector updater...
 # build: 1027 - Added value color formatting options/codes (refer help file for codes)
 # build: 1027 - Changed hiding of decimals/no hiding of decimals on row...
+#               Tweaked popup help/info screen dimensions...
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -5527,7 +5528,7 @@ Visit: %s (Author's site)
                 myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
                 NAB = NetAccountBalancesExtension.getNAB()
-                QuickJFrame("%s:%s - Help" %(NAB.myModuleID, GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME), NAB.helpFile, lWrapText=False, lAutoSize=True).show_the_frame()
+                QuickJFrame("%s - Help" %(GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME), NAB.helpFile, lWrapText=False, lAutoSize=False).show_the_frame()
 
         class BackupRestoreConfig(AbstractAction):
 
@@ -7445,7 +7446,7 @@ Visit: %s (Author's site)
 
                 # ##########################################################################################################
                 if event.getActionCommand().lower() == "help":
-                    QuickJFrame("%s:%s - Help" %(NAB.myModuleID, GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME), NAB.helpFile, lWrapText=False, lAutoSize=True).show_the_frame()
+                    QuickJFrame("%s - Help" %(GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME), NAB.helpFile, lWrapText=False, lAutoSize=False).show_the_frame()
 
                 # ######################################################################################################
                 if event.getActionCommand().lower().startswith("AutoSum Accts".lower()):

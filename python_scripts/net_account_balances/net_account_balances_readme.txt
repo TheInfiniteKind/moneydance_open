@@ -56,16 +56,16 @@ WARNINGS:
 
 EXAMINING THE CHOICES/CONFIGURATION:
 
-- Hide Decimal places: Will hide decimal places on the selected row's calculated balance (e.g. 1.99 will show as 1)
-                       This option impacts auto-hide logic in some situations - refer: Hide row when options....
-                       NOTE: Rounding towards X will be triggered for display formatting when this option selected:
-                       ... This means if X=1 for example, then 0.1 thru 1.9 would show as 1 (not zero)
-
 - Hide row when options: Never, Always(Disable), balance=X, balance >= X, balance <= X. DEFAULT FOR X is ZERO
 ... You can set X to any value (positive or negative)
     NOTE: If you select row option 'Hide Decimal Places', AND auto-hide row when balance=X,
           AND set X to a value with no decimals, then the calculated balance will be rounded when comparing to X.
           Rounding will be towards X... This means that X=0 would include -0.99 to +0.99 (example)
+
+- Hide Decimal places: Will hide decimal places on the selected row's calculated balance (e.g. 1.99 will show as 1)
+                       This option impacts auto-hide logic in some situations - refer: Hide row when options....
+                       NOTE: Rounding towards X will be triggered for display formatting when this option selected:
+                       ... This means if X=1 for example, then 0.1 thru 1.9 would show as 1 (not zero)
 
 - Row separator: optionally put horizontal lines above / below rows to separate sections
 - Blink: Enables the blinking of the selected rows (when displayed / visible)
