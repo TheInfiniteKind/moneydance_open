@@ -282,9 +282,8 @@ class StockGlance implements HomePageView {
             Vector<Vector> data = model.getDataVector();
             data.clear();
 
-            Map<CurrencyType, Double> balances = sumBalancesByCurrency(book);
+            Map<CurrencyType, Long> balances = AccountUtil.sumBalancesByCurrency(book, AcctFilter.ALL_ACCOUNTS_FILTER);
             Double totalBalance = 0.0;
-    
             for (CurrencyType curr : allCurrencies) {
                 if (!curr.getHideInUI()
                     && curr.getCurrencyType() == CurrencyType.Type.SECURITY
@@ -299,8 +298,8 @@ class StockGlance implements HomePageView {
                         || (!Double.isNaN(price)
                             && (!Double.isNaN(price1) || !Double.isNaN(price7) || !Double.isNaN(price30) || !Double.isNaN(price365)))) {
                         Vector<Object> entry = new Vector<>(names.length);
-                        Double shares = balances.get(curr);
-                        Double dShares = (shares == null) ? 0.0 : shares;
+                        Long shares = balances.get(curr);
+                        Double dShares = curr.getDoubleValue((shares == null) ? 0 : shares);
     
                         totalBalance += dShares * 1.0 / curr.getBaseRate();
                         //System.err.println(curr.getName()+" ("+curr.getRelativeCurrency().getName()+") bal="+dShares+", baseRate="+1.0/curr.getBaseRate());
@@ -387,17 +386,6 @@ class StockGlance implements HomePageView {
             Calendar newDate = (Calendar) startDate.clone();
             newDate.add(Calendar.DAY_OF_MONTH, -delta);
             return DateUtil.convertCalToInt(newDate);
-        }
-
-        public Map<CurrencyType, Double> sumBalancesByCurrency(AccountBook book) {
-            HashMap<CurrencyType, Double> totals = new HashMap<>();
-            for (Account acct : AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER)) {
-                CurrencyType curr = acct.getCurrencyType();
-                Double total = totals.get(curr);
-                total = ((total == null) ? 0.0 : total) + acct.getCurrentBalance() / 10000.0;
-                totals.put(curr, total);
-            }
-            return totals;
         }
 
         private JTable getFooterTable() {
@@ -559,7 +547,7 @@ class StockGlance implements HomePageView {
             this.add(this.table);
             this.add(this.table.getFooterTable());
             this.setBorder(BorderFactory.createCompoundBorder(MoneydanceLAF.homePageBorder, 
-                                BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+                           BorderFactory.createEmptyBorder(0, 0, 0, 0)));
             
         }
 
@@ -649,14 +637,15 @@ class StockGlance implements HomePageView {
         }
 
         private Vector<SecurityListEntry> securitesList(Set<String> displayedSecurities) {
-            Map<CurrencyType, Double> balances = table.sumBalancesByCurrency(book);
+            Map<CurrencyType, Long> balances = AccountUtil.sumBalancesByCurrency(book, AcctFilter.ALL_ACCOUNTS_FILTER);
             Vector<SecurityListEntry> securities = new Vector<>();
             for (CurrencyType curr : book.getCurrencies().getAllCurrencies()) {
                 if (!curr.getHideInUI() && curr.getCurrencyType() == CurrencyType.Type.SECURITY) {
                     String name = curr.getName();
                     Boolean isDisplayed = displayedSecurities.contains(name);
-                    Double numShares = balances.get(curr);
-                    securities.add(new SecurityListEntry(name, isDisplayed, numShares));
+                    Long shares = balances.get(curr);
+                    Double dShares = curr.getDoubleValue((shares == null) ? 0 : shares);
+                    securities.add(new SecurityListEntry(name, isDisplayed, dShares));
                 }
             }
             securities.sort((SecurityListEntry v1, SecurityListEntry v2) -> v1.name.compareTo(v2.name));
