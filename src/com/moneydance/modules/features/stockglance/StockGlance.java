@@ -547,7 +547,7 @@ class StockGlance implements HomePageView {
             this.add(this.table);
             this.add(this.table.getFooterTable());
             this.setBorder(BorderFactory.createCompoundBorder(MoneydanceLAF.homePageBorder, 
-                                BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+                           BorderFactory.createEmptyBorder(0, 0, 0, 0)));
             
         }
 
