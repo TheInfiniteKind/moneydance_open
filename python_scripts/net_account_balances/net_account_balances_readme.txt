@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated May 2023
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated June 2023
 Credit: (dtd) Dan T Davis for his input, testing and suggestions to make a better product......
 
 Custom Balances works with 2021.1(3056) and newer.
@@ -163,6 +163,8 @@ USING CATEGORIES:
 OPTIONS MENU
 
   - Debug: Generates program debug messages in Help>Console Window. DO NOT LEAVE THIS PERMANENTLY ON
+  - Show Print Icon: Enables/shows the print icon on the Home / Summary screen widget.. Will print the current view
+                     NOTE: Even when icon now visible, clicking the white-space before the title will activate print...
   - Backup Config: Creates a backup of your current config file (then opens a window showing location of backup)
   - Restore Config: Allows you to restore (or import) config file from previous back up
   - You can disable the Widget's Display Name Title. This prevents the title appearing on the Summary Page widget

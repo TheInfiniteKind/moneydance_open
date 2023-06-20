@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1027 - June 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1028 - June 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -130,10 +130,10 @@
 # build: 1027 - Added value color formatting options/codes (refer help file for codes)
 # build: 1027 - Changed hiding of decimals/no hiding of decimals on row...
 #               Tweaked popup help/info screen dimensions...
+#               Added Print widget option... Also now bundle own java class to support .print() etc...
+# build: 1028 - contains 1027 sent for sigining...
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
-
-# todo add print option
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -141,7 +141,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1027"
+version_build = "1028"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -350,6 +350,10 @@ else:
     from javax.swing import JButton, JScrollPane, WindowConstants, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
     from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
     from javax.swing import JTextField, JPasswordField, Box, UIManager, JTable, JCheckBox, JRadioButton, ButtonGroup
+    from javax.swing import ImageIcon
+    from java.awt import Image
+    from javax.imageio import ImageIO
+    from java.awt.image import BufferedImage
     from javax.swing.text import PlainDocument
     from javax.swing.border import EmptyBorder
     from javax.swing.filechooser import FileFilter
@@ -450,6 +454,7 @@ else:
 
     from org.apache.commons.lang3 import StringEscapeUtils
 
+    from java.io import BufferedInputStream
     from java.nio.file import Files, StandardCopyOption
     from javax.swing import SwingConstants, JRootPane
     from javax.swing import JList, ListSelectionModel, DefaultComboBoxModel, DefaultListSelectionModel, JSeparator
@@ -475,6 +480,8 @@ else:
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
     GlobalVars.specialDebug = False
+
+    GlobalVars.Strings.SWSS_COMMON_CODE_NAME = "StuWareSoftSystems_CommonCode"
 
     GlobalVars.Strings.MD_GLYPH_APPICON_64 = "/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"
     GlobalVars.Strings.MD_GLYPH_REFRESH = "/com/moneydance/apps/md/view/gui/glyphs/glyph_refresh.png"
@@ -523,6 +530,7 @@ else:
     GlobalVars.extn_param_NEW_UUIDTable_NAB                 = None
     GlobalVars.extn_param_NEW_disableWidgetTitle_NAB        = None
     GlobalVars.extn_param_NEW_autoSumDefault_NAB            = None
+    GlobalVars.extn_param_NEW_showPrintIcon_NAB             = None
     GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB  = None
     GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB   = None
     GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB     = None
@@ -2843,6 +2851,91 @@ Visit: %s (Author's site)
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
+
+    class PrintWidget(Runnable):
+
+        def __init__(self): pass
+
+        def getPanel(self):
+            HPV = MyHomePageView.getHPV()
+            pnl = None
+            for _viewWR in HPV.views:
+                _view = _viewWR.get()
+                if _view is None: continue
+                pnl = _view
+                break
+            return pnl
+
+        def go(self):
+            if not SwingUtilities.isEventDispatchThread():
+                SwingUtilities.invokeLater(self)
+            else:
+                self.run()
+
+        def run(self):                                                                                                  # noqa
+            NAB = NetAccountBalancesExtension.getNAB()
+            if NAB.SWSS_CC is None:
+                myPrint("B", "@@@ PRINTING DISABLED AS BUNDLED JAVA CODE NOT PRESENT IN MEMORY!? @@")
+            else:
+                printerPrinter = NAB.SWSS_CC.PrintWidgetPrinter(self.getPanel())
+
+                # The more simple way.....
+                # printerJob = PrinterJob.getPrinterJob()
+                # printerJob.setPrintable(printerPrinter)
+                # if printerJob.printDialog():
+                #     try:
+                #         NAB.SWSS_CC.sudoPrinterJobPrint(printerJob)
+                #         myPrint("B", "Home / Summary screen widget successfully printed!")
+                #     except:
+                #         myPrint("B", "@@ Error - the widget did NOT successfully print?")
+
+                title = "Custom Balances - Home / Summary Screen widget (as of: %s)" %(convertStrippedIntDateFormattedText(DateUtil.getStrippedDateInt()))
+
+                printerJob = PrinterJob.getPrinterJob()
+                if GlobalVars.defaultPrintService is not None:
+                    printerJob.setPrintService(GlobalVars.defaultPrintService)
+
+                if GlobalVars.defaultPrinterAttributes is not None:
+                    pAttrs = attribute.HashPrintRequestAttributeSet(GlobalVars.defaultPrinterAttributes)
+                else:
+                    pAttrs = loadDefaultPrinterAttributes(None)
+
+                pAttrs.remove(attribute.standard.JobName)
+                pAttrs.add(attribute.standard.JobName(title, None))
+
+                if GlobalVars.defaultDPI != 72:
+                    pAttrs.remove(attribute.standard.PrinterResolution)
+                    pAttrs.add(attribute.standard.PrinterResolution(GlobalVars.defaultDPI, GlobalVars.defaultDPI, attribute.standard.PrinterResolution.DPI))
+
+                if not printerJob.printDialog(pAttrs):
+                    myPrint("DB", "User aborted the Print Dialog setup screen, so exiting...")
+                    return
+
+                selectedPrintService = printerJob.getPrintService()
+
+                toFile = pAttrs.containsKey(attribute.standard.Destination)
+
+                if toFile:
+                    printURI = pAttrs.get(attribute.standard.Destination).getURI()
+                    myPrint("B", "User has selected to print to destination: %s" %(printURI))
+                else:
+                    myPrint("DB", "User selected print service:", selectedPrintService)
+
+                thePageFormat = printerJob.getPageFormat(pAttrs)
+
+                # header = MessageFormat(title)
+                # footer = MessageFormat("- page {0} -")
+
+                printerJob.setPrintable(printerPrinter, thePageFormat)
+                NAB.SWSS_CC.sudoPrinterJobPrint(printerJob, pAttrs)
+
+                while pAttrs.containsKey(attribute.standard.JobName): pAttrs.remove(attribute.standard.JobName)
+                while pAttrs.containsKey(attribute.standard.Destination): pAttrs.remove(attribute.standard.Destination)
+
+                myPrint("DB", "Saving current print service:", printerJob.getPrintService())
+                GlobalVars.defaultPrinterAttributes = attribute.HashPrintRequestAttributeSet(pAttrs)
+                GlobalVars.defaultPrintService = printerJob.getPrintService()
+
     def isGoodRate(theRate):
 
         if Double.isNaN(theRate) or Double.isInfinite(theRate) or theRate == 0:
@@ -4879,6 +4972,41 @@ Visit: %s (Author's site)
         def toString(self):     return self.__str__()
 
 
+    def loadScaleColorImageToIcon(classLoader, iconPath, desiredSizeInt=None, finalIconColor=None):
+        icon = None
+        if classLoader is not None:
+            try:
+                stream = BufferedInputStream(classLoader.getResourceAsStream(iconPath))                                     # noqa
+                if stream is not None:
+                    image = ImageIO.read(stream)
+
+                    if finalIconColor is not None:
+                        image = invokeMethodByReflection(MDImages, "colorizedImage", [Image, Color], [image, finalIconColor])
+
+                    if desiredSizeInt is not None:
+                        scaledImage = BufferedImage(desiredSizeInt, desiredSizeInt, BufferedImage.TYPE_INT_ARGB)
+                        g = scaledImage.createGraphics()
+                        g.drawImage(image, 0, 0, desiredSizeInt, desiredSizeInt, None)
+                        g.dispose()
+                    else:
+                        scaledImage = image
+
+                    icon = ImageIcon(scaledImage)
+                    stream.close()
+                if debug: myPrint("DB", "Loaded image/icon: '%s' %s" %(iconPath, icon))
+            except:
+                myPrint("B", "@@ Failed to load image/icon: '%s'" %(iconPath))
+                dump_sys_error_to_md_console_and_errorlog()
+        return icon
+
+    def loadPrinterIcon(reloadPrinterIcon=False):
+        NAB = NetAccountBalancesExtension.getNAB()
+        if NAB.SWSS_CC is None:
+            myPrint("B", "@@ SWSS_CC is None, so cannot (re)load printerIcon:", NAB.printIcon)
+        else:
+            if NAB.printIcon is None or reloadPrinterIcon:
+                NAB.printIcon = loadScaleColorImageToIcon(NAB.moneydanceExtensionLoader, "/print64icon.png", 17, NAB.moneydanceContext.getUI().getColors().secondaryTextFG)
+
     ####################################################################################################################
 
     myPrint("B", "HomePageView widget / extension is now running...")
@@ -4918,9 +5046,18 @@ Visit: %s (Author's site)
             self.comma = None
             self.themeID = None
 
+            self.SWSS_CC = None     # StuWareSoftSystems special java common code (currently for java/swing .print() type meythods
+
             if float(self.moneydanceContext.getBuild()) >= 3051:
                 self.moneydanceExtensionLoader = moneydance_extension_loader  # This is the class loader for the whole extension
                 myPrint("DB", "... Build is >= 3051 so using moneydance_extension_loader: %s" %(self.moneydanceExtensionLoader))
+
+                try:
+                    self.SWSS_CC = MD_EXTENSION_LOADER.loadClass(GlobalVars.Strings.SWSS_COMMON_CODE_NAME)
+                    self.SWSS_CC.DEBUG = False
+                    myPrint("DB", "... (class)loaded bundled java code '%s' into memory too... (%s)" %(GlobalVars.Strings.SWSS_COMMON_CODE_NAME, self.SWSS_CC))
+                except:
+                    myPrint("B", "@@@ FAILED to load bundled java code class '%s' into memory! Printing disabled....!" %(GlobalVars.Strings.SWSS_COMMON_CODE_NAME))
             else:
                 self.moneydanceExtensionLoader = None
 
@@ -4973,6 +5110,7 @@ Visit: %s (Author's site)
             self.savedUUIDTable                 = None
             self.savedGroupIDTable              = None
 
+            self.savedShowPrintIcon             = None
             self.savedAutoSumDefault            = None
             self.savedDisableWidgetTitle        = None
             self.savedShowDashesInsteadOfZeros  = None
@@ -4986,6 +5124,7 @@ Visit: %s (Author's site)
 
             self.menuItemDEBUG = None
             self.menuItemAutoSumDefault = None
+            self.menuItemShowPrintIcon = None
             self.menuItemBackup = None
             self.menuItemRestore = None
             self.menuItemDisableWidgetTitle = None
@@ -5052,6 +5191,7 @@ Visit: %s (Author's site)
             with self.swingWorkers_LOCK:
                 self.swingWorkers = []
 
+            self.printIcon = None
 
             myPrint("DB", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "##########################################################################################")
@@ -5182,6 +5322,9 @@ Visit: %s (Author's site)
             self.comma = "." if self.decimal == "," else ","
             myPrint("DB", ".. Decimal set to '%s', Comma set to '%s'" %(self.decimal, self.comma))
 
+            loadPrinterIcon(reloadPrinterIcon=True)
+            myPrint("DB", ".. Reloaded Printer icon...")
+
             newThemeID = prefs.getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)
             if self.themeID and self.themeID != newThemeID:
                 myPrint("DB", ".. >> Detected Preferences ThemeID change from '%s' to '%s'" %(self.themeID, newThemeID))
@@ -5264,6 +5407,7 @@ Visit: %s (Author's site)
             GlobalVars.extn_param_NEW_UUIDTable_NAB                 = NAB.savedUUIDTable
             GlobalVars.extn_param_NEW_groupIDTable_NAB              = NAB.savedGroupIDTable
 
+            GlobalVars.extn_param_NEW_showPrintIcon_NAB             = NAB.savedShowPrintIcon
             GlobalVars.extn_param_NEW_autoSumDefault_NAB            = NAB.savedAutoSumDefault
             GlobalVars.extn_param_NEW_disableWidgetTitle_NAB        = NAB.savedDisableWidgetTitle
             GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB  = NAB.savedShowDashesInsteadOfZeros
@@ -5755,6 +5899,7 @@ Visit: %s (Author's site)
         def rowSeparatorDefault(self):                  return GlobalVars.ROW_SEPARATOR_NEVER
         def blinkDefault(self):                         return False
         def includeInactiveDefault(self):               return 0
+        def showPrintIconDefault(self):                 return False
         def autoSumDefault(self):                       return (False if self.savedAutoSumDefault is None else self.savedAutoSumDefault)
         def showWarningsDefault(self):                  return True
         def disableRowDefault(self):                    return False
@@ -5881,6 +6026,8 @@ Visit: %s (Author's site)
                 self.resetParameters(33)
             elif self.savedAutoSumDefault is None or not isinstance(self.savedAutoSumDefault, bool):
                 self.resetParameters(35)
+            elif self.savedShowPrintIcon is None or not isinstance(self.savedShowPrintIcon, bool):
+                self.resetParameters(36)
             elif self.savedShowDashesInsteadOfZeros is None or not isinstance(self.savedShowDashesInsteadOfZeros, bool):
                 self.resetParameters(37)
             elif self.savedDisableWidgetTitle is None or not isinstance(self.savedDisableWidgetTitle, bool):
@@ -6167,6 +6314,7 @@ Visit: %s (Author's site)
             if not lJustRowSettings:
                 self.savedFilterByGroupID           = self.filterByGroupIDDefault()
                 self.savedAutoSumDefault            = self.autoSumDefault()
+                self.savedShowPrintIcon             = self.showPrintIconDefault()
                 self.savedDisableWidgetTitle        = self.disableWidgetTitleDefault()
                 self.savedShowDashesInsteadOfZeros  = self.showDashesInsteadOfZerosDefault()
                 self.savedTreatSecZeroBalInactive   = self.treatSecZeroBalInactiveDefault()
@@ -6636,6 +6784,7 @@ Visit: %s (Author's site)
             myPrint("DB", ".....savedFilterByGroupID: %s"                    %(NAB.savedFilterByGroupID))
             myPrint("DB", ".....filterByGroupID_JTF: %s"                     %(NAB.filterByGroupID_JTF.getText()))
             myPrint("DB", ".....savedAutoSumDefault: %s"                     %(NAB.savedAutoSumDefault))
+            myPrint("DB", ".....savedShowPrintIcon: %s"                      %(NAB.savedShowPrintIcon))
             myPrint("DB", ".....savedDisableWidgetTitle: %s"                 %(NAB.savedDisableWidgetTitle))
             myPrint("DB", ".....savedShowDashesInsteadOfZeros: %s"           %(NAB.savedShowDashesInsteadOfZeros))
             myPrint("DB", ".....savedTreatSecZeroBalInactive: %s"            %(NAB.savedTreatSecZeroBalInactive))
@@ -6887,6 +7036,7 @@ Visit: %s (Author's site)
             myPrint("B", "NAB: Analysis of saved options:")
             myPrint("B", "-------------------------------------------")
             myPrint("B", " %s" %(pad("savedAutoSumDefault",30)),            NAB.savedAutoSumDefault)
+            myPrint("B", " %s" %(pad("savedShowPrintIcon",30)),             NAB.savedShowPrintIcon)
             myPrint("B", " %s" %(pad("savedDisableWidgetTitle",30)),        NAB.savedDisableWidgetTitle)
             myPrint("B", " %s" %(pad("savedShowDashesInsteadOfZeros",30)),  NAB.savedShowDashesInsteadOfZeros)
             myPrint("B", " %s" %(pad("savedTreatSecZeroBalInactive",30)),   NAB.savedTreatSecZeroBalInactive)
@@ -7891,6 +8041,13 @@ Visit: %s (Author's site)
                     myPrint("B", "User has changed 'AutoSum Default for new rows' to: %s" %(NAB.savedAutoSumDefault))
 
                 # ######################################################################################################
+                if event.getActionCommand().lower().startswith("Show Print Icon".lower()):
+                    NAB.savedShowPrintIcon = not NAB.savedShowPrintIcon
+                    NAB.menuItemShowPrintIcon.setSelected(NAB.savedShowPrintIcon)
+                    NAB.configSaved = False
+                    myPrint("B", "User has changed 'Show Print Icon' (on Widget title) to: %s" %(NAB.savedShowPrintIcon))
+
+                # ######################################################################################################
                 if event.getActionCommand().lower().startswith("Show Dashes".lower()):
                     NAB.savedShowDashesInsteadOfZeros = not NAB.savedShowDashesInsteadOfZeros
                     NAB.menuItemShowDashesInsteadOfZeros.setSelected(NAB.savedShowDashesInsteadOfZeros)
@@ -8301,6 +8458,7 @@ Visit: %s (Author's site)
                 GlobalVars.extn_param_NEW_UUIDTable_NAB                     = [NAB.UUIDDefault(newUUID=False)]
                 GlobalVars.extn_param_NEW_groupIDTable_NAB                  = [NAB.groupIDDefault()]
                 GlobalVars.extn_param_NEW_filterByGroupID_NAB               = NAB.filterByGroupIDDefault()
+                GlobalVars.extn_param_NEW_showPrintIcon_NAB                 = NAB.showPrintIconDefault()
                 GlobalVars.extn_param_NEW_autoSumDefault_NAB                = NAB.autoSumDefault()
                 GlobalVars.extn_param_NEW_disableWidgetTitle_NAB            = NAB.disableWidgetTitleDefault()
                 GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB      = NAB.showDashesInsteadOfZerosDefault()
@@ -8354,6 +8512,7 @@ Visit: %s (Author's site)
                         self.savedUUIDTable                 = GlobalVars.extn_param_NEW_UUIDTable_NAB
                         self.savedGroupIDTable              = GlobalVars.extn_param_NEW_groupIDTable_NAB
                         self.savedShowWarningsTable         = GlobalVars.extn_param_NEW_showWarningsTable_NAB
+                        self.savedShowPrintIcon             = GlobalVars.extn_param_NEW_showPrintIcon_NAB
                         self.savedAutoSumDefault            = GlobalVars.extn_param_NEW_autoSumDefault_NAB
                         self.savedDisableWidgetTitle        = GlobalVars.extn_param_NEW_disableWidgetTitle_NAB
                         self.savedShowDashesInsteadOfZeros  = GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB
@@ -8481,6 +8640,12 @@ Visit: %s (Author's site)
             NAB.menuItemDEBUG.addActionListener(NAB.saveActionListener)
             NAB.menuItemDEBUG.setToolTipText("Enables extension to output debug information (internal technical stuff)")
             menuO.add(NAB.menuItemDEBUG)
+
+            NAB.menuItemShowPrintIcon = MyJCheckBoxMenuItem("Show Print Icon")
+            NAB.menuItemShowPrintIcon.setMnemonic(KeyEvent.VK_P)
+            NAB.menuItemShowPrintIcon.addActionListener(NAB.saveActionListener)
+            NAB.menuItemShowPrintIcon.setToolTipText("Enables / shows the print icon on the home screen widget...")
+            menuO.add(NAB.menuItemShowPrintIcon)
 
             menuItemBackup = MyJMenuItem("Backup Config")
             menuItemBackup.setMnemonic(KeyEvent.VK_B)
@@ -8621,6 +8786,7 @@ Visit: %s (Author's site)
             NAB = NetAccountBalancesExtension.getNAB()
             NAB.menuItemDEBUG.setSelected(debug)
             NAB.menuItemAutoSumDefault.setSelected(NAB.savedAutoSumDefault)
+            NAB.menuItemShowPrintIcon.setSelected(NAB.savedShowPrintIcon)
             NAB.menuItemDisableWidgetTitle.setSelected(NAB.savedDisableWidgetTitle)
             NAB.menuItemShowDashesInsteadOfZeros.setSelected(NAB.savedShowDashesInsteadOfZeros)
             NAB.menuItemTreatSecZeroBalInactive.setSelected(NAB.savedTreatSecZeroBalInactive)
@@ -10334,7 +10500,6 @@ Visit: %s (Author's site)
                     font = font.deriveFont(fa)
             return font
 
-
     class MyHomePageView(HomePageView, AccountListener, CurrencyListener):
 
         HPV = None
@@ -11454,6 +11619,10 @@ Visit: %s (Author's site)
                     myPrint("DB", "mouseClicked: detected collapsableIconLbl... going for toggle collapse....")
                     self.toggleExpandCollapse()
 
+                elif evt.getSource() is self.printIconLbl:
+                    myPrint("DB", "mouseClicked: detected printIconLbl... going for print....")
+                    PrintWidget().go()
+
             def mousePressed(self, evt): pass
             def mouseReleased(self, evt): pass
             def mouseExited(self, evt): pass
@@ -11512,8 +11681,12 @@ Visit: %s (Author's site)
                 self.collapsableIconLbl.setFont(NAB.moneydanceContext.getUI().getFonts().header)
                 self.collapsableIconLbl.setBorder(self.nameBorder)
 
+                self.printIconLbl = JLabel(" ")
+                self.printIconLbl.setBorder(EmptyBorder(0, 0, 0, 0))
+
                 self.titlePnl.add(self.collapsableIconLbl, GridC.getc().xy(0, 0).wx(0.1).east())
-                self.titlePnl.add(self.headerLabel, GridC.getc().xy(1, 0).wx(9.0).fillx().west())
+                self.titlePnl.add(self.printIconLbl, GridC.getc().xy(1, 0).wx(0.1).center())
+                self.titlePnl.add(self.headerLabel, GridC.getc().xy(2, 0).wx(9.0).fillx().west())
 
                 # self.headerPanel.add(self.headerLabel, GridC.getc().xy(0, 0).wx(1.0).fillx().west())
                 self.headerPanel.add(self.titlePnl, GridC.getc().xy(0, 0).wx(1.0).fillx().east())
@@ -11530,6 +11703,9 @@ Visit: %s (Author's site)
                 self.listPanel.setOpaque(False)
 
                 self.collapsableIconLbl.addMouseListener(self)
+
+                if NAB.SWSS_CC is not None:
+                    self.printIconLbl.addMouseListener(self)
 
             def updateUI(self):
                 myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
@@ -11617,9 +11793,12 @@ Visit: %s (Author's site)
                     _view.headerLabel.setText(GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME.title())                           # noqa
                     _view.headerLabel.setForeground(md.getUI().getColors().secondaryTextFG)                             # noqa
 
+                    loadPrinterIcon()
+
                     if not NAB.savedExpandedView and NAB.configSaved:
                         myPrint("DB", "Widget is collapsed, so doing nothing....")
-                        _view.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_TRIANGLE_RIGHT, _view.collapsableIconLbl.getForeground()))
+                        _view.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_TRIANGLE_RIGHT, NAB.moneydanceContext.getUI().getColors().secondaryTextFG))
+                        _view.printIconLbl.setIcon(None)
                         _view.listPanel.removeAll()
                         _view.listPanel.getParent().revalidate()
                         _view.listPanel.getParent().repaint()
@@ -11629,10 +11808,16 @@ Visit: %s (Author's site)
                         NAB.savedExpandedView = True        # Override as expanded in case it was collapsed but not saved....
 
                         if not NAB.configSaved:
-                            _view.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_REMINDERS, _view.collapsableIconLbl.getForeground()))
+                            _view.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_REMINDERS, NAB.moneydanceContext.getUI().getColors().secondaryTextFG))
                         else:
-                            _view.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_TRIANGLE_DOWN, _view.collapsableIconLbl.getForeground()))
-                            _view.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_TRIANGLE_DOWN, _view.collapsableIconLbl.getForeground()))
+                            _view.collapsableIconLbl.setIcon(md.getUI().getImages().getIconWithColor(GlobalVars.Strings.MD_GLYPH_TRIANGLE_DOWN, NAB.moneydanceContext.getUI().getColors().secondaryTextFG))
+
+                        if NAB.printIcon is not None and NAB.savedShowPrintIcon:
+                            myPrint("DB", ".. setting printer icon (%s, %s)" %(NAB.printIcon, NAB.savedShowPrintIcon))
+                            _view.printIconLbl.setIcon(NAB.printIcon)
+                        else:
+                            myPrint("DB", ".. NOT setting printer icon as (printIcon: %s, savedShowPrintIcon: %s)" %(NAB.printIcon, NAB.savedShowPrintIcon))
+                            _view.printIconLbl.setIcon(None)
 
                         _view.balTypeLabel.setText("Calculated Total")                                                  # noqa
                         _view.balTypeLabel.setForeground(md.getUI().getColors().secondaryTextFG)                        # noqa
