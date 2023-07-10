@@ -20,10 +20,7 @@ import com.infinitekind.moneydance.model.Txn;
 import com.infinitekind.util.StreamTable;
 import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TagLogic;
-import com.moneydance.apps.md.view.gui.TxnDateSearch;
-import com.moneydance.apps.md.view.gui.TxnTagsSearch;
+import com.moneydance.apps.md.view.gui.*;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
 import com.moneydance.modules.features.ratios.selector.RatioAccountSelector;
 
@@ -203,24 +200,18 @@ class RatioPart {
     _baseCurrency = root.getCurrencies().getBaseType();
     _txnValue = 0;
     _dateFilter = new TxnDateSearch(dateRange.getStartDateInt(), dateRange.getEndDateInt(), useTaxDate);
-    _requiredFilter = new AcctFilter() {
-      public boolean matches(Account account) {
-        return _requiredAccounts.contains(account);
-      }
-
-      public String format(Account account) {
-        return account.getFullAccountName();
-      }
-    };
-    _disallowedFilter = new AcctFilter() {
-      public boolean matches(Account account) {
-        return _disallowedAccounts.contains(account);
-      }
-
-      public String format(Account account) {
-        return account.getFullAccountName();
-      }
-    };
+    DefaultAcctSearch reqFilter = new DefaultAcctSearch();
+    for(Account requiredAccount : _requiredAccounts) {
+      reqFilter.setShowAccount(requiredAccount, true);
+    }
+    _requiredFilter = reqFilter;
+    
+    DefaultAcctSearch disFilter = new DefaultAcctSearch();
+    for(Account disallowedAccount : _disallowedAccounts) {
+      disFilter.setShowAccount(disallowedAccount, true);
+    }
+    _disallowedFilter = disFilter;
+    
     if (!_tags.isEmpty()) {
       _tagFilter = new TxnTagsFilter(_tags, _tagLogic);
     } else {
@@ -256,7 +247,7 @@ class RatioPart {
     final boolean targetRequired = _requiredFilter.matches(targetAccount);
     // if neither match, both accounts are Allowed and we ignore the transaction
     // if both match, both accounts are Required and it's an 'internal' transfer, skip
-    if (!(sourceRequired ^ targetRequired)) return;
+    if (sourceRequired == targetRequired) return;
     // At this point one account is Required, the other is Allowed
     // Both sides will be visited by the enumeration, we just so happen to pick the target account
     // to get the sign right.
