@@ -71,8 +71,9 @@ public class DisplayHelp extends SecondaryDialog {
         pnl.add(jsp, GridC.getc(0, 0).wxy(1.0F, 1.0F).colspan(5).fillboth());
         add(pnl);
         try {
-            setEscapeKeyCancels(true);
-        } catch (Exception e) {
+            getClass().getMethod("setEscapeKeyCancels", new Class[] { Boolean.class }).invoke(Boolean.TRUE);
+        } catch (Throwable e) {
+            System.err.println("Couldn't invoke setEscapeKeyCancels.  That's perfectly fine.");
         }
         setLocationRelativeTo(parent);
         pack();
