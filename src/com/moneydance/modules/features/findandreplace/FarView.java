@@ -2067,44 +2067,26 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
             _replacePanel.remove(_replaceCategory);
         }
         if (_controller.getMDGUI() != null) {
-          final boolean normalAccounts = _controller.getIncludeTransfers();
+          DefaultAcctSearch acctFilter = new DefaultAcctSearch();
+          acctFilter.setShowIncomeAccounts(true);
+          acctFilter.setShowExpenseAccounts(true);
+          if(_controller.getIncludeTransfers()) {
+              acctFilter.setShowAssetAccounts(true);
+              acctFilter.setShowBankAccounts(true);
+              acctFilter.setShowCreditCardAccounts(true);
+              acctFilter.setShowInvestAccounts(true);
+              acctFilter.setShowLiabilityAccounts(true);
+              acctFilter.setShowLoanAccounts(true);
+              acctFilter.setShowSecurityAccounts(true);
+          }
           
-          AcctFilter filter = new AcctFilter() {
-            public boolean matches(Account account) {
-              Account replacementCategory = _controller.getReplacementCategory();
-              if (_controller.getReplaceCategory() && replacementCategory != null && account==replacementCategory) {
-                return true;
-              }
-              
-                switch(account.getAccountType()) {
-                case INCOME:
-                case EXPENSE:
-                  return true;
-                case ROOT:
-                  return false;
-                case ASSET:
-                case BANK:
-                case CREDIT_CARD:
-                case INVESTMENT:
-                case LIABILITY:
-                case LOAN:
-                case SECURITY:
-                  return normalAccounts;
-                default:
-                  return false;
-              }
-            }
+          Account replacementCategory = _controller.getReplacementCategory();
+          if (_controller.getReplaceCategory() && replacementCategory != null) {
+              acctFilter.setShowAccount(replacementCategory, true);
+          }
             
-            @Override
-            public String format(Account acct) {
-              return acct.getFullAccountName();
-            }
-          };
-            
-          AccountSelector chooser = setupControl(new AccountSelector(_controller.getMDGUI(), _model.getData(), 
-                                                                     filter));
+          AccountSelector chooser = setupControl(new AccountSelector(_controller.getMDGUI(), _model.getData(), acctFilter));
           chooser.setTypeable(true);
-          final Account replacementCategory = _controller.getReplacementCategory();
           if (_controller.getReplaceCategory() && (replacementCategory != null)) {
             chooser.setSelectedAccount(replacementCategory);
           } else {
