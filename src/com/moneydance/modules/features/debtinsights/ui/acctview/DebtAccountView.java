@@ -7,7 +7,9 @@ import javax.swing.JComponent;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.BalanceType;
 import com.moneydance.apps.md.view.HomePageView;
+import com.moneydance.apps.md.view.gui.DefaultAcctSearch;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.view.gui.TxnAccountSearch;
 import com.moneydance.modules.features.debtinsights.AccountUtils;
 import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Util;
@@ -111,20 +113,22 @@ public abstract class DebtAccountView implements HomePageView {
 
     public List<Account> getAccounts(Account parentAccount) {
         if (parentAccount == null) return null;
-
-        List<Account> acctList = AccountUtil.allMatchesForSearch(Main.getMDMain().getCurrentAccountBook(), new AcctFilter() {
-
-            @Override
-            public boolean matches(Account account) {
-                return getAccountTypes().contains(account.getAccountType());
-            }
-
-            @Override
-            public String format(Account account) {
-                return account.getFullAccountName();
-            }
-        });
-
+        List<Account.AccountType> types = getAccountTypes();
+        
+        DefaultAcctSearch acctSearch = new DefaultAcctSearch();
+        acctSearch.setShowRootAccounts(types.contains(Account.AccountType.ROOT));
+        acctSearch.setShowBankAccounts(types.contains(Account.AccountType.BANK));
+        acctSearch.setShowCreditCardAccounts(types.contains(Account.AccountType.CREDIT_CARD));
+        acctSearch.setShowInvestAccounts(types.contains(Account.AccountType.INVESTMENT));
+        acctSearch.setShowSecurityAccounts(types.contains(Account.AccountType.SECURITY));
+        acctSearch.setShowAssetAccounts(types.contains(Account.AccountType.ASSET));
+        acctSearch.setShowLiabilityAccounts(types.contains(Account.AccountType.LIABILITY));
+        acctSearch.setShowLoanAccounts(types.contains(Account.AccountType.LOAN));
+        acctSearch.setShowExpenseAccounts(types.contains(Account.AccountType.EXPENSE));
+        acctSearch.setShowIncomeAccounts(types.contains(Account.AccountType.INCOME));
+        
+        List<Account> acctList = AccountUtil.allMatchesForSearch(Main.getMDMain().getCurrentAccountBook(), acctSearch);
+        
         if (acctComparator != null) {
             acctList.sort(acctComparator);
         }
