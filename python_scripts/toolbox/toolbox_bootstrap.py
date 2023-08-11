@@ -4,7 +4,7 @@
 ########################################################################################################################
 ## bootstrap.py: Execute a compiled script if possible (faster load times) #############################################
 ########################################################################################################################
-# Author: Stuart Beesley Feb 2023 - StuWareSoftSystems
+# Author: Stuart Beesley Aug 2023 - StuWareSoftSystems
 # Purpose: a) load compiled version for faster launch time, b) avoid "method too large" RuntimeException (.pyc helper)
 #
 # NOTES: There are various ways to load/run/execute a script.... Some as follows:
@@ -53,89 +53,40 @@
 # SOFTWARE.
 ###############################################################################
 
-import imp
-import datetime
-import __builtin__ as builtins
-
-from java.lang import System, RuntimeException                                                                          # noqa
-
+global sys, imp, builtins
+global System, Runtime, RuntimeException, Long, Runnable, Thread, InterruptedException
+global Platform, Common, AppEventManager
 global moneydance, moneydance_ui, moneydance_extension_parameter, moneydance_extension_loader
+global _THIS_IS_, _QuickAbortThisScriptException, _specialPrint, _decodeCommand, _HANDLE_EVENT_ENABLED_IF_REQUESTED
+global _getExtensionPreferences, _saveExtensionPreferences
+global debug
 
-_THIS_IS_ = u"toolbox"
-
-def _specialPrint(_what):
-    dt = datetime.datetime.now().strftime(u"%Y/%m/%d-%H:%M:%S")
-    print(_what)
-    System.err.write(_THIS_IS_ + u":" + dt + u": ")
-    System.err.write(_what)
-    System.err.write(u"\n")
-
-
-if u"__file__" in globals(): raise Exception(u"ERROR: This script should only be run as part of an extension!")
+if "__file__" in globals(): raise Exception("ERROR: This script should only be run as part of an extension!")
+if "debug" not in globals(): debug = False
 
 # Little trick as imported module will have it's own globals
 builtins.moneydance = moneydance
 builtins.moneydance_ui = moneydance_ui
 
-MDEL = u"moneydance_extension_loader"
+MDEL = "moneydance_extension_loader"
 if MDEL in globals(): builtins.moneydance_extension_loader = moneydance_extension_loader
 
-MDEP = u"moneydance_extension_parameter"
+MDEP = "moneydance_extension_parameter"
 if MDEP in globals(): builtins.moneydance_extension_parameter = moneydance_extension_parameter
 
 MD_EXTENSION_LOADER = moneydance_extension_loader
 
-_normalExtn = u".py"
-_compiledExtn = u"$py.class"
+_normalExtn = ".py"
+_compiledExtn = "$py.class"
 
 # Method to run/execute compiled code in current name space.
-# import os
-# from org.python.core import BytecodeLoader
-# from org.python.apache.commons.compress.utils import IOUtils
-# _launchedFile = _THIS_IS_ + _compiledExtn
-# scriptStream = MD_EXTENSION_LOADER.getResourceAsStream(u"/%s" %(_launchedFile))
-# code = BytecodeLoader.makeCode(os.path.splitext(_launchedFile)[0], IOUtils.toByteArray(scriptStream), (_THIS_IS_ + _normalExtn))
-# scriptStream.close()
-# exec(code)
-
-# Method to run/execute py script in current name space.
-# try:
-#     _launchedFile = _THIS_IS_ + _normalExtn;
-#     scriptStream = MD_EXTENSION_LOADER.getResourceAsStream(u"/%s" %(_launchedFile));
-#     py = moneydance.getPythonInterpreter()
-#     py.getSystemState().setClassLoader(MD_EXTENSION_LOADER)
-#     py.set("moneydance_extension_loader", MD_EXTENSION_LOADER)
-#     py.execfile(scriptStream)
-#     scriptStream.close()
-#     moneydance.resetPythonInterpreter(py)
-# except RuntimeException as e:
-#     if u"method too large" in e.toString().lower():
-#         raise Exception(u"@@ Sorry - script is too large for normal execution. Needs compiling first! @@".upper())
-#     else: raise
-
-# Method(s) to run/execute script via import. Loads into it's own module namespace
-# ... Tries the compiled $py.class file first, then the original .py file
-_launchedFile = _THIS_IS_ + _compiledExtn
-scriptStream = MD_EXTENSION_LOADER.getResourceAsStream(u"/%s" %(_launchedFile))
-if scriptStream is None:
-    _specialPrint(u"@@ Will run normal (non)compiled script ('%s') @@" %(_launchedFile))
-    _launchedFile = _THIS_IS_ + _normalExtn
-    scriptStream = MD_EXTENSION_LOADER.getResourceAsStream(u"/%s" %(_launchedFile))
-    _suffixIdx = 0
-else:
-    _specialPrint(u"@@ Will run pre-compiled script for best launch speed ('%s') @@" %(_launchedFile))
-    _suffixIdx = 1
-
-if scriptStream is None: raise Exception(u"ERROR: Could not get the script (%s) from within the mxt" %(_launchedFile))
-
 _startTimeMs = System.currentTimeMillis()
-bootstrapped_extension = imp.load_module(_THIS_IS_,
-                                         scriptStream,
-                                         (u"bootstrapped_" + _launchedFile),
-                                         imp.get_suffixes()[_suffixIdx])
-_specialPrint(u"BOOTSTRAP launched script in %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
+import os
+from org.python.core import BytecodeLoader
+from org.python.apache.commons.compress.utils import IOUtils
+_launchedFile = _THIS_IS_ + _compiledExtn
+scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile))
+code = BytecodeLoader.makeCode(os.path.splitext(_launchedFile)[0], IOUtils.toByteArray(scriptStream), (_THIS_IS_ + _normalExtn))
 scriptStream.close()
-
-# if the extension is using an extension class, then pass pass back to Moneydance
-try: moneydance_extension = bootstrapped_extension.moneydance_extension
-except AttributeError: pass
+exec(code)
+_specialPrint("BOOTSTRAP launched script in %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))

@@ -165,6 +165,7 @@ OPTIONS MENU
   - Debug: Generates program debug messages in Help>Console Window. DO NOT LEAVE THIS PERMANENTLY ON
   - Show Print Icon: Enables/shows the print icon on the Home / Summary screen widget.. Will print the current view
                      NOTE: Even when icon now visible, clicking the white-space before the title will activate print...
+  - Page Setup: Allows you to predefine certain page attributes for printing - e.g. Landscape etc...
   - Backup Config: Creates a backup of your current config file (then opens a window showing location of backup)
   - Restore Config: Allows you to restore (or import) config file from previous back up
   - You can disable the Widget's Display Name Title. This prevents the title appearing on the Summary Page widget

@@ -38,14 +38,14 @@ from java.awt import FileDialog
 # ######################################################################################################################
 # ######################################################################################################################
 # SET PARAMETERS HERE......!
-i_want_popups = False    # False = Run headless.. True = Run just like like Moneydance does normally
+i_want_popups = True    # False = Run headless.. True = Run just like like Moneydance does normally
 
 # default_import_type = ImportDataSourceType.DOWNLOADED
 default_import_type = ImportDataSourceType.MIGRATED_FROM_ANOTHER_APP
 
 # Set this if you want to run headless.... or set to None
-# fileToImport=None
-fileToImport="/Users/stu/Documents/Moneydance/My Python Scripts/test data/WO_Flag.qif"
+fileToImport=None
+# fileToImport="/Users/stu/Documents/Moneydance/My Python Scripts/test data/WO_Flag.qif"
 
 # True = use the currently selected account in the sidebar....
 use_side_bar_selected_account = True  # Set this to False if you want to pre-select your account below

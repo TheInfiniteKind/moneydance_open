@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1024) - April 2023
+# list_future_reminders.py (build: 1027) - June 2023
 # Displays Moneydance future dated / scheduled reminders (along with options to auto-record, delete etc)
 
 ###############################################################################
@@ -72,6 +72,8 @@
 # build: 1023 - MD2023 Fixes to common code
 # build: 1024 - Fix QuickSearch() field...
 # build: 1024 - Common code tweaks...
+# build: 1026 - Added 'Extract Reminders' feature to Menu and CMD-E keystroke...
+# build: 1027 - Ensure the code runs on the EDT...
 
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
 
@@ -81,7 +83,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1024"
+version_build = "1027"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -286,6 +288,7 @@ else:
 
     from com.moneydance.apps.md.controller import AccountBookWrapper
     from com.infinitekind.moneydance.model import AccountBook
+    from com.infinitekind.tiksync import SyncRecord                                                                     # noqa
 
     from javax.swing import JButton, JScrollPane, WindowConstants, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
     from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
@@ -421,6 +424,13 @@ else:
     GlobalVars.save_column_order_LFR = []
     GlobalVars.daysToLookForward_LFR = 365
     GlobalVars.lAllowEscapeExitApp_SWSS = True
+    GlobalVars.extractPath_LFR = ""
+
+    # These come from extract_data extension
+    GlobalVars.lStripASCII = False
+    GlobalVars.csvDelimiter = ","
+    GlobalVars.userdateformat = "%Y/%m/%d"
+    GlobalVars.lWriteBOMToExportFile_SWSS = True
 
     GlobalVars.smaller_ascendingSortIcon = None
     GlobalVars.smaller_descendingSortIcon = None
@@ -442,21 +452,21 @@ Thank you for using %s!
 The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
-                                        + Extension Menus: Total selected transactions & Move Investment Transactions
+Toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more
+         + Extension menus: Total selected txns; Move Investment Txns; Zap md+/ofx/qif (default) memo fields;
+
 Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
 
 Extension (.mxt) and Script (.py) Versions available:
-Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
-- stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv 
-- extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
-- extract_currency_history_csv          Extract currency history to csv
-- extract_investment_transactions_csv   Extract investment transactions to csv
-- extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
+Extract Data: Extract various data to screen /or csv.. (also auto-extract mode): Includes:
+    - StockGlance2020: Securities/stocks, total by security across investment accounts;
+    - Reminders; Account register transaction (attachments optional);
+    - Investment transactions (attachments optional); Security Balances; Currency price history;
+    - Decrypt / extract raw 'Trunk' file; Extract raw data as JSON file; All attachments;
 
 List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
-Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
 Security Performance Graph:             Graphs selected securities, calculating relative price performance as percentage
+Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -948,10 +958,14 @@ Visit: %s (Author's site)
             self.messageJText = None
             if not self.theMessage.endswith("\n"): self.theMessage+="\n"
             if self.OKButtonText == "": self.OKButtonText="OK"
-            # if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
             if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         def updateMessages(self, newTitle=None, newStatus=None, newMessage=None, lPack=True):
+            # We wait when on the EDT as most scripts execute on the EDT.. So this is probably an in execution update message
+            # ... if we invokeLater() then the message will (probably) only appear after the EDT script finishes....
+            genericSwingEDTRunner(False, True, self._updateMessages, newTitle, newStatus, newMessage, lPack)
+
+        def _updateMessages(self, newTitle=None, newStatus=None, newMessage=None, lPack=True):
             if not newTitle and not newStatus and not newMessage: return
             if newTitle:
                 self.theTitle = newTitle
@@ -1055,10 +1069,8 @@ Visit: %s (Author's site)
                     self._popup_d.dispose()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-            return
 
-        def result(self):
-            return self.lResult[0]
+        def result(self): return self.lResult[0]
 
         def go(self):
             myPrint("DB", "In MyPopUpDialogBox.", inspect.currentframe().f_code.co_name, "()")
@@ -1068,8 +1080,7 @@ Visit: %s (Author's site)
                 def __init__(self, callingClass):
                     self.callingClass = callingClass
 
-                def run(self):                                                                                                      # noqa
-
+                def run(self):                                                                                          # noqa
                     myPrint("DB", "In MyPopUpDialogBoxRunnable.", inspect.currentframe().f_code.co_name, "()")
                     myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -1101,12 +1112,10 @@ Visit: %s (Author's site)
                         maxDialogWidth = min(screenSize.width-20, self.callingClass.maxSize.width)
                         maxDialogHeight = min(screenSize.height-40, self.callingClass.maxSize.height)
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
-                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
                     else:
                         maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
                         maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
-                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
 
                     # noinspection PyUnresolvedReferences
                     self.callingClass._popup_d = MyJDialog(maxDimension,
@@ -1208,10 +1217,14 @@ Visit: %s (Author's site)
                     self.callingClass._popup_d.setVisible(True)
 
             if not SwingUtilities.isEventDispatchThread():
-                myPrint("DB",".. Not running within the EDT so calling via MyPopUpDialogBoxRunnable()...")
-                SwingUtilities.invokeAndWait(MyPopUpDialogBoxRunnable(self))
+                if not self.lModal:
+                    myPrint("DB",".. Not running on the EDT, but also NOT Modal, so will .invokeLater::MyPopUpDialogBoxRunnable()...")
+                    SwingUtilities.invokeLater(MyPopUpDialogBoxRunnable(self))
+                else:
+                    myPrint("DB",".. Not running on the EDT so calling .invokeAndWait::MyPopUpDialogBoxRunnable()...")
+                    SwingUtilities.invokeAndWait(MyPopUpDialogBoxRunnable(self))
             else:
-                myPrint("DB",".. Already within the EDT so calling naked...")
+                myPrint("DB",".. Already on the EDT, just executing::MyPopUpDialogBoxRunnable() now...")
                 MyPopUpDialogBoxRunnable(self).run()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
@@ -2682,7 +2695,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2022)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2023)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -2888,6 +2901,80 @@ Visit: %s (Author's site)
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
 
+    def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
+        """Will detect and then run the codeblock on the EDT"""
+
+        isOnEDT = SwingUtilities.isEventDispatchThread()
+        # myPrint("DB", "** In .genericSwingEDTRunner(), ifOffEDTThenRunNowAndWait: '%s', ifOnEDTThenRunNowAndWait: '%s', codeblock: '%s', args: '%s'" %(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, args))
+        myPrint("DB", "** In .genericSwingEDTRunner(), ifOffEDTThenRunNowAndWait: '%s', ifOnEDTThenRunNowAndWait: '%s', codeblock: <codeblock>, args: <args>" %(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait))
+        myPrint("DB", "** In .genericSwingEDTRunner(), isOnEDT:", isOnEDT)
+
+        class GenericSwingEDTRunner(Runnable):
+
+            def __init__(self, _codeblock, arguments):
+                self.codeBlock = _codeblock
+                self.params = arguments
+
+            def run(self):
+                myPrint("DB", "** In .genericSwingEDTRunner():: GenericSwingEDTRunner().run()... about to execute codeblock.... isOnEDT:", SwingUtilities.isEventDispatchThread())
+                self.codeBlock(*self.params)
+                myPrint("DB", "** In .genericSwingEDTRunner():: GenericSwingEDTRunner().run()... finished executing codeblock....")
+
+        _gser = GenericSwingEDTRunner(codeblock, args)
+
+        if ((isOnEDT and not ifOnEDTThenRunNowAndWait) or (not isOnEDT and not ifOffEDTThenRunNowAndWait)):
+            myPrint("DB", "... calling codeblock via .invokeLater()...")
+            SwingUtilities.invokeLater(_gser)
+        elif not isOnEDT:
+            myPrint("DB", "... calling codeblock via .invokeAndWait()...")
+            SwingUtilities.invokeAndWait(_gser)
+        else:
+            myPrint("DB", "... calling codeblock.run() naked...")
+            _gser.run()
+
+        myPrint("DB", "... finished calling the codeblock via method reported above...")
+
+    def genericThreadRunner(daemon, codeblock, *args):
+        """Will run the codeblock on a new Thread"""
+
+        # myPrint("DB", "** In .genericThreadRunner(), codeblock: '%s', args: '%s'" %(codeblock, args))
+        myPrint("DB", "** In .genericThreadRunner(), codeblock: <codeblock>, args: <args>")
+
+        class GenericThreadRunner(Runnable):
+
+            def __init__(self, _codeblock, arguments):
+                self.codeBlock = _codeblock
+                self.params = arguments
+
+            def run(self):
+                myPrint("DB", "** In .genericThreadRunner():: GenericThreadRunner().run()... about to execute codeblock....")
+                self.codeBlock(*self.params)
+                myPrint("DB", "** In .genericThreadRunner():: GenericThreadRunner().run()... finished executing codeblock....")
+
+        _gtr = GenericThreadRunner(codeblock, args)
+
+        _t = Thread(_gtr, "NAB_GenericThreadRunner".lower())
+        _t.setDaemon(daemon)
+        _t.start()
+
+        myPrint("DB", "... finished calling the codeblock...")
+
+    GlobalVars.EXTN_PREF_KEY = "stuwaresoftsystems" + "." + myModuleID
+
+    def getExtensionPreferences():
+        # type: () -> SyncRecord
+        _extnPrefs =  GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage().getSubset(GlobalVars.EXTN_PREF_KEY)
+        myPrint("DB", "Retrieved Extn Preferences from LocalStorage: %s" %(_extnPrefs))
+        return _extnPrefs
+
+    def saveExtensionPreferences(newExtnPrefs):
+        # type: (SyncRecord) -> None
+        if not isinstance(newExtnPrefs, SyncRecord):
+            raise Exception("ERROR: 'newExtnPrefs' is not a SyncRecord (given: '%s')" %(type(newExtnPrefs)))
+        _localStorage = GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage()
+        _localStorage.put(GlobalVars.EXTN_PREF_KEY, newExtnPrefs)
+        myPrint("DB", "Stored Extn Preferences into LocalStorage: %s" %(newExtnPrefs))
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -2916,6 +3003,18 @@ Visit: %s (Author's site)
         if GlobalVars.parametersLoadedFromFile.get("save_column_order_LFR") is not None: GlobalVars.save_column_order_LFR = GlobalVars.parametersLoadedFromFile.get("save_column_order_LFR")
         if GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR") is not None: GlobalVars.daysToLookForward_LFR = GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR")
 
+        # These are also loaded for extract - configure via extract_data extension...
+        if GlobalVars.parametersLoadedFromFile.get("lStripASCII") is not None: GlobalVars.lStripASCII = GlobalVars.parametersLoadedFromFile.get("lStripASCII")
+        if GlobalVars.parametersLoadedFromFile.get("csvDelimiter") is not None: GlobalVars.csvDelimiter = GlobalVars.parametersLoadedFromFile.get("csvDelimiter")
+        if GlobalVars.parametersLoadedFromFile.get("userdateformat") is not None: GlobalVars.userdateformat = GlobalVars.parametersLoadedFromFile.get("userdateformat")
+        if GlobalVars.parametersLoadedFromFile.get("lWriteBOMToExportFile_SWSS") is not None: GlobalVars.lWriteBOMToExportFile_SWSS = GlobalVars.parametersLoadedFromFile.get("lWriteBOMToExportFile_SWSS")                                                                                  # noqa
+
+        if GlobalVars.parametersLoadedFromFile.get("extractPath_LFR") is not None:
+            GlobalVars.extractPath_LFR = GlobalVars.parametersLoadedFromFile.get("extractPath_LFR")
+            if not os.path.isdir(os.path.dirname(GlobalVars.extractPath_LFR)):
+                myPrint("B","@@ Warning: loaded parameter 'extractPath_LFR' does not appear to be a valid directory:", GlobalVars.extractPath_LFR, "will ignore")
+                GlobalVars.extractPath_LFR = ""
+
         myPrint("DB","parametersLoadedFromFile{} set into memory (as variables).....")
 
         return
@@ -2937,6 +3036,7 @@ Visit: %s (Author's site)
         GlobalVars.parametersLoadedFromFile["_column_widths_LFR"] = GlobalVars.save_column_widths_LFR
         GlobalVars.parametersLoadedFromFile["save_column_order_LFR"] = GlobalVars.save_column_order_LFR
         GlobalVars.parametersLoadedFromFile["daysToLookForward_LFR"] = GlobalVars.daysToLookForward_LFR
+        GlobalVars.parametersLoadedFromFile["extractPath_LFR"] = GlobalVars.extractPath_LFR
 
         myPrint("DB","variables dumped from memory back into parametersLoadedFromFile{}.....")
 
@@ -3326,6 +3426,159 @@ Visit: %s (Author's site)
         myPrint("B", ">> FINISHED skipping the next occurrence of ALL reminders - refreshing the table...")
         RefreshMenuAction().refresh()
 
+
+    class ExtractReminders(AbstractAction, Runnable):
+        def __init__(self, fromHotKey=False): self.fromHotKey = fromHotKey
+        def actionPerformed(self, event): self.go()                                                                     # noqa
+        def go(self): SwingUtilities.invokeLater(self)
+        def run(self):
+            myPrint("DB", "@@ EXTRACT REMINDERS requested.... (from Menu: %s, from HotKey: %s)" %(not self.fromHotKey, self.fromHotKey))
+            userSelectedPath = specifyExtractFileName(GlobalVars.extractPath_LFR, alwaysAsk=(not self.fromHotKey))
+            if userSelectedPath is None or userSelectedPath == "":
+                myPrint("B", "No (valid) extract path selected... Aborting extract!")
+                return
+            GlobalVars.extractPath_LFR = userSelectedPath
+            myPrint("B", "Extracting to path:", GlobalVars.extractPath_LFR)
+
+            myPrint("B", "\n"
+                         "Pre-saved file writer parameters (change using 'Extract Data' extension):\n"
+                         "... Insert Byte Order Mark (BOM) at beginning of file (Mac/UTF8):  %s\n"
+                         "... CSV field delimiter:                                          '%s'\n"
+                         "... Date format:                                                  '%s'\n"
+                         "... Strip out high byte characters (i.e. keep ASCII only):         %s\n"
+                         "" %(GlobalVars.lWriteBOMToExportFile_SWSS, GlobalVars.csvDelimiter, GlobalVars.userdateformat, GlobalVars.lStripASCII))
+
+            autoMode = self.fromHotKey
+            if autoMode: pass
+
+            # Create table...
+            tableModel = GlobalVars.saveJTable.getModel()
+            if isinstance(tableModel, DefaultTableModel): pass
+
+            if tableModel.getColumnCount() < 1 or tableModel.getRowCount() < 1:
+                txt = "ALERT: Your table seems to contain no data - no extract created"
+                myPopupInformationBox(list_future_reminders_frame_, txt, "EXTRACT REMINDERS", theMessageType=JOptionPane.WARNING_MESSAGE)
+                return
+
+            extractTable = []
+
+            row = []
+            for i in range(1, tableModel.getColumnCount()):                 # Skip the Reminder Object itself....
+                row.append(tableModel.getColumnName(i))
+            extractTable.append(row)
+
+            for iRow in range(0, tableModel.getRowCount()):
+                row = []
+                for iCol in range(1, tableModel.getColumnCount()):          # Skip the Reminder Object itself....
+                    row.append(tableModel.getValueAt(iRow, iCol))
+                extractTable.append(row)
+
+            myPrint("B", "Extract table will contain rows: %s, cols: %s" %(len(extractTable), len(extractTable[0])))
+            if debug:
+                myPrint("B", "Extract table contains:\n", extractTable)
+
+            try:
+                if self.exportDataToFile(extractTable):
+                    myPopupInformationBox(list_future_reminders_frame_, "Extract created", "EXTRACT REMINDERS", theMessageType=JOptionPane.INFORMATION_MESSAGE)
+                    try:
+                        helper = MD_REF.getPlatformHelper()
+                        helper.openDirectory(File(GlobalVars.extractPath_LFR))
+                    except: pass
+            except:
+                myPopupInformationBox(list_future_reminders_frame_, "ERROR WHILST CREATING EXPORT! (Review Console)", "EXTRACT REMINDERS", theMessageType=JOptionPane.ERROR_MESSAGE)
+                dump_sys_error_to_md_console_and_errorlog()
+
+        def convertIntDateFormattedString(self, dateInt, formatStr):
+            if dateInt == 0 or dateInt == 19700101: return ""
+            dateasdate = datetime.datetime.strptime(str(dateInt), "%Y%m%d")  # Convert to Date field
+            return dateasdate.strftime(formatStr)
+
+        def exportDataToFile(self, extractedTable):
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+            # extractedTable = extractedTable(csvlines, key=lambda x: (str(x[1]).upper()))
+
+            # Write the csvlines to a file
+            myPrint("B", "Opening file and writing ", len(extractedTable), "records")
+            try:
+                # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
+                with open(GlobalVars.extractPath_LFR, "wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; just use "w" and newline='' in PY3.0
+                    if GlobalVars.lWriteBOMToExportFile_SWSS:
+                        csvfile.write(codecs.BOM_UTF8)   # This 'helps' Excel open file with double-click as UTF-8
+
+                    writer = csv.writer(csvfile, dialect='excel', quoting=csv.QUOTE_MINIMAL, delimiter=fix_delimiter(GlobalVars.csvDelimiter))
+
+                    if GlobalVars.csvDelimiter != ",":
+                        writer.writerow(["sep=",""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
+
+                    for iRow in range(0, len(extractedTable)):
+                        # Write the table, but swap in the raw numbers (rather than formatted number strings)
+                        try:
+                            if iRow == 0:
+                                writer.writerow(extractedTable[iRow])
+                            else:
+                                row = []
+                                for iCol in range(0, len(extractedTable[iRow])):
+                                    colData = extractedTable[iRow][iCol]
+                                    if isinstance(colData, int) and (len(str(colData)) == 8):
+                                        writeColData = self.convertIntDateFormattedString(colData, GlobalVars.userdateformat)
+                                    elif isinstance(colData, (float, int)):
+                                        writeColData = self.fixFormatsStr(colData, True)
+                                    else:
+                                        writeColData = self.fixFormatsStr(colData, False)
+                                    row.append(writeColData)
+
+                                row.append("")
+                                writer.writerow(row)
+                        except:
+                            txt = "ERROR writing to CSV file (review console)"
+                            myPrint("B", txt)
+                            myPopupInformationBox(list_future_reminders_frame_, txt, "EXTRACT REMINDERS", theMessageType=JOptionPane.ERROR_MESSAGE)
+                            dump_sys_error_to_md_console_and_errorlog()
+                            raise Exception("Aborting")
+
+                myPrint("B", "CSV file '%s' created, records written, and file closed.." %(GlobalVars.extractPath_LFR))
+                return True
+
+            except IOError, e:
+                myPrint("B", "Oh no - File IO Error!", e)
+                myPrint("B", "Path:", extractedTable)
+                myPrint("B", "!!! ERROR - No file written! (was file open, permissions etc?)".upper())
+                dump_sys_error_to_md_console_and_errorlog()
+                myPopupInformationBox(list_future_reminders_frame_, "Sorry - error writing to export file!", "EXTRACT REMINDERS", theMessageType=JOptionPane.ERROR_MESSAGE)
+                return False
+
+        def fixFormatsStr(self, theString, lNumber, sFormat=""):
+            if isinstance(theString, (int, float)):
+                lNumber = True
+
+            if lNumber is None: lNumber = False
+            if theString is None: theString = ""
+
+            if sFormat == "%" and theString != "":
+                theString = "{:.1%}".format(theString)
+                return theString
+
+            if lNumber: return str(theString)
+
+            theString = theString.strip()  # remove leading and trailing spaces
+
+            theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
+            theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+
+            if GlobalVars.lStripASCII:
+                all_ASCII = ''.join(char for char in theString if ord(char) < 128)  # Eliminate non ASCII printable Chars too....
+            else:
+                all_ASCII = theString
+            return all_ASCII
+
+
+
+
+
+
+
+
     class DoTheMenu(AbstractAction):
 
         def __init__(self): pass
@@ -3362,6 +3615,10 @@ Visit: %s (Author's site)
             # ##########################################################################################################
             if event.getActionCommand().lower().startswith("skip next occurrence of all reminders".lower()):
                 skipReminders()
+
+            # ##########################################################################################################
+            if event.getActionCommand().lower().startswith("extract reminders".lower()):
+                ExtractReminders(fromHotKey=False).go()
 
             # ##########################################################################################################
             if event.getActionCommand().lower().startswith("page setup".lower()):
@@ -3605,6 +3862,69 @@ Visit: %s (Author's site)
                         return DateUtil.convertCalToInt(cal)
                     cal.add(Calendar.DAY_OF_MONTH, 1)
 
+            def specifyExtractFileName(initialPath="", alwaysAsk=True):
+
+                defaultExtractFilename = "extract_future_reminders.csv"
+
+                if initialPath is None: initialPath = ""
+
+                ask = True
+                if not alwaysAsk and initialPath != "": ask = False
+
+                if initialPath == "":  # No parameter saved / loaded from disk
+                    initialPath = os.path.join(get_home_dir(), defaultExtractFilename)
+
+                myPrint("DB", "Initial/Default file export output path is....:", initialPath)
+
+                extractFolder = os.path.dirname(initialPath)
+                extractFilename = os.path.basename(initialPath)
+
+                theTitle = "Select/Create CSV file for extract (CANCEL ABORTS)"
+
+                if not ask:
+                    myPrint("B", "AUTO MODE: Will attempt extract to file:", initialPath)
+                    selectedPath = initialPath
+                else:
+                    selectedPath = getFileFromFileChooser(list_future_reminders_frame_,   # Parent frame or None
+                                                           extractFolder,          # Starting path
+                                                           extractFilename,        # Default Filename
+                                                           theTitle,               # Title
+                                                           False,                  # Multi-file selection mode
+                                                           False,                  # True for Open/Load, False for Save
+                                                           True,                   # True = Files, else Dirs
+                                                           None,                   # Load/Save button text, None for defaults
+                                                           "csv",                  # File filter - Example: "txt" or "qif"
+                                                           lAllowTraversePackages=False,
+                                                           lForceJFC=False,
+                                                           lForceFD=False,
+                                                           lAllowNewFolderButton=True,
+                                                           lAllowOptionsButton=True)
+
+                if selectedPath is None or selectedPath == "":
+                    txt = "User chose to cancel or no file selected >>  So no Extract will be performed... "
+                    myPrint("B", txt); myPopupInformationBox(list_future_reminders_frame_, txt, "FILE EXPORT")
+                    return ""
+                elif safeStr(selectedPath).endswith(".moneydance") or ".moneydance" in os.path.dirname(selectedPath):
+                    myPrint("B", "User selected file:", selectedPath)
+                    txt = "Sorry - User chose to use .moneydance in path - NOT ALLOWED >> NO Extract will be performed..."
+                    myPrint("B", txt); myPopupInformationBox(list_future_reminders_frame_, txt, "FILE EXPORT")
+                    return ""
+
+                if not check_file_writable(selectedPath):
+                    txt = "Sorry - You do not have permissions to create this file: %s" %(selectedPath)
+                    myPrint("B", txt); myPopupInformationBox(list_future_reminders_frame_, txt, "FILE EXPORT")
+                    return ""
+
+                if os.path.exists(selectedPath) and os.path.isfile(selectedPath):
+                    myPrint("DB", "WARNING: file exists,but assuming user said OK to overwrite..:", selectedPath)
+
+                if GlobalVars.lStripASCII:
+                    myPrint("B", "Will extract data to file: %s (NOTE: Should drop non utf8 characters...)" %(selectedPath))
+                else:
+                    myPrint("B", "Will extract data to file: %s" %(selectedPath))
+
+                return selectedPath
+
             def build_the_data_file(ind):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", " - ind:", ind)
 
@@ -3784,13 +4104,11 @@ Visit: %s (Author's site)
                 # if len(GlobalVars.reminderDataList) < 1:
                 # 	return False
                 #
-                ReminderTable(GlobalVars.reminderDataList, ind)
+
+                genericSwingEDTRunner(True, True, ReminderTable, GlobalVars.reminderDataList, ind)
 
                 myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name)
-
                 return True
-
-            # ENDDEF
 
             # Synchronises column widths of both JTables
             class ColumnChangeListener(TableColumnModelListener):
@@ -3825,12 +4143,9 @@ Visit: %s (Author's site)
                         GlobalVars.save_column_widths_LFR[_i] = sourceModel.getColumn(convert_i).getWidth()
                         myPrint("D","Saving column %s as width %s for later..." %(_i, GlobalVars.save_column_widths_LFR[_i]))
 
-
             # The javax.swing package and its subpackages provide a fairly comprehensive set of default renderer implementations, suitable for customization via inheritance. A notable omission is the lack #of a default renderer for a JTableHeader in the public API. The renderer used by default is a Sun proprietary class, sun.swing.table.DefaultTableCellHeaderRenderer, which cannot be extended.
             # DefaultTableHeaderCellRenderer seeks to fill this void, by providing a rendering designed to be identical with that of the proprietary class, with one difference: the vertical alignment of #the header text has been set to BOTTOM, to provide a better match between DefaultTableHeaderCellRenderer and other custom renderers.
             # The name of the class has been chosen considering this to be a default renderer for the cells of a table header, and not the table cells of a header as implied by the proprietary class name
-
-
             class DefaultTableHeaderCellRenderer(DefaultTableCellRenderer):
 
                 # /**
@@ -4617,11 +4932,14 @@ Visit: %s (Author's site)
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut),  "print-me")
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_K, shortcut),  "skip-reminders")
 
+                    list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_E, shortcut),  "extract-reminders")
+
                     if GlobalVars.lAllowEscapeExitApp_SWSS:
                         list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
 
                     list_future_reminders_frame_.getRootPane().getActionMap().put("close-window", CloseAction())
                     list_future_reminders_frame_.getRootPane().getActionMap().put("skip-reminders", SkipReminders())
+                    list_future_reminders_frame_.getRootPane().getActionMap().put("extract-reminders", ExtractReminders(fromHotKey=True))
 
 
                     if Platform.isOSX():
@@ -4658,6 +4976,11 @@ Visit: %s (Author's site)
 
                     menuItem = JMenuItem("Change look forward days")
                     menuItem.setToolTipText("Change the days to look forward")
+                    menuItem.addActionListener(dtm)
+                    menuO.add(menuItem)
+
+                    menuItem = JMenuItem("Extract Reminders")
+                    menuItem.setToolTipText("Extracts Reminders to CSV file")
                     menuItem.addActionListener(dtm)
                     menuO.add(menuItem)
 
@@ -4946,6 +5269,7 @@ Visit: %s (Author's site)
             else:
                 myPopupInformationBox(list_future_reminders_frame_, "You have no reminders to display!", GlobalVars.thisScriptName)
                 cleanup_actions(list_future_reminders_frame_)
+
     except:
         crash_txt = "ERROR - List_Future_Reminders has crashed. Please review MD Menu>Help>Console Window for details".upper()
         myPrint("B",crash_txt)

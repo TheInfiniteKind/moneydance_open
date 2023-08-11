@@ -208,13 +208,13 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - Reset/Fix/Edit/Add CUSIP Banking Link. This is the link for downloaded securities.... (remove_ofx_security_bindings.py and change-security-cusip.py)
         - Update OFX Last Txn Update Date (Downloaded) field for an account (MD versions >= 2022 can now use Online menu, Setup Online Banking, Reset Sync Date)
         - Reset ALL OFX Last Txn Update Dates (default, OFX and MD+) (MD 2022.3(4074) onwards)
-        - Remove (hidden) downloaded OFX/MD+ data from Transactions within an Account (useful to address as_of reconcile date issues)
+        - Remove/disable (hidden) MD+/OFX(/QIF) data from downloaded Transactions within an Account (useful to address as_of reconcile date issues)
         - Delete OFX Banking Logon Profile / Service (these are logon profiles that allow you to connect to your bank) (remove_one_service.py)
         - Cleanup missing Online Banking Links (NOTE: This is always called when running 'Delete OFX Banking Logon Profile / Service' above
         - OFX Authentication Management (various functions to manage authentication, UserIDs, ClientUIDs)
             - SUBMENU: OFX Authentication Management
                 - Clear the Authentication Cache (Passwords) for One Service / Bank Profile
-                - ClOFX_view_reconcile_AsOf_Datesear ALL Authentication Cache (Passwords)
+                - Clear ALL Authentication Cache (Passwords)
                 - Edit/Setup (multiple) UserIDs / Passwords (executes a special script) (ofx_populate_multiple_userids.py)
                 - Edit stored authentication passwords linked to a working OFX Profile
                 - Manual Edit of stored Root UserIDs/ClientUIDs
@@ -227,7 +227,6 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - Import ('transplant') your Moneydance+ (Plaid) license (keys) from a file (exported by Toolbox) - MD Version 2022 onwards. USE WITH CARE.
         - ZAP Dataset's Moneydance+ (Plaid) settings - MD Version 2022 onwards. USE WITH CARE. WILL REQUIRE RE-REGISTRATION!
         - USAA ONLY: Manually 'prime' / overwrite stored Root UserIDs/ClientUIDs
-        - USAA Only: Executes the special script to create a working USAA OFX Profile (ofx_create_new_usaa_bank_custom_profile.py)
 
     - MENU: Currency & Security tools:
         - FIX - Fix currencies / securities (including relative currencies) (fixes your currency & security's key settings) (reset_relative_currencies.py)
@@ -272,9 +271,9 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         >> SPECIAL ADVANCED FEATURES - USE WITH CARE!
         - Toggle Moneydance DEBUG (turns ON all MD internal Debug messages - same as view console)
         - Toggle other Moneydance DEBUGs
-        - Extract a (single) file from within LocalStorage. Decrypts a LocalStorage file to TMP dir for viewing (file self destructs after MD restart)
+        - Extract/decrypt a (single) file from within Dataset. Decrypts a Dataset file to Dataset/tmp/decrypted dir for viewing (tmp file self destructs after MD restart)
+        - Extract/decrypt a (single) file from Sync folder. Decrypts a Sync file to Dataset/tmp/decrypted/fromSync dir for viewing (tmp file self destructs after MD restart)
         - Decrypt entire dataset. Decrypts entire dataset to a folder of your choosing...
-        - Peek at an encrypted file located in your Sync Folder.... Decrypts a Sync (e.g. Dropbox) file and shows it to you...
         - Shrink Dataset. This function deletes MD's log files of all prior changes (not needed).. Typically these are .txn, .mdtxn files...
         - Clone Dataset's structure (purge transactional data) - Copy dataset keeping structures, purging all transactional data.
         - Call Save Trunk File option.... Immediately flushes all in memory changes to disk, including your dataset (rather than wait for restart)
@@ -284,7 +283,8 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - Force reset Sync settings (This resets all Sync settings, changes your Sync ID, and turns Sync off. You can then re-enable it for a fresh Sync)
         - Toggle Sync Downloading of Attachments (Normally this defaults to ON; Change to OFF to prevent attachments downloading via Sync)
         - Repair migrated Dropbox location 'alias' (MacOS only) (Attempts to (re)create the missing file system alias that points to new location)
-        - Import (a single) File back into LocalStorage. Encrypts a file of your choosing and puts it into LocalStorage/safe/TMP...
+        - Import/encrypt a (single) file back into Dataset. Encrypts a file of your choosing and puts it into Dataset/safe/tmp/encrypted ...
+        - Import/encrypt a (single) file back into Sync folder. Encrypts a file of your choosing and puts it into Sync/tmp/encrypted ...
         - Allows User to Add/Change/Delete Settings/Prefs >> key/value in config.dict or LocalStorage() (./safe/settings)
         - Allows User to Add/Change/Delete an Object's Parameter keys (this can change data in your dataset/database directly)
         - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)

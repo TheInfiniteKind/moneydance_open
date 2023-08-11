@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1028 - June 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1029 - July 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -131,7 +131,10 @@
 # build: 1027 - Changed hiding of decimals/no hiding of decimals on row...
 #               Tweaked popup help/info screen dimensions...
 #               Added Print widget option... Also now bundle own java class to support .print() etc...
-# build: 1028 - contains 1027 sent for sigining...
+# build: 1028 - contains 1027 sent for signing...
+# build: 1029 - Added Page Setup to menu...; Tweaked getFileFromAppleScriptFileChooser() to allow 'invisibles'...
+#               Fixed dump_StuWareSoftSystems_parameters_from_memory() losing version_build when saving settings....
+#               Fixed Common Code: genericSwingEDTRunner - <codeblock>: IllegalArgumentException: java.lang.IllegalArgumentException: Cannot create PyString with non-byte value
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -141,7 +144,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1028"
+version_build = "1029"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -346,6 +349,7 @@ else:
 
     from com.moneydance.apps.md.controller import AccountBookWrapper
     from com.infinitekind.moneydance.model import AccountBook
+    from com.infinitekind.tiksync import SyncRecord                                                                     # noqa
 
     from javax.swing import JButton, JScrollPane, WindowConstants, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
     from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
@@ -585,21 +589,21 @@ Thank you for using %s!
 The author has other useful Extensions / Moneybot Python scripts available...:
 
 Extension (.mxt) format only:
-Toolbox:                                View Moneydance settings, diagnostics, fix issues, change settings and much more
-                                        + Extension Menus: Total selected transactions & Move Investment Transactions
+Toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more
+         + Extension menus: Total selected txns; Move Investment Txns; Zap md+/ofx/qif (default) memo fields;
+
 Custom Balances (net_account_balances): Summary Page (HomePage) widget. Display the total of selected Account Balances
 
 Extension (.mxt) and Script (.py) Versions available:
-Extract Data:                           Extract various data to screen and/or csv.. Consolidation of:
-- stockglance2020                       View summary of Securities/Stocks on screen, total by Security, export to csv 
-- extract_reminders_csv                 View reminders on screen, edit if required, extract all to csv
-- extract_currency_history_csv          Extract currency history to csv
-- extract_investment_transactions_csv   Extract investment transactions to csv
-- extract_account_registers_csv         Extract Account Register(s) to csv along with any attachments
+Extract Data: Extract various data to screen /or csv.. (also auto-extract mode): Includes:
+    - StockGlance2020: Securities/stocks, total by security across investment accounts;
+    - Reminders; Account register transaction (attachments optional);
+    - Investment transactions (attachments optional); Security Balances; Currency price history;
+    - Decrypt / extract raw 'Trunk' file; Extract raw data as JSON file; All attachments;
 
 List Future Reminders:                  View future reminders on screen. Allows you to set the days to look forward
-Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
 Security Performance Graph:             Graphs selected securities, calculating relative price performance as percentage
+Accounts Categories Mega Search Window: Combines MD Menu> Tools>Accounts/Categories and adds Quick Search box/capability
 
 A collection of useful ad-hoc scripts (zip file)
 useful_scripts:                         Just unzip and select the script you want for the task at hand...
@@ -1091,10 +1095,14 @@ Visit: %s (Author's site)
             self.messageJText = None
             if not self.theMessage.endswith("\n"): self.theMessage+="\n"
             if self.OKButtonText == "": self.OKButtonText="OK"
-            # if Platform.isOSX() and int(float(MD_REF.getBuild())) >= 3039: self.lAlertLevel = 0    # Colors don't work on Mac since VAQua
             if isMDThemeDark() or isMacDarkModeDetected(): self.lAlertLevel = 0
 
         def updateMessages(self, newTitle=None, newStatus=None, newMessage=None, lPack=True):
+            # We wait when on the EDT as most scripts execute on the EDT.. So this is probably an in execution update message
+            # ... if we invokeLater() then the message will (probably) only appear after the EDT script finishes....
+            genericSwingEDTRunner(False, True, self._updateMessages, newTitle, newStatus, newMessage, lPack)
+
+        def _updateMessages(self, newTitle=None, newStatus=None, newMessage=None, lPack=True):
             if not newTitle and not newStatus and not newMessage: return
             if newTitle:
                 self.theTitle = newTitle
@@ -1198,10 +1206,8 @@ Visit: %s (Author's site)
                     self._popup_d.dispose()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-            return
 
-        def result(self):
-            return self.lResult[0]
+        def result(self): return self.lResult[0]
 
         def go(self):
             myPrint("DB", "In MyPopUpDialogBox.", inspect.currentframe().f_code.co_name, "()")
@@ -1211,8 +1217,7 @@ Visit: %s (Author's site)
                 def __init__(self, callingClass):
                     self.callingClass = callingClass
 
-                def run(self):                                                                                                      # noqa
-
+                def run(self):                                                                                          # noqa
                     myPrint("DB", "In MyPopUpDialogBoxRunnable.", inspect.currentframe().f_code.co_name, "()")
                     myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -1244,12 +1249,10 @@ Visit: %s (Author's site)
                         maxDialogWidth = min(screenSize.width-20, self.callingClass.maxSize.width)
                         maxDialogHeight = min(screenSize.height-40, self.callingClass.maxSize.height)
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
-                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
                     else:
                         maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
                         maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
-                        # self.callingClass._popup_d.setPreferredSize(Dimension(maxDialogWidth,maxDialogHeight))
 
                     # noinspection PyUnresolvedReferences
                     self.callingClass._popup_d = MyJDialog(maxDimension,
@@ -1351,10 +1354,14 @@ Visit: %s (Author's site)
                     self.callingClass._popup_d.setVisible(True)
 
             if not SwingUtilities.isEventDispatchThread():
-                myPrint("DB",".. Not running within the EDT so calling via MyPopUpDialogBoxRunnable()...")
-                SwingUtilities.invokeAndWait(MyPopUpDialogBoxRunnable(self))
+                if not self.lModal:
+                    myPrint("DB",".. Not running on the EDT, but also NOT Modal, so will .invokeLater::MyPopUpDialogBoxRunnable()...")
+                    SwingUtilities.invokeLater(MyPopUpDialogBoxRunnable(self))
+                else:
+                    myPrint("DB",".. Not running on the EDT so calling .invokeAndWait::MyPopUpDialogBoxRunnable()...")
+                    SwingUtilities.invokeAndWait(MyPopUpDialogBoxRunnable(self))
             else:
-                myPrint("DB",".. Already within the EDT so calling naked...")
+                myPrint("DB",".. Already on the EDT, just executing::MyPopUpDialogBoxRunnable() now...")
                 MyPopUpDialogBoxRunnable(self).run()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
@@ -2825,7 +2832,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2022)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2023)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -3116,6 +3123,80 @@ Visit: %s (Author's site)
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
 
+    def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
+        """Will detect and then run the codeblock on the EDT"""
+
+        isOnEDT = SwingUtilities.isEventDispatchThread()
+        # myPrint("DB", "** In .genericSwingEDTRunner(), ifOffEDTThenRunNowAndWait: '%s', ifOnEDTThenRunNowAndWait: '%s', codeblock: '%s', args: '%s'" %(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, args))
+        myPrint("DB", "** In .genericSwingEDTRunner(), ifOffEDTThenRunNowAndWait: '%s', ifOnEDTThenRunNowAndWait: '%s', codeblock: <codeblock>, args: <args>" %(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait))
+        myPrint("DB", "** In .genericSwingEDTRunner(), isOnEDT:", isOnEDT)
+
+        class GenericSwingEDTRunner(Runnable):
+
+            def __init__(self, _codeblock, arguments):
+                self.codeBlock = _codeblock
+                self.params = arguments
+
+            def run(self):
+                myPrint("DB", "** In .genericSwingEDTRunner():: GenericSwingEDTRunner().run()... about to execute codeblock.... isOnEDT:", SwingUtilities.isEventDispatchThread())
+                self.codeBlock(*self.params)
+                myPrint("DB", "** In .genericSwingEDTRunner():: GenericSwingEDTRunner().run()... finished executing codeblock....")
+
+        _gser = GenericSwingEDTRunner(codeblock, args)
+
+        if ((isOnEDT and not ifOnEDTThenRunNowAndWait) or (not isOnEDT and not ifOffEDTThenRunNowAndWait)):
+            myPrint("DB", "... calling codeblock via .invokeLater()...")
+            SwingUtilities.invokeLater(_gser)
+        elif not isOnEDT:
+            myPrint("DB", "... calling codeblock via .invokeAndWait()...")
+            SwingUtilities.invokeAndWait(_gser)
+        else:
+            myPrint("DB", "... calling codeblock.run() naked...")
+            _gser.run()
+
+        myPrint("DB", "... finished calling the codeblock via method reported above...")
+
+    def genericThreadRunner(daemon, codeblock, *args):
+        """Will run the codeblock on a new Thread"""
+
+        # myPrint("DB", "** In .genericThreadRunner(), codeblock: '%s', args: '%s'" %(codeblock, args))
+        myPrint("DB", "** In .genericThreadRunner(), codeblock: <codeblock>, args: <args>")
+
+        class GenericThreadRunner(Runnable):
+
+            def __init__(self, _codeblock, arguments):
+                self.codeBlock = _codeblock
+                self.params = arguments
+
+            def run(self):
+                myPrint("DB", "** In .genericThreadRunner():: GenericThreadRunner().run()... about to execute codeblock....")
+                self.codeBlock(*self.params)
+                myPrint("DB", "** In .genericThreadRunner():: GenericThreadRunner().run()... finished executing codeblock....")
+
+        _gtr = GenericThreadRunner(codeblock, args)
+
+        _t = Thread(_gtr, "NAB_GenericThreadRunner".lower())
+        _t.setDaemon(daemon)
+        _t.start()
+
+        myPrint("DB", "... finished calling the codeblock...")
+
+    GlobalVars.EXTN_PREF_KEY = "stuwaresoftsystems" + "." + myModuleID
+
+    def getExtensionPreferences():
+        # type: () -> SyncRecord
+        _extnPrefs =  GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage().getSubset(GlobalVars.EXTN_PREF_KEY)
+        myPrint("DB", "Retrieved Extn Preferences from LocalStorage: %s" %(_extnPrefs))
+        return _extnPrefs
+
+    def saveExtensionPreferences(newExtnPrefs):
+        # type: (SyncRecord) -> None
+        if not isinstance(newExtnPrefs, SyncRecord):
+            raise Exception("ERROR: 'newExtnPrefs' is not a SyncRecord (given: '%s')" %(type(newExtnPrefs)))
+        _localStorage = GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage()
+        _localStorage.put(GlobalVars.EXTN_PREF_KEY, newExtnPrefs)
+        myPrint("DB", "Stored Extn Preferences into LocalStorage: %s" %(newExtnPrefs))
+
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -3181,9 +3262,6 @@ Visit: %s (Author's site)
 
         if GlobalVars.parametersLoadedFromFile is None: GlobalVars.parametersLoadedFromFile = {}
 
-        # >>> THESE ARE THIS SCRIPT's PARAMETERS TO SAVE
-        GlobalVars.parametersLoadedFromFile["__%s_extension" %(myModuleID)] = version_build
-
         # Purge old parameters
         for key in GlobalVars.extn_oldParamsToMigrate:
             if GlobalVars.parametersLoadedFromFile.get(key) is not None: GlobalVars.parametersLoadedFromFile.pop(key)
@@ -3191,6 +3269,8 @@ Visit: %s (Author's site)
         # save current parameters
         for _paramKey in GlobalVars.extn_newParams:
             GlobalVars.parametersLoadedFromFile[_paramKey] = getattr(GlobalVars, _paramKey)
+
+        GlobalVars.parametersLoadedFromFile["__%s_extension" %(myModuleID)] = version_build
 
         myPrint("DB", "variables dumped from memory back into parametersLoadedFromFile{}.....:", GlobalVars.parametersLoadedFromFile)
 
@@ -3258,8 +3338,9 @@ Visit: %s (Author's site)
                                           lAllowTraversePackages=None,
                                           lAllowTraverseApplications=None,     # JFileChooser only..
                                           lAllowNewFolderButton=True,          # JFileChooser only..
-                                          lAllowOptionsButton=None):           # JFileChooser only..
-        # type: (JFrame, str, str, str, bool, bool, bool, str, str, bool, bool, bool, bool, bool, bool) -> str
+                                          lAllowOptionsButton=None,            # JFileChooser only..
+                                          lInvisibles=False):                  # AppleScript only..
+        # type: (JFrame, str, str, str, bool, bool, bool, str, str, bool, bool, bool, bool, bool, bool, bool) -> str
         """If on a Mac and AppleScript exists then will attempt to load AppleScript file/folder chooser, else calls getFileFromFileChooser() which loads JFileChooser() or FileDialog() accordingly"""
 
         if not Platform.isOSX() or not File("/usr/bin/osascript").exists() or not isOSXVersionBigSurOrLater():
@@ -3281,7 +3362,7 @@ Visit: %s (Author's site)
         _TRUE = "true"; _FALSE = "false"
         appleScript = "/usr/bin/osascript"
 
-        lAllowInvisibles = False
+        lAllowInvisibles = lInvisibles
         multipleSelectionsAllowed = _TRUE if fileChooser_multiMode else _FALSE
         showPackageContents = _TRUE if lAllowTraversePackages else _FALSE
         showInvisibles = _TRUE if lAllowInvisibles else _FALSE
@@ -3351,62 +3432,6 @@ Visit: %s (Author's site)
             dump_sys_error_to_md_console_and_errorlog()
             return None
 
-
-    def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
-        """Will detect and then run the codeblock on the EDT"""
-
-        isOnEDT = SwingUtilities.isEventDispatchThread()
-        myPrint("DB", "** In .genericSwingEDTRunner(), ifOffEDTThenRunNowAndWait: '%s', ifOnEDTThenRunNowAndWait: '%s', codeblock: '%s', args: '%s'" %(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, args))
-        myPrint("DB", "** In .genericSwingEDTRunner(), isOnEDT:", isOnEDT)
-
-        class GenericSwingEDTRunner(Runnable):
-
-            def __init__(self, _codeblock, arguments):
-                self.codeBlock = _codeblock
-                self.params = arguments
-
-            def run(self):
-                myPrint("DB", "** In .genericSwingEDTRunner():: GenericSwingEDTRunner().run()... about to execute codeblock.... isOnEDT:", SwingUtilities.isEventDispatchThread())
-                self.codeBlock(*self.params)
-                myPrint("DB", "** In .genericSwingEDTRunner():: GenericSwingEDTRunner().run()... finished executing codeblock....")
-
-        _gser = GenericSwingEDTRunner(codeblock, args)
-
-        if ((isOnEDT and not ifOnEDTThenRunNowAndWait) or (not isOnEDT and not ifOffEDTThenRunNowAndWait)):
-            myPrint("DB", "... calling codeblock via .invokeLater()...")
-            SwingUtilities.invokeLater(_gser)
-        elif not isOnEDT:
-            myPrint("DB", "... calling codeblock via .invokeAndWait()...")
-            SwingUtilities.invokeAndWait(_gser)
-        else:
-            myPrint("DB", "... calling codeblock.run() naked...")
-            _gser.run()
-
-        myPrint("DB", "... finished calling the codeblock via method reported above...")
-
-    def genericThreadRunner(daemon, codeblock, *args):
-        """Will run the codeblock on a new Thread"""
-
-        myPrint("DB", "** In .genericThreadRunner(), codeblock: '%s', args: '%s'" %(codeblock, args))
-
-        class GenericThreadRunner(Runnable):
-
-            def __init__(self, _codeblock, arguments):
-                self.codeBlock = _codeblock
-                self.params = arguments
-
-            def run(self):
-                myPrint("DB", "** In .genericThreadRunner():: GenericThreadRunner().run()... about to execute codeblock....")
-                self.codeBlock(*self.params)
-                myPrint("DB", "** In .genericThreadRunner():: GenericThreadRunner().run()... finished executing codeblock....")
-
-        _gtr = GenericThreadRunner(codeblock, args)
-
-        _t = Thread(_gtr, "NAB_GenericThreadRunner".lower())
-        _t.setDaemon(daemon)
-        _t.start()
-
-        myPrint("DB", "... finished calling the codeblock...")
 
     def roundTowards(value, target):
         assert (isinstance(value, float)), "ERROR - roundTowards() must be supplied a double/float value! >> received: %s(%s)" %(value, type(value))
@@ -4830,13 +4855,10 @@ Visit: %s (Author's site)
 
     def isSwingComponentInvalid(swComponent):
 
-        if debug:
-            myPrint("B", "isSwingComponentInvalid(), swComponent is None: %s, !isVisible(): %s, !isValid(): %s, !isDisplayable(): %s, getWindowAncestor() is None: %s"
-                    % (swComponent is None, not swComponent.isVisible(), not swComponent.isValid(), not swComponent.isDisplayable(), SwingUtilities.getWindowAncestor(swComponent) is None))
+        # if debug:
+        #     myPrint("B", "isSwingComponentInvalid(), swComponent is None: %s, !isVisible(): %s, !isValid(): %s, !isDisplayable(): %s, getWindowAncestor() is None: %s"
+        #             % (swComponent is None, not swComponent.isVisible(), not swComponent.isValid(), not swComponent.isDisplayable(), SwingUtilities.getWindowAncestor(swComponent) is None))
 
-        # return (swComponent is None
-        #         or not swComponent.isVisible() or not swComponent.isValid() or not swComponent.isDisplayable()
-        #         or SwingUtilities.getWindowAncestor(swComponent) is None)
         return (swComponent is None
                 or not swComponent.isVisible() or not swComponent.isDisplayable() or SwingUtilities.getWindowAncestor(swComponent) is None)
 
@@ -5724,7 +5746,8 @@ Visit: %s (Author's site)
                                                                                "RESTORE",
                                                                                "dict_backup",
                                                                                lAllowTraversePackages=True,
-                                                                               lAllowTraverseApplications=True)
+                                                                               lAllowTraverseApplications=True,
+                                                                               lInvisibles=True)
 
                     selectedBackupFile = None if selectedBackupFileStr is None else File(selectedBackupFileStr)
                     if selectedBackupFile is None or not selectedBackupFile.exists():
@@ -5746,6 +5769,10 @@ Visit: %s (Author's site)
                             except:
                                 if debug: dump_sys_error_to_md_console_and_errorlog()
                                 myPrint("B", "Error testing backup config file...: '%s'" %(sys.exc_info()[1]))
+
+                            if debug:
+                                for key in _testConfigFileParams.keys():
+                                    myPrint("B", "@@ Key:", key, _testConfigFileParams.get(key))
 
                             restoreBuild =  _testConfigFileParams.get("__%s_extension" %(myModuleID), None)
                             lastSavedFileUUID = _testConfigFileParams.get(GlobalVars.Strings.PARAMETER_FILEUUID, None)
@@ -8011,6 +8038,11 @@ Visit: %s (Author's site)
                     NAB.jlst.clearSelection()
 
                 # ######################################################################################################
+                if event.getActionCommand().lower().startswith("page setup"):
+                    myPrint("DB", "... performing printer page setup routines")
+                    pageSetup()
+
+                # ######################################################################################################
                 if event.getActionCommand().lower().startswith("store"):
                     myPrint("DB", "...storing account list selection into memory...")
                     NAB.migratedParameters = False
@@ -8646,6 +8678,11 @@ Visit: %s (Author's site)
             NAB.menuItemShowPrintIcon.addActionListener(NAB.saveActionListener)
             NAB.menuItemShowPrintIcon.setToolTipText("Enables / shows the print icon on the home screen widget...")
             menuO.add(NAB.menuItemShowPrintIcon)
+
+            menuItemPS = MyJMenuItem("Page Setup")
+            menuItemPS.setToolTipText("Printer Page Setup....")
+            menuItemPS.addActionListener(NAB.saveActionListener)
+            menuO.add(menuItemPS)
 
             menuItemBackup = MyJMenuItem("Backup Config")
             menuItemBackup.setMnemonic(KeyEvent.VK_B)
@@ -9857,7 +9894,7 @@ Visit: %s (Author's site)
 
                     genericSwingEDTRunner(False, False,
                                           self.moneydanceContext.getUI().firstMainFrame.setStatus,
-                                          ">> StuWareSoftSystems - %s:%s runtime extension installing......." %(self.myModuleID.capitalize(),GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME.title()),-1.0)
+                                          ">> StuWareSoftSystems - %s:%s runtime extension installing......." %(self.myModuleID.capitalize(), GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME.title()), -1.0)
 
                     myPrint("DB", "SPECIAL: post-calling .firstMainFrame.setStatus()")
 
@@ -10604,17 +10641,17 @@ Visit: %s (Author's site)
                     try:
                         book.removeAccountListener(self)
                     except:
-                        e, exc_value, exc_traceback = sys.exc_info()                                                    # noqa
+                        e_type, exc_value, exc_traceback = sys.exc_info()                                               # noqa
                         myPrint("B", "@@ ERROR calling .removeAccountListener() on:", self)
-                        myPrint("B", "Error:", e)
+                        myPrint("B", "Error:", exc_value)
                         myPrint("B", ".. will ignore and continue")
 
                     try:
                         book.getCurrencies().removeCurrencyListener(self)
                     except:
-                        e, exc_value, exc_traceback = sys.exc_info()                                                    # noqa
+                        e_type, exc_value, exc_traceback = sys.exc_info()                                               # noqa
                         myPrint("B", "@@ ERROR calling .removeCurrencyListener() on:", self)
-                        myPrint("B", "Error:", e)
+                        myPrint("B", "Error:", exc_value)
                         myPrint("B", ".. will ignore and continue")
                 else:
                     myPrint("DB", ".. deactivateListeners().. SKIPPING removing myself as (HomePageView) AccountBook & Currency listener(s) - as already NOT active... Book:", book)
