@@ -11,6 +11,8 @@ global _THIS_IS_, _QuickAbortThisScriptException, _specialPrint, _decodeCommand,
 global _getExtensionPreferences, _saveExtensionPreferences
 global debug
 
+global _getFieldByReflection, _ALL_OBSERVED_BOOKS
+
 global destroyOldFrames, myPrint        # Pull these in from main toolbox code (will only exist if toolbox was launched)
 try:
     myPrint("DB", "attempting .unload() script")
@@ -21,3 +23,4 @@ except:
                   "BUT key objects NOT detected in my namespace (or extension is not running) - exiting..\n" %(_THIS_IS_))
 del _THIS_IS_, _specialPrint, _QuickAbortThisScriptException, _decodeCommand, _HANDLE_EVENT_ENABLED_IF_REQUESTED
 del _getExtensionPreferences, _saveExtensionPreferences
+del _getFieldByReflection, _ALL_OBSERVED_BOOKS

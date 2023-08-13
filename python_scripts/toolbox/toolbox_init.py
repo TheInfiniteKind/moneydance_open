@@ -46,23 +46,95 @@ def _decodeCommand(passedEvent):
             param = uri[theIdx+1:]
     return command, param
 
+from java.lang import NoSuchFieldException, NoSuchMethodException                                                       # noqa
+from java.lang.reflect import Modifier                                                                                  # noqa
+
+def _getFieldByReflection(theObj, fieldName, isInt=False):
+    try: theClass = theObj.getClass()
+    except TypeError: theClass = theObj     # This catches where the object is already the Class
+    reflectField = None
+    while theClass is not None:
+        try:
+            reflectField = theClass.getDeclaredField(fieldName)
+            break
+        except NoSuchFieldException:
+            theClass = theClass.getSuperclass()
+    if reflectField is None: raise Exception("ERROR: could not find field: %s in class hierarchy" %(fieldName))
+    if Modifier.isPrivate(reflectField.getModifiers()): reflectField.setAccessible(True)
+    elif Modifier.isProtected(reflectField.getModifiers()): reflectField.setAccessible(True)
+    isStatic = Modifier.isStatic(reflectField.getModifiers())
+    if isInt: return reflectField.getInt(theObj if not isStatic else None)
+    return reflectField.get(theObj if not isStatic else None)
+
 
 from java.lang.ref import WeakReference
-_ALL_OBSERVED_BOOKS = []
+_ALL_OBSERVED_BOOKS = []                                                                                                # type: [WeakReference]
 def _observeMoneydanceObjects(_observedBooksRef):
-    _syncer = None
+    _BOOKIDX = 0; _SYNCERIDX = 1; _SYNCTASKSIDX = 2
     _book = moneydance.getCurrentAccountBook()
-    if _book is not None:
+    _syncer = None
+    wr_syncerThreads = []
+
+    if _book is None:
+        if debug: _specialPrint("OBSERVED - Book is None - ignoring...")
+    else:
         lFoundRef = False
-        for _ref in _observedBooksRef:
-            if _ref[0].get() is not None and _ref[0].get() is _book:
+        iFoundObserved = -1
+        _foundRefObjects = None
+        for iFoundObserved in range(0, len(_observedBooksRef)):
+            _foundRefObjects = _observedBooksRef[iFoundObserved]
+            if _foundRefObjects[_BOOKIDX] is None: raise Exception("LOGIC ERROR: _foundRefObjects[%s] is None?!" %(_BOOKIDX))
+            if _foundRefObjects[_BOOKIDX].get() is not None and _foundRefObjects[_BOOKIDX].get() is _book:
                 lFoundRef = True
                 break
-        if not lFoundRef:
-            _syncer = _book.getSyncer()
-            _observedBooksRef.append([WeakReference(_book), WeakReference(_syncer)])
-    if debug: _specialPrint("OBSERVED (WeakReference) for book: %s, syncer: %s. (Now contains [%s])" %(_book, _syncer, len(_ALL_OBSERVED_BOOKS)))
-    del _book, _syncer
+
+        _syncer = _book.getSyncer()
+        if _syncer is not None:
+            try:
+                sThread = _getFieldByReflection(_syncer, "syncThread")                                              # up to MD2023.2(5007)
+                if sThread is not None:
+                    wr_syncerThreads.append(WeakReference(sThread))
+                del sThread
+            except:
+                sTasks = _getFieldByReflection(_syncer, "syncTasks")                                                # MD2023.2(5008 onwards)
+                if sTasks is not None and len(sTasks) > 0:
+                    for sTask in sTasks:
+                        wr_syncerThreads.append(WeakReference(sTask))
+                        del sTask
+                del sTasks
+
+        if lFoundRef:
+            if debug: _specialPrint("OBSERVED book: '%s' - already found in WeakReference list..." %(_book))
+            if _syncer is not None and _foundRefObjects[_SYNCERIDX].get() is None:
+                if debug: _specialPrint("... OBSERVED book: '%s' - updating observed Syncer ref with: %s" %(_book, _syncer))
+                _observedBooksRef[iFoundObserved][_SYNCERIDX] = WeakReference(_syncer)
+
+            if (len([_st.get() for _st in wr_syncerThreads if _st.get() is not None])
+                    > len([_st.get() for _st in _foundRefObjects[_SYNCTASKSIDX] if _st.get() is not None])):
+                if debug: _specialPrint("... OBSERVED book: '%s' - updating observed Syncer Thread(s) ref(s) with: %s" %(_book, wr_syncerThreads))
+                _observedBooksRef[iFoundObserved][_SYNCTASKSIDX] = wr_syncerThreads
+        else:
+            _refsToAppend = [WeakReference(_book), WeakReference(_syncer), wr_syncerThreads]
+            _observedBooksRef.append(_refsToAppend)
+            if debug:
+                _specialPrint("OBSERVED NEW (WeakReference) for book: '%s', syncer: %s. syncerThread(s): %s"
+                              %(_refsToAppend[_BOOKIDX].get(),
+                                _refsToAppend[_SYNCERIDX].get(),
+                                [_st.get() for _st in _refsToAppend[_SYNCTASKSIDX]]))
+            del _refsToAppend
+
+        del _foundRefObjects
+
+    if debug:
+        _specialPrint("OBSERVED - Observer now contains %s entries)" %(len(_ALL_OBSERVED_BOOKS)))
+        for _foundRefObjects in _ALL_OBSERVED_BOOKS:
+            _specialPrint("...OBSERVED ENTRY: book: '%s', syncer: %s. syncerThreads: %s"
+                          %(_foundRefObjects[_BOOKIDX].get(),
+                            _foundRefObjects[_SYNCERIDX].get(),
+                            [_st.get() for _st in _foundRefObjects[_SYNCTASKSIDX]]))
+            del _foundRefObjects
+
+    del _book, _syncer, wr_syncerThreads
 
 
 _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)

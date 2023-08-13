@@ -185,11 +185,13 @@
 #               added call to .showURL("moneydance:fmodule:extract_data:disable_events") and enable_events when restarting dataset....
 #               Deprecated DetectAndChangeMacTabbingMode class to avoid PyBytecode-approach: java.lang.RuntimeException: java.lang.RuntimeException: For unknown reason, too large method code couldn't be resolved
 #               Added new DetectMobileAppTxnFiles class...; Added new advanced_options_encrypt_file_into_sync_folder() feature
-#               Deprectated: advanced_options_set_check_days()
+#               Deprecated: advanced_options_set_check_days()
 #               NOTE: MD2023.2(5008+) KOTLIN ALL uses Java 20.0.1 on Mac. Thread.stop() no longer work affects ManuallyCloseAndReloadDataset's ability to kill Syncer Threads.. :-(
 #               Tweak to detect_fix_txns_assigned_root (removed detect_non_hier_sec_acct_or_orphan_txns() check).
 #               Tweaks to class ManuallyCloseAndReloadDataset() to better handle (new) syncer threads when dataset closing
 #               Enhanced _init, _handle_event, _invoke (etc).py scripts; Now maintain list of WeakReferences() to all observed books / syncer objects
+#               MD2023.2(5019) started using WeakReference()s to 'book' (as 'book' and 'bookRef')...
+
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -527,6 +529,7 @@ else:
 
     from java.io import ByteArrayInputStream, OutputStream, InputStream, BufferedOutputStream
     from java.net import URL, URLEncoder, URLDecoder                                                                        # noqa
+    from java.awt import Component                                                                                          # noqa
     from java.awt import GraphicsEnvironment, Rectangle, GraphicsDevice, Desktop, Event, GridBagConstraints, Window, Frame  # noqa
     from java.awt.event import ComponentAdapter, ItemListener, ItemEvent, HierarchyListener, ActionListener, MouseAdapter   # noqa
     from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector
@@ -588,7 +591,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5018
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5019
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3292,7 +3295,7 @@ Visit: %s (Author's site)
         _ALL_OBSERVED_BOOKS = []
         myPrint("B", "@@ resetting _ALL_OBSERVED_BOOKS (perhaps running as a script, not extension?)")
     try: _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
-    except: pass
+    except: myPrint("B", "NOPE: Could not execute _observeMoneydanceObjects().... ignoring....")
 
     # Now hitting method too large issue, so relocating code to toolbox_extra_code.py script file - no choice...!
     GlobalVars.EXTRA_CODE_INITIALISED = False
@@ -3653,22 +3656,39 @@ Visit: %s (Author's site)
         @staticmethod
         def clearWindowBookReferences(lClearCurrentBookToo=False):
             # type: (bool) -> bool
-            """Iterates all known AWT Windows, searching for 'book' and sets to None"""
+            """Iterates all known AWT Windows, searching for 'book' references (as 'book' / 'bookRef') and sets to None (or clears the WeakReference)"""
             for _win in Window.getWindows():
-                try:
-                    ref_book = getFieldByReflection(_win, "book")
-                    if (ref_book is not None
-                            and (lClearCurrentBookToo or ref_book is not MD_REF.getCurrentAccountBook())):
-                        if isinstance(_win, (SecondaryWindow, SecondaryFrame, SecondaryDialog)): clearTxt = "CLEARING"
-                        else: clearTxt = "IGNORING"
-                        myPrint("DB", "%s 'book' reference from: %s '%s' : %s @{:x} %s (Owner: %s:%s)\n".format(System.identityHashCode(ref_book))
-                                                                        %(clearTxt, type(_win), _win.getName(),
-                                                                        "** THIS BOOK **" if (ref_book is MD_REF.getCurrentAccountBook()) else "!! OLD BOOK !! ",
-                                                                        ref_book,
-                                                                        type(_win.getOwner()), (None if (_win.getOwner()) is None else _win.getOwner().getName())))
-                        if isinstance(_win, (SecondaryWindow, SecondaryFrame, SecondaryDialog)): setFieldByReflection(_win, "book", None)
+                if isinstance(_win, (Component, Window)): pass
+                for tryBookRefStr in ["book", "bookRef"]:
+                    wr_book = None
+                    try: ref_book = getFieldByReflection(_win, tryBookRefStr)
+                    except: continue
+                    if ref_book is not None:
+                        if isinstance(ref_book, WeakReference):
+                            wr_book = ref_book                                                                          # type: WeakReference
+                            ref_book = wr_book.get()                                                                    # type: AccountBook
+                        if (ref_book is not None and isinstance(ref_book, AccountBook)
+                                and (lClearCurrentBookToo or ref_book is not MD_REF.getCurrentAccountBook())):
+                            if isinstance(_win, (SecondaryWindow, SecondaryFrame, SecondaryDialog)): clearTxt = "CLEARING"
+                            else: clearTxt = "IGNORING"
+                            myPrint("DB", "%s 'book' %s from: %s '%s' : %s @{:x} %s (Owner: %s:%s)\n".format(System.identityHashCode(ref_book))
+                                                                            %(clearTxt,
+                                                                              "WeakReference" if (wr_book is not None) else "reference",
+                                                                              type(_win),
+                                                                              _win.getName(),
+                                                                              "** THIS BOOK **" if (ref_book is MD_REF.getCurrentAccountBook()) else "!! OLD BOOK !! ",
+                                                                              ref_book,
+                                                                              type(_win.getOwner()), (None if (_win.getOwner()) is None else _win.getOwner().getName())))
+                            if isinstance(_win, (SecondaryWindow, SecondaryFrame, SecondaryDialog)):
+                                try:
+                                    if wr_book is not None:
+                                        wr_book.clear()
+                                    else:
+                                        setFieldByReflection(_win, tryBookRefStr, None)
+                                except:
+                                    myPrint("B", "@@ Error clearing out reference to 'book' (ignoring/continuing)")
+                                    dump_sys_error_to_md_console_and_errorlog()
                     del ref_book
-                except: pass
             return True
 
         @staticmethod
@@ -3878,7 +3898,7 @@ Visit: %s (Author's site)
             myPrint("B", "Closed current dataset (book: %s)" %(wr_bookToClose.get()))
 
             if lKillAllFramesWithBookReferences:
-                myPrint("DB", "... clearing out old references to 'book' from Windows/Frames/JFrames etc....")
+                myPrint("DB", "... clearing out old references to 'book' (as 'book' / 'bookRef') from Windows/Frames/JFrames etc....")
                 ManuallyCloseAndReloadDataset.clearWindowBookReferences()
 
             if debug: myPrint("B", getJVMUsageStatistics())
@@ -27051,6 +27071,10 @@ now after saving the file, restart Moneydance
                 diagTxt = "Quick JVM Diagnostics:\n" \
                           " ---------------------\n\n"
 
+                myPrint("DB", "Calling garbage collection before QuickJVMDiags()....")
+                System.gc()
+                Thread.sleep(100)
+
                 diagTxt += getJVMUsageStatistics(True, True, True) + "\n\n"
 
                 diagTxt += "Threads:\n" \
@@ -27110,19 +27134,29 @@ now after saving the file, restart Moneydance
                 diagTxt += "\nOld Frames holding on to 'book' references....:\n" \
                            " ----------------------------------------------\n"
                 for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
-                    try:
-                        ref_book = getFieldByReflection(win, "book")
-                        if ref_book is not None:
-                            diagTxt += "%s %s %s '%s' @{:x} (Owner: %s:%s)\n".format(System.identityHashCode(ref_book)) \
-                                                                            %(pad("<<THIS BOOK>>" if (ref_book is MD_REF.getCurrentAccountBook()) else "!!OLD BOOK", 13, "!"),
-                                                                              pad(win.getName(),25), pad(type(win),70), pad(ref_book.getName(),70),
-                                                                              type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
-                        del ref_book
-                    except: pass
+                    for tryBookRefStr in ["book", "bookRef"]:
+                        try:
+                            wr_book = None
+                            ref_book = getFieldByReflection(win, tryBookRefStr)
+                            if ref_book is not None:
+                                if isinstance(ref_book, WeakReference):
+                                    wr_book = ref_book
+                                    ref_book = ref_book.get()
+                                if ref_book is not None and isinstance(ref_book, AccountBook):
+                                    diagTxt += "%s %s%s %s '%s' @{:x} (Owner: %s:%s)\n".format(System.identityHashCode(ref_book)) \
+                                                                                      %(pad("<<THIS BOOK>>" if (ref_book is MD_REF.getCurrentAccountBook()) else "!!OLD BOOK", 13, "!"),
+                                                                                        "" if wr_book is None else "(wr)",
+                                                                                        pad(win.getName(),25), pad(type(win),70), pad(ref_book.getName(),70),
+                                                                                        type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
+                            del ref_book
+                        except: pass
+
+                try: _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
+                except: myPrint("B", "NOPE: Could not execute _observeMoneydanceObjects().... ignoring....")
 
                 diagTxt += "\nObserved Book(s) [listing those alive out of %s]:\n" \
                            " --------------------------------------------------\n" %(len(_ALL_OBSERVED_BOOKS))
-                for wr_book, wr_syncer in _ALL_OBSERVED_BOOKS:
+                for wr_book, wr_syncer, wr_syncerThreads in _ALL_OBSERVED_BOOKS:
                     if wr_book.get() is not None:
                         diagTxt += "Observed Book: %s('%s') @{:x}\n".format(System.identityHashCode(wr_book.get())) \
                                    %(wr_book.get(), wr_book.get().getName())
@@ -27131,23 +27165,34 @@ now after saving the file, restart Moneydance
 
                     if wr_syncer.get() is not None:
                         wr_keepSyncing = WeakReference(getFieldByReflection(wr_syncer.get(), "keepSyncing"))
-                        wr_syncThreads = []
+                        wr_currentSyncThreads = []
                         if not isKotlinCompiledBuildAll():
                             wr_syncThread = WeakReference(getFieldByReflection(wr_syncer.get(), "syncThread"))
-                            wr_syncThreads.append(wr_syncThread)
+                            wr_currentSyncThreads.append(wr_syncThread)
                         else:
                             wr_syncTasks = WeakReference(getFieldByReflection(wr_syncer.get(), "syncTasks"))
                             for wr_syncTask in wr_syncTasks.get():
-                                wr_syncThreads.append(WeakReference(wr_syncTask))
+                                wr_currentSyncThreads.append(WeakReference(wr_syncTask))
 
                         diagTxt += "... Observed Syncer: %s(keepSyncing: %s, isSyncing: %s, isPausing: %s, isRunningInBackground: %s)\n"\
                                    %(wr_syncer.get(), wr_keepSyncing.get(), wr_syncer.get().isSyncing(), wr_syncer.get().isPausing(), wr_syncer.get().isRunningInBackground())
-                        for wr_syncThread in wr_syncThreads:
+
+                        for wr_syncThread in wr_currentSyncThreads:
                             if wr_syncThread.get() is not None:
-                                diagTxt += "....................: Observed Sync Thread: [id: %s, '%s', isAlive: %s]\n"\
+                                diagTxt += "....................: Sync Thread (attached to Observed Syncer):      [id: %s, '%s', isAlive: %s]\n"\
                                            %(wr_syncThread.get().getId(), wr_syncThread.get().getName(), wr_syncThread.get().isAlive())     # noqa
+                            else:
+                                diagTxt += "....................: Sync Thread (attached to Observed Syncer):      <gone away>\n"
+
                     else:
                         diagTxt += "... Observed Syncer: <gone away>\n"
+
+                    for wr_syncThread in wr_syncerThreads:
+                        if wr_syncThread.get() is not None:
+                            diagTxt += "....................: Observed Sync Thread (previously attached):     [id: %s, '%s', isAlive: %s]\n"\
+                                       %(wr_syncThread.get().getId(), wr_syncThread.get().getName(), wr_syncThread.get().isAlive())     # noqa
+                        else:
+                            diagTxt += "....................: Observed Sync Thread (previously attached):     <gone away>\n"
 
                 diagTxt += "\n<END>"
 

@@ -366,6 +366,12 @@ try:
             len_lines = sum(len(line) for line in readLines)
             buildString = "\n".join(readLines)
 
+            if debug:
+                if "settings" in internalDatasetPath.lower():
+                    myPrint("DB", ".... splitting file/text to peek by '&' delimiter for peeking.... (to disable, turn off debug)...")
+                    buildString = ("<TEXT HAS BEEN SPLIT BY '&' DELIMITER FOR THIS VIEWING (to disable, turn off debug mode)...>\n\n"
+                                   + buildString.replace("&", "&\n"))
+
             jif = QuickJFrame(_THIS_METHOD_NAME + "(%s lines, %s chars)" %(len(readLines), len_lines), buildString, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False).show_the_frame()
 
             txt = "Dataset file '%s' extracted/decrypted and shown to user" %(internalDatasetPath)

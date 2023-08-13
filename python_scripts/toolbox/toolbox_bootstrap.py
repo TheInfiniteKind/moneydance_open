@@ -83,10 +83,11 @@ _compiledExtn = "$py.class"
 _startTimeMs = System.currentTimeMillis()
 import os
 from org.python.core import BytecodeLoader
-from org.python.apache.commons.compress.utils import IOUtils
+from org.python.apache.commons.compress.utils import IOUtils as PythonIOUtils
 _launchedFile = _THIS_IS_ + _compiledExtn
 scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile))
-code = BytecodeLoader.makeCode(os.path.splitext(_launchedFile)[0], IOUtils.toByteArray(scriptStream), (_THIS_IS_ + _normalExtn))
+code = BytecodeLoader.makeCode(os.path.splitext(_launchedFile)[0], PythonIOUtils.toByteArray(scriptStream), (_THIS_IS_ + _normalExtn))
 scriptStream.close()
 exec(code)
 _specialPrint("BOOTSTRAP launched script in %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
+del PythonIOUtils, BytecodeLoader
