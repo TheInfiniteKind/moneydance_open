@@ -303,4 +303,12 @@ Menu - Auto Prune of Internal Backup files
 Menu - Disable Backup & Disclaimer warnings
     >> DISABLES all Toolbox's warnings about performing backups and disclaimer warnings - DISABLE AT YOUR OWN RISK!!!!!!
 
+Menu - Page Setup
+    >> Setup your printer
+
+Menu - Enable Observer
+    >> Enables special observer mode to capture (weak) references to key objects as they are created.
+       E.g. AccountBookWrapper, AccountBook, Syncer, Syncer's Threads....
+       Use CMD-/ to view details (special usage only). Normal users should not use / leave enabled
+
 Thanks for reading.....

@@ -12,7 +12,7 @@
     {
       "type" = "method"
       "method" = "invoke"
-      "script_file" = "security_performance_graph_invoke.py"
+      "script_file" = "security_performance_graph_invoke_handle_event.py"
     }
     {
       "type" = "method"

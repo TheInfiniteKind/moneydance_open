@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# This script combines bootstrap, invoke and handle_event method calls...
+# This script handles invoke and handle_event method calls, and can sometimes include a bootstrap.
+# You would only use/need this script if using script_info {"type" = "method", "method" = "invoke", "script_file" = "invoke.py"}
+# This gets called when moneydance.showURL() is called. It might get called when clicking on the menu item, depending on the combination of options used.
+# If you are using the ExtensionClass() method and an initializer, then you do not need this file...
+# Or this script can get triggered on MD events... (depends on script_info.dict)
 
 ###############################################################################
 # MIT License
@@ -27,18 +31,27 @@
 # SOFTWARE.
 ###############################################################################
 
+########################################################################################################################
+# common definitions / declarations
 if "__file__" in globals(): raise Exception("ERROR: This script should only be run as part of an extension!")
 if "moneydance_extension_parameter" not in globals(): raise Exception("ERROR: 'moneydance_extension_parameter' not found in globals()!")
 
-global System, RuntimeException, imp, builtins, AppEventManager
-global moneydance, moneydance_ui, moneydance_extension_parameter, moneydance_extension_loader
+global MD_REF, MD_REF_UI
+global sys, imp, builtins
+global System, Runtime, RuntimeException, Long, Boolean, Integer, Runnable, Thread, InterruptedException
+global Platform, Common, AppEventManager
+global moneydance_extension_parameter, moneydance_extension_loader
 global _THIS_IS_, _QuickAbortThisScriptException, _specialPrint, _decodeCommand, _HANDLE_EVENT_ENABLED_IF_REQUESTED
-global _getExtensionPreferences, _saveExtensionPreferences
+global _getExtensionDatasetSettings, _saveExtensionDatasetSettings
+global _getExtensionGlobalPreferences, _saveExtensionGlobalPreferences
+global _getFieldByReflection
+
 global debug
 
-try:
-    if "debug" not in globals(): debug = False
+########################################################################################################################
+# definitions unique to this script
 
+try:
     if not isinstance(moneydance_extension_parameter, basestring): moneydance_extension_parameter = ""
     cmd, cmdParam = _decodeCommand(moneydance_extension_parameter)
 
@@ -47,19 +60,6 @@ try:
         raise _QuickAbortThisScriptException
 
     respondToMDEvents = [AppEventManager.FILE_CLOSING]
-    # allMDEvents = ["md:file:closing",
-    #                "md:file:closed",
-    #                "md:file:opening",
-    #                "md:file:opened",
-    #                "md:file:presave",
-    #                "md:file:postsave",
-    #                "md:app:exiting",
-    #                "md:account:select",
-    #                "md:account:root",
-    #                "md:graphreport",
-    #                "md:viewbudget",
-    #                "md:viewreminders",
-    #                "md:licenseupdated"]
 
     lInvoke = lQuitAfter = lHandleEvent = False
     if moneydance_extension_parameter.startswith("md:"):
@@ -69,12 +69,12 @@ try:
             raise _QuickAbortThisScriptException
         else:
             _EXTN_PREF_KEY_AUTO_EXTRACT_WHEN_FILE_CLOSING = "auto_extract_when_file_closing"
-            if not _getExtensionPreferences().getBoolean(_EXTN_PREF_KEY_AUTO_EXTRACT_WHEN_FILE_CLOSING, False):
+            if not _getExtensionDatasetSettings().getBoolean(_EXTN_PREF_KEY_AUTO_EXTRACT_WHEN_FILE_CLOSING, False):
                 if debug: _specialPrint("handle_event() - Event: '%s' - 'auto_extract_when_file_closing' NOT SET - So Ignoring...." %(moneydance_extension_parameter))
                 raise _QuickAbortThisScriptException
             else:
                 lHandleEvent = True
-                _specialPrint("handle_event() - Event: '%s' Book: '%s', 'auto_extract_when_file_closing' is set >> EXECUTING" %(moneydance_extension_parameter, moneydance.getCurrentAccountBook()))
+                _specialPrint("handle_event() - Event: '%s' Book: '%s', 'auto_extract_when_file_closing' is set >> EXECUTING" %(moneydance_extension_parameter, MD_REF.getCurrentAccountBook()))
 
     else:
         lInvoke = True
@@ -100,15 +100,12 @@ try:
             _specialPrint("... Moneydance will remain running after auto extract completes...")
 
 
-    # Little trick as imported module will have it's own globals
-    builtins.moneydance = moneydance
-    builtins.moneydance_ui = moneydance_ui
+    ################################
+    # Copied from bootstrap code....
 
-    MDEL = "moneydance_extension_loader"
-    if MDEL in globals(): builtins.moneydance_extension_loader = moneydance_extension_loader
-
-    MDEP = "moneydance_extension_parameter"
-    if MDEP in globals(): builtins.moneydance_extension_parameter = moneydance_extension_parameter
+    # Set moneydance_extension_parameter when using bootstrap and you want to detect different menus within main code...
+    # moneydance_extension_parameter = ""                                                                               # noqa
+    # Don't set ^^^^^^^^^ as .invoke() command will be setting this.....!
 
     MD_EXTENSION_LOADER = moneydance_extension_loader
 
@@ -116,56 +113,32 @@ try:
     _compiledExtn = "$py.class"
 
     # Method to run/execute compiled code in current name space.
-    # import os
-    # from org.python.core import BytecodeLoader
-    # from org.python.apache.commons.compress.utils import IOUtils
-    # _launchedFile = _THIS_IS_ + _compiledExtn
-    # scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile))
-    # code = BytecodeLoader.makeCode(os.path.splitext(_launchedFile)[0], IOUtils.toByteArray(scriptStream), (_THIS_IS_ + _normalExtn))
-    # scriptStream.close()
-    # exec(code)
-
-    # Method to run/execute py script in current name space.
-    # try:
-    #     _launchedFile = _THIS_IS_ + _normalExtn;
-    #     scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile));
-    #     py = moneydance.getPythonInterpreter()
-    #     py.getSystemState().setClassLoader(MD_EXTENSION_LOADER)
-    #     py.set("moneydance_extension_loader", MD_EXTENSION_LOADER)
-    #     py.execfile(scriptStream)
-    #     scriptStream.close()
-    #     moneydance.resetPythonInterpreter(py)
-    # except RuntimeException as e:
-    #     if "method too large" in e.toString().lower():
-    #         raise Exception("@@ Sorry - script is too large for normal execution. Needs compiling first! @@".upper())
-    #     else: raise
-
-    # Method(s) to run/execute script via import. Loads into it's own module namespace
-    # ... Tries the compiled $py.class file first, then the original .py file
-
-    _launchedFile = _THIS_IS_ + _compiledExtn
-    scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile))
-    if scriptStream is None:
-        _specialPrint("@@ Will run normal (non)compiled script ('%s') @@" %(_launchedFile))
-        _launchedFile = _THIS_IS_ + _normalExtn
-        scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile))
-        _suffixIdx = 0
-    else:
-        _specialPrint("@@ Will run pre-compiled script for best launch speed ('%s') @@" %(_launchedFile))
-        _suffixIdx = 1
-
-    if scriptStream is None: raise Exception("ERROR: Could not get the script (%s) from within the mxt" %(_launchedFile))
-
     _startTimeMs = System.currentTimeMillis()
-    bootstrapped_extension = imp.load_module(_THIS_IS_,
-                                             scriptStream,
-                                             ("bootstrapped_" + _launchedFile),
-                                             imp.get_suffixes()[_suffixIdx])
-    _specialPrint("BOOTSTRAP launched script in %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
-    scriptStream.close()
+    _launchedFile = _THIS_IS_ + _compiledExtn
 
-    # if the extension is using an extension class, then pass pass back to Moneydance
-    try: moneydance_extension = bootstrapped_extension.moneydance_extension
-    except AttributeError: pass
+    _scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile))
+    if _scriptStream is None:
+        _launchedFile = _THIS_IS_ + _normalExtn
+        _scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_launchedFile))
+        if _scriptStream is not None:
+            _specialPrint("@@ BOOTSTRAP - will run normal (non)compiled script ('%s') @@" %(_launchedFile))
+            _pyi = _getFieldByReflection(MD_REF.getModuleForID(_THIS_IS_), "python")
+            _pyi.execfile(_scriptStream)
+            _scriptStream.close()
+            del _pyi
+    else:
+        _specialPrint("@@ BOOTSTRAP - will run pre-compiled script for best launch speed ('%s') @@" %(_launchedFile))
+        import os
+        from org.python.core import BytecodeLoader
+        from org.python.apache.commons.compress.utils import IOUtils as PythonIOUtils
+        _pyCode = BytecodeLoader.makeCode(os.path.splitext(_launchedFile)[0], PythonIOUtils.toByteArray(_scriptStream), (_THIS_IS_ + _normalExtn))
+        _scriptStream.close()
+        del PythonIOUtils, BytecodeLoader
+        exec(_pyCode)
+        del _pyCode
+    if _scriptStream is None: raise Exception("ERROR: Could not get the script (%s) from within the mxt" %(_launchedFile))
+
+    _specialPrint("BOOTSTRAP - launched script in %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
+    del _scriptStream, _normalExtn, _compiledExtn, _launchedFile, _startTimeMs
 
 except _QuickAbortThisScriptException: pass

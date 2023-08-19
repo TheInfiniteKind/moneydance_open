@@ -1,26 +1,60 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Initializer file for extension - this will only run from build 3056 onwards - otherwise ignored
+# Initializer script for extension - this will only run from build 3056 onwards - otherwise ignored
 
-global moneydance
+###############################################################################
+# MIT License
+#
+# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
 
-import sys                                                                                                              # noqa
+########################################################################################################################
+# common definitions / declarations
+if "__file__" in globals(): raise Exception("ERROR: This script should only be run as part of an extension!")
+global moneydance, moneydance_ui
+MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
+MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
+
+import sys
+reload(sys)                     # Dirty hack to eliminate UTF-8 coding errors
+sys.setdefaultencoding('utf8')  # Without this str() fails on unicode strings... NOTE: Builds MD2022(4040+) already do this...
+
 import imp                                                                                                              # noqa
 import __builtin__ as builtins                                                                                          # noqa
 import datetime                                                                                                         # noqa
-from java.lang import System, Runtime, RuntimeException, Long, Runnable, Thread, InterruptedException                   # noqa
+from java.lang import System, Runtime, RuntimeException, Long, Integer, Boolean, Runnable, Thread, InterruptedException # noqa
 from com.moneydance.util import Platform                                                                                # noqa
 from com.moneydance.apps.md.controller import Common                                                                    # noqa
 from com.moneydance.apps.md.controller import AppEventManager                                                           # noqa
-from java.io import File
 
+############ SET _THIS_IS_ and debug (default) BELOW ###
 global debug
-if "debug" not in globals(): debug = False
+if "debug" not in globals():
+    # if Moneydance is launched with -d, or this property is set, or extension is being (re)installed with Console open.
+    debug = (False or MD_REF.DEBUG or Boolean.getBoolean("moneydance.debug"))
 
 _THIS_IS_ = "toolbox"
-
 _HANDLE_EVENT_ENABLED_IF_REQUESTED = True
+############ SET _THIS_IS_, _HANDLE_EVENT_ENABLED_IF_REQUESTED, and debug (default) ABOVE ###
 
 class _QuickAbortThisScriptException(Exception): pass
 
@@ -30,6 +64,9 @@ def _specialPrint(_what):
     System.err.write(_THIS_IS_ + ":" + dt + ": ")
     System.err.write(_what)
     System.err.write("\n")
+
+
+if debug: _specialPrint("** DEBUG IS ON **")
 
 def _decodeCommand(passedEvent):
     param = ""
@@ -67,22 +104,81 @@ def _getFieldByReflection(theObj, fieldName, isInt=False):
     return reflectField.get(theObj if not isStatic else None)
 
 
+from com.infinitekind.util import StreamTable
+from com.infinitekind.tiksync import SyncRecord
+_EXTN_PREF_KEY = "stuwaresoftsystems" + "." + _THIS_IS_
+
+def _getExtensionDatasetSettings():
+    # type: () -> SyncRecord
+    _extnSettings =  MD_REF.getCurrentAccountBook().getLocalStorage().getSubset(_EXTN_PREF_KEY)
+    if debug: _specialPrint("Retrieved Extension Dataset Settings from LocalStorage: %s" %(_extnSettings))
+    return _extnSettings
+
+def _saveExtensionDatasetSettings(newExtnSettings):
+    # type: (SyncRecord) -> None
+    if not isinstance(newExtnSettings, SyncRecord):
+        raise Exception("ERROR: 'newExtnSettings' is not a SyncRecord (given: '%s')" %(type(newExtnSettings)))
+    _localStorage = MD_REF.getCurrentAccountBook().getLocalStorage()
+    _localStorage.put(_EXTN_PREF_KEY, newExtnSettings)
+    if debug: _specialPrint("Stored Extension Dataset Settings into LocalStorage: %s" %(newExtnSettings))
+
+def _getExtensionGlobalPreferences():
+    # type: () -> StreamTable
+    _extnPrefs =  MD_REF.getPreferences().getTableSetting(_EXTN_PREF_KEY, StreamTable())
+    if debug: _specialPrint("Retrieved Extension Global Preference: %s" %(_extnPrefs))
+    return _extnPrefs
+
+def _saveExtensionGlobalPreferences(newExtnPrefs):
+    # type: (StreamTable) -> None
+    if not isinstance(newExtnPrefs, StreamTable):
+        raise Exception("ERROR: 'newExtnPrefs' is not a StreamTable (given: '%s')" %(type(newExtnPrefs)))
+    MD_REF.getPreferences().setSetting(_EXTN_PREF_KEY, newExtnPrefs)
+    if debug: _specialPrint("Stored Extension Global Preferences: %s" %(newExtnPrefs))
+
+########################################################################################################################
+# definitions unique to this script
+
+
+def returnPathStrings(fileReference, arePathsIdentical=False):
+    _pathStr = ""
+    if fileReference is not None and isinstance(fileReference, File):
+        _pathStr = "'%s'" %(fileReference.getAbsolutePath())
+        if fileReference.getAbsolutePath() != fileReference.getCanonicalPath():
+            _pathStr += " (alias to: '%s')" %(fileReference.getCanonicalPath())
+
+    if arePathsIdentical: return (fileReference.getAbsolutePath() == fileReference.getCanonicalPath())
+    return _pathStr
+
+
 from java.lang.ref import WeakReference
-_ALL_OBSERVED_BOOKS = []                                                                                                # type: [WeakReference]
-def _observeMoneydanceObjects(_observedBooksRef):
-    _BOOKIDX = 0; _SYNCERIDX = 1; _SYNCTASKSIDX = 2
-    _book = moneydance.getCurrentAccountBook()
+_ALL_OBSERVED_BOOKS = []    # type: [[WeakReference, WeakReference, WeakReference, [WeakReference]]]
+
+def _observeMoneydanceObjects(_observedBooksRef, _init=False):
+    # type: ([[WeakReference, WeakReference, WeakReference, [WeakReference]]], bool) -> None
+    _EXTN_PREF_KEY_ENABLE_OBSERVER = "enable_observer"
+    if not _getExtensionGlobalPreferences().getBoolean(_EXTN_PREF_KEY_ENABLE_OBSERVER, False):
+        if debug: _specialPrint("_observeMoneydanceObjects() - doing nothing as '%s' not set..." %(_EXTN_PREF_KEY_ENABLE_OBSERVER))
+        return
+
+    if _init: _specialPrint("@@ OBSERVER MODE HAS BEEN ENABLED - Will weakly watch retained references to key objects as they are created (use Toolbox CMD-/ to view) @@")
+
+    _WRAPPERIDX = 0; _BOOKIDX = 1; _SYNCERIDX = 2; _SYNCTASKSIDX = 3
+    _wrapper = MD_REF.getCurrentAccounts()
+    _book = MD_REF.getCurrentAccountBook()       # This will always actually be _wrapper's .currentBook reference...
     _syncer = None
     wr_syncerThreads = []
 
-    if _book is None:
-        if debug: _specialPrint("OBSERVED - Book is None - ignoring...")
+    if _wrapper is None and _book is None:
+        if debug: _specialPrint("OBSERVED - Wrapper and Book are None - ignoring...")
+    elif _wrapper is None or _book is None:
+        if debug: _specialPrint("@@ OBSERVED - LOGIC ERROR - Somehow Wrapper(%s) or Book(%s) are None - ignoring @@" %("None" if _wrapper is None else "not none", _book))
     else:
         lFoundRef = False
         iFoundObserved = -1
         _foundRefObjects = None
         for iFoundObserved in range(0, len(_observedBooksRef)):
             _foundRefObjects = _observedBooksRef[iFoundObserved]
+            if _foundRefObjects[_WRAPPERIDX] is None: raise Exception("LOGIC ERROR: _foundRefObjects[%s] is None?!" %(_WRAPPERIDX))
             if _foundRefObjects[_BOOKIDX] is None: raise Exception("LOGIC ERROR: _foundRefObjects[%s] is None?!" %(_BOOKIDX))
             if _foundRefObjects[_BOOKIDX].get() is not None and _foundRefObjects[_BOOKIDX].get() is _book:
                 lFoundRef = True
@@ -104,23 +200,30 @@ def _observeMoneydanceObjects(_observedBooksRef):
                 del sTasks
 
         if lFoundRef:
-            if debug: _specialPrint("OBSERVED book: '%s' - already found in WeakReference list..." %(_book))
+            # Wrapper and Book will never change (other than going to None). If found, check Syncer as that can change in session (by user)
+            if debug: _specialPrint("OBSERVED wrapper: (@%s) book: '%s'(@%s) - already found in WeakReference list..."
+                                    %(Integer.toHexString(System.identityHashCode(_wrapper)), _book, Integer.toHexString(System.identityHashCode(_book))))
             if _syncer is not None and _foundRefObjects[_SYNCERIDX].get() is None:
-                if debug: _specialPrint("... OBSERVED book: '%s' - updating observed Syncer ref with: %s" %(_book, _syncer))
+                if debug: _specialPrint("... OBSERVED wrapper: (@%s) book: '%s'(@%s) - updating observed Syncer ref with: %s"
+                                        %(Integer.toHexString(System.identityHashCode(_wrapper)), _book, Integer.toHexString(System.identityHashCode(_book)), _syncer))
                 _observedBooksRef[iFoundObserved][_SYNCERIDX] = WeakReference(_syncer)
 
             if (len([_st.get() for _st in wr_syncerThreads if _st.get() is not None])
                     > len([_st.get() for _st in _foundRefObjects[_SYNCTASKSIDX] if _st.get() is not None])):
-                if debug: _specialPrint("... OBSERVED book: '%s' - updating observed Syncer Thread(s) ref(s) with: %s" %(_book, wr_syncerThreads))
+                if debug: _specialPrint("... OBSERVED wrapper: (@%s) book: '%s'(@%s) - updating observed Syncer Thread(s) ref(s) with: %s"
+                                        %(Integer.toHexString(System.identityHashCode(_wrapper)), _book, Integer.toHexString(System.identityHashCode(_book)), wr_syncerThreads))
                 _observedBooksRef[iFoundObserved][_SYNCTASKSIDX] = wr_syncerThreads
         else:
-            _refsToAppend = [WeakReference(_book), WeakReference(_syncer), wr_syncerThreads]
+            _refsToAppend = [WeakReference(_wrapper), WeakReference(_book), WeakReference(_syncer), wr_syncerThreads]
             _observedBooksRef.append(_refsToAppend)
             if debug:
-                _specialPrint("OBSERVED NEW (WeakReference) for book: '%s', syncer: %s. syncerThread(s): %s"
-                              %(_refsToAppend[_BOOKIDX].get(),
+                _specialPrint("OBSERVED NEW (WeakReference) for wrapper: (@%s) book: '%s'(@%s), syncer: %s. syncerThread(s): %s"
+                              %(Integer.toHexString(System.identityHashCode(_refsToAppend[_WRAPPERIDX].get())),
+                                _refsToAppend[_BOOKIDX].get(),
+                                Integer.toHexString(System.identityHashCode(_refsToAppend[_BOOKIDX].get())),
                                 _refsToAppend[_SYNCERIDX].get(),
                                 [_st.get() for _st in _refsToAppend[_SYNCTASKSIDX]]))
+
             del _refsToAppend
 
         del _foundRefObjects
@@ -128,49 +231,23 @@ def _observeMoneydanceObjects(_observedBooksRef):
     if debug:
         _specialPrint("OBSERVED - Observer now contains %s entries)" %(len(_ALL_OBSERVED_BOOKS)))
         for _foundRefObjects in _ALL_OBSERVED_BOOKS:
-            _specialPrint("...OBSERVED ENTRY: book: '%s', syncer: %s. syncerThreads: %s"
-                          %(_foundRefObjects[_BOOKIDX].get(),
+            _specialPrint("...OBSERVED ENTRY: wrapper: (@%s) book: '%s'(@%s), syncer: %s. syncerThreads: %s"
+                          %(Integer.toHexString(System.identityHashCode(_foundRefObjects[_WRAPPERIDX].get())),
+                            _foundRefObjects[_BOOKIDX].get(),
+                            Integer.toHexString(System.identityHashCode(_foundRefObjects[_BOOKIDX].get())),
                             _foundRefObjects[_SYNCERIDX].get(),
                             [_st.get() for _st in _foundRefObjects[_SYNCTASKSIDX]]))
             del _foundRefObjects
 
-    del _book, _syncer, wr_syncerThreads
+    del _wrapper, _book, _syncer, wr_syncerThreads
 
 
-_observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
-
-
-from com.infinitekind.tiksync import SyncRecord
-_EXTN_PREF_KEY = "stuwaresoftsystems" + "." + _THIS_IS_
-
-def _getExtensionPreferences():
-    # type: () -> SyncRecord
-    _extnPrefs =  moneydance.getCurrentAccountBook().getLocalStorage().getSubset(_EXTN_PREF_KEY)
-    _specialPrint("Retrieved Extn Preferences from LocalStorage: %s" %(_extnPrefs))
-    return _extnPrefs
-
-def _saveExtensionPreferences(newExtnPrefs):
-    # type: (SyncRecord) -> None
-    if not isinstance(newExtnPrefs, SyncRecord):
-        raise Exception("ERROR: 'newExtnPrefs' is not a SyncRecord (given: '%s')" %(type(newExtnPrefs)))
-    _localStorage = moneydance.getCurrentAccountBook().getLocalStorage()
-    _localStorage.put(_EXTN_PREF_KEY, newExtnPrefs)
-    _specialPrint("Stored Extn Preferences into LocalStorage: %s"  %(newExtnPrefs))
-
-def returnPathStrings(fileReference, arePathsIdentical=False):
-    _pathStr = ""
-    if fileReference is not None and isinstance(fileReference, File):
-        _pathStr = "'%s'" %(fileReference.getAbsolutePath())
-        if fileReference.getAbsolutePath() != fileReference.getCanonicalPath():
-            _pathStr += " (alias to: '%s')" %(fileReference.getCanonicalPath())
-
-    if arePathsIdentical: return (fileReference.getAbsolutePath() == fileReference.getCanonicalPath())
-    return _pathStr
+_observeMoneydanceObjects(_ALL_OBSERVED_BOOKS, _init=True)
 
 
 _TOOLBOX_PREFERENCES_ZAPPER = "toolbox_preferences_zapper"
 
-keysToZap = moneydance.getPreferences().getVectorSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
+keysToZap = MD_REF.getPreferences().getVectorSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
 if keysToZap is None:
     msgx = "\n#############################################################################################################################\n"\
            "%s: %s_init.py initializer script running - performing some quick checks, logging diagnostics, then will exit....\n"\
@@ -184,8 +261,8 @@ else:
 
     for zapKey in keysToZap:
         _specialPrint(".. Zapping: '%s'" %(zapKey))
-        moneydance.getPreferences().setSetting(zapKey, None)
-    moneydance.getPreferences().setSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
+        MD_REF.getPreferences().setSetting(zapKey, None)
+    MD_REF.getPreferences().setSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
     _specialPrint("############# FINISHED ZAPPING ########################")
 
 def showMacAliasPath():
@@ -196,6 +273,9 @@ def showMacAliasPath():
     if (Platform.isOSX() and fRawPath.exists() and fRawPath.isDirectory() and isinstance(rawPath, basestring) and checkForStr in rawPath):
         return rawPath.replace(checkForStr, replaceWithStr)
     return None
+
+
+from java.io import File
 
 class QuickDiag(Runnable):
     def __init__(self, mdRef, _thisis):

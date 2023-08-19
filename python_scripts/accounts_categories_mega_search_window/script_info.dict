@@ -12,7 +12,7 @@
     {
       "type" = "method"
       "method" = "invoke"
-      "script_file" = "accounts_categories_mega_search_window_invoke.py"
+      "script_file" = "accounts_categories_mega_search_window_invoke_handle_event.py"
     }
     {
       "type" = "method"

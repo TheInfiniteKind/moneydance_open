@@ -39,7 +39,7 @@
 global os
 
 # Moneydance definitions
-global AccountBookWrapper, Common, GridC, IOUtils
+global AccountBookWrapper, Common, GridC, MDIOUtils
 global isKotlinCompiledBuild, convertBufferedSourceToInputStream
 
 # Java definitions
@@ -325,7 +325,7 @@ try:
 
         try:
             if lPeek:
-                readLines = IOUtils.readlines(LS.readFile(internalDatasetPath))     # This auto-closes in/out streams
+                readLines = MDIOUtils.readlines(LS.readFile(internalDatasetPath))     # This auto-closes in/out streams
             else:
                 LS.readFile(internalDatasetPath, FileOutputStream(tmpFile))         # This auto-closes in/out streams
             myPrint("B", "Successfully read from encrypted dataset file....")
@@ -603,7 +603,7 @@ try:
             try:
                 fis = syncFolder.readFile(syncSystemPath)
                 if lPeek:
-                    readLines = IOUtils.readlines(fis)                  # This will close the stream
+                    readLines = MDIOUtils.readlines(fis)                  # This will close the stream
                 else:
                     # syncFolder.writeUnencryptedFile(tmpFilePath, fis)
                     Files.copy(convertBufferedSourceToInputStream(fis), tmpCopyFile.toPath(), [StandardCopyOption.REPLACE_EXISTING])
@@ -612,7 +612,7 @@ try:
                 if fis is not None: fis.close(); fis = None
                 fis = syncFolder.readUnencrypted(syncSystemPath)
                 if lPeek:
-                    readLines = IOUtils.readlines(fis)                  # This will close the stream
+                    readLines = MDIOUtils.readlines(fis)                  # This will close the stream
                 else:
                     # syncFolder.writeUnencryptedFile(tmpFilePath, fis)
                     Files.copy(convertBufferedSourceToInputStream(fis), tmpCopyFile.toPath(), [StandardCopyOption.REPLACE_EXISTING])

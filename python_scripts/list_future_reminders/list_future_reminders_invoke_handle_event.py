@@ -50,49 +50,8 @@ global debug
 
 ########################################################################################################################
 # definitions unique to this script
-global _ALL_OBSERVED_BOOKS, _observeMoneydanceObjects
-global moneydance_invoke_called     # pulled in from main toolbox code (only executes if toolbox loaded/running)
+global moneydance_invoke_called
 
-
-try:
-    if not isinstance(moneydance_extension_parameter, basestring): moneydance_extension_parameter = ""
-    cmd, cmdParam = _decodeCommand(moneydance_extension_parameter)
-
-    if not _HANDLE_EVENT_ENABLED_IF_REQUESTED and not cmd.endswith("_events"):
-        _specialPrint("EVENT HANDLING IS DISABLED >> WILL IGNORE THIS EVENT..... (was passed '%s', Command: '%s', Parameter: '%s')" %(moneydance_extension_parameter, cmd, cmdParam))
-        raise _QuickAbortThisScriptException
-
-    respondToMDEvents = [AppEventManager.FILE_OPENED, AppEventManager.FILE_CLOSING]
-
-    lInvoke = lQuitAfter = lHandleEvent = False
-    if moneydance_extension_parameter.startswith("md:"):
-        if debug: _specialPrint("HANDLE_EVENT was passed '%s', Command: '%s', Parameter: '%s'" %(moneydance_extension_parameter, cmd, cmdParam))
-        if moneydance_extension_parameter not in respondToMDEvents:
-            if debug: _specialPrint("... ignoring: '%s'" %(moneydance_extension_parameter))
-            raise _QuickAbortThisScriptException
-        else:
-            lHandleEvent = True
-
-            _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
-            raise _QuickAbortThisScriptException
-
-    else:
-
-        lInvoke = True
-        _specialPrint("INVOKE was passed '%s', Command: '%s', Parameter: '%s'" %(moneydance_extension_parameter, cmd, cmdParam))
-
-        if cmd.lower() == "disable_events":
-            _HANDLE_EVENT_ENABLED_IF_REQUESTED = False
-            _specialPrint("DISABLE_EVENTS detected >> DISABLED event handling....")
-            raise _QuickAbortThisScriptException
-        elif cmd.lower() == "enable_events":
-            _HANDLE_EVENT_ENABLED_IF_REQUESTED = True
-            _specialPrint("ENABLE_EVENTS detected >> (RE)ENABLING event handling....")
-            raise _QuickAbortThisScriptException
-
-
-    try: moneydance_invoke_called(moneydance_extension_parameter)
-    except: pass
-
-
-except _QuickAbortThisScriptException: pass
+try: moneydance_invoke_called(moneydance_extension_parameter)
+except:
+    if debug: _specialPrint("@@ ERROR calling .invoke(%s)" %(moneydance_extension_parameter))

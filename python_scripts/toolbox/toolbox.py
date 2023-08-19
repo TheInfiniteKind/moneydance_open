@@ -189,9 +189,10 @@
 #               NOTE: MD2023.2(5008+) KOTLIN ALL uses Java 20.0.1 on Mac. Thread.stop() no longer work affects ManuallyCloseAndReloadDataset's ability to kill Syncer Threads.. :-(
 #               Tweak to detect_fix_txns_assigned_root (removed detect_non_hier_sec_acct_or_orphan_txns() check).
 #               Tweaks to class ManuallyCloseAndReloadDataset() to better handle (new) syncer threads when dataset closing
-#               Enhanced _init, _handle_event, _invoke (etc).py scripts; Now maintain list of WeakReferences() to all observed books / syncer objects
+#               Enhanced _init, _handle_event, _invoke (etc).py scripts; Now maintain list of WeakReferences() to all observed wrapper, book, syncer, thread objects
 #               MD2023.2(5019) started using WeakReference()s to 'book' (as 'book' and 'bookRef')...
-
+#               New menu for Observer Mode. Enable/Disable the capture of WeakReferences. Normally disabled.
+#               MD2023.2(5020) fixes - .getInternalAccountBooks() / getExternalAccountBooks() now returns [books]...
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -221,10 +222,20 @@ version_build = "1060"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
-if u"debug" in globals():
-    global debug
-else:
-    debug = False
+global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
+
+global MD_REF, MD_REF_UI
+if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
+if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
+if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
+if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+from java.lang import Boolean
+global debug
+if "debug" not in globals():
+    # if Moneydance is launched with -d, or this property is set, or extension is being (re)installed with Console open.
+    debug = (False or MD_REF.DEBUG or Boolean.getBoolean("moneydance.debug"))
+
 global toolbox_frame_
 # SET LINES ABOVE ^^^^
 
@@ -238,9 +249,6 @@ def checkObjectInNameSpace(objectName):
     return objectName in dir(builtins)
 
 
-global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
-MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
-MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if MD_REF is None: raise Exception(u"CRITICAL ERROR - moneydance object/variable is None?")
 if checkObjectInNameSpace(u"moneydance_extension_loader"):
     MD_EXTENSION_LOADER = moneydance_extension_loader
@@ -392,10 +400,12 @@ else:
     # COMMON IMPORTS #######################################################################################################
     # COMMON IMPORTS #######################################################################################################
 
-    # NOTE: As of MD2022(4040) python.getSystemState().setdefaultencoding("utf8") is called on the python interpreter at launch...
-    import sys
-    reload(sys)  # Dirty hack to eliminate UTF-8 coding errors
-    sys.setdefaultencoding('utf8')  # Dirty hack to eliminate UTF-8 coding errors. Without this str() fails on unicode strings...
+    global sys
+    if "sys" not in globals():
+        # NOTE: As of MD2022(4040), python.getSystemState().setdefaultencoding("utf8") is called on the python interpreter at script launch...
+        import sys
+        reload(sys)                     # Dirty hack to eliminate UTF-8 coding errors
+        sys.setdefaultencoding('utf8')  # Without this str() fails on unicode strings...
 
     import os
     import os.path
@@ -420,9 +430,10 @@ else:
     from com.infinitekind.moneydance.model import AccountUtil, AcctFilter, CurrencyType, CurrencyUtil
     from com.infinitekind.moneydance.model import Account, Reminder, ParentTxn, SplitTxn, TxnSearch, InvestUtil, TxnUtil
 
-    from com.moneydance.apps.md.controller import AccountBookWrapper
+    from com.moneydance.apps.md.controller import AccountBookWrapper, AppEventManager                                   # noqa
     from com.infinitekind.moneydance.model import AccountBook
     from com.infinitekind.tiksync import SyncRecord                                                                     # noqa
+    from com.infinitekind.util import StreamTable                                                                       # noqa
 
     from javax.swing import JButton, JScrollPane, WindowConstants, JLabel, JPanel, JComponent, KeyStroke, JDialog, JComboBox
     from javax.swing import JOptionPane, JTextArea, JMenuBar, JMenu, JMenuItem, AbstractAction, JCheckBoxMenuItem, JFileChooser
@@ -559,7 +570,8 @@ else:
     from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory
     from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
 
-    from com.infinitekind.util import StreamTable, StreamVector, IOUtils
+    from com.infinitekind.util import StreamVector
+    from com.infinitekind.util import IOUtils as MDIOUtils
     from com.infinitekind.tiksync import SyncableItem, Syncer
 
     from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem
@@ -591,7 +603,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5019
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5022
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -775,6 +787,9 @@ Visit: %s (Author's site)
             dump_sys_error_to_md_console_and_errorlog()
 
         return
+
+
+    if debug: myPrint("B", "** DEBUG IS ON **")
 
     def dump_sys_error_to_md_console_and_errorlog(lReturnText=False):
 
@@ -1017,7 +1032,7 @@ Visit: %s (Author's site)
     def isMDThemeVAQua():
         if Platform.isOSX():
             try:
-                # currentTheme = MD_REF.getUI().getCurrentTheme()       # Not reset when changed in-session as it's a final variable!
+                # currentTheme = MD_REF.getUI().getCurrentTheme()   # Not reset when changed in-session as it's a "private final" variable >> FIXED (not final) in MD2023.2(5008)
                 # if ".vaqua" in safeStr(currentTheme.getClass()).lower(): return True
                 currentTheme = ThemeInfo.themeForID(MD_REF.getUI(), MD_REF.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID))
                 if ".vaqua" in currentTheme.getClass().getName().lower(): return True                                   # noqa
@@ -3181,20 +3196,34 @@ Visit: %s (Author's site)
         myPrint("DB", "... finished calling the codeblock...")
 
     GlobalVars.EXTN_PREF_KEY = "stuwaresoftsystems" + "." + myModuleID
+    GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER = "enable_observer"
 
-    def getExtensionPreferences():
+    def getExtensionDatasetSettings():
         # type: () -> SyncRecord
-        _extnPrefs =  GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage().getSubset(GlobalVars.EXTN_PREF_KEY)
-        myPrint("DB", "Retrieved Extn Preferences from LocalStorage: %s" %(_extnPrefs))
+        _extnSettings =  GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage().getSubset(GlobalVars.EXTN_PREF_KEY)
+        myPrint("DB", "Retrieved Extension Dataset Settings from LocalStorage: %s" %(_extnSettings))
+        return _extnSettings
+
+    def saveExtensionDatasetSettings(newExtnSettings):
+        # type: (SyncRecord) -> None
+        if not isinstance(newExtnSettings, SyncRecord):
+            raise Exception("ERROR: 'newExtnSettings' is not a SyncRecord (given: '%s')" %(type(newExtnSettings)))
+        _localStorage = GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage()
+        _localStorage.put(GlobalVars.EXTN_PREF_KEY, newExtnSettings)
+        myPrint("DB", "Stored Extension Dataset Settings into LocalStorage: %s" %(newExtnSettings))
+
+    def getExtensionGlobalPreferences():
+        # type: () -> StreamTable
+        _extnPrefs =  GlobalVars.CONTEXT.getPreferences().getTableSetting(GlobalVars.EXTN_PREF_KEY, StreamTable())
+        myPrint("DB", "Retrieved Extension Global Preference: %s" %(_extnPrefs))
         return _extnPrefs
 
-    def saveExtensionPreferences(newExtnPrefs):
-        # type: (SyncRecord) -> None
-        if not isinstance(newExtnPrefs, SyncRecord):
-            raise Exception("ERROR: 'newExtnPrefs' is not a SyncRecord (given: '%s')" %(type(newExtnPrefs)))
-        _localStorage = GlobalVars.CONTEXT.getCurrentAccountBook().getLocalStorage()
-        _localStorage.put(GlobalVars.EXTN_PREF_KEY, newExtnPrefs)
-        myPrint("DB", "Stored Extn Preferences into LocalStorage: %s" %(newExtnPrefs))
+    def saveExtensionGlobalPreferences(newExtnPrefs):
+        # type: (StreamTable) -> None
+        if not isinstance(newExtnPrefs, StreamTable):
+            raise Exception("ERROR: 'newExtnPrefs' is not a StreamTable (given: '%s')" %(type(newExtnPrefs)))
+        GlobalVars.CONTEXT.getPreferences().setSetting(GlobalVars.EXTN_PREF_KEY, newExtnPrefs)
+        myPrint("DB", "Stored Extension Global Preferences: %s" %(newExtnPrefs))
 
     # END COMMON DEFINITIONS ###############################################################################################
     # END COMMON DEFINITIONS ###############################################################################################
@@ -3310,12 +3339,12 @@ Visit: %s (Author's site)
         if MD_EXTENSION_LOADER is not None:
             # Try launching the extra code from within the MXT...
             _pyi = getFieldByReflection(MD_REF.getModuleForID(myModuleID), "python")
-            _scriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_extraCodeString))
-            if _scriptStream is not None:
+            extraCodeScriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_extraCodeString))
+            if extraCodeScriptStream is not None:
                 myPrint("DB", "About to launch extra code initialiser (via mxt)....")
-                _pyi.execfile(_scriptStream)
-                _scriptStream.close()
-            del _pyi, _scriptStream
+                _pyi.execfile(extraCodeScriptStream)
+                extraCodeScriptStream.close()
+            del _pyi, extraCodeScriptStream
 
         if not GlobalVars.EXTRA_CODE_INITIALISED and "__file__" in globals():
             # OK, so try launching the extra code from disk if running as a script....
@@ -3800,10 +3829,10 @@ Visit: %s (Author's site)
 
             myPrint("DB", "... Mimicking .setCurrentBook(None).... (without auto-backup etc)....")
 
-            MD_REF.fireAppEvent("md:file:closing")
+            MD_REF.fireAppEvent(AppEventManager.FILE_CLOSING)
             MD_REF.saveCurrentAccount()                         # Flush any current txns in memory and start a new sync record..
 
-            MD_REF.fireAppEvent("md:file:closed")
+            MD_REF.fireAppEvent(AppEventManager.FILE_CLOSED)
 
             # This will call syncer.stopSyncing() and syncer.compressLocalStorage()
             myPrint("DB", "... calling .cleanUp() ....")
@@ -5293,9 +5322,10 @@ Visit: %s (Author's site)
             del parentofDataset
 
             externalFiles = AccountBookUtil.getExternalAccountBooks()
-            for wrapper in externalFiles:
-                saveFiles[wrapper.getBook().getRootFolder().getCanonicalPath()] = True
-                externalDir = wrapper.getBook().getRootFolder().getParent()
+            for wrapperOrBook in externalFiles:
+                _book = wrapperOrBook if isinstance(wrapperOrBook, AccountBook) else wrapperOrBook.getBook()            # changed in MD2023.2(5020) to return [books]
+                saveFiles[_book.getRootFolder().getCanonicalPath()] = True
+                externalDir = _book.getRootFolder().getParent()
                 if os.path.exists(externalDir):
                     try:
                         dirList =  os.listdir(externalDir)
@@ -5309,6 +5339,7 @@ Visit: %s (Author's site)
                     except OSError:
                         myPrint("B","@@ Error accessing externalDir: '%s' - skipping...." %(externalDir))
                         errorDirs.append(externalDir)
+                del _book
 
             del externalFiles
 
@@ -5912,17 +5943,21 @@ Visit: %s (Author's site)
         if internalFiles.size() + externalFiles.size() > 1:
             textArray.append(u"\nOther MD Datasets I am aware of...:")
 
-        for wrapper in internalFiles:
-            if MD_REF.getUI().getCurrentAccounts() is not None and MD_REF.getUI().getCurrentAccounts().getBook() == wrapper.getBook():
+        for wrapperOrBook in internalFiles:
+            _book = wrapperOrBook if isinstance(wrapperOrBook, AccountBook) else wrapperOrBook.getBook()                # changed in MD2023.2(5020) to return [books]
+            if MD_REF.getUI().getCurrentAccounts() is not None and MD_REF.getUI().getCurrentAccounts().getBook() is _book:
                 pass
             else:
-                textArray.append(u"Internal file:           %s" %(wrapper.getBook().getRootFolder().getCanonicalPath()))
+                textArray.append(u"Internal file:           %s" %(_book.getRootFolder().getCanonicalPath()))
+            del _book
 
-        for wrapper in externalFiles:
-            if (MD_REF.getUI().getCurrentAccounts() is not None and MD_REF.getUI().getCurrentAccounts().getBook() == wrapper.getBook()):
+        for wrapperOrBook in externalFiles:
+            _book = wrapperOrBook if isinstance(wrapperOrBook, AccountBook) else wrapperOrBook.getBook()                # changed in MD2023.2(5020) to return [books]
+            if (MD_REF.getUI().getCurrentAccounts() is not None and MD_REF.getUI().getCurrentAccounts().getBook() is _book):
                 pass
             else:
-                textArray.append(u"External file:           %s" %(wrapper.getBook().getRootFolder().getCanonicalPath()))
+                textArray.append(u"External file:           %s" %(_book.getRootFolder().getCanonicalPath()))
+            del _book
 
         if internalFiles.size() + externalFiles.size() > 1:
             textArray.append(u"\n")
@@ -8002,7 +8037,7 @@ Visit: %s (Author's site)
 
             toFile = File(copyToFile)
             try:
-                IOUtils.copy(self.theFile, toFile)
+                MDIOUtils.copy(self.theFile, toFile)
                 myPrint("B", "%s copied to %s" %(_theFileAsStr, copyToFile))
                 if os.path.exists(copyToFile):
                     play_the_money_sound()
@@ -9335,7 +9370,7 @@ Visit: %s (Author's site)
 
     def get_orphaned_extension():
 
-        extension_prefs = MD_REF.getUI().getPreferences().getTableSetting("gen.fmodules",StreamTable())
+        extension_prefs = MD_REF.getUI().getPreferences().getTableSetting("gen.fmodules", StreamTable())
 
         # Get all keys in config dict
         st,tk = read_preferences_file(lSaveFirst=True)  # Must flush memory to disk first before we read the file....
@@ -10088,7 +10123,7 @@ Visit: %s (Author's site)
         newFile = File(themeFile.getParent(), newFileName)
 
         try:
-            IOUtils.copy(themeFile, newFile)
+            MDIOUtils.copy(themeFile, newFile)
             myPrint("B", "Custom theme file: backup / copied to %s prior to deletion...."%newFileName)
             return True
         except:
@@ -10111,7 +10146,7 @@ Visit: %s (Author's site)
             newFileName = copy_localStorage_filename+get_filename_addition() + "_$SAVED$"
             newFile = File(newFileName)
 
-            IOUtils.copy(localStorage_file, newFile)
+            MDIOUtils.copy(localStorage_file, newFile)
             myPrint("DB", "LocalStorage() ./safe/settings copied to %s prior to any changes...." %(newFileName))
             return True
 
@@ -10131,7 +10166,7 @@ Visit: %s (Author's site)
             newFileName = os.path.splitext(configFile.getName())[0]+get_filename_addition()+os.path.splitext(configFile.getName())[1]+"_$SAVED$"
             newFile = File(configFile.getParent(), newFileName)
 
-            IOUtils.copy(configFile, newFile)
+            MDIOUtils.copy(configFile, newFile)
             myPrint("DB", "config.dict backup/copy made to %s prior to changes...." %(newFileName))
             return True
         except:
@@ -10973,10 +11008,10 @@ Visit: %s (Author's site)
 
             class ScriptRunnable(Runnable):
 
-                def __init__(self, _context, _python, _scriptStream, _scriptToRun):
+                def __init__(self, _context, _python, _runnableScriptStream, _scriptToRun):
                     self.context = _context
                     self.python = _python
-                    self.scriptStream = _scriptStream
+                    self.scriptStream = _runnableScriptStream
                     self.scriptToRun = _scriptToRun
 
                 def run(self):  # NOTE: This will not start in the EDT (the same as Moneybot Console)
@@ -13979,11 +14014,13 @@ Visit: %s (Author's site)
         thisDataset = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
 
         filesToRemove = []
-        for wrapper in AccountBookUtil.getInternalAccountBooks():
-            internal_filepath = wrapper.getBook().getRootFolder().getCanonicalPath()
+        for wrapperOrBook in AccountBookUtil.getInternalAccountBooks():                                                 # MD2023.2(5020) fix
+            _book = wrapperOrBook if isinstance(wrapperOrBook, AccountBook) else wrapperOrBook.getBook()                # changed in MD2023.2(5020) to return [books]
+            internal_filepath = _book.getRootFolder().getCanonicalPath()
             if internal_filepath == thisDataset:
                 continue
             filesToRemove.append(internal_filepath)
+            del _book
 
         if len(filesToRemove) < 1:
             txt = "DELETE internal (default location) Dataset(s) from DISK - You have no files to DELETE - no changes made...."
@@ -14248,20 +14285,20 @@ Visit: %s (Author's site)
             # MD doesn't call .unload() or .cleanup(), so if uninstalled I need to close myself
             fm, pyObject = self.getMyself()
             myPrint("DB", "Checking myself: %s : %s" %(fm, pyObject))
-            # if (fm is None or pyObject is None) and appEvent != "md:app:exiting":
-            if (fm is None or (self.theFrame.isRunTimeExtension and pyObject is None)) and appEvent != "md:app:exiting":
+            if (((fm is None and "__file__" not in globals()) or (self.theFrame.isRunTimeExtension and pyObject is None))
+                    and appEvent != AppEventManager.APP_EXITING):
                 myPrint("B", "@@ ALERT - I've detected that I'm no longer installed as an extension - I will deactivate.. (switching event code to :close)")
                 appEvent = "%s:customevent:close" %self.myModuleID
 
             # I am only closing Toolbox when a new Dataset is opened.. I was calling it on MD Close/Exit, but it seemed to cause an Exception...
-            if (appEvent == "md:file:closing"
-                    or appEvent == "md:file:closed"
-                    or appEvent == "md:file:opening"
-                    or appEvent == "md:app:exiting"):
+            if (appEvent == AppEventManager.FILE_CLOSING
+                    or appEvent == AppEventManager.FILE_CLOSED
+                    or appEvent == AppEventManager.FILE_OPENING
+                    or appEvent == AppEventManager.APP_EXITING):
                 myPrint("DB","@@ Ignoring MD handleEvent: %s" %(appEvent))
 
-            elif (appEvent == "md:file:opened"
-                  or (appEvent == "md:licenseupdated" and MD_REF.isRegistered())
+            elif (appEvent == AppEventManager.FILE_OPENED
+                  or (appEvent == AppEventManager.LICENSE_UPDATED and MD_REF.isRegistered())
                   or appEvent == "%s:customevent:close" %(self.myModuleID)):
                 if debug:
                     myPrint("DB","MD event %s triggered.... Will call GenericWindowClosingRunnable (via the Swing EDT) to push a WINDOW_CLOSING Event to %s to close itself (while I exit back to MD quickly) ...." %(appEvent, self.myModuleID))
@@ -18876,7 +18913,7 @@ now after saving the file, restart Moneydance
                         try:
                             outStream = FileOutputStream(File(outputPath))
                             inStream = convertBufferedSourceToInputStream(MD_REF.getCurrentAccountBook().getLocalStorage().openFileForReading(attachTag))
-                            IOUtils.copyStream(inStream, outStream)
+                            MDIOUtils.copyStream(inStream, outStream)
                             outStream.close()
                             inStream.close()
                             textRecords.append([txn.getAccount().getAccountType(), txn.getAccount().getAccountName(), txn.getDateInt(),
@@ -22922,14 +22959,14 @@ now after saving the file, restart Moneydance
             except IOException as e:
                 myPrint("B", "nio atomic move failed.  Reverting to old-fashioned copy-and-move. Error was:", e)
                 try:
-                    IOUtils.copyDirectoryContents(fCurrentFilePath, fNewNamePath)
-                    IOUtils.deleteFolder(fCurrentFilePath)
+                    MDIOUtils.copyDirectoryContents(fCurrentFilePath, fNewNamePath)
+                    MDIOUtils.deleteFolder(fCurrentFilePath)
                     myPrint("B", "... copyDirectoryContents successful!")
                     success = True
                 except IOException as e2:
                     myPrint("B", "copy copyDirectoryContents FAILED!  Deleting destination and sticking with the original. Error was:", e2)
                     dump_sys_error_to_md_console_and_errorlog()
-                    IOUtils.deleteFolder(fNewNamePath)
+                    MDIOUtils.deleteFolder(fNewNamePath)
 
             if not success:
                 txt = "%s: File operation(s) failed (review console) - no changes made...." %(_THIS_METHOD_NAME)
@@ -24258,7 +24295,7 @@ now after saving the file, restart Moneydance
             return
 
         # reload latest preferences
-        extension_prefs = MD_REF.getUI().getPreferences().getTableSetting("gen.fmodules",None)
+        extension_prefs = MD_REF.getUI().getPreferences().getTableSetting("gen.fmodules", None)
         if not extension_prefs:
             txt = "DELETE ORPHANED EXTENSIONS - Error getting gen.fmodules setting - no changes made...."
             setDisplayStatus(txt, "R")
@@ -24917,7 +24954,7 @@ now after saving the file, restart Moneydance
             diag.updateMessages(newTitle=_msg, newStatus=_msg)
             try:
                 zipOut = ZipOutputStream(BufferedOutputStream(FileOutputStream(tmpFile), 65536))   # type: ZipOutputStream
-                IOUtils.zipRecursively(zipOut, currentBook.getRootFolder(), MyFilenameFilter())
+                MDIOUtils.zipRecursively(zipOut, currentBook.getRootFolder(), MyFilenameFilter())
                 zipOut.close()
                 output += "Current dataset backed up to: %s (stripping out txn and archive files)\n" %(tmpFile)
             except:
@@ -24955,9 +24992,9 @@ now after saving the file, restart Moneydance
             _msg = pad("Please wait: Restoring temporary backup to clone new dataset",_msgPad,padChar=".")
             diag.updateMessages(newTitle=_msg, newStatus=_msg)
 
-            tmpFolder = IOUtils.createTempFolder()
+            tmpFolder = MDIOUtils.createTempFolder()
             output += "Created temporary folder (for restore): %s\n" %(tmpFolder)
-            IOUtils.openZip(tmpFile, tmpFolder.getAbsolutePath())
+            MDIOUtils.openZip(tmpFile, tmpFolder.getAbsolutePath())
             output += "Unzipped temporary backup into: %s\n" %(tmpFolder)
             zipContents = tmpFolder.list(MyFilenameFilter())
             if zipContents is None or len(zipContents) < 1: raise Exception("ERROR: Zip file seems incorrect")
@@ -24965,7 +25002,7 @@ now after saving the file, restart Moneydance
 
             newBookFile = fNewNamePath
             if not tmpMDFile.renameTo(newBookFile):
-                IOUtils.copyFolder(tmpMDFile, newBookFile)
+                MDIOUtils.copyFolder(tmpMDFile, newBookFile)
                 output += "Renamed restored dataset to: %s\n" %(newBookFile)
 
             newWrapper = AccountBookWrapper.wrapperForFolder(newBookFile)   # type: AccountBookWrapper
@@ -26388,7 +26425,7 @@ now after saving the file, restart Moneydance
         toggleText = "ON"
 
         if not lForceON:
-            if md_debug or (props_debug is not None and props_debug!="false"):
+            if md_debug or (props_debug is not None and props_debug != "false"):
                 toggleText = "OFF"
 
             ask = MyPopUpDialogBox(toolbox_frame_,"DEBUG STATUS:",
@@ -27106,12 +27143,12 @@ now after saving the file, restart Moneydance
                         if not isKotlinCompiledBuildAll():
                             syncerThread = getFieldByReflection(syncer, "syncThread")
                             syncerThreadId = syncerThread.getId() if (syncerThread) else None
-                            diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s (keepSyncing: %s)\n" %(pad(syncerThread,40), rpad(syncerThreadId,4), syncer, syncer_keepSyncing)
+                            diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n" %(pad(syncerThread,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
                         else:
                             syncerTasks = getFieldByReflection(syncer, "syncTasks")
                             for sTask in syncerTasks:
                                 syncerThreadId = sTask.getId()
-                                diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s (keepSyncing: %s)\n" %(pad(sTask,40), rpad(syncerThreadId,4), syncer, syncer_keepSyncing)
+                                diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n" %(pad(sTask,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
                 except:
                     if debug:
                         myPrint("B", "@@ ERROR: Failed to get syncThread / syncTasks?")
@@ -27126,13 +27163,13 @@ now after saving the file, restart Moneydance
                     return 0
 
                 for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
-                    diagTxt += "%s %s isFocused: %s isVisible: %s isActive: %s isDisplayable: %s isShowing: %s (Owner: %s:%s)\n"\
+                    diagTxt += "%s %s isFocused: %s isVisible: %s isActive: %s isDisplayable: %s isShowing: %s (Owner: %s:%s) @{:x}(hash: %s)\n".format(System.identityHashCode(win))\
                                %(pad(type(win),70), pad(win.getName(),25),
                                  getYN(win.isFocused()), getYN(win.isVisible()), getYN(win.isActive()), getYN(win.isDisplayable()), getYN(win.isShowing()),
-                                 type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
+                                 type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()), System.identityHashCode(win))
 
-                diagTxt += "\nOld Frames holding on to 'book' references....:\n" \
-                           " ----------------------------------------------\n"
+                diagTxt += "\nOld Swing Containers holding on to 'book' references....:\n" \
+                           " ----------------------------------------------------------\n"
                 for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
                     for tryBookRefStr in ["book", "bookRef"]:
                         try:
@@ -27143,56 +27180,69 @@ now after saving the file, restart Moneydance
                                     wr_book = ref_book
                                     ref_book = ref_book.get()
                                 if ref_book is not None and isinstance(ref_book, AccountBook):
-                                    diagTxt += "%s %s%s %s '%s' @{:x} (Owner: %s:%s)\n".format(System.identityHashCode(ref_book)) \
+                                    diagTxt += "%s %s%s %s '%s' (Owner: %s:%s) (book hash: %s, win hash: %s) \n" \
                                                                                       %(pad("<<THIS BOOK>>" if (ref_book is MD_REF.getCurrentAccountBook()) else "!!OLD BOOK", 13, "!"),
                                                                                         "" if wr_book is None else "(wr)",
                                                                                         pad(win.getName(),25), pad(type(win),70), pad(ref_book.getName(),70),
-                                                                                        type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()))
+                                                                                        type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()),
+                                                                                        System.identityHashCode(ref_book), System.identityHashCode(win))
                             del ref_book
                         except: pass
 
-                try: _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
-                except: myPrint("B", "NOPE: Could not execute _observeMoneydanceObjects().... ignoring....")
+                if not getExtensionGlobalPreferences().getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False):
+                    diagTxt += "\n** Enable 'Observer' feature & restart MD to view retained references to Wrapper/Book/Syncer/Thread Objects **\n"
+                else:
 
-                diagTxt += "\nObserved Book(s) [listing those alive out of %s]:\n" \
-                           " --------------------------------------------------\n" %(len(_ALL_OBSERVED_BOOKS))
-                for wr_book, wr_syncer, wr_syncerThreads in _ALL_OBSERVED_BOOKS:
-                    if wr_book.get() is not None:
-                        diagTxt += "Observed Book: %s('%s') @{:x}\n".format(System.identityHashCode(wr_book.get())) \
-                                   %(wr_book.get(), wr_book.get().getName())
-                    else:
-                        diagTxt += "Observed Book: <gone away>\n"
+                    try: _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
+                    except:
+                        myPrint("B", "NOPE: Could not execute _observeMoneydanceObjects().... ignoring....")
+                        dump_sys_error_to_md_console_and_errorlog()
+                        diagTxt += "\n\n@@ Failed to execute _observeMoneydanceObjects() method. Results may be incomplete! (review console) - (NOTE: ONLY WORKS WHEN RUNNING AS EXTENSION) @@\n\n"
 
-                    if wr_syncer.get() is not None:
-                        wr_keepSyncing = WeakReference(getFieldByReflection(wr_syncer.get(), "keepSyncing"))
-                        wr_currentSyncThreads = []
-                        if not isKotlinCompiledBuildAll():
-                            wr_syncThread = WeakReference(getFieldByReflection(wr_syncer.get(), "syncThread"))
-                            wr_currentSyncThreads.append(wr_syncThread)
+                    for wr_wrapper, wr_book, wr_syncer, wr_syncerThreads in _ALL_OBSERVED_BOOKS:
+
+                        if wr_wrapper.get() is not None:
+                            diagTxt += "Observed Wrapper: @{:x}(hash: %s)\n".format(System.identityHashCode(wr_wrapper.get())) \
+                                       %(System.identityHashCode(wr_wrapper.get()))
                         else:
-                            wr_syncTasks = WeakReference(getFieldByReflection(wr_syncer.get(), "syncTasks"))
-                            for wr_syncTask in wr_syncTasks.get():
-                                wr_currentSyncThreads.append(WeakReference(wr_syncTask))
+                            diagTxt += "Observed Wrapper: <gone away>\n"
 
-                        diagTxt += "... Observed Syncer: %s(keepSyncing: %s, isSyncing: %s, isPausing: %s, isRunningInBackground: %s)\n"\
-                                   %(wr_syncer.get(), wr_keepSyncing.get(), wr_syncer.get().isSyncing(), wr_syncer.get().isPausing(), wr_syncer.get().isRunningInBackground())
+                        if wr_book.get() is not None:
+                            diagTxt += "... Observed Book: %s('%s') @{:x}(hash: %s)\n".format(System.identityHashCode(wr_book.get())) \
+                                       %(wr_book.get(), wr_book.get().getName(), System.identityHashCode(wr_book.get()))
+                        else:
+                            diagTxt += "... Observed Book: <gone away>\n"
 
-                        for wr_syncThread in wr_currentSyncThreads:
-                            if wr_syncThread.get() is not None:
-                                diagTxt += "....................: Sync Thread (attached to Observed Syncer):      [id: %s, '%s', isAlive: %s]\n"\
-                                           %(wr_syncThread.get().getId(), wr_syncThread.get().getName(), wr_syncThread.get().isAlive())     # noqa
+                        if wr_syncer.get() is not None:
+                            wr_keepSyncing = WeakReference(getFieldByReflection(wr_syncer.get(), "keepSyncing"))
+                            wr_currentSyncThreads = []
+                            if not isKotlinCompiledBuildAll():
+                                wr_syncThread = WeakReference(getFieldByReflection(wr_syncer.get(), "syncThread"))
+                                wr_currentSyncThreads.append(wr_syncThread)
                             else:
-                                diagTxt += "....................: Sync Thread (attached to Observed Syncer):      <gone away>\n"
+                                wr_syncTasks = WeakReference(getFieldByReflection(wr_syncer.get(), "syncTasks"))
+                                for wr_syncTask in wr_syncTasks.get():
+                                    wr_currentSyncThreads.append(WeakReference(wr_syncTask))
 
-                    else:
-                        diagTxt += "... Observed Syncer: <gone away>\n"
+                            diagTxt += "...... Observed Syncer: %s(hash: %s) (keepSyncing: %s, isSyncing: %s, isPausing: %s, isRunningInBackground: %s)\n"\
+                                       %(wr_syncer.get(), System.identityHashCode(wr_syncer.get()), wr_keepSyncing.get(), wr_syncer.get().isSyncing(), wr_syncer.get().isPausing(), wr_syncer.get().isRunningInBackground())
 
-                    for wr_syncThread in wr_syncerThreads:
-                        if wr_syncThread.get() is not None:
-                            diagTxt += "....................: Observed Sync Thread (previously attached):     [id: %s, '%s', isAlive: %s]\n"\
-                                       %(wr_syncThread.get().getId(), wr_syncThread.get().getName(), wr_syncThread.get().isAlive())     # noqa
+                            for wr_syncThread in wr_currentSyncThreads:
+                                if wr_syncThread.get() is not None:
+                                    diagTxt += "....................: Sync Thread @{:x}(hash: %s)(attached to Observed Syncer):      [id: %s, '%s', isAlive: %s]\n".format(System.identityHashCode(wr_syncThread.get()))\
+                                               %(System.identityHashCode(wr_syncThread.get()), wr_syncThread.get().getId(), wr_syncThread.get().getName(), wr_syncThread.get().isAlive())     # noqa
+                                else:
+                                    diagTxt += "....................: Sync Thread  (attached to Observed Syncer): <gone away>\n"
+
                         else:
-                            diagTxt += "....................: Observed Sync Thread (previously attached):     <gone away>\n"
+                            diagTxt += "...... Observed Syncer: <gone away>\n"
+
+                        for wr_syncThread in wr_syncerThreads:
+                            if wr_syncThread.get() is not None:
+                                diagTxt += "....................: Observed Sync Thread @{:x}(hash: %s)(previously attached):     [id: %s, '%s', isAlive: %s]\n".format(System.identityHashCode(wr_syncThread.get()))\
+                                           %(System.identityHashCode(wr_syncThread.get()), wr_syncThread.get().getId(), wr_syncThread.get().getName(), wr_syncThread.get().isAlive())     # noqa
+                            else:
+                                diagTxt += "....................: Observed Sync Thread (previously attached): <gone away>\n"
 
                 diagTxt += "\n<END>"
 
@@ -27819,8 +27869,10 @@ now after saving the file, restart Moneydance
 
                     externalFiles = AccountBookUtil.getExternalAccountBooks()
                     externalFiles_asList = []
-                    for ext in externalFiles:
-                        externalFiles_asList.append(ext.getBook().getRootFolder().getCanonicalPath())
+                    for wrapperOrBook in externalFiles:
+                        _book = wrapperOrBook if isinstance(wrapperOrBook, AccountBook) else wrapperOrBook.getBook()    # changed in MD2023.2(5020) to return [books]
+                        externalFiles_asList.append(_book.getRootFolder().getCanonicalPath())
+                        del _book
 
                     for filename in save_list_of_found_files:
                         if not os.path.exists(filename):
@@ -28866,6 +28918,26 @@ now after saving the file, restart Moneydance
                     pageSetup()
 
                 # ##########################################################################################################
+                if event.getActionCommand().lower() == GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER:
+                    extnPrefs = getExtensionGlobalPreferences()
+                    newSetting = not extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False)
+                    if myPopupAskQuestion(toolbox_frame_, "OBSERVER MODE", "%s Observer Mode?" %("ENABLE" if newSetting else "Disable")):
+                        extnPrefs.put(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, newSetting)
+                        saveExtensionGlobalPreferences(extnPrefs)
+                        myPrint("B", "@@ OBSERVER MODE: %s" %("ENABLED" if newSetting else "disabled"))
+                        if newSetting:
+                            try: _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
+                            except: myPrint("B", "NOPE: Could not execute _observeMoneydanceObjects().... ignoring....")
+                            myPopupInformationBox(toolbox_frame_,
+                                                  theTitle="OBSERVER MODE",
+                                                  theMessage="Please restart MD for Observer to harvest (weak)references to key objects as they are created",
+                                                  theMessageType=JOptionPane.WARNING_MESSAGE)
+                    else:
+                        myPrint("DB", "@@ OBSERVER MODE not changed - remains: %s" %("ENABLED" if not newSetting else "disabled"))
+                    if debug: myPrint("B", "Extension Global Preferences now contains: %s" %(extnPrefs))
+                    event.getSource().setSelected(extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False))
+
+                # ##########################################################################################################
                 if event.getActionCommand().lower() == "help":
                     DisplayHelp().actionPerformed(None)
 
@@ -29436,6 +29508,14 @@ now after saving the file, restart Moneydance
             menuItemPS.setToolTipText("Printer Page Setup")
             menuItemPS.addActionListener(doTheMenu)
             menu1.add(menuItemPS)
+
+            menuItemOB = JCheckBoxMenuItem("Enable Observer (special feature)")
+            menuItemOB.setActionCommand(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER)
+            menuItemOB.setToolTipText("Enable special observer mode to capture (weak) references to key objects as they are created (view CMD-/) (extension only)")
+            menuItemOB.addActionListener(doTheMenu)
+            menuItemOB.setSelected(getExtensionGlobalPreferences().getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False))
+            menuItemOB.setEnabled(MD_EXTENSION_LOADER is not None)
+            menu1.add(menuItemOB)
 
             menuItem2 = JMenuItem("Exit")
             menuItem2.setActionCommand("exit")
