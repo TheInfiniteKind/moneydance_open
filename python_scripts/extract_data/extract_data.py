@@ -189,18 +189,18 @@ class MyJFrame(JFrame):
     def __init__(self, frameTitle=None):
         super(JFrame, self).__init__(frameTitle)
         self.disposing = False
-        self.myJFrameVersion = 3
+        self.myJFrameVersion = 4
         self.isActiveInMoneydance = False
         self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
         self.HomePageViewObj = None
 
     def dispose(self):
-        # This removes all content as VAqua retains the JFrame reference in memory...
+        # This removes all content as Java/Swing (often) retains the JFrame reference in memory...
         if self.disposing: return
         try:
             self.disposing = True
-            self.removeAll()
+            self.getContentPane().removeAll()
             if self.getJMenuBar() is not None: self.setJMenuBar(None)
             super(self.__class__, self).dispose()
         except:

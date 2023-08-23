@@ -193,6 +193,7 @@
 #               MD2023.2(5019) started using WeakReference()s to 'book' (as 'book' and 'bookRef')...
 #               New menu for Observer Mode. Enable/Disable the capture of WeakReferences. Normally disabled.
 #               MD2023.2(5020) fixes - .getInternalAccountBooks() / getExternalAccountBooks() now returns [books]...
+#               Tweak MyJFrame.dispose() with .getContentsPane().removeAll()
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -268,18 +269,18 @@ class MyJFrame(JFrame):
     def __init__(self, frameTitle=None):
         super(JFrame, self).__init__(frameTitle)
         self.disposing = False
-        self.myJFrameVersion = 3
+        self.myJFrameVersion = 4
         self.isActiveInMoneydance = False
         self.isRunTimeExtension = False
         self.MoneydanceAppListener = None
         self.HomePageViewObj = None
 
     def dispose(self):
-        # This removes all content as VAqua retains the JFrame reference in memory...
+        # This removes all content as Java/Swing (often) retains the JFrame reference in memory...
         if self.disposing: return
         try:
             self.disposing = True
-            self.removeAll()
+            self.getContentPane().removeAll()
             if self.getJMenuBar() is not None: self.setJMenuBar(None)
             super(self.__class__, self).dispose()
         except:
@@ -603,7 +604,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5022
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5024
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3608,11 +3609,12 @@ Visit: %s (Author's site)
     def getJVMThreadInformation(_thread, _addNewLine=False):
         if _thread is None or not isinstance(_thread, Thread): return
         try:
-            _txt = ("%s%s (id: %s) State: %s isAlive: %s isInterrupted: %s isDaemon: %s Priority: %s ThreadGroup: %s"
+            _txt = ("%s%s (id: %s) State: %s isAlive: %s isInterrupted: %s isDaemon: %s Priority: %s ThreadGroup: %s @%s(hash: %s)"
                             %(pad("**" if (isMDThread(_thread.getName())) else "", 2),
                               pad(_thread.getName(),70), rpad(_thread.getId(),4),
                               pad(_thread.getState(),15), getYN(_thread.isAlive()), getYN(_thread.isInterrupted()),
-                              getYN(_thread.isDaemon()), rpad(_thread.getPriority(),2), _thread.getThreadGroup()))
+                              getYN(_thread.isDaemon()), rpad(_thread.getPriority(),2), _thread.getThreadGroup(),
+                              Integer.toHexString(System.identityHashCode(_thread)), System.identityHashCode(_thread)))
         except: _txt = "**ERROR translating Thread information**"
         if _addNewLine: _txt += "\n"
         return _txt
@@ -5040,7 +5042,7 @@ Visit: %s (Author's site)
                 virtualBounds.add(gd.getDefaultConfiguration().getBounds())
 
             output = "%s:\n" \
-                     "---------------------------------\n" %(_THIS_METHOD_NAME)
+                     " ---------------------------------\n" %(_THIS_METHOD_NAME)
 
             txt = "*** Found: %s screens, with Virtual Bounds of: %s" %(len(lstGDs), virtualBounds)
 
@@ -5195,7 +5197,7 @@ Visit: %s (Author's site)
             cutoffTimeMS = nowTimeMS - (DAYS_TO_KEEP * DAY_IN_MS)
 
             output = "%s:\n" \
-                     "---------------------------------\n" %(_THIS_METHOD_NAME)
+                     " ---------------------------------\n" %(_THIS_METHOD_NAME)
 
             MD_REF.saveCurrentAccount()
 
@@ -5278,7 +5280,7 @@ Visit: %s (Author's site)
     def find_other_datasets():
         output = ""
         output+=("\nQUICK SEARCH FOR OTHER DATASETS:\n"
-                 "---------------------------------\n")
+                 " --------------------------------\n")
 
         try:
             md_extn = ".moneydance"
@@ -5375,7 +5377,7 @@ Visit: %s (Author's site)
             del listTheFiles
 
             output+=("\nBACKUP FILES\n"
-                     "-------------\n")
+                     " ------------\n")
 
             for _f in listTheArchiveFiles:
                 if saveArchiveFiles[_f] is not None:
@@ -5384,7 +5386,7 @@ Visit: %s (Author's site)
             del listTheArchiveFiles
 
             output+=("\nSYNC FOLDERS FOUND:\n"
-                     "---------------------\n")
+                     " --------------------\n")
 
             saveSyncFolder=None
             try:
@@ -5416,7 +5418,7 @@ Visit: %s (Author's site)
             if dropboxPath and dropboxPath is not None and dropboxPath != saveSyncFolder:
 
                 output+=("\nDROPBOX FOLDERS FOUND:\n"
-                         "-----------------------\n")
+                         " ----------------------\n")
                 dirList =  os.listdir(dropboxPath)
 
                 for fileName in dirList:
@@ -5428,7 +5430,7 @@ Visit: %s (Author's site)
 
             if len(errorDirs) > 0:
                 output += ("\nERROR ACCESSING DIRECTORY:\n"
-                           "---------------------------\n")
+                           " --------------------------\n")
                 for errorDir in errorDirs: output += (" @@ %s\n" %(errorDir))
 
             output+="\n\n(for a more extensive search please use Toolbox - Find my Datasets and Backups button\n\n"
@@ -5451,7 +5453,7 @@ Visit: %s (Author's site)
 
         output = ""
         output+=("\nDATABASE OBJECT COUNT        (count) (est.size KBs): %s\n"
-                 "------------------------------------------------------\n" %("" if whichBook is None else "(Book: "+book.getName()+"):"))
+                 " -----------------------------------------------------\n" %("" if whichBook is None else "(Book: "+book.getName()+"):"))
         foundStrange=0
         types={}
 
@@ -5747,7 +5749,7 @@ Visit: %s (Author's site)
 
         cos = count_database_objects()
         textArray.append(cos)
-        myPrint("B", "\n.\n.", cos, "-------------------------------------------------------------------")
+        myPrint("B", "\n.\n.", cos, " ------------------------------------------------------------------")
 
         textArray.append(u"\nENCRYPTION")
         x = MD_REF.getUI().getCurrentAccounts().getEncryptionKey()
@@ -6040,7 +6042,7 @@ Visit: %s (Author's site)
 
         textArray.append(u"\n ======================================================================================")
         textArray.append(u"USER PREFERENCES")
-        textArray.append(u"-----------------")
+        textArray.append(u" ----------------")
         textArray.append(u">> GENERAL")
         textArray.append(u"Show Full Account Paths:             %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"show_full_account_path", True)))
         textArray.append(u"Register Follows Recorded Txns:      %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gui.register_follows_txns", True)))
@@ -6160,7 +6162,7 @@ Visit: %s (Author's site)
         textArray.append(u" ======================================================================================\n")
 
         textArray.append(u"\nHOME SCREEN USER SELECTED PREFERENCES")
-        textArray.append(u"----------------------------")
+        textArray.append(u" ---------------------------")
         textArray.append(u"Home Screen Configured:          %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.configured", u"NOT SET"))
 
         if MD_REF.getUI().getPreferences().getSetting(u"sidebar_bal_type", False):
@@ -6588,7 +6590,7 @@ Visit: %s (Author's site)
 
 
         theSortData.append("\nDATA SAVED INTERNALLY BY (ACTIVE) ACCOUNT")
-        theSortData.append("-----------------------------------------\n")
+        theSortData.append(" ----------------------------------------\n")
 
         accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(1))
         for acct in accounts:
@@ -6785,7 +6787,7 @@ Visit: %s (Author's site)
         accountsDL = sorted(accountsDL, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
         outputDates = "\nBANK OFX: LAST DOWNLOADED TRANSACTION DATE(s)\n" \
-                      "--------------------------------------------\n\n"
+                      " -------------------------------------------\n\n"
 
         if isMulti_OFXLastTxnUpdate_build():
             outputDates += "NOTE: Multiple OFXLastTxnUpdate dates (i.e. per OFX/MD+ connection) are possible with this build...\n\n"
@@ -7252,7 +7254,7 @@ Visit: %s (Author's site)
             OFX.append(" ================================================================================================================================================")
             OFX.append(" ================================================================================================================================================")
             OFX.append(pad("Service/Profile:".upper(),40)       + safeStr(service))
-            OFX.append(pad("----------------",40))
+            OFX.append(pad(" ---------------",40))
             OFX.append(pad(">>Moneydance TIK Service ID:",40)   + safeStr(service.getTIKServiceID()))
             OFX.append(pad(">>Profile's UUID:",40)              + safeStr(service.getUUID()))
             if isMDPlusEnabledBuild():
@@ -8400,7 +8402,7 @@ Visit: %s (Author's site)
         else:
             output += "   >> Security has no historical prices. \n"
 
-        output += "-----------------------------------------------------------------\n"
+        output += " ----------------------------------------------------------------\n"
         if usageCount:
             output += "\nUSAGE FOUND: You are using security: %s in %s accounts!\n... with a share balance of: %s. These would need to be removed before security deletion" \
                       % (selectedSecurity, usageCount, sumShares) + "\n"
@@ -8494,7 +8496,7 @@ Visit: %s (Author's site)
         output += result[1]
 
         output += "\n" \
-                  "-----------------------------------------------------------------"
+                  " ----------------------------------------------------------------"
         output += "\n<END>"
 
         txt = "DIAG: Currency/Security Decimal Places report executed"
@@ -8890,7 +8892,7 @@ Visit: %s (Author's site)
 
         if justProvideFilter: return listCurrs
 
-        output += "-----------------------------------------------------------------"
+        output += " ----------------------------------------------------------------"
         if iWarnings:
             output += "\nYou have %s Warning(s)..\n" % iWarnings
             output += "These are where your current price hidden 'price_date' field is future dated, or newer/older than your latest dated price history date\n"
@@ -8911,7 +8913,7 @@ Visit: %s (Author's site)
         output += "Shown on Summary Page Only Filter:    %s\n" %(lSummaryScreenOnly)
         output += "Securities with Holdings Only Filter: %s\n" %(lSecurityHoldings)
         output += "All including OK Objects too:         %s\n" %(lEverything)
-        output += "-----------------------------------------------------------------\n"
+        output += " ----------------------------------------------------------------\n"
 
         if not autofix: output += "\n<END>"
 
@@ -9708,7 +9710,7 @@ Visit: %s (Author's site)
                     lSyncNeeded = False
 
                     if VERBOSE:
-                        output += "-----------------------------------------------------------------------------------------\n" \
+                        output += " ----------------------------------------------------------------------------------------\n" \
                                   "Checking security: '%s' (uuid: %s)\n" %(curr, curr.getUUID())
 
                     get_rel_curr_id = curr.getParameter(PARAM_REL_CURR_ID,None)
@@ -10005,7 +10007,7 @@ Visit: %s (Author's site)
                     if iCountSnapErrors > 0:
                         output += "\n  ** NOTE: You have %s history records with a zero or infinity price/rate! **\n" %(iCountSnapErrors)
 
-            output += "-----------------------------------------------------------------\n"
+            output += " ----------------------------------------------------------------\n"
 
         except:
 
@@ -12378,7 +12380,7 @@ Visit: %s (Author's site)
 
         if not sFilterServiceID:
             _output = "Object Parameter Keys:\n" \
-                      "----------------------\n"
+                      " ---------------------\n"
 
         PLAID_MAP_KEY = "map.md:plaid:::"
 
@@ -12414,7 +12416,7 @@ Visit: %s (Author's site)
 
             _output += "Key: %s %sValue: %s %s\n" %(objectKey, acctXRef, _value, acctText)
 
-        if not sFilterServiceID: _output += "----------------------\n"
+        if not sFilterServiceID: _output += " ---------------------\n"
         return _output
 
     def getUserIDFromEmail(_emailAddress):
@@ -13217,7 +13219,7 @@ Visit: %s (Author's site)
 
             connectionTxt = "\n" \
                             "MD+ CONNECTIONS (should duplicate Menu>Online>Setup Moneydance+):\n" \
-                            "-----------------------------------------------------------------\n"
+                            " ----------------------------------------------------------------\n"
 
             class StoreConnectionRow:
                 def __init__(self, _connectionRow, _institutionName):
@@ -13604,7 +13606,7 @@ Visit: %s (Author's site)
                 output="Moneydance's Fiscal Institution Initial Dynamic Setup profiles..\n" \
                        " ==============================================================\n\n" \
                        "Initial/Default Setup:\n" \
-                       "----------------------\n"
+                       " ---------------------\n"
 
                 output += "\nName: %s (%s)\n" %(selectedID.name,selectedID.id)
                 for element in selectedID.info:
@@ -13616,7 +13618,7 @@ Visit: %s (Author's site)
 
                 try:
                     output += "\n\nDEBUG Setup:\n" \
-                              "--------------------------\n"
+                              " -------------------------\n"
                     for findID in GlobalVars.globalSave_DEBUG_FI_data:
                         if findID.id == selectedID.id:
                             for element in findID.info:
@@ -13629,7 +13631,7 @@ Visit: %s (Author's site)
                     pass
 
                 output += "\n\nSPECIFIC OVERRIDING Setup:\n" \
-                       "--------------------------\n"
+                       " -------------------------\n"
                 output += specificText
                 output += "\n<END>"
 
@@ -15207,7 +15209,7 @@ Visit: %s (Author's site)
 
                             if service != lastService:
                                 output += "\nOFX SERVICE: %s\n" %service
-                                output += "--------------------------------------------\n"
+                                output += " -------------------------------------------\n"
                                 lastService = service
 
                             if GlobalVars.redact:
@@ -15692,7 +15694,7 @@ now after saving the file, restart Moneydance
         iCountMDPlusAccounts = 0
 
         output = "Report of accounts and bank/account number information:\n" \
-                 "-------------------------------------------------------\n\n"
+                 " ------------------------------------------------------\n\n"
 
         date = datetime.datetime.today()
         baseCurr = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
@@ -16203,9 +16205,9 @@ now after saving the file, restart Moneydance
                 output += "Category: %s ** But cannot be deactivated as it's the Parent of an active Category **\n" % pad(cat.getFullAccountName(),100)
 
 
-        output += "--------------------------------------------------------------------------------------------------\n"
+        output += " -------------------------------------------------------------------------------------------------\n"
         output += ("You have %s categories with Zero Balances - these can be made Inactive using Update Mode......\n" % iCountForInactivation).upper()
-        output += "---------------------------------------------------------------------------------------------------\n\n"
+        output += " --------------------------------------------------------------------------------------------------\n\n"
 
         output += "LISTING ACTIVE CATEGORIES WITH ZERO BALANCES - BUT WITH FUTURE REMINDERS PRESENT:\n\n"
 
@@ -16242,7 +16244,7 @@ now after saving the file, restart Moneydance
                     output += rpad(foundRem[2],12)+" "
                     output += pad(foundRem[4],35)+"\n"
 
-        output += "-----------------------------------------------------------------------------------------------------------\n"
+        output += " ----------------------------------------------------------------------------------------------------------\n"
 
 
         output += "\n\nLISTING INACTIVE CATEGORIES WITH ZERO BALANCES:\n\n"
@@ -16271,7 +16273,7 @@ now after saving the file, restart Moneydance
         if not ii:
             output += "<NONE FOUND>\n\n"
 
-        output += "--------------------------------------------------------------------------------------------------\n"
+        output += " -------------------------------------------------------------------------------------------------\n"
 
         output += "LISTING ACTIVE CATEGORIES WITH BALANCES:\n\n"
 
@@ -16323,7 +16325,7 @@ now after saving the file, restart Moneydance
         if not ii:
             output += "<NONE FOUND>\n\n"
 
-        output += "----------------------------------------------------------------------------\n\n"
+        output += " ---------------------------------------------------------------------------\n\n"
 
         output += "LISTING INACTIVE CATEGORIES WITH BALANCES:\n\n"
 
@@ -16377,7 +16379,7 @@ now after saving the file, restart Moneydance
         if not ii:
             output += "<NONE FOUND>\n\n"
 
-        output += "----------------------------------------------------------------------------\n\n"
+        output += " ---------------------------------------------------------------------------\n\n"
 
         output += "\nLEGEND:\n"
         output += "** NOTE: The Balances shown on a Parent Category in any section may not be the sum of its Child Categories shown in the same section.\n"
@@ -16391,7 +16393,7 @@ now after saving the file, restart Moneydance
         # output += "RcrsClrdBal = Recursive (through all sub categories) Cleared Balance (Normally Zero on a Category)\n"
         output += "RcrsCurrBal = Recursive (through all sub categories) Current Balance (Note: may contain balances from inactive sub-categories as per Moneydance)\n"
         # output += "RcrsRecBal = Recursive (through all sub categories) Reconciling Balance (Normally Zero on a Category)\n"
-        output += "----------------------------------------------------------------------------\n\n"
+        output += " ---------------------------------------------------------------------------\n\n"
         output += "<END>"
 
         if lFix:
@@ -16514,7 +16516,7 @@ now after saving the file, restart Moneydance
         myPrint("B", "User accepted disclaimer to FIX Account(s)' Invalid Parent Accounts. Proceeding.....")
 
         output += "\n\nRUNNING FIX ON PARENT ACCOUNTS\n" \
-                  "--------------------------------\n\n"
+                  " -------------------------------\n\n"
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes...
         MD_REF.getCurrentAccountBook().setRecalcBalances(False)
@@ -19119,7 +19121,7 @@ now after saving the file, restart Moneydance
 
         myPrint("P", "\n"*5)
 
-        x = "----------------------------------"
+        x = " ---------------------------------"
         myPrint("B", x)
         msgStr += (x + "\n")
         diagDisplay += (x + "\n")
@@ -19170,7 +19172,7 @@ now after saving the file, restart Moneydance
         myPrint("B", x)
         diagDisplay += (x + "\n")
         msgStr += (x + "\n")
-        x = "----------------------------------"
+        x = " ---------------------------------"
         myPrint("B", x)
         msgStr += (x + "\n")
         diagDisplay += (x + "\n\n")
@@ -20456,7 +20458,7 @@ now after saving the file, restart Moneydance
                         "... hidden 'Decimal Places' setting must match **\n" \
                         "- NOTE: Security Name is not matched, but you can select the Security to become the 'master', that has right details, as part of the process\n" \
                         "\n" \
-                        "--------------------------------------------------------------------------------------------------------------------------------------------------\n\n"
+                        " -------------------------------------------------------------------------------------------------------------------------------------------------\n\n"
 
             def getSecurityNameAndID(theSec, theLen=None):
 
@@ -21503,7 +21505,7 @@ now after saving the file, restart Moneydance
         if autofix: myPrint("B", "AUTOFIX running... There will be no prompts and all fixes will be applied silently....")
 
         myPrint("B", "Diagnosing Investment Transactions where Security's Account is not linked properly to the Parent Txn's Acct")
-        myPrint("P", "-----------------------------------------------------------------------------------------------------------")
+        myPrint("P", " ----------------------------------------------------------------------------------------------------------")
 
         output = "FIX Investment Transactions where Security's Account is not linked properly to the Parent Txn's Acct:\n" \
                  " =====================================================================================================\n\n"
@@ -21817,7 +21819,7 @@ now after saving the file, restart Moneydance
                 myPrint("B", "User accepted disclaimer to FIX Investment Security Txns with Invalid Parent Accounts. Proceeding.....")
 
             output += "\n\nRUNNING FIX ON SECURITY TXNS TO RE-LINK PARENT ACCOUNTS\n" \
-                      "------------------------------------------------------------\n\n"
+                      " -----------------------------------------------------------\n\n"
 
             MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the move/changes..
             MD_REF.getCurrentAccountBook().setRecalcBalances(False)
@@ -21916,7 +21918,7 @@ now after saving the file, restart Moneydance
 
         # delete_invalid_txns.py
         myPrint("B", "Script running to analyse whether you have any one sided transactions - usually from Quicken Imports....")
-        myPrint("P", "--------------------------------------------------------------------------------------------------------")
+        myPrint("P", " -------------------------------------------------------------------------------------------------------")
 
         book = MD_REF.getCurrentAccountBook()
         txnSet = book.getTransactionSet()
@@ -21926,7 +21928,7 @@ now after saving the file, restart Moneydance
         toDelete = []
 
         output +="\nLIST OF ONE SIDED TRANSACTIONS (usually from Quicken Imports)\n"
-        output +="-------------------------------------------------------------\n"
+        output +=" ------------------------------------------------------------\n"
 
         for txn in txns:
             if txn.getOtherTxnCount() == 0:
@@ -24392,7 +24394,7 @@ now after saving the file, restart Moneydance
 
             if not lReset:
                 configData.append("\nDATA STORED WITHIN CONFIG.DICT (effectively defaults where not specifically set by Account):")
-                configData.append("--------------------------------------------------------------------------------------------")
+                configData.append(" -------------------------------------------------------------------------------------------")
 
             lastKey = None
             for theKey in tk:
@@ -24496,7 +24498,7 @@ now after saving the file, restart Moneydance
 
                 if not lReset:
                     configData.append("\nDATA STORED INTERNALLY BY ACCOUNT (not config.dict):")
-                    configData.append("-----------------------------------------------------")
+                    configData.append(" ----------------------------------------------------")
 
                 dataPrefKey = "col_widths."
                 dataPrefKeys_legacy = [  "gui.col_widths",
@@ -24590,7 +24592,7 @@ now after saving the file, restart Moneydance
 
                 if not lReset:
                     configData.append("\nDATA STORED INTERNALLY WITHIN LOCAL STORAGE (not config.dict):")
-                    configData.append("----------------------------------------------------------------")
+                    configData.append(" ---------------------------------------------------------------")
 
                 LS = MD_REF.getUI().getCurrentAccounts().getBook().getLocalStorage()
                 keys = sorted(LS.keys())
@@ -24908,7 +24910,7 @@ now after saving the file, restart Moneydance
         lRemoveAllSnapHistory = user_purgeSnapHistory.isSelected()
 
         output += "CLONE PROCESSING OPTIONS:\n" \
-                  "-------------------------\n"
+                  " ------------------------\n"
         output += "Purge all transactions:                           %s\n" %(lRemoveAllTxns)
         output += "Zero all accounts' opening balances:              %s\n" %(lZeroOpeningBalances)
         output += "Purge all security price & currency rate history: %s\n" %(lRemoveAllSnapHistory)
@@ -25233,7 +25235,7 @@ now after saving the file, restart Moneydance
             output += "Deleted clone's 'processed.dct' and all .txn type files.....\n"
 
             output += "\n\n" \
-                      "-------------------------------------------------------------------------------------------------\n"
+                      " ------------------------------------------------------------------------------------------------\n"
             output += "Original dataset's object analysis:\n"
             output += count_database_objects()
             fileSize, fileCount = calculateMoneydanceDatasetSize(True)
@@ -25244,7 +25246,7 @@ now after saving the file, restart Moneydance
             output += count_database_objects(newBook)
             fileSize, fileCount = calculateMoneydanceDatasetSize(True, whichBook=newBook)
             output += "...dataset size: %sMB (%s files)\n" %(rpad(fileSize,12),fileCount)
-            output += "-------------------------------------------------------------------------------------------------\n"
+            output += " ------------------------------------------------------------------------------------------------\n"
             output += "\n"
 
             txt = "DATASET '%s' WAS CREATED FROM A CLONE OF '%s'" %(newBook.getName(), currentFilePath)
@@ -25524,7 +25526,7 @@ now after saving the file, restart Moneydance
             if lDeleteRecord:
 
                 output =  "%s PLEASE REVIEW PARAMETER & VALUE BEFORE DELETING OBJECT\n" %(theObject)
-                output += "---------------------------------------------------------\n\n"
+                output += " --------------------------------------------------------\n\n"
 
                 if isinstance(theObject, SplitTxn):
                     txt = theObject.getParentTxn().getSyncInfo().toMultilineHumanReadableString()
@@ -25579,7 +25581,7 @@ now after saving the file, restart Moneydance
                 value = theObject.getParameter(selectedKey, None)                                                       # noqa
 
                 output =  "%s PLEASE REVIEW PARAMETER & VALUE BEFORE MAKING CHANGES\n" %(theObject)
-                output += "------------------------------------------------\n\n"
+                output += " -----------------------------------------------\n\n"
 
                 output += "\n@@ This '%s' key can be changed/deleted by this script @@\n" %(selectedKey)
 
@@ -26961,7 +26963,7 @@ now after saving the file, restart Moneydance
             output = None
             if len(duplicateSecurities) > 0:
                 output = "POTENTIAL DUPLICATE SECURITIES:\n" \
-                         "-------------------------------\n"
+                         " ------------------------------\n"
                 for dup in duplicateSecurities:
                     secTxt = "["
                     for sec in dup[2]: secTxt += "'%s'," %(sec.getName())
@@ -27143,12 +27145,14 @@ now after saving the file, restart Moneydance
                         if not isKotlinCompiledBuildAll():
                             syncerThread = getFieldByReflection(syncer, "syncThread")
                             syncerThreadId = syncerThread.getId() if (syncerThread) else None
-                            diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n" %(pad(syncerThread,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
+                            diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n"\
+                                       %(pad(syncerThread,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
                         else:
                             syncerTasks = getFieldByReflection(syncer, "syncTasks")
                             for sTask in syncerTasks:
                                 syncerThreadId = sTask.getId()
-                                diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n" %(pad(sTask,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
+                                diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n"\
+                                           %(pad(sTask,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
                 except:
                     if debug:
                         myPrint("B", "@@ ERROR: Failed to get syncThread / syncTasks?")
@@ -27163,13 +27167,22 @@ now after saving the file, restart Moneydance
                     return 0
 
                 for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
-                    diagTxt += "%s %s isFocused: %s isVisible: %s isActive: %s isDisplayable: %s isShowing: %s (Owner: %s:%s) @{:x}(hash: %s)\n".format(System.identityHashCode(win))\
-                               %(pad(type(win),70), pad(win.getName(),25),
+                    try: jMenuBarStr = "None" if win.getJMenuBar() is None else "@%s(hash: %s)" %(Integer.toHexString(System.identityHashCode(win.getJMenuBar())), System.identityHashCode(win.getJMenuBar()))
+                    except: jMenuBarStr = "n/a"
+                    try: menuBarStr = "None" if win.menuBar is None else "@%s(hash: %s)" %(Integer.toHexString(System.identityHashCode(win.menuBar)), System.identityHashCode(win.menuBar))
+                    except: menuBarStr = "n/a"
+                    try: mainMenuStr = "None" if win.mainMenu is None else "@%s(hash: %s)" %(Integer.toHexString(System.identityHashCode(win.mainMenu)), System.identityHashCode(win.mainMenu))
+                    except: mainMenuStr = "n/a"
+                    try: mainMenuMenuBarStr = "None" if getFieldByReflection(win.mainMenu, "menuBar") is None else "@%s(hash: %s)" %(Integer.toHexString(System.identityHashCode(getFieldByReflection(win.mainMenu, "menuBar"))), System.identityHashCode(getFieldByReflection(win.mainMenu, "menuBar")))
+                    except: mainMenuMenuBarStr = "n/a"
+                    diagTxt += "%s %s isFocused: %s isVisible: %s isActive: %s isDisplayable: %s isShowing: %s (JMenuBar: %s) (.menuBar: %s) (.mainMenu: %s) (.mainMenu.menuBar: %s) (Owner: %s:%s) @%s(hash: %s)\n"\
+                               %(pad(type(win),80), pad(win.getName(),35),
                                  getYN(win.isFocused()), getYN(win.isVisible()), getYN(win.isActive()), getYN(win.isDisplayable()), getYN(win.isShowing()),
-                                 type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()), System.identityHashCode(win))
+                                 pad(jMenuBarStr, 30), pad(menuBarStr, 30), pad(mainMenuStr, 30), pad(mainMenuMenuBarStr, 30),
+                                 type(win.getOwner()), (None if (win.getOwner()) is None else win.getOwner().getName()),  Integer.toHexString(System.identityHashCode(win)), System.identityHashCode(win))
 
-                diagTxt += "\nOld Swing Containers holding on to 'book' references....:\n" \
-                           " ----------------------------------------------------------\n"
+                diagTxt += "\nSwing Containers holding on to known 'book' references....:\n" \
+                           " ------------------------------------------------------------\n"
                 for win in sorted(Window.getWindows(), key=lambda sort_w: (sortWindowTypes(sort_w), type(sort_w), sort_w.getName())):
                     for tryBookRefStr in ["book", "bookRef"]:
                         try:
@@ -28875,7 +28888,7 @@ now after saving the file, restart Moneydance
 
                 output+=("- attachments size:         %sMB (in %s attachments)\n" %(rpad(convertBytesMBs(safe_attachmentsSize),12),countAttachments))
                 output+=("- archive size:             %sMB (in %s files)\n" %(rpad(convertBytesMBs(safe_archiveSize),12),countArchiveFiles))
-                output+=("---------------------------------------------\n")
+                output+=(" --------------------------------------------\n")
                 output+=("Valid files size:           %sMB (in %s files)\n\n" %(rpad(convertBytesMBs(validSize),12),countValidFiles))
                 output+=("Non-core file(s) size:      %sMB (in %s files)\n" %(rpad(convertBytesMBs(nonValidSize),12),countNonValidFiles))
                 for nonValid in listNonValidFiles:
