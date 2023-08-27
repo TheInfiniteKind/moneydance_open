@@ -194,6 +194,8 @@
 #               New menu for Observer Mode. Enable/Disable the capture of WeakReferences. Normally disabled.
 #               MD2023.2(5020) fixes - .getInternalAccountBooks() / getExternalAccountBooks() now returns [books]...
 #               Tweak MyJFrame.dispose() with .getContentsPane().removeAll()
+#               Change when Moneydance's DEBUGs are turned on (when debug on, or from new options menu toggle):
+#               Enhanced: advanced_options_DEBUG() and advanced_options_other_DEBUG()
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -568,7 +570,7 @@ else:
     from com.moneydance.apps.md.controller import ModuleLoader, ModuleMetaData, LocalStorageCipher, Common, BalanceType
     from com.moneydance.apps.md.controller.sync import MDSyncCipher
     from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
-    from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory
+    from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory, CustomURLStreamHandlerFactory
     from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
 
     from com.infinitekind.util import StreamVector
@@ -578,10 +580,9 @@ else:
     from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem
     from com.infinitekind.moneydance.model import OnlinePayeeList, OnlinePaymentList, InvestFields, AbstractTxn
     from com.infinitekind.moneydance.model import CurrencySnapshot, CurrencySplit, OnlineTxnList, CurrencyTable
-    from com.infinitekind.moneydance.model import TxnSet, InvestTxnType, SecurityType
+    from com.infinitekind.moneydance.model import TxnSet, InvestTxnType, SecurityType, CostCalculation
 
     from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
-
     from com.moneydance.awt import JCurrencyField, AwtUtil                                                              # noqa
     from com.moneydance.security import SecretKeyCallback
     from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
@@ -26419,60 +26420,80 @@ now after saving the file, restart Moneydance
         myPrint("B","%s: %s" %(_THIS_METHOD_NAME, txt))
         myPopupInformationBox(jif,txt,theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
 
-    def advanced_options_DEBUG(lForceON=False):
-        key = "moneydance.debug"
+    def advanced_options_DEBUG(lForceON=False, lForceOFF=False):
         md_debug = MD_REF.DEBUG
-        props_debug = System.getProperty(key, None)
+        moneydance_debug_props_key = "moneydance.debug"
+        props_debug = Boolean.getBoolean(moneydance_debug_props_key)
 
-        toggleText = "ON"
 
-        if not lForceON:
-            if md_debug or (props_debug is not None and props_debug != "false"):
-                toggleText = "OFF"
+        if lForceON:
+            toggleText = "ON"
+        elif lForceOFF:
+            toggleText = "OFF"
+        else:
+            toggleText = "OFF" if (md_debug or props_debug) else "ON"
 
-            ask = MyPopUpDialogBox(toolbox_frame_,"DEBUG STATUS:",
+            ask = MyPopUpDialogBox(toolbox_frame_, "MONEYDANCE DEBUG(s) STATUS:",
                                    "main.DEBUG                             currently set to: %s\n"
-                                   'System.getProperty("%s") currently set to: %s\n'
-                                   'OFXConnection.DEBUG_MESSAGES           currently set to: %s\n'
-                                   'MoneybotURLStreamHandlerFactory.DEBUG  currently set to: %s\n'
-                                   'OnlineTxnMerger.DEBUG                  currently set to: %s\n'
-                                   'Syncer.DEBUG                           currently set to: %s\n'
-                                   %(md_debug,key,props_debug,OFXConnection.DEBUG_MESSAGES,MoneybotURLStreamHandlerFactory.DEBUG,OnlineTxnMerger.DEBUG,Syncer.DEBUG),
-                                   theTitle="TOGGLE MONEYDANCE INTERNAL DEBUG",
+                                   "System.getProperty('%s') currently set to: %s\n"
+                                   "OFXConnection.DEBUG_MESSAGES           currently set to: %s\n"
+                                   "MoneybotURLStreamHandlerFactory.DEBUG  currently set to: %s\n"
+                                   "OnlineTxnMerger.DEBUG                  currently set to: %s\n"
+                                   "Syncer.DEBUG                           currently set to: %s\n"
+                                   "CustomURLStreamHandlerFactory.DEBUG    currently set to: %s\n"
+                                   "PlaidConnection.DEBUG                  currently set to: %s\n"
+                                   %(md_debug,
+                                     moneydance_debug_props_key,
+                                     props_debug,
+                                     OFXConnection.DEBUG_MESSAGES,
+                                     MoneybotURLStreamHandlerFactory.DEBUG,
+                                     OnlineTxnMerger.DEBUG,
+                                     Syncer.DEBUG,
+                                     CustomURLStreamHandlerFactory.DEBUG,
+                                     "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG),
+                                   theTitle="TOGGLE MONEYDANCE INTERNAL DEBUG(s)",
                                    lCancelButton=True,OKButtonText="SET ALL to %s" %toggleText)
             if not ask.go():
-                txt = "NO CHANGES MADE TO DEBUG!"
+                txt = "NO CHANGES MADE TO MONEYDANCE's DEBUG(s)!"
                 setDisplayStatus(txt,"B")
                 return
 
-            myPrint("B","User requested to change all internal DEBUG modes to %s - setting these now...!" %(toggleText))
+            myPrint("B","User requested to change all Moneydance's internal DEBUG mode(s) to %s - flipping these now...!" %(toggleText))
 
         if toggleText == "OFF":
-            MD_REF.DEBUG = False
-            System.clearProperty(key)
-            OFXConnection.DEBUG_MESSAGES = False
-            MoneybotURLStreamHandlerFactory.DEBUG = False
-            OnlineTxnMerger.DEBUG = False
-            Syncer.DEBUG = False
+            newDebugSetting = False
+            System.clearProperty(moneydance_debug_props_key)
         else:
-            MD_REF.DEBUG = True
-            System.setProperty(key, "true")
-            OFXConnection.DEBUG_MESSAGES = True
-            MoneybotURLStreamHandlerFactory.DEBUG = True
-            OnlineTxnMerger.DEBUG = True
-            Syncer.DEBUG = True
+            newDebugSetting = True
+            System.setProperty(moneydance_debug_props_key, Boolean.toString(newDebugSetting))
+
+        MD_REF.DEBUG = newDebugSetting
+        OFXConnection.DEBUG_MESSAGES = newDebugSetting
+        MoneybotURLStreamHandlerFactory.DEBUG = newDebugSetting
+        OnlineTxnMerger.DEBUG = newDebugSetting
+        Syncer.DEBUG = newDebugSetting
+        CustomURLStreamHandlerFactory.DEBUG = newDebugSetting
+        if isMDPlusEnabledBuild(): PlaidConnection.DEBUG = newDebugSetting
+
+        txt = "All Moneydance internal debug modes turned %s" %(toggleText)
 
         if lForceON:
-            myPrint("DB","Moneydance Debug turned ON (same as launching Console window)......")
+            myPrint("DB", txt)
             return
 
-        txt = "All Moneydance internal debug settings turned %s" %(toggleText)
         setDisplayStatus(txt,"B")
-        myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL DEBUG", JOptionPane.WARNING_MESSAGE)
+        myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL DEBUG(s)", JOptionPane.WARNING_MESSAGE)
 
     def advanced_options_other_DEBUG():
+        # Also: System.getProperty("ofx.debug.console") - Throws up connection issues in a new file/console...
+
         debugKeys = ["com.moneydance.apps.md.view.gui.txnreg.DownloadedTxnsView.DEBUG",
-                     "com.moneydance.apps.md.view.gui.OnlineUpdateTxnsWindow.DEBUG"]
+                     "com.moneydance.apps.md.view.gui.OnlineUpdateTxnsWindow.DEBUG",
+                     "com.infinitekind.util.StreamTable.DEBUG"]
+
+        if isKotlinCompiledBuildAll():
+            # Before this build, the field is hidden as the class is not public even tho' field is public....
+            debugKeys.append("com.infinitekind.moneydance.model.CostCalculation.DEBUG_COST")
 
         selectedKey = JOptionPane.showInputDialog(toolbox_frame_,
                                                   "Select the DEBUG Setting you want to view/toggle",
@@ -26482,18 +26503,23 @@ now after saving the file, restart Moneydance
                                                   debugKeys,
                                                   None)
 
-        if not selectedKey or debugKeys.index(selectedKey) > 1:
+        if not selectedKey or debugKeys.index(selectedKey) > len(debugKeys):
             txt = "No Debug key was selected to view/toggle.."
             setDisplayStatus(txt, "R")
             return
 
-        currentSetting = False
         if debugKeys.index(selectedKey) == 0:
             currentSetting = DownloadedTxnsView.DEBUG
         elif debugKeys.index(selectedKey) == 1:
             currentSetting = OnlineUpdateTxnsWindow.DEBUG
+        elif debugKeys.index(selectedKey) == 2:
+            currentSetting = getFieldByReflection(StreamTable, "DEBUG")
+        elif debugKeys.index(selectedKey) == 3:
+            currentSetting = getFieldByReflection(CostCalculation, "DEBUG_COST")
+        else:
+            raise Exception("LOGIC ERROR: Unknown selectedKey:", selectedKey)
 
-        ask = MyPopUpDialogBox(toolbox_frame_,"OTHER DEBUG STATUS:",
+        ask = MyPopUpDialogBox(toolbox_frame_, "OTHER DEBUG STATUS:",
                                "%s currently set to: %s" %(selectedKey, currentSetting),
                                theTitle="TOGGLE THIS MONEYDANCE INTERNAL OTHER DEBUG",
                                lCancelButton=True,OKButtonText="SET to %s" %(not currentSetting))
@@ -26508,6 +26534,10 @@ now after saving the file, restart Moneydance
             DownloadedTxnsView.DEBUG = not currentSetting
         elif debugKeys.index(selectedKey) == 1:
             OnlineUpdateTxnsWindow.DEBUG = not currentSetting
+        elif debugKeys.index(selectedKey) == 2:
+            setFieldByReflection(StreamTable, "DEBUG", not currentSetting)
+        elif debugKeys.index(selectedKey) == 3:
+            setFieldByReflection(CostCalculation, "DEBUG_COST", not currentSetting)
 
         txt = "Moneydance internal debug settings %s turned %s" %(selectedKey, not currentSetting)
         setDisplayStatus(txt, "B")
@@ -28578,8 +28608,8 @@ now after saving the file, restart Moneydance
             def actionPerformed(self, event):                                                                           # noqa
 
                 try:
-                    user_advanced_toggle_DEBUG = MenuJRadioButton("Toggle Moneydance DEBUG", False)
-                    user_advanced_toggle_DEBUG.setToolTipText("This will toggle Moneydance's internal DEBUG setting(s) ON/OFF.....")
+                    # user_advanced_toggle_DEBUG = MenuJRadioButton("Toggle Moneydance DEBUG", False)
+                    # user_advanced_toggle_DEBUG.setToolTipText("This will toggle Moneydance's internal DEBUG setting(s) ON/OFF.....")
 
                     user_advanced_toggle_other_DEBUGs = MenuJRadioButton("Toggle Other Moneydance DEBUGs", False)
                     user_advanced_toggle_other_DEBUGs.setToolTipText("This will allow you to toggle other known Moneydance internal DEBUG setting(s) ON/OFF..... (these add extra messages to Console output))")
@@ -28639,10 +28669,10 @@ now after saving the file, restart Moneydance
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 6
+                    rows = 5
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
-                    userFilters.add(user_advanced_toggle_DEBUG)
+                    # userFilters.add(user_advanced_toggle_DEBUG)
                     userFilters.add(user_advanced_toggle_other_DEBUGs)
                     userFilters.add(user_advanced_extract_from_dataset)
                     userFilters.add(user_advanced_extract_from_sync)
@@ -28708,7 +28738,7 @@ now after saving the file, restart Moneydance
 
                         selectHomeScreen()      # Stops the LOT Control box popping up..... Get back to home screen....
 
-                        if user_advanced_toggle_DEBUG.isSelected():                 advanced_options_DEBUG()
+                        # if user_advanced_toggle_DEBUG.isSelected():                 advanced_options_DEBUG()
                         if user_advanced_toggle_other_DEBUGs.isSelected():          advanced_options_other_DEBUG()
                         if user_advanced_extract_from_dataset.isSelected():         advanced_options_decrypt_file_from_dataset()
                         if user_advanced_extract_from_sync.isSelected():            advanced_options_decrypt_file_from_sync()
@@ -29023,16 +29053,22 @@ now after saving the file, restart Moneydance
                     GlobalVars.mainPnl_backupWarningsDisabled_lbl.setText("<BACKUP/DISCLAIMERS OFF>" if GlobalVars.lBypassAllBackupsAndDisclaimers_TB else "")
 
                 # ##########################################################################################################
-                if event.getActionCommand().lower() == "debug":
-                    if debug:
-                        txt = "Script Debug mode disabled"
+                if event.getActionCommand().lower() == "toolbox_debug":
+                    debug = not debug
+                    if not debug:
+                        advanced_options_DEBUG(lForceOFF=True)
+                        txt = "Toolbox Debug mode disabled... (Moneydance's internal Debug(s) turned off too...)"
                         setDisplayStatus(txt, "DG")
                     else:
-                        txt = "Script Debug mode enabled..."
+                        advanced_options_DEBUG(lForceON=True)
+                        txt = "Toolbox Debug mode ENABLED... (Moneydance's internal Debug(s) enabled too...)"
                         setDisplayStatus(txt, "DG"); myPrint("B", txt)
 
-                    debug = not debug
                     GlobalVars.mainPnl_debug_lbl.setText("<DEBUG ON>" if debug else "")
+
+                # ##########################################################################################################
+                if event.getActionCommand().lower() == "toggle_moneydance_debugs":
+                    advanced_options_DEBUG()
 
                 # ##########################################################################################################
                 if event.getActionCommand().lower() == "copy_output_clipboard":
@@ -29083,7 +29119,7 @@ now after saving the file, restart Moneydance
                 # ##########################################################################################################
                 # Save parameters now...
                 if (event.getActionCommand().lower() == "copy_output_clipboard"
-                        or event.getActionCommand().lower() == "debug"
+                        or event.getActionCommand().lower() == "toolbox_debug"
                         or event.getActionCommand().lower() == "auto_prune_internal_backups"
                         or event.getActionCommand().lower() == "disable_backups_disclaimers"):
 
@@ -29096,8 +29132,10 @@ now after saving the file, restart Moneydance
         def openDisplay(self):
             global toolbox_frame_   # global must be here as we define it here
 
-            # ConsoleWindow.showConsoleWindow(MD_REF.getUI())
-            advanced_options_DEBUG(lForceON=True)
+            if debug:
+                # ConsoleWindow.showConsoleWindow(MD_REF.getUI())
+                myPrint("DB", "Flipping all Moneydance DEBUG flags ON.....")
+                advanced_options_DEBUG(lForceON=True)
 
             screenSize = Toolkit.getDefaultToolkit().getScreenSize()
 
@@ -29475,14 +29513,20 @@ now after saving the file, restart Moneydance
             menu1.setMnemonic(KeyEvent.VK_T)
             menu1.setForeground(SetupMDColors.FOREGROUND_REVERSED); menu1.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
-            menuItemD = JCheckBoxMenuItem("Debug")
-            menuItemD.setActionCommand("debug")
+            menuItemD = JCheckBoxMenuItem("Toolbox Debug mode")
+            menuItemD.setActionCommand("toolbox_debug")
             menuItemD.setMnemonic(KeyEvent.VK_D)
             menuItemD.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, (keyToUse | Event.SHIFT_MASK)))
             menuItemD.addActionListener(doTheMenu)
-            menuItemD.setToolTipText("Enables script to output debug information - technical stuff - readonly")
+            menuItemD.setToolTipText("Enables toolbox debug mode - writes extra debug information to help/console (also turns on Moneydance's debug(s)")
             menuItemD.setSelected(debug)
             menu1.add(menuItemD)
+
+            menuItemMD = JMenuItem("Toggle Moneydance Debug(s)")
+            menuItemMD.setActionCommand("toggle_moneydance_debugs")
+            menuItemMD.addActionListener(doTheMenu)
+            menuItemMD.setToolTipText("Toggles Moneydance's internal debug mode(s) - writes extra debug information to help/console")
+            menu1.add(menuItemMD)
 
             menuItemC = JCheckBoxMenuItem("Copy all Output to Clipboard")
             menuItemC.setActionCommand("copy_output_clipboard")

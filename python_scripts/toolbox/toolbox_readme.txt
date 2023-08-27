@@ -1,6 +1,6 @@
 The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
 
-Original Author: Stuart Beesley - StuWareSoftSystems (Nov 2020 thru May 2023 - my 'lockdown' project ~1000 coding hours)
+Original Author: Stuart Beesley - StuWareSoftSystems (2020-2023 - originally my 'lockdown' project ~2000 coding hours)
 Credit: Derek Kent(23) for his extensive testing and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
@@ -82,8 +82,9 @@ Toolbox uses the the internal MD 'code' font for display and outputs. Typically 
 Features:
 - Main window shows various diagnostic data and MD Preferences
 
-** Toolbox turns on all Moneydance's internal DEBUG messages at startup. This puts extra messages into the Console window
-   This is a useful tip - i.e. have the console window open and you will get more information when running tasks (e.g. OFX)
+** Toolbox turns on all Moneydance's internal DEBUG messages when launched if, and when, toolbox debug is enabled.
+   This writes extra debug information into Console window.
+   >> Useful tip: have the help/console window open and you will get more information when running some tasks (e.g. OFX)
 
 NOTE: Where CMD is specified, this will be CTRL in Windows / Linux (or ALT if that does not work)...
 
@@ -269,8 +270,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
 
     - MENU: Advanced options
         >> SPECIAL ADVANCED FEATURES - USE WITH CARE!
-        - Toggle Moneydance DEBUG (turns ON all MD internal Debug messages - same as view console)
-        - Toggle other Moneydance DEBUGs
+        - Toggle other Moneydance DEBUGs (manually enable/disable debug mode on individual other known debug settings)
         - Extract/decrypt a (single) file from within Dataset. Decrypts a Dataset file to Dataset/tmp/decrypted dir for viewing (tmp file self destructs after MD restart)
         - Extract/decrypt a (single) file from Sync folder. Decrypts a Sync file to Dataset/tmp/decrypted/fromSync dir for viewing (tmp file self destructs after MD restart)
         - Decrypt entire dataset. Decrypts entire dataset to a folder of your choosing...
@@ -293,8 +293,13 @@ CMD-P - View Toolbox's parameters file (StuWareSoftSystems). Also allows user to
 
 CMD-/ - View quick JVM diagnostics
 
-Menu - DEBUG MODE
-    >> Turns on Toolbox's own internal debug messages...
+Menu - Toolbox Debug mode
+    >> Enables toolbox debug mode - writes extra debug information to help/console (also turns on Moneydance's debug(s).
+    NOTE: When you enable / disable toolbox debug, then it will also flip all Moneydance internal debug(s) on/off too...
+
+Menu - Toggle Moneydance Debug(s)
+    >> Manually toggles Moneydance's internal debug mode(s) - writes extra debug information to help/console
+    NOTE: This setting is not saved by toolbox...
 
 Menu - Auto Prune of Internal Backup files
     >> Toolbox makes extra backups of config.dict, ./safe/settings and custom_theme.properties. This setting auto-prunes
