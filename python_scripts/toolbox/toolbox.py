@@ -197,6 +197,7 @@
 #               Change when Moneydance's DEBUGs are turned on (when debug on, or from new options menu toggle):
 #               Enhanced: advanced_options_DEBUG() and advanced_options_other_DEBUG()
 #               Tweaked isSyncing() detection capability
+#               Build 5031 removed the MD+ licenseCache field - tweak to deal with the change...
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -606,7 +607,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5029
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5031
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3441,9 +3442,12 @@ Visit: %s (Author's site)
                 invokeMethodByReflection(plusPoller, "shutdown", None)
                 setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
 
-            myPrint("DB", "... Clearing out the in-memory license cache...")
-            licenseCache = getFieldByReflection(MDPlus, "licenseCache")
-            if licenseCache is not None: licenseCache.clear()
+            try:
+                myPrint("DB", "... Clearing out the in-memory license cache...")
+                licenseCache = getFieldByReflection(MDPlus, "licenseCache")
+                if licenseCache is not None: licenseCache.clear()
+            except:
+                myPrint("DB", "... There appears to be no in-memory license cache ('licenseCache') to clear (probably builds 5031 onwards)...")
 
             myPrint("DB", "... MD+ poller shutdown...")
 
