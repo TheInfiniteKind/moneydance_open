@@ -135,6 +135,7 @@
 # build: 1029 - Added Page Setup to menu...; Tweaked getFileFromAppleScriptFileChooser() to allow 'invisibles'...
 #               Fixed dump_StuWareSoftSystems_parameters_from_memory() losing version_build when saving settings....
 #               Fixed Common Code: genericSwingEDTRunner - <codeblock>: IllegalArgumentException: java.lang.IllegalArgumentException: Cannot create PyString with non-byte value
+#               Tweaked isSyncing checks for main sync task only...
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 # todo - avp2(avp2@almont.com): select dated transactions - filter on MD's Tax Date?
@@ -497,6 +498,9 @@ else:
     GlobalVars.specialDebug = False
 
     GlobalVars.Strings.SWSS_COMMON_CODE_NAME = "StuWareSoftSystems_CommonCode"
+
+    GlobalVars.MD_KOTLIN_COMPILED_BUILD = 5000                              # 2023.0
+    GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL = 5008                          # 2023.2 (Entire codebase compiled in Kotlin)
 
     GlobalVars.Strings.MD_GLYPH_APPICON_64 = "/com/moneydance/apps/md/view/gui/glyphs/appicon_64.png"
     GlobalVars.Strings.MD_GLYPH_REFRESH = "/com/moneydance/apps/md/view/gui/glyphs/glyph_refresh.png"
@@ -3339,6 +3343,31 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
+
+    def isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=False):
+        if ((not checkMainTask and not checkAttachmentsTask) or (checkMainTask and checkAttachmentsTask)):
+            raise Exception("LOGIC ERROR: Must provide either checkMainTask or checkAttachmentsTask True parameter...!")
+        _b = MD_REF.getCurrentAccountBook()
+        if _b is not None:
+            _s = _b.getSyncer()
+            if _s is not None:
+                try:      # This method only works from MD2023.2(5008) onwards...
+                    checkTasks = []
+                    if checkMainTask: checkTasks.append("getMainSyncTask")
+                    if checkAttachmentsTask: checkTasks.append("getAttachmentsSyncTask")
+                    for checkTask in checkTasks:
+                        _st = invokeMethodByReflection(_s, checkTask, [])
+                        _isSyncing = invokeMethodByReflection(_st, "isSyncing", [])
+                        myPrint("DB", "isSyncTaskSyncing(): Task: .%s(), Thread: '%s', .isSyncing(): %s" %(checkTask, _st, _isSyncing))
+                        if _isSyncing:
+                            return True
+                except:
+                    # There is only one big sync thread for versions prior to build 5008...
+                    myPrint("DB", "isSyncTaskSyncing(): Ignoring parameters (main: %s, attachments: %s) >> Simply checking the single Syncer status. .isSyncing(): %s"
+                            %(checkMainTask, checkAttachmentsTask, _s.isSyncing()))
+                    return _s.isSyncing()
+        return False
+
 
     def padTruncateWithDots(theText, theLength, padChar=u" ", stripSpaces=True, padString=True):
         if not isinstance(theText, basestring): theText = safeStr(theText)
@@ -10149,17 +10178,17 @@ Visit: %s (Author's site)
                         Thread.sleep(sleepTimeMS)
                         cumulativeSleepTimeMS += sleepTimeMS
                         while cumulativeSleepTimeMS < abortAfterSleepMS:
-                            _bk = self.callingClass.moneydanceContext.getCurrentAccountBook()
-                            if _bk is not None:
-                                _syncer = _bk.getSyncer()
-                                if _syncer is not None:
-                                    if _syncer.isSyncing():
-                                        if GlobalVars.specialDebug or debug: myPrint("B", "... Moneydance appears to be syncing... will wait %sms..." %(sleepTimeMS))
-                                        Thread.sleep(sleepTimeMS)
-                                        cumulativeSleepTimeMS += sleepTimeMS
-                                        continue
-                                    else:
-                                        myPrint("B", "... Moneydance reports that it's NOT syncing... so will continue to load UI...")
+                            if self.callingClass.moneydanceContext.getCurrentAccountBook() is not None:
+                                if isSyncTaskSyncing(checkMainTask=True, checkAttachmentsTask=False):
+                                    if GlobalVars.specialDebug or debug:
+                                        myPrint("B", "... Moneydance [main sync task] appears to be syncing... will wait %sms... (attachments sync task reports isSyncing: %s)"
+                                                %(sleepTimeMS, isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=True)))
+                                    Thread.sleep(sleepTimeMS)
+                                    cumulativeSleepTimeMS += sleepTimeMS
+                                    continue
+                                else:
+                                    myPrint("B", "... Moneydance [main sync task] appears to be NOT syncing... so will continue to load UI... (attachments sync task reports isSyncing: %s)"
+                                            %(isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=True)))
                             break
 
                         if cumulativeSleepTimeMS >= abortAfterSleepMS: myPrint("B", "... WARNING: sleep/wait loop aborted (after %sms) waiting for MD sync to finish... Continuing anyway..." %(cumulativeSleepTimeMS))

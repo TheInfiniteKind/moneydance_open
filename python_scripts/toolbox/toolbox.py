@@ -196,6 +196,7 @@
 #               Tweak MyJFrame.dispose() with .getContentsPane().removeAll()
 #               Change when Moneydance's DEBUGs are turned on (when debug on, or from new options menu toggle):
 #               Enhanced: advanced_options_DEBUG() and advanced_options_other_DEBUG()
+#               Tweaked isSyncing() detection capability
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -605,7 +606,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5024
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5029
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3320,6 +3321,31 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    def isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=False):
+        if ((not checkMainTask and not checkAttachmentsTask) or (checkMainTask and checkAttachmentsTask)):
+            raise Exception("LOGIC ERROR: Must provide either checkMainTask or checkAttachmentsTask True parameter...!")
+        _b = MD_REF.getCurrentAccountBook()
+        if _b is not None:
+            _s = _b.getSyncer()
+            if _s is not None:
+                try:      # This method only works from MD2023.2(5008) onwards...
+                    checkTasks = []
+                    if checkMainTask: checkTasks.append("getMainSyncTask")
+                    if checkAttachmentsTask: checkTasks.append("getAttachmentsSyncTask")
+                    for checkTask in checkTasks:
+                        _st = invokeMethodByReflection(_s, checkTask, [])
+                        _isSyncing = invokeMethodByReflection(_st, "isSyncing", [])
+                        myPrint("DB", "isSyncTaskSyncing(): Task: .%s(), Thread: '%s', .isSyncing(): %s" %(checkTask, _st, _isSyncing))
+                        if _isSyncing:
+                            return True
+                except:
+                    # There is only one big sync thread for versions prior to build 5008...
+                    myPrint("DB", "isSyncTaskSyncing(): Ignoring parameters (main: %s, attachments: %s) >> Simply checking the single Syncer status. .isSyncing(): %s"
+                            %(checkMainTask, checkAttachmentsTask, _s.isSyncing()))
+                    return _s.isSyncing()
+        return False
+
+
     # Variables initialised by _init.py script and managed by _invoke_handle_event.py script... (extension only)...
     global _ALL_OBSERVED_BOOKS, _observeMoneydanceObjects
     if "_ALL_OBSERVED_BOOKS" not in globals():
@@ -3745,6 +3771,8 @@ Visit: %s (Author's site)
                 syncer_keepSyncing = getFieldByReflection(syncerObj, "keepSyncing")
                 myPrint("DB", "... %s getSyncer(): %s (keepSyncing: %s) isRunningInBackground: %s isSyncing: %s"
                         %(debugMessage, syncerObj, syncer_keepSyncing, syncerObj.isRunningInBackground(), syncerObj.isSyncing()))
+                if debug: isSyncTaskSyncing(checkMainTask=True, checkAttachmentsTask=False)
+                if debug: isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=True)
             for t in sThreads:
                 myPrint("B", "... Existent Syncer Thread(s)...:", getJVMThreadInformation(t, True))
                 if t.isAlive(): sAliveThreads.append(t)
@@ -27135,7 +27163,10 @@ now after saving the file, restart Moneydance
             def __init__(self, theFrame):
                 self.theFrame = theFrame
 
-            def actionPerformed(self, event):                                                                           # noqa
+            def actionPerformed(self, event): self.gatherJVMDiagnostics()                                               # noqa
+
+            @staticmethod
+            def gatherJVMDiagnostics():
 
                 diagTxt = "Quick JVM Diagnostics:\n" \
                           " ---------------------\n\n"
@@ -27175,14 +27206,17 @@ now after saving the file, restart Moneydance
                         if not isKotlinCompiledBuildAll():
                             syncerThread = getFieldByReflection(syncer, "syncThread")
                             syncerThreadId = syncerThread.getId() if (syncerThread) else None
-                            diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n"\
-                                       %(pad(syncerThread,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
+                            diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s) (Syncer.isSyncing(): %s)\n"\
+                                       %(pad(syncerThread,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing, syncer.isSyncing())
                         else:
+                            diagTxt += "** Current Book's Syncer:        mainTask.isSyncing(): %s, attachmentsTask.isSyncing(): %s\n\n"\
+                                       %(isSyncTaskSyncing(checkMainTask=True), isSyncTaskSyncing(checkAttachmentsTask=True))
                             syncerTasks = getFieldByReflection(syncer, "syncTasks")
                             for sTask in syncerTasks:
                                 syncerThreadId = sTask.getId()
                                 diagTxt += "** Current Book's Sync Thread:   %s (id: %s) %s(hash: %s) (keepSyncing: %s)\n"\
                                            %(pad(sTask,40), rpad(syncerThreadId,4), syncer, System.identityHashCode(syncer), syncer_keepSyncing)
+
                 except:
                     if debug:
                         myPrint("B", "@@ ERROR: Failed to get syncThread / syncTasks?")
@@ -27240,7 +27274,10 @@ now after saving the file, restart Moneydance
                     except:
                         myPrint("B", "NOPE: Could not execute _observeMoneydanceObjects().... ignoring....")
                         dump_sys_error_to_md_console_and_errorlog()
-                        diagTxt += "\n\n@@ Failed to execute _observeMoneydanceObjects() method. Results may be incomplete! (review console) - (NOTE: ONLY WORKS WHEN RUNNING AS EXTENSION) @@\n\n"
+                        diagTxt += "\n@@ Failed to execute _observeMoneydanceObjects() method. Results may be incomplete! (review console) - (NOTE: ONLY WORKS WHEN RUNNING AS EXTENSION) @@\n\n"
+
+                    diagTxt += "\nOBSERVED REFERENCES....:\n" \
+                               " -------------------------\n"
 
                     for wr_wrapper, wr_book, wr_syncer, wr_syncerThreads in _ALL_OBSERVED_BOOKS:
 
