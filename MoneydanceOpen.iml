@@ -31,7 +31,7 @@
     <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jcommon-1.0.12.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jcommon-1.0.16.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
