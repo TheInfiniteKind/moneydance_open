@@ -18,3 +18,4 @@ MoneydanceOpen.iws
 /python_scripts/*$py.class
 /python_scripts/*.pyc
 !bin/repackage-jython
+.jython_cache
