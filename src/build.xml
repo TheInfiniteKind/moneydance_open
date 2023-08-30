@@ -88,7 +88,9 @@ http://jakarta.apache.org/ant/index.html
         <javac target="@{javac-target}" bootclasspath="${bootclasspath}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
           classpathref="classpath"  destdir="${build}"
           includes="com/moneydance/modules/features/@{feature}/**"
-          includeAntRuntime="false" />
+          includeAntRuntime="false">
+          <compilerarg value="-Xlint:-options"/>
+        </javac>
         <jar destfile="${dist}/@{feature}.mxt">
           <fileset dir="${build}" includes="**" />
         </jar>
