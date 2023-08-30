@@ -1,10 +1,13 @@
-/*************************************************************************\
-* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
-*
-* This code is released as open source under the Apache 2.0 License:<br/>
-* <a href="http://www.apache.org/licenses/LICENSE-2.0">
-* http://www.apache.org/licenses/LICENSE-2.0</a><br />
-\*************************************************************************/
+//*************************************************************************
+//* Copyright (C) 2009-2015 Mennē Software Solutions, LLC
+//*
+//* This code is released as open source under the Apache 2.0 License:<br/>
+//* <a href="http://www.apache.org/licenses/LICENSE-2.0">
+//* http://www.apache.org/licenses/LICENSE-2.0</a><br />
+//*************************************************************************
+
+// UPDATED BY STUART BEESLEY - StuWareSoftSystems - August 2023
+// Build: 1218 - Fixed the IK fix for AcctFilter....
 
 package com.moneydance.modules.features.findandreplace;
 
@@ -28,6 +31,7 @@ import java.util.List;
  * @version Build 209
  * @since 1.0
  */
+
 public class Main extends FeatureModule
 {
     private final PreferencesListener _prefListener = new FarPreferencesListener();
