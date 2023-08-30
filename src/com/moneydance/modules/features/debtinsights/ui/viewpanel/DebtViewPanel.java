@@ -30,12 +30,11 @@ import com.moneydance.apps.md.controller.BalanceType;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
-import com.moneydance.awt.JLinkLabel;
 import com.moneydance.awt.JLinkListener;
-import com.moneydance.modules.features.debtinsights.AccountUtils;
 import com.moneydance.modules.features.debtinsights.DebtAmountWrapper;
 import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Util;
+import com.moneydance.modules.features.debtinsights.ui.MyJLinkLabel;
 import com.moneydance.modules.features.debtinsights.ui.acctview.DebtAccountView;
 import com.moneydance.modules.features.debtinsights.ui.acctview.HierarchyView;
 import com.moneydance.apps.md.view.resources.Resources;
@@ -51,8 +50,8 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
     protected static final String SINGLE_SPACE = " ";
 
     protected JPanel listPanel;
-    protected JLinkLabel headerLabel;
-    protected JLinkLabel footerLabel;
+    protected MyJLinkLabel headerLabel;
+    protected MyJLinkLabel footerLabel;
     protected JLabel balTypeLabel;
     protected JLabel totalValLabel;
     private BalanceType balanceType = BalanceType.CURRENT_BALANCE;  // Initial default, gets populated from Preferences...
@@ -113,7 +112,7 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
     }
 
     protected void addHeaderRow(JPanel listPanel) {
-        this.headerLabel = new JLinkLabel(" ", Main.EXTN_CMD, SwingConstants.LEFT);
+        this.headerLabel = new MyJLinkLabel(" ", Main.EXTN_CMD, SwingConstants.LEFT);
         this.headerLabel.setDrawUnderline(false);
 //        this.headerLabel.addLinkListener(this);   // Can't add this for now as it also activates on the collapse / expand icon...! :-<
         this.headerLabel.addMouseListener(this);
@@ -194,7 +193,9 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
         if (ct != null) {
             ct.addCurrencyListener(this);
         }
-        refresh();
+        Main.lastRefreshTriggerWasAccountListener = false;
+//        this.acctView.refresh();
+         refresh();
     }
 
     public void deactivate() {
@@ -219,7 +220,9 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
             case FLATTEN:
                 Util.logConsole(true, "toggleShowHierarchy() FLATTEN");
         }
-        refresh();
+        Main.lastRefreshTriggerWasAccountListener = false;
+//        this.acctView.refresh();
+         refresh();
     }
 
 //    public void setAllExpanded(Account account, boolean expand) {
@@ -246,10 +249,19 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
     }
 
     public void refresh() {
-        Util.logConsole(true, "DVP Widget:refresh()");
+        Util.logConsole(true, "DVP Widget:refresh() - lastRefreshTriggerWasAccountListener: " + Main.lastRefreshTriggerWasAccountListener);
 
-        if (this.acctView.getMDGUI().getSuspendRefreshes())
+        boolean fromAccountListener = Main.lastRefreshTriggerWasAccountListener;
+        if (fromAccountListener) {
+            Util.logConsole(true, "... resetting lastRefreshTriggerWasAccountListener to false...");
+            Main.lastRefreshTriggerWasAccountListener = false;
+        }
+        // todo - do something with lastRefreshTriggerWasAccountModified
+
+        if (this.acctView.getMDGUI().getSuspendRefreshes()){
+            Util.logConsole(true, "... ignoring refresh as getSuspendRefreshes() is true...");
             return;
+        }
 
         this.listPanel.removeAll();
 
@@ -321,7 +333,7 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
         String smallText = previewTxt + debugTxt + enhColors + lineBreakTxt + calcTxt + balanceTxt + convertToBaseTxt;
         String outputText = String.format("<html>%s<small><font color=#%s>%s</font></small></html>", bigText, _smallColorHex, smallText);
 
-        this.footerLabel = new JLinkLabel(outputText, Main.EXTN_CMD, SwingConstants.LEFT);
+        this.footerLabel = new MyJLinkLabel(outputText, Main.EXTN_CMD, SwingConstants.LEFT);
         this.footerLabel.setDrawUnderline(false);
         this.footerLabel.addLinkListener(this);   // Can't add this for now as it also activates on the collapse / expand icon...! :-<
         //        this.footerLabel.addMouseListener(this);
@@ -362,9 +374,9 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
         if (sb.length() <= 0) sb.append(SINGLE_SPACE);
         acctLabel = sb.toString();
 
-        JLinkLabel label1 = new JLinkLabel(acctLabel, target, SwingConstants.LEFT);
-        JLinkLabel label2 = (sharesLabel != null) ? new JLinkLabel(sharesLabel, target, SwingConstants.RIGHT) : null;
-        JLinkLabel label3 = new JLinkLabel(balLabel, target, SwingConstants.RIGHT);
+        MyJLinkLabel label1 = new MyJLinkLabel(acctLabel, target, SwingConstants.LEFT);
+        MyJLinkLabel label2 = (sharesLabel != null) ? new MyJLinkLabel(sharesLabel, target, SwingConstants.RIGHT) : null;
+        MyJLinkLabel label3 = new MyJLinkLabel(balLabel, target, SwingConstants.RIGHT);
 
         label1.addLinkListener(this);
         if (label2 != null) label2.addLinkListener(this);
@@ -478,15 +490,15 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
             int origRow = this.currentRow;
             boolean showSubAccounts = account.getPreferenceBoolean(getSubAcctExpansionKey(), true);
 
-            JLinkLabel acctExpandLabel = null;
+            MyJLinkLabel acctExpandLabel = null;
 
             addAccounts(account, aw, false, (showIt && showSubAccounts), acctTypes);
 
             if (showSubAccounts) {
                 if (showAccount && this.currentRow != origRow && !(this.tooManyAccounts))
-                    acctExpandLabel = new JLinkLabel("- ", account, SwingConstants.LEFT);
+                    acctExpandLabel = new MyJLinkLabel("- ", account, SwingConstants.LEFT);
             } else if (showAccount && !this.tooManyAccounts) {
-                acctExpandLabel = new JLinkLabel("+ ", account, SwingConstants.LEFT);
+                acctExpandLabel = new MyJLinkLabel("+ ", account, SwingConstants.LEFT);
             }
 
             if (acctExpandLabel != null) {
@@ -613,7 +625,9 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
                     prefs.setSetting(acctView.getBalanceTypePref(), balType.ordinal());
                     if (!(different)) return;
                     setBalanceType(balType);
-                    refresh();
+                    Main.lastRefreshTriggerWasAccountListener = false;
+//                    DebtViewPanel.this.acctView.refresh();
+                     refresh();
                 }
             });
         }
@@ -625,24 +639,32 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
         Util.logConsole(true, "DVP.toggleSectionExpanded() expanded was: " + this.expanded + " flipping to: " + !this.expanded);
         this.expanded = (!(this.expanded));
         this.prefs.setSetting(this.acctView.getSectionExpandedPref(), this.expanded);
-        refresh();
+        Main.lastRefreshTriggerWasAccountListener = false;
+//        this.acctView.refresh();
+         refresh();
     }
 
     @Override
     public void currencyTableModified(CurrencyTable currencyTable) {
-        refresh();
+        Main.lastRefreshTriggerWasAccountListener = false;
+        this.acctView.refresh();
+        // refresh();
     }
 
     @Override
     public void accountModified(Account account) {
         if (this.acctView.includes(account.getAccountType())) // == this.acctView.getAccountType())
-            refresh();
+            Main.lastRefreshTriggerWasAccountListener = true;
+            this.acctView.refresh();
+            // refresh();
     }
 
     @Override
     public void accountBalanceChanged(Account account) {
         if (account.getAccountType() == this.acctView.getAccountType())
-            refresh();
+            Main.lastRefreshTriggerWasAccountListener = true;
+            this.acctView.refresh();
+            // refresh();
     }
 
     @Override
@@ -650,7 +672,9 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
         Account.AccountType acctType = this.acctView.getAccountType();
         if ((parentAccount.getAccountType() != acctType)
                 && (deletedAccount.getAccountType() != acctType)) return;
-        refresh();
+            Main.lastRefreshTriggerWasAccountListener = true;
+        this.acctView.refresh();
+        // refresh();
     }
 
     @Override
@@ -658,7 +682,9 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
         Account.AccountType acctType = this.acctView.getAccountType();
         if ((parentAccount.getAccountType() != acctType)
                 && (newAccount.getAccountType() != acctType)) return;
-        refresh();
+        Main.lastRefreshTriggerWasAccountListener = true;
+        this.acctView.refresh();
+        // refresh();
     }
 
     private class AccountExpander implements JLinkListener {
@@ -680,6 +706,7 @@ public class DebtViewPanel extends JPanel implements JLinkListener, CurrencyList
                 acct.setPreference(getSubAcctExpansionKey(), true);
                 Util.logConsole(true, "... was 'false', set to 'true'");
             }
+            Main.lastRefreshTriggerWasAccountListener = false;
             DebtViewPanel.this.refresh();
         }
     }

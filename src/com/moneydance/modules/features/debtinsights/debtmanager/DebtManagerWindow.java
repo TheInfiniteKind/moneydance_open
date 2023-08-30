@@ -222,6 +222,7 @@ public class DebtManagerWindow extends SecondaryFrame implements ActionListener 
         refresh();
 
         if (Main.widgetViewReference != null) {
+            Main.lastRefreshTriggerWasAccountListener = false;
             Main.widgetViewReference.refresh();
         }
     }

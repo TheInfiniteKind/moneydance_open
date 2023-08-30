@@ -14,13 +14,13 @@ import java.awt.Color;
 import javax.swing.SwingConstants;
 
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.awt.JLinkLabel;
 import com.moneydance.modules.features.debtinsights.AccountUtils;
 import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Strings;
 import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
 import com.moneydance.modules.features.debtinsights.model.DebtAccount;
+import com.moneydance.modules.features.debtinsights.ui.MyJLinkLabel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.CreditCardViewPanel;
 
 
@@ -31,8 +31,8 @@ public abstract class NumericDisplay implements CreditLimitComponent {
     }
 
     @Override
-    public JLinkLabel getComponent(CreditCardViewPanel ccvp, Account acct, long balanceAmt) {
-        JLinkLabel limitDisplay = new JLinkLabel(Strings.BLANK, acct, SwingConstants.RIGHT);
+    public MyJLinkLabel getComponent(CreditCardViewPanel ccvp, Account acct, long balanceAmt) {
+        MyJLinkLabel limitDisplay = new MyJLinkLabel(Strings.BLANK, acct, SwingConstants.RIGHT);
         Long displayAmt = null;
         String creditLimitStr = UNKNOWN;
         Util.logConsole(true, "Widget: ...Deep... In getComponent()");

@@ -28,11 +28,11 @@ import javax.swing.border.EmptyBorder;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MDColors;
 import com.moneydance.awt.GridC;
-import com.moneydance.awt.JLinkLabel;
 import com.moneydance.modules.features.debtinsights.*;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
 import com.moneydance.modules.features.debtinsights.model.BetterCreditCardAccount;
 import com.moneydance.modules.features.debtinsights.model.DebtAccount;
+import com.moneydance.modules.features.debtinsights.ui.MyJLinkLabel;
 import com.moneydance.modules.features.debtinsights.ui.acctview.DebtAccountView;
 import com.moneydance.modules.features.debtinsights.ui.acctview.HierarchyView;
 import com.moneydance.modules.features.debtinsights.ui.acctview.IconToggle;
@@ -130,7 +130,7 @@ public class DebtManagerPanel extends DebtViewPanel {
                 jLbl = (JLabel) label;
                 jLbl.setBackground(bg);
             } else {
-                jLbl = makeJLinkLabel(label, acct, relCurr, bg, col.border);
+                jLbl = makeMyJLinkLabel(label, acct, relCurr, bg, col.border);
             }
 
             if (label instanceof Long) {        // LOAN accounts will return null in Credit Limit
@@ -189,7 +189,7 @@ public class DebtManagerPanel extends DebtViewPanel {
         return map;
     }
 
-    private JLinkLabel makeJLinkLabel(Object value, Account acct, CurrencyType relCurr, Color bg, Border border) {
+    private MyJLinkLabel makeMyJLinkLabel(Object value, Account acct, CurrencyType relCurr, Color bg, Border border) {
         String valStr = value.toString();
         int align = (value instanceof String ? SwingConstants.LEFT : SwingConstants.RIGHT);
         Color fgColor = Color.black;
@@ -203,7 +203,7 @@ public class DebtManagerPanel extends DebtViewPanel {
         } else if (value instanceof Double || value instanceof Float) {
             valStr += "%";
         }
-        JLinkLabel lbl = new JLinkLabel(valStr, acct, align);
+        MyJLinkLabel lbl = new MyJLinkLabel(valStr, acct, align);
         lbl.setForeground(fgColor);
         lbl.setBorder(border);
         lbl.addLinkListener(this);

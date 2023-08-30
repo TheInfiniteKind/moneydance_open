@@ -56,8 +56,9 @@ public class CreditCardAccountView extends GenericDebtAccountView {
 
     @Override
     public void refresh() {
+        Util.logConsole(true, "CCAV.refresh()");
         if (extnContext.killSwitch){
-            Util.logConsole(true, ".refresh(): ignoring as killSwitch set....");
+            Util.logConsole(true, "CCAV.refresh(): ignoring as killSwitch set....");
             return;
         }
         super.refresh();

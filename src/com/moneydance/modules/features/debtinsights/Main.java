@@ -2,7 +2,7 @@
 // Original Author: 2001 Appgen Personal Software >> Robert Schmid
 // Restricted to MD2015.8(1372) onwards
 
-// Build: 1000 - Fix Home Screen widget popup in showBalanceTypePopup() causing...:
+// Build: 1002 - Fix Home Screen widget popup in showBalanceTypePopup() causing...:
 // 			   - NullPointerException: Cannot invoke "java.io.InputStream.markSupported()" because "<parameter1>" is null
 // 			   - Fix DebtManagerWindow() crashing due to icon issues (missing and size -1 in VAQua)
 // 				 Exception in thread "AWT-EventQueue-0" java.lang.IllegalArgumentException: Width (-1) and height (-1) cannot be <= 0
@@ -13,6 +13,9 @@
 //             - Added options to allow user to override MD Payment Plan to Balance rather than Current/Cleared Balance
 //             - Don't allow available credit to go negative; don't allow interest to go positive....
 //             - Lots more to mention... A complete overhaul....! ;->
+// Build: 1001 - IK updated changed the setEscapeKeyCancels() code...; also DebtAccountView use of AcctFilter...
+// Build: 1002 - Updated to use CollapsibleRefresher, and fix screen updates whilst bank downloads occurring...
+//               Using subclassed JLinkLabel and override .setPreferredSize() to stop constant text width changes
 
 // todo - Replace ProgressBarUI (etc) in BarDisplay.java - so that we can use better colors on all platforms.
 // todo - The popup window hierarchy toggle icon only works on first window opening.. After this, it's dead!?
@@ -56,6 +59,12 @@ public class Main extends FeatureModule implements PreferencesListener {
     public boolean allowActive = true;
     public boolean killSwitch = false;
 
+    @SuppressWarnings("unused")
+    public static final int lastRefreshTimeDelayMs = 2000;
+
+    public static boolean lastRefreshTriggerWasAccountListener = false;
+
+
     public DebtManagerWindow debtManagerWindow = null;
 
     public static final String EXTN_CMD = "debtoverview";
@@ -67,8 +76,14 @@ public class Main extends FeatureModule implements PreferencesListener {
 
     @Override
     public void init() {
+
+        // if moneydance was launched with -d or the system property is set.....
+        Main.DEBUG = (com.moneydance.apps.md.controller.Main.DEBUG || Boolean.getBoolean("moneydance.debug"));
+        Util.logConsole(true, "** DEBUG IS ON **");
+
         // the first thing we will do is register this module to be invoked
         // via the application toolbar
+
 
         boolean installDetected = false;
 
@@ -256,6 +271,7 @@ public class Main extends FeatureModule implements PreferencesListener {
         return EXTN_NAME;
     }
 
+    @SuppressWarnings("unused")
     public synchronized void creditCardReportRefresh() {
         if (this.debtManagerWindow != null) {
             Util.logConsole(true, "Inside: creditCardReportRefresh() - calling DMW.refresh()");

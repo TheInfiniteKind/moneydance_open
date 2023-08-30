@@ -11,24 +11,21 @@
 package com.moneydance.modules.features.debtinsights.ui.viewpanel;
 
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.event.MouseEvent;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 
-import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.apps.md.view.gui.MoneydanceLAF;
 import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.moneydance.awt.AwtUtil;
 import com.moneydance.awt.GridC;
-import com.moneydance.awt.JLinkLabel;
 import com.moneydance.modules.features.debtinsights.DebtAmountWrapper;
 import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditCardLimitMenuAction;
 import com.moneydance.modules.features.debtinsights.creditcards.CreditLimitType;
+import com.moneydance.modules.features.debtinsights.ui.MyJLinkLabel;
 import com.moneydance.modules.features.debtinsights.ui.acctview.CreditCardAccountView;
 import com.moneydance.modules.features.debtinsights.ui.acctview.DebtAccountView;
 
@@ -44,7 +41,7 @@ public class CreditCardViewPanel extends DebtViewPanel
 			DebtViewPanel.amountBorder,
 			DebtViewPanel.amountBorder};
 
-	public CreditCardViewPanel(DebtAccountView ccAccountView, Account.AccountType... acctTypes)							// noqa
+	public CreditCardViewPanel(DebtAccountView ccAccountView, Account.AccountType... acctTypes)								// noqa
 	{
 		super(true, ccAccountView);
 		setBorder(MoneydanceLAF.homePageBorder);
@@ -75,14 +72,14 @@ public class CreditCardViewPanel extends DebtViewPanel
 		if (sb.length() <= 0) sb.append(SINGLE_SPACE);
 		acctLabel = sb.toString();
 
-		JLinkLabel nameLbl = new JLinkLabel(acctLabel, account, SwingConstants.LEFT);
+		MyJLinkLabel nameLbl = new MyJLinkLabel(acctLabel, account, SwingConstants.LEFT);
 		JComponent creditLimitDisplay = getCreditLimitType().getDisplayComponent(this, account, balanceForCreditComponent);
 //		JComponent creditLimitDisplay = getCreditLimitType().getDisplayComponent(this, account, amt);
 		if (creditLimitDisplay != null) {
 			creditLimitDisplay.setFont(this.acctView.getMDGUI().getFonts().mono);
 		}
 
-		JLinkLabel balanceLbl = new JLinkLabel(balanceStr, account, SwingConstants.RIGHT);
+		MyJLinkLabel balanceLbl = new MyJLinkLabel(balanceStr, account, SwingConstants.RIGHT);
 		balanceLbl.setFont(this.acctView.getMDGUI().getFonts().mono);
 
 		JComponent[] labels = {nameLbl, creditLimitDisplay, balanceLbl};
@@ -102,10 +99,10 @@ public class CreditCardViewPanel extends DebtViewPanel
 		{
 			if (labels[i] == null) continue;
 			
-			if (labels[i] instanceof JLinkLabel)
+			if (labels[i] instanceof MyJLinkLabel)
 			{
-				((JLinkLabel) labels[i]).addLinkListener(this);
-				((JLinkLabel) labels[i]).setDrawUnderline(false);
+				((MyJLinkLabel) labels[i]).addLinkListener(this);
+				((MyJLinkLabel) labels[i]).setDrawUnderline(false);
 			}
 //			if (this.currentRow % 2 == 0)
 //			{
@@ -114,7 +111,7 @@ public class CreditCardViewPanel extends DebtViewPanel
 //				labels[i].setBackground(bg);
 //			}
 
-			labels[i].setBorder(borders[i]);;
+			labels[i].setBorder(borders[i]);
 			
 			GridC gridC = GridC.getc().xy(i+1, this.currentRow);
 			if (i == 0)

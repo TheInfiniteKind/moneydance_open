@@ -18,11 +18,11 @@ import javax.swing.SwingConstants;
 
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.BalanceType;
-import com.moneydance.awt.JLinkLabel;
 import com.moneydance.modules.features.debtinsights.AccountUtils;
 import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.model.BetterCreditCardAccount;
+import com.moneydance.modules.features.debtinsights.ui.MyJLinkLabel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.CreditCardViewPanel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 
@@ -37,13 +37,13 @@ public class AvailableCreditDisplay extends CreditLimitDisplay
 
 
 	@Override
-	public JLinkLabel getComponent(CreditCardViewPanel ccvp, Account acct, long balanceAmt)
+	public MyJLinkLabel getComponent(CreditCardViewPanel ccvp, Account acct, long balanceAmt)
 	{
 		if(acct.getCreditLimit()!=0)
 		{
 			return super.getComponent(ccvp, acct, balanceAmt);
 		}
-		return new JLinkLabel("N/A", null, SwingConstants.RIGHT);
+		return new MyJLinkLabel("N/A", null, SwingConstants.RIGHT);
 	}	
 
 

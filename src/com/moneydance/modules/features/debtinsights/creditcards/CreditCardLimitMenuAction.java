@@ -51,6 +51,8 @@ public class CreditCardLimitMenuAction extends AbstractAction
 
 		if (!different) return;
 		ccvp.setCreditLimitType(type);
+		Util.logConsole(true, "@@@ CreditCardLimitMenuAction:: calling .refresh() ??");
+        Main.lastRefreshTriggerWasAccountListener = false;
 		ccvp.refresh();
 	}
 	

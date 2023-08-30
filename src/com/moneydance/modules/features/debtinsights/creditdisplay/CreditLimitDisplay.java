@@ -17,10 +17,10 @@ import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.awt.JLinkLabel;
 import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.model.BetterCreditCardAccount;
+import com.moneydance.modules.features.debtinsights.ui.MyJLinkLabel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.CreditCardViewPanel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 
@@ -33,14 +33,14 @@ public class CreditLimitDisplay extends NumericDisplay
 	{
 	}
 	@Override
-	public JLinkLabel getComponent(CreditCardViewPanel ccvp, Account acct, long balanceAmt)
+	public MyJLinkLabel getComponent(CreditCardViewPanel ccvp, Account acct, long balanceAmt)
 	{
 		if (BetterCreditCardAccount.getHasCreditLimit(acct))
 		{
 			return super.getComponent(ccvp, acct, balanceAmt);
 		}
 		
-		return new JLinkLabel("N/A",null, SwingConstants.RIGHT);
+		return new MyJLinkLabel("N/A",null, SwingConstants.RIGHT);
 	}	
 
 	@Override

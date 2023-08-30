@@ -1,7 +1,7 @@
 {
   "id" = "debtinsights"
   "vendor" = "Robert Schmid, updated by Stuart Beesley"
-  "module_build" = "1001"
+  "module_build" = "1002"
   "minbuild" = "1372"
   "vendor.url" = ""
   "module_name" = "Debt Insights"

@@ -73,7 +73,7 @@ public class DisplayHelp extends SecondaryDialog {
         try {
             getClass().getMethod("setEscapeKeyCancels", new Class[] { Boolean.class }).invoke(Boolean.TRUE);
         } catch (Throwable e) {
-            System.err.println("Couldn't invoke setEscapeKeyCancels.  That's perfectly fine.");
+            System.err.println("Couldn't invoke setEscapeKeyCancels.  No issue, just not supported on this version of Moneydance");
         }
         setLocationRelativeTo(parent);
         pack();

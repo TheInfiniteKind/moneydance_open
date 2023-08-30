@@ -9,11 +9,11 @@ import com.moneydance.apps.md.controller.BalanceType;
 import com.moneydance.apps.md.view.HomePageView;
 import com.moneydance.apps.md.view.gui.DefaultAcctSearch;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TxnAccountSearch;
 import com.moneydance.modules.features.debtinsights.AccountUtils;
 import com.moneydance.modules.features.debtinsights.Main;
 import com.moneydance.modules.features.debtinsights.Util;
 import com.moneydance.modules.features.debtinsights.model.DebtAccountComparator;
+import com.moneydance.modules.features.debtinsights.ui.MyCollapsibleRefresher;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 
 public abstract class DebtAccountView implements HomePageView {
@@ -22,6 +22,11 @@ public abstract class DebtAccountView implements HomePageView {
     protected MoneydanceGUI mdGUI;
     private HierarchyView hierarchy = HierarchyView.EXPAND_ALL;
     private DebtAccountComparator acctComparator;
+
+    private final MyCollapsibleRefresher refresher = new MyCollapsibleRefresher(() -> {
+        Util.logConsole(true, "Inside MyCollapsibleRefresher::Runnable.... Calling .reallyRefresh()..");
+        DebtAccountView.this.reallyRefresh();
+    });
 
     public DebtAccountView(MoneydanceGUI mdGUI)
     {
@@ -90,13 +95,21 @@ public abstract class DebtAccountView implements HomePageView {
         Util.logConsole(true, "DAV.refresh()");
         if (this.mdGUI.getSuspendRefreshes())
             return;
+
+        if (this.debtView != null) {
+            Util.logConsole(true, "... calling refresher.enqueueRefresh()");
+            this.refresher.enqueueRefresh();
+        }
+    }
+
+    public void reallyRefresh() {
+        Util.logConsole(true, "... Inside DAV.reallyRefresh() - calling debtView.refresh()");
         if (this.debtView != null) this.debtView.refresh();
     }
 
-
     @Override
     public synchronized void reset() {
-        Util.logConsole(true, ".refresh()");
+        Util.logConsole(true, ".reset()");
         setActive(false);
         this.debtView = null;
     }
@@ -111,8 +124,11 @@ public abstract class DebtAccountView implements HomePageView {
     }
 
 
+
     public List<Account> getAccounts(Account parentAccount) {
         if (parentAccount == null) return null;
+
+        // The below changed from using AcctFilter() for MD2023.2(5008+ KOTLIN builds) onwards by IK Developer
         List<Account.AccountType> types = getAccountTypes();
         
         DefaultAcctSearch acctSearch = new DefaultAcctSearch();
@@ -128,7 +144,8 @@ public abstract class DebtAccountView implements HomePageView {
         acctSearch.setShowIncomeAccounts(types.contains(Account.AccountType.INCOME));
         
         List<Account> acctList = AccountUtil.allMatchesForSearch(Main.getMDMain().getCurrentAccountBook(), acctSearch);
-        
+        // end of AcctFilter changes ^^^^^^
+
         if (acctComparator != null) {
             acctList.sort(acctComparator);
         }
@@ -142,6 +159,7 @@ public abstract class DebtAccountView implements HomePageView {
 
     public void setAcctComparator(DebtAccountComparator acctComparator) {
         this.acctComparator = acctComparator;
+        Main.lastRefreshTriggerWasAccountListener = false;
         refresh();
     }
 

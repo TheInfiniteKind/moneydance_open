@@ -13,9 +13,9 @@ import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.awt.JLinkLabel;
 import com.moneydance.modules.features.debtinsights.Strings;
 import com.moneydance.modules.features.debtinsights.model.BetterCreditCardAccount;
+import com.moneydance.modules.features.debtinsights.ui.MyJLinkLabel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.CreditCardViewPanel;
 import com.moneydance.modules.features.debtinsights.ui.viewpanel.DebtViewPanel;
 
@@ -29,15 +29,15 @@ public class InterestRateDisplay implements CreditLimitComponent
 	}
 
 	@Override
-	public JLinkLabel getComponent(CreditCardViewPanel ccvp, 
-																 Account acct,
-																 long balanceAmt)
+	public MyJLinkLabel getComponent(CreditCardViewPanel ccvp,
+									 Account acct,
+									 long balanceAmt)
 	{
 		
 		Double rate = acct.getAPRPercent();
 		String creditLimitStr = rate.toString() + "%";
 
-		return new JLinkLabel(creditLimitStr, acct, SwingConstants.RIGHT);
+		return new MyJLinkLabel(creditLimitStr, acct, SwingConstants.RIGHT);
 	}
 
 	@Override
