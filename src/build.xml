@@ -283,11 +283,13 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="ratios-compile" depends="init">
-    <javac target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <touch file="com/moneydance/modules/features/ratios/Main.java"/>
+    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
               classpathref="classpath"  destdir="${build}"
-      includes="
-        com/moneydance/modules/features/ratios/**/*.java
-        "/>
+      includes="com/moneydance/modules/features/ratios/**/*.java"
+      includeAntRuntime="false">
+      <compilerarg value="-Xlint:-options"/>
+    </javac>
     <jar destfile="${dist}/ratios.mxt">
       <fileset dir="${src}" includes="
              com/moneydance/modules/features/ratios/meta_info.dict
@@ -298,25 +300,15 @@ http://jakarta.apache.org/ant/index.html
              com/moneydance/modules/features/ratios/*.png
              com/moneydance/modules/features/ratios/*.jpg
              com/moneydance/modules/features/ratios/*.jpeg"/>
-      <fileset dir="${build}" includes="
-             com/moneydance/modules/features/ratios/**/*.class
-             "/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/ratios/**/*.class"/>
     </jar>
   </target>
 
   <target name="ratios" depends="ratios-compile">
-    <java newenvironment="true"
-      classpathref="classpath"
-      classname="com.moneydance.admin.KeyAdmin">
-      <arg value="signextjar"/>
-      <arg value="${extprivkeyfile}"/>
-      <arg value="${privkeyid}"/>
-      <arg value="ratios"/>
-      <arg line="${dist}/ratios.mxt"/>
-    </java>
-      <delete file="${dist}/ratios.mxt" verbose="true" failonerror="false" />
-    <move file="${src}/s-ratios.mxt" tofile="${dist}/ratios.mxt" verbose="true" failonerror="false" />
-    <copy file="${dist}/ratios.mxt" tofile="${install}/ratios.mxt" verbose="true" failonerror="false" />
+    <touch file="com/moneydance/modules/features/ratios/Main.java"/>
+    <antcall target="sign" inheritall="true" inheritrefs="true">
+      <param name="feature" value="ratios" />
+    </antcall>
   </target>
 
   <target name="yahoofx" depends="init">
