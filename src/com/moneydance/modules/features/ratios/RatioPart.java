@@ -43,8 +43,10 @@ class RatioPart {
   private String _label;
   private long _txnValue;
   private TxnDateSearch _dateFilter;
-  private AcctFilter _requiredFilter;
-  private AcctFilter _disallowedFilter;
+//  private AcctFilter _requiredFilter;
+//  private AcctFilter _disallowedFilter;
+  private DefaultAcctSearch _requiredFilter;
+  private DefaultAcctSearch _disallowedFilter;
   private TxnTagsFilter _tagFilter;
   private double _value;
   private TxnMatchLogic _txnMatchLogic = TxnMatchLogic.DEFAULT;
@@ -200,18 +202,48 @@ class RatioPart {
     _baseCurrency = root.getCurrencies().getBaseType();
     _txnValue = 0;
     _dateFilter = new TxnDateSearch(dateRange.getStartDateInt(), dateRange.getEndDateInt(), useTaxDate);
-    DefaultAcctSearch reqFilter = new DefaultAcctSearch();
-    for(Account requiredAccount : _requiredAccounts) {
-      reqFilter.setShowAccount(requiredAccount, true);
-    }
-    _requiredFilter = reqFilter;
-    
-    DefaultAcctSearch disFilter = new DefaultAcctSearch();
-    for(Account disallowedAccount : _disallowedAccounts) {
-      disFilter.setShowAccount(disallowedAccount, true);
-    }
-    _disallowedFilter = disFilter;
-    
+
+// ORIGINAL CODE
+//      _requiredFilter = new AcctFilter() {
+//        public boolean matches(Account account) {
+//          return _requiredAccounts.contains(account);
+//        }
+//
+//        public String format(Account account) {
+//          return account.getFullAccountName();
+//        }
+//      };
+//      _disallowedFilter = new AcctFilter() {
+//        public boolean matches(Account account) {
+//          return _disallowedAccounts.contains(account);
+//        }
+//
+//        public String format(Account account) {
+//          return account.getFullAccountName();
+//        }
+//      };
+//
+      // SCB REVISED CODE
+      _requiredFilter = new DefaultAcctSearch() {
+        public boolean matches(Account account) {
+          return _requiredAccounts.contains(account);
+        }
+
+        public String format(Account account) {
+          return account.getFullAccountName();
+        }
+      };
+
+      _disallowedFilter = new DefaultAcctSearch() {
+        public boolean matches(Account account) {
+          return _disallowedAccounts.contains(account);
+        }
+
+        public String format(Account account) {
+          return account.getFullAccountName();
+        }
+      };
+
     if (!_tags.isEmpty()) {
       _tagFilter = new TxnTagsFilter(_tags, _tagLogic);
     } else {
@@ -247,6 +279,8 @@ class RatioPart {
     final boolean targetRequired = _requiredFilter.matches(targetAccount);
     // if neither match, both accounts are Allowed and we ignore the transaction
     // if both match, both accounts are Required and it's an 'internal' transfer, skip
+
+    // if (!(sourceRequired ^ targetRequired)) return;
     if (sourceRequired == targetRequired) return;
     // At this point one account is Required, the other is Allowed
     // Both sides will be visited by the enumeration, we just so happen to pick the target account
