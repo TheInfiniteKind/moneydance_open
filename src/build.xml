@@ -106,13 +106,16 @@ http://jakarta.apache.org/ant/index.html
 
 
   <target name="findandreplace-compile" depends="init">
-    <javac  target="1.8" source="1.8" compiler="modern" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-            classpathref="classpath"  destdir="${build}"  classpath="${lib}/TableLayout-bin-jdk1.5-2009-08-26.jar"
-            includeantruntime="false"
-            bootclasspath="${java.home}/lib/rt.jar"
-            includes="
+    <javac target="1.8" source="1.8" bootclasspath="${bootclasspath}" compiler="modern" srcdir="${src}" debug="${debug}"
+           optimize="${optimize}"
+           classpathref="classpath" destdir="${build}" classpath="${lib}/TableLayout-bin-jdk1.5-2009-08-26.jar"
+           includeantruntime="false"
+           includes="
                 com/moneydance/modules/features/findandreplace/**/*.java
-                info/clearthought/layout/**"/>
+                info/clearthought/layout/**">
+      <compilerarg value="-Xlint:-options"/>
+    </javac>
+
     <jar destfile="${dist}/findandreplace.mxt">
       <fileset dir="${src}" includes="
              com/moneydance/modules/features/findandreplace/meta_info.dict
