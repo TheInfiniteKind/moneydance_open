@@ -16,6 +16,7 @@
 // Build: 1001 - IK updated changed the setEscapeKeyCancels() code...; also DebtAccountView use of AcctFilter...
 // Build: 1002 - Updated to use CollapsibleRefresher, and fix screen updates whilst bank downloads occurring...
 //               Using subclassed JLinkLabel and override .setPreferredSize() to stop constant text width changes
+//               Fixed the IK fix for AcctFilter....
 
 // todo - Replace ProgressBarUI (etc) in BarDisplay.java - so that we can use better colors on all platforms.
 // todo - The popup window hierarchy toggle icon only works on first window opening.. After this, it's dead!?
@@ -35,6 +36,7 @@ import javax.swing.*;
 public class Main extends FeatureModule implements PreferencesListener {
 
     public static final int MIN_MD_BUILD = 1372;    // Runs on MD2015.8(1372) onwards...
+    public static Main THIS_EXTENSION_CONTEXT;
 
     public static boolean DEBUG = false;
     public static boolean PREVIEW_BUILD = false;
@@ -83,12 +85,12 @@ public class Main extends FeatureModule implements PreferencesListener {
 
         // the first thing we will do is register this module to be invoked
         // via the application toolbar
-
-
+        
         boolean installDetected = false;
 
-        FeatureModuleContext context = getContext();
+        THIS_EXTENSION_CONTEXT = this;
 
+        FeatureModuleContext context = getContext();
         MD_REF = (com.moneydance.apps.md.controller.Main) context;
 
         if (context.getBuild() < MIN_MD_BUILD) {
@@ -228,14 +230,14 @@ public class Main extends FeatureModule implements PreferencesListener {
     @Override
     public void cleanup() {
         // I don't this this is ever called by Moneydance!?
-        Util.logConsole(true, "Cleanup() called....");
+        Util.logConsole(true, ".cleanup() called....");
         closeConsole();
         widgetViewReference = null;
     }
 
     @Override
     public void unload() {
-        Util.logConsole(true, "Unload() called.... Unloading and activating killSwitch...");
+        Util.logConsole(true, ".unload() called.... Unloading and activating killSwitch...");
         killSwitch = true;
         closeConsole();
         widgetViewReference = null;
@@ -324,6 +326,9 @@ public class Main extends FeatureModule implements PreferencesListener {
     public static FeatureModuleContext getUnprotectedContext() {
         return getMDMain();
     }
+
+    public static Main getExtensionContext() { return THIS_EXTENSION_CONTEXT; }
+
 
     public static MoneydanceGUI getMDGUI() {
         return (MoneydanceGUI) getMDMain().getUI();
