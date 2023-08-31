@@ -60,7 +60,7 @@ class _QuickAbortThisScriptException(Exception): pass
 
 def _specialPrint(_what):
     dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
-    print(_what)
+    # print(_what)
     System.err.write(_THIS_IS_ + ":" + dt + ": ")
     System.err.write(_what)
     System.err.write("\n")

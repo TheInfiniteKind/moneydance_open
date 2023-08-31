@@ -5579,7 +5579,6 @@ Visit: %s (Author's site)
                     if not self.filterIncludeSelected_CB.isSelected() or obj not in NAB.jlst.listOfSelectedObjects:
                         continue
 
-                # myPrint("DB", "... adding %s to filtered list" %(obj.getAccount().getFullAccountName()))
                 filteredListAccounts.append(obj)
 
             self.setJListDataAndSelection(filteredListAccounts, lFilter=True)
@@ -5592,19 +5591,15 @@ Visit: %s (Author's site)
 
         def configureLeftiesRightiesAtRuntime(self, widgetID):
 
-            KEY_LEFTIES = "gui.home.lefties"
-            KEY_RIGHTIES = "gui.home.righties"
-            KEY_UNUSED = "gui.home.unused"
-
             prefs = self.moneydanceContext.getPreferences()
 
-            lefties = prefs.getVectorSetting(KEY_LEFTIES, StreamVector())
-            righties = prefs.getVectorSetting(KEY_RIGHTIES, StreamVector())
-            unused = prefs.getVectorSetting(KEY_UNUSED, StreamVector())
+            lefties = prefs.getVectorSetting(prefs.GUI_VIEW_LEFT, StreamVector())
+            righties = prefs.getVectorSetting(prefs.GUI_VIEW_RIGHT, StreamVector())
+            unused = prefs.getVectorSetting(prefs.GUI_VIEW_UNUSED, StreamVector())
 
             iCount = 0
             myPrint("DB", "Confirming WidgetID: %s exists in Summary Page layout (somewhere)" %(widgetID))
-            for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties], [KEY_UNUSED, unused]]:
+            for where_key, where in [[prefs.GUI_VIEW_LEFT, lefties], [prefs.GUI_VIEW_RIGHT, righties], [prefs.GUI_VIEW_UNUSED, unused]]:
                 for iIndex in range(0, where.size()):
                     # theID = where.elementAt(iIndex)
                     theID = where.get(iIndex)
@@ -5616,47 +5611,41 @@ Visit: %s (Author's site)
                 myPrint("DB", "Found WidgetID: %s in Summary Page layout - so doing nothing..." %(widgetID))
                 return
 
-            myPrint("B", ".. Widget: '%s'... Adding to first position in '%s' (Summary Page top left)"  %(widgetID, KEY_LEFTIES))
+            myPrint("B", ".. Widget: '%s'... Adding to first position in '%s' (Summary Page top left)"  %(widgetID, prefs.GUI_VIEW_LEFT))
 
             if isinstance(lefties, StreamVector): pass
 
-            # lefties.insertElementAt(widgetID, 0)
             lefties.add(0, widgetID)
 
-            prefs.setSetting(KEY_LEFTIES, lefties)
+            prefs.setSetting(prefs.GUI_VIEW_LEFT, lefties)
 
         def configureLeftiesRightiesAtInstall(self, widgetID, legacyID):
 
-            KEY_LEFTIES = "gui.home.lefties"
-            KEY_RIGHTIES = "gui.home.righties"
-            KEY_UNUSED = "gui.home.unused"
-
             prefs = self.moneydanceContext.getPreferences()
 
-            lefties = prefs.getVectorSetting(KEY_LEFTIES, StreamVector())
-            righties = prefs.getVectorSetting(KEY_RIGHTIES, StreamVector())
-            unused = prefs.getVectorSetting(KEY_UNUSED, StreamVector())
+            lefties = prefs.getVectorSetting(prefs.GUI_VIEW_LEFT, StreamVector())
+            righties = prefs.getVectorSetting(prefs.GUI_VIEW_RIGHT, StreamVector())
+            unused = prefs.getVectorSetting(prefs.GUI_VIEW_UNUSED, StreamVector())
 
-            for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties], [KEY_UNUSED, unused]]:
+            for where_key, where in [[prefs.GUI_VIEW_LEFT, lefties], [prefs.GUI_VIEW_RIGHT, righties], [prefs.GUI_VIEW_UNUSED, unused]]:
                 myPrint("DB", "%s '%s': %s" %("Starting...", where_key, where))
 
             # Remove from unused as presumably user wants to install and use...
             for theID in [widgetID, legacyID]:
                 while theID in unused:
-                    myPrint("DB", ".. Removing WidgetID: '%s' from '%s' layout area"  %(theID, KEY_UNUSED))
+                    myPrint("DB", ".. Removing WidgetID: '%s' from '%s' layout area"  %(theID, prefs.GUI_VIEW_UNUSED))
                     unused.remove(theID)
 
             # Remove duplicates...
-            for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties]]:
+            for where_key, where in [[prefs.GUI_VIEW_LEFT, lefties], [prefs.GUI_VIEW_RIGHT, righties]]:
                 for theID in [widgetID, legacyID]:
                     while where.lastIndexOf(theID) > where.indexOf(theID):
                         myPrint("DB", ".. Removing duplicated WidgetID: '%s' from '%s' layout area (row: %s)"
                                 %(theID, where_key, where.lastIndexOf(theID)+1))
-                        # where.removeElementAt(where.lastIndexOf(theID))
                         where.remove(where.lastIndexOf(theID))
 
             # Check we don't have both new and legacy IDs...
-            for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties]]:
+            for where_key, where in [[prefs.GUI_VIEW_LEFT, lefties], [prefs.GUI_VIEW_RIGHT, righties]]:
                 if widgetID in where and legacyID in where:
                     while legacyID in where:
                         myPrint("DB", ".. Removing WidgetID: '%s' from '%s' layout area as WidgetID: '%s' already exists"
@@ -5664,11 +5653,10 @@ Visit: %s (Author's site)
                         where.remove(legacyID)
 
             # Migrate old ID to latest ID in layout....
-            for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties]]:
+            for where_key, where in [[prefs.GUI_VIEW_LEFT, lefties], [prefs.GUI_VIEW_RIGHT, righties]]:
                 if legacyID in where:
                     myPrint("DB", ".. Legacy WidgetID: '%s' found in '%s'.. Migrating to latestID ('%s') in layout (row: %s)"
                             %(legacyID, where_key, widgetID, where.lastIndexOf(legacyID)+1))
-                    # where.insertElementAt(widgetID, where.indexOf(legacyID))
                     where.add(where.indexOf(legacyID), widgetID)
                     where.remove(legacyID)
 
@@ -5676,47 +5664,30 @@ Visit: %s (Author's site)
             if widgetID in lefties:
 
                 while widgetID in righties:
-                    myPrint("DB", ".. Removing WidgetID: '%s' from '%s' layout area as already in '%s'"  %(widgetID, KEY_RIGHTIES, KEY_LEFTIES))
+                    myPrint("DB", ".. Removing WidgetID: '%s' from '%s' layout area as already in '%s'"  %(widgetID, prefs.GUI_VIEW_RIGHT, prefs.GUI_VIEW_LEFT))
                     righties.remove(widgetID)
 
-                myPrint("DB", ".. Widget: '%s' configured in '%s'... Will not change Layout any further"  %(widgetID, KEY_LEFTIES))
+                myPrint("DB", ".. Widget: '%s' configured in '%s'... Will not change Layout any further"  %(widgetID, prefs.GUI_VIEW_LEFT))
 
             if widgetID in righties:
 
                 if righties[-1] != widgetID:
-                    myPrint("DB", ".. Widget: '%s' already configured in '%s' (not last)... Will not change Layout further"  %(widgetID, KEY_RIGHTIES))
+                    myPrint("DB", ".. Widget: '%s' already configured in '%s' (not last)... Will not change Layout further"  %(widgetID, prefs.GUI_VIEW_RIGHT))
                 else:
-                    myPrint("DB", ".. Widget: '%s'... Will remove from last position in '%s' (Summary Page bottom right)"  %(widgetID, KEY_RIGHTIES))
+                    myPrint("DB", ".. Widget: '%s'... Will remove from last position in '%s' (Summary Page bottom right)"  %(widgetID, prefs.GUI_VIEW_RIGHT))
                     righties.remove(widgetID)
 
             if widgetID not in lefties and widgetID not in righties:
-                myPrint("B", ".. Widget: '%s'... Adding to first position in '%s' (Summary Page top left)"  %(widgetID, KEY_LEFTIES))
-                # lefties.insertElementAt(widgetID, 0)
+                myPrint("B", ".. Widget: '%s'... Adding to first position in '%s' (Summary Page top left)"  %(widgetID, prefs.GUI_VIEW_LEFT))
                 lefties.add(0, widgetID)
 
-            prefs.setSetting(KEY_LEFTIES,   lefties)
-            prefs.setSetting(KEY_RIGHTIES,  righties)
-            prefs.setSetting(KEY_UNUSED,    unused)
+            prefs.setSetting(prefs.GUI_VIEW_LEFT,   lefties)
+            prefs.setSetting(prefs.GUI_VIEW_RIGHT,  righties)
+            prefs.setSetting(prefs.GUI_VIEW_UNUSED,    unused)
 
-            for where_key, where in [[KEY_LEFTIES, lefties], [KEY_RIGHTIES, righties], [KEY_UNUSED, unused]]:
+            for where_key, where in [[prefs.GUI_VIEW_LEFT, lefties], [prefs.GUI_VIEW_RIGHT, righties], [prefs.GUI_VIEW_UNUSED, unused]]:
                 myPrint("DB", "%s '%s': %s" %("Ending...", where_key, where))
 
-
-        # class CloseAction(AbstractAction):
-        #
-        #     def __init__(self, theFrame):
-        #         self.theFrame = theFrame
-        #
-        #     def actionPerformed(self, event):                                                                           # noqa
-        #
-        #         myPrint("DB", "In %s.%s() - Event: %s" %(self, inspect.currentframe().f_code.co_name, event))
-        #         myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
-        #         myPrint("DB", ".. main application frame being disposed (will shut down application)....")
-        #
-        #         myPrint("DB", "action = %s" %(event.getActionCommand()))
-        #
-        #         # Listeners are already on the Swing EDT
-        #         self.theFrame.dispose()  # Should call WindowListener; windowClosed()
 
         class HideAction(AbstractAction):
 
@@ -5731,12 +5702,6 @@ Visit: %s (Author's site)
 
                 myPrint("DB", "Pushing Window Closing event....")
                 self.theFrame.dispatchEvent(WindowEvent(self.theFrame, WindowEvent.WINDOW_CLOSING))
-
-                # myPrint("DB", "Setting MyJFrame to invisible....");
-                # NetAccountBalancesExtension.getNAB().configPanelOpen = False
-                #
-                # # Listeners are already on the Swing EDT
-                # self.theFrame.setVisible(False)
 
 
 
@@ -10297,6 +10262,10 @@ Visit: %s (Author's site)
             if lPassedFromInvoke: return True
 
             return
+
+        def cleanup(self):
+            myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
+            raise Exception("@@ ERROR: .cleanup() was called; but it was previously never called by anything!? (inform developer) **")
 
         def unload(self, lFromDispose=False):
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))

@@ -198,6 +198,7 @@
 #               Enhanced: advanced_options_DEBUG() and advanced_options_other_DEBUG()
 #               Tweaked isSyncing() detection capability
 #               Build 5031 removed the MD+ licenseCache field - tweak to deal with the change...
+#               Added feature to disable MoneyForesight whenever MD is launched (prevents memory leaks etc)
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -3201,6 +3202,7 @@ Visit: %s (Author's site)
 
     GlobalVars.EXTN_PREF_KEY = "stuwaresoftsystems" + "." + myModuleID
     GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER = "enable_observer"
+    GlobalVars.EXTN_PREF_KEY_DISABLE_FORESIGHT = "disable_moneyforesight"
 
     def getExtensionDatasetSettings():
         # type: () -> SyncRecord
@@ -22773,6 +22775,23 @@ now after saving the file, restart Moneydance
         MyPopUpDialogBox(toolbox_frame_,u"Moneydance Encryption Passphrases:",theMsg,theTitle=u"PASSWORDS",lAlertLevel=1).go()
         return theMsg, displayMsg
 
+    def disable_moneyforesight():
+        extnPrefs = getExtensionGlobalPreferences()
+        newSetting = not extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_DISABLE_FORESIGHT, False)
+        if myPopupAskQuestion(toolbox_frame_, "MONEYFORESIGHT", "%s The bundled MoneyForesight extension?" %("DISABLE" if newSetting else "ENABLE")):
+            extnPrefs.put(GlobalVars.EXTN_PREF_KEY_DISABLE_FORESIGHT, newSetting)
+            saveExtensionGlobalPreferences(extnPrefs)
+            if debug: myPrint("B", "Extension Global Preferences now contains: %s" %(extnPrefs))
+            txt = "@@ MoneyForesight: %s @@" %("DISABLED" if newSetting else "(re)enabled)")
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+            logToolboxUpdates("disable_moneyforesight", txt, onlyLogGenericEntry=True)
+            myPopupInformationBox(toolbox_frame_, txt + " >> Moneydance will now QUIT (please relaunch)", "MONEYFORESIGHT", JOptionPane.WARNING_MESSAGE)
+            ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)
+        else:
+            txt = "@@ MoneyForesight disable settings not changed - remains: %s @@" %("DISABLED" if not newSetting else "enabled")
+            setDisplayStatus(txt, "B");  myPrint("DB", txt)
+        if debug: myPrint("B", "Extension Global Preferences now contains: %s" %(extnPrefs))
+
     def close_dataset():
         # type: () -> bool
 
@@ -28518,6 +28537,9 @@ now after saving the file, restart Moneydance
                     user_close_dataset = MenuJRadioButton("Close this dataset (and related windows) (only with developer unlock)", False, updateMenu=True, secondaryEnabled=(isToolboxUnlocked()))
                     user_close_dataset.setToolTipText("Manually closes the dataset, all related windows, but leaves MD open....")
 
+                    user_disable_moneyforesight = MenuJRadioButton("Disable/(re)enable the bundled MoneyForesight extension (requires MD restart)", False, updateMenu=True, secondaryEnabled=(float(MD_REF.getBuild()) >= 3095))
+                    user_disable_moneyforesight.setToolTipText("Disables/(re)enables the bundled MoneyForesight extension when launching Moneydance - Restart after disabling...")
+
                     user_rename_dataset = MenuJRadioButton("Rename this dataset (within the same location)", False, updateMenu=True)
                     user_rename_dataset.setToolTipText("This will allow you to rename this dataset (within the same location) - THIS CHANGES DATA!")
 
@@ -28565,7 +28587,7 @@ now after saving the file, restart Moneydance
                     userFilters.add(user_convert_timestamp)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 13
+                        rows += 14
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
 
@@ -28574,6 +28596,7 @@ now after saving the file, restart Moneydance
                             userFilters.add(ToolboxMode.getMenuLabel())
 
                         userFilters.add(user_reset_window_display_settings)
+                        userFilters.add(user_disable_moneyforesight)
                         userFilters.add(user_close_dataset)
                         userFilters.add(user_rename_dataset)
                         userFilters.add(user_relocate_dataset_internal)
@@ -28621,6 +28644,7 @@ now after saving the file, restart Moneydance
                         # if user_find_sync_password_in_ios_backups.isSelected():     find_IOS_sync_data()
                         if user_import_QIF.isSelected():                            import_QIF()
                         if user_convert_timestamp.isSelected():                     convert_timestamp_readable_date()
+                        if user_disable_moneyforesight.isSelected():                disable_moneyforesight()
                         if user_close_dataset.isSelected():                         close_dataset()
                         if user_rename_dataset.isSelected():                        rename_relocate_dataset(lRelocateDataset=False)
                         if user_relocate_dataset_internal.isSelected():             rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=True)
@@ -29008,7 +29032,8 @@ now after saving the file, restart Moneydance
                     if myPopupAskQuestion(toolbox_frame_, "OBSERVER MODE", "%s Observer Mode?" %("ENABLE" if newSetting else "Disable")):
                         extnPrefs.put(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, newSetting)
                         saveExtensionGlobalPreferences(extnPrefs)
-                        myPrint("B", "@@ OBSERVER MODE: %s" %("ENABLED" if newSetting else "disabled"))
+                        txt = "@@ OBSERVER MODE: %s" %("ENABLED" if newSetting else "disabled")
+                        setDisplayStatus(txt, "B"); myPrint("B", txt)
                         if newSetting:
                             try: _observeMoneydanceObjects(_ALL_OBSERVED_BOOKS)
                             except: myPrint("B", "NOPE: Could not execute _observeMoneydanceObjects().... ignoring....")
@@ -29017,7 +29042,8 @@ now after saving the file, restart Moneydance
                                                   theMessage="Please restart MD for Observer to harvest (weak)references to key objects as they are created",
                                                   theMessageType=JOptionPane.WARNING_MESSAGE)
                     else:
-                        myPrint("DB", "@@ OBSERVER MODE not changed - remains: %s" %("ENABLED" if not newSetting else "disabled"))
+                        txt = "@@ OBSERVER MODE not changed - remains: %s" %("ENABLED" if not newSetting else "disabled")
+                        setDisplayStatus(txt, "B"); myPrint("B", txt)
                     if debug: myPrint("B", "Extension Global Preferences now contains: %s" %(extnPrefs))
                     event.getSource().setSelected(extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False))
 

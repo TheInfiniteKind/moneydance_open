@@ -60,7 +60,7 @@ class _QuickAbortThisScriptException(Exception): pass
 
 def _specialPrint(_what):
     dt = datetime.datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
-    print(_what)
+    # print(_what)
     System.err.write(_THIS_IS_ + ":" + dt + ": ")
     System.err.write(_what)
     System.err.write("\n")
@@ -139,7 +139,7 @@ def _saveExtensionGlobalPreferences(newExtnPrefs):
 # definitions unique to this script
 
 
-def returnPathStrings(fileReference, arePathsIdentical=False):
+def _returnPathStrings(fileReference, arePathsIdentical=False):
     _pathStr = ""
     if fileReference is not None and isinstance(fileReference, File):
         _pathStr = "'%s'" %(fileReference.getAbsolutePath())
@@ -265,7 +265,7 @@ else:
     MD_REF.getPreferences().setSetting(_TOOLBOX_PREFERENCES_ZAPPER, None)
     _specialPrint("############# FINISHED ZAPPING ########################")
 
-def showMacAliasPath():
+def _showMacAliasPath():
     fRawPath = Common.getRootDirectory()
     rawPath = fRawPath.getCanonicalPath()
     checkForStr = "/com.infinitekind.MoneydanceOSX/"
@@ -273,6 +273,133 @@ def showMacAliasPath():
     if (Platform.isOSX() and fRawPath.exists() and fRawPath.isDirectory() and isinstance(rawPath, basestring) and checkForStr in rawPath):
         return rawPath.replace(checkForStr, replaceWithStr)
     return None
+
+def _setFieldByReflection(theObj, fieldName, newValue):
+    try: theClass = theObj.getClass()
+    except TypeError: theClass = theObj     # This catches where the object is already the Class
+    reflectField = None
+    while theClass is not None:
+        try:
+            reflectField = theClass.getDeclaredField(fieldName)
+            break
+        except NoSuchFieldException:
+            theClass = theClass.getSuperclass()
+    if reflectField is None: raise Exception("ERROR: could not find field: %s in class hierarchy" %(fieldName))
+    if Modifier.isPrivate(reflectField.getModifiers()): reflectField.setAccessible(True)
+    elif Modifier.isProtected(reflectField.getModifiers()): reflectField.setAccessible(True)
+    isStatic = Modifier.isStatic(reflectField.getModifiers())
+    return reflectField.set(theObj if not isStatic else None, newValue)
+
+def _invokeMethodByReflection(theObj, methodName, params, *args):
+    try: theClass = theObj.getClass()
+    except TypeError: theClass = theObj     # This catches where the object is already the Class
+    reflectMethod = None
+    while theClass is not None:
+        try:
+            if params is None:
+                reflectMethod = theClass.getDeclaredMethod(methodName)
+                break
+            else:
+                reflectMethod = theClass.getDeclaredMethod(methodName, params)
+                break
+        except NoSuchMethodException:
+            theClass = theClass.getSuperclass()
+    if reflectMethod is None: raise Exception("ERROR: could not find method: %s in class hierarchy" %(methodName))
+    reflectMethod.setAccessible(True)
+    return reflectMethod.invoke(theObj, *args)
+
+
+from javax.swing import SwingUtilities
+def _genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
+    isOnEDT = SwingUtilities.isEventDispatchThread()
+
+    class GenericSwingEDTRunner(Runnable):
+
+        def __init__(self, _codeblock, arguments):
+            self.codeBlock = _codeblock
+            self.params = arguments
+
+        def run(self):
+            if debug: _specialPrint(">>> _genericSwingEDTRunner() >> Executed codebock on the EDT <<<")
+            self.codeBlock(*self.params)
+
+    _gser = GenericSwingEDTRunner(codeblock, args)
+
+    if ((isOnEDT and not ifOnEDTThenRunNowAndWait) or (not isOnEDT and not ifOffEDTThenRunNowAndWait)):
+        SwingUtilities.invokeLater(_gser)
+    elif not isOnEDT:
+        SwingUtilities.invokeAndWait(_gser)
+    else:
+        _gser.run()
+
+
+########################################################################################################################
+def _disableMoneyForesight():
+    _EXTN_PREF_KEY_DISABLE_FORESIGHT = "disable_moneyforesight"
+    if not _getExtensionGlobalPreferences().getBoolean(_EXTN_PREF_KEY_DISABLE_FORESIGHT, False):
+        if debug: _specialPrint("@@@ config.dict '%s' setting not set... skipping any disable MoneyForesight action....." %(_EXTN_PREF_KEY_DISABLE_FORESIGHT))
+        return
+    elif float(MD_REF.getBuild()) < 3095:    # First bundled in MD2021.2(3095)
+        if debug: _specialPrint("@@@ Build too old for MoneyForesight to exist - skipping any disable action.....")
+        return
+    else:
+        _mfsKey = "moneyforesight"
+        _mfs = MD_REF.getModuleForID(_mfsKey)
+        if _mfs is None:
+            _specialPrint("@@@ MoneyForesight extension not detected / loaded to disable / unload @@@")
+        else:
+            try:
+                # Cleanup and unload module...
+                from com.moneydance.apps.md.controller import FeatureModule
+                if MD_REF.getCurrentAccountBook() is not None: _mfs.cleanup()
+                for _mfsFieldStr in ["favouritesRepository", "accountSetModelRepository", "foresightUserPreferences", "accountHelper", "reminderReviewHomePage"]:
+                    _setFieldByReflection(_mfs, _mfsFieldStr, None)
+                _invokeMethodByReflection(MD_REF, "unloadModule", [FeatureModule], [_mfs])
+
+                del FeatureModule, _mfsFieldStr
+                _specialPrint("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                _specialPrint("@@@ MoneyForesight disabled / unloaded! @@@")
+                _specialPrint("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            except:
+                _specialPrint("*** ERROR: %s - MoneyForesight disable actions FAILED....: (%s, %s, line: %s)"
+                              %(_THIS_IS_.capitalize(), unicode(sys.exc_info()[0]), unicode(sys.exc_info()[1]), unicode(sys.exc_info()[2].tb_lineno)))
+
+        # Now clean up summary / home screen...
+        from com.infinitekind.util import StreamVector
+        _prefs = MD_REF.getPreferences()
+        _lefties = _prefs.getVectorSetting(_prefs.GUI_VIEW_LEFT, StreamVector())
+        _righties = _prefs.getVectorSetting(_prefs.GUI_VIEW_RIGHT, StreamVector())
+        _unused = _prefs.getVectorSetting(_prefs.GUI_VIEW_UNUSED, StreamVector())
+        _anyLeftRightChanges = False
+        for _left_right in [_lefties, _righties]:
+            _removeList = []
+            for _widgetID in _left_right:
+                if _mfsKey in _widgetID: _removeList.append(_widgetID)
+            for _widgetID in _removeList:
+                _left_right.remove(_widgetID)
+                if _widgetID not in _unused:
+                    _unused.add(_widgetID)
+                _anyLeftRightChanges = True
+                if debug: _specialPrint("@@ Removed '%s' from %s (and added to unused)" %(_widgetID, type(_left_right)))
+            del _left_right
+        if _anyLeftRightChanges:
+            _prefs.setSetting(_prefs.GUI_VIEW_LEFT, _lefties)
+            _prefs.setSetting(_prefs.GUI_VIEW_RIGHT, _righties)
+            _prefs.setSetting(_prefs.GUI_VIEW_UNUSED, _unused)
+            _specialPrint("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            _specialPrint("@@@ Saved updated lefties/righties etc. @@@")
+            _specialPrint("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+
+        # Now refresh the home screen...
+        if _mfs is not None or _anyLeftRightChanges:
+            if MD_REF.getCurrentAccountBook() is not None:
+                _genericSwingEDTRunner(False, False, MD_REF.getPreferences().firePreferencesUpdated)
+
+        del _mfs, _mfsKey, _prefs, _anyLeftRightChanges
+########################################################################################################################
+
+
+_disableMoneyForesight()
 
 
 from java.io import File
@@ -292,11 +419,11 @@ class QuickDiag(Runnable):
             msg += ("%s - quick information:\n" %(self.thisis.capitalize()))
             msg += "-----\n"
 
-            msg += ("MD CONSOLE FILE LOCATION:       %s\n" %(returnPathStrings(self.mdRef.getLogFile())))
-            msg += ("MD CONFIG/PREFERENCES LOCATION: %s\n" %(returnPathStrings(Common.getPreferencesFile())))
+            msg += ("MD CONSOLE FILE LOCATION:       %s\n" %(_returnPathStrings(self.mdRef.getLogFile())))
+            msg += ("MD CONFIG/PREFERENCES LOCATION: %s\n" %(_returnPathStrings(Common.getPreferencesFile())))
 
-            if showMacAliasPath():
-                msg += ("... Mac Finder path for above:  '%s'\n" %(showMacAliasPath()))
+            if _showMacAliasPath():
+                msg += ("... Mac Finder path for above:  '%s'\n" %(_showMacAliasPath()))
 
             msg += "-----\n"
             from com.moneydance.apps.md.controller.io import FileUtils
@@ -327,7 +454,7 @@ class QuickDiag(Runnable):
             else:
                 backupFileTxt = "(backup location exists)"
 
-            msg += ("BACKUPS - Backup Folder:        %s %s\n" %(returnPathStrings(backupFolder), backupFileTxt))
+            msg += ("BACKUPS - Backup Folder:        %s %s\n" %(_returnPathStrings(backupFolder), backupFileTxt))
 
             msg += ("..key - 'backup.location':      '%s'\n" %(self.mdRef.getPreferences().getSetting("backup.location", "<not set>")))
             msg += ("..key - 'backup.last_browsed':  '%s'\n" %(self.mdRef.getPreferences().getSetting("backup.last_browsed", "<not set>")))

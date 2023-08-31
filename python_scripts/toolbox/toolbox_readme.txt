@@ -192,6 +192,8 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
                 3. RESET>> Just Register Transaction Initial Views (e.g. In investments, start on Portfolio or Security View
                 4. RESET>> Window locations, Size, Sort Orders, One-line, Split Reg, Offset, Column Widths; Dividers, isOpen,
                 isExpanded, isMaximised settings (this does not reset Filters or Initial views)
+        - FIX - Disable/(re)enable the bundled MoneyForesight extension (requires MD restart)
+        - FIX - Close this Dataset (and related windows) (only with Developer unlock)
         - FIX - Rename this dataset Rename this dataset (within the same location)
         - FIX - Relocate this dataset back to the default 'internal' location
         - FIX - Relocate this dataset to another location [Note: IK do not recommend this]
