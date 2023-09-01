@@ -22799,7 +22799,7 @@ now after saving the file, restart Moneydance
         extnPrefs = getExtensionGlobalPreferences()
         newSetting = not extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_DISABLE_FORESIGHT, False)
         if myPopupAskQuestion(toolbox_frame_, "MONEYFORESIGHT", "%s The bundled MoneyForesight extension?" %("DISABLE" if newSetting else "ENABLE")):
-            extnPrefs.put(GlobalVars.EXTN_PREF_KEY_DISABLE_FORESIGHT, newSetting)
+            extnPrefs.put(GlobalVars.EXTN_PREF_KEY_DISABLE_FORESIGHT, Boolean(newSetting))
             saveExtensionGlobalPreferences(extnPrefs)
             if debug: myPrint("B", "Extension Global Preferences now contains: %s" %(extnPrefs))
             txt = "@@ MoneyForesight: %s @@" %("DISABLED" if newSetting else "(re)enabled)")
@@ -29050,7 +29050,7 @@ now after saving the file, restart Moneydance
                     extnPrefs = getExtensionGlobalPreferences()
                     newSetting = not extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False)
                     if myPopupAskQuestion(toolbox_frame_, "OBSERVER MODE", "%s Observer Mode?" %("ENABLE" if newSetting else "Disable")):
-                        extnPrefs.put(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, newSetting)
+                        extnPrefs.put(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, Boolean(newSetting))        # Use Boolean() to get the right .put() method for boolean
                         saveExtensionGlobalPreferences(extnPrefs)
                         txt = "@@ OBSERVER MODE: %s" %("ENABLED" if newSetting else "disabled")
                         setDisplayStatus(txt, "B"); myPrint("B", txt)
@@ -29065,7 +29065,7 @@ now after saving the file, restart Moneydance
                         txt = "@@ OBSERVER MODE not changed - remains: %s" %("ENABLED" if not newSetting else "disabled")
                         setDisplayStatus(txt, "B"); myPrint("B", txt)
                     if debug: myPrint("B", "Extension Global Preferences now contains: %s" %(extnPrefs))
-                    event.getSource().setSelected(extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False))
+                    event.getSource().setSelected(extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_ENABLE_OBSERVER, False))     # Use Boolean() to get the right .put() method for boolean
 
                 # ##########################################################################################################
                 if event.getActionCommand().lower() == "help":
