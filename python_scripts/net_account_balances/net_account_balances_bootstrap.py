@@ -137,6 +137,23 @@ def _getFieldByReflection(theObj, fieldName, isInt=False):
 from com.infinitekind.util import StreamTable
 from com.infinitekind.tiksync import SyncRecord
 _EXTN_PREF_KEY = "stuwaresoftsystems" + "." + _THIS_IS_
+_MD_KOTLIN_COMPILED_BUILD = 5000
+
+class _StreamTableFixed(StreamTable):
+    """Replicates StreamTable. Provide a source to merge. Method .getBoolean() is 'fixed' to be backwards compatible with builds prior to Kotlin (Y/N vs 0/1)"""
+    def __init__(self, _streamTableToCopy):
+        # type: (StreamTable) -> None
+        if not isinstance(_streamTableToCopy, StreamTable): raise Exception("LOGIC ERROR: Must pass a StreamTable! (Passed: %s)" %(type(_streamTableToCopy)))
+        self.merge(_streamTableToCopy)
+
+    def getBoolean(self, key, defaultVal):
+        # type: (basestring, bool) -> bool
+        if MD_REF.getBuild() >= _MD_KOTLIN_COMPILED_BUILD:      # MD2023.0 First Kotlin release - changed the code from detecting only Y/N to Y/N/T/F/0/1
+            return super(self.__class__, self).getBoolean(key, defaultVal)
+        _value = self.get(key, None)
+        if _value in ["1", "Y", "y", "T", "t", "true", True]: return True
+        if _value in ["0", "N", "n", "F", "f", "false", False]: return False
+        return defaultVal
 
 def _getExtensionDatasetSettings():
     # type: () -> SyncRecord
@@ -152,10 +169,14 @@ def _saveExtensionDatasetSettings(newExtnSettings):
     _localStorage.put(_EXTN_PREF_KEY, newExtnSettings)
     if debug: _specialPrint("Stored Extension Dataset Settings into LocalStorage: %s" %(newExtnSettings))
 
-def _getExtensionGlobalPreferences():
-    # type: () -> StreamTable
+def _getExtensionGlobalPreferences(enhancedBooleanCheck=True):
+    # type: (bool) -> StreamTable
     _extnPrefs =  MD_REF.getPreferences().getTableSetting(_EXTN_PREF_KEY, StreamTable())
-    if debug: _specialPrint("Retrieved Extension Global Preference: %s" %(_extnPrefs))
+    if MD_REF.getBuild() < _MD_KOTLIN_COMPILED_BUILD:
+        if enhancedBooleanCheck:
+            _extnPrefs = _StreamTableFixed(_extnPrefs)
+            if debug: _specialPrint("... copied retrieved Extension Global Preferences into enhanced StreamTable for backwards .getBoolean() capability...")
+    if debug: _specialPrint("Retrieved Extension Global Preferences: %s" %(_extnPrefs))
     return _extnPrefs
 
 def _saveExtensionGlobalPreferences(newExtnPrefs):
