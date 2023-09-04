@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated June 2023
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated September 2023
 Credit: (dtd) Dan T Davis for his input, testing and suggestions to make a better product......
 
 Custom Balances works with 2021.1(3056) and newer.
@@ -69,12 +69,22 @@ EXAMINING THE CHOICES/CONFIGURATION:
 
 - Row separator: optionally put horizontal lines above / below rows to separate sections
 - Blink: Enables the blinking of the selected rows (when displayed / visible)
-- Avg/by: Changes the final displayed calculated balance into an average by dividing by the value set (DEFAULT 1.0)
+- Avg/by: Changes the final displayed calculated balance into an average by dividing the value set (DEFAULT 1.0)
+- Adj/by: Allows you to adjust the final calculated balance by a +/- amount (DEFAULT 0.0)
 
 - Maths using another row: (OPTIONAL) When set, then you can retrieve the result from another row and then apply maths
                            to the result of the current row.. E.g. take this row and divide it by the result from row x
                            and treat the result as a percent. For example, this could calculate the value of investments
                            as a percentage of total networth...
+
+>> CALCULATION ORDER: The calculations are performed is this sequence:
+    - Skip any 'always hide' rows - these are never calculated / used anywhere
+    - Skip any rows filtered out by GroupID
+    - Calculate raw balances for selected rows/accounts, including recursive sub accounts for autosum rows
+    - Convert calculated balances to target currency
+    - Iterate over each row/calculation, apply any average/by calculations
+    - Iterate over each row/calculation, apply any Use Other Row (UOR) calculations
+    - Iterate over each row/calculation, apply any final calculation adjustment amounts specified
 
 ** NOTE: When rows can be hidden, they may not display on the Summary screen widget. Click on the widget to config:
          - In the row selector:
@@ -173,6 +183,7 @@ OPTIONS MENU
   - Show Dashes instead of Zeros: Changes the display so that you get '-' instead of '£ 0.0'
   - Treat Securities with Zero Balance as Inactive: If a Security holds zero units, it will be treated as Inactive
   - Use Indian numbering format: On numbers greater than 10,000 group in powers of 100 (e.g. 10,00,000 not 1,000,000)
+  - Use Tax Dates: When selected then all calculations based on Income/Expense categories will use the Tax Date
   - Display underline dots: Display 'underline' dots that fill the blank space between row names and values
 
 BACKUP/RESTORE
@@ -258,7 +269,9 @@ Extension format only >> Minimum Moneydance version 2021.1 (build: 3056, ideally
 This is a Python(Jython 2.7) Extension that runs inside of Moneydance via the Python Interpreter
 It's a prototype to demonstrate the capabilities of Python. Yes - if you can do it in Java, you can do it in Python too!
 
-DEVELOPERS: You can actually grab the results of the calculations from other extensions.. Contact me for details...
+DEVELOPERS: >> You can actually grab the results of the calculations from other extensions.. Contact me for details...
 
 Thanks for reading..... ;->
 Get more Scripts/Extensions from: https://yogi1967.github.io/MoneydancePythonScripts/
+
+<END>

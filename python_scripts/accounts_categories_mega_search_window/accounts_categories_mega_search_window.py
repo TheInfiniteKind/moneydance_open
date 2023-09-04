@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# categories_super_window.py build: 1011 - May 2023 - Stuart Beesley StuWareSoftSystems
+# categories_super_window.py build: 1012 - Sept 2023 - Stuart Beesley StuWareSoftSystems
 # >> Renamed to: accounts_categories_mega_search_window.py build: 1003 - April 2022 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
@@ -46,6 +46,7 @@
 # build: 1010 - Common code tweaks...
 # build: 1010 - Add feature to allow search for parent and default account names using {pa:*} and {dc:*} patterns
 # build: 1011 - Common code tweaks...
+# build: 1012 - Cleaned up references to MD Objects
 
 # Clones MD Menu > Tools>Categories and adds Search capability...
 
@@ -55,7 +56,7 @@
 
 # SET THESE LINES
 myModuleID = u"accounts_categories_mega_search_window"
-version_build = "1011"
+version_build = "1012"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -66,6 +67,15 @@ if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy o
 if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
 if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+# Nuke unwanted (direct/indirect) reference(s) to AccountBook etc....
+if "moneydance_data" in globals():
+    moneydance_data = None
+    del moneydance_data
+
+if "moneybot" in globals():
+    moneybot = None
+    del moneybot
 
 from java.lang import Boolean
 global debug
@@ -84,6 +94,7 @@ def checkObjectInNameSpace(objectName):
     if objectName is None or not isinstance(objectName, basestring) or objectName == u"": return False
     if objectName in globals(): return True
     return objectName in dir(builtins)
+
 
 if MD_REF is None: raise Exception(u"CRITICAL ERROR - moneydance object/variable is None?")
 if checkObjectInNameSpace(u"moneydance_extension_loader"):
@@ -3015,417 +3026,422 @@ Visit: %s (Author's site)
 
     try:
 
-        currentAccount = MD_REF.getCurrentAccount()
-        if currentAccount is None: raise Exception("??")
+        def doMain():
+            global debug, accounts_categories_mega_search_window_frame_
 
-        def isPreviewBuild():
-            if MD_EXTENSION_LOADER is not None:
-                try:
-                    stream = MD_EXTENSION_LOADER.getResourceAsStream("/_PREVIEW_BUILD_")
-                    if stream is not None:
-                        myPrint("B", "@@ PREVIEW BUILD (%s) DETECTED @@" %(version_build))
-                        stream.close()
-                        return True
-                except: pass
-            return False
+            currentAccount = MD_REF.getCurrentAccount()
+            if currentAccount is None: raise Exception("??")
 
-        class MyAcctFilter(AcctFilter):
-            def __init__(self, lCats=False, lAccounts=False, lRoot=False):
-                self.searchFilter = ""
-                self.lCats = lCats
-                self.lAccounts = lAccounts
-                self.lRoot = lRoot
-                self.bypassFilter = False
-
-                self.FILTER_PARENT_ACCOUNT_PATTERN = "{pa:*}"
-                self.FILTER_DEFAULT_CATEGORY_PATTERN = "{dc:*}"
-
-            @staticmethod
-            def findPattern(pattern, inString):
-                patternFound = None
-                patternStart = pattern[:4]
-                patternEnd = pattern[-1:]
-                inStringLower = inString.lower()
-                startOfPattern = inStringLower.find(patternStart)
-                if startOfPattern >= 0:
-                    patternStartLen = len(patternStart)
-                    patternStartFound = inString[startOfPattern:startOfPattern+patternStartLen]
-                    startOfFoundString = startOfPattern + patternStartLen
-                    end = inStringLower.find(patternEnd, startOfFoundString)
-                    if end >= 0:
-                        patternEndFound = inString[end:end+len(patternEnd)]
-                        patternFound = inString[startOfFoundString:end]
-                        inString = inString.replace(patternStartFound + patternFound + patternEndFound, "").strip()
-                return patternFound, inString
-
-            def matches(self, acct):
-                if isinstance(acct, Account): pass
-                if (acct is None): return False
-                if not self.lCats and not self.lAccounts and not self.lRoot: return False
-
-                if not self.bypassFilter:
-                    searchTxt = self.searchFilter.strip().lower()
-                    if searchTxt != "":
-
-                        # myPrint("B", "search:", searchTxt);
-                        paMatchTxt, searchTxt = MyAcctFilter.findPattern(self.FILTER_PARENT_ACCOUNT_PATTERN, searchTxt)
-                        paMatch = paMatchTxt is not None
-                        # myPrint("B", paMatchTxt, searchTxt);
-
-                        dcMatchTxt, searchTxt = MyAcctFilter.findPattern(self.FILTER_DEFAULT_CATEGORY_PATTERN, searchTxt)
-                        dcMatch = dcMatchTxt is not None
-                        # myPrint("B", daMatchTxt, searchTxt);
-
-                        if paMatch:
-                            parentAcct = acct.getParentAccount()
-                            if parentAcct is None:
-                                return False
-                            parentAcctName = parentAcct.getAccountName().lower().strip()
-                            if paMatchTxt not in parentAcctName:
-                                return False
-
-                        if dcMatch:
-                            defaultCat = acct.getDefaultCategory()
-                            if defaultCat is None:
-                                return False
-                            defaultCatAcctName = defaultCat.getAccountName().lower().strip()
-                            if dcMatchTxt not in defaultCatAcctName:
-                                return False
-
-                        if searchTxt.strip() != "":
-                            acctName = acct.getAccountName().lower().strip()
-                            if searchTxt not in acctName:
-                                return False
-
-                if self.lRoot:
-                    # noinspection PyUnresolvedReferences
-                    if (acct.getAccountType() == Account.AccountType.ROOT):
-                        return True
-
-                if self.lCats:
-                    # noinspection PyUnresolvedReferences
-                    if (acct.getAccountType() == Account.AccountType.EXPENSE
-                            or acct.getAccountType() == Account.AccountType.INCOME):
-                        return True
-
-                if self.lAccounts:
-                    # noinspection PyUnresolvedReferences
-                    if (acct.getAccountType() == Account.AccountType.BANK
-                            or acct.getAccountType() == Account.AccountType.CREDIT_CARD
-                            or acct.getAccountType() == Account.AccountType.INVESTMENT
-                            or acct.getAccountType() == Account.AccountType.SECURITY
-                            or acct.getAccountType() == Account.AccountType.ASSET
-                            or acct.getAccountType() == Account.AccountType.LIABILITY
-                            or acct.getAccountType() == Account.AccountType.LOAN):
-                        return True
+            def isPreviewBuild():
+                if MD_EXTENSION_LOADER is not None:
+                    try:
+                        stream = MD_EXTENSION_LOADER.getResourceAsStream("/_PREVIEW_BUILD_")
+                        if stream is not None:
+                            myPrint("B", "@@ PREVIEW BUILD (%s) DETECTED @@" %(version_build))
+                            stream.close()
+                            return True
+                    except: pass
                 return False
 
-            def format(self, acct): return acct.getIndentedName()
-
-        lSelectRoot = True
-        lSelectAccounts = True
-        lSelectCategories = True
-        if not lSelectRoot and not lSelectAccounts and not lSelectCategories: raise Exception("ERROR: Nothing selected!?")
-
-        catAcctSearch = MyAcctFilter(lCats=lSelectCategories,lAccounts=lSelectAccounts,lRoot=lSelectRoot)
-
-        newAcctTypes = []
-        if lSelectCategories:
-            # noinspection PyUnresolvedReferences
-            for atype in [Account.AccountType.EXPENSE, Account.AccountType.INCOME]:
-                newAcctTypes.append(atype)
-
-        if lSelectAccounts:
-            # noinspection PyUnresolvedReferences
-            for atype in [Account.AccountType.BANK, Account.AccountType.CREDIT_CARD, Account.AccountType.INVESTMENT, Account.AccountType.ASSET, Account.AccountType.LIABILITY, Account.AccountType.LOAN]:
-                newAcctTypes.append(atype)
-
-        # noinspection PyUnusedLocal
-        class MyDocListener(DocumentListener):
-            def __init__(self, _what):      self._what = _what
-            def changedUpdate(self, evt):   self._what.searchFiltersUpdated()
-            def removeUpdate(self, evt):    self._what.searchFiltersUpdated()
-            def insertUpdate(self, evt):    self._what.searchFiltersUpdated()
-
-        # noinspection PyUnusedLocal
-        class MyFocusAdapter(FocusAdapter):
-            def __init__(self, _searchField, _document):
-                self._searchField = _searchField
-                self._document = _document
-
-            def focusGained(self, e): self._searchField.setCaretPosition(self._document.getLength())
-
-        class MyKeyAdapter(KeyAdapter):
-            def keyPressed(self, evt):
-                if (evt.getKeyCode() == KeyEvent.VK_ENTER):
-                    evt.getSource().transferFocus()
-
-        class MyJTextFieldEscapeAction(AbstractAction):
-            def __init__(self): pass
-
-            def actionPerformed(self, evt):
-                myPrint("DB", "In MyJTextFieldEscapeAction:actionPerformed():", evt)
-                jtf = evt.getSource()
-                invokeMethodByReflection(jtf, "cancelEntry", None)
-                jtf.dispatchEvent(KeyEvent(SwingUtilities.getWindowAncestor(jtf),
-                                           KeyEvent.KEY_PRESSED,
-                                           System.currentTimeMillis(),
-                                           0,
-                                           KeyEvent.VK_ESCAPE,
-                                           Character.valueOf(" ")))
-
-        # Fix jittery bug with QuickSearch when typing and VAQua...
-        class MyQuickFieldDocumentListener(DocumentListener):
-            def __init__(self, source): self.source = source
-
-            def insertUpdate(self, evt):                                                                                # noqa
-                self.source.repaint()
-
-            def removeUpdate(self, evt):                                                                                # noqa
-                self.source.repaint()
-
-            def changedUpdate(self, evt):                                                                               # noqa
-                self.source.repaint()
-
-        class MyQuickSearchField(QuickSearchField):
-            def __init__(self, *args, **kwargs):
-                super(self.__class__, self).__init__(*args, **kwargs)
-                self.setFocusable(True)
-                self.addKeyListener(MyKeyAdapter())
-                self.getDocument().addDocumentListener(MyQuickFieldDocumentListener(self))
-
-            def setEscapeCancelsTextAndEscapesWindow(self, cancelsAndEscapes):
-                if cancelsAndEscapes:
-                    self.getInputMap(self.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "override_escape")
-                    self.getActionMap().put("override_escape", MyJTextFieldEscapeAction())
-                else:
-                    self.getInputMap(self.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), None)
-
-            def toString(self):
-                return self.getPlaceholderText() + " " + self.getText()
-
-            def updateUI(self):
-                super(self.__class__, self).updateUI()
-                self.setForeground(GlobalVars.CONTEXT.getUI().getColors().reportBlueFG)
-
-        mySearchField = MyQuickSearchField()
-
-        if lAllowEscapeExitApp_SWSS:
-            mySearchField.setEscapeCancelsTextAndEscapesWindow(True)
-
-        expandAllButton = JButton("Expand all")
-        collapseAllButton = JButton("-")
-
-        class MyCOAWindow(COAWindow):
-            """Extends the MD Internal Window that can display Accounts / Categories. This presents both combined with a search field"""
-            def __init__(self, _ui, _currentAccount, _catAcctSearch, _newAcctTypes, _prefix, _showBalances, _mySearchField, _expandAllButton, _collapseAllButton, _lSelectAccts, _lSelectCats):
-                self._ui = _ui
-                self._currentAccount = _currentAccount
-                self._catAcctSearch = _catAcctSearch
-                self._newAcctTypes = _newAcctTypes
-                self._prefix = _prefix
-                self._showBalances = _showBalances
-                self.mySearchField = _mySearchField
-                self.expandAllButton = _expandAllButton
-                self.collapseAllButton = _collapseAllButton
-                self._lSelectAccts = _lSelectAccts
-                self._lSelectCats = _lSelectCats
-                document = self.mySearchField.getDocument()
-                document.addDocumentListener(MyDocListener(self))
-                self.mySearchField.addFocusListener(MyFocusAdapter(self.mySearchField,document))
-                super(COAWindow, self).__init__(self._ui, self._currentAccount, self._catAcctSearch, self._newAcctTypes, self._prefix, self._showBalances)  # noqa
-
-                if lAllowEscapeExitApp_SWSS:
-                    # Pop in an Escape key to close window ;->
-                    saveCloseAction = self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(KeyStroke.getKeyStroke(KeyEvent.VK_W, MoneydanceGUI.ACCELERATOR_MASK))
-                    self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), saveCloseAction)
-
-                # shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
-                self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_D, (MoneydanceGUI.ACCELERATOR_MASK | Event.SHIFT_MASK)), "enable-debug")
-                self.getRootPane().getActionMap().put("enable-debug", self.ToggleDebugAction(self))
-
-                self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_T, (MoneydanceGUI.ACCELERATOR_MASK)), "toggle-active-inactive-status")
-                self.getRootPane().getActionMap().put("toggle-active-inactive-status", self.ToggleActiveInactiveStatusAction(self))
-
-                # Java cannot do multiple Inheritance, so cannot also extend MyJFrame... Make do....
-                self.myJFrameVersion = 2
-                self.isActiveInMoneydance = False
-                self.isRunTimeExtension = False
-                self.MoneydanceAppListener = None
-                self.HomePageViewObj = None
-
-                self.saveTableModelReference = getFieldByReflection(self, "tableModel")
-                self.saveStorageReference = getFieldByReflection(self, "storage")
-
-                gui = MD_REF.getUI()
-                if gui is not None:
-                    myPrint("DB", "MD Gui Detected... Attempting to swap in my own coaWin / catWin")
-
-                    for swapWin in ["catWin", "coaWin"]:
-
-                        if not (self._lSelectAccts and self._lSelectCats):
-                            if not self._lSelectAccts and swapWin == "coaWin": continue
-                            if not self._lSelectCats and swapWin == "catWin": continue
-
-                        p_coa_cat_Win = gui.getClass().getDeclaredField(swapWin)
-                        p_coa_cat_Win.setAccessible(True)
-                        p_coa_cat_WinObject = p_coa_cat_Win.get(gui)
-
-                        if p_coa_cat_WinObject is not None:
-                            myPrint("DB", "MD Gui %s already set/open... Disposing....." %(swapWin))
-                            p_coa_cat_WinObject.dispose()
-
-                        myPrint("DB", "Swapping in my own %s..." %(swapWin))
-                        p_coa_cat_Win.set(gui, self)
-                        p_coa_cat_Win.setAccessible(False)
-
-                self.expandAllButton.addActionListener(self)
-                self.collapseAllButton.addActionListener(self)
-
-            class ToggleDebugAction(AbstractAction):
-
-                def __init__(self, callingClass):
-                    self.callingClass = callingClass
-
-                def actionPerformed(self, event):                                                                       # noqa
-                    global debug
-                    debug = not debug
-                    myPopupInformationBox(None, "Debug status flipped - now set to: %s" %(debug))
-
-            class ToggleActiveInactiveStatusAction(AbstractAction):
-
-                def __init__(self, callingClass):
-                    self.callingClass = callingClass
-
-                def actionPerformed(self, event):                                                                       # noqa
-                    selectedAcct = self.callingClass.getSelectedAccount()
-                    if selectedAcct is not None:
-                        if myPopupAskQuestion(None, "TOGGLE ACTIVE/INACTIVE STATUS", "Set selected account to %s?" %("ACTIVE" if selectedAcct.getAccountIsInactive() else "INACTIVE")):
-                            selectedAcct.setAccountIsInactive(not selectedAcct.getAccountIsInactive())
-                            selectedAcct.syncItem()
-                            myPrint("DB", "Account: '%s' AccountIsInactive status set to '%s'" %(selectedAcct.getFullAccountName(), selectedAcct.getAccountIsInactive()))
-
-            def actionPerformed(self, event):
-                myPrint("DB", "within actionPerformed()")
-                if (event.getActionCommand().lower() != "expand all" and event.getActionCommand().lower() != "-"):
-                    myPrint("DB", "...calling (super) on original actionPerformed")
-                    super(self.__class__, self).actionPerformed(event)
-                else:
-                    myPrint("DB", "within actionPerformed() - trapped request for '%s'" %(event.getActionCommand()))
-                    self.expandAllAccounts(event.getActionCommand().lower() == "expand all")
-
-            def expandAllAccounts(self, lExpandAll):
-                KEY = "::expand_in_coa"
-
-                self._catAcctSearch.bypassFilter = True
-
-                allAccounts = AccountUtil.allMatchesForSearch(self._currentAccount.getBook(), self._catAcctSearch)
-                if lExpandAll:
-                    for acct in allAccounts:
-                        if not self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
-                            myPrint("DB","Found acct: %s which needs to be expanded..." %(acct))
-                            self.saveStorageReference.put(acct.getUUID() + KEY, True)
-                else:
-                    for acct in allAccounts:
-                        if self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
-                            myPrint("DB","Found acct: %s which needs to be collapsed..." %(acct))
-                            self.saveStorageReference.put(acct.getUUID() + KEY, False)
-
-                self._catAcctSearch.bypassFilter = False
-
-                myPrint("DB","Calling .reloadAccounts()")
-                self.saveTableModelReference.reloadAccounts()
-                self.saveTableModelReference.fireTableDataChanged()
-
-            def dispose(self):
-                myPrint("DB", "within dispose() - will call (super) original dispose")
-                self.isActiveInMoneydance = False
-                super(self.__class__, self).dispose()
-
-            def searchFiltersUpdated(self):
-                myPrint("DB", "within searchFiltersUpdated()")
-                self._catAcctSearch.searchFilter = self.mySearchField.getText().strip()
-                self.saveTableModelReference.reloadAccounts()
-                self.saveTableModelReference.fireTableDataChanged()
-
-        def huntPanelWithButtons(_component, _level):
-            for comp in _component.getComponents():
-                myPrint("DB", "."*_level, comp, type(comp))
-                if isinstance(_component, JPanel) and isinstance(comp, JButton): return _component
-                _foundComp = huntPanelWithButtons(comp, _level+1)
-                if _foundComp is not None: return _foundComp
-
-        class GrabFocusRunnable(Runnable):
-            def __init__(self, swingObject): self.swingObject = swingObject
-            def run(self): self.swingObject.requestFocus()
-
-
-        class MainAppRunnable(Runnable):
-
-            def __init__(self): pass
-
-            def run(self):                                                                                              # noqa
-                global accounts_categories_mega_search_window_frame_       # global as it's set here
-
-                myPrint("DB", "In MainAppRunnable()", inspect.currentframe().f_code.co_name, "()")
-                myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
-
-                titleExtraTxt = u"" if not isPreviewBuild() else u"<PREVIEW BUILD: %s>" %(version_build)
-
-                # prefixForPosnSaves = "gui.coa_window_"            # Accounts
-                # prefixForPosnSaves = "gui.cat_window_"            # Categories
-                prefixForPosnSaves = "gui.coa_cat_mega_window_"     # Save my own window settings
-
-                coa_cat_Win = MyCOAWindow(MD_REF.getUI(),
-                                          currentAccount,
-                                          catAcctSearch,
-                                          newAcctTypes,
-                                          prefixForPosnSaves,
-                                          True,
-                                          mySearchField,
-                                          expandAllButton,
-                                          collapseAllButton,
-                                          lSelectAccounts,
-                                          lSelectCategories)
-
-                titleTxt = ""
-                if lSelectAccounts:   titleTxt += u"Accounts %s" %(u"& " if lSelectCategories else "")
-                if lSelectCategories: titleTxt += u"Categories "
-                titleTxt += u"Mega Search Window   %s (%s-T to toggle active/inactive status)" %(titleExtraTxt, MD_REF.getUI().ACCELERATOR_MASK_STR)
-                coa_cat_Win.setTitle(titleTxt)
-
-                accounts_categories_mega_search_window_frame_ = coa_cat_Win
-                accounts_categories_mega_search_window_frame_.setName(u"%s_main" %(myModuleID))
-
-                theControlPanel = huntPanelWithButtons(coa_cat_Win, 0)
-                if theControlPanel is not None:
-                    x = 0
-                    myPrint("DB", "@@ FOUND CONTROL PANEL @@", theControlPanel, type(theControlPanel))
-                    theControlPanel.add(expandAllButton,GridC.getc().xy(x,1).fillx().insets(0,10,0,5));             x += 1
-                    theControlPanel.add(mySearchField,GridC.getc().xy(x,1).colspan(5).fillx().insets(0,10,0,5));    x += 5
-                    theControlPanel.add(collapseAllButton,GridC.getc().xy(x,1).insets(0,10,0,5));                   x += 1
-                    theControlPanel.validate()
-
-                    accounts_categories_mega_search_window_frame_.setVisible(True)
-                    accounts_categories_mega_search_window_frame_.isActiveInMoneydance = True
-
-                    SwingUtilities.invokeLater(GrabFocusRunnable(mySearchField))
-
-                    myPrint("DB","Main JFrame %s for application created.." %(accounts_categories_mega_search_window_frame_.getName()))
-                else:
-                    myPrint("DB", "ERROR: Control Panel NOT found")
-                    txt = "Error: Sorry could not launch Category Super Window"
-                    myPopupInformationBox(None,txt,theTitle="Category Super Window",theMessageType=JOptionPane.ERROR_MESSAGE)
-
-        if not SwingUtilities.isEventDispatchThread():
-            myPrint("DB",".. Main App Not running within the EDT so calling via MainAppRunnable()...")
-            SwingUtilities.invokeAndWait(MainAppRunnable())
-        else:
-            myPrint("DB",".. Main App Already within the EDT so calling naked...")
-            MainAppRunnable().run()
-
-        myPrint("B","FINISHED....")
-        cleanup_actions()
+            class MyAcctFilter(AcctFilter):
+                def __init__(self, lCats=False, lAccounts=False, lRoot=False):
+                    self.searchFilter = ""
+                    self.lCats = lCats
+                    self.lAccounts = lAccounts
+                    self.lRoot = lRoot
+                    self.bypassFilter = False
+
+                    self.FILTER_PARENT_ACCOUNT_PATTERN = "{pa:*}"
+                    self.FILTER_DEFAULT_CATEGORY_PATTERN = "{dc:*}"
+
+                @staticmethod
+                def findPattern(pattern, inString):
+                    patternFound = None
+                    patternStart = pattern[:4]
+                    patternEnd = pattern[-1:]
+                    inStringLower = inString.lower()
+                    startOfPattern = inStringLower.find(patternStart)
+                    if startOfPattern >= 0:
+                        patternStartLen = len(patternStart)
+                        patternStartFound = inString[startOfPattern:startOfPattern+patternStartLen]
+                        startOfFoundString = startOfPattern + patternStartLen
+                        end = inStringLower.find(patternEnd, startOfFoundString)
+                        if end >= 0:
+                            patternEndFound = inString[end:end+len(patternEnd)]
+                            patternFound = inString[startOfFoundString:end]
+                            inString = inString.replace(patternStartFound + patternFound + patternEndFound, "").strip()
+                    return patternFound, inString
+
+                def matches(self, acct):
+                    if isinstance(acct, Account): pass
+                    if (acct is None): return False
+                    if not self.lCats and not self.lAccounts and not self.lRoot: return False
+
+                    if not self.bypassFilter:
+                        searchTxt = self.searchFilter.strip().lower()
+                        if searchTxt != "":
+
+                            # myPrint("B", "search:", searchTxt);
+                            paMatchTxt, searchTxt = MyAcctFilter.findPattern(self.FILTER_PARENT_ACCOUNT_PATTERN, searchTxt)
+                            paMatch = paMatchTxt is not None
+                            # myPrint("B", paMatchTxt, searchTxt);
+
+                            dcMatchTxt, searchTxt = MyAcctFilter.findPattern(self.FILTER_DEFAULT_CATEGORY_PATTERN, searchTxt)
+                            dcMatch = dcMatchTxt is not None
+                            # myPrint("B", daMatchTxt, searchTxt);
+
+                            if paMatch:
+                                parentAcct = acct.getParentAccount()
+                                if parentAcct is None:
+                                    return False
+                                parentAcctName = parentAcct.getAccountName().lower().strip()
+                                if paMatchTxt not in parentAcctName:
+                                    return False
+
+                            if dcMatch:
+                                defaultCat = acct.getDefaultCategory()
+                                if defaultCat is None:
+                                    return False
+                                defaultCatAcctName = defaultCat.getAccountName().lower().strip()
+                                if dcMatchTxt not in defaultCatAcctName:
+                                    return False
+
+                            if searchTxt.strip() != "":
+                                acctName = acct.getAccountName().lower().strip()
+                                if searchTxt not in acctName:
+                                    return False
+
+                    if self.lRoot:
+                        # noinspection PyUnresolvedReferences
+                        if (acct.getAccountType() == Account.AccountType.ROOT):
+                            return True
+
+                    if self.lCats:
+                        # noinspection PyUnresolvedReferences
+                        if (acct.getAccountType() == Account.AccountType.EXPENSE
+                                or acct.getAccountType() == Account.AccountType.INCOME):
+                            return True
+
+                    if self.lAccounts:
+                        # noinspection PyUnresolvedReferences
+                        if (acct.getAccountType() == Account.AccountType.BANK
+                                or acct.getAccountType() == Account.AccountType.CREDIT_CARD
+                                or acct.getAccountType() == Account.AccountType.INVESTMENT
+                                or acct.getAccountType() == Account.AccountType.SECURITY
+                                or acct.getAccountType() == Account.AccountType.ASSET
+                                or acct.getAccountType() == Account.AccountType.LIABILITY
+                                or acct.getAccountType() == Account.AccountType.LOAN):
+                            return True
+                    return False
+
+                def format(self, acct): return acct.getIndentedName()
+
+            lSelectRoot = True
+            lSelectAccounts = True
+            lSelectCategories = True
+            if not lSelectRoot and not lSelectAccounts and not lSelectCategories: raise Exception("ERROR: Nothing selected!?")
+
+            catAcctSearch = MyAcctFilter(lCats=lSelectCategories,lAccounts=lSelectAccounts,lRoot=lSelectRoot)
+
+            newAcctTypes = []
+            if lSelectCategories:
+                # noinspection PyUnresolvedReferences
+                for atype in [Account.AccountType.EXPENSE, Account.AccountType.INCOME]:
+                    newAcctTypes.append(atype)
+
+            if lSelectAccounts:
+                # noinspection PyUnresolvedReferences
+                for atype in [Account.AccountType.BANK, Account.AccountType.CREDIT_CARD, Account.AccountType.INVESTMENT, Account.AccountType.ASSET, Account.AccountType.LIABILITY, Account.AccountType.LOAN]:
+                    newAcctTypes.append(atype)
+
+            # noinspection PyUnusedLocal
+            class MyDocListener(DocumentListener):
+                def __init__(self, _what):      self._what = _what
+                def changedUpdate(self, evt):   self._what.searchFiltersUpdated()
+                def removeUpdate(self, evt):    self._what.searchFiltersUpdated()
+                def insertUpdate(self, evt):    self._what.searchFiltersUpdated()
+
+            # noinspection PyUnusedLocal
+            class MyFocusAdapter(FocusAdapter):
+                def __init__(self, _searchField, _document):
+                    self._searchField = _searchField
+                    self._document = _document
+
+                def focusGained(self, e): self._searchField.setCaretPosition(self._document.getLength())
+
+            class MyKeyAdapter(KeyAdapter):
+                def keyPressed(self, evt):
+                    if (evt.getKeyCode() == KeyEvent.VK_ENTER):
+                        evt.getSource().transferFocus()
+
+            class MyJTextFieldEscapeAction(AbstractAction):
+                def __init__(self): pass
+
+                def actionPerformed(self, evt):
+                    myPrint("DB", "In MyJTextFieldEscapeAction:actionPerformed():", evt)
+                    jtf = evt.getSource()
+                    invokeMethodByReflection(jtf, "cancelEntry", None)
+                    jtf.dispatchEvent(KeyEvent(SwingUtilities.getWindowAncestor(jtf),
+                                               KeyEvent.KEY_PRESSED,
+                                               System.currentTimeMillis(),
+                                               0,
+                                               KeyEvent.VK_ESCAPE,
+                                               Character.valueOf(" ")))
+
+            # Fix jittery bug with QuickSearch when typing and VAQua...
+            class MyQuickFieldDocumentListener(DocumentListener):
+                def __init__(self, source): self.source = source
+
+                def insertUpdate(self, evt):                                                                                # noqa
+                    self.source.repaint()
+
+                def removeUpdate(self, evt):                                                                                # noqa
+                    self.source.repaint()
+
+                def changedUpdate(self, evt):                                                                               # noqa
+                    self.source.repaint()
+
+            class MyQuickSearchField(QuickSearchField):
+                def __init__(self, *args, **kwargs):
+                    super(self.__class__, self).__init__(*args, **kwargs)
+                    self.setFocusable(True)
+                    self.addKeyListener(MyKeyAdapter())
+                    self.getDocument().addDocumentListener(MyQuickFieldDocumentListener(self))
+
+                def setEscapeCancelsTextAndEscapesWindow(self, cancelsAndEscapes):
+                    if cancelsAndEscapes:
+                        self.getInputMap(self.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "override_escape")
+                        self.getActionMap().put("override_escape", MyJTextFieldEscapeAction())
+                    else:
+                        self.getInputMap(self.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), None)
+
+                def toString(self):
+                    return self.getPlaceholderText() + " " + self.getText()
+
+                def updateUI(self):
+                    super(self.__class__, self).updateUI()
+                    self.setForeground(GlobalVars.CONTEXT.getUI().getColors().reportBlueFG)
+
+            mySearchField = MyQuickSearchField()
+
+            if lAllowEscapeExitApp_SWSS:
+                mySearchField.setEscapeCancelsTextAndEscapesWindow(True)
+
+            expandAllButton = JButton("Expand all")
+            collapseAllButton = JButton("-")
+
+            class MyCOAWindow(COAWindow):
+                """Extends the MD Internal Window that can display Accounts / Categories. This presents both combined with a search field"""
+                def __init__(self, _ui, _currentAccount, _catAcctSearch, _newAcctTypes, _prefix, _showBalances, _mySearchField, _expandAllButton, _collapseAllButton, _lSelectAccts, _lSelectCats):
+                    self._ui = _ui
+                    self._currentAccount = _currentAccount
+                    self._catAcctSearch = _catAcctSearch
+                    self._newAcctTypes = _newAcctTypes
+                    self._prefix = _prefix
+                    self._showBalances = _showBalances
+                    self.mySearchField = _mySearchField
+                    self.expandAllButton = _expandAllButton
+                    self.collapseAllButton = _collapseAllButton
+                    self._lSelectAccts = _lSelectAccts
+                    self._lSelectCats = _lSelectCats
+                    document = self.mySearchField.getDocument()
+                    document.addDocumentListener(MyDocListener(self))
+                    self.mySearchField.addFocusListener(MyFocusAdapter(self.mySearchField,document))
+                    super(COAWindow, self).__init__(self._ui, self._currentAccount, self._catAcctSearch, self._newAcctTypes, self._prefix, self._showBalances)  # noqa
+
+                    if lAllowEscapeExitApp_SWSS:
+                        # Pop in an Escape key to close window ;->
+                        saveCloseAction = self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(KeyStroke.getKeyStroke(KeyEvent.VK_W, MoneydanceGUI.ACCELERATOR_MASK))
+                        self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), saveCloseAction)
+
+                    # shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()
+                    self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_D, (MoneydanceGUI.ACCELERATOR_MASK | Event.SHIFT_MASK)), "enable-debug")
+                    self.getRootPane().getActionMap().put("enable-debug", self.ToggleDebugAction(self))
+
+                    self.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_T, (MoneydanceGUI.ACCELERATOR_MASK)), "toggle-active-inactive-status")
+                    self.getRootPane().getActionMap().put("toggle-active-inactive-status", self.ToggleActiveInactiveStatusAction(self))
+
+                    # Java cannot do multiple Inheritance, so cannot also extend MyJFrame... Make do....
+                    self.myJFrameVersion = 2
+                    self.isActiveInMoneydance = False
+                    self.isRunTimeExtension = False
+                    self.MoneydanceAppListener = None
+                    self.HomePageViewObj = None
+
+                    self.saveTableModelReference = getFieldByReflection(self, "tableModel")
+                    self.saveStorageReference = getFieldByReflection(self, "storage")
+
+                    gui = MD_REF.getUI()
+                    if gui is not None:
+                        myPrint("DB", "MD Gui Detected... Attempting to swap in my own coaWin / catWin")
+
+                        for swapWin in ["catWin", "coaWin"]:
+
+                            if not (self._lSelectAccts and self._lSelectCats):
+                                if not self._lSelectAccts and swapWin == "coaWin": continue
+                                if not self._lSelectCats and swapWin == "catWin": continue
+
+                            p_coa_cat_Win = gui.getClass().getDeclaredField(swapWin)
+                            p_coa_cat_Win.setAccessible(True)
+                            p_coa_cat_WinObject = p_coa_cat_Win.get(gui)
+
+                            if p_coa_cat_WinObject is not None:
+                                myPrint("DB", "MD Gui %s already set/open... Disposing....." %(swapWin))
+                                p_coa_cat_WinObject.dispose()
+
+                            myPrint("DB", "Swapping in my own %s..." %(swapWin))
+                            p_coa_cat_Win.set(gui, self)
+                            p_coa_cat_Win.setAccessible(False)
+
+                    self.expandAllButton.addActionListener(self)
+                    self.collapseAllButton.addActionListener(self)
+
+                class ToggleDebugAction(AbstractAction):
+
+                    def __init__(self, callingClass):
+                        self.callingClass = callingClass
+
+                    def actionPerformed(self, event):                                                                       # noqa
+                        global debug
+                        debug = not debug
+                        myPopupInformationBox(None, "Debug status flipped - now set to: %s" %(debug))
+
+                class ToggleActiveInactiveStatusAction(AbstractAction):
+
+                    def __init__(self, callingClass):
+                        self.callingClass = callingClass
+
+                    def actionPerformed(self, event):                                                                       # noqa
+                        selectedAcct = self.callingClass.getSelectedAccount()
+                        if selectedAcct is not None:
+                            if myPopupAskQuestion(None, "TOGGLE ACTIVE/INACTIVE STATUS", "Set selected account to %s?" %("ACTIVE" if selectedAcct.getAccountIsInactive() else "INACTIVE")):
+                                selectedAcct.setAccountIsInactive(not selectedAcct.getAccountIsInactive())
+                                selectedAcct.syncItem()
+                                myPrint("DB", "Account: '%s' AccountIsInactive status set to '%s'" %(selectedAcct.getFullAccountName(), selectedAcct.getAccountIsInactive()))
+
+                def actionPerformed(self, event):
+                    myPrint("DB", "within actionPerformed()")
+                    if (event.getActionCommand().lower() != "expand all" and event.getActionCommand().lower() != "-"):
+                        myPrint("DB", "...calling (super) on original actionPerformed")
+                        super(self.__class__, self).actionPerformed(event)
+                    else:
+                        myPrint("DB", "within actionPerformed() - trapped request for '%s'" %(event.getActionCommand()))
+                        self.expandAllAccounts(event.getActionCommand().lower() == "expand all")
+
+                def expandAllAccounts(self, lExpandAll):
+                    KEY = "::expand_in_coa"
+
+                    self._catAcctSearch.bypassFilter = True
+
+                    allAccounts = AccountUtil.allMatchesForSearch(self._currentAccount.getBook(), self._catAcctSearch)
+                    if lExpandAll:
+                        for acct in allAccounts:
+                            if not self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
+                                myPrint("DB","Found acct: %s which needs to be expanded..." %(acct))
+                                self.saveStorageReference.put(acct.getUUID() + KEY, True)
+                    else:
+                        for acct in allAccounts:
+                            if self.saveStorageReference.getBoolean(acct.getUUID() + KEY, True):
+                                myPrint("DB","Found acct: %s which needs to be collapsed..." %(acct))
+                                self.saveStorageReference.put(acct.getUUID() + KEY, False)
+
+                    self._catAcctSearch.bypassFilter = False
+
+                    myPrint("DB","Calling .reloadAccounts()")
+                    self.saveTableModelReference.reloadAccounts()
+                    self.saveTableModelReference.fireTableDataChanged()
+
+                def dispose(self):
+                    myPrint("DB", "within dispose() - will call (super) original dispose")
+                    self.isActiveInMoneydance = False
+                    super(self.__class__, self).dispose()
+
+                def searchFiltersUpdated(self):
+                    myPrint("DB", "within searchFiltersUpdated()")
+                    self._catAcctSearch.searchFilter = self.mySearchField.getText().strip()
+                    self.saveTableModelReference.reloadAccounts()
+                    self.saveTableModelReference.fireTableDataChanged()
+
+            def huntPanelWithButtons(_component, _level):
+                for comp in _component.getComponents():
+                    myPrint("DB", "."*_level, comp, type(comp))
+                    if isinstance(_component, JPanel) and isinstance(comp, JButton): return _component
+                    _foundComp = huntPanelWithButtons(comp, _level+1)
+                    if _foundComp is not None: return _foundComp
+
+            class GrabFocusRunnable(Runnable):
+                def __init__(self, swingObject): self.swingObject = swingObject
+                def run(self): self.swingObject.requestFocus()
+
+
+            class MainAppRunnable(Runnable):
+
+                def __init__(self): pass
+
+                def run(self):                                                                                              # noqa
+                    global accounts_categories_mega_search_window_frame_       # global as it's set here
+
+                    myPrint("DB", "In MainAppRunnable()", inspect.currentframe().f_code.co_name, "()")
+                    myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
+
+                    titleExtraTxt = u"" if not isPreviewBuild() else u"<PREVIEW BUILD: %s>" %(version_build)
+
+                    # prefixForPosnSaves = "gui.coa_window_"            # Accounts
+                    # prefixForPosnSaves = "gui.cat_window_"            # Categories
+                    prefixForPosnSaves = "gui.coa_cat_mega_window_"     # Save my own window settings
+
+                    coa_cat_Win = MyCOAWindow(MD_REF.getUI(),
+                                              currentAccount,
+                                              catAcctSearch,
+                                              newAcctTypes,
+                                              prefixForPosnSaves,
+                                              True,
+                                              mySearchField,
+                                              expandAllButton,
+                                              collapseAllButton,
+                                              lSelectAccounts,
+                                              lSelectCategories)
+
+                    titleTxt = ""
+                    if lSelectAccounts:   titleTxt += u"Accounts %s" %(u"& " if lSelectCategories else "")
+                    if lSelectCategories: titleTxt += u"Categories "
+                    titleTxt += u"Mega Search Window   %s (%s-T to toggle active/inactive status)" %(titleExtraTxt, MD_REF.getUI().ACCELERATOR_MASK_STR)
+                    coa_cat_Win.setTitle(titleTxt)
+
+                    accounts_categories_mega_search_window_frame_ = coa_cat_Win
+                    accounts_categories_mega_search_window_frame_.setName(u"%s_main" %(myModuleID))
+
+                    theControlPanel = huntPanelWithButtons(coa_cat_Win, 0)
+                    if theControlPanel is not None:
+                        x = 0
+                        myPrint("DB", "@@ FOUND CONTROL PANEL @@", theControlPanel, type(theControlPanel))
+                        theControlPanel.add(expandAllButton,GridC.getc().xy(x,1).fillx().insets(0,10,0,5));             x += 1
+                        theControlPanel.add(mySearchField,GridC.getc().xy(x,1).colspan(5).fillx().insets(0,10,0,5));    x += 5
+                        theControlPanel.add(collapseAllButton,GridC.getc().xy(x,1).insets(0,10,0,5));                   x += 1
+                        theControlPanel.validate()
+
+                        accounts_categories_mega_search_window_frame_.setVisible(True)
+                        accounts_categories_mega_search_window_frame_.isActiveInMoneydance = True
+
+                        SwingUtilities.invokeLater(GrabFocusRunnable(mySearchField))
+
+                        myPrint("DB","Main JFrame %s for application created.." %(accounts_categories_mega_search_window_frame_.getName()))
+                    else:
+                        myPrint("DB", "ERROR: Control Panel NOT found")
+                        txt = "Error: Sorry could not launch Category Super Window"
+                        myPopupInformationBox(None,txt,theTitle="Category Super Window",theMessageType=JOptionPane.ERROR_MESSAGE)
+
+            if not SwingUtilities.isEventDispatchThread():
+                myPrint("DB",".. Main App Not running within the EDT so calling via MainAppRunnable()...")
+                SwingUtilities.invokeAndWait(MainAppRunnable())
+            else:
+                myPrint("DB",".. Main App Already within the EDT so calling naked...")
+                MainAppRunnable().run()
+
+            myPrint("B","FINISHED....")
+            cleanup_actions()
+
+        doMain()
 
     except QuickAbortThisScriptException:
         myPrint("DB", "Caught Exception: QuickAbortThisScriptException... Doing nothing...")

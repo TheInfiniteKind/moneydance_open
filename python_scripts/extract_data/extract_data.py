@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1035 - July 2023 - Stuart Beesley
+# extract_data.py - build: 1036 - Sept 2023 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -128,6 +128,7 @@
 # build: 1034 - You can call extension and auto-extract by launching MD with '-invoke=moneydance:fmodule:extract_data:autoextract' parameter
 # build: 1035 - Added extract raw data as JSON file option
 # build: 1035 - Added handle_event ability to auto extract upon 'md:file:closing' command...
+# build: 1036 - Release references to Model objects...... (so they don't stay in memory etc)....
 
 # todo - StockGlance2020 asof balance date...
 # todo - extract budget data?
@@ -139,7 +140,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1035"
+version_build = "1036"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -150,6 +151,15 @@ if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy o
 if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
 if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+# Nuke unwanted (direct/indirect) reference(s) to AccountBook etc....
+if "moneydance_data" in globals():
+    moneydance_data = None
+    del moneydance_data
+
+if "moneybot" in globals():
+    moneybot = None
+    del moneybot
 
 from java.lang import Boolean
 global debug
@@ -529,21 +539,19 @@ else:
 
     # ------------
     # Other used by program(s)
-    global baseCurrency
 
     # from extract_account_registers_csv & extract_investment_transactions_csv
-    global transactionTable, dataKeys, attachmentDir, relativePath, lDidIUseAttachmentDir
+    global dataKeys, attachmentDir, relativePath, lDidIUseAttachmentDir
 
     # from stockglance2020
     global headingNames
-    global stockGlanceInstance
     global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW
     global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
     global acctSeparator
 
     # from extract_reminders_csv & extract_currency_history
     global csvheaderline, headerFormats
-    global table, focus, row, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
+    global focus, row, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 
     # Set programmatic defaults/parameters for filters HERE.... Saved Parameters will override these now
     # NOTE: You  can override in the pop-up screen
@@ -586,7 +594,6 @@ else:
     saveDropDownAccountUUID_EAR = ""                                                                                    # noqa
     saveDropDownDateRange_EAR = ""                                                                                      # noqa
     lIncludeInternalTransfers_EAR = True                                                                                # noqa
-    dropDownAccount_EAR = None                                                                                          # noqa
 
     # from extract_investment_transactions_csv
     lIncludeOpeningBalances = True                                                                                      # noqa
@@ -630,7 +637,16 @@ else:
     autoExtract_JSON = False                                                                                            # noqa
     autoExtract_EATTACH = False                                                                                         # noqa
 
-    # Common - converted from globals
+    # Do these once here (for objects that might hold Model objects etc) and then release at the end... (not the cleanest method...)
+    GlobalVars.dropDownAccount_EAR = None
+    GlobalVars.baseCurrency = None
+    GlobalVars.scrollpane = None
+    GlobalVars.table = None
+    GlobalVars.stockGlanceInstance = None
+    GlobalVars.transactionTable = None
+    GlobalVars.csvlines_reminders_future = None
+    GlobalVars.tableHeaderRowList_reminders_future = None
+
     GlobalVars.sdf = None
     GlobalVars.csvfilename = None
     GlobalVars.csvfilename_future = None
@@ -645,6 +661,7 @@ else:
     GlobalVars.csvlines_reminders = None
     GlobalVars.csvlines_reminders_future = None
     GlobalVars.tableHeaderRowList_reminders_future = None
+
     GlobalVars.daysToLookForward_LFR = 365
 
     # >>> END THIS SCRIPT'S GLOBALS ############################################################################################
@@ -692,6 +709,8 @@ Visit: %s (Author's site)
         global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+
+        resetGlobalVariables()
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3488,7 +3507,6 @@ Visit: %s (Author's site)
 
         myPrint("DB","variables dumped from memory back into parametersLoadedFromFile{}.....")
 
-
     # clear up any old left-overs....
     destroyOldFrames(myModuleID)
 
@@ -3526,6 +3544,31 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
+
+    def resetGlobalVariables():
+        myPrint("DB", "@@ RESETTING KEY GLOBAL REFERENCES.....")
+        # Do these once here (for objects that might hold Model objects etc) and then release at the end... (not the cleanest method...)
+        GlobalVars.dropDownAccount_EAR = None
+        GlobalVars.baseCurrency = None
+        GlobalVars.scrollpane = None
+        GlobalVars.table = None
+        GlobalVars.stockGlanceInstance = None
+        GlobalVars.transactionTable = None
+        GlobalVars.csvlines_reminders_future = None
+        GlobalVars.tableHeaderRowList_reminders_future = None
+
+        # StockGlance2020 - converted from globals
+        GlobalVars.rawDataTable_sg2020 = None
+        GlobalVars.rawFooterTable_sg2020 = None
+
+        # from extract_reminders_csv - converted from globals
+        GlobalVars.csvlines_reminders = None
+        GlobalVars.csvlines_reminders_future = None
+        GlobalVars.tableHeaderRowList_reminders_future = None
+
+
+    resetGlobalVariables()
+
 
     if isKotlinCompiledBuild():
         from okio import BufferedSource, Buffer, Okio                                                                   # noqa
@@ -3942,8 +3985,7 @@ Visit: %s (Author's site)
         global lWriteParametersToExportFile_SWSS
 
         global lDidIUseAttachmentDir
-        global baseCurrency, headingNames
-        global stockGlanceInstance  # holds the instance of StockGlance2020()
+        global headingNames
         global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW
         global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
         global acctSeparator
@@ -4172,8 +4214,8 @@ Visit: %s (Author's site)
         global lWriteParametersToExportFile_SWSS
 
         global lDidIUseAttachmentDir
-        global baseCurrency, csvheaderline, headerFormats
-        global table, focus, row, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
+        global csvheaderline, headerFormats
+        global focus, row, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 
         global __extract_data, extract_filename
         global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -4316,8 +4358,8 @@ Visit: %s (Author's site)
         myPrint("B","---------------------------------------------------------------------------------------")
         myPrint("B","Parameters: Extract Account Registers:")
 
-        if dropDownAccount_EAR:
-            myPrint("B", "  Dropdown Account selected............: %s" %(dropDownAccount_EAR.getAccountName()))         # noqa
+        if GlobalVars.dropDownAccount_EAR:
+            myPrint("B", "  Dropdown Account selected............: %s" %(GlobalVars.dropDownAccount_EAR.getAccountName()))         # noqa
             myPrint("B", "  Include Sub Accounts.................: %s" %(lIncludeSubAccounts_EAR))
         else:
             myPrint("B", "  Hide Inactive Accounts...............:", hideInactiveAccounts)
@@ -4345,11 +4387,9 @@ Visit: %s (Author's site)
 
         global debug
         global lWriteParametersToExportFile_SWSS
-        global dropDownAccount_EAR
 
         global lDidIUseAttachmentDir
-        global baseCurrency
-        global transactionTable, dataKeys, attachmentDir, relativePath
+        global dataKeys, attachmentDir, relativePath
 
         global __extract_data, extract_filename
         global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -4960,9 +5000,9 @@ Visit: %s (Author's site)
             saveDropDownDateRange_EAR = dateDropdown.getSelectedItem()
 
             if isinstance(accountDropdown.getSelectedItem(), StoreAccount):
-                dropDownAccount_EAR = accountDropdown.getSelectedItem().getAccount()                                    # noqa
+                GlobalVars.dropDownAccount_EAR = accountDropdown.getSelectedItem().getAccount()                                    # noqa
                 # noinspection PyUnresolvedReferences
-                saveDropDownAccountUUID_EAR = dropDownAccount_EAR.getUUID()
+                saveDropDownAccountUUID_EAR = GlobalVars.dropDownAccount_EAR.getUUID()
                 lIncludeSubAccounts_EAR = user_includeSubAccounts.isSelected()
                 lAllAccounts = True
                 lAllCurrency = True
@@ -4971,7 +5011,7 @@ Visit: %s (Author's site)
                 hideInactiveAccounts = True
                 hideHiddenAccounts = True
             else:
-                dropDownAccount_EAR = None
+                GlobalVars.dropDownAccount_EAR = None
                 saveDropDownAccountUUID_EAR = None
                 lIncludeSubAccounts_EAR = False
                 if user_selectAccounts.getText() == "ALL" or user_selectAccounts.getText().strip() == "":
@@ -5030,8 +5070,7 @@ Visit: %s (Author's site)
         global lWriteParametersToExportFile_SWSS
 
         global lDidIUseAttachmentDir
-        global baseCurrency
-        global transactionTable, dataKeys, attachmentDir, relativePath
+        global dataKeys, attachmentDir, relativePath
 
         global __extract_data, extract_filename
         global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -5450,8 +5489,7 @@ Visit: %s (Author's site)
         global debug
         global lWriteParametersToExportFile_SWSS
 
-        global baseCurrency
-        global transactionTable, dataKeys
+        global dataKeys
 
         global __extract_data, extract_filename
         global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -6453,6 +6491,8 @@ Visit: %s (Author's site)
                         myPrint("DB", "In DoExtractsSwingWorker()", inspect.currentframe().f_code.co_name, "()")
                         myPrint("DB", "SwingUtilities.isEventDispatchThread() = %s" %(SwingUtilities.isEventDispatchThread()))
 
+                        GlobalVars.baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+
                         try:
                             cThread = Thread.currentThread()
                             if "_extn_ED" not in cThread.getName(): cThread.setName(u"%s_extn_ED" %(cThread.getName()))
@@ -6475,8 +6515,7 @@ Visit: %s (Author's site)
                                 def do_stockglance2020():
 
                                     global lDidIUseAttachmentDir
-                                    global baseCurrency, headingNames
-                                    global stockGlanceInstance  # holds the instance of StockGlance2020()
+                                    global headingNames
                                     global _SHRS_FORMATTED, _SHRS_RAW, _PRICE_FORMATTED, _PRICE_RAW, _CVALUE_FORMATTED, _CVALUE_RAW, _BVALUE_FORMATTED, _BVALUE_RAW
                                     global _CBVALUE_FORMATTED, _CBVALUE_RAW, _GAIN_FORMATTED, _GAIN_RAW, _SORT, _EXCLUDECSV, _GAINPCT
                                     global acctSeparator
@@ -6554,7 +6593,7 @@ Visit: %s (Author's site)
 
                                         book = MD_REF.getCurrentAccountBook()
 
-                                        table = None
+                                        GlobalVars.table = None
                                         tableModel = None
                                         footerModel = None
                                         totalBalance = None  # total of all Stock.Securities in all Accounts inb local currency
@@ -6610,17 +6649,18 @@ Visit: %s (Author's site)
                                             self.footerModel = self.generateFooterTableModel()
 
                                         def generateMainTableModel(self, book):
-                                            global baseCurrency, lAllCurrency, filterForCurrency, lAllSecurity, filterForSecurity
+                                            global lAllCurrency, filterForCurrency, lAllSecurity, filterForSecurity
 
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
                                             myPrint("D", _THIS_EXTRACT_NAME + "MD Book: ", book)
+
+                                            _baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                             GlobalVars.rawDataTable_sg2020 = []
 
                                             ct = book.getCurrencies()
 
-                                            baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
-                                            myPrint("D", _THIS_EXTRACT_NAME + "Base Currency: ", baseCurrency.getIDString(), " : ", baseCurrency.getName())
+                                            myPrint("D", _THIS_EXTRACT_NAME + "Base Currency: ", _baseCurrency.getIDString(), " : ", _baseCurrency.getName())
 
                                             allCurrencies = ct.getAllCurrencies()
 
@@ -6701,16 +6741,16 @@ Visit: %s (Author's site)
                                                                     relativeToName = curr.getParameter(CurrencyType.TAG_RELATIVE_TO_CURR)
                                                                     if relativeToName is not None:
                                                                         self.currXrate = ct.getCurrencyByIDString(relativeToName)
-                                                                        if self.currXrate.getIDString() == baseCurrency.getIDString():
+                                                                        if self.currXrate.getIDString() == _baseCurrency.getIDString():
                                                                             myPrint("D", _THIS_EXTRACT_NAME + "Found conversion rate - but it's already the base rate..: ", relativeToName)
                                                                         else:
                                                                             securityIsBase = False
-                                                                            # exchangeRate = round(self.currXrate.getRate(baseCurrency),self.currXrate.getDecimalPlaces())
-                                                                            exchangeRate = self.currXrate.getRate(baseCurrency)
+                                                                            # exchangeRate = round(self.currXrate.getRate(_baseCurrency),self.currXrate.getDecimalPlaces())
+                                                                            exchangeRate = self.currXrate.getRate(_baseCurrency)
                                                                             myPrint("D", _THIS_EXTRACT_NAME + "Found conversion rate: ", relativeToName, exchangeRate)
                                                                     else:
                                                                         myPrint("D", _THIS_EXTRACT_NAME + "No conversion rate found.... Assuming Base Currency")
-                                                                        self.currXrate = baseCurrency
+                                                                        self.currXrate = _baseCurrency
 
                                                                     # Check to see if all Security Currencies are the same...?
                                                                     if self.allOneCurrency:
@@ -6742,18 +6782,18 @@ Visit: %s (Author's site)
                                                                     entry.append(curr.getTickerSymbol())                                                                # c0
                                                                     entry.append(curr.getName())                                                                        # c1
                                                                     entry.append(curr.formatSemiFancy(qtySplit, GlobalVars.decimalCharSep))                             # c2
-                                                                    entry.append(self.myNumberFormatter(price, False, self.currXrate, baseCurrency, _roundPrice))       # c3
+                                                                    entry.append(self.myNumberFormatter(price, False, self.currXrate, _baseCurrency, _roundPrice))       # c3
                                                                     entry.append(self.currXrate.getIDString())                                                          # c4
                                                                     x = None
                                                                     if securityIsBase:
                                                                         entry.append(None)                                                                              # c5 - don't bother displaying if base curr
                                                                     else:
                                                                         self.lRemoveCurrColumn = False
-                                                                        entry.append(self.myNumberFormatter(balanceSplit, False, self.currXrate, baseCurrency, 2))      # Local Curr Value
+                                                                        entry.append(self.myNumberFormatter(balanceSplit, False, self.currXrate, _baseCurrency, 2))      # Local Curr Value
                                                                         x = round(balanceSplit, 2)
-                                                                    entry.append(self.myNumberFormatter(balanceBaseSplit, True, self.currXrate, baseCurrency, 2))       # Value Base Currency
-                                                                    entry.append(self.myNumberFormatter(costBasisBaseSplit, True, self.currXrate, baseCurrency, 2))     # Cost Basis
-                                                                    entry.append(self.myNumberFormatter(gainBaseSplit, True, self.currXrate, baseCurrency, 2))          # Gain
+                                                                    entry.append(self.myNumberFormatter(balanceBaseSplit, True, self.currXrate, _baseCurrency, 2))       # Value Base Currency
+                                                                    entry.append(self.myNumberFormatter(costBasisBaseSplit, True, self.currXrate, _baseCurrency, 2))     # Cost Basis
+                                                                    entry.append(self.myNumberFormatter(gainBaseSplit, True, self.currXrate, _baseCurrency, 2))          # Gain
 
                                                                     try: entry.append(round(gainBaseSplit / costBasisBaseSplit, 3))
                                                                     except ZeroDivisionError: entry.append(0.0)
@@ -6801,19 +6841,19 @@ Visit: %s (Author's site)
                                                                     entry.append(curr.getTickerSymbol())                                                        # c0
                                                                 entry.append(curr.getName())                                                                    # c1
                                                                 entry.append(curr.formatSemiFancy(qty, GlobalVars.decimalCharSep))                              # c2
-                                                                entry.append(self.myNumberFormatter(price, False, self.currXrate, baseCurrency, _roundPrice))   # c3
+                                                                entry.append(self.myNumberFormatter(price, False, self.currXrate, _baseCurrency, _roundPrice))   # c3
                                                                 entry.append(self.currXrate.getIDString())                                                      # c4
                                                                 x = None
                                                                 if securityIsBase:                                                                              # noqa
                                                                     entry.append(None)                                                                          # c5 - don't bother displaying if base curr
                                                                 else:
                                                                     self.lRemoveCurrColumn = False
-                                                                    entry.append(self.myNumberFormatter(balance, False, self.currXrate, baseCurrency,2))        # noqa
+                                                                    entry.append(self.myNumberFormatter(balance, False, self.currXrate, _baseCurrency,2))        # noqa
                                                                     x = round(balance, 2)
 
-                                                                entry.append(self.myNumberFormatter(balanceBase, True, self.currXrate, baseCurrency,2))         # noqa
-                                                                entry.append(self.myNumberFormatter(costBasisBase, True, self.currXrate, baseCurrency,2)) ;     # noqa
-                                                                entry.append(self.myNumberFormatter(gainBase, True, self.currXrate, baseCurrency,2))            # noqa
+                                                                entry.append(self.myNumberFormatter(balanceBase, True, self.currXrate, _baseCurrency,2))         # noqa
+                                                                entry.append(self.myNumberFormatter(costBasisBase, True, self.currXrate, _baseCurrency,2)) ;     # noqa
+                                                                entry.append(self.myNumberFormatter(gainBase, True, self.currXrate, _baseCurrency,2))            # noqa
 
                                                                 try: entry.append(round(gainBase / costBasisBase, 3))
                                                                 except ZeroDivisionError: entry.append(0.0)
@@ -6913,7 +6953,9 @@ Visit: %s (Author's site)
                                             return DefaultTableModel(GlobalVars.rawDataTable_sg2020, self.columnNames)
 
                                         def generateFooterTableModel(self):
-                                            global baseCurrency, lIncludeCashBalances
+                                            global lIncludeCashBalances
+
+                                            _baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                             GlobalVars.rawFooterTable_sg2020 = []
                                             if self.getTableModel() is None: return None
@@ -6949,24 +6991,24 @@ Visit: %s (Author's site)
                                             entry.append(None)
                                             entry.append(None)
                                             x = None
-                                            if self.allOneCurrency and (self.currXrate != baseCurrency):
+                                            if self.allOneCurrency and (self.currXrate != _baseCurrency):
                                                 myPrint("D", _THIS_EXTRACT_NAME + "getFooterModel: sameCurrency=", self.currXrate)
                                                 if self.currXrate is None:
                                                     entry.append(None)
                                                 else:
                                                     x = self.totalBalance
-                                                    entry.append(self.myNumberFormatter(self.totalBalance, False, self.currXrate, baseCurrency, 2))
+                                                    entry.append(self.myNumberFormatter(self.totalBalance, False, self.currXrate, _baseCurrency, 2))
                                             else:
                                                 myPrint("D", _THIS_EXTRACT_NAME + "getFooterModel: was not allOneCurrency..")
                                                 entry.append(None)
-                                            entry.append(self.myNumberFormatter(self.totalBalanceBase, True, baseCurrency, baseCurrency, 2))
-                                            entry.append(self.myNumberFormatter(self.totalCostBasisBase, True, baseCurrency, baseCurrency,2))  # Cost Basis
-                                            entry.append(self.myNumberFormatter(self.totalGainBase, True, baseCurrency, baseCurrency, 2))  # Gain
+                                            entry.append(self.myNumberFormatter(self.totalBalanceBase, True, _baseCurrency, _baseCurrency, 2))
+                                            entry.append(self.myNumberFormatter(self.totalCostBasisBase, True, _baseCurrency, _baseCurrency,2))  # Cost Basis
+                                            entry.append(self.myNumberFormatter(self.totalGainBase, True, _baseCurrency, _baseCurrency, 2))  # Gain
 
                                             try: entry.append(round(self.totalGainBase / self.totalCostBasisBase, 3))
                                             except ZeroDivisionError: entry.append(0.0)
 
-                                            entry.append("<<" + baseCurrency.getIDString())
+                                            entry.append("<<" + _baseCurrency.getIDString())
                                             entry.append(None)
                                             entry.append(None)
                                             entry.append(x)
@@ -6989,7 +7031,7 @@ Visit: %s (Author's site)
                                                         entry.append(None)
                                                         entry.append(None)
                                                         entry.append(None)
-                                                        entry.append(self.myNumberFormatter(self.CashBalanceTableData[_iii][1], True, baseCurrency, baseCurrency, 2))
+                                                        entry.append(self.myNumberFormatter(self.CashBalanceTableData[_iii][1], True, _baseCurrency, _baseCurrency, 2))
                                                         entry.append(None)
                                                         entry.append(None)
                                                         entry.append(None)
@@ -7012,7 +7054,7 @@ Visit: %s (Author's site)
                                                 entry.append(None)
                                                 entry.append(None)
                                                 entry.append(None)
-                                                entry.append(self.myNumberFormatter(self.totalCashBalanceBase, True, baseCurrency, baseCurrency, 2))
+                                                entry.append(self.myNumberFormatter(self.totalCashBalanceBase, True, _baseCurrency, _baseCurrency, 2))
                                                 entry.append(None)
                                                 entry.append(None)
                                                 entry.append(None)
@@ -7037,9 +7079,9 @@ Visit: %s (Author's site)
                                                     entry.append(None)
                                                     entry.append(None)
                                                     entry.append(None)
-                                                    entry.append(self.myNumberFormatter((self.totalBalanceBase + self.totalCashBalanceBase), True, baseCurrency, baseCurrency, 2))
-                                                    entry.append(self.myNumberFormatter(self.totalCostBasisBase, True, baseCurrency, baseCurrency, 2))  # Cost Basis
-                                                    entry.append(self.myNumberFormatter(self.totalGainBase, True, baseCurrency, baseCurrency, 2))  # Gain
+                                                    entry.append(self.myNumberFormatter((self.totalBalanceBase + self.totalCashBalanceBase), True, _baseCurrency, _baseCurrency, 2))
+                                                    entry.append(self.myNumberFormatter(self.totalCostBasisBase, True, _baseCurrency, _baseCurrency, 2))  # Cost Basis
+                                                    entry.append(self.myNumberFormatter(self.totalGainBase, True, _baseCurrency, _baseCurrency, 2))  # Gain
 
                                                     try: entry.append(round(self.totalGainBase / self.totalCostBasisBase, 3))
                                                     except ZeroDivisionError: entry.append(0.0)
@@ -7132,8 +7174,6 @@ Visit: %s (Author's site)
                                                 self.lAllSecurity = lAllSecurity
                                                 self.filterForSecurity = filterForSecurity
                                                 self.findUUID = findUUID
-
-                                                self.baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                             def matches(self, acct):
                                                 if self.findUUID is not None:  # If UUID supplied, override all other parameters...
@@ -7333,19 +7373,18 @@ Visit: %s (Author's site)
                                             #  Rendering depends on row (i.e. security's currency) as well as column
                                             # noinspection PyUnusedLocal
                                             def getCellRenderer(self, row, column):                                                 # noqa
-                                                global stockGlanceInstance
                                                 renderer = None
 
-                                                if stockGlanceInstance.columnTypes[column] == "Text":
+                                                if GlobalVars.stockGlanceInstance.columnTypes[column] == "Text":
                                                     renderer = DefaultTableCellRenderer()
                                                     renderer.setHorizontalAlignment(JLabel.LEFT)
-                                                elif stockGlanceInstance.columnTypes[column] == "TextNumber":
-                                                    renderer = stockGlanceInstance.MyGainsRenderer()
+                                                elif GlobalVars.stockGlanceInstance.columnTypes[column] == "TextNumber":
+                                                    renderer = GlobalVars.stockGlanceInstance.MyGainsRenderer()
                                                     renderer.setHorizontalAlignment(JLabel.RIGHT)
-                                                elif stockGlanceInstance.columnTypes[column] == "%":
-                                                    renderer = stockGlanceInstance.MyPercentRenderer()
+                                                elif GlobalVars.stockGlanceInstance.columnTypes[column] == "%":
+                                                    renderer = GlobalVars.stockGlanceInstance.MyPercentRenderer()
                                                     renderer.setHorizontalAlignment(JLabel.RIGHT)
-                                                elif stockGlanceInstance.columnTypes[column] == "TextC":
+                                                elif GlobalVars.stockGlanceInstance.columnTypes[column] == "TextC":
                                                     renderer = DefaultTableCellRenderer()
                                                     renderer.setHorizontalAlignment(JLabel.CENTER)
                                                 else:
@@ -7439,9 +7478,9 @@ Visit: %s (Author's site)
 
                                             def prepareRenderer(self, renderer, row, column):                                       # noqa
                                                 # make Banded rows
-                                                global stockGlanceInstance, lSplitSecuritiesByAccount
+                                                global lSplitSecuritiesByAccount
 
-                                                component = super(stockGlanceInstance.MyJTable, self).prepareRenderer(renderer, row, column)    # noqa
+                                                component = super(GlobalVars.stockGlanceInstance.MyJTable, self).prepareRenderer(renderer, row, column)    # noqa
                                                 if not self.isRowSelected(row):
                                                     if (self.lInTheFooter):
                                                         component.setBackground(MD_REF.getUI().getColors().registerBG1 if row % 2 == 0 else MD_REF.getUI().getColors().registerBG2)
@@ -7570,13 +7609,13 @@ Visit: %s (Author's site)
 
                                         class WindowListener(WindowAdapter):
                                             def __init__(self, theFrame):
-                                                self.theFrame = theFrame        # type: MyJFrame
+                                                self.theFrame = theFrame                                                # type: MyJFrame
 
-                                            def windowClosing(self, WindowEvent):                                                   # noqa
+                                            def windowClosing(self, WindowEvent):                                       # noqa
                                                 myPrint("DB", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
                                                 terminate_script()
 
-                                            def windowClosed(self, WindowEvent):                                                    # noqa
+                                            def windowClosed(self, WindowEvent):                                        # noqa
                                                 myPrint("DB", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
                                                 myPrint("DB", _THIS_EXTRACT_NAME + "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
 
@@ -8013,10 +8052,10 @@ Visit: %s (Author's site)
                                             return None
                                         # enddef
 
-                                    stockGlanceInstance = StockGlance2020()
+                                    GlobalVars.stockGlanceInstance = StockGlance2020()
 
                                     if GlobalVars.DISPLAY_DATA:
-                                        stockGlanceInstance.createAndShowGUI()      # Will relaunch itself onto the EDT
+                                        GlobalVars.stockGlanceInstance.createAndShowGUI()      # Will relaunch itself onto the EDT
 
                                     else:
 
@@ -8142,9 +8181,9 @@ Visit: %s (Author's site)
                                                 all_ASCII = theString
                                             return all_ASCII
 
-                                        stockGlanceInstance.generateTableModels(MD_REF.getCurrentAccountBook())
+                                        GlobalVars.stockGlanceInstance.generateTableModels(MD_REF.getCurrentAccountBook())
 
-                                        if stockGlanceInstance.getTableModel() is not None:
+                                        if GlobalVars.stockGlanceInstance.getTableModel() is not None:
     
                                             ExtractDataToFile()
     
@@ -8202,8 +8241,8 @@ Visit: %s (Author's site)
 
                                 def do_extract_reminders():
                                     global lDidIUseAttachmentDir
-                                    global baseCurrency, csvheaderline, headerFormats
-                                    global table, focus, row, scrollpane, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
+                                    global csvheaderline, headerFormats
+                                    global focus, row, EditedReminderCheck, ReminderTable_Count, ExtractDetails_Count
 
                                     global __extract_data, extract_filename
                                     global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -8244,7 +8283,7 @@ Visit: %s (Author's site)
 
                                             if event.getActionCommand().lower().startswith("show reminder"):
                                                 reminders = MD_REF.getCurrentAccountBook().getReminders()
-                                                reminder = reminders.getAllReminders()[table.getValueAt(row, 0) - 1]
+                                                reminder = reminders.getAllReminders()[GlobalVars.table.getValueAt(row, 0) - 1]
                                                 MD_REF.getUI().showRawItemDetails(reminder, extract_data_frame_)
 
                                             if event.getActionCommand().lower().startswith("page setup"):
@@ -8307,6 +8346,7 @@ Visit: %s (Author's site)
                                             "Net Amount",
                                             "Categories(amounts)"
                                         ]
+
                                         GlobalVars.csvlines_reminders_future = []
                                         GlobalVars.csvlines_reminders_future.append(GlobalVars.tableHeaderRowList_reminders_future)
 
@@ -8370,7 +8410,7 @@ Visit: %s (Author's site)
                                                     for iRemSplit in range(0, txnparent.getOtherTxnCount()):
                                                         remSplit = txnparent.getOtherTxn(iRemSplit)
                                                         stripCat = remSplit.getAccount().getFullAccountName().strip()
-                                                        splitValue = baseCurrency.getDoubleValue(remSplit.getValue()) * -1
+                                                        splitValue = GlobalVars.baseCurrency.getDoubleValue(remSplit.getValue()) * -1
                                                         catsAmounts += "{%s;%s}" %(stripCat, splitValue)
 
                                                     csvline = []
@@ -8385,7 +8425,7 @@ Visit: %s (Author's site)
                                             index += 1
 
                                     def build_the_data_file(ind):
-                                        global userdateformat, csvheaderline, baseCurrency, headerFormats, ExtractDetails_Count
+                                        global userdateformat, csvheaderline, headerFormats, ExtractDetails_Count
 
                                         ExtractDetails_Count += 1
 
@@ -8394,8 +8434,6 @@ Visit: %s (Author's site)
                                         # ind == 1 means that this is a repeat call, so the table should be refreshed
 
                                         root = MD_REF.getCurrentAccountBook()
-
-                                        baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                         rems = root.getReminders().getAllReminders()
 
@@ -8561,7 +8599,7 @@ Visit: %s (Author's site)
 
                                             elif str(remtype) == 'TRANSACTION':
                                                 txnparent = rem.getTransaction()
-                                                amount = baseCurrency.getDoubleValue(txnparent.getValue())
+                                                amount = GlobalVars.baseCurrency.getDoubleValue(txnparent.getValue())
 
                                                 for index2 in range(0, int(txnparent.getOtherTxnCount())):
                                                     splitdesc = txnparent.getOtherTxn(index2).getDescription().replace(","," ")  # remove commas to keep csv format happy
@@ -8591,7 +8629,7 @@ Visit: %s (Author's site)
                                                     csvline.append(stripacct)
                                                     csvline.append(maindesc)
                                                     csvline.append(str(index + 1) + '.' + str(index2 + 1))
-                                                    csvline.append(baseCurrency.getDoubleValue(txnparent.getOtherTxn(index2).getValue()) * -1)
+                                                    csvline.append(GlobalVars.baseCurrency.getDoubleValue(txnparent.getOtherTxn(index2).getValue()) * -1)
                                                     csvline.append(stripcat)
                                                     csvline.append(splitdesc)
                                                     csvline.append(splitmemo)
@@ -8614,8 +8652,8 @@ Visit: %s (Author's site)
                                                     myPrint("DB", "In .remindersGrabFocus()")
                                                     global focus
                                                     focus = "gained"											        # noqa
-                                                    table.setRowSelectionInterval(0, row)
-                                                    table.requestFocus()
+                                                    GlobalVars.table.setRowSelectionInterval(0, row)
+                                                    GlobalVars.table.requestFocus()
 
                                                 myPrint("DB", "Launching remindersGrabFocus() via the EDT.....")
                                                 genericSwingEDTRunner(False, False, remindersGrabFocus)
@@ -8807,7 +8845,7 @@ Visit: %s (Author's site)
                                         # noinspection PyMethodMayBeStatic
                                         # noinspection PyUnusedLocal
                                         def windowGainedFocus(self, WindowEvent):                                                   # noqa
-                                            global focus, table, row, EditedReminderCheck
+                                            global focus, row, EditedReminderCheck
 
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -8819,27 +8857,24 @@ Visit: %s (Author's site)
                                                     build_the_data_file(1)  # Re-extract data when window focus gained - assume something changed
                                                     myPrint("DB", _THIS_EXTRACT_NAME + "back from build_the_data_file(), gained focus, row: ", row)
                                                     EditedReminderCheck = False
-                                                table.setRowSelectionInterval(0, row)
-                                                cellRect = table.getCellRect(row, 0, True)
-                                                table.scrollRectToVisible(cellRect)  # force the scrollpane to make the row visible
-                                                table.requestFocus()
+                                                GlobalVars.table.setRowSelectionInterval(0, row)
+                                                cellRect = GlobalVars.table.getCellRect(row, 0, True)
+                                                GlobalVars.table.scrollRectToVisible(cellRect)  # force the scrollpane to make the row visible
+                                                GlobalVars.table.requestFocus()
 
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
                                             return
 
                                         # noinspection PyMethodMayBeStatic
                                         # noinspection PyUnusedLocal
-                                        def windowLostFocus(self, WindowEvent):                                                     # noqa
-                                            global focus, table, row, debug
+                                        def windowLostFocus(self, WindowEvent):                                         # noqa
+                                            global focus, debug
 
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
-
-                                            row = table.getSelectedRow()
 
                                             if focus == "gained": focus = "lost"
 
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
-                                            return
 
                                     WL = WindowListener(extract_data_frame_)
 
@@ -8847,23 +8882,23 @@ Visit: %s (Author's site)
 
                                         # noinspection PyMethodMayBeStatic
                                         def mouseClicked(self, event):
-                                            global table, row, debug
+                                            global row
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
 
                                             # Select the row when right-click initiated
                                             point = event.getPoint()
-                                            row = table.rowAtPoint(point)
-                                            table.setRowSelectionInterval(row, row)
+                                            row = GlobalVars.table.rowAtPoint(point)
+                                            GlobalVars.table.setRowSelectionInterval(row, row)
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
                                         # noinspection PyMethodMayBeStatic
                                         def mousePressed(self, event):
-                                            global table, row, debug
+                                            global row
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
                                             clicks = event.getClickCount()
                                             if clicks == 2:
-                                                row = table.getSelectedRow()
-                                                index = table.getValueAt(row, 0)
+                                                row = GlobalVars.table.getSelectedRow()
+                                                index = GlobalVars.table.getValueAt(row, 0)
                                                 ShowEditForm(index)
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
@@ -8873,10 +8908,10 @@ Visit: %s (Author's site)
                                         # noinspection PyMethodMayBeStatic
                                         # noinspection PyUnusedLocal
                                         def actionPerformed(self, event):
-                                            global focus, table, row, debug
+                                            global focus, row, debug
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
-                                            row = table.getSelectedRow()
-                                            index = table.getValueAt(row, 0)
+                                            row = GlobalVars.table.getSelectedRow()
+                                            index = GlobalVars.table.getValueAt(row, 0)
                                             ShowEditForm(index)
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
                                             return
@@ -8896,14 +8931,14 @@ Visit: %s (Author's site)
 
                                         # noinspection PyMethodMayBeStatic
                                         def refresh(self):
-                                            global table, row
+                                            global row
 
                                             row = 0  # reset to row 1
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()", "\npre-extract details(1), row: ", row)
                                             build_the_data_file(1)  # Re-extract data
                                             myPrint("D", _THIS_EXTRACT_NAME + "back from extractdetails(1), row: ", row)
-                                            table.setRowSelectionInterval(0, row)
-                                            table.requestFocus()
+                                            GlobalVars.table.setRowSelectionInterval(0, row)
+                                            GlobalVars.table.requestFocus()
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
                                             return
 
@@ -9035,7 +9070,6 @@ Visit: %s (Author's site)
                                     # This copies the standard class and just changes the colour to RED if it detects a negative - leaves field intact
                                     # noinspection PyArgumentList
                                     class MyNumberRenderer(DefaultTableCellRenderer):
-                                        global baseCurrency
 
                                         def __init__(self):
                                             super(DefaultTableCellRenderer, self).__init__()
@@ -9046,7 +9080,8 @@ Visit: %s (Author's site)
                                                     self.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
                                                 else:
                                                     self.setForeground(MD_REF.getUI().getColors().budgetHealthyColor)
-                                                self.setText(baseCurrency.formatFancy(int(value*100), GlobalVars.decimalCharSep, True))
+                                                base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+                                                self.setText(base.formatFancy(int(value*100), GlobalVars.decimalCharSep, True))
                                             else:
                                                 if isinstance(value, StoreDateInt):
                                                     self.setText(value.getDateIntFormatted())
@@ -9066,7 +9101,7 @@ Visit: %s (Author's site)
                                                 self.setText(str(value))
 
                                     def ReminderTable(tabledata, ind):
-                                        global scrollpane, table, row, ReminderTable_Count, csvheaderline
+                                        global row, ReminderTable_Count, csvheaderline
                                         global _column_widths_ERTC, lExtractFutureRemindersToo_ERTC
 
                                         ReminderTable_Count += 1
@@ -9112,11 +9147,11 @@ Visit: %s (Author's site)
                                         # panel_width = frame_width - 50
                                         # button_panel_height = button_height + 5
 
-                                        if ind == 1:    scrollpane.getViewport().remove(table)  # On repeat, just remove/refresh the table & rebuild the viewport
+                                        if ind == 1:    GlobalVars.scrollpane.getViewport().remove(GlobalVars.table)  # On repeat, just remove/refresh the table & rebuild the viewport
 
                                         colnames = csvheaderline
 
-                                        table = MyJTable(DefaultTableModel(tabledata, colnames))
+                                        GlobalVars.table = MyJTable(DefaultTableModel(tabledata, colnames))
 
                                         if ind == 0:  # Function can get called multiple times; only set main frames up once
 
@@ -9168,7 +9203,7 @@ Visit: %s (Author's site)
                                             printButton.setToolTipText("Prints the output displayed in this window to your printer")
                                             printButton.setOpaque(SetupMDColors.OPAQUE)
                                             printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
-                                            printButton.addActionListener(PrintJTable(extract_data_frame_, table, "Extract Reminders"))
+                                            printButton.addActionListener(PrintJTable(extract_data_frame_, GlobalVars.table, "Extract Reminders"))
 
                                             mb = JMenuBar()
 
@@ -9216,29 +9251,29 @@ Visit: %s (Author's site)
 
                                         # As the JTable is new each time, add this here....
                                         extract_data_frame_.getRootPane().getActionMap().remove("print-me")
-                                        extract_data_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(extract_data_frame_, table, "Extract Reminders"))
+                                        extract_data_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(extract_data_frame_, GlobalVars.table, "Extract Reminders"))
 
-                                        table.getTableHeader().setReorderingAllowed(True)  # no more drag and drop columns, it didn't work (on the footer)
-                                        table.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
-                                        table.selectionMode = ListSelectionModel.SINGLE_SELECTION
+                                        GlobalVars.table.getTableHeader().setReorderingAllowed(True)  # no more drag and drop columns, it didn't work (on the footer)
+                                        GlobalVars.table.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
+                                        GlobalVars.table.selectionMode = ListSelectionModel.SINGLE_SELECTION
 
-                                        fontSize = table.getFont().getSize()+5
-                                        table.setRowHeight(fontSize)
-                                        table.setRowMargin(0)
+                                        fontSize = GlobalVars.table.getFont().getSize()+5
+                                        GlobalVars.table.setRowHeight(fontSize)
+                                        GlobalVars.table.setRowMargin(0)
 
-                                        table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ENTER"), "Enter")
-                                        table.getActionMap().put("Enter", EnterAction())
+                                        GlobalVars.table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ENTER"), "Enter")
+                                        GlobalVars.table.getActionMap().put("Enter", EnterAction())
 
-                                        for _iii in range(0, table.getColumnModel().getColumnCount()):
-                                            table.getColumnModel().getColumn(_iii).setPreferredWidth(myDefaultWidths[_iii])
+                                        for _iii in range(0, GlobalVars.table.getColumnModel().getColumnCount()):
+                                            GlobalVars.table.getColumnModel().getColumn(_iii).setPreferredWidth(myDefaultWidths[_iii])
 
-                                        cListener1 = ColumnChangeListener(table)
+                                        cListener1 = ColumnChangeListener(GlobalVars.table)
                                         # Put the listener here - else it sets the defaults wrongly above....
-                                        table.getColumnModel().addColumnModelListener(cListener1)
+                                        GlobalVars.table.getColumnModel().addColumnModelListener(cListener1)
 
-                                        # table.getTableHeader().setBackground(Color.LIGHT_GRAY)
+                                        # GlobalVars.table.getTableHeader().setBackground(Color.LIGHT_GRAY)
 
-                                        # table.setAutoCreateRowSorter(True) # DON'T DO THIS - IT WILL OVERRIDE YOUR NICE CUSTOM SORT
+                                        # GlobalVars.table.setAutoCreateRowSorter(True) # DON'T DO THIS - IT WILL OVERRIDE YOUR NICE CUSTOM SORT
 
 
                                         popupMenu = JPopupMenu()
@@ -9246,21 +9281,21 @@ Visit: %s (Author's site)
                                         showDetails.addActionListener(DoTheMenu())
                                         popupMenu.add(showDetails)
 
-                                        table.addMouseListener(ML)
-                                        table.setComponentPopupMenu(popupMenu)
+                                        GlobalVars.table.addMouseListener(ML)
+                                        GlobalVars.table.setComponentPopupMenu(popupMenu)
 
                                         if ind == 0:
-                                            scrollpane = JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS)  # On first call, create the scrollpane
-                                            scrollpane.setBorder(CompoundBorder(MatteBorder(1, 1, 1, 1, MD_REF.getUI().getColors().hudBorderColor), EmptyBorder(0, 0, 0, 0)))
-                                        # scrollpane.setPreferredSize(Dimension(frame_width-20, frame_height-20	))
+                                            GlobalVars.scrollpane = JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS)  # On first call, create the scrollpane
+                                            GlobalVars.scrollpane.setBorder(CompoundBorder(MatteBorder(1, 1, 1, 1, MD_REF.getUI().getColors().hudBorderColor), EmptyBorder(0, 0, 0, 0)))
+                                        # GlobalVars.scrollpane.setPreferredSize(Dimension(frame_width-20, frame_height-20	))
 
-                                        table.setPreferredScrollableViewportSize(Dimension(frame_width-20, frame_height-100))
+                                        GlobalVars.table.setPreferredScrollableViewportSize(Dimension(frame_width-20, frame_height-100))
                                         #
-                                        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF)
+                                        GlobalVars.table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF)
                                         #
-                                        scrollpane.setViewportView(table)
+                                        GlobalVars.scrollpane.setViewportView(GlobalVars.table)
                                         if ind == 0:
-                                            extract_data_frame_.add(scrollpane)
+                                            extract_data_frame_.add(GlobalVars.scrollpane)
                                             extract_data_frame_.pack()
                                             extract_data_frame_.setLocationRelativeTo(None)
 
@@ -9561,8 +9596,7 @@ Visit: %s (Author's site)
 
                                 def do_extract_account_registers():
                                     global lDidIUseAttachmentDir
-                                    global baseCurrency
-                                    global transactionTable, dataKeys, attachmentDir, relativePath
+                                    global dataKeys, attachmentDir, relativePath
 
                                     global __extract_data, extract_filename
                                     global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -9590,8 +9624,6 @@ Visit: %s (Author's site)
                                             self._filterForAccounts = _filterForAccounts
                                             self._lAllCurrency = _lAllCurrency
                                             self._filterForCurrency = _filterForCurrency
-
-                                            self.baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                         def matches(self, acct):
 
@@ -9642,13 +9674,13 @@ Visit: %s (Author's site)
 
                                         return False
 
-                                    if dropDownAccount_EAR:
+                                    if GlobalVars.dropDownAccount_EAR:
                                         if lIncludeSubAccounts_EAR:
                                             # noinspection PyUnresolvedReferences
-                                            validAccountList = ArrayList(dropDownAccount_EAR.getSubAccounts())
+                                            validAccountList = ArrayList(GlobalVars.dropDownAccount_EAR.getSubAccounts())
                                         else:
                                             validAccountList = ArrayList()
-                                        validAccountList.add(0,dropDownAccount_EAR)
+                                        validAccountList.add(0, GlobalVars.dropDownAccount_EAR)
                                     else:
                                         validAccountList = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(),
                                                                                            MyAcctFilterEAT(_hideInactiveAccounts=hideInactiveAccounts,
@@ -9696,13 +9728,11 @@ Visit: %s (Author's site)
                                         "_END":                     [25, "_END"]
                                     }
 
-                                    transactionTable = []
+                                    GlobalVars.transactionTable = []
 
                                     myPrint("DB", _THIS_EXTRACT_NAME, dataKeys)
 
                                     book = MD_REF.getCurrentAccountBook()
-
-                                    baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                     # noinspection PyArgumentList
                                     class MyTxnSearchCostBasisEAT(TxnSearch):
@@ -9752,7 +9782,7 @@ Visit: %s (Author's site)
                                         lValue = 0
 
                                         for _iSplit in range(0, (theTxn.getOtherTxnCount())):
-                                            lValue += baseCurrency.getDoubleValue(parent_Txn.getOtherTxn(_iSplit).getValue()) * -1
+                                            lValue += GlobalVars.baseCurrency.getDoubleValue(parent_Txn.getOtherTxn(_iSplit).getValue()) * -1
 
                                         return lValue
 
@@ -9803,17 +9833,17 @@ Visit: %s (Author's site)
                                                             _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
                                                             _row[dataKeys["_DATE"][_COLUMN]] = txnAcct.getCreationDateInt()
                                                             _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
-                                                            if acctCurr == baseCurrency:
+                                                            if acctCurr == GlobalVars.baseCurrency:
                                                                 _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = openBal
                                                                 _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = openBal
                                                             else:
-                                                                _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
-                                                                _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
+                                                                _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
+                                                                _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
                                                                 _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = openBal
                                                                 _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = openBal
 
                                                             myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                            transactionTable.append(_row)
+                                                            GlobalVars.transactionTable.append(_row)
                                                             del openBal
 
                                                 if (lIncludeBalanceAdjustments_EAR):
@@ -9829,18 +9859,18 @@ Visit: %s (Author's site)
                                                         _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
                                                         _row[dataKeys["_DATE"][_COLUMN]] = DateUtil.getStrippedDateInt()
                                                         _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
-                                                        if acctCurr == baseCurrency:
+                                                        if acctCurr == GlobalVars.baseCurrency:
                                                             _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = adjBal
                                                             _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = adjBal
                                                         else:
-                                                            _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
-                                                            _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
+                                                            _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
+                                                            _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
                                                             _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = adjBal
                                                             _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = adjBal
 
 
                                                         myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                        transactionTable.append(_row)
+                                                        GlobalVars.transactionTable.append(_row)
                                                         del adjBal
 
                                         keyIndex = 0
@@ -9866,7 +9896,7 @@ Visit: %s (Author's site)
                                         _row[dataKeys["_CLEARED"][_COLUMN]] = getStatusCharRevised(txn)
 
 
-                                        if acctCurr == baseCurrency:
+                                        if acctCurr == GlobalVars.baseCurrency:
                                             _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = acctCurr.getDoubleValue(txn.getValue())
                                         else:
                                             if lParent:
@@ -10029,7 +10059,7 @@ Visit: %s (Author's site)
                                                 if holdTheKeys:
                                                     splitRowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = safeStr(holdTheKeys)
                                                 myPrint("D", _THIS_EXTRACT_NAME, splitRowCopy)
-                                                transactionTable.append(splitRowCopy)
+                                                GlobalVars.transactionTable.append(splitRowCopy)
                                                 # abort
                                                 keyIndex += 1
                                                 iCount += 1
@@ -10061,7 +10091,7 @@ Visit: %s (Author's site)
                                                 myPrint("B", _THIS_EXTRACT_NAME + "@@Major Error whilst searching attachments! Will just move on to next record and skip attachment")
                                                 splitRowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = "*ERROR*"
                                                 myPrint("B", splitRowCopy)
-                                                transactionTable.append(splitRowCopy)
+                                                GlobalVars.transactionTable.append(splitRowCopy)
                                                 keyIndex += 1
                                                 iCount += 1
                                                 continue
@@ -10084,7 +10114,7 @@ Visit: %s (Author's site)
                                                     # rowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]]     = "FILE://" + attachmentFileList[_i]
                                                     rowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = '=HYPERLINK("'+attachmentFileList[_i]+'","FILE: '+os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
                                                     rowCopy[dataKeys["_ATTACHMENTLINKREL"][_COLUMN]] = '=HYPERLINK("'+os.path.join(".",relativePath,os.path.basename(attachmentFileList[_i]))+'","FILE: '+os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
-                                                    transactionTable.append(rowCopy)
+                                                    GlobalVars.transactionTable.append(rowCopy)
                                                     keyIndex += 1
                                                     iCount += 1
 
@@ -10109,17 +10139,17 @@ Visit: %s (Author's site)
                                                     _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
                                                     _row[dataKeys["_DATE"][_COLUMN]] = acctBal.getCreationDateInt()
                                                     _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
-                                                    if acctCurr == baseCurrency:
+                                                    if acctCurr == GlobalVars.baseCurrency:
                                                         _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = openBal
                                                         _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = openBal
                                                     else:
-                                                        _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
-                                                        _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(baseCurrency),2)
+                                                        _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
+                                                        _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(openBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
                                                         _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = openBal
                                                         _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = openBal
 
                                                     myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                    transactionTable.append(_row)
+                                                    GlobalVars.transactionTable.append(_row)
                                                     del openBal
 
                                             if (lIncludeBalanceAdjustments_EAR):
@@ -10135,20 +10165,20 @@ Visit: %s (Author's site)
                                                     _row[dataKeys["_CHEQUE"][_COLUMN]] = "MANUAL"
                                                     _row[dataKeys["_DATE"][_COLUMN]] = DateUtil.getStrippedDateInt()
                                                     _row[dataKeys["_SPLITIDX"][_COLUMN]] = 0
-                                                    if acctCurr == baseCurrency:
+                                                    if acctCurr == GlobalVars.baseCurrency:
                                                         _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = adjBal
                                                         _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = adjBal
                                                     else:
-                                                        _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
-                                                        _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(baseCurrency),2)
+                                                        _row[dataKeys["_TOTALAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
+                                                        _row[dataKeys["_SPLITAMOUNT"][_COLUMN]] = round(adjBal / acctCurr.getRate(GlobalVars.baseCurrency),2)
                                                         _row[dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = adjBal
                                                         _row[dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = adjBal
 
                                                     myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                    transactionTable.append(_row)
+                                                    GlobalVars.transactionTable.append(_row)
                                                     del adjBal
 
-                                    myPrint("B", _THIS_EXTRACT_NAME + "Account Register Transaction Records (Parents, Splits, Attachments) selected:", len(transactionTable) )
+                                    myPrint("B", _THIS_EXTRACT_NAME + "Account Register Transaction Records (Parents, Splits, Attachments) selected:", len(GlobalVars.transactionTable) )
 
                                     if iCountAttachmentsDownloaded:
                                         myPrint("B", _THIS_EXTRACT_NAME + ".. and I downloaded %s attachments for you too" %iCountAttachmentsDownloaded )
@@ -10159,16 +10189,16 @@ Visit: %s (Author's site)
                                     ###########################################################################################################
 
                                     # sort the file:
-                                    transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_ACCOUNTTYPE"][_COLUMN]],
-                                                                                               x[dataKeys["_ACCOUNT"][_COLUMN]],
-                                                                                               x[dataKeys["_DATE"][_COLUMN]],
-                                                                                               x[dataKeys["_KEY"][_COLUMN]],
-                                                                                               x[dataKeys["_SPLITIDX"][_COLUMN]]) )
+                                    GlobalVars.transactionTable = sorted(GlobalVars.transactionTable, key=lambda x: (x[dataKeys["_ACCOUNTTYPE"][_COLUMN]],
+                                                                                                                 x[dataKeys["_ACCOUNT"][_COLUMN]],
+                                                                                                                 x[dataKeys["_DATE"][_COLUMN]],
+                                                                                                                 x[dataKeys["_KEY"][_COLUMN]],
+                                                                                                                 x[dataKeys["_SPLITIDX"][_COLUMN]]) )
                                     ###########################################################################################################
 
                                     def ExtractDataToFile():
                                         global csvDelimiter
-                                        global transactionTable, userdateformat
+                                        global userdateformat
                                         global lWriteBOMToExportFile_SWSS
                                         global lAllTags_EAR, tagFilter_EAR
                                         global lAllText_EAR, textFilter_EAR
@@ -10184,7 +10214,7 @@ Visit: %s (Author's site)
                                         print
 
                                         myPrint("DB", _THIS_EXTRACT_NAME + "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
-                                        for _theRow in transactionTable:
+                                        for _theRow in GlobalVars.transactionTable:
                                             dateasdate = datetime.datetime.strptime(str(_theRow[dataKeys["_DATE"][_COLUMN]]), "%Y%m%d")  # Convert to Date field
                                             _dateoutput = dateasdate.strftime(userdateformat)
                                             _theRow[dataKeys["_DATE"][_COLUMN]] = _dateoutput
@@ -10197,7 +10227,7 @@ Visit: %s (Author's site)
                                             for col in range(0, dataKeys["_ATTACHMENTLINK"][_COLUMN]):  # DO NOT MESS WITH ATTACHMENT LINK NAMES!!
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
 
-                                        myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records"  %(len(transactionTable)))
+                                        myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records"  %(len(GlobalVars.transactionTable)))
 
 
                                         try:
@@ -10229,16 +10259,16 @@ Visit: %s (Author's site)
                                                     writer.writerow(headings[:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])  # Print the header, but not the extra _field headings
 
                                                 try:
-                                                    for i in range(0, len(transactionTable)):
+                                                    for i in range(0, len(GlobalVars.transactionTable)):
                                                         if lExtractAttachments_EAR:
-                                                            writer.writerow(transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
+                                                            writer.writerow(GlobalVars.transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
                                                         else:
-                                                            writer.writerow(transactionTable[i][:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])
+                                                            writer.writerow(GlobalVars.transactionTable[i][:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])
                                                 except:
                                                     _msgTxt = _THIS_EXTRACT_NAME + "@@ ERROR writing to CSV on row %s. Please review console" %(i)
                                                     GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                                     myPrint("B", _msgTxt)
-                                                    myPrint("B", transactionTable[i])
+                                                    myPrint("B", GlobalVars.transactionTable[i])
                                                     raise
 
                                                 if lWriteParametersToExportFile_SWSS:
@@ -10255,9 +10285,9 @@ Visit: %s (Author's site)
                                                     writer.writerow([""])
                                                     writer.writerow(["User Parameters..."])
 
-                                                    if dropDownAccount_EAR:
+                                                    if GlobalVars.dropDownAccount_EAR:
                                                         # noinspection PyUnresolvedReferences
-                                                        writer.writerow(["Dropdown Account selected......: %s" %(dropDownAccount_EAR.getAccountName())])
+                                                        writer.writerow(["Dropdown Account selected......: %s" %(GlobalVars.dropDownAccount_EAR.getAccountName())])
                                                         writer.writerow(["Include Sub Accounts...........: %s" %(lIncludeSubAccounts_EAR)])
                                                     else:
                                                         writer.writerow(["Hiding Inactive Accounts.......: %s" %(hideInactiveAccounts)])
@@ -10277,7 +10307,7 @@ Visit: %s (Author's site)
                                                     writer.writerow(["Selected End Date..................: %s" %(userdateEnd_EAR)])
                                                     writer.writerow(["user date format...................: %s" %(userdateformat)])
 
-                                            _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(transactionTable))
+                                            _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(GlobalVars.transactionTable))
                                             myPrint("B", _msgTxt)
                                             GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                             GlobalVars.countFilesCreated += 1
@@ -10361,7 +10391,7 @@ Visit: %s (Author's site)
                                             sTxt = "Extract file CREATED:"
                                             mTxt = ("With %s rows and %s attachments downloaded %s\n"
                                                     "\n(... and %s Attachment Errors...)"
-                                                    % (len(transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors))
+                                                    % (len(GlobalVars.transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors))
                                             myPrint("B", _THIS_EXTRACT_NAME + "%s\n%s" %(sTxt, mTxt))
                                         else:
                                             _msgTextx = _THIS_EXTRACT_NAME + "ERROR Creating extract (review console for error messages)...."
@@ -10384,7 +10414,7 @@ Visit: %s (Author's site)
                                             myPrint("B", _THIS_EXTRACT_NAME + "FAILED to remove the unused/empty attachment directory: '%s'" %(attachmentDir))
 
                                     # delete references to large objects
-                                    del transactionTable
+                                    GlobalVars.transactionTable = None
                                     del accountBalances
 
                                 try:
@@ -10420,8 +10450,7 @@ Visit: %s (Author's site)
 
                                 def do_extract_investment_transactions():
                                     global lDidIUseAttachmentDir
-                                    global baseCurrency
-                                    global transactionTable, dataKeys, attachmentDir, relativePath
+                                    global dataKeys, attachmentDir, relativePath
 
                                     global __extract_data, extract_filename
                                     global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -10458,8 +10487,6 @@ Visit: %s (Author's site)
                                             self.lAllSecurity = lAllSecurity
                                             self.filterForSecurity = filterForSecurity
                                             self.findUUID = findUUID
-
-                                            self.baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                         # noinspection PyMethodMayBeStatic
                                         def matchesAll(self):
@@ -10623,8 +10650,6 @@ Visit: %s (Author's site)
                                             self.filterForSecurity = filterForSecurity
                                             self.findUUID = findUUID
 
-                                            self.baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
-
                                         def matches(self, acct):
 
                                             if self.findUUID is not None:  # If UUID supplied, override all other parameters...
@@ -10733,13 +10758,11 @@ Visit: %s (Author's site)
                                     dataKeys["_KEY"]                 = [dki, "Key"];                       dki += 1
                                     dataKeys["_END"]                 = [dki, "_END"];                      dki += 1
 
-                                    transactionTable = []
+                                    GlobalVars.transactionTable = []
 
                                     myPrint("DB", _THIS_EXTRACT_NAME, dataKeys)
 
                                     book = MD_REF.getCurrentAccountBook()
-
-                                    baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                     txns = book.getTransactionSet().getTransactions(MyTxnSearchCostBasisEIT(hideInactiveAccounts,
                                                                                                             lAllAccounts,
@@ -10822,7 +10845,7 @@ Visit: %s (Author's site)
                                                             _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(txnAcct.getBalance())
 
                                                             myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                            transactionTable.append(_row)
+                                                            GlobalVars.transactionTable.append(_row)
                                                             del openBal
 
                                                 if (lIncludeBalanceAdjustments):
@@ -10841,7 +10864,7 @@ Visit: %s (Author's site)
                                                         _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(txnAcct.getBalance())
 
                                                         myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                        transactionTable.append(_row)
+                                                        GlobalVars.transactionTable.append(_row)
                                                         del adjBal
 
                                         if lFilterDateRange_EIT and (txn.getDateInt() < filterDateStart_EIT or txn.getDateInt() > filterDateEnd_EIT):
@@ -11173,7 +11196,7 @@ Visit: %s (Author's site)
                                                 myPrint("B", _THIS_EXTRACT_NAME + "@@ Major Error whilst searching attachments! Will just move on to next record and skip attachment")
                                                 masterRowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = "*ERROR*"
                                                 myPrint("B", _THIS_EXTRACT_NAME, masterRowCopy)
-                                                transactionTable.append(masterRowCopy)
+                                                GlobalVars.transactionTable.append(masterRowCopy)
                                                 keyIndex += 1
                                                 iCount += 1
                                                 continue
@@ -11202,7 +11225,7 @@ Visit: %s (Author's site)
                                                 rowCopy[dataKeys["_ATTACHMENTLINK"][_COLUMN]] = '=HYPERLINK("'+attachmentFileList[_i]+'","FILE: '+os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
                                                 rowCopy[dataKeys["_ATTACHMENTLINKREL"][_COLUMN]] = '=HYPERLINK("'+os.path.join(".",relativePath,os.path.basename(attachmentFileList[_i]))+'","FILE: '+os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
 
-                                                transactionTable.append(rowCopy)
+                                                GlobalVars.transactionTable.append(rowCopy)
 
                                                 keyIndex += 1
                                                 iCount += 1
@@ -11210,7 +11233,7 @@ Visit: %s (Author's site)
                                         # END ATTACHMENT ROUTINE
                                         else:
                                             myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                            transactionTable.append(_row)
+                                            GlobalVars.transactionTable.append(_row)
                                             iCount += 1
 
                                     if (lIncludeOpeningBalances or lIncludeBalanceAdjustments) and len(copyValidAccountList) > 0:
@@ -11235,7 +11258,7 @@ Visit: %s (Author's site)
                                                     _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(acctBal.getBalance())
 
                                                     myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                    transactionTable.append(_row)
+                                                    GlobalVars.transactionTable.append(_row)
                                                     del openBal
 
                                             if (lIncludeBalanceAdjustments):
@@ -11254,10 +11277,10 @@ Visit: %s (Author's site)
                                                     _row[dataKeys["_ACCTCASHBAL"][_COLUMN]] = acctCurr.getDoubleValue(acctBal.getBalance())
 
                                                     myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                                    transactionTable.append(_row)
+                                                    GlobalVars.transactionTable.append(_row)
                                                     del adjBal
 
-                                    myPrint("B", _THIS_EXTRACT_NAME + "Investment Transaction Records selected:", len(transactionTable) )
+                                    myPrint("B", _THIS_EXTRACT_NAME + "Investment Transaction Records selected:", len(GlobalVars.transactionTable) )
 
                                     if iCountAttachmentsDownloaded:
                                         myPrint("B", _THIS_EXTRACT_NAME + ".. and I downloaded %s attachments for you too" %iCountAttachmentsDownloaded )
@@ -11270,11 +11293,11 @@ Visit: %s (Author's site)
 
                                     # sort the file: Account>Security>Date
                                     if lExtractAttachments_EIT:
-                                        transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_ACCOUNT"][_COLUMN]],
+                                        GlobalVars.transactionTable = sorted(GlobalVars.transactionTable, key=lambda x: (x[dataKeys["_ACCOUNT"][_COLUMN]],
                                                                                                    x[dataKeys["_DATE"][_COLUMN]],
                                                                                                    x[dataKeys["_KEY"][_COLUMN]]))
                                     else:
-                                        transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_ACCOUNT"][_COLUMN]],
+                                        GlobalVars.transactionTable = sorted(GlobalVars.transactionTable, key=lambda x: (x[dataKeys["_ACCOUNT"][_COLUMN]],
                                                                                                    x[dataKeys["_DATE"][_COLUMN]]))
 
                                     ###########################################################################################################
@@ -11282,7 +11305,7 @@ Visit: %s (Author's site)
 
                                     def ExtractDataToFile():
                                         global csvDelimiter
-                                        global transactionTable, userdateformat
+                                        global userdateformat
                                         global lWriteBOMToExportFile_SWSS, lExtractAttachments_EIT, relativePath
 
                                         myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
@@ -11294,7 +11317,7 @@ Visit: %s (Author's site)
                                         print
 
                                         myPrint("DB", _THIS_EXTRACT_NAME + "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
-                                        for _theRow in transactionTable:
+                                        for _theRow in GlobalVars.transactionTable:
                                             dateasdate = datetime.datetime.strptime(str(_theRow[dataKeys["_DATE"][_COLUMN]]), "%Y%m%d")  # Convert to Date field
                                             _dateoutput = dateasdate.strftime(userdateformat)
                                             _theRow[dataKeys["_DATE"][_COLUMN]] = _dateoutput
@@ -11307,7 +11330,7 @@ Visit: %s (Author's site)
                                             for col in range(0, dataKeys["_SECSHRHOLDING"][_COLUMN]):
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
 
-                                        myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records" %(len(transactionTable)))
+                                        myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records" %(len(GlobalVars.transactionTable)))
 
 
                                         try:
@@ -11342,19 +11365,19 @@ Visit: %s (Author's site)
                                                     writer.writerow(headings[:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])  # Print the header, but not the extra _field headings
 
                                                 try:
-                                                    for i in range(0, len(transactionTable)):
+                                                    for i in range(0, len(GlobalVars.transactionTable)):
                                                         if lExtractAttachments_EIT:
                                                             if debug:
-                                                                writer.writerow(transactionTable[i][:dataKeys["_END"][_COLUMN]])
+                                                                writer.writerow(GlobalVars.transactionTable[i][:dataKeys["_END"][_COLUMN]])
                                                             else:
-                                                                writer.writerow(transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
+                                                                writer.writerow(GlobalVars.transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
                                                         else:
-                                                            writer.writerow(transactionTable[i][:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])
+                                                            writer.writerow(GlobalVars.transactionTable[i][:dataKeys["_ATTACHMENTLINKREL"][_COLUMN]])
                                                 except:
                                                     _msgTxt = _THIS_EXTRACT_NAME + "@@ ERROR writing to CSV on row %s. Please review console" %(i)
                                                     GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                                     myPrint("B", _msgTxt)
-                                                    myPrint("B", _THIS_EXTRACT_NAME, transactionTable[i])
+                                                    myPrint("B", _THIS_EXTRACT_NAME, GlobalVars.transactionTable[i])
                                                     raise
 
                                                 if lWriteParametersToExportFile_SWSS:
@@ -11391,7 +11414,7 @@ Visit: %s (Author's site)
                                                     writer.writerow(["Extract extra Sec Acct Info........: %s" %(lExtractExtraSecurityAcctInfo)])
                                                     writer.writerow(["Download Attachments...............: %s" %(lExtractAttachments_EIT)])
 
-                                            _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(transactionTable))
+                                            _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(GlobalVars.transactionTable))
                                             myPrint("B", _msgTxt)
                                             GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                             GlobalVars.countFilesCreated += 1
@@ -11435,7 +11458,7 @@ Visit: %s (Author's site)
                                             all_ASCII = theString
                                         return all_ASCII
 
-                                    if len(transactionTable) > 0:
+                                    if len(GlobalVars.transactionTable) > 0:
 
                                         ExtractDataToFile()
 
@@ -11475,7 +11498,7 @@ Visit: %s (Author's site)
 
                                             sTxt = "Extract file CREATED:"
                                             mTxt = ("With %s rows and %s attachments downloaded %s\n"
-                                                    "\n(... and %s Attachment Errors...)" % (len(transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors))
+                                                    "\n(... and %s Attachment Errors...)" % (len(GlobalVars.transactionTable),iCountAttachmentsDownloaded, xtra_msg,iAttachmentErrors))
                                             myPrint("B", _THIS_EXTRACT_NAME + "%s\n%s" %(sTxt, mTxt))
                                         else:
                                             _msgTextx = _THIS_EXTRACT_NAME + "ERROR Creating extract (review console for error messages)...."
@@ -11497,7 +11520,7 @@ Visit: %s (Author's site)
                                             myPrint("B", _THIS_EXTRACT_NAME + "FAILED to remove the unused/empty attachment directory: '%s'" %(attachmentDir))
 
                                     # delete references to large objects
-                                    del transactionTable
+                                    GlobalVars.transactionTable = None
                                     del accountBalances
 
 
@@ -11818,8 +11841,7 @@ Visit: %s (Author's site)
                                     GlobalVars.csvfilename = os.path.join(GlobalVars.scriptpath, MD_REF.getCurrentAccountBook().getName() + "_" + GlobalVars.defaultFileName_ESB + ".csv")
 
                                 def do_extract_security_balances():
-                                    global baseCurrency
-                                    global transactionTable, dataKeys
+                                    global dataKeys
 
                                     global __extract_data, extract_filename
                                     global lStripASCII, csvDelimiter, userdateformat, lWriteBOMToExportFile_SWSS
@@ -11956,12 +11978,11 @@ Visit: %s (Author's site)
                                     dataKeys["_KEY"]                       = [dki, "Key"];                          dki += 1
                                     dataKeys["_END"]                       = [dki, "_END"];                         dki += 1
 
-                                    transactionTable = []
+                                    GlobalVars.transactionTable = []
 
                                     myPrint("DB", _THIS_EXTRACT_NAME, dataKeys)
 
                                     book = MD_REF.getCurrentAccountBook()
-                                    baseCurrency = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
 
                                     for sAcct in AccountUtil.allMatchesForSearch(book, MyAcctFilterESB(hideInactiveAccounts,
                                                                                                        lAllAccounts,
@@ -11991,13 +12012,13 @@ Visit: %s (Author's site)
 
                                         _row[dataKeys["_ACCOUNT"][_COLUMN]] = investAcct.getFullAccountName()
                                         _row[dataKeys["_ACCTCURR"][_COLUMN]] = investAcctCurr.getIDString()
-                                        _row[dataKeys["_BASECURR"][_COLUMN]] = baseCurrency.getIDString()
+                                        _row[dataKeys["_BASECURR"][_COLUMN]] = GlobalVars.baseCurrency.getIDString()
 
                                         costBasis = InvestUtil.getCostBasis(securityAcct)
-                                        costBasisBase = CurrencyUtil.convertValue(costBasis, investAcctCurr, baseCurrency)
+                                        costBasisBase = CurrencyUtil.convertValue(costBasis, investAcctCurr, GlobalVars.baseCurrency)
 
                                         _row[dataKeys["_ACCTCOSTBASIS"][_COLUMN]] = investAcctCurr.getDoubleValue(costBasis)
-                                        _row[dataKeys["_BASECOSTBASIS"][_COLUMN]] = baseCurrency.getDoubleValue(costBasisBase)
+                                        _row[dataKeys["_BASECOSTBASIS"][_COLUMN]] = GlobalVars.baseCurrency.getDoubleValue(costBasisBase)
 
                                         _row[dataKeys["_SECURITY"][_COLUMN]] = unicode(securityCurr.getName())
                                         _row[dataKeys["_SECURITYID"][_COLUMN]] = unicode(securityCurr.getIDString())
@@ -12064,7 +12085,7 @@ Visit: %s (Author's site)
                                         if securityAcct.getSecurityType() == SecurityType.OTHER: pass
 
                                         myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                        transactionTable.append(_row)
+                                        GlobalVars.transactionTable.append(_row)
 
                                     # noinspection PyUnresolvedReferences
                                     unusedSecurityMasters = [secCurr for secCurr in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
@@ -12077,7 +12098,7 @@ Visit: %s (Author's site)
                                             _row = ([None] * dataKeys["_END"][0])  # Create a blank row to be populated below...
                                             _row[dataKeys["_KEY"][_COLUMN]] = ""
                                             _row[dataKeys["_ACCOUNT"][_COLUMN]] = "__SecurityMaster__"
-                                            _row[dataKeys["_BASECURR"][_COLUMN]] = baseCurrency.getIDString()
+                                            _row[dataKeys["_BASECURR"][_COLUMN]] = GlobalVars.baseCurrency.getIDString()
 
                                             _row[dataKeys["_SECURITY"][_COLUMN]] = unicode(secCurr.getName())
                                             _row[dataKeys["_SECURITYID"][_COLUMN]] = unicode(secCurr.getIDString())
@@ -12089,12 +12110,12 @@ Visit: %s (Author's site)
                                             _row[dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = (1.0 / secCurr.getBaseRate())          # same as .getRate(None)
 
                                             myPrint("D", _THIS_EXTRACT_NAME, _row)
-                                            transactionTable.append(_row)
+                                            GlobalVars.transactionTable.append(_row)
 
-                                    myPrint("B", _THIS_EXTRACT_NAME + "Security Balance(s) Records selected:", len(transactionTable))
+                                    myPrint("B", _THIS_EXTRACT_NAME + "Security Balance(s) Records selected:", len(GlobalVars.transactionTable))
                                     ###########################################################################################################
 
-                                    transactionTable = sorted(transactionTable, key=lambda x: (x[dataKeys["_SECURITY"][_COLUMN]].lower(),
+                                    GlobalVars.transactionTable = sorted(GlobalVars.transactionTable, key=lambda x: (x[dataKeys["_SECURITY"][_COLUMN]].lower(),
                                                                                                x[dataKeys["_ACCOUNT"][_COLUMN]].lower()))
 
                                     ###########################################################################################################
@@ -12102,7 +12123,7 @@ Visit: %s (Author's site)
 
                                     def ExtractDataToFile():
                                         global csvDelimiter
-                                        global transactionTable, userdateformat
+                                        global userdateformat
                                         global lWriteBOMToExportFile_SWSS
 
                                         myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
@@ -12114,7 +12135,7 @@ Visit: %s (Author's site)
                                         print
 
                                         myPrint("DB", _THIS_EXTRACT_NAME + "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
-                                        for _theRow in transactionTable:
+                                        for _theRow in GlobalVars.transactionTable:
 
                                             mDate = _theRow[dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]]
                                             if mDate is not None and mDate != "":
@@ -12125,7 +12146,7 @@ Visit: %s (Author's site)
                                             for col in range(0, dataKeys["_SECINFO_STK_DIV"][_COLUMN]):
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
 
-                                        myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records" %(len(transactionTable)))
+                                        myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records" %(len(GlobalVars.transactionTable)))
 
                                         try:
                                             # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
@@ -12142,13 +12163,13 @@ Visit: %s (Author's site)
                                                 writer.writerow(headings[:dataKeys["_KEY"][_COLUMN]])  # Print the header, but not the extra _field headings
 
                                                 try:
-                                                    for i in range(0, len(transactionTable)):
-                                                        writer.writerow(transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
+                                                    for i in range(0, len(GlobalVars.transactionTable)):
+                                                        writer.writerow(GlobalVars.transactionTable[i][:dataKeys["_KEY"][_COLUMN]])
                                                 except:
                                                     _msgTxt = _THIS_EXTRACT_NAME + "@@ ERROR writing to CSV on row %s. Please review console" %(i)
                                                     GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                                     myPrint("B", _msgTxt)
-                                                    myPrint("B", _THIS_EXTRACT_NAME, transactionTable[i])
+                                                    myPrint("B", _THIS_EXTRACT_NAME, GlobalVars.transactionTable[i])
                                                     raise
 
                                                 if lWriteParametersToExportFile_SWSS:
@@ -12172,7 +12193,7 @@ Visit: %s (Author's site)
                                                     writer.writerow(["Account filter.............: %s '%s'" %(lAllAccounts,filterForAccounts)])
                                                     writer.writerow(["Currency filter............: %s '%s'" %(lAllCurrency,filterForCurrency)])
 
-                                            _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(transactionTable))
+                                            _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(GlobalVars.transactionTable))
                                             myPrint("B", _msgTxt)
                                             GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                             GlobalVars.countFilesCreated += 1
@@ -12216,13 +12237,13 @@ Visit: %s (Author's site)
                                             all_ASCII = theString
                                         return all_ASCII
 
-                                    if len(transactionTable) > 0:
+                                    if len(GlobalVars.transactionTable) > 0:
 
                                         ExtractDataToFile()
 
                                         if not GlobalVars.lGlobalErrorDetected:
                                             sTxt = "Extract file CREATED:"
-                                            mTxt = "With %s rows\n" % (len(transactionTable))
+                                            mTxt = "With %s rows\n" % (len(GlobalVars.transactionTable))
                                             myPrint("B", _THIS_EXTRACT_NAME + "%s\n%s" %(sTxt, mTxt))
                                         else:
                                             _msgTextx = _THIS_EXTRACT_NAME + "ERROR Creating extract (review console for error messages)...."
@@ -12236,7 +12257,7 @@ Visit: %s (Author's site)
                                             genericSwingEDTRunner(True, True, myPopupInformationBox, extract_data_frame_, _msgTextx, GlobalVars.thisScriptName, JOptionPane.WARNING_MESSAGE)
 
                                     # delete references to large objects
-                                    del transactionTable
+                                    GlobalVars.transactionTable = None
 
                                 try:
                                     do_extract_security_balances()
@@ -12533,6 +12554,7 @@ Visit: %s (Author's site)
                             myPrint("B", "@@ ERROR '%s' Detected within DoExtractsSwingWorker()" %(exc_value))
                             dump_sys_error_to_md_console_and_errorlog()
                             return False
+
                         myPrint("DB", "DoExtractsSwingWorker.doInBackground() completed...")
                         return True
 

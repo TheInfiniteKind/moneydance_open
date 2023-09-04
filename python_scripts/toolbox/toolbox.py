@@ -199,6 +199,7 @@
 #               Tweaked isSyncing() detection capability
 #               Build 5031 removed the MD+ licenseCache field - tweak to deal with the change...
 #               Added feature to disable MoneyForesight whenever MD is launched (prevents memory leaks etc)
+#               Cleaned up references holding onto MD Objects....
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -235,6 +236,15 @@ if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy o
 if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
 if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+# Nuke unwanted (direct/indirect) reference(s) to AccountBook etc....
+if "moneydance_data" in globals():
+    moneydance_data = None
+    del moneydance_data
+
+if "moneybot" in globals():
+    moneybot = None
+    del moneybot
 
 from java.lang import Boolean
 global debug
@@ -608,7 +618,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5031
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5035
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -716,6 +726,16 @@ Visit: %s (Author's site)
         global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+
+        GlobalVars.allButtonsList = None
+        GlobalVars.mainPnl_backupWarningsDisabled_lbl = None
+        GlobalVars.mainPnl_debug_lbl = None
+        GlobalVars.mainPnl_memory_lbl = None
+        GlobalVars.mainPnl_preview_lbl = None
+        GlobalVars.mainPnl_syncing_lbl = None
+        GlobalVars.mainPnl_toolboxUnlocked_lbl = None
+        GlobalVars.SCRIPT_RUNNING_LOCK = None
+        GlobalVars.parametersLoadedFromFile = None
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -30146,8 +30166,7 @@ Script/extension is analysing your moneydance & system settings....
     else:
 
         # Check based on fix_restored_accounts.py
-        _root = MD_REF.getCurrentAccountBook().getRootAccount()   # Should never happen!
-        if _root is None or _root.getAccountType() != Account.AccountType.ROOT:                                         # noqa
+        if MD_REF.getRootAccount() is None or MD_REF.getRootAccount().getAccountType() != Account.AccountType.ROOT:     # noqa
             msg = "@@ ERROR: Detected that your ROOT Account is Missing or not type ROOT! Contact support or the Author of Toolbox for a fix"
             myPrint("B", msg)
             myPrint("B", "@@ FYI - there used to be scripts called fix_restored_accounts.py or fix_root_account_type.py for this (but the last time I looked they were broken.)")
@@ -30185,5 +30204,6 @@ Script/extension is analysing your moneydance & system settings....
             _thread = Thread(DownloadExtensionVersionData(), "toolbox_DownloadExtensionVersionData".lower())
             _thread.setDaemon(True)
             _thread.start()
+            del _thread
 
             myPrint("B", "Infinite Kind in conjunction with StuWareSoftSystems - ", GlobalVars.thisScriptName, " launch script ending (application is open/running)......")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# calculate_moneydance_objs_and_datasetsize.py build: 23 - Feb 2021 to Aug 2023 - Stuart Beesley StuWareSoftSystems
+# calculate_moneydance_objs_and_datasetsize.py build: 24 - Feb 2021 to Sept 2023 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -41,6 +41,7 @@
 # build: 21 - MD2023 fixes to common code...
 # build: 22 - Common code tweaks
 # build: 23 - Common code tweaks
+# build: 24 - Tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -48,7 +49,7 @@
 
 # SET THESE LINES
 myModuleID = u"calculate_moneydance_objs_and_datasetsize"
-version_build = "23"
+version_build = "24"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -59,6 +60,15 @@ if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy o
 if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
 if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+# Nuke unwanted (direct/indirect) reference(s) to AccountBook etc....
+if "moneydance_data" in globals():
+    moneydance_data = None
+    del moneydance_data
+
+if "moneybot" in globals():
+    moneybot = None
+    del moneybot
 
 from java.lang import Boolean
 global debug
@@ -3001,7 +3011,8 @@ Visit: %s (Author's site)
 
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
 
-    startDir=MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+    startDir = MD_REF.getCurrentAccount().getBook().getRootFolder().getCanonicalPath()
+
     print("\nDataset path:        %s" %(startDir))
     print("Autobackup location: %s\n"
           %(MD_REF.getUI().getPreferences().getSetting("backup.location",FileUtils.getDefaultBackupDir().getAbsolutePath())))
@@ -3027,12 +3038,12 @@ Visit: %s (Author's site)
     countTIKfiles = 0
     safe_tmpSize = 0
     keySize = 0
-    countValidFiles=0
-    countNonValidFiles=0
-    validSize=0
-    nonValidSize=0
-    listNonValidFiles=[]
-    listLargeFiles=[]
+    countValidFiles = 0
+    countNonValidFiles = 0
+    validSize = 0
+    nonValidSize = 0
+    listNonValidFiles = []
+    listLargeFiles = []
 
     total_size = 0
     start_path = startDir  # To get size of current directory
@@ -3100,6 +3111,7 @@ Visit: %s (Author's site)
     print("Valid files size:           %sMB (in %s files)" %(rpad(round((validSize/(1000.0*1000.0)),1),12),countValidFiles))
     print
     print("Non-core file(s) size:      %sMB (in %s files)" %(rpad(round((nonValidSize/(1000.0*1000.0)),1),12),countNonValidFiles))
+
     for nonValid in listNonValidFiles:
         print("   - %sMB Mod: %s %s" %(rpad(round((nonValid[1]/(1000.0*1000.0)),1),5),nonValid[2], nonValid[0]))
     print
@@ -3122,7 +3134,6 @@ Visit: %s (Author's site)
             return dropbox.getCanonicalPath()
 
         return False
-
 
     def find_other_datasets():
         output = ""
@@ -3292,25 +3303,25 @@ Visit: %s (Author's site)
         output = ""
         output+=("\nDATABASE OBJECT COUNT        (count) (est.size KBs):\n"
                  "-----------------------------------------------------\n")
-        foundStrange=0
-        types={}
+        foundStrange = 0
+        types = {}
 
-        onlineTxns=0
-        onlineTxnsCharacters=0
-        onlinePayees=0
-        onlinePayments=0
+        onlineTxns = 0
+        onlineTxnsCharacters = 0
+        onlinePayees = 0
+        onlinePayments = 0
 
         for mdItem in MD_REF.getCurrentAccount().getBook().getSyncer().getSyncedDocument().allItems():
             if isinstance(mdItem, MoneydanceSyncableItem):
 
                 if isinstance(mdItem, OnlineTxnList):
-                    onlineTxns      +=mdItem.getTxnCount()
+                    onlineTxns += mdItem.getTxnCount()
                     for olKey in mdItem.getParameterKeys():
                         onlineTxnsCharacters += len(olKey)
                         onlineTxnsCharacters += len(mdItem.getParameter(olKey))
 
-                if isinstance(mdItem, OnlinePayeeList):     onlinePayees    +=mdItem.getPayeeCount()
-                if isinstance(mdItem, OnlinePaymentList):   onlinePayments  +=mdItem.getPaymentCount()
+                if isinstance(mdItem, OnlinePayeeList):     onlinePayees    += mdItem.getPayeeCount()
+                if isinstance(mdItem, OnlinePaymentList):   onlinePayments  += mdItem.getPaymentCount()
 
                 getTheSavedData = types.get(mdItem.getParameter("obj_type", "UNKNOWN"))
                 if getTheSavedData is not None:
@@ -3327,7 +3338,7 @@ Visit: %s (Author's site)
 
                 types[mdItem.getParameter("obj_type", "UNKNOWN")] = [x+1, theLength]
             else:
-                foundStrange+=1
+                foundStrange += 1
         i=0
         charCount=0
         for x in types.keys():

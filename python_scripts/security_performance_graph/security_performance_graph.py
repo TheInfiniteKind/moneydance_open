@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# security_performance_graph.py build: 1007 - May 2023 - Stuart Beesley StuWareSoftSystems
+# security_performance_graph.py build: 1008 - Sept 2023 - Stuart Beesley StuWareSoftSystems
 
 # requires: MD 2021.1(3069) due to NPE on SwingUtilities - something to do with 'theGenerator.setInfo(reportSpec)'
 
@@ -42,6 +42,7 @@
 # build: 1006 - Fixes for MD2023.0(5000) Kotlin compiled builds.... Fix SyncRecord().readSet() call.
 # build: 1006 - MD2023 fixes to common code...
 # build: 1007 - Common code tweaks
+# build: 1008 - Cleanup references to MD Objects
 
 # todo - Memorise (save versions) along with choose/delete etc saved versions
 # todo - add markers for splits, buy/sells
@@ -52,7 +53,7 @@
 
 # SET THESE LINES
 myModuleID = u"security_performance_graph"
-version_build = "1007"
+version_build = "1008"
 MIN_BUILD_REQD = 3069
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -63,6 +64,15 @@ if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy o
 if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
 if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+# Nuke unwanted (direct/indirect) reference(s) to AccountBook etc....
+if "moneydance_data" in globals():
+    moneydance_data = None
+    del moneydance_data
+
+if "moneybot" in globals():
+    moneybot = None
+    del moneybot
 
 from java.lang import Boolean
 global debug
@@ -3127,120 +3137,6 @@ Visit: %s (Author's site)
         return "<html>%s<font color=#%s>%s</font></html>" %(_text, _colorHex, strPct)
 
 
-    # class MyJList(JList):
-    #
-    #     KEY = "selected_securities"
-    #
-    #     def __init__(self, moneydanceContext, ctable, includeHiddenSecuritiesChoice, *args):
-    #         # type: (Main, CurrencyTable, JCheckBox, any) -> None
-    #         self.moneydanceContext = moneydanceContext
-    #         self.ctable = ctable
-    #         self.includeHiddenSecuritiesChoice = includeHiddenSecuritiesChoice
-    #         super(self.__class__, self).__init__(*args)                                                                 # noqa
-    #         self.saveSelectedSecList = None
-    #
-    #     def loadDataModel(self):
-    #         # type: () -> None
-    #         securityList = []
-    #         for curSec in sorted(self.ctable.getAllCurrencies(), key=lambda x: safeStr(x.getName()).upper()):
-    #             # noinspection PyUnresolvedReferences
-    #             if curSec.getCurrencyType() != CurrencyType.Type.SECURITY: continue
-    #             if curSec.getHideInUI() and not self.includeHiddenSecuritiesChoice.isSelected(): continue
-    #             securityList.append(StoreCurrencyType(curSec))
-    #         self.setListData(securityList)
-    #
-    #     def selectSecurities(self):
-    #
-    #         if len(self.saveSelectedSecList) < 1: return False
-    #
-    #         listModel = self.getModel()
-    #         if listModel.getSize() < 1: return False
-    #
-    #         securitiesToSelect = []
-    #         for key in self.saveSelectedSecList:
-    #             foundSecurity = self.moneydanceContext.getCurrentAccountBook().getCurrencyByUUID(self.saveSelectedSecList[key])
-    #             if foundSecurity is not None: securitiesToSelect.append(foundSecurity)
-    #
-    #         indicesToSelect = []
-    #
-    #         for i in range(0, listModel.getSize()):
-    #             modelSec = listModel.getElementAt(i)    # type: StoreCurrencyType
-    #             if modelSec.getCurrencyType() in securitiesToSelect:
-    #                 indicesToSelect.append(i)
-    #         if len(indicesToSelect) < 1: return False
-    #         self.setSelectedIndices(indicesToSelect)
-    #         return True
-    #
-    #     def loadFromParameters(self, parameters, loadKey=None):
-    #         # type: (SyncRecord, str) -> bool
-    #
-    #         if loadKey is None: loadKey = self.__class__.KEY
-    #
-    #         self.loadDataModel()
-    #
-    #         self.saveSelectedSecList = parameters.getSubset(loadKey)
-    #
-    #         return self.selectSecurities()
-    #
-    #     def storeToParameters(self, parameters, saveKey=None):
-    #         # type: (SyncRecord, str) -> None
-    #
-    #         if saveKey is None: saveKey = self.__class__.KEY
-    #
-    #         selectedSecurities = self.getSelectedValues()
-    #         if len(selectedSecurities) < 1:
-    #             parameters.removeSubset(saveKey)
-    #         else:
-    #             securityUUIDsToSave = []
-    #             for sec in selectedSecurities:
-    #                 securityUUIDsToSave.append(sec.getUUID())
-    #             parameters.put(saveKey, securityUUIDsToSave)
-    #
-    # class MyJListRenderer(DefaultListCellRenderer):
-    #
-    #     def __init__(self):
-    #         super(self.__class__, self).__init__()                                                                     # noqa
-    #
-    #     def getListCellRendererComponent(self, thelist, value, index, isSelected, cellHasFocus):
-    #         lightLightGray = Color(0xDCDCDC)
-    #         c = super(self.__class__, self).getListCellRendererComponent(thelist, value, index, isSelected, cellHasFocus) # noqa
-    #         # c.setBackground(self.getBackground() if index % 2 == 0 else lightLightGray)
-    #
-    #         # Create a line separator between accounts
-    #         c.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, lightLightGray))
-    #         return c
-    #
-    # class MyDefaultListSelectionModel(DefaultListSelectionModel):
-    #     # Change the selector - so not to deselect items when selecting others...
-    #     def __init__(self):
-    #         super(self.__class__, self).__init__()                                                                      # noqa
-    #
-    #     def setSelectionInterval(self, start, end):
-    #         if (start != end):
-    #             super(self.__class__, self).setSelectionInterval(start, end)                                            # noqa
-    #         elif self.isSelectedIndex(start):
-    #             self.removeSelectionInterval(start, end)
-    #         else:
-    #             self.addSelectionInterval(start, end)
-    #
-    # class StoreCurrencyType():
-    #     def __init__(self, obj):
-    #         self.obj = obj      # type: CurrencyType
-    #
-    #     def getCurrencyType(self):  return self.obj
-    #     def getUUID(self):          return self.getCurrencyType().getUUID()
-    #     def getSnapshots(self):     return self.getCurrencyType().getSnapshots()
-    #
-    #     def __str__(self):
-    #         ct = self.getCurrencyType()
-    #         # name = ct.getName()
-    #         # if name is not None and len(name.trim()) > 0: return name
-    #         # return ct.getIDString() + ":" + ct.getIDString()
-    #         return ct.toString()
-    #
-    #     def __repr__(self):         return self.__str__()
-    #     def toString(self):         return self.__str__()
-
     class MyAcctFilter(AcctFilter):
         def __init__(self, securities):
             # type: ([CurrencyType]) -> None
@@ -3252,20 +3148,6 @@ Visit: %s (Author's site)
             if not acct.getAccountType() == Account.AccountType.SECURITY: return False
             if acct.getCurrencyType() not in self.securities: return False
             return True
-
-    # class MyTxnSearchFilter(TxnSearch):
-    #
-    #     def __init__(self, security, dateStart, dateEnd):
-    #         self.security = security
-    #         self.dateStart = dateStart
-    #         self.dateEnd = dateEnd
-    #
-    #     def matchesAll(self): return False
-    #
-    #     def matches(self, txn):
-    #         if txn.getDateInt() < self.dateStart or txn.getDateInt() > self.dateEnd: return False
-    #         if txn.getAccount().getCurrencyType() != self.security: return False
-    #         return True
 
     class MyDateRangeChooser(DateRangeChooser):
         def __init__(self, *args):
@@ -5124,7 +5006,6 @@ Visit: %s (Author's site)
                 self.renderer.setHorizontalAlignment(JLabel.RIGHT)
             return self.renderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col)
 
-
     class MyTableColumnModelListener(TableColumnModelListener):
         ## noinspection PyUnusedLocal
 
@@ -6000,7 +5881,7 @@ Visit: %s (Author's site)
         class WindowListener(WindowAdapter):
 
             def __init__(self, theFrame, callingClass):
-                self.theFrame = theFrame        # type: MyJFrame
+                self.theFrame = theFrame                                                                                # type: MyJFrame
                 self.callingClass = callingClass
 
             def windowClosing(self, evt):                                                                               # noqa

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# import_categories.py (build 12) - Author - Stuart Beesley - StuWareSoftSystems 2021-2023
+# import_categories.py (build 13) - Author - Stuart Beesley - StuWareSoftSystems 2021-2023
 
 # READ THIS FIRST:
 #
@@ -59,6 +59,7 @@
 # build: 10 - MD2023 fixes to common code...
 # build: 11 - Common code tweaks
 # build: 12 - Common code tweaks
+# build: 13 - Tweaks
 
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -67,7 +68,7 @@
 
 # SET THESE LINES
 myModuleID = u"import_categories"
-version_build = "12"
+version_build = "13"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -78,6 +79,15 @@ if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy o
 if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
 if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+# Nuke unwanted (direct/indirect) reference(s) to AccountBook etc....
+if "moneydance_data" in globals():
+    moneydance_data = None
+    del moneydance_data
+
+if "moneybot" in globals():
+    moneybot = None
+    del moneybot
 
 from java.lang import Boolean
 global debug
@@ -3012,6 +3022,8 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
+
     class GLOB_VARS:                                                                                                    # noqa
         DELIMITERS = [",",";","|"]
         ACCT_DELIMITERS = [":","/","*","@",";","|"]
@@ -3038,488 +3050,492 @@ Visit: %s (Author's site)
 
         def __init__(self): pass
 
+    try:
+        def find_account(searchAcctString, searchAcctType=None, stripSpareSpaces=True, disregardCase=True, yourDelimiter=":"):
 
-    MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
+            filterAccountType = (searchAcctType is not None)
 
-    def find_account(searchAcctString, searchAcctType=None, stripSpareSpaces=True, disregardCase=True, yourDelimiter=":"):
-
-        filterAccountType = (searchAcctType is not None)
-
-        # noinspection PyUnresolvedReferences
-        if filterAccountType and not isinstance(searchAcctType, Account.AccountType):
-            myPrint("B","Error - searchAcctType must be of type Account.AccountType")
-            return None
-
-        root = MD_REF.getRootAccount()
-
-        splitAcctString = searchAcctString.split(yourDelimiter)
-        if len(splitAcctString) < 1:
-            myPrint("B","Error - length of split searchAcctString (%s) returned zero?" %(searchAcctString))
-            return None
-
-        if searchAcctString.startswith(yourDelimiter) or searchAcctString.endswith(yourDelimiter):
-            myPrint("B","Error - searchAcctString (%s) should not start or end with your delimiter (%s)" %(searchAcctString, yourDelimiter))
-            return None
-
-        if stripSpareSpaces or disregardCase:
-            for i in range(0,len(splitAcctString)):
-                if stripSpareSpaces:
-                    splitAcctString[i] = splitAcctString[i].strip()
-                if disregardCase:
-                    splitAcctString[i] = splitAcctString[i].lower()
-                if splitAcctString[i] == "":
-                    myPrint("B","Error - searchAcctString (%s) seems to contain empty account strings?"  %(searchAcctString))
-                    return None
-
-        def accountSearch(parentAccount, onLevel=0):
-
-            if onLevel > len(splitAcctString)-1:
+            # noinspection PyUnresolvedReferences
+            if filterAccountType and not isinstance(searchAcctType, Account.AccountType):
+                myPrint("B","Error - searchAcctType must be of type Account.AccountType")
                 return None
 
-            subAccts = parentAccount.getSubAccounts()
-            for foundAcct in subAccts:
-                if filterAccountType and foundAcct.getAccountType() !=  searchAcctType:
+            root = MD_REF.getRootAccount()
+
+            splitAcctString = searchAcctString.split(yourDelimiter)
+            if len(splitAcctString) < 1:
+                myPrint("B","Error - length of split searchAcctString (%s) returned zero?" %(searchAcctString))
+                return None
+
+            if searchAcctString.startswith(yourDelimiter) or searchAcctString.endswith(yourDelimiter):
+                myPrint("B","Error - searchAcctString (%s) should not start or end with your delimiter (%s)" %(searchAcctString, yourDelimiter))
+                return None
+
+            if stripSpareSpaces or disregardCase:
+                for i in range(0,len(splitAcctString)):
+                    if stripSpareSpaces:
+                        splitAcctString[i] = splitAcctString[i].strip()
+                    if disregardCase:
+                        splitAcctString[i] = splitAcctString[i].lower()
+                    if splitAcctString[i] == "":
+                        myPrint("B","Error - searchAcctString (%s) seems to contain empty account strings?"  %(searchAcctString))
+                        return None
+
+            def accountSearch(parentAccount, onLevel=0):
+
+                if onLevel > len(splitAcctString)-1:
+                    return None
+
+                subAccts = parentAccount.getSubAccounts()
+                for foundAcct in subAccts:
+                    if filterAccountType and foundAcct.getAccountType() !=  searchAcctType:
+                        continue
+                    foundAcctName = foundAcct.getAccountName()
+                    if stripSpareSpaces: foundAcctName = foundAcctName.strip()
+                    if disregardCase: foundAcctName = foundAcctName.lower()
+                    if foundAcctName == splitAcctString[onLevel]:
+                        if onLevel == len(splitAcctString)-1:
+                            return foundAcct
+                        else:
+                            result = accountSearch(foundAcct, onLevel+1)
+                            if result: return result
+                return None
+
+            foundAccount = accountSearch(root)
+
+            return foundAccount
+
+        def grabTheFile():
+            myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+            scriptpath = get_home_dir()
+
+            myPrint("DB", "Default file export output path is....: %s" %(scriptpath))
+
+            theTitle = "Select the CSV file to import (CANCEL=ABORT)"
+            csvfilename = getFileFromFileChooser(None,                  # Parent frame or None
+                                                scriptpath,             # Starting path
+                                                GLOB_VARS.theFile,      # Default Filename
+                                                theTitle,               # Title
+                                                False,                  # Multi-file selection mode
+                                                True,                   # True for Open/Load, False for Save
+                                                True,                   # True = Files, else Dirs
+                                                None,                   # Load/Save button text, None for defaults
+                                                "csv",                  # File filter (non Mac only). Example: "txt" or "qif"
+                                                lAllowTraversePackages=True,
+                                                lForceJFC=False,
+                                                lForceFD=True,
+                                                lAllowNewFolderButton=True,
+                                                lAllowOptionsButton=True)
+
+            if csvfilename is None or csvfilename == "":
+                txt = "User chose to cancel or no file selected >>  So no Import will be performed... "
+                myPrint("B", txt); myPopupInformationBox(None, txt, "FILE IMPORT")
+                return False
+            elif safeStr(csvfilename).endswith(".moneydance"):
+                myPrint("B", "User selected file:", csvfilename)
+                txt = "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Import will be performed..."
+                myPrint("B", txt); myPopupInformationBox(None, txt, "FILE IMPORT")
+                return False
+
+            if not os.path.exists(csvfilename):
+                myPrint("B", "User selected file:", csvfilename)
+                txt = "Sorry - file does not exists so no Import will be performed..."
+                myPrint("B", txt);  myPopupInformationBox(None, txt, "FILE IMPORT")
+                return False
+
+            GLOB_VARS.theFile = csvfilename
+            myPrint("B","Import file set to: %s" %(GLOB_VARS.theFile))
+            return True
+
+        def get_field_delimiter():
+            selectedDelimiter = JOptionPane.showInputDialog(None,
+                                                            "Select the CSV Field Delimiter being used",
+                                                            "DELIMITER",
+                                                            JOptionPane.QUESTION_MESSAGE,
+                                                            getMDIcon(None),
+                                                            GLOB_VARS.DELIMITERS,
+                                                            GLOB_VARS.DELIMITERS[0])
+            if not selectedDelimiter:
+                raise Exception("ERROR: No delimiter was selected!")
+
+            GLOB_VARS.theFieldDelimiter = selectedDelimiter
+            myPrint("B","CSV field delimiter set to: %s" %GLOB_VARS.theFieldDelimiter)
+            return
+
+        def get_account_delimiter():
+            selectedAcctDelimiter = JOptionPane.showInputDialog(None,
+                                                            "Select the account name delimiter being used in the CSV file",
+                                                            "ACCOUNT NAME DELIMITER",
+                                                            JOptionPane.QUESTION_MESSAGE,
+                                                            getMDIcon(None),
+                                                            GLOB_VARS.ACCT_DELIMITERS,
+                                                            GLOB_VARS.ACCT_DELIMITERS[0])
+            if not selectedAcctDelimiter:
+                raise Exception("ERROR: No account delimiter was selected!")
+
+            if selectedAcctDelimiter == GLOB_VARS.theFieldDelimiter:
+                raise Exception("ERROR: Sorry... The CSV account name delimiter can NOT be the same as the field delimiter!")
+
+            GLOB_VARS.theAccountDelimiter = selectedAcctDelimiter
+            myPrint("B","CSV account name delimiter set to: %s" %GLOB_VARS.theAccountDelimiter)
+            return
+
+        def get_import_data():
+
+            iRows = 0
+
+            try:
+                with open(GLOB_VARS.theFile,"r") as csvfile:
+                    reader = csv.reader(csvfile, dialect='excel', delimiter=fix_delimiter(GLOB_VARS.theFieldDelimiter))
+                    for row in reader:
+                        GLOB_VARS.data.append(row)
+                        iRows += 1
+            except:
+                dump_sys_error_to_md_console_and_errorlog()
+                _msg = "ERROR trying to preload data!"
+                myPrint("B", _msg)
+                myPopupInformationBox(None, _msg, theMessageType=JOptionPane.ERROR_MESSAGE)
+                raise Exception(_msg)
+
+            if iRows < 1:
+                _msg = "ERROR - no rows of data found?"
+                myPrint("B", _msg)
+                myPopupInformationBox(None, _msg, theMessageType=JOptionPane.ERROR_MESSAGE)
+                raise Exception(_msg)
+            return
+
+        def load_currencies():
+            ct = MD_REF.getCurrentAccountBook().getCurrencies()
+            baseCurrency = ct.getBaseType()
+            myPrint("B", "Base Currency: ", baseCurrency.getIDString(), " : ", baseCurrency.getName())
+            allCurrencies = ct.getAllCurrencies()
+            for curr in allCurrencies:
+                if curr.getCurrencyType() != CurrencyType.Type.CURRENCY:                                                    # noqa
                     continue
-                foundAcctName = foundAcct.getAccountName()
-                if stripSpareSpaces: foundAcctName = foundAcctName.strip()
-                if disregardCase: foundAcctName = foundAcctName.lower()
-                if foundAcctName == splitAcctString[onLevel]:
-                    if onLevel == len(splitAcctString)-1:
-                        return foundAcct
-                    else:
-                        result = accountSearch(foundAcct, onLevel+1)
-                        if result: return result
-            return None
+                GLOB_VARS.allCurrencies.append(curr)
 
-        foundAccount = accountSearch(root)
+            GLOB_VARS.BASE = baseCurrency
 
-        return foundAccount
-
-    def grabTheFile():
-        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-
-        scriptpath = get_home_dir()
-
-        myPrint("DB", "Default file export output path is....: %s" %(scriptpath))
-
-        theTitle = "Select the CSV file to import (CANCEL=ABORT)"
-        csvfilename = getFileFromFileChooser(None,                  # Parent frame or None
-                                            scriptpath,             # Starting path
-                                            GLOB_VARS.theFile,      # Default Filename
-                                            theTitle,               # Title
-                                            False,                  # Multi-file selection mode
-                                            True,                   # True for Open/Load, False for Save
-                                            True,                   # True = Files, else Dirs
-                                            None,                   # Load/Save button text, None for defaults
-                                            "csv",                  # File filter (non Mac only). Example: "txt" or "qif"
-                                            lAllowTraversePackages=True,
-                                            lForceJFC=False,
-                                            lForceFD=True,
-                                            lAllowNewFolderButton=True,
-                                            lAllowOptionsButton=True)
-
-        if csvfilename is None or csvfilename == "":
-            txt = "User chose to cancel or no file selected >>  So no Import will be performed... "
-            myPrint("B", txt); myPopupInformationBox(None, txt, "FILE IMPORT")
-            return False
-        elif safeStr(csvfilename).endswith(".moneydance"):
-            myPrint("B", "User selected file:", csvfilename)
-            txt = "Sorry - User chose to use .moneydance extension - I will not allow it!... So no Import will be performed..."
-            myPrint("B", txt); myPopupInformationBox(None, txt, "FILE IMPORT")
-            return False
-
-        if not os.path.exists(csvfilename):
-            myPrint("B", "User selected file:", csvfilename)
-            txt = "Sorry - file does not exists so no Import will be performed..."
-            myPrint("B", txt);  myPopupInformationBox(None, txt, "FILE IMPORT")
-            return False
-
-        GLOB_VARS.theFile = csvfilename
-        myPrint("B","Import file set to: %s" %(GLOB_VARS.theFile))
-        return True
-
-    def get_field_delimiter():
-        selectedDelimiter = JOptionPane.showInputDialog(None,
-                                                        "Select the CSV Field Delimiter being used",
-                                                        "DELIMITER",
-                                                        JOptionPane.QUESTION_MESSAGE,
-                                                        getMDIcon(None),
-                                                        GLOB_VARS.DELIMITERS,
-                                                        GLOB_VARS.DELIMITERS[0])
-        if not selectedDelimiter:
-            raise Exception("ERROR: No delimiter was selected!")
-
-        GLOB_VARS.theFieldDelimiter = selectedDelimiter
-        myPrint("B","CSV field delimiter set to: %s" %GLOB_VARS.theFieldDelimiter)
-        return
-
-    def get_account_delimiter():
-        selectedAcctDelimiter = JOptionPane.showInputDialog(None,
-                                                        "Select the account name delimiter being used in the CSV file",
-                                                        "ACCOUNT NAME DELIMITER",
-                                                        JOptionPane.QUESTION_MESSAGE,
-                                                        getMDIcon(None),
-                                                        GLOB_VARS.ACCT_DELIMITERS,
-                                                        GLOB_VARS.ACCT_DELIMITERS[0])
-        if not selectedAcctDelimiter:
-            raise Exception("ERROR: No account delimiter was selected!")
-
-        if selectedAcctDelimiter == GLOB_VARS.theFieldDelimiter:
-            raise Exception("ERROR: Sorry... The CSV account name delimiter can NOT be the same as the field delimiter!")
-
-        GLOB_VARS.theAccountDelimiter = selectedAcctDelimiter
-        myPrint("B","CSV account name delimiter set to: %s" %GLOB_VARS.theAccountDelimiter)
-        return
-
-    def get_import_data():
-
-        iRows = 0
-
-        try:
-            with open(GLOB_VARS.theFile,"r") as csvfile:
-                reader = csv.reader(csvfile, dialect='excel', delimiter=fix_delimiter(GLOB_VARS.theFieldDelimiter))
-                for row in reader:
-                    GLOB_VARS.data.append(row)
-                    iRows += 1
-        except:
-            dump_sys_error_to_md_console_and_errorlog()
-            _msg = "ERROR trying to preload data!"
-            myPrint("B", _msg)
-            myPopupInformationBox(None, _msg, theMessageType=JOptionPane.ERROR_MESSAGE)
-            raise Exception(_msg)
-
-        if iRows < 1:
-            _msg = "ERROR - no rows of data found?"
-            myPrint("B", _msg)
-            myPopupInformationBox(None, _msg, theMessageType=JOptionPane.ERROR_MESSAGE)
-            raise Exception(_msg)
-        return
-
-    def load_currencies():
-        ct = MD_REF.getCurrentAccountBook().getCurrencies()
-        baseCurrency = ct.getBaseType()
-        myPrint("B", "Base Currency: ", baseCurrency.getIDString(), " : ", baseCurrency.getName())
-        allCurrencies = ct.getAllCurrencies()
-        for curr in allCurrencies:
-            if curr.getCurrencyType() != CurrencyType.Type.CURRENCY:                                                    # noqa
-                continue
-            GLOB_VARS.allCurrencies.append(curr)
-
-        GLOB_VARS.BASE = baseCurrency
-
-    def lookup_account_type(atype):
-        if atype.lower().strip() == "e":
-            return Account.AccountType.EXPENSE                                                                          # noqa
-        elif atype.lower().strip() == "i":
-            return Account.AccountType.INCOME                                                                           # noqa
-        else:
-            return None
-
-    def validate_csv_data():
-
-        data = GLOB_VARS.data
-        row = data[0]
-
-        lIE = lCategory = lCurrency = lTax = lInactive = lComments = False
-
-        iColumn = 0
-        for field in row:
-            if field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_IE].lower():
-                lIE = True
-                GLOB_VARS.INDEX_IE = iColumn
-                myPrint("B","Header: I/E present @ %s" %(iColumn+1))
-            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_CAT].lower():
-                lCategory = True
-                GLOB_VARS.INDEX_CAT = iColumn
-                myPrint("B","Header: Category present @ %s" %(iColumn+1))
-            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_CURR].lower():
-                lCurrency = True
-                GLOB_VARS.INDEX_CURR = iColumn
-                myPrint("B","Header: Currency present @ %s" %(iColumn+1))
-            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_TAX].lower():
-                lTax = True
-                GLOB_VARS.INDEX_TAX = iColumn
-                myPrint("B","Header: TaxRelated present @ %s" %(iColumn+1))
-            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_INACT].lower():
-                lInactive = True
-                GLOB_VARS.INDEX_INACT = iColumn
-                myPrint("B","Header: Inactive present @ %s" %(iColumn+1))
-            elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_COMMENTS].lower():
-                lComments = True
-                GLOB_VARS.INDEX_COMMENTS = iColumn
-                myPrint("B","Header: Comments present @ %s" %(iColumn+1))
+        def lookup_account_type(atype):
+            if atype.lower().strip() == "e":
+                return Account.AccountType.EXPENSE                                                                          # noqa
+            elif atype.lower().strip() == "i":
+                return Account.AccountType.INCOME                                                                           # noqa
             else:
-                pass
+                return None
 
-            iColumn += 1
+        def validate_csv_data():
 
-        iStartRow = 0
-        if lIE and lCategory:
-            myPrint("B","CSV header row present")
-            GLOB_VARS.csv_header_present = True
-            if not lCurrency: GLOB_VARS.INDEX_CURR = False
-            if not lTax: GLOB_VARS.INDEX_TAX = False
-            if not lInactive: GLOB_VARS.INDEX_INACT = False
-            if not lComments: GLOB_VARS.INDEX_COMMENTS = False
-            iStartRow += 1
-        else:
-            myPrint("B","No CSV header detected")
-            GLOB_VARS.csv_header_present = False
+            data = GLOB_VARS.data
+            row = data[0]
 
-        if len(data) - iStartRow < 1:
-            _msg = "ERROR: No rows of actual data detected?!"
-            myPrint("B",_msg)
-            raise Exception(_msg)
+            lIE = lCategory = lCurrency = lTax = lInactive = lComments = False
 
-        myPrint("B","Detected %s rows of data... Now analysing..." %(len(data)-iStartRow))
-
-        for i in range(iStartRow,len(data)):
-
-            if len(data[i]) < 1: continue
-
-            if not GLOB_VARS.csv_header_present:
-                for iFields in reversed(range(GLOB_VARS.INDEX_END,len(data[i]))):
-                    if data[i][iFields] is None or data[i][iFields].strip() == "":
-                        data[i].pop(iFields)
-                        break
-                if len(data[i]) < GLOB_VARS.INDEX_CAT+1 or len(data[i]) > GLOB_VARS.INDEX_END+1:
-                    _msg = "Error: (headless CSV) Row %s has %s columns (min %s, max %s)?" %(i+1,len(data[i]),GLOB_VARS.INDEX_CAT+1,GLOB_VARS.INDEX_END+1)
-                    myPrint("B", _msg); raise Exception(_msg)
-
-                while len(data[i]) < GLOB_VARS.INDEX_END+1:
-                    data[i].append("")
-
-            data[i][GLOB_VARS.INDEX_IE] = data[i][GLOB_VARS.INDEX_IE].lower().strip()
-            if data[i][GLOB_VARS.INDEX_IE] != "i" and data[i][GLOB_VARS.INDEX_IE] != "e":
-                _msg = "ERROR: Row %s, I/E mandatory field incorrect - must be 'I' or 'E'" %(i+1)
-                myPrint("B", _msg); raise Exception(_msg)
-            else:
-                data[i][GLOB_VARS.INDEX_IE] = lookup_account_type(data[i][GLOB_VARS.INDEX_IE])
-
-            if data[i][GLOB_VARS.INDEX_CAT].strip() is None or len(data[i][GLOB_VARS.INDEX_CAT].strip()) < 1:
-                _msg = "ERROR: Row %s, mandatory Category Name field empty?" %(i+1)
-                myPrint("B", _msg); raise Exception(_msg)
-            elif GLOB_VARS.theAccountDelimiter != GLOB_VARS.ACCT_DELIMITERS[0] and GLOB_VARS.ACCT_DELIMITERS[0] in data[i][GLOB_VARS.INDEX_CAT]:
-                _msg = "ERROR: Row %s, Category cannot contain ':' when it's not the delimiter!" %(i+1)
-                myPrint("B", _msg); raise Exception(_msg)
-            elif data[i][GLOB_VARS.INDEX_CAT].startswith(GLOB_VARS.theAccountDelimiter) or data[i][GLOB_VARS.INDEX_CAT].endswith(GLOB_VARS.theAccountDelimiter):
-                _msg = "ERROR: Row %s, Category (%s) cannot start or end with your account delimiter (%s)!" %(i+1,data[i][GLOB_VARS.INDEX_CAT],GLOB_VARS.theAccountDelimiter)
-                myPrint("B", _msg); raise Exception(_msg)
-            else:
-                split_cat = data[i][GLOB_VARS.INDEX_CAT].split(GLOB_VARS.theAccountDelimiter)
-                for iSplit in range(0,len(split_cat)):
-                    split_cat[iSplit] = split_cat[iSplit].strip()
-                    if split_cat[iSplit] == "":
-                        _msg = "ERROR: Row %s, Category (%s) cannot contain empty account strings in between your delimiters (%s)!" %(i+1,data[i][GLOB_VARS.INDEX_CAT],GLOB_VARS.theAccountDelimiter)
-                        myPrint("B", _msg); raise Exception(_msg)
-
-                data[i][GLOB_VARS.INDEX_CAT] = GLOB_VARS.ACCT_DELIMITERS[0].join(split_cat)  # Rejoin the string with :'s (the MD default)
-
-                # if MD_REF.getRootAccount().getAccountByName(split_cat[0],data[i][GLOB_VARS.INDEX_IE]):
-                if find_account(split_cat[0], searchAcctType=data[i][GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter):
-                    # OK - The parent Account seems to exist already with the right Account Type
+            iColumn = 0
+            for field in row:
+                if field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_IE].lower():
+                    lIE = True
+                    GLOB_VARS.INDEX_IE = iColumn
+                    myPrint("B","Header: I/E present @ %s" %(iColumn+1))
+                elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_CAT].lower():
+                    lCategory = True
+                    GLOB_VARS.INDEX_CAT = iColumn
+                    myPrint("B","Header: Category present @ %s" %(iColumn+1))
+                elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_CURR].lower():
+                    lCurrency = True
+                    GLOB_VARS.INDEX_CURR = iColumn
+                    myPrint("B","Header: Currency present @ %s" %(iColumn+1))
+                elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_TAX].lower():
+                    lTax = True
+                    GLOB_VARS.INDEX_TAX = iColumn
+                    myPrint("B","Header: TaxRelated present @ %s" %(iColumn+1))
+                elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_INACT].lower():
+                    lInactive = True
+                    GLOB_VARS.INDEX_INACT = iColumn
+                    myPrint("B","Header: Inactive present @ %s" %(iColumn+1))
+                elif field.lower().strip() == GLOB_VARS.FIELD_NAMES[GLOB_VARS.INDEX_COMMENTS].lower():
+                    lComments = True
+                    GLOB_VARS.INDEX_COMMENTS = iColumn
+                    myPrint("B","Header: Comments present @ %s" %(iColumn+1))
+                else:
                     pass
-                else:
-                    # acct = MD_REF.getRootAccount().getAccountByName(split_cat[0])
-                    acct = find_account(split_cat[0], searchAcctType=None, stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter)
-                    if acct and acct.getAccountType() != data[i][GLOB_VARS.INDEX_IE]:
-                        _msg = "WARNING: Row %s, Parent Category %s already exists in MD, but it's set to %s. I am not allowing duplicate names" %(i+1,split_cat[0],acct.getAccountType())
-                        myPrint("B", _msg); raise Exception(_msg)
 
-                # acct = MD_REF.getRootAccount().getAccountByName(data[i][GLOB_VARS.INDEX_CAT],data[i][GLOB_VARS.INDEX_IE])   # Doesn't work properly?!
-                acct = find_account(data[i][GLOB_VARS.INDEX_CAT], searchAcctType=data[i][GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter)
-                if acct is not None and acct.getAccountType() == data[i][GLOB_VARS.INDEX_IE]:
-                    myPrint("B","Row %s Category Structure %s already exists..." %(i+1, data[i][GLOB_VARS.INDEX_CAT]))
-                elif acct is not None:
-                    _msg = "WARNING: Row %s, Category structure %s already exists in MD, but it's set to %s. I am not allowing duplicate names/structures" %(i+1,data[i][GLOB_VARS.INDEX_CAT],acct.getAccountType())
-                    myPrint("B", _msg); raise Exception(_msg)
-                else:
-                    myPrint("B","Row %s Account structure %s does not exist - Will be created..." %(i+1, data[i][GLOB_VARS.INDEX_CAT]))
-                    GLOB_VARS.accountsToCreate.append(data[i][GLOB_VARS.INDEX_CAT])
+                iColumn += 1
 
-            currToUseForCat = GLOB_VARS.BASE
-            if GLOB_VARS.INDEX_CURR:
-                lFoundCurr = False
-                if len(data[i][GLOB_VARS.INDEX_CURR].strip()) < 1:
-                    lFoundCurr = True
-                    data[i][GLOB_VARS.INDEX_CURR] = GLOB_VARS.BASE
-                    myPrint("B","Row %s, no currency specified, using base: %s" %(i+1,GLOB_VARS.BASE))
-                else:
-                    for curr in GLOB_VARS.allCurrencies:
-                        if (data[i][GLOB_VARS.INDEX_CURR].lower() == curr.getIDString().lower() or
-                                data[i][GLOB_VARS.INDEX_CURR].lower() == curr.getName().lower()):
-                            lFoundCurr = True
-                            data[i][GLOB_VARS.INDEX_CURR] = curr
-                            currToUseForCat = curr
-                            myPrint("B","Row %s, currency of matched: %s" %(i+1,curr))
+            iStartRow = 0
+            if lIE and lCategory:
+                myPrint("B","CSV header row present")
+                GLOB_VARS.csv_header_present = True
+                if not lCurrency: GLOB_VARS.INDEX_CURR = False
+                if not lTax: GLOB_VARS.INDEX_TAX = False
+                if not lInactive: GLOB_VARS.INDEX_INACT = False
+                if not lComments: GLOB_VARS.INDEX_COMMENTS = False
+                iStartRow += 1
+            else:
+                myPrint("B","No CSV header detected")
+                GLOB_VARS.csv_header_present = False
+
+            if len(data) - iStartRow < 1:
+                _msg = "ERROR: No rows of actual data detected?!"
+                myPrint("B",_msg)
+                raise Exception(_msg)
+
+            myPrint("B","Detected %s rows of data... Now analysing..." %(len(data)-iStartRow))
+
+            for i in range(iStartRow,len(data)):
+
+                if len(data[i]) < 1: continue
+
+                if not GLOB_VARS.csv_header_present:
+                    for iFields in reversed(range(GLOB_VARS.INDEX_END,len(data[i]))):
+                        if data[i][iFields] is None or data[i][iFields].strip() == "":
+                            data[i].pop(iFields)
                             break
-                if not lFoundCurr:
-                    _msg = "ERROR: Row %s, Currency of %s not matched in Moneydance?" %(i+1, data[i][GLOB_VARS.INDEX_CURR])
+                    if len(data[i]) < GLOB_VARS.INDEX_CAT+1 or len(data[i]) > GLOB_VARS.INDEX_END+1:
+                        _msg = "Error: (headless CSV) Row %s has %s columns (min %s, max %s)?" %(i+1,len(data[i]),GLOB_VARS.INDEX_CAT+1,GLOB_VARS.INDEX_END+1)
+                        myPrint("B", _msg); raise Exception(_msg)
+
+                    while len(data[i]) < GLOB_VARS.INDEX_END+1:
+                        data[i].append("")
+
+                data[i][GLOB_VARS.INDEX_IE] = data[i][GLOB_VARS.INDEX_IE].lower().strip()
+                if data[i][GLOB_VARS.INDEX_IE] != "i" and data[i][GLOB_VARS.INDEX_IE] != "e":
+                    _msg = "ERROR: Row %s, I/E mandatory field incorrect - must be 'I' or 'E'" %(i+1)
+                    myPrint("B", _msg); raise Exception(_msg)
+                else:
+                    data[i][GLOB_VARS.INDEX_IE] = lookup_account_type(data[i][GLOB_VARS.INDEX_IE])
+
+                if data[i][GLOB_VARS.INDEX_CAT].strip() is None or len(data[i][GLOB_VARS.INDEX_CAT].strip()) < 1:
+                    _msg = "ERROR: Row %s, mandatory Category Name field empty?" %(i+1)
+                    myPrint("B", _msg); raise Exception(_msg)
+                elif GLOB_VARS.theAccountDelimiter != GLOB_VARS.ACCT_DELIMITERS[0] and GLOB_VARS.ACCT_DELIMITERS[0] in data[i][GLOB_VARS.INDEX_CAT]:
+                    _msg = "ERROR: Row %s, Category cannot contain ':' when it's not the delimiter!" %(i+1)
+                    myPrint("B", _msg); raise Exception(_msg)
+                elif data[i][GLOB_VARS.INDEX_CAT].startswith(GLOB_VARS.theAccountDelimiter) or data[i][GLOB_VARS.INDEX_CAT].endswith(GLOB_VARS.theAccountDelimiter):
+                    _msg = "ERROR: Row %s, Category (%s) cannot start or end with your account delimiter (%s)!" %(i+1,data[i][GLOB_VARS.INDEX_CAT],GLOB_VARS.theAccountDelimiter)
+                    myPrint("B", _msg); raise Exception(_msg)
+                else:
+                    split_cat = data[i][GLOB_VARS.INDEX_CAT].split(GLOB_VARS.theAccountDelimiter)
+                    for iSplit in range(0,len(split_cat)):
+                        split_cat[iSplit] = split_cat[iSplit].strip()
+                        if split_cat[iSplit] == "":
+                            _msg = "ERROR: Row %s, Category (%s) cannot contain empty account strings in between your delimiters (%s)!" %(i+1,data[i][GLOB_VARS.INDEX_CAT],GLOB_VARS.theAccountDelimiter)
+                            myPrint("B", _msg); raise Exception(_msg)
+
+                    data[i][GLOB_VARS.INDEX_CAT] = GLOB_VARS.ACCT_DELIMITERS[0].join(split_cat)  # Rejoin the string with :'s (the MD default)
+
+                    # if MD_REF.getRootAccount().getAccountByName(split_cat[0],data[i][GLOB_VARS.INDEX_IE]):
+                    if find_account(split_cat[0], searchAcctType=data[i][GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter):
+                        # OK - The parent Account seems to exist already with the right Account Type
+                        pass
+                    else:
+                        # acct = MD_REF.getRootAccount().getAccountByName(split_cat[0])
+                        acct = find_account(split_cat[0], searchAcctType=None, stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter)
+                        if acct and acct.getAccountType() != data[i][GLOB_VARS.INDEX_IE]:
+                            _msg = "WARNING: Row %s, Parent Category %s already exists in MD, but it's set to %s. I am not allowing duplicate names" %(i+1,split_cat[0],acct.getAccountType())
+                            myPrint("B", _msg); raise Exception(_msg)
+
+                    # acct = MD_REF.getRootAccount().getAccountByName(data[i][GLOB_VARS.INDEX_CAT],data[i][GLOB_VARS.INDEX_IE])   # Doesn't work properly?!
+                    acct = find_account(data[i][GLOB_VARS.INDEX_CAT], searchAcctType=data[i][GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.theAccountDelimiter)
+                    if acct is not None and acct.getAccountType() == data[i][GLOB_VARS.INDEX_IE]:
+                        myPrint("B","Row %s Category Structure %s already exists..." %(i+1, data[i][GLOB_VARS.INDEX_CAT]))
+                    elif acct is not None:
+                        _msg = "WARNING: Row %s, Category structure %s already exists in MD, but it's set to %s. I am not allowing duplicate names/structures" %(i+1,data[i][GLOB_VARS.INDEX_CAT],acct.getAccountType())
+                        myPrint("B", _msg); raise Exception(_msg)
+                    else:
+                        myPrint("B","Row %s Account structure %s does not exist - Will be created..." %(i+1, data[i][GLOB_VARS.INDEX_CAT]))
+                        GLOB_VARS.accountsToCreate.append(data[i][GLOB_VARS.INDEX_CAT])
+
+                currToUseForCat = GLOB_VARS.BASE
+                if GLOB_VARS.INDEX_CURR:
+                    lFoundCurr = False
+                    if len(data[i][GLOB_VARS.INDEX_CURR].strip()) < 1:
+                        lFoundCurr = True
+                        data[i][GLOB_VARS.INDEX_CURR] = GLOB_VARS.BASE
+                        myPrint("B","Row %s, no currency specified, using base: %s" %(i+1,GLOB_VARS.BASE))
+                    else:
+                        for curr in GLOB_VARS.allCurrencies:
+                            if (data[i][GLOB_VARS.INDEX_CURR].lower() == curr.getIDString().lower() or
+                                    data[i][GLOB_VARS.INDEX_CURR].lower() == curr.getName().lower()):
+                                lFoundCurr = True
+                                data[i][GLOB_VARS.INDEX_CURR] = curr
+                                currToUseForCat = curr
+                                myPrint("B","Row %s, currency of matched: %s" %(i+1,curr))
+                                break
+                    if not lFoundCurr:
+                        _msg = "ERROR: Row %s, Currency of %s not matched in Moneydance?" %(i+1, data[i][GLOB_VARS.INDEX_CURR])
+                        myPrint("B", _msg); raise Exception(_msg)
+
+                if acct is not None and acct.getCurrencyType() != currToUseForCat:
+                    _msg = "ERROR: Row %s, Category %s already exists, but is set to different Currency (%s); you asked for %s!?" %(i+1, data[i][GLOB_VARS.INDEX_CAT],acct.getCurrencyType(), data[i][GLOB_VARS.INDEX_CURR])
                     myPrint("B", _msg); raise Exception(_msg)
 
-            if acct is not None and acct.getCurrencyType() != currToUseForCat:
-                _msg = "ERROR: Row %s, Category %s already exists, but is set to different Currency (%s); you asked for %s!?" %(i+1, data[i][GLOB_VARS.INDEX_CAT],acct.getCurrencyType(), data[i][GLOB_VARS.INDEX_CURR])
-                myPrint("B", _msg); raise Exception(_msg)
 
-
-            if GLOB_VARS.INDEX_TAX:
-                data[i][GLOB_VARS.INDEX_TAX] = data[i][GLOB_VARS.INDEX_TAX].lower().strip()
-                if len(data[i][GLOB_VARS.INDEX_TAX].strip()) < 1:
-                    data[i][GLOB_VARS.INDEX_TAX] = False
-                else:
-                    if data[i][GLOB_VARS.INDEX_TAX] != "y" and data[i][GLOB_VARS.INDEX_TAX] != "n":
-                        _msg = "ERROR: Row %s, optional TaxRelated field incorrect - must be 'Y' or 'N'" %(i+1)
-                        myPrint("B", _msg); raise Exception(_msg)
-                    if data[i][GLOB_VARS.INDEX_TAX] == "y":
-                        data[i][GLOB_VARS.INDEX_TAX] = True
-                    else:
+                if GLOB_VARS.INDEX_TAX:
+                    data[i][GLOB_VARS.INDEX_TAX] = data[i][GLOB_VARS.INDEX_TAX].lower().strip()
+                    if len(data[i][GLOB_VARS.INDEX_TAX].strip()) < 1:
                         data[i][GLOB_VARS.INDEX_TAX] = False
-
-            if GLOB_VARS.INDEX_INACT:
-                data[i][GLOB_VARS.INDEX_INACT] = data[i][GLOB_VARS.INDEX_INACT].lower().strip()
-                if len(data[i][GLOB_VARS.INDEX_INACT].strip()) < 1:
-                    data[i][GLOB_VARS.INDEX_INACT] = False
-                else:
-                    if data[i][GLOB_VARS.INDEX_INACT] != "y" and data[i][GLOB_VARS.INDEX_INACT] != "n":
-                        _msg = "ERROR: Row %s, optional Inactive field incorrect - must be 'Y' or 'N'" %(i+1)
-                        myPrint("B", data[i][GLOB_VARS.INDEX_INACT])
-                        myPrint("B", data[i])
-                        myPrint("B", _msg); raise Exception(_msg)
-                    if data[i][GLOB_VARS.INDEX_INACT] == "y":
-                        data[i][GLOB_VARS.INDEX_INACT] = True
                     else:
+                        if data[i][GLOB_VARS.INDEX_TAX] != "y" and data[i][GLOB_VARS.INDEX_TAX] != "n":
+                            _msg = "ERROR: Row %s, optional TaxRelated field incorrect - must be 'Y' or 'N'" %(i+1)
+                            myPrint("B", _msg); raise Exception(_msg)
+                        if data[i][GLOB_VARS.INDEX_TAX] == "y":
+                            data[i][GLOB_VARS.INDEX_TAX] = True
+                        else:
+                            data[i][GLOB_VARS.INDEX_TAX] = False
+
+                if GLOB_VARS.INDEX_INACT:
+                    data[i][GLOB_VARS.INDEX_INACT] = data[i][GLOB_VARS.INDEX_INACT].lower().strip()
+                    if len(data[i][GLOB_VARS.INDEX_INACT].strip()) < 1:
                         data[i][GLOB_VARS.INDEX_INACT] = False
+                    else:
+                        if data[i][GLOB_VARS.INDEX_INACT] != "y" and data[i][GLOB_VARS.INDEX_INACT] != "n":
+                            _msg = "ERROR: Row %s, optional Inactive field incorrect - must be 'Y' or 'N'" %(i+1)
+                            myPrint("B", data[i][GLOB_VARS.INDEX_INACT])
+                            myPrint("B", data[i])
+                            myPrint("B", _msg); raise Exception(_msg)
+                        if data[i][GLOB_VARS.INDEX_INACT] == "y":
+                            data[i][GLOB_VARS.INDEX_INACT] = True
+                        else:
+                            data[i][GLOB_VARS.INDEX_INACT] = False
 
-            if GLOB_VARS.INDEX_COMMENTS:
-                pass
+                if GLOB_VARS.INDEX_COMMENTS:
+                    pass
 
-    def create_categories():
+        def create_categories():
 
-        myPrint("B", "Sorting CSV import table....")
-        new_data = []
+            myPrint("B", "Sorting CSV import table....")
+            new_data = []
 
-        iStart = 0
-        if GLOB_VARS.csv_header_present: iStart += 1
+            iStart = 0
+            if GLOB_VARS.csv_header_present: iStart += 1
 
-        # Preserve the row numbers and shift the field indexes... Skip blank rows
-        for i in range(iStart,len(GLOB_VARS.data)):
-            if len(GLOB_VARS.data[i]) > 0:
-                new_row = list(GLOB_VARS.data[i])
-                new_row.insert(0,i)
-                new_data.append(new_row)
+            # Preserve the row numbers and shift the field indexes... Skip blank rows
+            for i in range(iStart,len(GLOB_VARS.data)):
+                if len(GLOB_VARS.data[i]) > 0:
+                    new_row = list(GLOB_VARS.data[i])
+                    new_row.insert(0,i)
+                    new_data.append(new_row)
 
-        GLOB_VARS.INDEX_IE += 1
-        GLOB_VARS.INDEX_CAT += 1
-        if GLOB_VARS.INDEX_CURR: GLOB_VARS.INDEX_CURR += 1
-        if GLOB_VARS.INDEX_TAX: GLOB_VARS.INDEX_TAX += 1
-        if GLOB_VARS.INDEX_INACT: GLOB_VARS.INDEX_INACT += 1
-        if GLOB_VARS.INDEX_COMMENTS: GLOB_VARS.INDEX_COMMENTS += 1
-        if GLOB_VARS.INDEX_END: GLOB_VARS.INDEX_END += 1
+            GLOB_VARS.INDEX_IE += 1
+            GLOB_VARS.INDEX_CAT += 1
+            if GLOB_VARS.INDEX_CURR: GLOB_VARS.INDEX_CURR += 1
+            if GLOB_VARS.INDEX_TAX: GLOB_VARS.INDEX_TAX += 1
+            if GLOB_VARS.INDEX_INACT: GLOB_VARS.INDEX_INACT += 1
+            if GLOB_VARS.INDEX_COMMENTS: GLOB_VARS.INDEX_COMMENTS += 1
+            if GLOB_VARS.INDEX_END: GLOB_VARS.INDEX_END += 1
 
-        new_data = sorted(new_data, key=lambda x: (x[GLOB_VARS.INDEX_CAT].upper()))
+            new_data = sorted(new_data, key=lambda x: (x[GLOB_VARS.INDEX_CAT].upper()))
 
-        saveCreated = ""
+            saveCreated = ""
 
-        for row in new_data:
+            for row in new_data:
 
-            split_cat = row[GLOB_VARS.INDEX_CAT].split(GLOB_VARS.ACCT_DELIMITERS[0])
+                split_cat = row[GLOB_VARS.INDEX_CAT].split(GLOB_VARS.ACCT_DELIMITERS[0])
 
-            defaultParent = MD_REF.getRootAccount()
+                defaultParent = MD_REF.getRootAccount()
 
-            onLevel = 0
-            catBuilder = ""
-            for createCat in split_cat:
-                catBuilder += createCat
+                onLevel = 0
+                catBuilder = ""
+                for createCat in split_cat:
+                    catBuilder += createCat
 
-                # acct = defaultParent.getAccountByName(catBuilder,row[GLOB_VARS.INDEX_IE])     # Does not work properly?
-                acct = find_account(catBuilder, searchAcctType=row[GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.ACCT_DELIMITERS[0])
-                if acct is not None and acct.getAccountType() != row[GLOB_VARS.INDEX_IE]: acct = None
+                    # acct = defaultParent.getAccountByName(catBuilder,row[GLOB_VARS.INDEX_IE])     # Does not work properly?
+                    acct = find_account(catBuilder, searchAcctType=row[GLOB_VARS.INDEX_IE], stripSpareSpaces=True, disregardCase=True, yourDelimiter=GLOB_VARS.ACCT_DELIMITERS[0])
+                    if acct is not None and acct.getAccountType() != row[GLOB_VARS.INDEX_IE]: acct = None
 
-                if acct:
-                    defaultParent = acct
+                    if acct:
+                        defaultParent = acct
 
-                else:
+                    else:
 
-                    curr = GLOB_VARS.BASE
-                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_CURR: curr = row[GLOB_VARS.INDEX_CURR]
+                        curr = GLOB_VARS.BASE
+                        if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_CURR: curr = row[GLOB_VARS.INDEX_CURR]
 
-                    inactive = False
-                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_INACT: inactive = row[GLOB_VARS.INDEX_INACT]
+                        inactive = False
+                        if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_INACT: inactive = row[GLOB_VARS.INDEX_INACT]
 
-                    taxR = False
-                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_TAX: taxR = row[GLOB_VARS.INDEX_TAX]
+                        taxR = False
+                        if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_TAX: taxR = row[GLOB_VARS.INDEX_TAX]
 
-                    comments = ""
-                    if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_COMMENTS: comments = row[GLOB_VARS.INDEX_COMMENTS]
+                        comments = ""
+                        if not GLOB_VARS.csv_header_present or GLOB_VARS.INDEX_COMMENTS: comments = row[GLOB_VARS.INDEX_COMMENTS]
 
-                    newCat = Legacy.makeAccount(MD_REF.getCurrentAccountBook(),                                         # noqa
-                                                createCat,
-                                                -1,
-                                                row[GLOB_VARS.INDEX_IE],
-                                                curr,
-                                                None,
-                                                None,
-                                                defaultParent,
-                                                0L)
+                        newCat = Legacy.makeAccount(MD_REF.getCurrentAccountBook(),                                         # noqa
+                                                    createCat,
+                                                    -1,
+                                                    row[GLOB_VARS.INDEX_IE],
+                                                    curr,
+                                                    None,
+                                                    None,
+                                                    defaultParent,
+                                                    0L)
 
-                    # Only set these flags on the final level.. Assume the parent levels do not need these...
-                    if onLevel >= len(split_cat)-1:
-                        if inactive: newCat.setAccountIsInactive(inactive)
-                        if taxR: newCat.setTaxRelated(taxR)
-                        if comments != "": newCat.setComment(comments)
+                        # Only set these flags on the final level.. Assume the parent levels do not need these...
+                        if onLevel >= len(split_cat)-1:
+                            if inactive: newCat.setAccountIsInactive(inactive)
+                            if taxR: newCat.setTaxRelated(taxR)
+                            if comments != "": newCat.setComment(comments)
 
-                    newCat.syncItem()
-                    defaultParent = newCat                                                                              # noqa
+                        newCat.syncItem()
+                        defaultParent = newCat                                                                              # noqa
 
-                    myPrint("B","Created %s Category: %s (%s)" %(row[GLOB_VARS.INDEX_IE], newCat.getFullAccountName(), curr))
-                    saveCreated += "Created %s Category: %s (%s)\n" %(row[GLOB_VARS.INDEX_IE], newCat.getFullAccountName(), curr)
+                        myPrint("B","Created %s Category: %s (%s)" %(row[GLOB_VARS.INDEX_IE], newCat.getFullAccountName(), curr))
+                        saveCreated += "Created %s Category: %s (%s)\n" %(row[GLOB_VARS.INDEX_IE], newCat.getFullAccountName(), curr)
 
-                onLevel += 1
-                catBuilder += GLOB_VARS.ACCT_DELIMITERS[0]
+                    onLevel += 1
+                    catBuilder += GLOB_VARS.ACCT_DELIMITERS[0]
 
-        return saveCreated
+            return saveCreated
 
 
-    if not myPopupAskQuestion(None, "BACKUP", "IMPORT CATEGORIES FROM CSV >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
-        alert = "BACKUP FIRST! PLEASE USE FILE>EXPORT BACKUP then come back!! - No changes made."
-        myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
-        raise Exception(alert)
+        if not myPopupAskQuestion(None, "BACKUP", "IMPORT CATEGORIES FROM CSV >> HAVE YOU DONE A GOOD BACKUP FIRST?", theMessageType=JOptionPane.WARNING_MESSAGE):
+            alert = "BACKUP FIRST! PLEASE USE FILE>EXPORT BACKUP then come back!! - No changes made."
+            myPopupInformationBox(None, alert, theMessageType=JOptionPane.ERROR_MESSAGE)
+            del GLOB_VARS
+            raise Exception(alert)
 
-    theFile = grabTheFile()
-    if not theFile:
-        raise Exception("No valid file selected or user aborted....")
+        theFile = grabTheFile()
+        if not theFile:
+            del GLOB_VARS
+            raise Exception("No valid file selected or user aborted....")
 
-    get_field_delimiter()
-    get_account_delimiter()
+        get_field_delimiter()
+        get_account_delimiter()
 
-    get_import_data()
+        get_import_data()
 
-    load_currencies()
-    validate_csv_data()
+        load_currencies()
+        validate_csv_data()
 
-    if len(GLOB_VARS.accountsToCreate) < 1:
-        msg = "There are no Categories to be created.... Will exit..."
-        myPrint("B", msg); myPopupInformationBox(None, msg, theMessageType=JOptionPane.WARNING_MESSAGE)
-
-    else:
-        myPrint("B","%s Category structures will be created if user proceeds..." %(len(GLOB_VARS.accountsToCreate)))
-        msg = "%s Category structures will be created - do you wish to continue?" %(len(GLOB_VARS.accountsToCreate))
-        if myPopupAskQuestion(None, "PROCEED?", msg):
-
-            outputX = "IMPORT_CATEGORIES:\n" \
-                     "------------------\n\n" \
-                     "The following categories have been created:\n\n"
-
-            outputX += create_categories()
-
-            outputX += "\n<END>\n"
-
-            jif = QuickJFrame("IMPORT_CATEGORIES", outputX).show_the_frame()
-            msg = "SUCCESS. REVIEW OUTPUT - Then check your categories"
-            myPrint("B", msg); myPopupInformationBox(jif, msg, theMessageType=JOptionPane.INFORMATION_MESSAGE)
+        if len(GLOB_VARS.accountsToCreate) < 1:
+            msg = "There are no Categories to be created.... Will exit..."
+            myPrint("B", msg); myPopupInformationBox(None, msg, theMessageType=JOptionPane.WARNING_MESSAGE)
 
         else:
-            msg = "User declined to proceed to create %s Categories - Exiting...." %(len(GLOB_VARS.accountsToCreate))
-            myPrint("B", msg); myPopupInformationBox(None, msg, theMessageType=JOptionPane.ERROR_MESSAGE)
+            myPrint("B","%s Category structures will be created if user proceeds..." %(len(GLOB_VARS.accountsToCreate)))
+            msg = "%s Category structures will be created - do you wish to continue?" %(len(GLOB_VARS.accountsToCreate))
+            if myPopupAskQuestion(None, "PROCEED?", msg):
+
+                outputX = "IMPORT_CATEGORIES:\n" \
+                         "------------------\n\n" \
+                         "The following categories have been created:\n\n"
+
+                outputX += create_categories()
+
+                outputX += "\n<END>\n"
+
+                jif = QuickJFrame("IMPORT_CATEGORIES", outputX).show_the_frame()
+                msg = "SUCCESS. REVIEW OUTPUT - Then check your categories"
+                myPrint("B", msg); myPopupInformationBox(jif, msg, theMessageType=JOptionPane.INFORMATION_MESSAGE)
+
+            else:
+                msg = "User declined to proceed to create %s Categories - Exiting...." %(len(GLOB_VARS.accountsToCreate))
+                myPrint("B", msg); myPopupInformationBox(None, msg, theMessageType=JOptionPane.ERROR_MESSAGE)
+
+    finally:
+
+        if "GLOB_VARS" in globals(): del GLOB_VARS
 
     cleanup_actions()

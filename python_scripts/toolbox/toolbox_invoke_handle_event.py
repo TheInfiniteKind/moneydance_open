@@ -62,7 +62,7 @@ try:
         _specialPrint("EVENT HANDLING IS DISABLED >> WILL IGNORE THIS EVENT..... (was passed '%s', Command: '%s', Parameter: '%s')" %(moneydance_extension_parameter, cmd, cmdParam))
         raise _QuickAbortThisScriptException
 
-    respondToMDEvents = [AppEventManager.FILE_OPENED, AppEventManager.FILE_CLOSING]
+    respondToMDEvents = [AppEventManager.FILE_OPENED, AppEventManager.FILE_CLOSING, AppEventManager.FILE_AFTER_SAVE]
 
     lInvoke = lQuitAfter = lHandleEvent = False
     if moneydance_extension_parameter.startswith("md:"):

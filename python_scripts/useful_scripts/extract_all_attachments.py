@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_all_attachments.py build: 22 - Jan 2021 to Aug 2023 - Stuart Beesley StuWareSoftSystems
+# extract_all_attachments.py build: 23 - Jan 2021 to Sept 2023 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -42,6 +42,7 @@
 # build: 20 - Fixes for MD2023.0(5000) Kotlin compiled builds....
 # build: 21 - Common code tweaks
 # build: 22 - Common code tweaks
+# build: 23 - Tweaks
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -49,7 +50,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_all_attachments"
-version_build = "22"
+version_build = "23"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -60,6 +61,15 @@ if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy o
 if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
 if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
+
+# Nuke unwanted (direct/indirect) reference(s) to AccountBook etc....
+if "moneydance_data" in globals():
+    moneydance_data = None
+    del moneydance_data
+
+if "moneybot" in globals():
+    moneybot = None
+    del moneybot
 
 from java.lang import Boolean
 global debug
@@ -3082,6 +3092,7 @@ Visit: %s (Author's site)
                         MDIOUtils.copyStream(inStream, outStream)
                         outStream.close()
                         inStream.close()
+                        del inStream, outStream
                         textRecords.append([txn.getAccount().getAccountType(), txn.getAccount().getAccountName(), txn.getDateInt(),
                                            "%s %s %s %s %s .%s\n"
                                            %(pad(str(txn.getAccount().getAccountType()),15),pad(txn.getAccount().getAccountName(),30),txn.getDateInt(),rpad(txn.getValue()/100.0,10),pad(txn.getDescription(),20),outputPath[len(exportFolder):])])
@@ -3090,9 +3101,14 @@ Visit: %s (Author's site)
                         textLog+=("Error extracting file - will SKIP : %s\n" %(outputPath))
                         iSkip+=1
 
+        txn = None; del txn
+        del txnSet
+
         textRecords = sorted(textRecords, key=lambda _sort: (_sort[0],_sort[1],_sort[2]))
-        for r in textRecords:
-            textLog+=r[3]
+        for _r in textRecords:
+            textLog += _r[3]
+            del _r
+        del textRecords
 
         if iSkip:
             textLog+="\nERRORS/SKIPPED: %s (review console log for details)\n" %(iSkip)
@@ -3100,19 +3116,16 @@ Visit: %s (Author's site)
         textLog+="\n<END>"
 
         try:
-            log=open(os.path.join(exportFolder,"Extract_Attachments_LOG.txt"), "w")
+            log = open(os.path.join(exportFolder,"Extract_Attachments_LOG.txt"), "w")
             log.write(textLog)
             log.close()
-        except:
-            pass
+            del log
+        except: pass
 
         myPopupInformationBox(None,"I have extracted %s attachments for you.." %(iCountAttachments))
 
-        try:
-            helper = MD_REF.getPlatformHelper()
-            helper.openDirectory(File(exportFolder))
-        except:
-            pass
+        try: MD_REF.getPlatformHelper().openDirectory(File(exportFolder))
+        except: pass
 
     myPrint("P")
     myPrint("P")
