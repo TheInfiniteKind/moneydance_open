@@ -290,6 +290,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - Allows User to Add/Change/Delete Settings/Prefs >> key/value in config.dict or LocalStorage() (./safe/settings)
         - Allows User to Add/Change/Delete an Object's Parameter keys (this can change data in your dataset/database directly)
         - Suppress the "Your file seems to be in a shared folder (Dropbox)" warning... (optional when condition exists)
+        - Show your encryption keys, and the Moneydance encryption methodology (use with care)
 
 CMD-P - View Toolbox's parameters file (StuWareSoftSystems). Also allows user to Delete all, and/or change/delete single saved parameters
 

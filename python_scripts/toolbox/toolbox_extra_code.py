@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_extra_code.py build: 1000 - July 2023 onwards - Stuart Beesley StuWareSoftSystems
+# toolbox_extra_code.py build: 1001 - Sept 2023 onwards - Stuart Beesley StuWareSoftSystems
 
 # To avoid the dreaded issue below, moving some code here....:
 # java.lang.RuntimeException: java.lang.RuntimeException: For unknown reason, too large method code couldn't be resolved
 
 # build: 1000 - NEW SCRIPT
 #               Rebuilt all the encrypt/decrypt file to/from Dataset/Sync... Now can access Dropbox Cloud Sync files online too...
-
+# build: 1001 - Show encryption details report added - advanced_show_encryption_keys() ...
 ###############################################################################
 # MIT License
 #
@@ -39,8 +39,7 @@
 global os
 
 # Moneydance definitions
-global AccountBookWrapper, Common, GridC, MDIOUtils
-global isKotlinCompiledBuild, convertBufferedSourceToInputStream
+global AccountBookWrapper, Common, GridC, MDIOUtils, StringUtils
 
 # Java definitions
 global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System, String
@@ -51,16 +50,18 @@ global Paths, Files, StandardCopyOption, Charset
 # My definitions
 global toolbox_frame_
 global MD_REF, GlobalVars, debug, myPrint, QuickAbortThisScriptException
-global myPopupInformationBox, getFileFromFileChooser, get_home_dir, invokeMethodByReflection, myPopupAskQuestion
+global myPopupInformationBox, getFileFromFileChooser, get_home_dir, myPopupAskQuestion
+global invokeMethodByReflection, getFieldByReflection, setFieldByReflection
 global MyPopUpDialogBox, logToolboxUpdates, file_chooser_wrapper, dump_sys_error_to_md_console_and_errorlog
 global get_sync_folder, pad, setDisplayStatus, doesUserAcceptDisclaimer, get_time_stamp_as_nice_text
 global MyJScrollPaneForJOptionPane, getMDIcon, QuickJFrame
 global genericSwingEDTRunner, genericThreadRunner
 global getColorBlue, getColorRed, getColorDarkGreen, MoneybotURLDebug
-
+global isKotlinCompiledBuild, convertBufferedSourceToInputStream
 
 # New definitions
-from com.moneydance.apps.md.controller.sync import AbstractSyncFolder
+from com.moneydance.apps.md.controller.sync import AbstractSyncFolder, MDSyncCipher
+from com.moneydance.apps.md.controller import LocalStorageCipher
 from javax.swing import DefaultListModel
 from java.lang import InterruptedException
 from java.util.concurrent import CancellationException
@@ -198,7 +199,8 @@ try:
         txt = "File '%s' imported/encrypted into Dataset/tmp/encrypted dir" %(selectedFile)
         setDisplayStatus(txt, "B")
         myPopupInformationBox(toolbox_frame_, txt, theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.INFORMATION_MESSAGE)
-        MD_REF.getPlatformHelper().openDirectory(File(os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), AccountBookWrapper.SAFE_SUBFOLDER_NAME, tmpFile.replace("/", os.path.sep))))
+        try: MD_REF.getPlatformHelper().openDirectory(File(os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), AccountBookWrapper.SAFE_SUBFOLDER_NAME, tmpFile.replace("/", os.path.sep))))
+        except: myPrint("B", "@@ ERROR: - Failed to open file/folder?")
 
     def advanced_options_encrypt_file_into_sync_folder():
         _THIS_METHOD_NAME = "ADVANCED: IMPORT/ENCRYPT INTO SYNC FOLDER"
@@ -272,7 +274,8 @@ try:
             except: syncFolderOnDiskOrURL = "<ERROR DERIVING SYNC FOLDER LOCATION>"
 
             myPrint("B", "%s: SUCCESS importing/encrypting file: '%s' into Sync/tmp/encrypted folder ('%s')!" %(_THIS_METHOD_NAME, selectedFile, syncFolderOnDiskOrURL))
-            MD_REF.getPlatformHelper().openDirectory(File(syncFolderOnDiskOrURL))
+            try: MD_REF.getPlatformHelper().openDirectory(File(syncFolderOnDiskOrURL))
+            except: myPrint("B", "@@ ERROR: - Failed to open file/folder?")
 
     def advanced_options_decrypt_file_from_dataset():
         _THIS_METHOD_NAME = "ADVANCED: EXTRACT/DECRYPT FROM DATASET"
@@ -391,8 +394,11 @@ try:
             setDisplayStatus(txt, "B")
             myPopupInformationBox(toolbox_frame_, txt, theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.INFORMATION_MESSAGE)
 
-            MD_REF.getPlatformHelper().openDirectory(tmpFile)
-            if lAttemptOpen: Desktop.getDesktop().open(tmpFile)
+            try: MD_REF.getPlatformHelper().openDirectory(tmpFile)
+            except: myPrint("B", "@@ ERROR: - Failed to open file/folder?")
+            if lAttemptOpen:
+                try: Desktop.getDesktop().open(tmpFile)
+                except: myPrint("B", "@@ ERROR: - Failed to open file/folder?")
 
     def advanced_options_decrypt_file_from_sync():
         _THIS_METHOD_NAME = "ADVANCED: EXTRACT/DECRYPT FROM SYNC FOLDER"
@@ -651,8 +657,11 @@ try:
             setDisplayStatus(txt, "B"); myPrint("B", txt)
             myPopupInformationBox(toolbox_frame_, txt, theTitle=_THIS_METHOD_NAME)
 
-            MD_REF.getPlatformHelper().openDirectory(tmpCopyFile)
-            if lAttemptOpen: Desktop.getDesktop().open(tmpCopyFile)
+            try: MD_REF.getPlatformHelper().openDirectory(tmpCopyFile)
+            except: myPrint("B", "@@ ERROR: - Failed to open file/folder?")
+            if lAttemptOpen:
+                try: Desktop.getDesktop().open(tmpCopyFile)
+                except: myPrint("B", "@@ ERROR: - Failed to open file/folder?")
 
     def advanced_options_decrypt_dataset():
         _THIS_METHOD_NAME = "ADVANCED: EXTRACT/DECRYPT ENTIRE DATASET"
@@ -728,6 +737,118 @@ try:
 
         try: MD_REF.getPlatformHelper().openDirectory(decryptionFolder)
         except: pass
+
+    def advanced_show_encryption_keys(justReturnKeys=False):
+        _THIS_METHOD_NAME = "ADVANCED: SHOW ENCRYPTION KEYS"
+
+        methodology =\
+"""
+#################################################################################################################################################################
+#################################################################################################################################################################
+    
+    METHODOLOGY:
+    
+    The core encryption specification used, along with the Salt, IV, Iteration Count and Key length are the same for dataset('Local Storage') and Sync.
+    - AES (aes-128-cbc) >> Advanced Encryption Standard - 128 bit - Cipher Block Chaining (symmetric algorithm)
+                        for more details: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+                                          https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher-block_chaining_(CBC)
+                                          https://en.wikipedia.org/wiki/Symmetric-key_algorithm
+       - Salt - fixed 14-byte value (stored within the Moneydance source code):                 https://en.wikipedia.org/wiki/Salt_(cryptography)
+       - Initialization vector (IV) - fixed 16-byte value (within the Moneydance source code):  https://en.wikipedia.org/wiki/Initialization_vector
+       - PBE Iteration count: 1024, PBE Key length: 128
+       - When deriving the password-based key, dataset uses SHA512 whereas Sync uses SHA1.
+    ##################
+    INITIALISATION OF NEW DATASET (and therefore a new encryption key):
+    Simplistically:  *password >derive> ^password-key >encrypt ~dataset-key> %encrypted-dataset-key >encode hex> @hex-encrypted-dataset-key >store> key file
+                     ~dataset-key >encrypt> dataset file(s)
+    1. Generate new secure random number (cryptographically strong, non-deterministic, self-seeding, random number generator)
+       >> This is the dataset's core cryptographic ~dataset-key used for encryption. This key NEVER changes <<
+    2. Obtain the default (internal) 51-character *password (fixed/stored within the Moneydance source code)
+    3. Derive the *password based cryptographic ^password-key, using Password-Based Encryption (PBE), with algorithm: "PBKDF2WithHmacSHA512"  (DIFFERENT to B below).
+              PBKDF2: Password-Based Key Derivation Function 2:                   https://en.wikipedia.org/wiki/PBKDF2
+              HMAC:   keyed-hash message authentication code:                     https://en.wikipedia.org/wiki/HMAC
+              SHA-2   (Secure Hash Algorithm 2 - 512 bit digest (hash values):    https://en.wikipedia.org/wiki/SHA-2
+              PBE:    with salt, iteration: 1024, key length: 128
+    4. Using the default *password derived ^password-key...:
+              - encrypt the dataset's core encryption ~dataset-key using algorithm "AES/CBC/PKCS5Padding" with the fixed IV
+                  Cipher Block Chaining (symmetric algorithm)
+                  PKCS#5 Padding: https://en.wikipedia.org/wiki/Padding_(cryptography)#PKCS#5_and_PKCS#7
+                  >> This is the %encrypted-dataset-key <<
+       - Encode the %encrypted-dataset-key into @hex-encrypted-dataset-key
+       - Store the @hex-encrypted-dataset-key with the "key" field in the plain text 'dataset/key' file and write to disk.
+    
+    >> The *password can be changed by the user at any time. Once changed, then steps 3 & 4 above are repeated.
+       NOTE: The actual ~dataset-key never changes...
+    
+    >> To decrypt dataset files:
+                  - perform step 3 using current *password to derive ^password-key.
+                  - then reverse step 4 to obtain the ~dataset-key
+                  - then decrypt file(s)
+    
+    ##################
+    SYNC Encryption:
+    Simplistically: Uses a simpler approach of +*sync-password >derive> +~sync-key using the same AES, Salt, IV, Iteration count, key length settings
+    A. The user always creates the Sync +*sync-password when sync is first setup. NOTE: This is also stored within the dataset.
+    B. Derive the +*sync-password based cryptographic +~sync-key, using Password-Based Encryption (PBE), with algorithm: "PBKDF2WithHmacSHA1" (DIFFERENT to 3 above).
+              PBKDF2: Password-Based Key Derivation Function 2:
+              HMAC:   keyed-hash message authentication code:
+              SHA-1   (Secure Hash Algorithm 1 - 160-bit / 20-byte digest (hash values):    https://en.wikipedia.org/wiki/SHA-1
+              PBE:    with salt, iteration: 1024, key length: 128
+    C. Using the +*sync-password derived +~sync-key...:
+              - encrypt sync file using algorithm "AES/CBC/PKCS5Padding" with the fixed IV
+                  Cipher Block Chaining (symmetric algorithm)
+                  PKCS#5 Padding:
+#################################################################################################################################################################
+#################################################################################################################################################################
+"""
+
+        localKeyHex = syncKeyHex = None
+        try:
+            wrapper = MD_REF.getCurrentAccounts()
+            if wrapper is None:
+                raise Exception("ERROR: Wrapper is none")
+
+            localKeyHex = StringUtils.encodeHex(getFieldByReflection(getFieldByReflection(wrapper, "cipher"), "secretKey").getEncoded(), False)
+            local_aes_iv_hex = StringUtils.encodeHex(getFieldByReflection(LocalStorageCipher, "aes_iv"), False)
+            sync_aes_iv_hex = StringUtils.encodeHex(getFieldByReflection(MDSyncCipher, "aes_iv"), False)
+
+            syncFolder = wrapper.getSyncFolder()
+            if syncFolder is not None:
+                syncKeyHex = StringUtils.encodeHex(getFieldByReflection(MDSyncCipher.getSyncCipher(wrapper.getSyncEncryptionPassword()), "secretKey").getEncoded(), False)
+            del syncFolder, wrapper
+
+            output = "%s:\n" \
+                     "%s\n\n" %(_THIS_METHOD_NAME, "-" * len(_THIS_METHOD_NAME))
+
+            output += "CONFIDENTIAL - DO NOT SHARE THIS INFORMATION UNLESS NECESSARY - STORE IN A SECURE LOCATION!\n\n"
+            output += "Your dataset's local storage encryption key (hex): '%s'\n" %(localKeyHex)
+            output += "Your sync encryption key (hex):                    '%s'\n" %("SYNC NOT ENABLED" if syncKeyHex is None else syncKeyHex)
+            output += "\n\n"
+
+            output += "Refer: '%s' ... to decrypt files from the command line (example):\n" %("https://wiki.openssl.org/index.php/Enc\n")
+            output += "Dataset files:     openssl enc -aes-128-cbc -d -K %s -iv %s -in encryptedfile.txt -out decryptedfile.txt\n" %(localKeyHex, local_aes_iv_hex)
+            output += "Sync folder files: openssl enc -aes-128-cbc -d -K %s -iv %s -in encryptedfile.txt -out decryptedfile.txt\n" %(syncKeyHex, sync_aes_iv_hex)
+            del local_aes_iv_hex, sync_aes_iv_hex
+
+            output += "\n\n"
+
+            output += methodology
+            output += "\n<END>"
+            del methodology
+
+
+            if not justReturnKeys:
+                QuickJFrame(_THIS_METHOD_NAME, output, lAlertLevel=1, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lJumpToEnd=False, lWrapText=False).show_the_frame()
+            del output
+
+        except:
+            txt = "ERROR getting encryption details !? (review console)"
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            dump_sys_error_to_md_console_and_errorlog()
+            if not justReturnKeys:
+                myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
+
+        return localKeyHex, syncKeyHex
 
 
     _extra_code_initialiser()

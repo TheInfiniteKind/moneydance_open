@@ -44,6 +44,8 @@
 # build: 1007 - Common code tweaks
 # build: 1008 - Cleanup references to MD Objects
 
+# todo - hunt down why something retains a reference to MD object..?
+
 # todo - Memorise (save versions) along with choose/delete etc saved versions
 # todo - add markers for splits, buy/sells
 
@@ -542,7 +544,7 @@ Visit: %s (Author's site)
             printString = ""
             for what in args:
                 printString += "%s " %what
-            printString = printString.strip()
+            printString = printString.rstrip(" ")
 
             if where == "P" or where == "B" or where[0] == "D":
                 if not GlobalVars.i_am_an_extension_so_run_headless:
@@ -559,7 +561,7 @@ Visit: %s (Author's site)
                     System.err.write(printString)
                     System.err.write("\n")
                 except:
-                    System.err.write(GlobalVars.thisScriptName + ":" + dt + ": "+"Error writing to console")
+                    System.err.write(GlobalVars.thisScriptName + ":" + dt + ": " + "Error writing to console")
                     dump_sys_error_to_md_console_and_errorlog()
 
         except IllegalArgumentException:
