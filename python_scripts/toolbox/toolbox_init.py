@@ -199,9 +199,9 @@ def _observeMoneydanceObjects(_observedBooksRef, _init=False):
     wr_syncerThreads = []
 
     if _wrapper is None and _book is None:
-        if debug: _specialPrint("OBSERVED - Wrapper and Book are None - ignoring...")
+        _specialPrint("OBSERVED - Wrapper and Book are None - ignoring...")
     elif _wrapper is None or _book is None:
-        if debug: _specialPrint("@@ OBSERVED - LOGIC ERROR - Somehow Wrapper(%s) or Book(%s) are None - ignoring @@" %("None" if _wrapper is None else "not none", _book))
+        _specialPrint("@@ OBSERVED - LOGIC ERROR - Somehow Wrapper(%s) or Book(%s) are None - ignoring @@" %("None" if _wrapper is None else "not none", _book))
     else:
         lFoundRef = False
         iFoundObserved = -1
@@ -258,16 +258,15 @@ def _observeMoneydanceObjects(_observedBooksRef, _init=False):
 
         del _foundRefObjects
 
-    if debug:
-        _specialPrint("OBSERVED - Observer now contains %s entries)" %(len(_ALL_OBSERVED_BOOKS)))
-        for _foundRefObjects in _ALL_OBSERVED_BOOKS:
-            _specialPrint("...OBSERVED ENTRY: wrapper: (@%s) book: '%s'(@%s), syncer: %s. syncerThreads: %s"
-                          %(Integer.toHexString(System.identityHashCode(_foundRefObjects[_WRAPPERIDX].get())),
-                            _foundRefObjects[_BOOKIDX].get(),
-                            Integer.toHexString(System.identityHashCode(_foundRefObjects[_BOOKIDX].get())),
-                            _foundRefObjects[_SYNCERIDX].get(),
-                            [_st.get() for _st in _foundRefObjects[_SYNCTASKSIDX]]))
-            del _foundRefObjects
+    _specialPrint("OBSERVED - Observer now contains %s entries)" %(len(_ALL_OBSERVED_BOOKS)))
+    for _foundRefObjects in _ALL_OBSERVED_BOOKS:
+        _specialPrint("...OBSERVED ENTRY: wrapper: (@%s) book: '%s'(@%s), syncer: %s. syncerThreads: %s"
+                      %(Integer.toHexString(System.identityHashCode(_foundRefObjects[_WRAPPERIDX].get())),
+                        _foundRefObjects[_BOOKIDX].get(),
+                        Integer.toHexString(System.identityHashCode(_foundRefObjects[_BOOKIDX].get())),
+                        _foundRefObjects[_SYNCERIDX].get(),
+                        [_st.get() for _st in _foundRefObjects[_SYNCTASKSIDX]]))
+        del _foundRefObjects
 
     del _wrapper, _book, _syncer, wr_syncerThreads
 
