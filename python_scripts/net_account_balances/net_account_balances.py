@@ -139,6 +139,7 @@
 # build: 1030 - Added adjust final calculation by feature/option. Fixed broken calls to UnloadUninstallSwingWorker() - replaced with call via EDT
 #               Improved visibility of Uninstall and Deactivate extension menu items when toggling debug....
 #               Added ability to select Tax Dates for expense/income category selections... Requested by: avp2(avp2@almont.com)
+#               Added [row] number to widget display when debug mode...
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -10523,6 +10524,10 @@ Visit: %s (Author's site)
             self.ui = GlobalVars.CONTEXT.getUI()
             self.mono = self.ui.getFonts().mono
             self.originalRowText = _rowText
+            self.originalSmallText = _smallText
+            self.originalSmallColor = _smallColor
+            self.originalStripBigChars = stripBigChars
+            self.originalStripSmallChars = stripSmallChars
             self.swingComponentText = None
             self.color = None
             self.blankRow = False
@@ -10634,6 +10639,14 @@ Visit: %s (Author's site)
                                                           _bold=self.bold,
                                                           _underline=self.underline,
                                                           _html=self.html)
+
+        def clone(self, tdfsc, prependBigText, appendBigText):
+            newTDFSC = TextDisplayForSwingConfig(prependBigText + tdfsc.originalRowText + appendBigText,
+                                                 tdfsc.originalSmallText,
+                                                 _smallColor=tdfsc.originalSmallText,
+                                                 stripBigChars=tdfsc.originalStripBigChars,
+                                                 stripSmallChars=tdfsc.originalStripSmallChars)
+            return newTDFSC
 
         def getSwingComponentText(self): return self.swingComponentText
         def getBlankZero(self): return self.blankZero
@@ -11602,7 +11615,7 @@ Visit: %s (Author's site)
 
                                     uuidTxt = "" if not debug else " (uuid: %s)" %(NAB.savedUUIDTable[i])
 
-                                    tdfsc = TextDisplayForSwingConfig(NAB.savedWidgetName[i], balanceObj.getExtraRowTxt() + showCurrText + showAverageText + showAdjustFinalBalanceText + useTaxDatesText + showUsesOtherRowTxt + uuidTxt, altFG)
+                                    tdfsc = TextDisplayForSwingConfig(("[%s] " %(i+1) if debug else "") + NAB.savedWidgetName[i], balanceObj.getExtraRowTxt() + showCurrText + showAverageText + showAdjustFinalBalanceText + useTaxDatesText + showUsesOtherRowTxt + uuidTxt, altFG)
                                     nameLabel = SpecialJLinkLabel(tdfsc.getSwingComponentText(), "showConfig?%s" %(str(onRow)), tdfsc.getJustification(), tdfsc=tdfsc)
 
                                     # NOTE: Leave "  " to avoid the row height collapsing.....
@@ -11683,7 +11696,7 @@ Visit: %s (Author's site)
                                     self.widgetOnPnlRow += 1
 
 
-                                lAnyShowWarningsEnabled  = False
+                                lAnyShowWarningsEnabled = False
                                 lAnyShowWarningsDisabled = False
                                 for showWarn in NAB.savedShowWarningsTable:
                                     if showWarn: lAnyShowWarningsEnabled = True
