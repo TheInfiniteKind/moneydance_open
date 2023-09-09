@@ -5852,7 +5852,7 @@ Visit: %s (Author's site)
         keyInfo = loadKeyFile()
         x = keyInfo.getString(u"key", None)
         x = u"<?NOT FOUND?>" if (x is None or x == "") else u"'%s'" %(x)
-        textArray.append(u"Encrypted (secret) cryptographic KEY used for dataset encryption seed: %s" %(x))
+        textArray.append(u"ENCRYPTED (secret) cryptographic KEY value used for dataset encryption: %s (you need to decrypt this value to obtain the actual decryption cryptographic key!)" %(x))
         del keyInfo
 
         if MD_REF.getCurrentAccountBook().getLocalStorage().getString("md.crypto_level", None):
@@ -5861,7 +5861,7 @@ Visit: %s (Author's site)
 
         x = u"Encryption test using your key/passphrase reports algorithm: %s\n" %(getMDEncryptionKey())
 
-        x += u"Dataset & Sync encryption is: AES (aes-128-cbc) >> Advanced Encryption Standard - 128 bit - Cipher Block Chaining (symmetric algorithm)\n"
+        x += u"Dataset & Sync encryption is: AES (aes-128-cbc) >> Advanced Encryption Standard - 128 bit - Cipher Block Chaining (symmetric algorithm) (with fixed salt, IV, iterations, and key length values)\n"
         x += u"(review Menu: 'Advanced Options' > 'Show your encryption keys, and the Moneydance encryption methodology' for more details)"
         textArray.append(x)
 
@@ -16014,7 +16014,12 @@ now after saving the file, restart Moneydance
             output += "- Syncing: %s - Sync password: %s\n" %(syncMethodTxt, MD_syn)
             output += "- Encrypted (secret) cryptographic KEY used for dataset encryption seed:       %s\n" %(datasetKey)
             if GlobalVars.EXTRA_CODE_INITIALISED:
-                output += "- Actual (secret) decrypted cryptographic-key(s) used for encryption: Dataset: '%s', Sync: '%s'\n" %(advanced_show_encryption_keys(justReturnKeys=True))
+                aHex, bHex, cCMD = advanced_show_encryption_keys(justReturnKeys=True)
+                output += "- Actual (secret) decrypted cryptographic-key(s) used for encryption: Dataset: '%s', Sync: '%s'\n" %(aHex, bHex)
+                output += "-----\n"
+                output += "%s" %(cCMD)
+                output += "-----\n"
+                del aHex, bHex, cCMD
             output += "(review Menu: 'Advanced Options' > 'Show your encryption keys, and the Moneydance encryption methodology' for more details)\n"
 
 

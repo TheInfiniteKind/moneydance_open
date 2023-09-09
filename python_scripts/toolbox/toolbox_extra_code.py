@@ -802,15 +802,20 @@ try:
 #################################################################################################################################################################
 """
 
-        localKeyHex = syncKeyHex = None
+        localKeyHex = syncKeyHex = opensslCmdText = None
         try:
             wrapper = MD_REF.getCurrentAccounts()
             if wrapper is None:
                 raise Exception("ERROR: Wrapper is none")
 
             localKeyHex = StringUtils.encodeHex(getFieldByReflection(getFieldByReflection(wrapper, "cipher"), "secretKey").getEncoded(), False)
+
+            local_pbe_salt_hex = StringUtils.encodeHex(getFieldByReflection(LocalStorageCipher, "pbe_salt"), False)
             local_aes_iv_hex = StringUtils.encodeHex(getFieldByReflection(LocalStorageCipher, "aes_iv"), False)
+
+            sync_pbe_salt_hex = StringUtils.encodeHex(getFieldByReflection(MDSyncCipher, "pbe_salt"), False)
             sync_aes_iv_hex = StringUtils.encodeHex(getFieldByReflection(MDSyncCipher, "aes_iv"), False)
+
 
             syncFolder = wrapper.getSyncFolder()
             if syncFolder is not None:
@@ -822,13 +827,18 @@ try:
 
             output += "CONFIDENTIAL - DO NOT SHARE THIS INFORMATION UNLESS NECESSARY - STORE IN A SECURE LOCATION!\n\n"
             output += "Your dataset's local storage encryption key (hex): '%s'\n" %(localKeyHex)
+            output += "- Local storage fixed/internal Salt value (hex):   '%s' IV value (hex): '%s'\n\n" %(local_pbe_salt_hex, local_aes_iv_hex)
             output += "Your sync encryption key (hex):                    '%s'\n" %("SYNC NOT ENABLED" if syncKeyHex is None else syncKeyHex)
+            output += "- Sync fixed/internal          Salt value (hex):   '%s' IV value (hex): '%s'\n" %(sync_pbe_salt_hex, sync_aes_iv_hex)
             output += "\n\n"
 
-            output += "Refer: '%s' ... to decrypt files from the command line (example):\n" %("https://wiki.openssl.org/index.php/Enc\n")
-            output += "Dataset files:     openssl enc -aes-128-cbc -d -K %s -iv %s -in encryptedfile.txt -out decryptedfile.txt\n" %(localKeyHex, local_aes_iv_hex)
-            output += "Sync folder files: openssl enc -aes-128-cbc -d -K %s -iv %s -in encryptedfile.txt -out decryptedfile.txt\n" %(syncKeyHex, sync_aes_iv_hex)
-            del local_aes_iv_hex, sync_aes_iv_hex
+            opensslCmdText = ""
+            opensslCmdText += "Refer: '%s' ... to decrypt files from the command line (example):\n" %("https://wiki.openssl.org/index.php/Enc")
+            opensslCmdText += "Dataset files:     openssl enc -aes-128-cbc -d -K %s -iv %s -in encryptedfile.txt -out decryptedfile.txt\n" %(localKeyHex, local_aes_iv_hex)
+            opensslCmdText += "Sync folder files: openssl enc -aes-128-cbc -d -K %s -iv %s -in encryptedfile.txt -out decryptedfile.txt\n" %(syncKeyHex, sync_aes_iv_hex)
+            output += opensslCmdText
+
+            del local_pbe_salt_hex, local_aes_iv_hex, sync_pbe_salt_hex, sync_aes_iv_hex
 
             output += "\n\n"
 
@@ -848,7 +858,7 @@ try:
             if not justReturnKeys:
                 myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME, JOptionPane.ERROR_MESSAGE)
 
-        return localKeyHex, syncKeyHex
+        return localKeyHex, syncKeyHex, opensslCmdText
 
 
     _extra_code_initialiser()
