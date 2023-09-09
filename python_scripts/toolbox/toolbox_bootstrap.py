@@ -95,6 +95,7 @@ try:
             _scriptStream.close()
             del _pyi
     else:
+        # todo - eliminate "<iostream>" by passing name?
         _specialPrint("@@ BOOTSTRAP - will run pre-compiled script for best launch speed ('%s') @@" %(_launchedFile))
         import os
         from org.python.core import BytecodeLoader

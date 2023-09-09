@@ -381,8 +381,21 @@ def _disableMoneyForesight():
                 # Cleanup and unload module...
                 from com.moneydance.apps.md.controller import FeatureModule
                 if MD_REF.getCurrentAccountBook() is not None: _mfs.cleanup()
-                for _mfsFieldStr in ["favouritesRepository", "accountSetModelRepository", "foresightUserPreferences", "accountHelper", "reminderReviewHomePage"]:
-                    _setFieldByReflection(_mfs, _mfsFieldStr, None)
+                # MD2023.2(5036) revised MFS and its fields...
+                for _mfsFieldStr in [
+                                     "forecastWindowController",
+                                     "foresightUserPreferences",
+                                     "favouritesRepository",               # Renamed
+                                     "_favouritesRepository",
+                                     "accountSetModelRepository",          # Renamed
+                                     "_accountSetModelRepository",
+                                     "accountHelper",                      # Renamed
+                                     "_accountHelper",
+                                     "reminderReviewHomePage"              # Gone
+                                     ]:
+                    try: _setFieldByReflection(_mfs, _mfsFieldStr, None)
+                    except:
+                        if debug: _specialPrint("ALERT: Could not wipe field: '%s' - ignoring/continuing..." %(_mfsFieldStr))
                 _invokeMethodByReflection(MD_REF, "unloadModule", [FeatureModule], [_mfs])
 
                 del FeatureModule, _mfsFieldStr
