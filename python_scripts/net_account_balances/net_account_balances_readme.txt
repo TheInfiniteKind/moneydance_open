@@ -53,6 +53,10 @@ WARNINGS:
 
   - You can create illogical totals (e.g. by adding Securities to Income). CB tries to detect these issues.
   - It will alert you if any are found. Help>Console Window will show you the details of any warnings
+  - A red warning icon will appear on the title bar of the widget, and in the GUI, if you have warnings.
+        - Click the warning icon to see a popup window displaying the detail(s) of all the warnings.
+        - NOTE: The symbol will not be triggered for warnings on rows where Show Warnings has been un-ticked
+                ... unless debug mode is enabled, in which case the icon will always appear.
 
 EXAMINING THE CHOICES/CONFIGURATION:
 
@@ -125,6 +129,10 @@ EXAMINING THE CHOICES/CONFIGURATION:
   - You will also see a small (3 vertical bars) icon to the right of account totals in the list window when this occurs.
 
 
+- Inactive Securities: You can flag a security as inactive by unticking the 'Show on summary page' box on a security
+                       in the MD/Tools/Securities menu. This will then treat this security in ALL investment accounts
+                       as INACTIVE.
+
 USING CATEGORIES:
 
 - Income / Expense Categories:
@@ -172,7 +180,8 @@ USING CATEGORIES:
 
 OPTIONS MENU
 
-  - Debug: Generates program debug messages in Help>Console Window. DO NOT LEAVE THIS PERMANENTLY ON
+  - Debug: Generates program debug messages in Help>Console Window. DO NOT LEAVE THIS PERMANENTLY ON (setting not saved)
+                     NOTE: Enabling this will show [row number] against each widget row on the home screen
   - Show Print Icon: Enables/shows the print icon on the Home / Summary screen widget.. Will print the current view
                      NOTE: Even when icon now visible, clicking the white-space before the title will activate print...
   - Page Setup: Allows you to predefine certain page attributes for printing - e.g. Landscape etc...
@@ -188,12 +197,14 @@ OPTIONS MENU
 
 BACKUP/RESTORE
 
-- IF IN the config GUI, the keystroke combination
+- When in the config GUI, the keystroke combination:
           CMD-SHIFT-B will create a backup of your config...
           CMD-SHIFT-R will restore the last backup of your config...
           CMD-I       will display this readme/help guide...
           CMD-SHIFT-I will display some debugging information about the rows...
           CMD-SHIFT-L will display debugging information about the internal lastResultsTable (not for 'normal' users)...
+          CMD-SHIFT-W will display current warnings (same as clicking the warnings icon)...
+          CMD-SHIFT-G allows you to edit the pre-defined/used GroupID Filter(s)... Click +/- cell (on right) to add/del
 
 ROW NAME FORMATTING (OPTIONAL)
 
@@ -244,6 +255,11 @@ FILTERS (OPTIONAL)
          Enter '!' (not) to make the filter include rows that do NOT have the requested filters
          Enter '&' (and) to make the filter include rows where all the requested filters match
                         NOTE: |(or) is default - will be the default anyway unless '!' or '&' used
+         Group ID Filters are cAsE InSeNsAtIve...
+         Each filter you use will be remembered and stored for later quick selection.. The most recent will always be
+              top of the list. Click the little up/down selector on the widget title bar, or in the GUI to select one
+              Use CMD-SHIFT-G to edit the list and provide names to the filters
+              Only the most recent 20 will be saved...
 
    WARNING: Only enter one of '!|&' characters as only one search type can be used within a single filter.
          NOTE:    !(not) is always implicitly also &(and) - i.e. !1;2 (means not '1' and not '2')
@@ -253,6 +269,7 @@ FILTERS (OPTIONAL)
           - Filter: '1;2;3'  - only include rows where the groupid includes a '1' or '2' or '3'
           - Filter: '!1;2;3' - only include rows where the groupid does NOT include a '1' or '2' or '3'
           - Filter: '&1;2;3' - only include rows where the groupid includes one '1' and '2' and '3'
+
 
 NOTE: This is free text, so the numbers are examples. A groupid of "Debt;CCList;Whatever" totally works.
 
