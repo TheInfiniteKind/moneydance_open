@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1033 - Sept 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1034 - Sept 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -144,6 +144,7 @@
 #               Added CMD-SHIFT-G to enable popup GroupID Filter pre-saved/used selection(s)....
 # build: 1032 - Issuing new build number...
 # build: 1033 - Issuing new build number...
+# build: 1034 - Added .getNewJListCellRenderer() to reset the renderer and the MD Object references it stores....
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -153,7 +154,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1033"
+version_build = "1034"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -7390,15 +7391,18 @@ Visit: %s (Author's site)
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
 
             if isinstance(self.jlst, JList):
-                myPrint("DB", "Setting JList ListData model to [] to release any references to objects")
+                myPrint("DB", "... Setting JList ListData model to [] to release any references to objects")
                 self.jlst.disableSelectionListeners()                                                                   # noqa
                 self.jlst.setListData([])
                 self.jlst.originalListObjects = []
                 self.jlst.listOfSelectedObjects = []
                 self.jlst.parallelAccountBalances = buildEmptyTxnOrBalanceArray()
 
-                myPrint("DB", "Removing any JList ListSelectionListeners...")
+                myPrint("DB", "... Removing any JList ListSelectionListeners...")
                 for listener in self.jlst.getListSelectionListeners(): self.jlst.removeListSelectionListener(listener)
+
+                myPrint("DB", "... Resetting the setCellRenderer using .getNewJListCellRenderer()...")
+                self.jlst.setCellRenderer(self.getNewJListCellRenderer())
 
             else:
                 myPrint("DB", "self.jlst is None or not JList (no action)")
@@ -8681,6 +8685,15 @@ Visit: %s (Author's site)
 
                 myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
+        def getNewJListCellRenderer(self):
+            NAB = NetAccountBalancesExtension.getNAB()
+            renderer = NAB.MyJListRenderer()
+            renderer.setShowCurrency(True)
+            renderer.setFillAllSpace(False)
+            renderer.setPaintIcons(True)
+            renderer.setDrawAccountTypes(False)
+            renderer.setShowFullAccountName(False)
+            return renderer
 
         class MyJListRenderer(DefaultListCellRenderer):     # Reference: com.moneydance.apps.md.view.gui.AccountTreeCellRenderer
 
@@ -9520,17 +9533,10 @@ Visit: %s (Author's site)
                                 myPrint("DB", ".. removing listener: %s" %(listener))
                                 self.removeListSelectionListener(listener)
 
-                    renderer = NAB.MyJListRenderer()
-                    renderer.setShowCurrency(True)
-                    renderer.setFillAllSpace(False)
-                    renderer.setPaintIcons(True)
-                    renderer.setDrawAccountTypes(False)
-                    renderer.setShowFullAccountName(False)
-
                     NAB.jlst = MyJList()
                     NAB.jlst.setBackground(NAB.moneydanceContext.getUI().getColors().listBackground)
-                    NAB.jlst.setCellRenderer(renderer)
-                    NAB.jlst.setFixedCellHeight(NAB.jlst.getFixedCellHeight()+30)
+                    NAB.jlst.setCellRenderer(NAB.getNewJListCellRenderer())
+                    NAB.jlst.setFixedCellHeight(NAB.jlst.getFixedCellHeight() + 30)
                     NAB.jlst.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
                     NAB.jlst.setSelectionModel(MyDefaultListSelectionModel())
 
