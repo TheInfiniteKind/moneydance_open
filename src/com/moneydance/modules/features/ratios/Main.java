@@ -41,6 +41,12 @@ import java.util.ResourceBundle;
  * @author Kevin Menningen
  */
 
+
+// todo - fix: NPE when closing dataset...:
+//             "ratios (1): 09-20 17:04:19.372|Error computing ratios: Cannot invoke "com.moneydance.modules.features.ratios.RatioSettings.getDateRange()" because the return value of "com.moneydance.modules.features.ratios.RatiosExtensionModel.access$600(com.moneydance.modules.features.ratios.RatiosExtensionModel)" is null"
+//             at com.moneydance.modules.features.ratios.RatiosExtensionModel$BackgroundRecalculateTask.run(RatiosExtensionModel.java:377)
+// todo - address several issues mentioned here: https://infinitekind.tenderapp.com/discussions/problems/92963-ratios-extension
+
 public class Main extends FeatureModule implements ResourceProvider {
 
     private final PreferencesListener _prefListener = new RatiosPreferencesListener();
