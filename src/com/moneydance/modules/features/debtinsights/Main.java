@@ -17,6 +17,7 @@
 // Build: 1002 - Updated to use CollapsibleRefresher, and fix screen updates whilst bank downloads occurring...
 //               Using subclassed JLinkLabel and override .setPreferredSize() to stop constant text width changes
 //               Fixed the IK fix for AcctFilter....
+// Build: 1003 - Fix memory leak with DebtManagerPanel - refresh DebtManagerWindow() reference...
 
 // todo - Replace ProgressBarUI (etc) in BarDisplay.java - so that we can use better colors on all platforms.
 // todo - The popup window hierarchy toggle icon only works on first window opening.. After this, it's dead!?
@@ -229,7 +230,7 @@ public class Main extends FeatureModule implements PreferencesListener {
 
     @Override
     public void cleanup() {
-        // I don't this this is ever called by Moneydance!?
+        // I don't think this this is ever called by Moneydance!?
         Util.logConsole(true, ".cleanup() called....");
         closeConsole();
         widgetViewReference = null;
@@ -239,8 +240,7 @@ public class Main extends FeatureModule implements PreferencesListener {
     public void unload() {
         Util.logConsole(true, ".unload() called.... Unloading and activating killSwitch...");
         killSwitch = true;
-        closeConsole();
-        widgetViewReference = null;
+        cleanup();
         getMDMain().getPreferences().removeListener(this);
         getMDMain().getUI().setStatus(EXTN_NAME + " unloaded...", 0);
     }
@@ -345,26 +345,23 @@ public class Main extends FeatureModule implements PreferencesListener {
         }
 
         switch (appEvent) {
-            case "md:file:closing":
-            case "md:file:closed":
-            case "md:app:exiting":
-                allowActive = false;
+//            case AppEventManager.FILE_CLOSING:
+            case AppEventManager.FILE_CLOSED:
+            case AppEventManager.APP_EXITING:
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        closeConsole();
+                        allowActive = false;
+                    }
+                });
                 break;
-            case "md:file:opened":
+            case AppEventManager.FILE_OPENED:
                 allowActive = true;
                 break;
             default:
                 Util.logConsole(true, ".... ignoring: '" + appEvent + "'");
         }
-        //            "md:file:opening";
-        //            "md:file:presave"
-        //            "md:file:postsave"
-        //            "md:account:select"
-        //            "md:account:root"
-        //            "md:graphreport"
-        //            "md:viewbudget"
-        //            "md:viewreminders"
-        //            "md:licenseupdated"
     }
 
     public void selectHomeScreen() {
