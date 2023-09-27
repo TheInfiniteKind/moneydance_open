@@ -18,16 +18,7 @@ import com.moneydance.modules.features.ratios.selector.RatioAccountSelector;
 import com.infinitekind.util.StringUtils;
 import com.moneydance.util.UiUtil;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.UIManager;
+import javax.swing.*;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -100,7 +91,8 @@ class RatioEntryEditorView extends JPanel {
     _useTaxDate = new JCheckBox(_mdGui.getStr(L10NRatios.USE_TAX_DATE));
     _useTaxDate.setOpaque(false);
     optionPanel.add(_useTaxDate);
-    add(optionPanel, GridC.getc(1, y));
+    add(optionPanel, GridC.getc(1, y++));
+    add(new JSeparator(), GridC.getc(1, y).fillx());
     add(Box.createVerticalStrut(UiUtil.DLG_VGAP), GridC.getc(0, y++));
 
     // numerator and denominator - share 1/2 width with a gap in between

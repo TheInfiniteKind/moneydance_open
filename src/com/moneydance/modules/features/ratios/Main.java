@@ -11,6 +11,8 @@
 // UPDATED BY STUART BEESLEY - StuWareSoftSystems - August 2023
 // Build: 1037 - Fix/correct for MD2023.2(5008+) AcctFilter changes (and correct build 1036 issue with IK fix)...
 //               Added .unload() (and also a redirect from .cleanup())
+// Build: 1038 - Fix numerator issue - refer: https://infinitekind.tenderapp.com/discussions/problems/92963-ratios-extension
+//               Disabled help guide button(s) as the server with the help file is not available....
 
 package com.moneydance.modules.features.ratios;
 

@@ -83,7 +83,7 @@ class RatioReportGenerator extends ReportGenerator {
     report.setSubTitle(_mainModel.getSettings().getDateRange().format(_dateFormat));
 
     final FontMetrics fm = _graphics.getFontMetrics();
-    int widths[] = new int[NUM_COLUMNS];
+    int[] widths = new int[NUM_COLUMNS];
     for (int column = 0; column < NUM_COLUMNS; column++) {
       widths[column] = measureStringWidth(report.getColumnName(column), _graphics, fm);
     }
@@ -131,6 +131,7 @@ class RatioReportGenerator extends ReportGenerator {
     report.addRow(RecordRow.BLANK_ROW);
     addResultRow(report, baseCurrency, nanString, fm, widths);
 
+//    "HERE";
     final String notes = _ratio.getNotes();
     if (!StringUtils.isBlank(notes)) {
       report.addRow(RecordRow.BLANK_ROW);
@@ -244,7 +245,8 @@ class RatioReportGenerator extends ReportGenerator {
   }
 
   private void addNotes(Report report, String notes, int[] widths) {
-    // find the widest column and use that one
+    // find the widest column and use that one.
+    // ReportGenerator uses JTable, and cannot have columns that span multiple rows :-(
     int columnIndex = -1;
     int maxWidth = -1;
     for (int index = 0; index < NUM_COLUMNS; index++) {
@@ -520,7 +522,7 @@ class RatioReportGenerator extends ReportGenerator {
     // Should we flip? we keep categories on the right side (column 2). We don't need to
     // negate the value because the algorithm in RatioPart.accumulateTxn() has already
     // done so.
-    if (RatioCompute.shouldFlipTxn(account, category, info.isSourceRequired, info.isTargetRequired)) {
+    if (RatioCompute.shouldFlipTxn(account, category, info.isSourceRequired, info.isTargetRequired, false)) {
       Account temp = account;
       account = category;
       category = temp;

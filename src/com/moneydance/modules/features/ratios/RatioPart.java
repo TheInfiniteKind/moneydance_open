@@ -297,12 +297,17 @@ class RatioPart {
       final long convertedValue;
       // we will flip the transaction if the category is the source and the non-category is the
       // destination
-      if (RatioCompute.shouldFlipTxn(sourceAccount, targetAccount, sourceRequired, targetRequired)) {
+
+      if (RatioCompute.shouldFlipTxn(sourceAccount, targetAccount, sourceRequired, targetRequired, true)) {
         convertedValue = -CurrencyUtil.convertValue(txnValue, sourceAccount.getCurrencyType(),
                                                     _baseCurrency, txnDate);
+//        if (Main.DEBUG) System.err.printf("@@ source: %s target: %s srcRqs: %s tgtRqd: %s convertedValue: %s shouldFlip: %s txn: %s\n",
+//                sourceAccount, targetAccount, sourceRequired, targetRequired, convertedValue, true, txn);
       } else {
         convertedValue = CurrencyUtil.convertValue(txnValue, sourceAccount.getCurrencyType(),
                                                     _baseCurrency, txnDate);
+//        if (Main.DEBUG) System.err.printf("@@ source: %s target: %s srcRqs: %s tgtRqd: %s convertedValue: %s shouldFlip: %s txn: %s\n",
+//                sourceAccount, targetAccount, sourceRequired, targetRequired, convertedValue, false, txn);
       }
       _txnValue += convertedValue;
       if (reporting != null) {

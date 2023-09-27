@@ -30,9 +30,7 @@ import java.util.concurrent.FutureTask;
 import javax.swing.*;
 import javax.swing.border.*;
 
-public class RatioReportWindow
-  extends SecondaryDialog
-  implements ActionListener
+public class RatioReportWindow extends SecondaryDialog implements ActionListener
 {
   private static final String CARD_REPORT = "report";
   private static final String CARD_NOTHING = "nothing";
