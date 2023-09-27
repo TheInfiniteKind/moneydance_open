@@ -143,6 +143,7 @@ class AccountFilterSelectDialog
 
     // link to the help on the web
     JButton userGuide = new JButton(_userGuideLabel);
+    userGuide.setVisible(false);
     userGuide.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent event) {
         RatiosUtil.launchUserGuide();

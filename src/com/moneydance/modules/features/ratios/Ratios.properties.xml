@@ -20,7 +20,7 @@
   <!-- main configuration dialog -->
   <entry key="settings.title">Ratio Calculator Settings</entry>
   <entry key="showPercent">Show as percent %</entry>
-  <entry key="alwaysPositive">Always positive</entry>
+  <entry key="alwaysPositive">Ratio Result Always positive</entry>
   <entry key="matchLabel">Transaction match</entry>
   <entry key="numerator">Numerator</entry>
   <entry key="denominator">Denominator</entry>

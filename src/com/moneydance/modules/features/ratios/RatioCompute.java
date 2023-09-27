@@ -49,22 +49,27 @@ class RatioCompute {
     computeFinalRatios(ratios);
   }
 
-  static boolean shouldFlipTxn(final Account sourceAccount, final Account targetAccount,
-                               final boolean isSourceRequired, final boolean isTargetRequired) {
-    // if the source is a category and the target isn't, flip
-    final boolean isSourceCategory =
-      (sourceAccount.getAccountType() == Account.AccountType.EXPENSE)
-      || (sourceAccount.getAccountType() == Account.AccountType.INCOME);
+    static boolean shouldFlipTxn(final Account sourceAccount, final Account targetAccount,
+                                 final boolean isSourceRequired, final boolean isTargetRequired, boolean mathsFlip) {
+        // if the source is a category and the target isn't, flip
+        final boolean isSourceCategory =
+                (sourceAccount.getAccountType() == Account.AccountType.EXPENSE)
+                        || (sourceAccount.getAccountType() == Account.AccountType.INCOME);
 
-    // if the target is a loan account, treat it as an expense category so that the value has the same sign as the interest expense
-    final boolean isTargetCategory = (targetAccount.getAccountType() == Account.AccountType.EXPENSE)
-      || (targetAccount.getAccountType() == Account.AccountType.INCOME)
-      || (targetAccount.getAccountType() == Account.AccountType.LOAN);
-    if (isSourceCategory && !isTargetCategory) return true;
-    // if the source is not a Required account but the target is, flip as long as that doesn't
-    // violate the first clause where the target is a category.
-    return !isSourceRequired && isTargetRequired && !isTargetCategory;
-  }
+        // if the target is a loan account, treat it as an expense category so that the value has the same sign as the interest expense
+        final boolean isTargetCategory = (targetAccount.getAccountType() == Account.AccountType.EXPENSE)
+                || (targetAccount.getAccountType() == Account.AccountType.INCOME)
+                || (targetAccount.getAccountType() == Account.AccountType.LOAN);
+        if (isSourceCategory && !isTargetCategory) return true;
+
+        // SCB fix: build 1038. Trying to correct signs for txfrs between accounts....
+        if (!mathsFlip) {
+            // if the source is not a Required account but the target is, flip as long as that doesn't
+            // violate the first clause where the target is a category.
+            return !isSourceRequired && isTargetRequired && !isTargetCategory;
+        }
+        return false;
+    }
 
   static int getDaysInPeriod(DateRange dateRange) {
     return Util.calculateDaysBetween(dateRange.getStartDateInt(), dateRange.getEndDateInt()) + 1;
@@ -236,7 +241,7 @@ class RatioCompute {
     }
     return result;
   }
-  
+
   private BalanceHolder calculateBalancesWithDailyAverage(Account account, Map<Account, BalanceHolder> cache, int[] asOfDates,
                                                           int[] datesToCompute) {
     BalanceHolder result = (cache == null) ? null : cache.get(account);
@@ -292,7 +297,12 @@ class RatioCompute {
     }
     if (noTransactionPartsExist(ratios)) return;
     // setup
-    for (RatioEntry ratio : ratios) ratio.prepareForTxnProcessing(_root, dateRange, true, null);
+    for (RatioEntry ratio : ratios) {
+//       if (Main.DEBUG && ratio.getIndex() == 0) System.err.printf("@@ computeTxnBasedValues(), ratio: %s idx: %s %s %s %s %s %s\n",
+//               ratio, ratio.getIndex(), ratio.getNumerator().getConstant(), ratio.getNumerator().getMatchingLogic(), ratio.getNumerator().getTxnMatchBoth(), ratio.getNumerator().getTxnMatchInto(), ratio.getNumerator().getTxnMatchOutOf());
+//               // ratio.getNumerator().getTxnMatchInto(); TxnMatchLogic.IN
+      ratio.prepareForTxnProcessing(_root, dateRange, true, null);
+    }
     // calculate for each ratio on each matching transaction
     TxnIterator txnIterator = new TxnIterator(_root.getTransactionSet());
     while(txnIterator.hasNext()) {
@@ -340,6 +350,9 @@ class RatioCompute {
   static void computeFinalRatio(RatioEntry ratio) {
     final double numerator = ratio.getNumeratorValue();
     final double denominator = ratio.getDenominatorValue();
+//    if (Main.DEBUG){
+//      System.err.printf("@@ BEFORE: numerator: %s denominator: %s\n", ratio.getNumeratorValue(), ratio.getDenominatorValue());
+//    }
     if (Math.abs(denominator) < MINIMUM_DENOMINATOR) {
       // divide by zero
       ratio.setValue(Double.NaN);
@@ -351,6 +364,9 @@ class RatioCompute {
     } else {
       ratio.setValue(numerator / denominator);
     }
+//    if (Main.DEBUG){
+//      System.err.printf("@@ AFTER: numerator: %s denominator: %s\n", ratio.getNumeratorValue(), ratio.getDenominatorValue());
+//    }
   }
 
 }

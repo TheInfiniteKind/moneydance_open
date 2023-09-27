@@ -99,6 +99,14 @@ public class RatioEntry {
     return (RatiosUtil.areEqual(_name, other._name) && (_index == other._index));
   }
 
+  public RatioPart getNumerator() {
+    return _numerator;
+  }
+
+  public RatioPart getDenominator() {
+    return _denominator;
+  }
+
   public int hashCode() {
     int hash = 37;
     hash = 23 * hash + _name.hashCode();

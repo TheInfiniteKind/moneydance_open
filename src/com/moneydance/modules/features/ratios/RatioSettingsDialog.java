@@ -163,6 +163,7 @@ class RatioSettingsDialog
 
     // link to the help on the web
     JButton userGuide = new JButton(_controller.getString(L10NRatios.USER_GUIDE));
+    userGuide.setVisible(false);
     userGuide.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent event) {
         RatiosUtil.launchUserGuide();
