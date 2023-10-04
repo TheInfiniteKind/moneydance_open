@@ -429,6 +429,11 @@ Visit: %s (Author's site)
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
+        myPrint("DB", "... destroying own reference to frame('toolbox_move_merge_investment_txns_frame_')...")
+        global toolbox_move_merge_investment_txns_frame_
+        toolbox_move_merge_investment_txns_frame_ = None
+        del toolbox_move_merge_investment_txns_frame_
+
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
 
@@ -4093,13 +4098,13 @@ Visit: %s (Author's site)
                             return secs, _output
 
                         response = getSubSecAccts(sourceAccount, lSource=True)
-                        if response[0] is None: return;
+                        if response[0] is None: return
                         sourceSecurities = response[0]
                         output += response[1]
                         output += "\n"
 
                         response = getSubSecAccts(targetAccount, lSource=False)
-                        if response[0] is None: return;
+                        if response[0] is None: return
                         targetSecurities = response[0]
                         output += response[1]
                         output += "\n"

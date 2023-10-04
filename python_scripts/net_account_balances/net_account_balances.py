@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1034 - Sept 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1035 - Sept 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -145,6 +145,7 @@
 # build: 1032 - Issuing new build number...
 # build: 1033 - Issuing new build number...
 # build: 1034 - Added .getNewJListCellRenderer() to reset the renderer and the MD Object references it stores....
+# build: 1035 - Helpfile spelling corrections...
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -154,7 +155,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1034"
+version_build = "1035"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -661,6 +662,11 @@ Visit: %s (Author's site)
         global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+
+        myPrint("DB", "... destroying own reference to frame('net_account_balances_frame_')...")
+        global net_account_balances_frame_
+        net_account_balances_frame_ = None
+        del net_account_balances_frame_
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")

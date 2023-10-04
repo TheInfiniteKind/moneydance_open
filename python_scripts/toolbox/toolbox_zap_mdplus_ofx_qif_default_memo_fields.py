@@ -414,6 +414,11 @@ Visit: %s (Author's site)
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
+        myPrint("DB", "... destroying own reference to frame('toolbox_zap_mdplus_ofx_qif_default_memo_fields_frame_')...")
+        global toolbox_zap_mdplus_ofx_qif_default_memo_fields_frame_
+        toolbox_zap_mdplus_ofx_qif_default_memo_fields_frame_ = None
+        del toolbox_zap_mdplus_ofx_qif_default_memo_fields_frame_
+
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3309,6 +3314,7 @@ Visit: %s (Author's site)
 
         def doMain():
             global debug
+            global toolbox_zap_mdplus_ofx_qif_default_memo_fields_frame_
 
             def getOlMemo(_txn): return txn.getParameter(ORIG_MEMO_TAG, "")
 

@@ -46,6 +46,7 @@ global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System
 global JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel, Color, Desktop
 global BorderFactory, JSeparator, DefaultComboBoxModel, SwingWorker, JPanel, GridLayout, JLabel, GridBagLayout, BorderLayout
 global Paths, Files, StandardCopyOption, Charset
+global AbstractAction
 
 # My definitions
 global toolbox_frame_
@@ -860,6 +861,17 @@ try:
 
         return localKeyHex, syncKeyHex, opensslCmdText
 
+
+    class CollectTheGarbage(AbstractAction):
+
+        def __init__(self): pass
+
+        # noinspection PyUnusedLocal
+        def actionPerformed(self, event):
+            System.gc()
+            txt = "@@@ Toolbox has requested System.gc() (Garbage Collection).... @@"
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+            MD_REF.getUI().setStatus(txt, 0)
 
     _extra_code_initialiser()
     myPrint("DB", "Extra Code Initialiser finished....")

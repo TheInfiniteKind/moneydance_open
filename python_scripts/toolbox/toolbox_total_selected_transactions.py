@@ -432,6 +432,11 @@ Visit: %s (Author's site)
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
 
+        myPrint("DB", "... destroying own reference to frame('toolbox_total_selected_transactions_frame_')...")
+        global toolbox_total_selected_transactions_frame_
+        toolbox_total_selected_transactions_frame_ = None
+        del toolbox_total_selected_transactions_frame_
+
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
 

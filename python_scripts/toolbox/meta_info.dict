@@ -2,11 +2,11 @@
   "id" = "toolbox"
   "extension_type" = "python"
   "vendor" = "The Infinite Kind (co-authored with Stuart Beesley - StuWareSoftSystems)"
-  "module_build" = "1060"
+  "module_build" = "1061"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Toolbox"
   "module_desc" = "Infinite Kind support tool: Displays Moneydance settings, diagnoses issues, run fixes, and much more....."
   "mac_sandbox_friendly" = "false"
-  "news" = "Technical fixes for MD2023(5000+) KOTLIN compiled build(s)...; Enhanced 'Toolbox: Zap md+/ofx/qif (default) memo fields' menu; Detect / delete mobile app sync .txn files..."
+  "news" = "Technical fixes for MD2023(5000+) KOTLIN compiled build(s)...; ???"
 }

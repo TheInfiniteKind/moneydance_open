@@ -712,6 +712,11 @@ Visit: %s (Author's site)
 
         resetGlobalVariables()
 
+        myPrint("DB", "... destroying own reference to frame('extract_data_frame_')...")
+        global extract_data_frame_
+        extract_data_frame_ = None
+        del extract_data_frame_
+
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
 

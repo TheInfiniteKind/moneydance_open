@@ -91,7 +91,8 @@ NOTE: Where CMD is specified, this will be CTRL in Windows / Linux (or ALT if th
 CMD-I           This  Help Instruction Information
 CMD-F           Search for text in display windows
 CMD-O           Copy all outputs to Clipboard
-CMD-SHIFT-U     Examine an object's raw data - enter the Object's UUID
+CMD-G           Requests the JVM to run Garbage Collection....
+CMD-SHIFT-U     Examine an object's raw data - enter the Object's UUID to find in the dataset
 CMD-SHIFT-+     Unlock Toolbox (Contact Author for password and usage) - (Might be CMD-SHIFT-= on some keyboards)
 
 Toolbox also installs three new Extensions Menu options (first two: select register transactions before running):

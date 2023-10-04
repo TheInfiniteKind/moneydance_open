@@ -168,6 +168,13 @@ def _saveExtensionGlobalPreferences(newExtnPrefs):
 ########################################################################################################################
 # definitions unique to this script
 
+if debug:
+    try:
+        from org.violetlib.aqua import AquaLookAndFeel
+        _specialPrint("Bundled VAqua info...:")
+        AquaLookAndFeel.showVersion()
+        del AquaLookAndFeel
+    except: pass
 
 def _returnPathStrings(fileReference, arePathsIdentical=False):
     _pathStr = ""

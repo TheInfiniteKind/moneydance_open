@@ -46,7 +46,7 @@
 # build: 1010 - Common code tweaks...
 # build: 1010 - Add feature to allow search for parent and default account names using {pa:*} and {dc:*} patterns
 # build: 1011 - Common code tweaks...
-# build: 1012 - Cleaned up references to MD Objects
+# build: 1012 - Cleaned up references to MD Objects; .dispose() nuke 'storage'...
 
 # Clones MD Menu > Tools>Categories and adds Search capability...
 
@@ -424,6 +424,11 @@ Visit: %s (Author's site)
         global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+
+        myPrint("DB", "... destroying own reference to frame('accounts_categories_mega_search_window_frame_')...")
+        global accounts_categories_mega_search_window_frame_
+        accounts_categories_mega_search_window_frame_ = None
+        del accounts_categories_mega_search_window_frame_
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3352,8 +3357,11 @@ Visit: %s (Author's site)
                     self.saveTableModelReference.fireTableDataChanged()
 
                 def dispose(self):
-                    myPrint("DB", "within dispose() - will call (super) original dispose")
+                    myPrint("DB", "within dispose()")
                     self.isActiveInMoneydance = False
+                    myPrint("DB", "... nuking reference to 'storage'")
+                    setFieldByReflection(self, "storage", None)
+                    myPrint("DB", "... will call (super) original dispose")
                     super(self.__class__, self).dispose()
 
                 def searchFiltersUpdated(self):
@@ -3412,6 +3420,7 @@ Visit: %s (Author's site)
                     accounts_categories_mega_search_window_frame_.setName(u"%s_main" %(myModuleID))
 
                     theControlPanel = huntPanelWithButtons(coa_cat_Win, 0)
+
                     if theControlPanel is not None:
                         x = 0
                         myPrint("DB", "@@ FOUND CONTROL PANEL @@", theControlPanel, type(theControlPanel))
@@ -3430,6 +3439,8 @@ Visit: %s (Author's site)
                         myPrint("DB", "ERROR: Control Panel NOT found")
                         txt = "Error: Sorry could not launch Category Super Window"
                         myPopupInformationBox(None,txt,theTitle="Category Super Window",theMessageType=JOptionPane.ERROR_MESSAGE)
+
+                    del coa_cat_Win
 
             if not SwingUtilities.isEventDispatchThread():
                 myPrint("DB",".. Main App Not running within the EDT so calling via MainAppRunnable()...")

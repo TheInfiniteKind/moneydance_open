@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1060 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1061 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -202,6 +202,8 @@
 #               Cleaned up references holding onto MD Objects....
 #               Added advanced_show_encryption_keys() feature
 #               Build: 5036 - changed MoneyForesight fields - fixed disable MFS feature...
+# build: 1061 - Added closeBotInterface() and set moneyBotInterface to None when closing dataset....; Added 'moneyBotInterface' to .gatherJVMDiagnostics()
+#               More memory leak cleanups....; Added: CMD-G - Requests the JVM to run Garbage Collection....
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -211,6 +213,8 @@
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - change from str() to unicode() where appropriate...
 # todo - com.moneydance.apps.md.controller.olb.MoneybotURLStreamHandlerFactory.REQUEST_LOG_BASE = File("/Users/xxx/moneydance_http_logs")
+# todo - consider removing toolbox.py source code now that it's compiled and we launch a .class file...
+# todo - advanced_clone_dataset() - consider whether to provide options to zap md+ settings, reset password etc...
 
 # NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM....:
 # 1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
@@ -219,7 +223,7 @@
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
-# Further options at: https://www.jetbrains.com/help/pycharm/disabling-and-enabling-inspections.html#comments-ref
+# Further options at: https://ww`w.jetbrains.com/help/pycharm/disabling-and-enabling-inspections.html#comments-ref
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -227,7 +231,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1060"
+version_build = "1061"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -620,7 +624,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5036
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5045
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -738,6 +742,11 @@ Visit: %s (Author's site)
         GlobalVars.mainPnl_toolboxUnlocked_lbl = None
         GlobalVars.SCRIPT_RUNNING_LOCK = None
         GlobalVars.parametersLoadedFromFile = None
+
+        myPrint("DB", "... destroying own reference to frame('toolbox_frame_')...")
+        global toolbox_frame_
+        toolbox_frame_ = None
+        del toolbox_frame_
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3409,6 +3418,7 @@ Visit: %s (Author's site)
         global advanced_options_encrypt_file_into_dataset, advanced_options_encrypt_file_into_sync_folder
         global advanced_options_decrypt_file_from_dataset, advanced_options_decrypt_file_from_sync
         global advanced_options_decrypt_dataset, advanced_show_encryption_keys
+        global CollectTheGarbage
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -3892,7 +3902,9 @@ Visit: %s (Author's site)
             # Shutdown the Alert Controller... When we open a new dataset it should reset itself.....
             shutdownMDAlertController()
 
+            myPrint("DB", "... closing [Money]BotInterface and setting 'moneyBotInterface' to None..")
             MD_REF.getUI().closeBotInterface()
+            setFieldByReflection(MD_REF.getUI(), "moneyBotInterface", None)
 
             wr_bookToClose.get().setUndoManager(None)                                                                   # noqa
 
@@ -8317,7 +8329,6 @@ Visit: %s (Author's site)
                                               "PICKLE: CHANGE",
                                               JOptionPane.WARNING_MESSAGE)
                     continue
-
 
     def can_I_delete_currency():
         myPrint("B", "Analysing whether you can delete a Currency, or show where it's used....")
@@ -27295,6 +27306,12 @@ now after saving the file, restart Moneydance
                         myPrint("B", "@@ ERROR: Failed to get syncThread / syncTasks?")
                         dump_sys_error_to_md_console_and_errorlog()
 
+
+                mbotRef = getFieldByReflection(MD_REF.getUI(), "moneyBotInterface")
+                mbotBookRef = None if mbotRef is None else getFieldByReflection(mbotRef, "book")
+                diagTxt += "\nMoneydanceGUI: PythonInterface moneyBotInterface reference: '%s' (book: '%s')\n" %(mbotRef, mbotBookRef)
+                del mbotRef, mbotBookRef
+
                 diagTxt += "\n\nWindows:\n" \
                            " -------\n"
 
@@ -29308,6 +29325,10 @@ now after saving the file, restart Moneydance
 
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut), "display-pickle")
             toolbox_frame_.getRootPane().getActionMap().put("display-pickle", DisplayPickleFile())
+
+            if GlobalVars.EXTRA_CODE_INITIALISED:
+                toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_G, shortcut), "collect-the-garbage")
+                toolbox_frame_.getRootPane().getActionMap().put("collect-the-garbage", CollectTheGarbage())
 
             toolbox_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_U, (shortcut | Event.SHIFT_MASK)), "display-UUID")
             toolbox_frame_.getRootPane().getActionMap().put("display-UUID", self.DisplayUUID(toolbox_frame_))

@@ -183,7 +183,7 @@ OPTIONS MENU
   - Debug: Generates program debug messages in Help>Console Window. DO NOT LEAVE THIS PERMANENTLY ON (setting not saved)
                      NOTE: Enabling this will show [row number] against each widget row on the home screen
   - Show Print Icon: Enables/shows the print icon on the Home / Summary screen widget.. Will print the current view
-                     NOTE: Even when icon now visible, clicking the white-space before the title will activate print...
+                     NOTE: Even when icon not visible, clicking the white-space before the title will activate print...
   - Page Setup: Allows you to predefine certain page attributes for printing - e.g. Landscape etc...
   - Backup Config: Creates a backup of your current config file (then opens a window showing location of backup)
   - Restore Config: Allows you to restore (or import) config file from previous back up
@@ -255,7 +255,7 @@ FILTERS (OPTIONAL)
          Enter '!' (not) to make the filter include rows that do NOT have the requested filters
          Enter '&' (and) to make the filter include rows where all the requested filters match
                         NOTE: |(or) is default - will be the default anyway unless '!' or '&' used
-         Group ID Filters are cAsE InSeNsAtIve...
+         Group ID Filters are cAsE InSeNsItIve...
          Each filter you use will be remembered and stored for later quick selection.. The most recent will always be
               top of the list. Click the little up/down selector on the widget title bar, or in the GUI to select one
               Use CMD-SHIFT-G to edit the list and provide names to the filters

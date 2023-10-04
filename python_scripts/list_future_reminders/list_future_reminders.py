@@ -74,7 +74,7 @@
 # build: 1024 - Common code tweaks...
 # build: 1026 - Added 'Extract Reminders' feature to Menu and CMD-E keystroke...
 # build: 1027 - Ensure the code runs on the EDT...
-# build: 1028 - Cleaned up references to MD Objects
+# build: 1028 - Cleaned up references to MD Objects; Added right-click menu option to reset/edit last acknowledged date.
 
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
 
@@ -518,6 +518,11 @@ Visit: %s (Author's site)
         GlobalVars.tableHeaderRowFormats = None
         GlobalVars.tableHeaderRowList = None
         GlobalVars.parametersLoadedFromFile = None
+
+        myPrint("DB", "... destroying own reference to frame('list_future_reminders_frame_')...")
+        global list_future_reminders_frame_
+        list_future_reminders_frame_ = None
+        del list_future_reminders_frame_
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3223,7 +3228,7 @@ Visit: %s (Author's site)
 
     def ShowEditForm():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        myPrint("D", "Calling MD EditRemindersWindow() function...")
+        myPrint("D", "Calling MD EditRemindersWindow() (and its variants) function...")
 
         saveSelectedRowAndObject()
 
@@ -3252,11 +3257,8 @@ Visit: %s (Author's site)
 
     def deleteReminder():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        myPrint("D", "Calling MD EditRemindersWindow() function...")
 
         saveSelectedRowAndObject()
-
-        # EditRemindersWindow.editReminder(None, MD_REF.getUI(), GlobalVars.saveLastReminderObj)
 
         r = GlobalVars.saveLastReminderObj
         if myPopupAskQuestion(list_future_reminders_frame_, "DELETE REMINDER", "Delete reminder (along with all other future versions displayed too)?", theMessageType=JOptionPane.WARNING_MESSAGE):
@@ -3376,7 +3378,6 @@ Visit: %s (Author's site)
 
     def recordNextReminderOccurrence():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-        myPrint("D", "Calling MD EditRemindersWindow() function...")
 
         saveSelectedRowAndObject()
 
@@ -3414,6 +3415,64 @@ Visit: %s (Author's site)
             except: pass
 
             win.setVisible(True)
+
+    def editLastAcknowledgedDate():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        saveSelectedRowAndObject()
+
+        currentSelectedDate = getCurrentSelectedDateInt()
+        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj)
+
+        if rdate <= 0:
+            myPopupInformationBox(list_future_reminders_frame_,
+                                  "The next occurrence of reminder is non-existent or too far into the future (more than 5 years)",
+                                  "EDIT LAST ACKNOWLEDGED DATE",
+                                  JOptionPane.WARNING_MESSAGE)
+
+        elif rdate != currentSelectedDate:
+            nextDateToUseTxt = convertStrippedIntDateFormattedText(rdate)
+            myPopupInformationBox(list_future_reminders_frame_,
+                                  "Only select this option on the next occurrence of Reminder (which is: %s)" %(nextDateToUseTxt),
+                                  "EDIT LAST ACKNOWLEDGED DATE",
+                                  JOptionPane.WARNING_MESSAGE)
+
+        else:
+            currentLastAckDateInt = GlobalVars.saveLastReminderObj.getDateAcknowledgedInt()
+            if currentLastAckDateInt <= 19700101:
+                myPopupInformationBox(list_future_reminders_frame_, "Acknowledged date NOT set - edit Reminder normally", "REMINDERS: ACKNOWLEDGED DATE", JOptionPane.WARNING_MESSAGE)
+                return
+
+            labelAckDate = JLabel("Select the new (hidden) last Acknowledged date:")
+            user_selectAckDate = JDateField(MD_REF.getUI())
+            user_selectAckDate.setDateInt(currentLastAckDateInt)
+
+            datePanel = JPanel(GridLayout(0, 1))
+            datePanel.add(labelAckDate)
+            datePanel.add(user_selectAckDate)
+
+            options = ["Cancel", "OK"]
+
+            userAction = JOptionPane.showOptionDialog(list_future_reminders_frame_,
+                                                      datePanel,
+                                                      "REMINDER: EDIT LAST ACKNOWLEDGED DATE",
+                                                      JOptionPane.OK_CANCEL_OPTION,
+                                                      JOptionPane.QUESTION_MESSAGE,
+                                                      getMDIcon(None),
+                                                      options,
+                                                      options[0])
+
+            if userAction != 1: return
+
+            myPrint("B", "Updating Reminder (%s) hidden last acknowledged date from: %s to: %s" %(GlobalVars.saveLastReminderObj, GlobalVars.saveLastReminderObj.getDateAcknowledgedInt(), user_selectAckDate.getDateInt()))
+            GlobalVars.saveLastReminderObj.setEditingMode()
+            GlobalVars.saveLastReminderObj.setAcknowledgedInt(user_selectAckDate.getDateInt())
+            GlobalVars.saveLastReminderObj.syncItem()
+
+            if myPopupAskQuestion(list_future_reminders_frame_, "REMINDER: EDIT LAST ACKNOWLEDGED DATE", "Ack date updated. Run autocommit now?"):
+                genericSwingEDTRunner(False, False, MD_REF.getUI().autocommitReminders)
+
+            # RefreshMenuAction().refresh()
 
     def skipReminders():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3625,6 +3684,15 @@ Visit: %s (Author's site)
             # ##########################################################################################################
             if event.getActionCommand().lower().startswith("record next".lower()):
                 recordNextReminderOccurrence()
+
+            # ##########################################################################################################
+            if event.getActionCommand().lower().startswith("edit last acknowledged date".lower()):
+                editLastAcknowledgedDate()
+
+            # ##########################################################################################################
+            if event.getActionCommand().lower().startswith("run auto commit".lower()):
+                myPrint("B", "Executing autocommitReminders() now...")
+                genericSwingEDTRunner(False, False, MD_REF.getUI().autocommitReminders)
 
             # ##########################################################################################################
             if event.getActionCommand().lower().startswith("record all next occurrence(s) for same day".lower()):
@@ -4067,7 +4135,7 @@ Visit: %s (Author's site)
                     loopDetector += 1
                     if loopDetector > 10000:
                         myPrint("B","Loop detected..? Breaking out.... Reminder %s" %(rem))
-                        myPopupInformationBox(list_future_reminders_frame_,"ERROR - Loop detected..?! Will exit (review console log)",theMessageType=JOptionPane.ERROR_MESSAGE)
+                        myPopupInformationBox(list_future_reminders_frame_, "ERROR - Loop detected..?! Will exit (review console log)",theMessageType=JOptionPane.ERROR_MESSAGE)
                         raise Exception("Loop detected..? Aborting.... Reminder %s" %(rem))
 
                     calcNext = myGetNextOccurance(rem, nextDate, stopDate)
@@ -4449,7 +4517,6 @@ Visit: %s (Author's site)
                     MD_REF.getCurrentAccountBook().getReminders().removeReminderListener(self.reminderListener)
 
                 cleanup_actions(self.theFrame)
-
 
         class MouseListener(MouseAdapter):
 
@@ -5062,33 +5129,22 @@ Visit: %s (Author's site)
             # GlobalVars.saveJTable.setAutoCreateRowSorter(True) # DON'T DO THIS - IT WILL OVERRIDE YOUR NICE CUSTOM SORT
 
             popupMenu = JPopupMenu()
-            menuItem = JMenuItem("Edit Reminder")
-            menuItem.addActionListener(dtm)
-            popupMenu.add(menuItem)
 
-            menuItem = JMenuItem("Record next occurrence")
-            menuItem.addActionListener(dtm)
-            popupMenu.add(menuItem)
+            for menuOptionLbl in [
+                                  "Edit Reminder",
+                                  "Run Auto Commit Reminders NOW",
+                                  "Edit last Acknowledged date",
+                                  "Record next occurrence",
+                                  "Show Reminder's raw details",
+                                  "Delete Reminder",
+                                  "Record all next occurrence(s) for same day",
+                                  "Record all next occurrence(s) for same month",
+                                  "Skip next occurrence of ALL reminders"
+                                  ]:
+                menuItem = JMenuItem(menuOptionLbl)
+                menuItem.addActionListener(dtm)
+                popupMenu.add(menuItem)
 
-            menuItem = JMenuItem("Show Reminder's raw details")
-            menuItem.addActionListener(dtm)
-            popupMenu.add(menuItem)
-
-            menuItem = JMenuItem("Delete Reminder")
-            menuItem.addActionListener(dtm)
-            popupMenu.add(menuItem)
-
-            menuItem = JMenuItem("Record all next occurrence(s) for same day")
-            menuItem.addActionListener(dtm)
-            popupMenu.add(menuItem)
-
-            menuItem = JMenuItem("Record all next occurrence(s) for same month")
-            menuItem.addActionListener(dtm)
-            popupMenu.add(menuItem)
-
-            menuItem = JMenuItem("Skip next occurrence of ALL reminders")
-            menuItem.addActionListener(dtm)
-            popupMenu.add(menuItem)
 
             GlobalVars.saveJTable.addMouseListener(MouseListener())
             GlobalVars.saveJTable.setComponentPopupMenu(popupMenu)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# security_performance_graph.py build: 1008 - Sept 2023 - Stuart Beesley StuWareSoftSystems
+# security_performance_graph.py build: 1008 - Oct 2023 - Stuart Beesley StuWareSoftSystems
 
 # requires: MD 2021.1(3069) due to NPE on SwingUtilities - something to do with 'theGenerator.setInfo(reportSpec)'
 
@@ -42,7 +42,7 @@
 # build: 1006 - Fixes for MD2023.0(5000) Kotlin compiled builds.... Fix SyncRecord().readSet() call.
 # build: 1006 - MD2023 fixes to common code...
 # build: 1007 - Common code tweaks
-# build: 1008 - Cleanup references to MD Objects
+# build: 1008 - Cleanup references to MD Objects; Change CurrencyNumberFormat to hold a WeakReference() to CurrencyType...
 
 # todo - hunt down why something retains a reference to MD object..?
 
@@ -435,6 +435,8 @@ else:
     from org.jfree.data.time import TimeSeriesDataItem
     from org.jfree.data import Range
 
+    from java.lang.ref import WeakReference
+
     # renamed in MD build 3067
     if int(MD_REF.getBuild()) >= 3067:
         from com.moneydance.apps.md.view.gui.theme import ThemeInfo                                                     # noqa
@@ -494,6 +496,11 @@ Visit: %s (Author's site)
         global MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
         # myPrint("DB","About to delete reference to MD_REF, MD_REF_UI and MD_EXTENSION_LOADER....!")
         # del MD_REF, MD_REF_UI, MD_EXTENSION_LOADER
+
+        myPrint("DB", "... destroying own reference to frame('security_performance_graph_frame_')...")
+        global security_performance_graph_frame_
+        security_performance_graph_frame_ = None
+        del security_performance_graph_frame_
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3585,9 +3592,9 @@ Visit: %s (Author's site)
 
             super(self.__class__, self).__init__()
 
-            self.saveSelectedSecUUIDList = None         # type: SyncRecord
-            self.baseSecurityList = []                  # type: [CurrencyType]
-            self.securityJCheckBoxList = []             # type: [SecurityChooser.SecurityJCheckBox]
+            self.saveSelectedSecUUIDList = None                                                                         # type: SyncRecord
+            self.baseSecurityList = []                                                                                  # type: [CurrencyType]
+            self.securityJCheckBoxList = []                                                                             # type: [SecurityChooser.SecurityJCheckBox]
 
             self.pnlJCheckBoxList = JPanel(GridBagLayout())
             self.pnlJCheckBoxList.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8))
@@ -3692,7 +3699,7 @@ Visit: %s (Author's site)
 
             self.loadDataModel()
 
-            self.saveSelectedSecUUIDList = parameters.getSubset(loadKey)        # type: SyncRecord
+            self.saveSelectedSecUUIDList = parameters.getSubset(loadKey)                                                # type: SyncRecord
 
             result = self.selectSecurities(lForceAll=self.securityFilter.getAutoSelectMode())
             return result
@@ -3704,12 +3711,12 @@ Visit: %s (Author's site)
             self.vertical = False
             self.showKey = True
             self.title = title
-            self.popupTableData = None                  # type: {}
+            self.popupTableData = None                                                                                  # type: {}
             self.currency = None
-            self.settings = None            # type: SyncRecord
+            self.settings = None                                                                                        # type: SyncRecord
             self.sectionMap = HashMap()
-            self.timeData = None            # type: TimeSeriesCollection
-            self.lastTimeSeries = None      # type: TimeSeries
+            self.timeData = None                                                                                        # type: TimeSeriesCollection
+            self.lastTimeSeries = None                                                                                  # type: TimeSeries
             self.show3D = True
             self.rateFormatString = None
             self.yAxisLabel = None
@@ -3737,6 +3744,7 @@ Visit: %s (Author's site)
         def setPopupTableData(self, _tableData): self.popupTableData = _tableData
         def getPopupTableData(self): return self.popupTableData
         def getCurrency(self): return self.currency
+        def setCurrency(self, newCurrency): self.currency = newCurrency
         def setSettings(self, settings): self.settings = settings
         def getSettings(self): return self.settings
 
@@ -3796,7 +3804,7 @@ Visit: %s (Author's site)
                 self.name = String(name)
                 self.details = details
                 self.uri = uri
-                self.currency = currency
+                self.wr_currency = WeakReference(currency)
 
             def toString(self): return self.name
 
@@ -3875,7 +3883,7 @@ Visit: %s (Author's site)
                 self.portfolioStartValue = None
                 self.portfolioEndValue = None
                 self.portfolioValueChange = None
-                self.securityObjs = []          # type: [MySecurityPerformanceGraph.StoreSecurityRow]
+                self.securityObjs = []                                                                                  # type: [MySecurityPerformanceGraph.StoreSecurityRow]
 
             def getPortfolioStartValueFancy(self): return self.base.formatFancy(self.portfolioStartValue, self.dec)
             def getPortfolioEndValueFancy(self): return self.base.formatFancy(self.portfolioEndValue, self.dec)
@@ -3920,17 +3928,17 @@ Visit: %s (Author's site)
 
         def __init__(self, title=None):
             super(self.__class__, self).__init__()
-            self.renamedConfigPanel = None              # type: JPanel
-            self.dateRanger = None                      # type: MyDateRangeChooser
-            self.intervalChoice = None                  # type: IntervalChooser
-            self.displayDataChoice = None               # type: DisplayDataOptionChooser
-            self.rebaseChoice = None                    # type: RebasePerformanceChooser
-            self.percentageChoice = None                # type: PercentageOrPriceChooser
-            self.includeHiddenSecuritiesChoice = None   # type: IncludeHiddenSecuritiesChooser
-            self.showPopupTableChoice = None            # type: ShowPopupTableChooser
-            # self.securityListChoice = None            # type: JList
-            self.securityFilter = None                  # type: SecurityFilterPanel
-            self.securityListChoiceJCB = None           # type: SecurityChooser
+            self.renamedConfigPanel = None                                                                              # type: JPanel
+            self.dateRanger = None                                                                                      # type: MyDateRangeChooser
+            self.intervalChoice = None                                                                                  # type: IntervalChooser
+            self.displayDataChoice = None                                                                               # type: DisplayDataOptionChooser
+            self.rebaseChoice = None                                                                                    # type: RebasePerformanceChooser
+            self.percentageChoice = None                                                                                # type: PercentageOrPriceChooser
+            self.includeHiddenSecuritiesChoice = None                                                                   # type: IncludeHiddenSecuritiesChooser
+            self.showPopupTableChoice = None                                                                            # type: ShowPopupTableChooser
+            # self.securityListChoice = None                                                                            # type: JList
+            self.securityFilter = None                                                                                  # type: SecurityFilterPanel
+            self.securityListChoiceJCB = None                                                                           # type: SecurityChooser
             self.suppressMessages = False
             self.book = MySecurityPerformanceGraph.moneydanceContext.getCurrentAccountBook()
             self.ctable = self.book.getCurrencies()
@@ -4215,8 +4223,8 @@ Visit: %s (Author's site)
             beginDate = dateRange.getStartDateInt()
             endDate = dateRange.getEndDateInt()
 
-            graphData = None   # type: MyGraphSet
-            tableData = None   # type: MySecurityPerformanceGraph.StorePopupTableData
+            graphData = None                                                                                            # type: MyGraphSet
+            tableData = None                                                                                            # type: MySecurityPerformanceGraph.StorePopupTableData
 
             myPrint("DB","selectedSecurities:", selectedSecurities)
 
@@ -4243,7 +4251,7 @@ Visit: %s (Author's site)
                 if debug:
                     for checkDateKey in dates: myPrint("B","dates: %s" %(checkDateKey), dates[checkDateKey])
 
-                intervalUtil = TimeIntervalUtil()   # type: TimeIntervalUtil
+                intervalUtil = TimeIntervalUtil()                                                                       # type: TimeIntervalUtil
                 firstInterval = intervalUtil.getIntervalStart(beginDate, interval)
                 lastInterval = intervalUtil.getIntervalEnd(endDate, interval)
                 numIntervals = intervalUtil.getNumIntervals(firstInterval, lastInterval, interval)
@@ -4505,7 +4513,7 @@ Visit: %s (Author's site)
                     avgBalStr = resources.getStr("graph_avg") + " " + StringUtils.formatRate(totalRate / used, dec)
 
                     if graphData is None:
-                        graphData = MyGraphSet(MySecurityPerformanceGraph.getTitle())    # type: MyGraphSet
+                        graphData = MyGraphSet(MySecurityPerformanceGraph.getTitle())                                   # type: MyGraphSet
 
                         graphOptions = "(graph options: "
 
@@ -4613,7 +4621,7 @@ Visit: %s (Author's site)
                 datesBySecurity[_key] = TreeSet(snapshotComparator)   # Note: single thread, so no need for: SortedSet s = Collections.synchronizedSortedSet(new TreeSet(...));
 
             for sec in securities:
-                snaps = sec.getSnapshots()    # type: [CurrencySnapshot]
+                snaps = sec.getSnapshots()                                                                              # type: [CurrencySnapshot]
 
                 if lGetOverallDates:
                     if snaps.size() > 0:
@@ -4897,10 +4905,8 @@ Visit: %s (Author's site)
 
         try:
             # NOTE - .dispose() - The windowClosed event should set .isActiveInMoneydance False and .removeAppEventListener()
-            if not SwingUtilities.isEventDispatchThread():
-                SwingUtilities.invokeLater(GenericDisposeRunnable(_theFrame))
-            else:
-                _theFrame.dispose()
+            SwingUtilities.invokeLater(GenericDisposeRunnable(_theFrame))
+
         except:
             myPrint("B","Error. Final dispose failed....?")
             dump_sys_error_to_md_console_and_errorlog()
@@ -5221,15 +5227,15 @@ Visit: %s (Author's site)
 
             def generateToolTip(self, dataset, series, item):
                 if isinstance(dataset, AbstractSeriesDataset):
-                    asData = dataset                                            # type: AbstractSeriesDataset
-                    key = asData.getSeriesKey(series)                           # type: Comparable
+                    asData = dataset                                                                                    # type: AbstractSeriesDataset
+                    key = asData.getSeriesKey(series)                                                                   # type: Comparable
                     lgs = self.callingClass.getGraphSet().getDetailsByName(String.valueOf(key))
                     if lgs is None: return None
                     sb = StringBuilder()
                     sb.append(lgs.name)
                     if isinstance(dataset, TimeSeriesCollection):
                         timeSeries = dataset.getSeries(series)
-                        regularTimePeriod = timeSeries.getTimePeriod(item)      # type: RegularTimePeriod
+                        regularTimePeriod = timeSeries.getTimePeriod(item)                                              # type: RegularTimePeriod
                         if regularTimePeriod is not None:
                             sb.append("; ")
                             sb.append(regularTimePeriod)
@@ -5239,7 +5245,7 @@ Visit: %s (Author's site)
                             sb.append("; ")
                             sb.append(self.callingClass.dateFormat.format(Date(timeInMs.longValue())))
                     sb.append("; ")
-                    currency = lgs.currency                                     # type: CurrencyType
+                    currency = lgs.wr_currency.get()                                                                    # type: CurrencyType
                     if currency is not None:
                         extraTxt = currency.getParameter(MySecurityPerformanceGraph.CURRENCY_LABEL_KEY, "")
                         sb.append(extraTxt + " " + currency.formatFancy(Math.round(dataset.getYValue(series, item)), self.callingClass.dec))
@@ -5253,24 +5259,28 @@ Visit: %s (Author's site)
 
             def __init__(self, curr, callingClass):
                 # type: (CurrencyType, MyGraphViewer) -> None
-                self.curr = curr
+                self.wr_curr = WeakReference(curr)
                 self.callingClass = callingClass
 
             # noinspection PyUnusedLocal
             def parse(self, text, pos):
-                return Long(self.curr.parse(text, self.callingClass.this.dec))
+                curr = self.wr_curr.get()                                                                               # type: CurrencyType
+                if isinstance(curr, CurrencyType): pass
+                return Long(curr.parse(text, self.callingClass.this.dec))
 
             # noinspection PyUnusedLocal
             def format(self, number, toAppendTo, pos):
                 # type: ((long, float), StringBuffer, FieldPosition) -> StringBuffer
+                curr = self.wr_curr.get()                                                                               # type: CurrencyType
+                if isinstance(curr, CurrencyType): pass
                 if toAppendTo is None:
                     toAppendTo = StringBuffer()
                 if isinstance(number, long):
-                    toAppendTo.append(self.curr.formatFancy(number, self.callingClass.dec))
-                    # toAppendTo.append(self.curr.formatSemiFancy(number, self.callingClass.dec))
+                    toAppendTo.append(curr.formatFancy(number, self.callingClass.dec))
+                    # toAppendTo.append(curr.formatSemiFancy(number, self.callingClass.dec))
                 elif isinstance(number, float):
-                    toAppendTo.append(self.curr.formatFancy(Math.round(number), self.callingClass.dec))
-                    # toAppendTo.append(self.curr.formatSemiFancy(Math.round(number), self.callingClass.dec))
+                    toAppendTo.append(curr.formatFancy(Math.round(number), self.callingClass.dec))
+                    # toAppendTo.append(curr.formatSemiFancy(Math.round(number), self.callingClass.dec))
                 else:
                     raise Exception("CHECK DATA TYPES")
                 return toAppendTo
@@ -5282,9 +5292,9 @@ Visit: %s (Author's site)
 
             self.mdGUI = mdGUI
 
-            self.mainChart = None           # type: JFreeChart
-            self.mainChartPanel = None      # type: ChartPanel
-            self.graphSet = None            # type: MyGraphSet
+            self.mainChart = None                                                                                       # type: JFreeChart
+            self.mainChartPanel = None                                                                                  # type: ChartPanel
+            self.graphSet = None                                                                                        # type: MyGraphSet
 
             self.dec = mdGUI.getPreferences().getDecimalChar()
             self.dateFormat = mdGUI.getPreferences().getShortDateFormatter()
@@ -5370,7 +5380,7 @@ Visit: %s (Author's site)
                 if mainModel.getSeriesCount() > 0:
                     mainKey = mainModel.getSeriesKey(0)
                     if curr is None and isinstance(mainKey, MyGraphSet.LineGraphSection):
-                        curr = mainKey.currency
+                        curr = mainKey.wr_currency.get()
                     yAxis = plot.getRangeAxis()
                     if curr is not None and isinstance(yAxis, NumberAxis):
                         yAxis.setNumberFormatOverride(MyGraphViewer.CurrencyNumberFormat(curr, self))
@@ -5386,7 +5396,7 @@ Visit: %s (Author's site)
                 for i in range(0, mainModel.getSeriesCount()):
                     s = mainModel.getSeries(i)
                     seriesItems = s.getItems()
-                    for item in seriesItems:                # type: TimeSeriesDataItem
+                    for item in seriesItems:                                                                            # type: TimeSeriesDataItem
                         # myPrint("B",item.getPeriod(), item.getValue(), item.getPeriod().getStart(), item.getPeriod().getEnd())
                         val = item.getValue()
                         if lowerValue is None or upperValue is None: lowerValue = upperValue = val
@@ -5485,7 +5495,7 @@ Visit: %s (Author's site)
         def paintComponent(self, g):
             # type: (Graphics) -> None
             if isinstance(g, Graphics2D):
-                g2 = g      # type: Graphics2D
+                g2 = g                                                                                                  # type: Graphics2D
                 oldPaint = g2.getPaint()
                 g2.setPaint(self.colors.graphBGGradient)
                 g2.fill(self.getBounds(self.paintBounds))
@@ -5494,7 +5504,7 @@ Visit: %s (Author's site)
 
         def saveGraph(self, outStream):
             # type: (OutputStream) -> None
-            img = self.getGraphAsImage()     # type: BufferedImage
+            img = self.getGraphAsImage()                                                                                # type: BufferedImage
             ChartUtilities.writeBufferedImageAsPNG(outStream, img)
 
         def getGraphAsImage(self):
@@ -5753,7 +5763,7 @@ Visit: %s (Author's site)
 
             self.setRememberSizeLocationKeys("gui.%s_size" %(self.moduleID), "gui.%s_location" %(self.moduleID), Dimension(1200, 1200))
 
-            self.popupTableDialog = None        # type: MyPopupTableDialog
+            self.popupTableDialog = None                                                                                # type: MyPopupTableDialog
 
         def isPreviewBuild(self):
             if self.moneydanceExtensionLoader is not None:
@@ -5920,7 +5930,35 @@ Visit: %s (Author's site)
                 myPrint("DB", "Removing Preferences listener:", self.callingClass)
                 self.callingClass.moneydanceContext.getPreferences().removeListener(self.callingClass)
 
-                cleanup_actions(self.theFrame)
+                myPrint("DB", "Clearing out references to ensure no memory leaks...")
+                # Ensuring no memory leaks after GUI elements closed....
+                if self.callingClass.popupTableDialog is not None:
+                    self.callingClass.popupTableDialog.goAwayNow()
+                    self.callingClass.popupTableDialog = None
+                self.callingClass.generator = None
+                self.callingClass.frame = None
+                self.callingClass.info = None
+                self.callingClass.prefs = None
+
+
+                if self.callingClass.viewer is not None:
+                    self.callingClass.viewer.mainChart = None
+                    self.callingClass.viewer.mainChartPanel = None
+                    self.callingClass.viewer.graphSet = None
+                    self.callingClass.viewer.removeAll()
+                    myPrint("DB", "... also cleared out references to mainChart, mainPanel, graphSet, frame panel etc....");
+
+                self.callingClass.viewer = None
+
+                self.callingClass.doneButton = None
+                self.callingClass.editButton = None
+                self.callingClass.printButton = None
+                self.callingClass.saveButton = None
+                self.callingClass.copyButton = None
+                self.callingClass.STATUS_LABEL = None
+
+                myPrint("DB", "Executing cleanup_actions() ....")
+                cleanup_actions(self.theFrame);
 
         def editParameters(self):
             self.generator.setSuppressMessages(True)
@@ -6003,7 +6041,7 @@ Visit: %s (Author's site)
 
                 book = MD_REF.getCurrentAccountBook()
 
-                reportSpec = MyReportSpec(book)   # type: ReportSpec
+                reportSpec = MyReportSpec(book)                                                                         # type: ReportSpec
                 reportSpec.setName(GlobalVars.Strings.GRAPH_NAME)
                 reportSpec.setReportID(myModuleID)
                 reportSpec.setMemorized(False)
@@ -6032,7 +6070,7 @@ Visit: %s (Author's site)
 
                 # copies com.moneydance.apps.md.view.gui.GraphReportGenerator.showReport(ReportSpec, MoneydanceGUI) : void
 
-                # theGenerator = GraphReportGenerator.getGenerator(theReportSpec, MD_REF.getUI())			# type: GraphReportGenerator
+                # theGenerator = GraphReportGenerator.getGenerator(theReportSpec, MD_REF.getUI())			            # type: GraphReportGenerator
                 theGenerator = MySecurityPerformanceGraph(reportSpec.getName())
                 theGenerator.setGUI(MD_REF.getUI())
                 theGenerator.setSuppressMessages(True)
