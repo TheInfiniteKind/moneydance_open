@@ -204,6 +204,7 @@
 #               Build: 5036 - changed MoneyForesight fields - fixed disable MFS feature...
 # build: 1061 - Added closeBotInterface() and set moneyBotInterface to None when closing dataset....; Added 'moneyBotInterface' to .gatherJVMDiagnostics()
 #               More memory leak cleanups....; Added: CMD-G - Requests the JVM to run Garbage Collection....
+#               Enhanced can_I_delete_security() to show transaction count..
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -8432,17 +8433,18 @@ Visit: %s (Author's site)
         QuickJFrame("CAN I DELETE A CURRENCY?", currOutput, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
 
     def can_I_delete_security():
-        myPrint("B", "Script running to analyse whether you can delete a Security, or show where it's used....")
+        myPrint("B", "Analysing whether you can delete a security (or show where it's used)....")
 
         if MD_REF.getCurrentAccountBook() is None: return
 
         usageCount = 0
         sumShares = 0
+        txnCount = 0
 
         book = MD_REF.getCurrentAccountBook()
-        allCurrencies = book.getCurrencies().getAllCurrencies()
+        allCurrencies = book.getCurrencies().getAllCurrencies()                                                         # type: [CurrencyType]
 
-        securities = []
+        securities = []                                                                                                 # type: [CurrencyType]
 
         for currency in allCurrencies:
             # noinspection PyUnresolvedReferences
@@ -8462,20 +8464,26 @@ Visit: %s (Author's site)
             setDisplayStatus(txt, "R")
             return
 
-        output = "\nYou want me to look for Security: %s\n" %(selectedSecurity)
+        if isinstance(selectedSecurity, CurrencyType): pass
+
+        output = "\nAnalysing security: %s\n" %(selectedSecurity)
 
         accountsList = AccountUtil.allMatchesForSearch(book, MyAcctFilter(2))
         output += "Searching through %s security (sub) accounts.." % (len(accountsList)) + "\n"
 
         for account in accountsList:
-            if account.getCurrencyType() == selectedSecurity:
-                # noinspection PyUnresolvedReferences
-                output += "   >> Security: %s is used in Account: %s - Share holding balance: %s" \
-                          % (selectedSecurity, account.getParentAccount().getAccountName(),
-                             selectedSecurity.getDoubleValue(account.getBalance())) + "\n"
+            if account.getCurrencyType() is selectedSecurity:
+
+                txns = account.getBook().getTransactionSet().getTransactionsForAccount(account)
+
+                output += "   >> Security: %s is used in Account: %s - Share holding balance: %s - Transactions: %s\n" \
+                          %(selectedSecurity, account.getParentAccount().getAccountName(),
+                            selectedSecurity.getDoubleValue(account.getBalance()), txns.getSize())
                 # noinspection PyUnresolvedReferences
                 sumShares += selectedSecurity.getDoubleValue(account.getBalance())
                 usageCount += 1
+                txnCount += txns.getSize()
+                del txns
 
         if not usageCount:
             output += "   >> Security not found in any accounts.\n"
@@ -8492,18 +8500,22 @@ Visit: %s (Author's site)
 
         output += " ----------------------------------------------------------------\n"
         if usageCount:
-            output += "\nUSAGE FOUND: You are using security: %s in %s accounts!\n... with a share balance of: %s. These would need to be removed before security deletion" \
-                      % (selectedSecurity, usageCount, sumShares) + "\n"
-            myPrint("J", ">> NO - Security cannot be deleted as it's being used: %s" %(selectedSecurity))
+            output += "\n" \
+                      "USAGE FOUND: You are using security: %s in %s accounts!\n" \
+                      "... with a total share balance of:     %s\n" \
+                      "... with a total transaction count of: %s\n" \
+                      "You must manually delete all related transactions, and remove security from investment account(s), before security deletion is allowed!\n" \
+                      "NOTE: When you remove the security from the last investment account, then MD auto-deletes the security\n" \
+                      % (selectedSecurity, usageCount, sumShares, txnCount)
 
         if countPriceHistory:
-            output += "\nPRICE HISTORY FOUND: You have %s price records - If you delete Security then these will be lost..." \
+            output += "\nPRICE HISTORY FOUND: You have %s price records - If you delete the security then these will be lost..." \
                       % countPriceHistory + "\n"
 
         if not usageCount and not countPriceHistory:
-            txt = "No usage of security %s found! You should be able to safely delete the Security" %(selectedSecurity)
+            txt = "No usage of security %s found! You should be able to safely delete the security" %(selectedSecurity)
         else:
-            txt = "Sorry - usage of Security: %s found - refer to script output for details.." %(selectedSecurity)
+            txt = "Sorry - usage of Security: %s found - refer to output for details.." %(selectedSecurity)
 
         output += "\n%s\n" %(txt)
         setDisplayStatus(txt, "R")
@@ -28239,10 +28251,10 @@ now after saving the file, restart Moneydance
                     user_fix_invalidLotRecords = MenuJRadioButton("FIX: Detect and fix (wipe) LOT records where matched Buy/Sell records are invalid", False, updateMenu=True)
                     user_fix_invalidLotRecords.setToolTipText("Scans LOT matching data and detects where matched records are invalid (missing)... Allows you to fix by wiping the LOT data")
 
-                    user_can_i_delete_security = MenuJRadioButton("DIAG: Can I Delete a Security? (i.e. this is a show where used)", False)
+                    user_can_i_delete_security = MenuJRadioButton("DIAG: Can I Delete a Security? (i.e. show where used)", False)
                     user_can_i_delete_security.setToolTipText("This will tell you whether a Selected Security is in use and whether you can delete it in Moneydance")
 
-                    user_can_i_delete_currency = MenuJRadioButton("DIAG: Can I Delete a Currency?  (i.e. this is a show where used)", False)
+                    user_can_i_delete_currency = MenuJRadioButton("DIAG: Can I Delete a Currency?  (i.e. show where used)", False)
                     user_can_i_delete_currency.setToolTipText("This will tell you whether a Selected Currency is in use and whether you can delete it in Moneydance")
 
                     user_list_curr_sec_dpc = MenuJRadioButton("DIAG: List Security / Currency (hidden) decimal place settings", False)
