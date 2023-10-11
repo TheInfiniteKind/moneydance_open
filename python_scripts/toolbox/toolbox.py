@@ -205,6 +205,7 @@
 # build: 1061 - Added closeBotInterface() and set moneyBotInterface to None when closing dataset....; Added 'moneyBotInterface' to .gatherJVMDiagnostics()
 #               More memory leak cleanups....; Added: CMD-G - Requests the JVM to run Garbage Collection....
 #               Enhanced can_I_delete_security() to show transaction count..
+#               Enhanced error traps in find_other_datasets()... Tweaked get_sync_folder() with option to return sync base folder too...
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -5369,12 +5370,12 @@ Visit: %s (Author's site)
 
     def find_other_datasets():
         output = ""
-        output+=("\nQUICK SEARCH FOR OTHER DATASETS:\n"
-                 " --------------------------------\n")
+        output += ("\nQUICK SEARCH FOR OTHER DATASETS:\n"
+                   " --------------------------------\n")
 
         try:
-            md_extn = ".moneydance"
-            md_archive = ".moneydancearchive"
+            md_extn = Common.ACCOUNT_BOOK_EXTENSION
+            md_archive = Common.ARCHIVE_FILE_EXTENSION
 
             saveFiles = {}
             saveArchiveFiles = {}
@@ -5385,7 +5386,7 @@ Visit: %s (Author's site)
 
             internalDir = Common.getDocumentsDirectory().getCanonicalPath()
             try:
-                dirList =  os.listdir(internalDir)
+                dirList = os.listdir(internalDir)
                 for fileName in dirList:
                     fullPath = os.path.join(internalDir,fileName)
                     if fileName.endswith(md_extn):
@@ -5394,13 +5395,14 @@ Visit: %s (Author's site)
                         saveArchiveFiles[fullPath] = True
                 del dirList
             except OSError:
-                myPrint("B","@@ Error accessing internalDir: '%s' - skipping...." %(internalDir))
+                e_type, exc_value, exc_traceback = sys.exc_info()                                                       # noqa
+                myPrint("B","@@ Error accessing internalDir: '%s' - skipping.... (error: '%s')" %(internalDir, exc_value))
                 errorDirs.append(internalDir)
 
             parentofDataset = MD_REF.getCurrentAccountBook().getRootFolder().getParent()
             if os.path.exists(parentofDataset):
                 try:
-                    dirList =  os.listdir(parentofDataset)
+                    dirList = os.listdir(parentofDataset)
                     for fileName in dirList:
                         fullPath = os.path.join(parentofDataset,fileName)
                         if fileName.endswith(md_extn):
@@ -5409,7 +5411,8 @@ Visit: %s (Author's site)
                             saveArchiveFiles[fullPath] = True
                     del dirList
                 except OSError:
-                    myPrint("B","@@ Error accessing dataset's folder: '%s' - skipping...." %(parentofDataset))
+                    e_type, exc_value, exc_traceback = sys.exc_info()                                                   # noqa
+                    myPrint("B", "@@ Error accessing dataset's folder: '%s' - skipping.... (error: '%s')" %(parentofDataset, exc_value))
                     errorDirs.append(parentofDataset)
             del parentofDataset
 
@@ -5420,7 +5423,7 @@ Visit: %s (Author's site)
                 externalDir = _book.getRootFolder().getParent()
                 if os.path.exists(externalDir):
                     try:
-                        dirList =  os.listdir(externalDir)
+                        dirList = os.listdir(externalDir)
                         for fileName in dirList:
                             fullPath = os.path.join(externalDir,fileName)
                             if fileName.endswith(md_extn):
@@ -5429,7 +5432,8 @@ Visit: %s (Author's site)
                                 saveArchiveFiles[fullPath] = True
                         del dirList
                     except OSError:
-                        myPrint("B","@@ Error accessing externalDir: '%s' - skipping...." %(externalDir))
+                        e_type, exc_value, exc_traceback = sys.exc_info()                                               # noqa
+                        myPrint("B", "@@ Error accessing externalDir: '%s' - skipping.... (error: '%s')" %(externalDir, exc_value))
                         errorDirs.append(externalDir)
                 del _book
 
@@ -5441,7 +5445,7 @@ Visit: %s (Author's site)
                                     MD_REF.getUI().getPreferences().getSetting("backup.last_browsed","")]:
                 if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
                     try:
-                        dirList =  os.listdir(backupLocation)
+                        dirList = os.listdir(backupLocation)
                         for fileName in dirList:
                             fullPath = os.path.join(backupLocation,fileName)
                             if fileName.endswith(md_extn):
@@ -5451,71 +5455,72 @@ Visit: %s (Author's site)
                                 saveArchiveFiles[fullPath] = True
                         del dirList
                     except OSError:
-                        myPrint("B","@@ Error accessing backupLocationDir: '%s' - skipping...." %(backupLocation))
+                        e_type, exc_value, exc_traceback = sys.exc_info()                                               # noqa
+                        myPrint("B", "@@ Error accessing backupLocationDir: '%s' - skipping.... (error: '%s')" %(backupLocation, exc_value))
                         errorDirs.append(backupLocation)
             del backupLocation
 
             saveFiles[myDataset] = None
 
-            listTheFiles=sorted(saveFiles.keys())
-            listTheArchiveFiles=sorted(saveArchiveFiles.keys())
+            listTheFiles = sorted(saveFiles.keys())
+            listTheArchiveFiles = sorted(saveArchiveFiles.keys())
 
             for _f in listTheFiles:
                 if saveFiles[_f] is not None:
-                    output+=("Dataset: Mod: %s %s\n"
-                             % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), _f))
+                    output += ("Dataset: Mod: %s %s\n"
+                               %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), _f))
             del listTheFiles
 
-            output+=("\nBACKUP FILES\n"
-                     " ------------\n")
+            output += ("\nBACKUP FILES\n"
+                       " ------------\n")
 
             for _f in listTheArchiveFiles:
                 if saveArchiveFiles[_f] is not None:
-                    output+=("Archive: Mod: %s %s\n"
-                             % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), _f))
+                    output += ("Archive: Mod: %s %s\n"
+                               %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), _f))
             del listTheArchiveFiles
 
-            output+=("\nSYNC FOLDERS FOUND:\n"
-                     " --------------------\n")
+            output += ("\nSYNC FOLDERS FOUND:\n"
+                       " --------------------\n")
 
-            saveSyncFolder=None
-            try:
-                # NOTE: If there is a problem with Dropbox, then .getSyncFolder() will crash
-                # Also, MD2021.2 Build 3088 adds iCloud Sync which crashes if launched from command line....
-                syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts())
-                syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
+            saveSyncFolder = get_sync_folder(lReturnBaseFolder=True)
+            if saveSyncFolder is not None:
 
-                if syncMethod is not None and syncMethod.getSyncFolder() is not None:
-                    # noinspection PyUnresolvedReferences
-                    syncBaseFolder = syncMethod.getSyncFolder().getSyncBaseFolder()
-
-                    saveSyncFolder = syncBaseFolder.getCanonicalPath()
-                    dirList =  os.listdir(saveSyncFolder)
-
-                    for fileName in dirList:
-                        fullPath = os.path.join(saveSyncFolder,fileName)
-                        if len(fileName)>32:
-                            output+=("Sync Folder: %s %s\n"
-                                     % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), fullPath))
+                if "https://" in saveSyncFolder:
+                    output += ("<Unable to list Dropbox sync folders stored online at: '%s'>\n" %(saveSyncFolder))
                 else:
-                    output+=("<NONE FOUND>\n")
-
-                del syncMethod, syncMethods
-            except:
-                pass
+                    try:
+                        dirList = os.listdir(saveSyncFolder)
+                        for fileName in dirList:
+                            fullPath = os.path.join(saveSyncFolder,fileName)
+                            if len(fileName) > 32:
+                                output += ("Sync Folder: %s %s\n"
+                                           %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), fullPath))
+                        del dirList
+                    except OSError:
+                        e_type, exc_value, exc_traceback = sys.exc_info()                                               # noqa
+                        myPrint("B", "@@ Error accessing saveSyncFolder: '%s' - skipping.... (error: '%s')" %(saveSyncFolder, exc_value))
+                        errorDirs.append(saveSyncFolder)
+            else:
+                output += ("<NONE FOUND>\n")
 
             dropboxPath = tell_me_if_dropbox_folder_exists()
             if dropboxPath and dropboxPath is not None and dropboxPath != saveSyncFolder:
 
-                output+=("\nDROPBOX FOLDERS FOUND:\n"
-                         " ----------------------\n")
-                dirList =  os.listdir(dropboxPath)
-
-                for fileName in dirList:
-                    fullPath = os.path.join(dropboxPath,fileName)
-                    if len(fileName)>32:
-                        output+=("Dropbox Sync Folder: %s %s\n"
-                                 % (pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), fullPath))
+                output += ("\nLOCAL DROPBOX FOLDERS FOUND:\n"
+                             " ---------------------------\n")
+                try:
+                    dirList = os.listdir(dropboxPath)
+                    for fileName in dirList:
+                        fullPath = os.path.join(dropboxPath,fileName)
+                        if len(fileName) > 32:
+                            output += ("Dropbox Sync Folder: %s %s\n"
+                                       %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(fullPath)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), fullPath))
+                    del dirList
+                except OSError:
+                    e_type, exc_value, exc_traceback = sys.exc_info()                                                   # noqa
+                    myPrint("B", "@@ Error accessing dropboxPath: '%s' - skipping.... (error: '%s')" %(dropboxPath, exc_value))
+                    errorDirs.append(dropboxPath)
             del dropboxPath
 
             if len(errorDirs) > 0:
@@ -5523,10 +5528,10 @@ Visit: %s (Author's site)
                            " --------------------------\n")
                 for errorDir in errorDirs: output += (" @@ %s\n" %(errorDir))
 
-            output+="\n\n(for a more extensive search please use Toolbox - Find my Datasets and Backups button\n\n"
+            output += "\n\n(for a more extensive search please use Toolbox - 'Find My Datasets and Backups' button\n\n"
 
         except:
-            myPrint("B","@@ ERROR: Failed in find_other_datasets()?")
+            myPrint("B", "@@ ERROR: find_other_datasets() crashed?!")
             output += dump_sys_error_to_md_console_and_errorlog(lReturnText=True)
 
         return output
@@ -10277,7 +10282,7 @@ Visit: %s (Author's site)
 
         return False
 
-    def get_sync_folder(lReturnFileOrURLObject=False):
+    def get_sync_folder(lReturnFileOrURLObject=False, lReturnBaseFolder=False):
 
         if MD_REF.getCurrentAccountBook() is None: return None
 
@@ -10285,7 +10290,6 @@ Visit: %s (Author's site)
             syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts())
             syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
 
-            # New feature and Mac only
             if Platform.isOSX() and int(MD_REF.getBuild()) >= GlobalVars.MD_ICLOUD_ENABLED and isinstance(syncMethod, ICloudSyncConfigurer):
                 syncF = syncMethod.getSyncFolder()
 
@@ -10293,11 +10297,17 @@ Visit: %s (Author's site)
                 if isinstance(p_icloudObject, ICloudContainer): pass
 
                 syncBaseFolder = invokeMethodByReflection(p_icloudObject, "nativeGetICloudPath", None)
-                saveSyncFolder = os.path.join(syncBaseFolder, "Documents", "sync", syncF.getSubpath())
+                syncRealBaseFolder = os.path.join(syncBaseFolder, "Documents", "sync")
+                saveSyncFolder = os.path.join(syncRealBaseFolder, syncF.getSubpath())
 
-                if os.path.exists(saveSyncFolder):
-                    myPrint("DB", "icloud folder found:", saveSyncFolder)
-                    return (saveSyncFolder if not lReturnFileOrURLObject else File(saveSyncFolder))
+                if lReturnBaseFolder:
+                    if os.path.exists(syncRealBaseFolder):
+                        myPrint("DB", "icloud base folder found:", syncRealBaseFolder)
+                        return (syncRealBaseFolder if not lReturnFileOrURLObject else File(syncRealBaseFolder))
+                else:
+                    if os.path.exists(saveSyncFolder):
+                        myPrint("DB", "icloud folder found:", saveSyncFolder)
+                        return (saveSyncFolder if not lReturnFileOrURLObject else File(saveSyncFolder))
 
             elif isinstance(syncMethod, DropboxSyncConfigurer):
                 syncF = syncMethod.getSyncFolder()
@@ -10305,15 +10315,28 @@ Visit: %s (Author's site)
                 APIStr = "DropboxAPI:"
                 baseURL = "https://www.dropbox.com/home"
                 dropboxURL = URL(syncBaseFolder.replace(APIStr, baseURL))
-                return (dropboxURL.toString() if not lReturnFileOrURLObject else dropboxURL)
+                if lReturnBaseFolder:
+                    syncRealBaseFolder = dropboxURL.toString().replace("/" + syncMethod.getSubpath(), "")
+                    dropboxRealBaseURL = URL(syncRealBaseFolder)
+                    myPrint("DB", "sync base folder found:", dropboxRealBaseURL.toString())
+                    return (dropboxRealBaseURL.toString() if not lReturnFileOrURLObject else dropboxRealBaseURL)
+                else:
+                    myPrint("DB", "sync folder found:", dropboxURL.toString())
+                    return (dropboxURL.toString() if not lReturnFileOrURLObject else dropboxURL)
 
             elif syncMethod is not None and syncMethod.getSyncFolder() is not None:
                 syncF = syncMethod.getSyncFolder()
                 syncBaseFolder = syncF.getSyncBaseFolder()                                                              # noqa
-                saveSyncFolder = os.path.join(syncBaseFolder.getCanonicalPath(), syncF.getSubpath())
-                if os.path.exists(saveSyncFolder):
-                    myPrint("DB", "sync folder found:", syncBaseFolder)
-                    return (saveSyncFolder if not lReturnFileOrURLObject else File(saveSyncFolder))
+                syncRealBaseFolder = syncBaseFolder.getCanonicalPath()
+                saveSyncFolder = os.path.join(syncRealBaseFolder, syncF.getSubpath())
+                if lReturnBaseFolder:
+                    if os.path.exists(syncRealBaseFolder):
+                        myPrint("DB", "sync base folder found:", syncRealBaseFolder)
+                        return (syncRealBaseFolder if not lReturnFileOrURLObject else File(syncRealBaseFolder))
+                else:
+                    if os.path.exists(saveSyncFolder):
+                        myPrint("DB", "sync folder found:", saveSyncFolder)
+                        return (saveSyncFolder if not lReturnFileOrURLObject else File(saveSyncFolder))
         except:
             myPrint("B", "ERROR: in .get_sync_folder()")
             dump_sys_error_to_md_console_and_errorlog()
