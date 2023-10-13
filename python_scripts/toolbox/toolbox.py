@@ -206,6 +206,7 @@
 #               More memory leak cleanups....; Added: CMD-G - Requests the JVM to run Garbage Collection....
 #               Enhanced can_I_delete_security() to show transaction count..
 #               Enhanced error traps in find_other_datasets()... Tweaked get_sync_folder() with option to return sync base folder too...
+#               ... added getDropboxSyncFolderForBasePath() for find_other_datasets()...
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
 
@@ -3420,7 +3421,7 @@ Visit: %s (Author's site)
         global advanced_options_encrypt_file_into_dataset, advanced_options_encrypt_file_into_sync_folder
         global advanced_options_decrypt_file_from_dataset, advanced_options_decrypt_file_from_sync
         global advanced_options_decrypt_dataset, advanced_show_encryption_keys
-        global CollectTheGarbage
+        global CollectTheGarbage, getDropboxSyncFolderForBasePath
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -5487,7 +5488,25 @@ Visit: %s (Author's site)
             if saveSyncFolder is not None:
 
                 if "https://" in saveSyncFolder:
-                    output += ("<Unable to list Dropbox sync folders stored online at: '%s'>\n" %(saveSyncFolder))
+                    if not GlobalVars.EXTRA_CODE_INITIALISED:
+                        output += ("<Unable to list Dropbox sync folders stored online at: '%s'>\n" %(saveSyncFolder))
+                    else:
+                        newDropboxFolder = getDropboxSyncFolderForBasePath("")
+                        if newDropboxFolder is None:
+                            output += ("<Unable to get new Dropbox client for sync folders online location: '%s'>\n" %(saveSyncFolder))
+                        else:
+                            try:
+                                dirList = newDropboxFolder.listSubfolders("")
+                                for fileName in dirList:
+                                    fullPath = newDropboxFolder.toString() + "/" + fileName
+                                    if len(fileName) > 32:
+                                        output += ("Online Cloud Sync Folder: %s %s\n" %("--", fullPath))
+                                del dirList
+                            except OSError:
+                                e_type, exc_value, exc_traceback = sys.exc_info()                                               # noqa
+                                myPrint("B", "@@ Error accessing saveSyncFolder: '%s' - skipping.... (error: '%s')" %(saveSyncFolder, exc_value))
+                                errorDirs.append(saveSyncFolder)
+                        del newDropboxFolder
                 else:
                     try:
                         dirList = os.listdir(saveSyncFolder)
@@ -10282,13 +10301,17 @@ Visit: %s (Author's site)
 
         return False
 
-    def get_sync_folder(lReturnFileOrURLObject=False, lReturnBaseFolder=False):
+    def get_sync_folder(lReturnFileOrURLObject=False, lReturnBaseFolder=False, lReturnSyncMethod=False):
 
         if MD_REF.getCurrentAccountBook() is None: return None
 
         try:
             syncMethods = SyncFolderUtil.getAvailableFolderConfigurers(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts())
             syncMethod = SyncFolderUtil.getConfigurerForFile(MD_REF.getUI(), MD_REF.getUI().getCurrentAccounts(), syncMethods)
+
+            if lReturnSyncMethod:
+                myPrint("DB", "get_sync_folder() returning syncMethod: '%s'" %(syncMethod))
+                return syncMethod
 
             if Platform.isOSX() and int(MD_REF.getBuild()) >= GlobalVars.MD_ICLOUD_ENABLED and isinstance(syncMethod, ICloudSyncConfigurer):
                 syncF = syncMethod.getSyncFolder()

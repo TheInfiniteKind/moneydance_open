@@ -39,10 +39,10 @@
 global os
 
 # Moneydance definitions
-global AccountBookWrapper, Common, GridC, MDIOUtils, StringUtils
+global AccountBookWrapper, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
 
 # Java definitions
-global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System, String
+global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System, String, Boolean
 global JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel, Color, Desktop
 global BorderFactory, JSeparator, DefaultComboBoxModel, SwingWorker, JPanel, GridLayout, JLabel, GridBagLayout, BorderLayout
 global Paths, Files, StandardCopyOption, Charset
@@ -861,6 +861,46 @@ try:
 
         return localKeyHex, syncKeyHex, opensslCmdText
 
+    def getDropboxSyncFolderForBasePath(basePath):
+        try: from com.moneydance.apps.md.controller.sync import DropboxAPISyncFolder
+        except:
+            e_type, exc_value, exc_traceback = sys.exc_info()                                                           # noqa
+            myPrint("B", "getDropboxSyncFolderForBasePath(): failed to import DropboxAPISyncFolder - INFORM DEVELOPER.... (error: '%s')" %(exc_value))
+            return None
+        try: syncFolder = MD_REF.getCurrentAccounts().getSyncFolder()
+        except: syncFolder = None
+        if syncFolder is None:
+            myPrint("DB", "getDropboxSyncFolderForBasePath(): syncFolder is None....")
+            return None
+        # if not isinstance(syncFolder, DropboxAPISyncFolder):
+        #     myPrint("DB", "getDropboxSyncFolderForBasePath(): syncFolder is not DropboxAPISyncFolder (found: '%s' / '%s')...." %(type(syncFolder), syncFolder))
+        #     return newSyncFolder
+        if "DropboxAPI:" not in syncFolder.toString():
+            myPrint("DB", "getDropboxSyncFolderForBasePath(): syncFolder doe not appear to be 'DropboxAPI:' (found: '%s' / '%s')...." %(type(syncFolder), syncFolder))
+            return None
+
+        syncMethod = get_sync_folder(lReturnSyncMethod=True)
+        if not isinstance(syncMethod, DropboxSyncConfigurer):
+            myPrint("DB", "getDropboxSyncFolderForBasePath(): syncMethod is not 'DropboxSyncConfigurer' (found: '%s')...." %(type(syncMethod)))
+            return None
+
+        if not invokeMethodByReflection(syncMethod, "linkAccount", [Boolean.TYPE], [False]) or not syncMethod.isConnected():
+            myPrint("DB", "getDropboxSyncFolderForBasePath(): failed to call .linkAccount() (connected: %s)" %(syncMethod.isConnected()))
+            return None
+
+        try:
+            dbClient = getFieldByReflection(syncMethod, "dropbox")
+            if dbClient is None:
+                myPrint("B", "getDropboxSyncFolderForBasePath(): Logic error: dbClient is None....")
+                return None
+            newSyncFolder = DropboxAPISyncFolder(dbClient, basePath)
+        except:
+            e_type, exc_value, exc_traceback = sys.exc_info()                                                           # noqa
+            myPrint("B", "getDropboxSyncFolderForBasePath(): Error calling DropboxAPISyncFolder() - INFORM DEVELOPER.... (error: '%s')" %(exc_value))
+            return None
+
+        myPrint("DB", "getDropboxSyncFolderForBasePath(): Obtained new DropboxAPISyncFolder(): %s" %(newSyncFolder))
+        return newSyncFolder
 
     class CollectTheGarbage(AbstractAction):
 
