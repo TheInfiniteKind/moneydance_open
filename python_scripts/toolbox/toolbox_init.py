@@ -168,6 +168,7 @@ def _saveExtensionGlobalPreferences(newExtnPrefs):
 ########################################################################################################################
 # definitions unique to this script
 
+
 if debug:
     try:
         from org.violetlib.aqua import AquaLookAndFeel
@@ -476,8 +477,9 @@ class QuickDiag(Runnable):
 
             msg += "-----\n"
             from com.moneydance.apps.md.controller.io import FileUtils
-            destroyBackupChoices = self.mdRef.getPreferences().getSetting("backup.destroy_number", "5")
-            returnedBackupType = self.mdRef.getPreferences().getSetting("backup.backup_type", "every_x_days")
+            from com.moneydance.apps.md.controller import UserPreferences
+            destroyBackupChoices = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5")
+            returnedBackupType = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
             if returnedBackupType == "every_time":
                 dailyBackupCheckbox = True
                 destroyBackupChoices = 1
@@ -488,11 +490,10 @@ class QuickDiag(Runnable):
 
             msg += ("BACKUPS - Save Daily:            %s\n" %(dailyBackupCheckbox))
             msg += ("BACKUPS - Keep no more than:     %s backups\n" %(destroyBackupChoices))
-            msg += ("BACKUPS - Separate Backup Foldr: %s\n" %(self.mdRef.getPreferences().getBoolSetting("backup.location_selected", True)))
+            msg += ("BACKUPS - Separate Backup Foldr: %s\n" %(self.mdRef.getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))
 
-            MD_CONFIGDICT_BACKUP_TYPE = "backup.backup_type"
             backupFolder = FileUtils.getBackupDir(self.mdRef.getPreferences())
-            backupType = self.mdRef.getPreferences().getSetting(MD_CONFIGDICT_BACKUP_TYPE, "every_x_days")
+            backupType = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
             autoBackup = (backupType != "no_backup")
             if not autoBackup:
                 backupFileTxt = "** WARNING: AUTO BACKUPS ARE DISABLED **"

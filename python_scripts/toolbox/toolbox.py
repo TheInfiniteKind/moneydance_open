@@ -207,8 +207,13 @@
 #               Enhanced can_I_delete_security() to show transaction count..
 #               Enhanced error traps in find_other_datasets()... Tweaked get_sync_folder() with option to return sync base folder too...
 #               ... added getDropboxSyncFolderForBasePath() for find_other_datasets()...
+#               Added checks for macOS Sonoma(14).... iCloud issues!
+#               Build 5046 fixes "Infinity" backups and defines .getNumBackupsToKeep() etc (no actual toolbox fix required)
+
+# todo - undo the patch to DetectMobileAppTxnFiles() for Sonoma.. Perhaps put into a Thread()?
 
 # todo - consider whether to allow blank securities on dividends (and MiscInc, MiscExp) in fix_non_hier_sec_acct_txns() etc?
+# todo - Popup box with Sync ID when viewing Sync folders...
 
 # todo - Change JMenuBar in all extensions.... Swap in a parent JRootPane etc...
 # todo - CMD-P select the pickle file to load/view/edit etc.....
@@ -588,7 +593,7 @@ else:
 
     from com.moneydance.apps.md.view.gui import MoneydanceGUI
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
-    from com.moneydance.apps.md.controller import MDException, Util, AppEventListener, PreferencesListener
+    from com.moneydance.apps.md.controller import MDException, Util, AppEventListener, PreferencesListener, UserPreferences
     from com.moneydance.apps.md.controller import ModuleLoader, ModuleMetaData, LocalStorageCipher, Common, BalanceType
     from com.moneydance.apps.md.controller.sync import MDSyncCipher
     from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
@@ -627,7 +632,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5045
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5046
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -673,7 +678,6 @@ else:
     GlobalVars.Strings.TOOLBOX_PREFERENCES_ZAPPER = "toolbox_preferences_zapper"
 
     GlobalVars.Strings.MD_CONFIGDICT_CURRENT_ACCOUNT_BOOK = "current_accountbook"
-    GlobalVars.Strings.MD_CONFIGDICT_BACKUP_TYPE = "backup.backup_type"
     GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES = "external_files"
 
     GlobalVars.Strings.MD_PLAID_SETTINGS_OBJ_ID = "plaid_settings"
@@ -944,6 +948,7 @@ Visit: %s (Author's site)
     def isOSXVersionBigSurOrLater():        return isOSXVersionAtLeast("10.16")  # BigSur is officially 11.0, but started at 10.16
     def isOSXVersionMontereyOrLater():      return isOSXVersionAtLeast("12.0")
     def isOSXVersionVenturaOrLater():       return isOSXVersionAtLeast("13.0")
+    def isOSXVersionSonomaOrLater():        return isOSXVersionAtLeast("14.0")
 
     def get_home_dir():
         homeDir = None
@@ -5283,6 +5288,10 @@ Visit: %s (Author's site)
                 myPrint("B", "Syncing not enabled - skipping detection for old(er) mobile app sync .txn file(s)")
                 return False
 
+            if isOSXVersionSonomaOrLater() and "icloud".lower() in syncFolder.getSyncTypeID().lower():
+                myPrint("B", "Skipping detection of old(er) mobile app sync .txn file(s) on icloud as running macOS Sonoma(14) (it's very slow/buggy).....")
+                return False
+
             oldTxnFiles = []
             ignoringTxnFiles = []
             nowTimeMS = System.currentTimeMillis()
@@ -6254,8 +6263,8 @@ Visit: %s (Author's site)
 
         textArray.append(u"\n>> BACKUPS")
 
-        destroyBackupChoices = MD_REF.getUI().getPreferences().getSetting(u"backup.destroy_number", u"5")
-        returnedBackupType = MD_REF.getUI().getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_BACKUP_TYPE, u"every_x_days")
+        destroyBackupChoices = MD_REF.getUI().getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, u"5")
+        returnedBackupType = MD_REF.getUI().getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, u"every_x_days")
         if returnedBackupType == u"every_time":
             dailyBackupCheckbox = True
             destroyBackupChoices = 1
@@ -6267,7 +6276,7 @@ Visit: %s (Author's site)
         textArray.append(u"Save Backups Daily:     %s" %(dailyBackupCheckbox))
         textArray.append(u"Keep no more than       %s" %(destroyBackupChoices) + u" backups")
 
-        textArray.append(u"separate Backup Folder: %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"backup.location_selected", True)))
+        textArray.append(u"separate Backup Folder: %s" %(MD_REF.getUI().getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))
         textArray.append(u"Backup Folder:          %s " %(FileUtils.getBackupDir(MD_REF.getPreferences()).getCanonicalPath() ))
 
         textArray.append(u"\n>> SUMMARY PAGE")
@@ -15071,21 +15080,6 @@ Visit: %s (Author's site)
                 if selectedWhat == what[_PREFKEYS] or lSync or lOFX or lSizes or lSearch:  # User  Preferences
 
                     output += "\n ====== USER PREFERENCES LOADED INTO MEMORY (May or may not be quite the same as config.dict) ======\n"
-
-                    # This bit below is really, really cool!!!! But I am not using it as it only gets pre-defined settings from config.dict.
-                    # prefs=[]
-                    # what_x = MD_REF.getUI().getPreferences()
-                    # members = [attr for attr in dir(what_x) if not callable(getattr(what_x, attr)) and not attr.startswith("__")]
-                    # for mem in members:
-                    #     if not mem.upper() == mem: continue
-                    #     try:
-                    #         convertKey = getattr(UserPreferences, mem)
-                    #     except:
-                    #         continue
-                    #     if not convertKey or convertKey=="" : continue
-                    #     value = MD_REF.getUI().getPreferences().getSetting(getattr(UserPreferences, mem))
-                    #     if value: prefs.append([convertKey, mem, value])
-                    # prefs =sorted(prefs) # Sort the result (as the input is only a reference to a reference)
 
                     # As all settings in memory actually come from config.dict (or go back to config.dict) then we look there instead to get the keys
                     st,tk = read_preferences_file(lSaveFirst=True)  # Must flush memory to disk first before we read the file....
@@ -30056,7 +30050,7 @@ now after saving the file, restart Moneydance
 
             # Check for problem with 'auto' backup location... Popup alert message
             backupFolder = FileUtils.getBackupDir(MD_REF.getPreferences())
-            backupType = MD_REF.getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_BACKUP_TYPE, "every_x_days")
+            backupType = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
             autoBackup = (backupType != "no_backup")
             if not autoBackup:
                 MyPopUpDialogBox(toolbox_frame_, "AUTO-BACKUP DISABLED",
