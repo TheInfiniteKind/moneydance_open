@@ -209,6 +209,7 @@
 #               ... added getDropboxSyncFolderForBasePath() for find_other_datasets()...
 #               Added checks for macOS Sonoma(14).... iCloud issues!
 #               Build 5046 fixes "Infinity" backups and defines .getNumBackupsToKeep() etc (no actual toolbox fix required)
+#               JFrame.dispose() added rootPane.getInputMap().clear() - ensure no memory leaks...
 
 # todo - undo the patch to DetectMobileAppTxnFiles() for Sonoma.. Perhaps put into a Thread()?
 
@@ -311,6 +312,8 @@ class MyJFrame(JFrame):
             self.disposing = True
             self.getContentPane().removeAll()
             if self.getJMenuBar() is not None: self.setJMenuBar(None)
+            rootPane = self.getRootPane()
+            if rootPane is not None: rootPane.getInputMap().clear()
             super(self.__class__, self).dispose()
         except:
             _msg = "%s: ERROR DISPOSING OF FRAME: %s\n" %(myModuleID, self)
