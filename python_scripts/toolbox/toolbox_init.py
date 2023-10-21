@@ -478,18 +478,21 @@ class QuickDiag(Runnable):
             msg += "-----\n"
             from com.moneydance.apps.md.controller.io import FileUtils
             from com.moneydance.apps.md.controller import UserPreferences
+
             destroyBackupChoices = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5")
+            destroyBackupChoicesInt = self.mdRef.getPreferences().getIntSetting(UserPreferences.BACKUP_DESTROY_NUMBER, 5)
             returnedBackupType = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
             if returnedBackupType == "every_time":
                 dailyBackupCheckbox = True
-                destroyBackupChoices = 1
+                destroyBackupChoices = "1"
+                destroyBackupChoicesInt = 1
             elif returnedBackupType == "every_x_days":
                 dailyBackupCheckbox = True
             else:
                 dailyBackupCheckbox = False
 
             msg += ("BACKUPS - Save Daily:            %s\n" %(dailyBackupCheckbox))
-            msg += ("BACKUPS - Keep no more than:     %s backups\n" %(destroyBackupChoices))
+            msg += ("BACKUPS - Keep no more than:     %s%s backups\n" %(destroyBackupChoices, "(Infinity)" if destroyBackupChoicesInt < 1 else ""))
             msg += ("BACKUPS - Separate Backup Foldr: %s\n" %(self.mdRef.getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))
 
             backupFolder = FileUtils.getBackupDir(self.mdRef.getPreferences())
@@ -511,6 +514,9 @@ class QuickDiag(Runnable):
             msg += ("..key - 'backup.last_saved':    '%s'\n" %(self.mdRef.getPreferences().getSetting("backup.last_saved", "<not set>")))
             msg += ("..key - '_default_backup_dir':  '%s'\n" %(self.mdRef.getPreferences().getSetting("_default_backup_dir", "<not set>")))
 
+            if self.mdRef.getBuild() < 5046:  # MD2023.2(5046) onwards fixes 'Infinity' backups bug not working
+                try: int(destroyBackupChoices)
+                except: msg += ("\n@@ BUG ALERT: You have specified to retain 'Infinity' backups, but Moneydance will ignore this and only keep 5 backups. Fixed in build: 5046 onwards @@\n\n")
             msg += "-----\n"
 
             from java.util import Locale, TimeZone, Date

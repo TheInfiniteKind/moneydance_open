@@ -647,6 +647,7 @@ else:
     GlobalVars.MD_MULTI_OFX_TXN_DNLD_DATES_BUILD = 4074                     # 2022.3
     GlobalVars.MD_MDPLUS_GETPLAIDCLIENT_BUILD = 4090                        # 2022.5
     GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL = 5008                          # 2023.2 (Entire codebase compiled in Kotlin)
+    GlobalVars.MD_INFINITYBACKUPS_FIXED = 5046                              # 2023.2
 
     GlobalVars.fixRCurrencyCheck = 0
     GlobalVars.globalSaveFI_data = None
@@ -5450,9 +5451,9 @@ Visit: %s (Author's site)
             del externalFiles
 
             for backupLocation in [ FileUtils.getBackupDir(MD_REF.getPreferences()).getCanonicalPath(),
-                                    MD_REF.getUI().getPreferences().getSetting("backup.location",""),
-                                    MD_REF.getUI().getPreferences().getSetting("backup.last_saved",""),
-                                    MD_REF.getUI().getPreferences().getSetting("backup.last_browsed","")]:
+                                    MD_REF.getPreferences().getSetting("backup.location",""),
+                                    MD_REF.getPreferences().getSetting("backup.last_saved",""),
+                                    MD_REF.getPreferences().getSetting("backup.last_browsed","")]:
                 if backupLocation is not None and backupLocation != "" and os.path.exists(backupLocation):
                     try:
                         dirList = os.listdir(backupLocation)
@@ -5698,7 +5699,7 @@ Visit: %s (Author's site)
         x = getMonoFont()
         textArray.append(u"FONT USED FOR TOOLBOX OUTPUT/DISPLAY(can be changed): %s(%s)" %(x.getFontName(), x.getSize()))
         try:
-            loc = MD_REF.getUI().getPreferences().getLocale()
+            loc = MD_REF.getPreferences().getLocale()
             if loc is not None and \
                     (loc.getLanguage() in (loc.CHINESE.getLanguage(), loc.JAPANESE.getLanguage(), loc.KOREAN.getLanguage(), loc.SIMPLIFIED_CHINESE.getLanguage(), loc.TRADITIONAL_CHINESE.getLanguage())
                      or loc.getCountry() in (loc.CHINA.getCountry(), loc.JAPAN.getCountry(), loc.KOREA.getCountry(), loc.TAIWAN.getCountry()) ):
@@ -5721,32 +5722,32 @@ Visit: %s (Author's site)
         del syncIssueFix
 
         textArray.append(u"Moneydance Version / Build:          %s" %(MD_REF.getVersion()) + u"  Build: %s" %(MD_REF.getBuild()))
-        textArray.append(u"Moneydance Config file reports:      %s" %MD_REF.getUI().getPreferences().getSetting(u"current_version", u""))
-        textArray.append(u"Moneydance updater version to track: %s" %MD_REF.getUI().getPreferences().getSetting(u"updater.version_to_track",u""))
+        textArray.append(u"Moneydance Config file reports:      %s" %MD_REF.getPreferences().getSetting(u"current_version", u""))
+        textArray.append(u"Moneydance updater version to track: %s" %MD_REF.getPreferences().getSetting(u"updater.version_to_track",u""))
         textArray.append(u"")
 
-        currLicense = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2022",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2021",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2019",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2017",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2015",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2014",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2011",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2010",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2008",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2004",
-                                                                MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key",u"?")))))))))))
+        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2022",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2021",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2019",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2017",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2015",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2014",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2011",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2010",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2008",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2004",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key",u"?")))))))))))
 
-        license2022 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2022", None)                               # noqa
-        license2021 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2021", None)                               # noqa
-        license2019 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2019", None)
-        license2017 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2017", None)
-        license2015 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2015", None)
-        license2014 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2014", None)
-        license2011 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2011", None)
-        license2010 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2010", None)
-        license2008 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2008", None)
-        license2004 = MD_REF.getUI().getPreferences().getSetting(u"gen.lic_key2004", None)
+        license2022 = MD_REF.getPreferences().getSetting(u"gen.lic_key2022", None)                               # noqa
+        license2021 = MD_REF.getPreferences().getSetting(u"gen.lic_key2021", None)                               # noqa
+        license2019 = MD_REF.getPreferences().getSetting(u"gen.lic_key2019", None)
+        license2017 = MD_REF.getPreferences().getSetting(u"gen.lic_key2017", None)
+        license2015 = MD_REF.getPreferences().getSetting(u"gen.lic_key2015", None)
+        license2014 = MD_REF.getPreferences().getSetting(u"gen.lic_key2014", None)
+        license2011 = MD_REF.getPreferences().getSetting(u"gen.lic_key2011", None)
+        license2010 = MD_REF.getPreferences().getSetting(u"gen.lic_key2010", None)
+        license2008 = MD_REF.getPreferences().getSetting(u"gen.lic_key2008", None)
+        license2004 = MD_REF.getPreferences().getSetting(u"gen.lic_key2004", None)
 
         if not isMDPlusEnabledBuild():      # The start of MD+ and new licensing....
             if MD_REF.isRegistered():
@@ -5803,8 +5804,8 @@ Visit: %s (Author's site)
         if license2004:      textArray.append(u" >old licenses (2004): " + license2004)
 
         if not MD_REF.getCurrentAccountBook(): textArray.append(u"Moneydance datafile is empty")
-        x = MD_REF.getUI().getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_CURRENT_ACCOUNT_BOOK, None)
-        y = MD_REF.getUI().getPreferences().getSetting(u"current_account_file", None)
+        x = MD_REF.getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_CURRENT_ACCOUNT_BOOK, None)
+        y = MD_REF.getPreferences().getSetting(u"current_account_file", None)
 
         theExtn = os.path.splitext((MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()))
 
@@ -5968,8 +5969,8 @@ Visit: %s (Author's site)
         y = u"(DARK THEME)" if (isMDThemeDark()) else u""
         z = u"(Mac Dark Mode detected)" if (Platform.isOSX() and isMacDarkModeDetected()) else u""
 
-        textArray.append(u"Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID), x, y, z))
-        myPrint("B", "Your selected Theme: %s (%s) %s %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID), x, y, z))
+        textArray.append(u"Your selected Theme: %s (%s) %s %s" %(MD_REF.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID), x, y, z))
+        myPrint("B", "Your selected Theme: %s (%s) %s %s" %(MD_REF.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID), x, y, z))
 
         # noinspection PyUnresolvedReferences
         if not os.path.exists(ThemeInfo.customThemeFile.getCanonicalPath()):
@@ -6039,17 +6040,17 @@ Visit: %s (Author's site)
         if os.path.expanduser(u"~"):        textArray.append(u"  ~:                                 %s" %os.path.expanduser(u"~"))
         if os.environ.get(u"HOMEPATH"):     textArray.append(u"  HOMEPATH:                          %s" %os.environ.get(u"HOMEPATH"))
 
-        textArray.append(u"Moneydance decimal point:            %s" %MD_REF.getUI().getPreferences().getSetting(u"decimal_character", u"."))
+        textArray.append(u"Moneydance decimal point:            %s" %MD_REF.getPreferences().getSetting(u"decimal_character", u"."))
         textArray.append(u"System Locale Decimal Point:         %s" %(getDecimalPoint()))
-        if MD_REF.getUI().getPreferences().getSetting(u"decimal_character", u".") != getDecimalPoint():
+        if MD_REF.getPreferences().getSetting(u"decimal_character", u".") != getDecimalPoint():
             textArray.append(u"NOTE - MD Decimal point is DIFFERENT to the Locale decimal point!!!")
-        textArray.append(u"MD User set Locale Country:          %s" %(MD_REF.getUI().getPreferences().getSetting(u"locale.country", u"")))
-        textArray.append(u"MD User set Locale Language:         %s" %(MD_REF.getUI().getPreferences().getSetting(u"locale.language", u"")))
+        textArray.append(u"MD User set Locale Country:          %s" %(MD_REF.getPreferences().getSetting(u"locale.country", u"")))
+        textArray.append(u"MD User set Locale Language:         %s" %(MD_REF.getPreferences().getSetting(u"locale.language", u"")))
 
         loc = Locale.getDefault(); loc_c = loc.getCountry(); loc_l = loc.getLanguage()
         # noinspection PyUnresolvedReferences
-        if (loc_c.lower() != MD_REF.getUI().getPreferences().getSetting(u"locale.country", u"_unknown_").lower()) \
-                or (loc_l.lower() != MD_REF.getUI().getPreferences().getSetting(u"locale.language", u"_unknown_").lower()):
+        if (loc_c.lower() != MD_REF.getPreferences().getSetting(u"locale.country", u"_unknown_").lower()) \
+                or (loc_l.lower() != MD_REF.getPreferences().getSetting(u"locale.language", u"_unknown_").lower()):
             textArray.append(u"NOTE - MD User set Locale details are different to System Locale details!!!")
             textArray.append(u"(System Locale Country:              %s)" %(loc_c))
             textArray.append(u"(System Locale Language:             %s)" %(loc_l))
@@ -6059,7 +6060,7 @@ Visit: %s (Author's site)
 
         textArray.append(u"MD Dataset internal top level (root) Directory: %s" %(returnPathStrings(MD_REF.getCurrentAccountBook().getRootFolder().getParent())))
         textArray.append(u"Auto Backup Folder:                             %s " %(returnPathStrings(FileUtils.getBackupDir(MD_REF.getPreferences()))))
-        textArray.append(u"(Last backup location:                          '%s')" %(MD_REF.getUI().getPreferences().getSetting(u"backup.last_saved", u"")))
+        textArray.append(u"(Last backup location:                          '%s')" %(MD_REF.getPreferences().getSetting(u"backup.last_saved", u"")))
 
         internalFiles = AccountBookUtil.getInternalAccountBooks()
         externalFiles = AccountBookUtil.getExternalAccountBooks()
@@ -6166,26 +6167,26 @@ Visit: %s (Author's site)
         textArray.append(u"USER PREFERENCES")
         textArray.append(u" ----------------")
         textArray.append(u">> GENERAL")
-        textArray.append(u"Show Full Account Paths:             %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"show_full_account_path", True)))
-        textArray.append(u"Register Follows Recorded Txns:      %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gui.register_follows_txns", True)))
-        textArray.append(u"Use VAT/GST:                         %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gen.use_vat", False)))
-        textArray.append(u"Case Sensitive Auto-Complete:        %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gen.case_sensitive_ac", False)))
-        textArray.append(u"Auto Insert Decimal Points:          %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gui.quickdecimal", False)))
-        textArray.append(u"Auto Create New Transactions:        %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gui.new_txn_on_record", True)))
-        textArray.append(u"Separate Tax Date for Transactions:  %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gen.separate_tax_date", False)))
-        textArray.append(u"Show All Accounts in Popup:          %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gui.show_all_accts_in_popup", False)))
-        textArray.append(u"Beep when Transactions Change:       %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"beep_on_transaction_change", True)))
+        textArray.append(u"Show Full Account Paths:             %s" %(MD_REF.getPreferences().getBoolSetting(u"show_full_account_path", True)))
+        textArray.append(u"Register Follows Recorded Txns:      %s" %(MD_REF.getPreferences().getBoolSetting(u"gui.register_follows_txns", True)))
+        textArray.append(u"Use VAT/GST:                         %s" %(MD_REF.getPreferences().getBoolSetting(u"gen.use_vat", False)))
+        textArray.append(u"Case Sensitive Auto-Complete:        %s" %(MD_REF.getPreferences().getBoolSetting(u"gen.case_sensitive_ac", False)))
+        textArray.append(u"Auto Insert Decimal Points:          %s" %(MD_REF.getPreferences().getBoolSetting(u"gui.quickdecimal", False)))
+        textArray.append(u"Auto Create New Transactions:        %s" %(MD_REF.getPreferences().getBoolSetting(u"gui.new_txn_on_record", True)))
+        textArray.append(u"Separate Tax Date for Transactions:  %s" %(MD_REF.getPreferences().getBoolSetting(u"gen.separate_tax_date", False)))
+        textArray.append(u"Show All Accounts in Popup:          %s" %(MD_REF.getPreferences().getBoolSetting(u"gui.show_all_accts_in_popup", False)))
+        textArray.append(u"Beep when Transactions Change:       %s" %(MD_REF.getPreferences().getBoolSetting(u"beep_on_transaction_change", True)))
         if float(MD_REF.getBuild()) < 3032:
-            textArray.append(u"Theme: %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)))
-        textArray.append(u"Show Selection Details:              %s" %(MD_REF.getUI().getPreferences().getSetting(u"details_view_mode", u"inwindow")))
-        textArray.append(u"Side Bar Balance Type:               %s" %(MD_REF.getUI().getPreferences().getSideBarBalanceType()))
-        textArray.append(u"Date Format:                         %s" %(MD_REF.getUI().getPreferences().getSetting(u"date_format", None)))
+            textArray.append(u"Theme: %s" %(MD_REF.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)))
+        textArray.append(u"Show Selection Details:              %s" %(MD_REF.getPreferences().getSetting(u"details_view_mode", u"inwindow")))
+        textArray.append(u"Side Bar Balance Type:               %s" %(MD_REF.getPreferences().getSideBarBalanceType()))
+        textArray.append(u"Date Format:                         %s" %(MD_REF.getPreferences().getSetting(u"date_format", None)))
         # this.prefs.getShortDateFormat());
-        textArray.append(u"Decimal Character:                   %s" %(MD_REF.getUI().getPreferences().getSetting(u"decimal_character", ".")))
+        textArray.append(u"Decimal Character:                   %s" %(MD_REF.getPreferences().getSetting(u"decimal_character", ".")))
         # this.prefs.getDecimalChar()));
-        textArray.append(u"Locale:                              %s" %(MD_REF.getUI().getPreferences().getLocale()))
+        textArray.append(u"Locale:                              %s" %(MD_REF.getPreferences().getLocale()))
 
-        i = MD_REF.getUI().getPreferences().getIntSetting(u"gen.fiscal_year_start_mmdd", 101)
+        i = MD_REF.getPreferences().getIntSetting(u"gen.fiscal_year_start_mmdd", 101)
         if i == 101: i = u"January 1"
         elif i == 201: i = u"February 1"
         elif i == 301: i = u"March 1"
@@ -6203,53 +6204,53 @@ Visit: %s (Author's site)
         textArray.append(u"Fiscal Year Start:                   %s" %(i))
 
         if float(MD_REF.getBuild()) < 3032:
-            textArray.append(u"Font Size:                           +%s" %(MD_REF.getUI().getPreferences().getIntSetting(u"gui.font_increment", 0)))
+            textArray.append(u"Font Size:                           +%s" %(MD_REF.getPreferences().getIntSetting(u"gui.font_increment", 0)))
 
         if float(MD_REF.getBuild()) >= 3032:
             textArray.append(u"\n>> APPEARANCE")
-            textArray.append(u"Theme:                               %s" %(MD_REF.getUI().getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)))
-            if (MD_REF.getUI().getPreferences().getSetting(u"main_font")) != u"null":
-                textArray.append(u"Font:                                %s" %(MD_REF.getUI().getPreferences().getSetting(u"main_font")))
+            textArray.append(u"Theme:                               %s" %(MD_REF.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)))
+            if (MD_REF.getPreferences().getSetting(u"main_font")) != u"null":
+                textArray.append(u"Font:                                %s" %(MD_REF.getPreferences().getSetting(u"main_font")))
             else:
                 textArray.append(u"Font:                                (None/Default)")
 
-            if (MD_REF.getUI().getPreferences().getSetting(u"mono_font")) != u"null":
-                textArray.append(u"Numeric Font:                        %s" %(MD_REF.getUI().getPreferences().getSetting(u"mono_font")))
+            if (MD_REF.getPreferences().getSetting(u"mono_font")) != u"null":
+                textArray.append(u"Numeric Font:                        %s" %(MD_REF.getPreferences().getSetting(u"mono_font")))
             else:
                 textArray.append(u"Numeric Font:                        (None/Default)")
 
-            if (MD_REF.getUI().getPreferences().getSetting(u"code_font")) != u"null":
-                textArray.append(u"Moneybot Coding (monospaced) Font:   %s" %(MD_REF.getUI().getPreferences().getSetting(u"code_font")))
+            if (MD_REF.getPreferences().getSetting(u"code_font")) != u"null":
+                textArray.append(u"Moneybot Coding (monospaced) Font:   %s" %(MD_REF.getPreferences().getSetting(u"code_font")))
             else:
                 textArray.append(u"Moneybot Coding (monospaced) Font:   (None/Default)")
 
-            if (MD_REF.getUI().getPreferences().getSetting(u"print.font_name")) != u"null":
-                textArray.append(u"Printing Font:                       %s" %(MD_REF.getUI().getPreferences().getSetting(u"print.font_name")))
+            if (MD_REF.getPreferences().getSetting(u"print.font_name")) != u"null":
+                textArray.append(u"Printing Font:                       %s" %(MD_REF.getPreferences().getSetting(u"print.font_name")))
             else:
                 textArray.append(u"Printing Font:                       (None/Default)")
 
-            textArray.append(u"Print Font Size:                     %s" %(MD_REF.getUI().getPreferences().getSetting(u"print.font_size", u"12")))
-            textArray.append(u"Screen Font Size:                    +%s" %(MD_REF.getUI().getPreferences().getIntSetting(u"gui.font_increment", 0)))
+            textArray.append(u"Print Font Size:                     %s" %(MD_REF.getPreferences().getSetting(u"print.font_size", u"12")))
+            textArray.append(u"Screen Font Size:                    +%s" %(MD_REF.getPreferences().getIntSetting(u"gui.font_increment", 0)))
 
         textArray.append(u"\n>> NETWORK")
-        textArray.append(u"Automatically Download in Background:                             %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"net.auto_download", False)))
-        textArray.append(u"Automatically Merge Downloaded Transactions:                      %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"gen.preprocess_dwnlds", False)))
-        textArray.append(u"Mark Transactions as Cleared When Confirmed:                      %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"net.clear_confirmed_txns", False)))
-        textArray.append(u"Use Bank Dates for Merged Transactions:                           %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"olb.prefer_bank_dates", False)))
-        textArray.append(u"Ignore Transaction Types in Favor of Amount Signs:                %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"prefer_amt_sign_to_txn_type", False)))
+        textArray.append(u"Automatically Download in Background:                             %s" %(MD_REF.getPreferences().getBoolSetting(u"net.auto_download", False)))
+        textArray.append(u"Automatically Merge Downloaded Transactions:                      %s" %(MD_REF.getPreferences().getBoolSetting(u"gen.preprocess_dwnlds", False)))
+        textArray.append(u"Mark Transactions as Cleared When Confirmed:                      %s" %(MD_REF.getPreferences().getBoolSetting(u"net.clear_confirmed_txns", False)))
+        textArray.append(u"Use Bank Dates for Merged Transactions:                           %s" %(MD_REF.getPreferences().getBoolSetting(u"olb.prefer_bank_dates", False)))
+        textArray.append(u"Ignore Transaction Types in Favor of Amount Signs:                %s" %(MD_REF.getPreferences().getBoolSetting(u"prefer_amt_sign_to_txn_type", False)))
 
         dataStorage = MD_REF.getCurrentAccountBook().getLocalStorage()
         autocommit = not dataStorage or dataStorage.getBoolean(u"do_autocommits",MD_REF.getUI().getCurrentAccounts().isMasterSyncNode())
         textArray.append(u"Auto-Commit Reminders (applies to current file on this computer): %s" %(autocommit))
 
-        textArray.append(u"Use Proxy:                                                        %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"net.use_proxy", False)))
-        textArray.append(u" Proxy Host:                                                      %s" %(MD_REF.getUI().getPreferences().getSetting(u"net.proxy_host", "")))
-        textArray.append(u" Proxy Port:                                                      %s" %(MD_REF.getUI().getPreferences().getIntSetting(u"net.proxy_port", 80)))
-        textArray.append(u"Proxy Requires Authentication:                                    %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"net.auth_proxy", False)))
-        textArray.append(u" Proxy Username:                                                  %s" %(MD_REF.getUI().getPreferences().getSetting(u"net.proxy_user", "")))
-        textArray.append(u" Proxy Password:                                                  %s" %(MD_REF.getUI().getPreferences().getSetting(u"net.proxy_pass", "")))
-        textArray.append(u"Observe Online Payment Date Restrictions:                         %s" %(MD_REF.getUI().getPreferences().getBoolSetting(u"ofx.observe_bp_window", True)))
-        i = MD_REF.getUI().getPreferences().getIntSetting(u"net.downloaded_txn_date_window", -1)
+        textArray.append(u"Use Proxy:                                                        %s" %(MD_REF.getPreferences().getBoolSetting(u"net.use_proxy", False)))
+        textArray.append(u" Proxy Host:                                                      %s" %(MD_REF.getPreferences().getSetting(u"net.proxy_host", "")))
+        textArray.append(u" Proxy Port:                                                      %s" %(MD_REF.getPreferences().getIntSetting(u"net.proxy_port", 80)))
+        textArray.append(u"Proxy Requires Authentication:                                    %s" %(MD_REF.getPreferences().getBoolSetting(u"net.auth_proxy", False)))
+        textArray.append(u" Proxy Username:                                                  %s" %(MD_REF.getPreferences().getSetting(u"net.proxy_user", "")))
+        textArray.append(u" Proxy Password:                                                  %s" %(MD_REF.getPreferences().getSetting(u"net.proxy_pass", "")))
+        textArray.append(u"Observe Online Payment Date Restrictions:                         %s" %(MD_REF.getPreferences().getBoolSetting(u"ofx.observe_bp_window", True)))
+        i = MD_REF.getPreferences().getIntSetting(u"net.downloaded_txn_date_window", -1)
         if i < 0: i = u"Default"
         textArray.append(u"Only Match downloaded transactions when they are at most %s days apart" %(i))
 
@@ -6258,26 +6259,31 @@ Visit: %s (Author's site)
 
         if float(MD_REF.getBuild()) < 3032:
             textArray.append(u"\n>> PRINTING")
-            textArray.append(u"Font:      %s" %(MD_REF.getUI().getPreferences().getSetting(u"print.font_name", u"")))
-            textArray.append(u"Font Size: %s" %(MD_REF.getUI().getPreferences().getSetting(u"print.font_size", u"12")))
+            textArray.append(u"Font:      %s" %(MD_REF.getPreferences().getSetting(u"print.font_name", u"")))
+            textArray.append(u"Font Size: %s" %(MD_REF.getPreferences().getSetting(u"print.font_size", u"12")))
 
         textArray.append(u"\n>> BACKUPS")
 
-        destroyBackupChoices = MD_REF.getUI().getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, u"5")
-        returnedBackupType = MD_REF.getUI().getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, u"every_x_days")
+        destroyBackupChoices = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, u"5")
+        destroyBackupChoicesInt = MD_REF.getPreferences().getIntSetting(UserPreferences.BACKUP_DESTROY_NUMBER, 5)
+        returnedBackupType = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, u"every_x_days")
         if returnedBackupType == u"every_time":
             dailyBackupCheckbox = True
-            destroyBackupChoices = 1
+            destroyBackupChoices = u"1"
+            destroyBackupChoicesInt = 1
         elif returnedBackupType == u"every_x_days":
             dailyBackupCheckbox = True
         else:
             dailyBackupCheckbox = False
 
         textArray.append(u"Save Backups Daily:     %s" %(dailyBackupCheckbox))
-        textArray.append(u"Keep no more than       %s" %(destroyBackupChoices) + u" backups")
+        textArray.append(u"Keep no more than       %s%s backups" %(destroyBackupChoices, u"(Infinity)" if destroyBackupChoicesInt < 1 else u""))
 
-        textArray.append(u"separate Backup Folder: %s" %(MD_REF.getUI().getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))
+        textArray.append(u"separate Backup Folder: %s" %(MD_REF.getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))
         textArray.append(u"Backup Folder:          %s " %(FileUtils.getBackupDir(MD_REF.getPreferences()).getCanonicalPath() ))
+        if MD_REF.getBuild() < GlobalVars.MD_INFINITYBACKUPS_FIXED:
+            try: int(destroyBackupChoices)
+            except: textArray.append(u"\n@@ BUG ALERT: You have specified to retain 'Infinity' backups, but Moneydance will ignore this and only keep 5 backups. Fixed in build: %s onwards @@\n" %(GlobalVars.MD_INFINITYBACKUPS_FIXED))
 
         textArray.append(u"\n>> SUMMARY PAGE")
         textArray.append(u"preferences not listed here...")
@@ -6285,40 +6291,40 @@ Visit: %s (Author's site)
 
         textArray.append(u"\nHOME SCREEN USER SELECTED PREFERENCES")
         textArray.append(u" ---------------------------")
-        textArray.append(u"Home Screen Configured:          %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.configured", u"NOT SET"))
+        textArray.append(u"Home Screen Configured:          %s" %MD_REF.getPreferences().getSetting(u"gui.home.configured", u"NOT SET"))
 
-        if MD_REF.getUI().getPreferences().getSetting(u"sidebar_bal_type", False):
-            textArray.append(u"Side Bar Balance Type:           %s" %(BalanceType.fromInt(MD_REF.getUI().getPreferences().getIntSetting(u"sidebar_bal_type",0))))
-        textArray.append(u"Dashboard Item Selected:         %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.dashboard.item", u"NOT SET"))
-        textArray.append(u"Quick Graph Selected:            %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.quick_graph_type", u"NOT SET"))
-        textArray.append(u"Budget Bar Date Range Selected:  %s" %MD_REF.getUI().getPreferences().getSetting(u"budgetbars_date_range", u"NOT SET"))
-        textArray.append(u"Reminders View:                  %s" %MD_REF.getUI().getPreferences().getSetting(u"upcoming_setting", u"NOT SET"))
+        if MD_REF.getPreferences().getSetting(u"sidebar_bal_type", False):
+            textArray.append(u"Side Bar Balance Type:           %s" %(BalanceType.fromInt(MD_REF.getPreferences().getIntSetting(u"sidebar_bal_type",0))))
+        textArray.append(u"Dashboard Item Selected:         %s" %MD_REF.getPreferences().getSetting(u"gui.dashboard.item", u"NOT SET"))
+        textArray.append(u"Quick Graph Selected:            %s" %MD_REF.getPreferences().getSetting(u"gui.quick_graph_type", u"NOT SET"))
+        textArray.append(u"Budget Bar Date Range Selected:  %s" %MD_REF.getPreferences().getSetting(u"budgetbars_date_range", u"NOT SET"))
+        textArray.append(u"Reminders View:                  %s" %MD_REF.getPreferences().getSetting(u"upcoming_setting", u"NOT SET"))
 
-        textArray.append(u"Exchange Rates View - Invert?:   %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.invert_rates", u"NOT SET"))
+        textArray.append(u"Exchange Rates View - Invert?:   %s" %MD_REF.getPreferences().getSetting(u"gui.home.invert_rates", u"NOT SET"))
 
-        textArray.append(u"BANK Accounts Expanded:          %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.bank_expanded", u"NOT SET"))
-        if MD_REF.getUI().getPreferences().getSetting(u"gui.home.bank_bal_type", False):
-            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getUI().getPreferences().getIntSetting(u"gui.home.bank_bal_type",0))))
+        textArray.append(u"BANK Accounts Expanded:          %s" %MD_REF.getPreferences().getSetting(u"gui.home.bank_expanded", u"NOT SET"))
+        if MD_REF.getPreferences().getSetting(u"gui.home.bank_bal_type", False):
+            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getPreferences().getIntSetting(u"gui.home.bank_bal_type",0))))
 
-        textArray.append(u"LOAN Accounts Expanded:          %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.loan_expanded", u"NOT SET"))
-        if MD_REF.getUI().getPreferences().getSetting(u"gui.home.loan_bal_type", False):
-            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getUI().getPreferences().getIntSetting(u"gui.home.loan_bal_type",0))))
+        textArray.append(u"LOAN Accounts Expanded:          %s" %MD_REF.getPreferences().getSetting(u"gui.home.loan_expanded", u"NOT SET"))
+        if MD_REF.getPreferences().getSetting(u"gui.home.loan_bal_type", False):
+            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getPreferences().getIntSetting(u"gui.home.loan_bal_type",0))))
 
-        textArray.append(u"LIABILITY Accounts Expanded:     %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.liability_expanded", u"NOT SET"))
-        if MD_REF.getUI().getPreferences().getSetting(u"gui.home.liability_bal_type", False):
-            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getUI().getPreferences().getIntSetting(u"gui.home.liability_bal_type",0))))
+        textArray.append(u"LIABILITY Accounts Expanded:     %s" %MD_REF.getPreferences().getSetting(u"gui.home.liability_expanded", u"NOT SET"))
+        if MD_REF.getPreferences().getSetting(u"gui.home.liability_bal_type", False):
+            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getPreferences().getIntSetting(u"gui.home.liability_bal_type",0))))
 
-        textArray.append(u"INVESTMENT Accounts Expanded:    %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.invst_expanded", u"NOT SET"))
-        if MD_REF.getUI().getPreferences().getSetting(u"gui.home.invst_bal_type", False):
-            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getUI().getPreferences().getIntSetting(u"gui.home.invst_bal_type",0))))
+        textArray.append(u"INVESTMENT Accounts Expanded:    %s" %MD_REF.getPreferences().getSetting(u"gui.home.invst_expanded", u"NOT SET"))
+        if MD_REF.getPreferences().getSetting(u"gui.home.invst_bal_type", False):
+            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getPreferences().getIntSetting(u"gui.home.invst_bal_type",0))))
 
-        textArray.append(u"CREDIT CARD Accounts Expanded:   %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.cc_expanded", u"NOT SET"))
-        if MD_REF.getUI().getPreferences().getSetting(u"gui.home.cc_bal_type", False):
-            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getUI().getPreferences().getIntSetting(u"gui.home.cc_bal_type",0))))
+        textArray.append(u"CREDIT CARD Accounts Expanded:   %s" %MD_REF.getPreferences().getSetting(u"gui.home.cc_expanded", u"NOT SET"))
+        if MD_REF.getPreferences().getSetting(u"gui.home.cc_bal_type", False):
+            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getPreferences().getIntSetting(u"gui.home.cc_bal_type",0))))
 
-        textArray.append(u"ASSET Accounts Expanded:         %s" %MD_REF.getUI().getPreferences().getSetting(u"gui.home.asset_expanded", u"NOT SET"))
-        if MD_REF.getUI().getPreferences().getSetting(u"gui.home.asset_bal_type", False):
-            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getUI().getPreferences().getIntSetting(u"gui.home.asset_bal_type",0))))
+        textArray.append(u"ASSET Accounts Expanded:         %s" %MD_REF.getPreferences().getSetting(u"gui.home.asset_expanded", u"NOT SET"))
+        if MD_REF.getPreferences().getSetting(u"gui.home.asset_bal_type", False):
+            textArray.append(u">Balance Displayed:              %s" %(BalanceType.fromInt(MD_REF.getPreferences().getIntSetting(u"gui.home.asset_bal_type",0))))
 
 
         textArray.append(u" ======================================================================================\n")
@@ -6527,8 +6533,8 @@ Visit: %s (Author's site)
                 theData.append("Extension Vendor:       %s" %y.getVendor())
                 theData.append("Extension isBundled:    %s" %(y.isBundled()))
                 theData.append("Extension isVerified:   %s" %(y.isVerified()))
-                if MD_REF.getUI().getPreferences().getSetting("confirmedext."+str(y.getName()).strip(), None):
-                    theData.append("** User has Confirmed this unsigned Extension can run - version: " + MD_REF.getUI().getPreferences().getSetting("confirmedext."+str(y.getName()).strip(), None))
+                if MD_REF.getPreferences().getSetting("confirmedext."+str(y.getName()).strip(), None):
+                    theData.append("** User has Confirmed this unsigned Extension can run - version: " + MD_REF.getPreferences().getSetting("confirmedext."+str(y.getName()).strip(), None))
                 theData.append("\n\n")
 
             x = MD_REF.getSuppressedExtensionIDs()
@@ -6560,7 +6566,7 @@ Visit: %s (Author's site)
             theData.append("")
 
             for x in orphan_confirmed_extn_keys.keys():
-                _theVersion = MD_REF.getUI().getPreferences().getSetting(orphan_confirmed_extn_keys[x][1],None)
+                _theVersion = MD_REF.getPreferences().getSetting(orphan_confirmed_extn_keys[x][1],None)
                 theData.append("%s Extension: %s Key: %s (build: %s) is %s" %(pad("config.dict:",40),pad(x,40),pad(orphan_confirmed_extn_keys[x][1],40),_theVersion, pad(orphan_confirmed_extn_keys[x][0],40)))
 
             theData.append("")
@@ -9297,7 +9303,7 @@ Visit: %s (Author's site)
         if not lGetDefaultForObject and dataObject and not colWidthPrefs: return None
 
         if StringUtils.isBlank(colWidthPrefs) and preferencesKey:
-            colWidthPrefs = MD_REF.getUI().getPreferences().getSetting(dataPrefKey, None)
+            colWidthPrefs = MD_REF.getPreferences().getSetting(dataPrefKey, None)
 
         if not colWidthPrefs or StringUtils.isBlank(colWidthPrefs):
             return None
@@ -9505,7 +9511,7 @@ Visit: %s (Author's site)
 
     def get_orphaned_extension():
 
-        extension_prefs = MD_REF.getUI().getPreferences().getTableSetting("gen.fmodules", StreamTable())
+        extension_prefs = MD_REF.getPreferences().getTableSetting("gen.fmodules", StreamTable())
 
         # Get all keys in config dict
         st,tk = read_preferences_file(lSaveFirst=True)  # Must flush memory to disk first before we read the file....
@@ -14256,7 +14262,7 @@ Visit: %s (Author's site)
 
         if not backup_config_dict(): return False
 
-        prefs = MD_REF.getUI().getPreferences()
+        prefs = MD_REF.getPreferences()
         extFiles = prefs.getVectorSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, None)
         if extFiles is None or len(extFiles) < 1:
             myPrint("DB", "config.dict holds no '%s' - skipping cleanup routine...." %(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES))
@@ -14322,7 +14328,7 @@ Visit: %s (Author's site)
         # Just clean up orphans anyway first.....
         cleanup_external_files_setting(lAutoPurge=True)
 
-        prefs = MD_REF.getUI().getPreferences()
+        prefs = MD_REF.getPreferences()
         thisDataset = MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath()
 
         externalFilesVector = prefs.getVectorSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, StreamVector())
@@ -22781,7 +22787,7 @@ now after saving the file, restart Moneydance
                 MD_REF.getCurrentAccountBook().getRootFolder(),
                 Common.getFeatureModulesDirectory(),
                 FileUtils.getBackupDir(MD_REF.getPreferences()),
-                File(MD_REF.getUI().getPreferences().getSetting("backup.last_saved", ""))]
+                File(MD_REF.getPreferences().getSetting("backup.last_saved", ""))]
 
             if grabSyncFolder:
                 locations.append("Open sync folder")
@@ -23164,7 +23170,7 @@ now after saving the file, restart Moneydance
 
                 newWrapper = AccountBookWrapper.wrapperForFolder(fNewNamePath)   # type: AccountBookWrapper
 
-            prefs = MD_REF.getUI().getPreferences()
+            prefs = MD_REF.getPreferences()
 
             if not AccountBookUtil.isWithinInternalStorage(newWrapper.getBook()):
                 externalFiles = prefs.getVectorSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, StreamVector())
@@ -23298,7 +23304,7 @@ now after saving the file, restart Moneydance
             myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
-        prefs = MD_REF.getUI().getPreferences()
+        prefs = MD_REF.getPreferences()
 
         systemFonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()
         for installedFont in systemFonts: myPrint("DB","System OS Font %s is installed in your system..:" %installedFont)
@@ -24434,7 +24440,7 @@ now after saving the file, restart Moneydance
         displayData += "\n"
 
         for x in orphan_confirmed_extn_keys.keys():
-            _theVersion = MD_REF.getUI().getPreferences().getSetting(orphan_confirmed_extn_keys[x][1],None)
+            _theVersion = MD_REF.getPreferences().getSetting(orphan_confirmed_extn_keys[x][1],None)
             displayData+="%s Extension: %s Key: %s (build: %s) is %s\n" %(pad("config.dict: ",40),pad(x,40),pad(orphan_confirmed_extn_keys[x][1],40),_theVersion,pad(orphan_confirmed_extn_keys[x][0],40))
 
         displayData += "\n"
@@ -24462,7 +24468,7 @@ now after saving the file, restart Moneydance
             return
 
         # reload latest preferences
-        extension_prefs = MD_REF.getUI().getPreferences().getTableSetting("gen.fmodules", None)
+        extension_prefs = MD_REF.getPreferences().getTableSetting("gen.fmodules", None)
         if not extension_prefs:
             txt = "DELETE ORPHANED EXTENSIONS - Error getting gen.fmodules setting - no changes made...."
             setDisplayStatus(txt, "R")
@@ -24474,11 +24480,11 @@ now after saving the file, restart Moneydance
             extension_prefs.put(x,None)
             myPrint("B","Orphaned extension %s removed from config.dict!" %x)
 
-        MD_REF.getUI().getPreferences().setSetting("gen.fmodules",extension_prefs)
+        MD_REF.getPreferences().setSetting("gen.fmodules",extension_prefs)
         myPrint("B","config.dict gen.fmodules setting re-saved....")
 
         for x in orphan_confirmed_extn_keys:
-            MD_REF.getUI().getPreferences().setSetting(orphan_confirmed_extn_keys[x][1],None)
+            MD_REF.getPreferences().setSetting(orphan_confirmed_extn_keys[x][1],None)
             myPrint("B","Orphaned extension key %s removed from config.dict!" %orphan_confirmed_extn_keys[x][1])
 
         MD_REF.savePreferences()
@@ -25977,7 +25983,7 @@ now after saving the file, restart Moneydance
                     continue    # back to ADVANCED Options menu
 
                 testKeyExists = True
-                if lConfigDict:     testKeyExists = MD_REF.getUI().getPreferences().getSetting(addKey,None)
+                if lConfigDict:     testKeyExists = MD_REF.getPreferences().getSetting(addKey,None)
                 if lLocalStorage:   testKeyExists = LS.get(addKey)
 
                 if testKeyExists:
@@ -26001,7 +26007,7 @@ now after saving the file, restart Moneydance
 
                 if doesUserAcceptDisclaimer(toolbox_frame_, "ADD KEY VALUE TO %s" %(fileType), "Add key: '%s' with value: '%s'?" %(addKey,addValue)):
                     if lConfigDict:
-                        MD_REF.getUI().getPreferences().setSetting(addKey,addValue)
+                        MD_REF.getPreferences().setSetting(addKey,addValue)
                         MD_REF.savePreferences()                # Flush all in memory settings to config.dict file on disk
                     if lLocalStorage:
                         LS.put(addKey,addValue)
@@ -26034,7 +26040,7 @@ now after saving the file, restart Moneydance
                 lOK_to_Change = False
                 value = None
                 if lConfigDict:
-                    # value = MD_REF.getUI().getPreferences().getSetting(selectedKey)
+                    # value = MD_REF.getPreferences().getSetting(selectedKey)
                     value = st.get(selectedKey)   # Have to use the backdoor to maintain the real instance type
 
                 if lLocalStorage:
@@ -26112,9 +26118,9 @@ now after saving the file, restart Moneydance
                 if agreed:
                     if lConfigDict:
                         if lDel:
-                            MD_REF.getUI().getPreferences().setSetting(selectedKey, None)
+                            MD_REF.getPreferences().setSetting(selectedKey, None)
                         if lChg:
-                            MD_REF.getUI().getPreferences().setSetting(selectedKey, chgValue)
+                            MD_REF.getPreferences().setSetting(selectedKey, chgValue)
                         MD_REF.savePreferences()            # Flush all in memory settings to config.dict file on disk
                     if lLocalStorage:
                         if lDel:
@@ -28113,14 +28119,14 @@ now after saving the file, restart Moneydance
                         backup_config_dict(True)
 
                         iAdded = 0
-                        externalFilesVector = MD_REF.getUI().getPreferences().getVectorSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, StreamVector())
+                        externalFilesVector = MD_REF.getPreferences().getVectorSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, StreamVector())
                         for add_this_file in add_to_ext_list:
                             if not myPopupAskQuestion(jif,"ADD FILE TO FILE/OPEN MENU","ADD: %s?" %((add_this_file))):
                                 continue
                             iAdded+=1
                             myPrint("B","SEARCH FOR DATASETS - %s added to config.dict and file/open menu" %(add_this_file))
                             externalFilesVector.add(add_this_file)
-                            MD_REF.getUI().getPreferences().setSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, externalFilesVector)
+                            MD_REF.getPreferences().setSetting(GlobalVars.Strings.MD_CONFIGDICT_EXTERNAL_FILES, externalFilesVector)
 
                         if iAdded:
                             MD_REF.savePreferences()
@@ -29939,8 +29945,24 @@ now after saving the file, restart Moneydance
                 System.setProperty("com.apple.macos.useScreenMenuBar", save_useScreenMenuBar)
 
             ###################### PERFORM POST-LAUNCH VALIDATION(s) AND POPUP APPROPRIATE ALERTS ######################
-            ### MAKE SURE THESE POPUPS ARE NOT MODAL AND THUS DO NOT BLOCK THE EDT!
+            ### MAKE SURE THESE POPUP ALERTS ARE NOT MODAL AND THUS DO NOT BLOCK THE EDT!
             ############################################################################################################
+
+            # BUG ALERT - Look for Infinity backups where the setting is actually defaulting to 5...
+            if MD_REF.getBuild() < GlobalVars.MD_INFINITYBACKUPS_FIXED:
+                try: int(MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5"))
+                except:
+                    statusTxt = "BUG ALERT - 'Infinity' backup retention setting ignored"
+                    output = ">> Moneydance ignores this setting and defaults to retain only 5 backups\n" \
+                             "   ... this is fixed in build: %s" %(GlobalVars.MD_INFINITYBACKUPS_FIXED)
+                    myPrint("B", statusTxt, output)
+                    MyPopUpDialogBox(toolbox_frame_,
+                                     theStatus=statusTxt,
+                                     theMessage=output,
+                                     theTitle="BUG ALERT - BACKUP RETENTION SETTING".upper(),
+                                     OKButtonText="ACKNOWLEDGE",
+                                     lAlertLevel=2,
+                                     lModal=False).go()
 
             # Look for security txns not properly linked back to the parent investment account
             if detect_non_hier_sec_acct_or_orphan_txns(startupCheck=True) > 0:
