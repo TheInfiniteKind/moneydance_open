@@ -313,7 +313,9 @@ class MyJFrame(JFrame):
             self.getContentPane().removeAll()
             if self.getJMenuBar() is not None: self.setJMenuBar(None)
             rootPane = self.getRootPane()
-            if rootPane is not None: rootPane.getInputMap().clear()
+            if rootPane is not None:
+                rootPane.getInputMap().clear()
+                rootPane.getActionMap().clear()
             super(self.__class__, self).dispose()
         except:
             _msg = "%s: ERROR DISPOSING OF FRAME: %s\n" %(myModuleID, self)
@@ -3430,7 +3432,7 @@ Visit: %s (Author's site)
         global advanced_options_encrypt_file_into_dataset, advanced_options_encrypt_file_into_sync_folder
         global advanced_options_decrypt_file_from_dataset, advanced_options_decrypt_file_from_sync
         global advanced_options_decrypt_dataset, advanced_show_encryption_keys
-        global CollectTheGarbage, getDropboxSyncFolderForBasePath
+        global CollectTheGarbage, getDropboxSyncFolderForBasePath, advanced_options_force_reset_sync_settings
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -26801,47 +26803,6 @@ now after saving the file, restart Moneydance
                       ]
         return _SYNC_KEYS
 
-    def advanced_options_force_reset_sync_settings():
-        # Resets all Sync settings, generates a new Sync ID, Turns Sync Off. You can turn it back on later....
-
-        _THIS_METHOD_NAME = "ADVANCED: FORCE RESET SYNC SETTINGS"
-
-        storage = MD_REF.getCurrentAccountBook().getLocalStorage()
-
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Force reset all Sync settings, generate new SyncID & disable Sync?"):
-            return
-
-        if not backup_local_storage_settings():
-            txt = "%s: ERROR making backup of LocalStorage() ./safe/settings - no changes made!" %(_THIS_METHOD_NAME)
-            setDisplayStatus(txt, "R")
-            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
-            return
-
-        SYNC_KEYS = getNetSyncKeys()
-
-        for skey in SYNC_KEYS: storage.remove(skey)
-
-        # Copied from: com.moneydance.apps.md.controller.AccountBookWrapper.resetSyncInfoIfNecessary()
-        storage.put("netsync.dropbox.fileid", UUID.randomUUID())
-
-        # NOTE: as of 2022.3(4063) - this is also performed: .setIsMasterSyncNode(True)
-        MD_REF.getUI().getCurrentAccounts().setIsMasterSyncNode(True)
-        storage.save()
-
-        root = MD_REF.getCurrentAccountBook().getRootAccount()
-        if root is not None:
-            root.setEditingMode()
-            for skey in SYNC_KEYS: root.removeParameter(skey)
-            root.syncItem()
-
-        txt = "ALL SYNC SETTINGS HAVE BEEN RESET - MONEYDANCE WILL NOW RESTART"
-        setDisplayStatus(txt, "R"); myPrint("B", txt)
-        logToolboxUpdates("advanced_options_force_reset_sync_settings", txt)
-        play_the_money_sound()
-        myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
-
-        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
-
     def advanced_options_repair_migrated_dropbox_alias():
         # Attempts to (re)create the missing Alias pointing to new Dropbox location...
 
@@ -28837,7 +28798,7 @@ now after saving the file, restart Moneydance
                     user_force_sync_off = MenuJRadioButton("Force DISABLE/turn Sync OFF (only when sync detected)", False, updateMenu=True)
                     user_force_sync_off.setToolTipText("This sets your Sync method to None - all other settings are preserved. You can turn it back on again later - UPDATES YOUR DATASET")
 
-                    user_force_reset_sync_settings = MenuJRadioButton("Force RESET Sync settings (generates new SyncID and turns Sync off. You can turn it back on after MD restart)", False, updateMenu=True)
+                    user_force_reset_sync_settings = MenuJRadioButton("Force RESET Sync settings (generates new SyncID and turns Sync off. You can turn it back on after MD restart)", False, updateMenu=True, secondaryEnabled=GlobalVars.EXTRA_CODE_INITIALISED)
                     user_force_reset_sync_settings.setToolTipText("This resets all Sync settings, changes your Sync ID, and turns Sync off. You can then re-enable it for a fresh Sync - You can turn it back on again later - UPDATES YOUR DATASET")
 
                     user_toggle_sync_download_attachments = MenuJRadioButton("Toggle Sync Downloading of Attachments (only when sync detected)", False, updateMenu=True)
@@ -28917,6 +28878,7 @@ now after saving the file, restart Moneydance
                         user_advanced_import_to_sync_folder.setEnabled(ToolboxMode.isUpdateMode() and MD_REF.getUI().getCurrentAccounts().getSyncFolder() is not None and GlobalVars.EXTRA_CODE_INITIALISED)
                         user_advanced_extract_from_sync.setEnabled(MD_REF.getUI().getCurrentAccounts().getSyncFolder() is not None and GlobalVars.EXTRA_CODE_INITIALISED)
                         user_show_encryption_keys.setEnabled(ToolboxMode.isUpdateMode() and GlobalVars.EXTRA_CODE_INITIALISED)
+                        user_force_reset_sync_settings.setEnabled(ToolboxMode.isUpdateMode() and GlobalVars.EXTRA_CODE_INITIALISED)
 
                         bg.clearSelection()
 

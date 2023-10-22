@@ -46,7 +46,7 @@ global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System
 global JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel, Color, Desktop
 global BorderFactory, JSeparator, DefaultComboBoxModel, SwingWorker, JPanel, GridLayout, JLabel, GridBagLayout, BorderLayout
 global Paths, Files, StandardCopyOption, Charset
-global AbstractAction
+global AbstractAction, UUID
 
 # My definitions
 global toolbox_frame_
@@ -59,6 +59,8 @@ global MyJScrollPaneForJOptionPane, getMDIcon, QuickJFrame
 global genericSwingEDTRunner, genericThreadRunner
 global getColorBlue, getColorRed, getColorDarkGreen, MoneybotURLDebug
 global isKotlinCompiledBuild, convertBufferedSourceToInputStream
+global confirm_backup_confirm_disclaimer, backup_local_storage_settings, getNetSyncKeys, play_the_money_sound
+global ManuallyCloseAndReloadDataset
 
 # New definitions
 from com.moneydance.apps.md.controller.sync import AbstractSyncFolder, MDSyncCipher
@@ -901,6 +903,47 @@ try:
 
         myPrint("DB", "getDropboxSyncFolderForBasePath(): Obtained new DropboxAPISyncFolder(): %s" %(newSyncFolder))
         return newSyncFolder
+
+    def advanced_options_force_reset_sync_settings():
+        # Resets all Sync settings, generates a new Sync ID, Turns Sync Off. You can turn it back on later....
+
+        _THIS_METHOD_NAME = "ADVANCED: FORCE RESET SYNC SETTINGS"
+
+        storage = MD_REF.getCurrentAccountBook().getLocalStorage()
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Force reset all Sync settings, generate new SyncID & disable Sync?"):
+            return
+
+        if not backup_local_storage_settings():
+            txt = "%s: ERROR making backup of LocalStorage() ./safe/settings - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        SYNC_KEYS = getNetSyncKeys()
+
+        for skey in SYNC_KEYS: storage.remove(skey)
+
+        # Copied from: com.moneydance.apps.md.controller.AccountBookWrapper.resetSyncInfoIfNecessary()
+        storage.put("netsync.dropbox.fileid", UUID.randomUUID())
+
+        # NOTE: as of 2022.3(4063) - this is also performed: .setIsMasterSyncNode(True)
+        MD_REF.getUI().getCurrentAccounts().setIsMasterSyncNode(True)
+        storage.save()
+
+        root = MD_REF.getCurrentAccountBook().getRootAccount()
+        if root is not None:
+            root.setEditingMode()
+            for skey in SYNC_KEYS: root.removeParameter(skey)
+            root.syncItem()
+
+        txt = "ALL SYNC SETTINGS HAVE BEEN RESET - MONEYDANCE WILL NOW RESTART"
+        setDisplayStatus(txt, "R"); myPrint("B", txt)
+        logToolboxUpdates("advanced_options_force_reset_sync_settings", txt)
+        play_the_money_sound()
+        myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
     class CollectTheGarbage(AbstractAction):
 

@@ -228,7 +228,9 @@ class MyJFrame(JFrame):
             self.getContentPane().removeAll()
             if self.getJMenuBar() is not None: self.setJMenuBar(None)
             rootPane = self.getRootPane()
-            if rootPane is not None: rootPane.getInputMap().clear()
+            if rootPane is not None:
+                rootPane.getInputMap().clear()
+                rootPane.getActionMap().clear()
             super(self.__class__, self).dispose()
         except:
             _msg = "%s: ERROR DISPOSING OF FRAME: %s\n" %(myModuleID, self)
