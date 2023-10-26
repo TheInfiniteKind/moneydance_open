@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated September 2023
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated October 2023
 Credit: (dtd) Dan T Davis for his input, testing and suggestions to make a better product......
 
 Custom Balances works with 2021.1(3056) and newer.
@@ -6,6 +6,7 @@ DISCLAIMER: THIS EXTENSION IS READONLY (IT DOES NOT CHANGE DATA) >> BUT YOU USE 
 
 DEFINITIONS:
 - CB means this extension / Custom Balances
+- All dates mentioned in this guide are in the format yyyymmdd (e.g. 15th January 2024 = 20240115)
 
 INSTALLATION:
 - Double-click the .mxt file (this may not work if you do not have .mxt extensions associated with Moneydance)
@@ -73,7 +74,20 @@ EXAMINING THE CHOICES/CONFIGURATION:
 
 - Row separator: optionally put horizontal lines above / below rows to separate sections
 - Blink: Enables the blinking of the selected rows (when displayed / visible)
-- Avg/by: Changes the final displayed calculated balance into an average by dividing the value set (DEFAULT 1.0)
+
+- Average by options:
+    - Avg/by: Changes the final displayed calculated balance into an average by dividing the value set (DEFAULT 1.0)
+      ...or...
+    - I/E (date range): Avg/by no# of:                                               (Read below. The key word is WHOLE)
+      ... Select one of: NOTSET, DAYS, WEEKS, MONTHS, YEARS (prefixed with "-" will multiple result by -1/reverse sign)
+      ... Then tick 'Fractional' if required - see below.
+      ... Only enabled/allowed when Income/Expense categories are selected AND when NOT using 'All dates'
+      ... Normally returns a whole (integer) number. E.g. WHOLE MONTHS between 20240101 - 20240215 = 1 not 1.5
+          - UNLESS 'Fractional' is ticked which means an estimated avg/by will be calculated (e.g. return 1.5 not 1.0)
+      ... WARNING - this can return zero which will mean your calculated result is always zero or 'n/a'.
+      ... When allowed/enabled and used, then this overrides the first avg/by field.
+      ... NOTE: Fractional assumptions: DAYS_IN_YEAR = 365.2425, DAYS_IN_MONTH = DAYS_IN_YEAR / 12 (30.436875)
+
 - Adj/by: Allows you to adjust the final calculated balance by a +/- amount (DEFAULT 0.0)
 
 - Maths using another row: (OPTIONAL) When set, then you can retrieve the result from another row and then apply maths

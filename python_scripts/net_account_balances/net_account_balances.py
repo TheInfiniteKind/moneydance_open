@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1035 - Sept 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1036 - Oct 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -145,7 +145,8 @@
 # build: 1032 - Issuing new build number...
 # build: 1033 - Issuing new build number...
 # build: 1034 - Added .getNewJListCellRenderer() to reset the renderer and the MD Object references it stores....
-# build: 1035 - Helpfile spelling corrections...
+# build: 1035 - Help file spelling corrections...
+# build: 1036 - Added extra average options for CalUnits days/weeks/months/years etc.... Leverages java ChronoUnit.XXX.between() class/method
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -155,7 +156,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1035"
+version_build = "1036"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -502,6 +503,8 @@ else:
     from javax.swing.event import DocumentListener, ListSelectionListener
     # from javax.swing.text import View
 
+    from java.time import LocalDate
+    from java.time.temporal import ChronoUnit
     from javax.swing.table import DefaultTableModel
     from java.awt.event import HierarchyListener
 
@@ -575,6 +578,8 @@ else:
     GlobalVars.extn_param_NEW_hideRowWhenXXXTable_NAB       = None
     GlobalVars.extn_param_NEW_hideRowXValueTable_NAB        = None
     GlobalVars.extn_param_NEW_displayAverageTable_NAB       = None
+    GlobalVars.extn_param_NEW_averageByCalUnitTable_NAB     = None
+    GlobalVars.extn_param_NEW_averageByFractionalsTable_NAB = None
     GlobalVars.extn_param_NEW_adjustCalcByTable_NAB         = None
     GlobalVars.extn_param_NEW_operateOnAnotherRowTable_NAB  = None
     GlobalVars.extn_param_NEW_UUIDTable_NAB                 = None
@@ -5175,6 +5180,16 @@ Visit: %s (Author's site)
                 mdImages = NAB.moneydanceContext.getUI().getImages()
                 NAB.selectorIcon = mdImages.getIconWithColor(GlobalVars.Strings.MD_GLYPH_SELECTOR_7_9, NAB.moneydanceContext.getUI().getColors().secondaryTextFG)
 
+    def getLocalDateFromDateInt(dateInt):
+        # type: (int) -> LocalDate
+        """Pass date as integer in (Moneydance) format yyyymmdd. Returns a LocalDate instance"""
+        ld = None
+        try: ld = LocalDate.of(dateInt / 10000, dateInt / 100 % 100, dateInt % 100)
+        except: pass
+        if ld is None:
+            if debug: myPrint("DB", "@@ WARNING: getLocalDateFromDateInt() was passed dateInt: '%s' (type: %s) >> appears invalid - returning None" %(dateInt, type(dateInt)))
+        return ld
+
     class ShowWarnings(AbstractAction):
         def actionPerformed(self, event): ShowWarnings.showWarnings()                                                   # noqa
 
@@ -5314,6 +5329,8 @@ Visit: %s (Author's site)
             self.savedHideRowWhenXXXTable       = None
             self.savedHideRowXValueTable        = None
             self.savedDisplayAverageTable       = None
+            self.savedAverageByCalUnitTable     = None
+            self.savedAverageByFractionalsTable = None
             self.savedAdjustCalcByTable         = None
 
             self.savedOperateOnAnotherRowTable  = None
@@ -5382,6 +5399,9 @@ Visit: %s (Author's site)
             self.hideRowWhenNotZeroOrX_JRB          = None
             self.hideRowXValue_JRF                  = None
             self.displayAverage_JRF                 = None
+            self.displayAverageCal_lbl              = None
+            self.averageByCalUnit_COMBO             = None
+            self.averageByFractionals_CB            = None
             self.adjustCalcBy_JRF                   = None
             self.blinkRow_CB                        = None
             self.hideDecimals_CB                    = None
@@ -5398,6 +5418,7 @@ Visit: %s (Author's site)
 
             self.keyLabel = None
             self.dateRangeLabel = None
+            self.avgByLabel = None
             self.parallelBalancesWarningLabel = None
 
             self.rowSelectedSaved = 0
@@ -5470,6 +5491,113 @@ Visit: %s (Author's site)
 
             myPrint("DB", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "##########################################################################################")
+
+        ################################################################################################################
+        class CalUnit:
+            # Note: The set repeats for negitive options...
+            NOTSET_IDX = 0
+            NOTSET_ID = "notset"
+            NOTSET_DISPLAY = "NOT SET"
+            DAYS_IDX = [1, 5]
+            DAYS_ID = "days"
+            DAYS_DISPLAY = "DAYS"
+            WEEKS_IDX = [2, 6]
+            WEEKS_ID = "weeks"
+            WEEKS_DISPLAY = "WEEKS"
+            MONTHS_IDX = [3, 7]
+            MONTHS_ID = "months"
+            MONTHS_DISPLAY = "MONTHS"
+            YEARS_IDX = [4, 8]
+            YEARS_ID = "years"
+            YEARS_DISPLAY = "YEARS"
+
+            @staticmethod
+            def getCalUnitFromIndex(index):
+                # type: (int) -> NetAccountBalancesExtension.CalUnit
+                NAB = NetAccountBalancesExtension.getNAB()
+                if index == NAB.CalUnit.NOTSET_IDX: return NAB.CalUnit(NAB.CalUnit.NOTSET_ID)
+                elif index in NAB.CalUnit.DAYS_IDX: return NAB.CalUnit(NAB.CalUnit.DAYS_ID, reverseSign=(index > NAB.CalUnit.YEARS_IDX[0]))
+                elif index in NAB.CalUnit.WEEKS_IDX: return NAB.CalUnit(NAB.CalUnit.WEEKS_ID, reverseSign=(index > NAB.CalUnit.YEARS_IDX[0]))
+                elif index in NAB.CalUnit.MONTHS_IDX: return NAB.CalUnit(NAB.CalUnit.MONTHS_ID, reverseSign=(index > NAB.CalUnit.YEARS_IDX[0]))
+                elif index in NAB.CalUnit.YEARS_IDX: return NAB.CalUnit(NAB.CalUnit.YEARS_ID, reverseSign=(index > NAB.CalUnit.YEARS_IDX[0]))
+                else: raise Exception("ERROR: Invalid index passed ('%s')" %(index))
+
+            @staticmethod
+            def getCalUnitsBetweenDates(calUnit, startDateInt, endDateInt, lAllowZeroResult=True, lReturnFractionalResult=False):
+                # type: (NetAccountBalancesExtension.CalUnit, int, int, bool, bool) -> float
+                """Calculates the difference between two dates in units specified using Java ChronoUnit.UNIT.between() method.
+                Normally returns a WHOLE integer result (unless 'Fractional' requested - in which case an estimated result will be calculated).
+                This method can return zero, and converts / returns to a float result"""
+                NAB = NetAccountBalancesExtension.getNAB()
+
+                DAYS_IN_WEEK = 7
+                MONTHS_IN_YEAR = 12
+                DAYS_IN_YEAR = 365.2425
+                DAYS_IN_MONTH = DAYS_IN_YEAR / MONTHS_IN_YEAR   # Should be: 30.436875
+
+                ldStartDate = getLocalDateFromDateInt(startDateInt)
+                ldEndDate = getLocalDateFromDateInt(endDateInt)
+                ldEndDatePlusOne = ldEndDate.plusDays(1)    # ChronoUnit.UNIT.between() does not include the end date!
+                daysBetween = float(ChronoUnit.DAYS.between(ldStartDate, ldEndDatePlusOne))
+                if calUnit.getTypeID() == NAB.CalUnit.DAYS_ID:
+                    calUnitsBetween = daysBetween
+                elif calUnit.getTypeID() == NAB.CalUnit.WEEKS_ID:
+                    if lReturnFractionalResult:
+                        calUnitsBetween = daysBetween / DAYS_IN_WEEK
+                    else:
+                        calUnitsBetween = ChronoUnit.WEEKS.between(ldStartDate, ldEndDatePlusOne)
+                elif calUnit.getTypeID() == NAB.CalUnit.MONTHS_ID:
+                    if lReturnFractionalResult:
+                        calUnitsBetween = daysBetween / DAYS_IN_MONTH
+                    else:
+                        calUnitsBetween = ChronoUnit.MONTHS.between(ldStartDate, ldEndDatePlusOne)
+                elif calUnit.getTypeID() == NAB.CalUnit.YEARS_ID:
+                    if lReturnFractionalResult:
+                        calUnitsBetween = daysBetween / DAYS_IN_YEAR
+                    else:
+                        calUnitsBetween = ChronoUnit.YEARS.between(ldStartDate, ldEndDatePlusOne)
+                else: raise Exception("ERROR: Invalid typeID detected ('%s')" %(calUnit.getTypeID()))
+                if debug: myPrint("DB", "CalUnit::getCalUnitsBetweenDates(%s, %s, %s) returning: %s" %(calUnit, ldStartDate, ldEndDate, calUnitsBetween))
+                if calUnitsBetween == 0 and not lAllowZeroResult:
+                    if debug: myPrint("DB", "@@ WARNING - 'calUnitsBetween' zero result detected - returning 1")
+                    calUnitsBetween = 1
+                return float(calUnitsBetween * calUnit.multiplier)
+
+            def __init__(self, typeID, reverseSign=False):
+                # type: (basestring, bool) -> None
+                """Call with one of 'notset', 'days', 'weeks', 'months', 'years' to create a CalUnit of that type"""
+                self.typeID = typeID
+                localIdx = 0 if not reverseSign else 1
+                self.multiplier = 1.0 if not reverseSign else -1.0
+                if typeID == self.__class__.NOTSET_ID:
+                    self.index = self.__class__.NOTSET_IDX
+                    self.comboDisplay = self.__class__.NOTSET_DISPLAY
+                elif typeID == self.__class__.DAYS_ID:
+                    self.index = self.__class__.DAYS_IDX[localIdx]
+                    self.comboDisplay = self.__class__.DAYS_DISPLAY
+                elif typeID == self.__class__.WEEKS_ID:
+                    self.index = self.__class__.WEEKS_IDX[localIdx]
+                    self.comboDisplay = self.__class__.WEEKS_DISPLAY
+                elif typeID == self.__class__.MONTHS_ID:
+                    self.index = self.__class__.MONTHS_IDX[localIdx]
+                    self.comboDisplay = self.__class__.MONTHS_DISPLAY
+                elif typeID == self.__class__.YEARS_ID:
+                    self.index = self.__class__.YEARS_IDX[localIdx]
+                    self.comboDisplay = self.__class__.YEARS_DISPLAY
+                else: raise Exception("ERROR: Invalid typeID passed ('%s')" %(typeID))
+
+            def getTypeID(self): return self.typeID
+
+            def getComboDisplay(self):
+                comboTxt = ""
+                if self.index != self.__class__.NOTSET_IDX:
+                    comboTxt = "+" if (self.multiplier >= 0.0) else "-"
+                return "%s%s" %(comboTxt, self.comboDisplay)
+
+            def __str__(self):      return self.getComboDisplay()
+            def __repr__(self):     return self.__str__()
+            def toString(self):     return self.__str__()
+
 
         ################################################################################################################
         def areSwingWorkersRunning(self):
@@ -5687,6 +5815,8 @@ Visit: %s (Author's site)
             GlobalVars.extn_param_NEW_hideRowWhenXXXTable_NAB       = copy.deepcopy(NAB.savedHideRowWhenXXXTable)
             GlobalVars.extn_param_NEW_hideRowXValueTable_NAB        = copy.deepcopy(NAB.savedHideRowXValueTable)
             GlobalVars.extn_param_NEW_displayAverageTable_NAB       = copy.deepcopy(NAB.savedDisplayAverageTable)
+            GlobalVars.extn_param_NEW_averageByCalUnitTable_NAB     = copy.deepcopy(NAB.savedAverageByCalUnitTable)
+            GlobalVars.extn_param_NEW_averageByFractionalsTable_NAB = copy.deepcopy(NAB.savedAverageByFractionalsTable)
             GlobalVars.extn_param_NEW_adjustCalcByTable_NAB         = copy.deepcopy(NAB.savedAdjustCalcByTable)
             GlobalVars.extn_param_NEW_operateOnAnotherRowTable_NAB  = copy.deepcopy(NAB.savedOperateOnAnotherRowTable)
             GlobalVars.extn_param_NEW_UUIDTable_NAB                 = copy.deepcopy(NAB.savedUUIDTable)
@@ -6341,6 +6471,8 @@ Visit: %s (Author's site)
         def hideRowWhenXXXDefault(self):                return GlobalVars.HIDE_ROW_WHEN_NEVER
         def hideRowXValueDefault(self):                 return 0.0
         def displayAverageDefault(self):                return 1.0
+        def averageByCalUnitDefault(self):              return 0
+        def averageByFractionalsDefault(self):          return False
         def adjustCalcByDefault(self):                  return 0.0
         def operateOnAnotherRowDefault(self):           return [None, None, None]   # int(row), str(operator), bool(%?)
         def disableWidgetTitleDefault(self):            return False
@@ -6413,6 +6545,14 @@ Visit: %s (Author's site)
                 self.savedDisplayAverageTable = [self.displayAverageDefault() for i in range(0,self.getNumberOfRows())]  # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedDisplayAverageTable detected, pre-populating with %s (= 1.0 = don't display average)" %(self.savedDisplayAverageTable))
 
+            if self.savedAverageByCalUnitTable == [self.averageByCalUnitDefault()] and len(self.savedAverageByCalUnitTable) != self.getNumberOfRows():
+                self.savedAverageByCalUnitTable = [self.averageByCalUnitDefault() for i in range(0,self.getNumberOfRows())]  # Don't just do [] * n (as you will get references to same list)
+                myPrint("B", "New parameter savedAverageByCalUnitTable detected, pre-populating with %s (= 0 = don't use/calculate Calendar Units for avg/by)" %(self.savedAverageByCalUnitTable))
+
+            if self.savedAverageByFractionalsTable == [self.averageByFractionalsDefault()] and len(self.savedAverageByFractionalsTable) != self.getNumberOfRows():
+                self.savedAverageByFractionalsTable = [self.averageByFractionalsDefault() for i in range(0,self.getNumberOfRows())]
+                myPrint("B", "New parameter savedAverageByFractionalsTable detected, pre-populating with %s (= False = only calculate whole/integer Calendar Units for avg/by)" %(self.savedAverageByFractionalsTable))
+
             if self.savedAdjustCalcByTable == [self.adjustCalcByDefault()] and len(self.savedAdjustCalcByTable) != self.getNumberOfRows():
                 self.savedAdjustCalcByTable = [self.adjustCalcByDefault() for i in range(0,self.getNumberOfRows())]  # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedAdjustCalcByTable detected, pre-populating with %s (= 0.0 = no final adjustment to calculation)" %(self.savedAdjustCalcByTable))
@@ -6467,66 +6607,74 @@ Visit: %s (Author's site)
                 self.resetParameters(31)
             elif self.savedDisplayAverageTable is None or not isinstance(self.savedDisplayAverageTable, list) or len(self.savedDisplayAverageTable) < 1:
                 self.resetParameters(33)
-            elif self.savedAdjustCalcByTable is None or not isinstance(self.savedAdjustCalcByTable, list) or len(self.savedAdjustCalcByTable) < 1:
-                self.resetParameters(34)
-            elif self.savedAutoSumDefault is None or not isinstance(self.savedAutoSumDefault, bool):
+            elif self.savedAverageByCalUnitTable is None or not isinstance(self.savedAverageByCalUnitTable, list) or len(self.savedAverageByCalUnitTable) < 1:
                 self.resetParameters(35)
-            elif self.savedShowPrintIcon is None or not isinstance(self.savedShowPrintIcon, bool):
+            elif self.savedAverageByFractionalsTable is None or not isinstance(self.savedAverageByFractionalsTable, list) or len(self.savedAverageByFractionalsTable) < 1:
                 self.resetParameters(36)
-            elif self.savedShowDashesInsteadOfZeros is None or not isinstance(self.savedShowDashesInsteadOfZeros, bool):
+            elif self.savedAdjustCalcByTable is None or not isinstance(self.savedAdjustCalcByTable, list) or len(self.savedAdjustCalcByTable) < 1:
                 self.resetParameters(37)
-            elif self.savedDisableWarningIcon is None or not isinstance(self.savedDisableWarningIcon, bool):
-                self.resetParameters(38)
-            elif self.savedDisableWidgetTitle is None or not isinstance(self.savedDisableWidgetTitle, bool):
+            elif self.savedAutoSumDefault is None or not isinstance(self.savedAutoSumDefault, bool):
                 self.resetParameters(39)
-            elif self.savedTreatSecZeroBalInactive is None or not isinstance(self.savedTreatSecZeroBalInactive, bool):
+            elif self.savedShowPrintIcon is None or not isinstance(self.savedShowPrintIcon, bool):
                 self.resetParameters(41)
-            elif self.savedUseIndianNumberFormat is None or not isinstance(self.savedUseIndianNumberFormat, bool):
+            elif self.savedShowDashesInsteadOfZeros is None or not isinstance(self.savedShowDashesInsteadOfZeros, bool):
                 self.resetParameters(43)
-            elif self.savedUseTaxDates is None or not isinstance(self.savedUseTaxDates, bool):
-                self.resetParameters(44)
-            elif self.savedDisplayVisualUnderDots is None or not isinstance(self.savedDisplayVisualUnderDots, bool):
+            elif self.savedDisableWarningIcon is None or not isinstance(self.savedDisableWarningIcon, bool):
+                self.resetParameters(45)
+            elif self.savedDisableWidgetTitle is None or not isinstance(self.savedDisableWidgetTitle, bool):
                 self.resetParameters(47)
-            elif self.savedExpandedView is None or not isinstance(self.savedExpandedView, bool):
+            elif self.savedTreatSecZeroBalInactive is None or not isinstance(self.savedTreatSecZeroBalInactive, bool):
                 self.resetParameters(49)
-            elif len(self.savedBalanceType) != self.getNumberOfRows():
+            elif self.savedUseIndianNumberFormat is None or not isinstance(self.savedUseIndianNumberFormat, bool):
                 self.resetParameters(51)
-            elif len(self.savedWidgetName) != self.getNumberOfRows():
+            elif self.savedUseTaxDates is None or not isinstance(self.savedUseTaxDates, bool):
                 self.resetParameters(53)
-            elif len(self.savedCurrencyTable) != self.getNumberOfRows():
+            elif self.savedDisplayVisualUnderDots is None or not isinstance(self.savedDisplayVisualUnderDots, bool):
                 self.resetParameters(55)
-            elif len(self.savedIncludeInactive) != self.getNumberOfRows():
+            elif self.savedExpandedView is None or not isinstance(self.savedExpandedView, bool):
                 self.resetParameters(57)
-            elif len(self.savedDisableCurrencyFormatting) != self.getNumberOfRows():
+            elif len(self.savedBalanceType) != self.getNumberOfRows():
                 self.resetParameters(59)
-            elif len(self.savedAutoSumAccounts) != self.getNumberOfRows():
+            elif len(self.savedWidgetName) != self.getNumberOfRows():
                 self.resetParameters(61)
-            elif len(self.savedIncomeExpenseDateRange) != self.getNumberOfRows():
+            elif len(self.savedCurrencyTable) != self.getNumberOfRows():
                 self.resetParameters(63)
-            elif len(self.savedCustomDatesTable) != self.getNumberOfRows():
+            elif len(self.savedIncludeInactive) != self.getNumberOfRows():
                 self.resetParameters(65)
-            elif len(self.savedOperateOnAnotherRowTable) != self.getNumberOfRows():
+            elif len(self.savedDisableCurrencyFormatting) != self.getNumberOfRows():
                 self.resetParameters(67)
-            elif len(self.savedShowWarningsTable) != self.getNumberOfRows():
+            elif len(self.savedAutoSumAccounts) != self.getNumberOfRows():
                 self.resetParameters(69)
-            elif len(self.savedUUIDTable) != self.getNumberOfRows():
+            elif len(self.savedIncomeExpenseDateRange) != self.getNumberOfRows():
                 self.resetParameters(71)
-            elif len(self.savedGroupIDTable) != self.getNumberOfRows():
-                self.resetParameters(72)
-            elif len(self.savedRowSeparatorTable) != self.getNumberOfRows():
+            elif len(self.savedCustomDatesTable) != self.getNumberOfRows():
                 self.resetParameters(73)
-            elif len(self.savedBlinkTable) != self.getNumberOfRows():
+            elif len(self.savedOperateOnAnotherRowTable) != self.getNumberOfRows():
                 self.resetParameters(75)
-            elif len(self.savedHideDecimalsTable) != self.getNumberOfRows():
-                self.resetParameters(76)
-            elif len(self.savedHideRowWhenXXXTable) != self.getNumberOfRows():
+            elif len(self.savedShowWarningsTable) != self.getNumberOfRows():
                 self.resetParameters(77)
-            elif len(self.savedHideRowXValueTable) != self.getNumberOfRows():
+            elif len(self.savedUUIDTable) != self.getNumberOfRows():
                 self.resetParameters(79)
-            elif len(self.savedDisplayAverageTable) != self.getNumberOfRows():
+            elif len(self.savedGroupIDTable) != self.getNumberOfRows():
                 self.resetParameters(81)
+            elif len(self.savedRowSeparatorTable) != self.getNumberOfRows():
+                self.resetParameters(83)
+            elif len(self.savedBlinkTable) != self.getNumberOfRows():
+                self.resetParameters(85)
+            elif len(self.savedHideDecimalsTable) != self.getNumberOfRows():
+                self.resetParameters(87)
+            elif len(self.savedHideRowWhenXXXTable) != self.getNumberOfRows():
+                self.resetParameters(89)
+            elif len(self.savedHideRowXValueTable) != self.getNumberOfRows():
+                self.resetParameters(91)
+            elif len(self.savedDisplayAverageTable) != self.getNumberOfRows():
+                self.resetParameters(93)
+            elif len(self.savedAverageByCalUnitTable) != self.getNumberOfRows():
+                self.resetParameters(95)
+            elif len(self.savedAverageByFractionalsTable) != self.getNumberOfRows():
+                self.resetParameters(96)
             elif len(self.savedAdjustCalcByTable) != self.getNumberOfRows():
-                self.resetParameters(82)
+                self.resetParameters(97)
             else:
 
                 if self.savedPresavedFilterByGroupIDsTable is None or not isinstance(self.savedPresavedFilterByGroupIDsTable, list):
@@ -6602,6 +6750,12 @@ Visit: %s (Author's site)
                     if self.savedDisplayAverageTable[i] is None or not isinstance(self.savedDisplayAverageTable[i], float) or self.savedDisplayAverageTable[i] == 0.0:
                         printResetMessage("savedDisplayAverageTable", self.savedDisplayAverageTable[i], self.displayAverageDefault(), i)
                         self.savedDisplayAverageTable[i] = self.displayAverageDefault()
+                    if self.savedAverageByCalUnitTable[i] is None or not isinstance(self.savedAverageByCalUnitTable[i], int):
+                        printResetMessage("savedAverageByCalUnitTable", self.savedAverageByCalUnitTable[i], self.averageByCalUnitDefault(), i)
+                        self.savedAverageByCalUnitTable[i] = self.averageByCalUnitDefault()
+                    if self.savedAverageByFractionalsTable[i] is None or not isinstance(self.savedAverageByFractionalsTable[i], bool):
+                        printResetMessage("savedAverageByFractionalsTable", self.savedAverageByFractionalsTable[i], self.averageByFractionalsDefault(), i)
+                        self.savedAverageByFractionalsTable[i] = self.averageByFractionalsDefault()
                     if self.savedAdjustCalcByTable[i] is None or not isinstance(self.savedAdjustCalcByTable[i], float):
                         printResetMessage("savedAdjustCalcByTable", self.savedAdjustCalcByTable[i], self.adjustCalcByDefault(), i)
                         self.savedAdjustCalcByTable[i] = self.adjustCalcByDefault()
@@ -6775,6 +6929,8 @@ Visit: %s (Author's site)
             self.savedHideRowWhenXXXTable           = [self.hideRowWhenXXXDefault()]
             self.savedHideRowXValueTable            = [self.hideRowXValueDefault()]
             self.savedDisplayAverageTable           = [self.displayAverageDefault()]
+            self.savedAverageByCalUnitTable         = [self.averageByCalUnitDefault()]
+            self.savedAverageByFractionalsTable     = [self.averageByFractionalsDefault()]
             self.savedAdjustCalcByTable             = [self.adjustCalcByDefault()]
             self.savedUUIDTable                     = [self.UUIDDefault(newUUID=True)]
             self.savedGroupIDTable                  = [self.groupIDDefault()]
@@ -6799,33 +6955,68 @@ Visit: %s (Author's site)
             today = min(DateUtil.getStrippedDateInt(), _endDate)
             return (today if (_balType == GlobalVars.BALTYPE_CURRENTBALANCE) else _endDate)
 
-        def setDateRangeLabel(self, _row):
+        def setDateRangeLabel(self, _rowIdx):
             NAB = NetAccountBalancesExtension.getNAB()
 
             myPrint("DB", "about to set date range label..")
 
             dateFormat = NAB.moneydanceContext.getPreferences().getShortDateFormat()
 
-            dateExtraTxt = ("(up to today's date)" if (NAB.savedBalanceType[_row] == GlobalVars.BALTYPE_CURRENTBALANCE) else "")
+            dateExtraTxt = ("(up to today's date)" if (NAB.savedBalanceType[_rowIdx] == GlobalVars.BALTYPE_CURRENTBALANCE) else "")
 
-            if NAB.savedIncomeExpenseDateRange[_row] != NAB.incomeExpenseDateRangeDefault():
-                # dateRange = DateRangeOption.fromKey(NAB.savedIncomeExpenseDateRange[_row]).getDateRange()
-                dateRange = getDateRangeSelected(NAB.savedIncomeExpenseDateRange[_row], NAB.savedCustomDatesTable[_row])
-                endDate = NAB.getEndDate(dateRange.getEndDateInt(), NAB.savedBalanceType[_row])
-                NAB.dateRangeLabel.setText(wrap_HTML_italics("I/E Date Range: %s to %s - Others: All dates %s"
-                    %(convertStrippedIntDateFormattedText(dateRange.getStartDateInt(), dateFormat),
-                      convertStrippedIntDateFormattedText(endDate, dateFormat), dateExtraTxt)))
-                NAB.dateRangeLabel.setHorizontalAlignment(JLabel.LEFT)
-                NAB.dateRangeLabel.repaint()
+            if NAB.savedIncomeExpenseDateRange[_rowIdx] != NAB.incomeExpenseDateRangeDefault():
+                # dateRange = DateRangeOption.fromKey(NAB.savedIncomeExpenseDateRange[_rowIdx]).getDateRange()
+                dateRange = getDateRangeSelected(NAB.savedIncomeExpenseDateRange[_rowIdx], NAB.savedCustomDatesTable[_rowIdx])
+                endDate = NAB.getEndDate(dateRange.getEndDateInt(), NAB.savedBalanceType[_rowIdx])
+                drTxt = "I/E Date Range: %s to %s - Others: All dates %s" %(convertStrippedIntDateFormattedText(dateRange.getStartDateInt(), dateFormat),
+                                                                            convertStrippedIntDateFormattedText(endDate, dateFormat), dateExtraTxt)
             else:
-                NAB.dateRangeLabel.setText(wrap_HTML_italics("Date Range: ALL DATES %s" %(dateExtraTxt)))
-                NAB.dateRangeLabel.setHorizontalAlignment(JLabel.LEFT)
-                NAB.dateRangeLabel.repaint()
+                drTxt = "Date Range: ALL DATES %s" %(dateExtraTxt)
 
-        def setKeyLabel(self, _row):
+            NAB.dateRangeLabel.setText(wrap_HTML_BIG_small("", drTxt, _smallItalics=True, _smallColor=GlobalVars.CONTEXT.getUI().getColors().defaultTextForeground))
+            NAB.dateRangeLabel.setHorizontalAlignment(JLabel.LEFT)
+            NAB.dateRangeLabel.repaint()
+
+        def setAvgByLabel(self, _rowIdx):
+            NAB = NetAccountBalancesExtension.getNAB()
+            myPrint("DB", "about to set Avg/By result Label..")
+            avgByTxt = wrap_HTML_BIG_small("", "(%s)" %(round(NAB.getAvgByForRow(_rowIdx), 4)), _smallColor=GlobalVars.CONTEXT.getUI().getColors().defaultTextForeground)
+            NAB.avgByLabel.setText(avgByTxt)
+            NAB.avgByLabel.setHorizontalAlignment(JLabel.LEFT)
+            NAB.avgByLabel.repaint()
+
+        def setAvgByControls(self, _rowIdx):
+            NAB = NetAccountBalancesExtension.getNAB()
+            if NAB.savedHideControlPanel: return
+            lHideControls = True
+            enable_averageByManualEntry = False
+            enable_averageByCalUnit = False
+            if isIncomeExpenseAllDatesSelected(_rowIdx):
+                enable_averageByManualEntry = True
+            else:
+                enable_averageByCalUnit = True
+                if NAB.savedAverageByCalUnitTable[_rowIdx] == NAB.CalUnit.NOTSET_IDX:
+                    enable_averageByManualEntry = True
+            NAB.displayAverage_JRF.setEnabled(enable_averageByManualEntry)
+            NAB.displayAverageCal_lbl.setEnabled(enable_averageByCalUnit)
+            NAB.averageByCalUnit_COMBO.setEnabled(enable_averageByCalUnit)
+            NAB.averageByFractionals_CB.setEnabled(enable_averageByCalUnit)
+
+            if enable_averageByCalUnit:
+                coreAvgLblPrefixTxt = "or by " if enable_averageByManualEntry else ""
+                coreAvgLblTxt = coreAvgLblPrefixTxt + "Inc/Exp Date Range: number of:"
+                NAB.displayAverageCal_lbl.setText(coreAvgLblTxt)
+
+            if lHideControls:
+                NAB.displayAverage_JRF.setVisible(enable_averageByManualEntry)
+                NAB.displayAverageCal_lbl.setVisible(enable_averageByCalUnit)
+                NAB.averageByCalUnit_COMBO.setVisible(enable_averageByCalUnit)
+                NAB.averageByFractionals_CB.setVisible(enable_averageByCalUnit)
+
+        def setAcctListKeyLabel(self, _rowIdx):
             NAB = NetAccountBalancesExtension.getNAB()
             myPrint("DB", "about to set key label..")
-            if not NAB.savedIncludeInactive[_row]:
+            if not NAB.savedIncludeInactive[_rowIdx]:
                 if NAB.keyLabel.getIcon() is None:
                     mdImages = NAB.moneydanceContext.getUI().getImages()
                     iconTintInactive = NAB.moneydanceContext.getUI().getColors().errorMessageForeground
@@ -6840,10 +7031,10 @@ Visit: %s (Author's site)
                 NAB.keyLabel.setIcon(None)
                 NAB.keyLabel.repaint()
 
-        def setParallelBalancesWarningLabel(self, _row):
+        def setParallelBalancesWarningLabel(self, _rowIdx):
             NAB = NetAccountBalancesExtension.getNAB()
             myPrint("DB", "about to set parallelBalancesWarningLabel..")
-            if not isIncomeExpenseAllDatesSelected(_row):
+            if not isIncomeExpenseAllDatesSelected(_rowIdx):
                 if NAB.parallelBalancesWarningLabel.getIcon() is None:
                     mdImages = NAB.moneydanceContext.getUI().getImages()
                     iconTintParallel = NAB.moneydanceContext.getUI().getColors().errorMessageForeground
@@ -7047,6 +7238,8 @@ Visit: %s (Author's site)
                                       NAB.filterByGroupID_JTF,
                                       NAB.hideRowXValue_JRF,
                                       NAB.displayAverage_JRF,
+                                      NAB.averageByCalUnit_COMBO,
+                                      NAB.averageByFractionals_CB,
                                       NAB.adjustCalcBy_JRF,
                                       NAB.utiliseOtherRow_JTFAI,
                                       NAB.otherRowMathsOperator_COMBO,
@@ -7157,6 +7350,12 @@ Visit: %s (Author's site)
             myPrint("DB", "about to set displayAverage_JRF..")
             NAB.displayAverage_JRF.setValue(NAB.savedDisplayAverageTable[selectRowIndex])
 
+            myPrint("DB", "about to set averageByCalUnit_COMBO..")
+            NAB.averageByCalUnit_COMBO.setSelectedIndex(NAB.savedAverageByCalUnitTable[selectRowIndex])
+
+            myPrint("DB", "about to set averageByFractionals_CB..")
+            NAB.averageByFractionals_CB.setSelected(NAB.savedAverageByFractionalsTable[selectRowIndex])
+
             myPrint("DB", "about to set adjustCalcBy_JRF..")
             NAB.adjustCalcBy_JRF.setValue(NAB.savedAdjustCalcByTable[selectRowIndex])
 
@@ -7169,9 +7368,11 @@ Visit: %s (Author's site)
             myPrint("DB", "about to set filter by group id..")
             NAB.filterByGroupID_JTF.setText(NAB.savedFilterByGroupID)
 
-            NAB.setKeyLabel(selectRowIndex)
+            NAB.setAcctListKeyLabel(selectRowIndex)
             NAB.setParallelBalancesWarningLabel(selectRowIndex)
             NAB.setDateRangeLabel(selectRowIndex)
+            NAB.setAvgByLabel(selectRowIndex)
+            NAB.setAvgByControls(selectRowIndex)
 
             # Rebuild Currency Dropdown, and pre-select correct one
             currencyChoices = []
@@ -7247,6 +7448,10 @@ Visit: %s (Author's site)
             myPrint("DB", ".....hideRowXValue_JRF: %s"                       %(NAB.hideRowXValue_JRF.getValue()))
             myPrint("DB", ".....savedDisplayAverageTable: %s"                %(NAB.savedDisplayAverageTable[selectRowIndex]))
             myPrint("DB", ".....displayAverage_JRF: %s"                      %(NAB.displayAverage_JRF.getValue()))
+            myPrint("DB", ".....savedAverageByCalUnitTable: %s"              %(NAB.savedAverageByCalUnitTable[selectRowIndex]))
+            myPrint("DB", ".....averageByCalUnit_COMBO: %s"                  %(NAB.averageByCalUnit_COMBO.getSelectedItem()))
+            myPrint("DB", ".....savedAverageByFractionalsTable: %s"          %(NAB.savedAverageByFractionalsTable[selectRowIndex]))
+            myPrint("DB", ".....averageByFractionals_CB: %s"                 %(NAB.averageByFractionals_CB.isSelected()))
             myPrint("DB", ".....savedAdjustCalcByTable: %s"                  %(NAB.savedAdjustCalcByTable[selectRowIndex]))
             myPrint("DB", ".....adjustCalcBy_JRF: %s"                        %(NAB.adjustCalcBy_JRF.getValue()))
             myPrint("DB", ".....savedBlinkTable: %s"                         %(NAB.savedBlinkTable[selectRowIndex]))
@@ -7286,6 +7491,43 @@ Visit: %s (Author's site)
         def getSelectedRow(self):           return (self.getSelectedRowIndex() + 1)
 
         def getNumberOfRows(self):          return len(self.savedAccountListUUIDs)
+
+        def doesRowUseAvgBy(self, _rowIdx):
+            # type: (int) -> bool
+            NAB = self
+            if isIncomeExpenseAllDatesSelected(_rowIdx) or NAB.savedAverageByCalUnitTable[_rowIdx] == NAB.CalUnit.NOTSET_IDX:
+                return NAB.savedDisplayAverageTable[_rowIdx] != 1.0
+            return True
+
+        def getAvgByForRow(self, _rowIdx):
+            # type: (int) -> float
+            """Will check whether an Inc/Exp category date range in use. If NOT 'all_dates' then will return CalUnits between dates result.
+            If CalUnits NOTSET, then returns the std Avg/By field. WARNING: Can return a zero result!"""
+            NAB = self
+            if debug: myPrint("DB", "In getAvgByForRow(): rowIdx: %s (row: %s)" %(_rowIdx, _rowIdx+1))
+            if isIncomeExpenseAllDatesSelected(_rowIdx):
+                if debug: myPrint("DB", "... Appears to be using 'all_dates' - so will just return default avg/by...")
+                avgByResult = NAB.savedDisplayAverageTable[_rowIdx]
+            else:
+                calUnit = NAB.CalUnit.getCalUnitFromIndex(NAB.savedAverageByCalUnitTable[_rowIdx])
+                if calUnit.getTypeID() == calUnit.NOTSET_ID:
+                    if debug: myPrint("DB", "... Using '%s' but Avg/By CalUnit NOTSET - so will just return default avg/by..." %(NAB.savedIncomeExpenseDateRange[_rowIdx]))
+                    avgByResult = NAB.savedDisplayAverageTable[_rowIdx]
+                else:
+                    if debug: myPrint("DB", "... Using '%s' with Avg/By CalUnit: '%s'" %(NAB.savedIncomeExpenseDateRange[_rowIdx], calUnit))
+                    dateRange = getDateRangeSelected(NAB.savedIncomeExpenseDateRange[_rowIdx], NAB.savedCustomDatesTable[_rowIdx])
+                    startDateInt = dateRange.getStartDateInt()
+                    endDateInt = NAB.getEndDate(dateRange.getEndDateInt(), NAB.savedBalanceType[_rowIdx])
+                    daysBetween = calUnit.getCalUnitsBetweenDates(calUnit, startDateInt, endDateInt,
+                                                                  lAllowZeroResult=True,
+                                                                  lReturnFractionalResult=NAB.savedAverageByFractionalsTable[_rowIdx])
+                    if debug: myPrint("DB", "... Calculated CalUnits '%s' between for DR: '%s' %s - %s = %s %s (allow fractional result: %s)"
+                                      %(calUnit, NAB.savedIncomeExpenseDateRange[_rowIdx],
+                                        getLocalDateFromDateInt(startDateInt), getLocalDateFromDateInt(endDateInt),
+                                        daysBetween, "" if daysBetween != 0.0 else "** ZERO WARNING **",
+                                        NAB.savedAverageByFractionalsTable[_rowIdx]))
+                    avgByResult = daysBetween
+            return avgByResult
 
         def searchAndStoreGroupIDs(self, lookFor):
             if debug: myPrint("DB", "In searchAndStoreGroupIDs('%s')" %(lookFor))
@@ -7336,7 +7578,6 @@ Visit: %s (Author's site)
                             %(self.savedFilterByGroupID, txtFieldValue))
                     myPrint("DB", "..... saving savedFilterByGroupID....")
                     self.savedFilterByGroupID = txtFieldValue
-
                     self.searchAndStoreGroupIDs(self.savedFilterByGroupID)
                     self.configSaved = False
 
@@ -7362,6 +7603,8 @@ Visit: %s (Author's site)
                             %(self.getSelectedRowIndex(), self.savedDisplayAverageTable[self.getSelectedRowIndex()], txtFieldValue))
                     myPrint("DB", "..... savedDisplayAverageTable....")
                     self.savedDisplayAverageTable[self.getSelectedRowIndex()] = txtFieldValue
+                    self.setAvgByLabel(self.getSelectedRowIndex())
+                    self.setAvgByControls(self.getSelectedRowIndex())
                     self.configSaved = False
 
                 txtFieldValue = self.adjustCalcBy_JRF.getValue()
@@ -7591,6 +7834,8 @@ Visit: %s (Author's site)
                 myPrint("B", "  %s" %(pad("savedHideRowWhenXXXTable",60)),      NAB.savedHideRowWhenXXXTable[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedHideRowXValueTable",60)),       NAB.savedHideRowXValueTable[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedDisplayAverageTable",60)),      NAB.savedDisplayAverageTable[iRowIdx])
+                myPrint("B", "  %s" %(pad("savedAverageByCalUnitTable",60)),    NAB.savedAverageByCalUnitTable[iRowIdx])
+                myPrint("B", "  %s" %(pad("savedAverageByFractionalsTable",60)),NAB.savedAverageByFractionalsTable[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedAdjustCalcByTable",60)),        NAB.savedAdjustCalcByTable[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedIncomeExpenseDateRange",60)),   NAB.savedIncomeExpenseDateRange[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedCustomDatesTable",60)),         NAB.savedCustomDatesTable[iRowIdx])
@@ -7910,7 +8155,7 @@ Visit: %s (Author's site)
                         i = NAB.getSelectedRowIndex()
                         balanceObj = totalBalanceTable[i]   # type: CalculatedBalance
 
-                        lUseAverage = (NAB.savedDisplayAverageTable[i] != 1.0)
+                        lUseAverage = NAB.doesRowUseAvgBy(i)
                         lAdjustFinalBalance = (NAB.savedAdjustCalcByTable[i] != 0.0)
                         lUsesOtherRow = (NAB.savedOperateOnAnotherRowTable[i][NAB.OPERATE_OTHER_ROW_ROW] is not None)
                         lUseTaxDates = (NAB.savedUseTaxDates and not isIncomeExpenseAllDatesSelected(i))
@@ -7942,8 +8187,9 @@ Visit: %s (Author's site)
 
                             showAverageText = ""
                             if lUseAverage:
+                                avgByForRow = NAB.getAvgByForRow(i)
                                 showAverageText = " (avg)"
-                                if debug: myPrint("DB", ":: Row: %s using average / by: %s" %(i+1, NAB.savedDisplayAverageTable[i]))
+                                if debug: myPrint("DB", ":: Row: %s using average / by: %s" %(i+1, avgByForRow))
 
                             showAdjustFinalBalanceText = ""
                             if lAdjustFinalBalance:
@@ -8125,6 +8371,8 @@ Visit: %s (Author's site)
                                    NAB.savedHideRowWhenXXXTable,
                                    NAB.savedHideRowXValueTable,
                                    NAB.savedDisplayAverageTable,
+                                   NAB.savedAverageByCalUnitTable,
+                                   NAB.savedAverageByFractionalsTable,
                                    NAB.savedAdjustCalcByTable,
                                    NAB.savedWidgetName,
                                    NAB.savedUUIDTable,
@@ -8273,7 +8521,7 @@ Visit: %s (Author's site)
                         if NAB.savedIncludeInactive[NAB.getSelectedRowIndex()] != event.getSource().getSelectedIndex():
                             myPrint("DB", ".. setting savedIncludeInactive to: %s for row: %s" %(event.getSource().getSelectedIndex(), NAB.getSelectedRow()))
                             NAB.savedIncludeInactive[NAB.getSelectedRowIndex()] = event.getSource().getSelectedIndex()
-                            NAB.setKeyLabel(NAB.getSelectedRowIndex())
+                            NAB.setAcctListKeyLabel(NAB.getSelectedRowIndex())
                             # NAB.rebuildJList()
                             NAB.configSaved = False
                             NAB.searchFiltersUpdated()
@@ -8281,6 +8529,25 @@ Visit: %s (Author's site)
                     if event.getSource().getName().lower() == "filterOnlyAccountType_COMBO".lower():
                         myPrint("DB", ".. setting filterOnlyAccountType_COMBO to: %s for row: %s" %(event.getSource().getSelectedItem(), NAB.getSelectedRow()))
                         NAB.searchFiltersUpdated()
+
+                    if event.getSource().getName().lower() == "averageByCalUnit_COMBO".lower():
+                        if NAB.savedAverageByCalUnitTable[NAB.getSelectedRowIndex()] != event.getSource().getSelectedIndex():
+                            myPrint("DB", ".. setting savedAverageByCalUnitTable to: %s for row: %s" %(event.getSource().getSelectedIndex(), NAB.getSelectedRow()))
+                            NAB.savedAverageByCalUnitTable[NAB.getSelectedRowIndex()] = event.getSource().getSelectedIndex()
+                            NAB.configSaved = False
+                            NAB.setAvgByLabel(NAB.getSelectedRowIndex())
+                            NAB.setAvgByControls(NAB.getSelectedRowIndex())
+                            NAB.simulateTotalForRow()
+
+                if event.getActionCommand().lower().startswith("Fractional".lower()):
+                    if event.getSource().getName().lower() == "averageByFractionals_CB".lower():
+                        if NAB.savedAverageByFractionalsTable[NAB.getSelectedRowIndex()] != event.getSource().isSelected():
+                            myPrint("DB", ".. setting averageByFractionals_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
+                            NAB.savedAverageByFractionalsTable[NAB.getSelectedRowIndex()] = event.getSource().isSelected()
+                            NAB.configSaved = False
+                            NAB.setAvgByLabel(NAB.getSelectedRowIndex())
+                            NAB.setAvgByControls(NAB.getSelectedRowIndex())
+                            NAB.simulateTotalForRow()
 
                 # ######################################################################################################
                 if event.getActionCommand().lower().startswith("comboBoxChanged".lower()):
@@ -8291,6 +8558,7 @@ Visit: %s (Author's site)
                             NAB.savedBalanceType[NAB.getSelectedRowIndex()] = event.getSource().getSelectedIndex()
                             NAB.configSaved = False
                             NAB.setDateRangeLabel(NAB.getSelectedRowIndex())    # Balance option affects end date
+                            NAB.setAvgByLabel(NAB.getSelectedRowIndex())
                             NAB.searchFiltersUpdated()
                             NAB.simulateTotalForRow()
                             NAB.jlst.repaint()
@@ -8348,6 +8616,8 @@ Visit: %s (Author's site)
                             NAB.configSaved = False
                             NAB.setParallelBalancesWarningLabel(NAB.getSelectedRowIndex())
                             NAB.setDateRangeLabel(NAB.getSelectedRowIndex())
+                            NAB.setAvgByLabel(NAB.getSelectedRowIndex())
+                            NAB.setAvgByControls(NAB.getSelectedRowIndex())
                             NAB.rebuildParallelBalanceTable()
 
                     if event.getSource().getName().lower() == "currency_COMBO".lower():
@@ -8416,6 +8686,8 @@ Visit: %s (Author's site)
                         NAB.savedHideRowWhenXXXTable.insert(NAB.getSelectedRowIndex(),      NAB.hideRowWhenXXXDefault())
                         NAB.savedHideRowXValueTable.insert(NAB.getSelectedRowIndex(),       NAB.hideRowXValueDefault())
                         NAB.savedDisplayAverageTable.insert(NAB.getSelectedRowIndex(),      NAB.displayAverageDefault())
+                        NAB.savedAverageByCalUnitTable.insert(NAB.getSelectedRowIndex(),    NAB.averageByCalUnitDefault())
+                        NAB.savedAverageByFractionalsTable.insert(NAB.getSelectedRowIndex(),NAB.averageByFractionalsDefault())
                         NAB.savedAdjustCalcByTable.insert(NAB.getSelectedRowIndex(),        NAB.adjustCalcByDefault())
 
                         self.correctUseOtherRowNumbers(tableAfterChanges=startingTable)
@@ -8449,6 +8721,8 @@ Visit: %s (Author's site)
                         NAB.savedHideRowWhenXXXTable.insert(NAB.getSelectedRowIndex()+1,      NAB.hideRowWhenXXXDefault())
                         NAB.savedHideRowXValueTable.insert(NAB.getSelectedRowIndex()+1,       NAB.hideRowXValueDefault())
                         NAB.savedDisplayAverageTable.insert(NAB.getSelectedRowIndex()+1,      NAB.displayAverageDefault())
+                        NAB.savedAverageByCalUnitTable.insert(NAB.getSelectedRowIndex()+1,    NAB.averageByCalUnitDefault())
+                        NAB.savedAverageByFractionalsTable.insert(NAB.getSelectedRowIndex()+1,NAB.averageByFractionalsDefault())
                         NAB.savedAdjustCalcByTable.insert(NAB.getSelectedRowIndex()+1,        NAB.adjustCalcByDefault())
 
                         self.correctUseOtherRowNumbers(tableAfterChanges=startingTable)
@@ -8669,6 +8943,7 @@ Visit: %s (Author's site)
                     NAB.menuBarItemHideControlPanel_CB.setSelected(NAB.savedHideControlPanel)
 
                     hideUnideCollapsiblePanels(NAB.theFrame, not NAB.savedHideControlPanel)
+                    NAB.setAvgByControls(NAB.getSelectedRowIndex())
                     myPrint("DB", "User has changed 'Hide Control Panel' to: %s" %(NAB.savedHideControlPanel))
 
                 # ######################################################################################################
@@ -9035,6 +9310,8 @@ Visit: %s (Author's site)
                 GlobalVars.extn_param_NEW_hideRowWhenXXXTable_NAB           = [NAB.hideRowWhenXXXDefault()]
                 GlobalVars.extn_param_NEW_hideRowXValueTable_NAB            = [NAB.hideRowXValueDefault()]
                 GlobalVars.extn_param_NEW_displayAverageTable_NAB           = [NAB.displayAverageDefault()]
+                GlobalVars.extn_param_NEW_averageByCalUnitTable_NAB         = [NAB.averageByCalUnitDefault()]
+                GlobalVars.extn_param_NEW_averageByFractionalsTable_NAB     = [NAB.averageByFractionalsDefault()]
                 GlobalVars.extn_param_NEW_adjustCalcByTable_NAB             = [NAB.adjustCalcByDefault()]
                 GlobalVars.extn_param_NEW_operateOnAnotherRowTable_NAB      = [NAB.operateOnAnotherRowDefault()]
                 GlobalVars.extn_param_NEW_UUIDTable_NAB                     = [NAB.UUIDDefault(newUUID=False)]
@@ -9095,6 +9372,8 @@ Visit: %s (Author's site)
                         self.savedHideRowWhenXXXTable           = copy.deepcopy(GlobalVars.extn_param_NEW_hideRowWhenXXXTable_NAB)
                         self.savedHideRowXValueTable            = copy.deepcopy(GlobalVars.extn_param_NEW_hideRowXValueTable_NAB)
                         self.savedDisplayAverageTable           = copy.deepcopy(GlobalVars.extn_param_NEW_displayAverageTable_NAB)
+                        self.savedAverageByCalUnitTable         = copy.deepcopy(GlobalVars.extn_param_NEW_averageByCalUnitTable_NAB)
+                        self.savedAverageByFractionalsTable     = copy.deepcopy(GlobalVars.extn_param_NEW_averageByFractionalsTable_NAB)
                         self.savedAdjustCalcByTable             = copy.deepcopy(GlobalVars.extn_param_NEW_adjustCalcByTable_NAB)
                         self.savedOperateOnAnotherRowTable      = copy.deepcopy(GlobalVars.extn_param_NEW_operateOnAnotherRowTable_NAB)
                         self.savedUUIDTable                     = copy.deepcopy(GlobalVars.extn_param_NEW_UUIDTable_NAB)
@@ -9784,7 +10063,7 @@ Visit: %s (Author's site)
                     onCol = 0
                     topInset = 2
 
-                    balanceOptionLabel = MyJLabel("Balance Option:")
+                    balanceOptionLabel = MyJLabel("Balance option:")
                     balanceOptionLabel.putClientProperty("%s.id" %(NAB.myModuleID), "balanceOptionLabel")
                     balanceOptionLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                     controlPnl.add(balanceOptionLabel, GridC.getc(onCol, onRow).east().leftInset(colLeftInset))
@@ -9869,6 +10148,195 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.disableCurrencyFormatting_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).rightInset(colRightInset).fillx())
                     onCol += 1
 
+                    onRow += 1
+
+                    # --------------------------------------------------------------------------------------------------
+                    onCol = 0
+                    topInset = 2
+
+                    incExpDateRangeOptionLabel = MyJLabel("Inc/Exp Date Range:")
+                    incExpDateRangeOptionLabel.putClientProperty("%s.id" %(NAB.myModuleID), "incExpDateRangeOptionLabel")
+                    incExpDateRangeOptionLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    controlPnl.add(incExpDateRangeOptionLabel, GridC.getc(onCol, onRow).east().leftInset(colLeftInset))
+                    onCol += 1
+
+                    incExpDateRangeOptions = []
+                    for drange in sorted(DateRangeOption.values(), key=lambda x: (x.getSortKey())):
+                        incExpDateRangeOptions.append(NAB.DateRangeSingleOption(drange))
+
+                    NAB.incomeExpenseDateRange_COMBO = MyJComboBox(incExpDateRangeOptions)
+                    NAB.incomeExpenseDateRange_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "incomeExpenseDateRange_COMBO")
+                    NAB.incomeExpenseDateRange_COMBO.setName("incomeExpenseDateRange_COMBO")
+                    NAB.incomeExpenseDateRange_COMBO.setToolTipText("Specify a dynamic date range for Income / Expense Category calculations ('Custom' is always fixed) - does not affect other accounts/securities")
+                    NAB.incomeExpenseDateRange_COMBO.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.incomeExpenseDateRange_COMBO.addActionListener(NAB.saveActionListener)
+                    controlPnl.add(NAB.incomeExpenseDateRange_COMBO, GridC.getc(onCol, onRow).colspan(2).leftInset(colInsetFiller).topInset(topInset).fillx())
+
+                    onRow += 1
+                    # --------------------------------------------------------------------------------------------------
+
+                    onCol = 1
+                    topInset = 0
+                    bottomInset = 0
+
+                    NAB.dateRangeLabel = MyJLabel("Date Range:")
+                    NAB.dateRangeLabel.putClientProperty("%s.id" %(NAB.myModuleID), "dateRangeLabel")
+                    NAB.dateRangeLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    controlPnl.add(NAB.dateRangeLabel, GridC.getc(onCol, onRow).colspan(3).fillx().insets(topInset,colInsetFiller,bottomInset,colRightInset).north())
+
+                    controlPnl.add(Box.createVerticalStrut(18), GridC.getc(onCol, onRow))
+
+                    onCol += 2
+
+                    onRow += 1
+
+                    # --------------------------------------------------------------------------------------------------
+                    onCol = 0
+
+                    averageBy_lbl = MyJLabel("Average by:")
+                    averageBy_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "averageBy_lbl")
+                    averageBy_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    controlPnl.add(averageBy_lbl, GridC.getc(onCol, onRow).east().leftInset(colLeftInset))
+                    onCol += 1
+
+                    onAverageRow = 0
+                    onAverageCol = 0
+                    displayAverage_pnl = MyJPanel(GridBagLayout())
+
+                    NAB.displayAverage_JRF = MyJRateFieldAverage(12, NAB.decimal)
+                    if isinstance(NAB.displayAverage_JRF, (MyJRateFieldAverage, JRateField, JTextField)): pass
+                    NAB.displayAverage_JRF.putClientProperty("%s.id" %(NAB.myModuleID), "displayAverage_JRF")
+                    NAB.displayAverage_JRF.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.displayAverage_JRF.setName("displayAverage_JRF")
+                    NAB.displayAverage_JRF.setToolTipText("Display an average versus a balance (default 1.0)")
+                    NAB.displayAverage_JRF.addFocusListener(NAB.saveFocusListener)
+                    displayAverage_pnl.add(NAB.displayAverage_JRF, GridC.getc(onAverageCol, onAverageRow).leftInset(5).west())
+                    onAverageCol += 1
+
+                    NAB.displayAverageCal_lbl = MyJLabel("")
+                    NAB.displayAverageCal_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "displayAverageCal_lbl")
+                    NAB.displayAverageCal_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+
+                    displayAverage_pnl.add(NAB.displayAverageCal_lbl, GridC.getc(onAverageCol, onAverageRow).east().leftInset(5))
+                    onAverageCol += 1
+
+                    calObjects = [NAB.CalUnit("notset"),
+                                  NAB.CalUnit("days"), NAB.CalUnit("weeks"), NAB.CalUnit("months"), NAB.CalUnit("years"),
+                                  NAB.CalUnit("days", reverseSign=True), NAB.CalUnit("weeks", reverseSign=True), NAB.CalUnit("months", reverseSign=True), NAB.CalUnit("years", reverseSign=True)]
+                    NAB.averageByCalUnit_COMBO = MyJComboBox(calObjects)
+                    NAB.averageByCalUnit_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "averageByCalUnit_COMBO")
+                    NAB.averageByCalUnit_COMBO.setName("averageByCalUnit_COMBO")
+                    NAB.averageByCalUnit_COMBO.setToolTipText("[OPTIONAL] With Inc/Exp categories & date range, you can average by number of WHOLE Days, Weeks, Months, Years in the range (overrides avg/by field)")
+                    NAB.averageByCalUnit_COMBO.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.averageByCalUnit_COMBO.addActionListener(NAB.saveActionListener)
+
+                    displayAverage_pnl.add(NAB.averageByCalUnit_COMBO, GridC.getc(onAverageCol, onAverageRow).leftInset(5).west())
+                    onAverageCol += 1
+
+                    NAB.averageByFractionals_CB = MyJCheckBox("Fractional", False)
+                    NAB.averageByFractionals_CB.putClientProperty("%s.id" %(NAB.myModuleID), "averageByFractionals_CB")
+                    NAB.averageByFractionals_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.averageByFractionals_CB.setName("averageByFractionals_CB")
+                    NAB.averageByFractionals_CB.setToolTipText("When enabled, the 'number of' avg/by Units will be estimated with a fractional result (REFER HELP GUIDE CMD-I)")
+                    NAB.averageByFractionals_CB.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.averageByFractionals_CB.addActionListener(NAB.saveActionListener)
+
+                    displayAverage_pnl.add(NAB.averageByFractionals_CB, GridC.getc(onAverageCol, onAverageRow).leftInset(5))
+                    onAverageCol += 1
+
+                    NAB.avgByLabel = MyJLabel("")
+                    NAB.avgByLabel.putClientProperty("%s.id" %(NAB.myModuleID), "avgByLabel")
+                    NAB.avgByLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    displayAverage_pnl.add(NAB.avgByLabel, GridC.getc(onAverageCol, onAverageRow).leftInset(5))
+                    onAverageCol += 1
+
+                    controlPnl.add(displayAverage_pnl, GridC.getc(onCol, onRow).west().leftInset(colInsetFiller).rightInset(colRightInset).colspan(3))
+                    onCol += 3
+
+                    onRow += 1
+
+                    # --------------------------------------------------------------------------------------------------
+                    pady = 5
+
+                    onCol = 0
+                    operateOnAnotherRow_pnl = MyJPanel(GridBagLayout())
+
+                    operateOnAnotherRow_lbl = MyJLabel("Maths using another row:")
+                    operateOnAnotherRow_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "operateOnAnotherRow_lbl")
+                    operateOnAnotherRow_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    controlPnl.add(operateOnAnotherRow_lbl, GridC.getc(onCol, onRow).east().leftInset(colLeftInset))
+                    onCol += 1
+
+                    onUtiliseOtherRowRow = 0
+                    onUtiliseOtherRowCol = 0
+
+                    utiliseRow_lbl = MyJLabel("Use result from row:")
+                    utiliseRow_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "utiliseRow_lbl")
+                    utiliseRow_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    operateOnAnotherRow_pnl.add(utiliseRow_lbl, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
+                    onUtiliseOtherRowCol += 1
+
+                    NAB.utiliseOtherRow_JTFAI = MyJTextFieldAsIntOtherRow(NAB, 3, NAB.decimal)
+                    if isinstance(NAB.utiliseOtherRow_JTFAI, (MyJTextFieldAsIntOtherRow, JRateField, JTextField)): pass
+                    NAB.utiliseOtherRow_JTFAI.putClientProperty("%s.id" %(NAB.myModuleID), "utiliseOtherRow_JTFAI")
+                    NAB.utiliseOtherRow_JTFAI.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.utiliseOtherRow_JTFAI.setName("utiliseOtherRow_JTFAI")
+                    NAB.utiliseOtherRow_JTFAI.setToolTipText("[Optional] Enter another row number to perform maths on this row's result using other row's result")
+                    NAB.utiliseOtherRow_JTFAI.addFocusListener(NAB.saveFocusListener)
+                    operateOnAnotherRow_pnl.add(NAB.utiliseOtherRow_JTFAI, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow))
+                    onUtiliseOtherRowCol += 1
+
+                    operator_lbl = MyJLabel("Operator:")
+                    operator_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "operator_lbl")
+                    operator_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    operateOnAnotherRow_pnl.add(operator_lbl, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
+                    onUtiliseOtherRowCol += 1
+
+                    operatorTypes = ["/", "*", "+", "-"]
+                    NAB.otherRowMathsOperator_COMBO = MyJComboBox(operatorTypes)
+                    NAB.otherRowMathsOperator_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "otherRowMathsOperator_COMBO")
+                    NAB.otherRowMathsOperator_COMBO.setName("otherRowMathsOperator_COMBO")
+                    NAB.otherRowMathsOperator_COMBO.setToolTipText("Select the maths 'operator' - e.g. '/' = divide by the result from specified other row....")
+                    NAB.otherRowMathsOperator_COMBO.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.otherRowMathsOperator_COMBO.addActionListener(NAB.saveActionListener)
+                    operateOnAnotherRow_pnl.add(NAB.otherRowMathsOperator_COMBO, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
+                    onUtiliseOtherRowCol += 1
+
+                    NAB.otherRowIsPercent_CB = MyJCheckBox("Format as %", True)
+                    NAB.otherRowIsPercent_CB.putClientProperty("%s.id" %(NAB.myModuleID), "otherRowIsPercent_CB")
+                    NAB.otherRowIsPercent_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.otherRowIsPercent_CB.setName("otherRowIsPercent_CB")
+                    NAB.otherRowIsPercent_CB.setToolTipText("When ticked, then the result will be deemed as a percentage...")
+                    NAB.otherRowIsPercent_CB.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.otherRowIsPercent_CB.addActionListener(NAB.saveActionListener)
+                    operateOnAnotherRow_pnl.add(NAB.otherRowIsPercent_CB, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(8))
+                    onUtiliseOtherRowCol += 1
+
+                    controlPnl.add(operateOnAnotherRow_pnl, GridC.getc(onCol, onRow).west().leftInset(colInsetFiller).fillx().pady(pady).filly().colspan(2))
+                    onCol += 2
+
+                    onAdjustCalcRow = 0
+                    onAdjustCalcCol = 0
+                    displayAdjustCalc_pnl = MyJPanel(GridBagLayout())
+                    displayAdjustCalc_lbl = MyJLabel("Adj/by:")
+                    displayAdjustCalc_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "displayAdjustCalc_lbl")
+                    displayAdjustCalc_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    displayAdjustCalc_pnl.add(displayAdjustCalc_lbl, GridC.getc(onAdjustCalcCol, onAdjustCalcRow).wx(0.1).east())
+                    onAdjustCalcCol += 1
+
+                    NAB.adjustCalcBy_JRF = MyJRateFieldAdjustCalcBy(12, NAB.decimal)
+                    if isinstance(NAB.adjustCalcBy_JRF, (MyJRateFieldAdjustCalcBy, JRateField, JTextField)): pass
+                    NAB.adjustCalcBy_JRF.putClientProperty("%s.id" %(NAB.myModuleID), "adjustCalcBy_JRF")
+                    NAB.adjustCalcBy_JRF.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.adjustCalcBy_JRF.setName("adjustCalcBy_JRF")
+                    NAB.adjustCalcBy_JRF.setToolTipText("Adjust the final calculated balance by a +/- amount (default 0.0)")
+                    NAB.adjustCalcBy_JRF.addFocusListener(NAB.saveFocusListener)
+                    displayAdjustCalc_pnl.add(NAB.adjustCalcBy_JRF, GridC.getc(onAdjustCalcCol, onAdjustCalcRow).leftInset(5).wx(1.0).fillboth().west())
+                    onAdjustCalcCol += 1
+
+                    controlPnl.add(displayAdjustCalc_pnl, GridC.getc(onCol, onRow).west().leftInset(colInsetFiller).rightInset(colRightInset))
+
+                    onCol += 1
                     onRow += 1
 
                     # --------------------------------------------------------------------------------------------------
@@ -10042,159 +10510,6 @@ Visit: %s (Author's site)
 
                     controlPnl.add(blink_hideDecimals_pnl, GridC.getc(onCol, onRow).colspan(1).fillx().west())
                     onCol += 1
-
-                    onAverageRow = 0
-                    onAverageCol = 0
-                    displayAverage_pnl = MyJPanel(GridBagLayout())
-                    displayAverage_lbl = MyJLabel("Avg/by:")
-                    displayAverage_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "displayAverage_lbl")
-                    displayAverage_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    displayAverage_pnl.add(displayAverage_lbl, GridC.getc(onAverageCol, onAverageRow).wx(0.1).east())
-                    onAverageCol += 1
-
-                    NAB.displayAverage_JRF = MyJRateFieldAverage(12, NAB.decimal)
-                    if isinstance(NAB.displayAverage_JRF, (MyJRateFieldAverage, JRateField, JTextField)): pass
-                    NAB.displayAverage_JRF.putClientProperty("%s.id" %(NAB.myModuleID), "displayAverage_JRF")
-                    NAB.displayAverage_JRF.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    NAB.displayAverage_JRF.setName("displayAverage_JRF")
-                    NAB.displayAverage_JRF.setToolTipText("Display an average versus a balance (default 1.0)")
-                    NAB.displayAverage_JRF.addFocusListener(NAB.saveFocusListener)
-                    displayAverage_pnl.add(NAB.displayAverage_JRF, GridC.getc(onAverageCol, onAverageRow).leftInset(5).wx(1.0).fillboth().west())
-                    onAverageCol += 1
-
-                    controlPnl.add(displayAverage_pnl, GridC.getc(onCol, onRow).west().leftInset(colInsetFiller).rightInset(colRightInset))
-                    onCol += 1
-                    onRow += 1
-
-                    # --------------------------------------------------------------------------------------------------
-                    pady = 5
-
-                    onCol = 0
-                    operateOnAnotherRow_pnl = MyJPanel(GridBagLayout())
-
-                    operateOnAnotherRow_lbl = MyJLabel("Maths using another row:")
-                    operateOnAnotherRow_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "operateOnAnotherRow_lbl")
-                    operateOnAnotherRow_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    controlPnl.add(operateOnAnotherRow_lbl, GridC.getc(onCol, onRow).east().leftInset(colLeftInset))
-                    onCol += 1
-
-                    onUtiliseOtherRowRow = 0
-                    onUtiliseOtherRowCol = 0
-
-                    utiliseRow_lbl = MyJLabel("Use result from row:")
-                    utiliseRow_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "utiliseRow_lbl")
-                    utiliseRow_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    operateOnAnotherRow_pnl.add(utiliseRow_lbl, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
-                    onUtiliseOtherRowCol += 1
-
-                    NAB.utiliseOtherRow_JTFAI = MyJTextFieldAsIntOtherRow(NAB, 3, NAB.decimal)
-                    if isinstance(NAB.utiliseOtherRow_JTFAI, (MyJTextFieldAsIntOtherRow, JRateField, JTextField)): pass
-                    NAB.utiliseOtherRow_JTFAI.putClientProperty("%s.id" %(NAB.myModuleID), "utiliseOtherRow_JTFAI")
-                    NAB.utiliseOtherRow_JTFAI.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    NAB.utiliseOtherRow_JTFAI.setName("utiliseOtherRow_JTFAI")
-                    NAB.utiliseOtherRow_JTFAI.setToolTipText("[Optional] Enter another row number to perform maths on this row's result using other row's result")
-                    NAB.utiliseOtherRow_JTFAI.addFocusListener(NAB.saveFocusListener)
-                    operateOnAnotherRow_pnl.add(NAB.utiliseOtherRow_JTFAI, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow))
-                    onUtiliseOtherRowCol += 1
-
-                    operator_lbl = MyJLabel("Operator:")
-                    operator_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "operator_lbl")
-                    operator_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    operateOnAnotherRow_pnl.add(operator_lbl, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
-                    onUtiliseOtherRowCol += 1
-
-                    operatorTypes = ["/", "*", "+", "-"]
-                    NAB.otherRowMathsOperator_COMBO = MyJComboBox(operatorTypes)
-                    NAB.otherRowMathsOperator_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "otherRowMathsOperator_COMBO")
-                    NAB.otherRowMathsOperator_COMBO.setName("otherRowMathsOperator_COMBO")
-                    NAB.otherRowMathsOperator_COMBO.setToolTipText("Select the maths 'operator' - e.g. '/' = divide by the result from specified other row....")
-                    NAB.otherRowMathsOperator_COMBO.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    NAB.otherRowMathsOperator_COMBO.addActionListener(NAB.saveActionListener)
-                    operateOnAnotherRow_pnl.add(NAB.otherRowMathsOperator_COMBO, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(5))
-                    onUtiliseOtherRowCol += 1
-
-                    NAB.otherRowIsPercent_CB = MyJCheckBox("Format as %", True)
-                    NAB.otherRowIsPercent_CB.putClientProperty("%s.id" %(NAB.myModuleID), "otherRowIsPercent_CB")
-                    NAB.otherRowIsPercent_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
-                    NAB.otherRowIsPercent_CB.setName("otherRowIsPercent_CB")
-                    NAB.otherRowIsPercent_CB.setToolTipText("When ticked, then the result will be deemed as a percentage...")
-                    NAB.otherRowIsPercent_CB.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    NAB.otherRowIsPercent_CB.addActionListener(NAB.saveActionListener)
-                    operateOnAnotherRow_pnl.add(NAB.otherRowIsPercent_CB, GridC.getc(onUtiliseOtherRowCol, onUtiliseOtherRowRow).leftInset(8))
-                    onUtiliseOtherRowCol += 1
-
-                    controlPnl.add(operateOnAnotherRow_pnl, GridC.getc(onCol, onRow).west().leftInset(colInsetFiller).fillx().pady(pady).filly().colspan(2))
-                    onCol += 2
-
-                    onAdjustCalcRow = 0
-                    onAdjustCalcCol = 0
-                    displayAdjustCalc_pnl = MyJPanel(GridBagLayout())
-                    displayAdjustCalc_lbl = MyJLabel("Adj/by:")
-                    displayAdjustCalc_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "displayAdjustCalc_lbl")
-                    displayAdjustCalc_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    displayAdjustCalc_pnl.add(displayAdjustCalc_lbl, GridC.getc(onAdjustCalcCol, onAdjustCalcRow).wx(0.1).east())
-                    onAdjustCalcCol += 1
-
-                    NAB.adjustCalcBy_JRF = MyJRateFieldAdjustCalcBy(12, NAB.decimal)
-                    if isinstance(NAB.adjustCalcBy_JRF, (MyJRateFieldAdjustCalcBy, JRateField, JTextField)): pass
-                    NAB.adjustCalcBy_JRF.putClientProperty("%s.id" %(NAB.myModuleID), "adjustCalcBy_JRF")
-                    NAB.adjustCalcBy_JRF.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    NAB.adjustCalcBy_JRF.setName("adjustCalcBy_JRF")
-                    NAB.adjustCalcBy_JRF.setToolTipText("Adjust the final calculated balance by a +/- amount (default 0.0)")
-                    NAB.adjustCalcBy_JRF.addFocusListener(NAB.saveFocusListener)
-                    displayAdjustCalc_pnl.add(NAB.adjustCalcBy_JRF, GridC.getc(onAdjustCalcCol, onAdjustCalcRow).leftInset(5).wx(1.0).fillboth().west())
-                    onAdjustCalcCol += 1
-
-                    controlPnl.add(displayAdjustCalc_pnl, GridC.getc(onCol, onRow).west().leftInset(colInsetFiller).rightInset(colRightInset))
-
-                    onCol += 1
-                    onRow += 1
-
-                    # --------------------------------------------------------------------------------------------------
-                    onCol = 0
-                    topInset = 2
-
-                    incExpDateRangeOptionLabel = MyJLabel("Inc/Exp Date Range:")
-                    incExpDateRangeOptionLabel.putClientProperty("%s.id" %(NAB.myModuleID), "incExpDateRangeOptionLabel")
-                    incExpDateRangeOptionLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    controlPnl.add(incExpDateRangeOptionLabel, GridC.getc(onCol, onRow).east().leftInset(colLeftInset))
-                    onCol += 1
-
-                    incExpDateRangeOptions = []
-                    for drange in sorted(DateRangeOption.values(), key=lambda x: (x.getSortKey())):
-                        # if drange == DateRangeOption.DR_CUSTOM_DATE: continue
-                        incExpDateRangeOptions.append(NAB.DateRangeSingleOption(drange))
-
-                    NAB.incomeExpenseDateRange_COMBO = MyJComboBox(incExpDateRangeOptions)
-                    NAB.incomeExpenseDateRange_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "incomeExpenseDateRange_COMBO")
-                    NAB.incomeExpenseDateRange_COMBO.setName("incomeExpenseDateRange_COMBO")
-                    NAB.incomeExpenseDateRange_COMBO.setToolTipText("Specify a dynamic date range for Income / Expense Category calculations ('Custom' is always fixed) - does not affect other accounts/securities")
-                    NAB.incomeExpenseDateRange_COMBO.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    NAB.incomeExpenseDateRange_COMBO.addActionListener(NAB.saveActionListener)
-                    controlPnl.add(NAB.incomeExpenseDateRange_COMBO, GridC.getc(onCol, onRow).colspan(2).leftInset(colInsetFiller).topInset(topInset).fillx())
-
-                    onCol += 2
-                    topInset = 0
-                    bottomInset = 0
-
-                    NAB.parallelBalancesWarningLabel = MyJLabel("Key:")
-                    NAB.parallelBalancesWarningLabel.putClientProperty("%s.id" %(NAB.myModuleID), "parallelBalancesWarningLabel")
-                    NAB.parallelBalancesWarningLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    controlPnl.add(NAB.parallelBalancesWarningLabel, GridC.getc(onCol, onRow).insets(topInset,colLeftInset,bottomInset,colRightInset))
-
-                    onRow += 1
-                    # --------------------------------------------------------------------------------------------------
-
-                    onCol = 1
-                    topInset = 0
-                    bottomInset = 0
-
-                    NAB.dateRangeLabel = MyJLabel("Date Range:")
-                    NAB.dateRangeLabel.putClientProperty("%s.id" %(NAB.myModuleID), "dateRangeLabel")
-                    NAB.dateRangeLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    controlPnl.add(NAB.dateRangeLabel, GridC.getc(onCol, onRow).colspan(3).fillx().insets(topInset,colInsetFiller,bottomInset,colRightInset))
-                    onCol += 2
-
                     onRow += 1
 
                     # --------------------------------------------------------------------------------------------------
@@ -10288,6 +10603,14 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.filterIncludeSelected_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).bottomInset(bottomInset).colspan(1).fillboth())
                     onCol += 1
 
+                    topInset = 0
+                    bottomInset = 0
+
+                    NAB.parallelBalancesWarningLabel = MyJLabel("Key:")
+                    NAB.parallelBalancesWarningLabel.putClientProperty("%s.id" %(NAB.myModuleID), "parallelBalancesWarningLabel")
+                    NAB.parallelBalancesWarningLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "false")
+                    controlPnl.add(NAB.parallelBalancesWarningLabel, GridC.getc(onCol, onRow).insets(topInset,colLeftInset,bottomInset,colRightInset).rowspan(2))
+
                     onRow += 1
                     # --------------------------------------------------------------------------------------------------
 
@@ -10333,6 +10656,7 @@ Visit: %s (Author's site)
                     NAB.filterOnlyShowSelected_CB.addActionListener(NAB.saveActionListener)
                     controlPnl.add(NAB.filterOnlyShowSelected_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).bottomInset(bottomInset).colspan(1).fillboth())
 
+                    onCol += 2
 
                     onRow += 1
                     # --------------------------------------------------------------------------------------------------
@@ -11787,11 +12111,16 @@ Visit: %s (Author's site)
                 for i in range(0, len(_totalBalanceTable)):
                     balanceObj = _totalBalanceTable[i]                                                                  # type: CalculatedBalance
                     if (balanceObj.getBalance() is not None and balanceObj.getBalance() != 0):
-                        lUseAverage = (NAB.savedDisplayAverageTable[i] != 1.0)
+                        lUseAverage = NAB.doesRowUseAvgBy(i)
                         if not lUseAverage: continue
                         originalBalance = balanceObj.getBalance()
-                        average = balanceObj.getCurrencyType().getLongValue(balanceObj.getCurrencyType().getDoubleValue(originalBalance) / NAB.savedDisplayAverageTable[i])
-                        if debug: myPrint("DB", ":: Row: %s using average / by: %s - converted: %s to %s" %(i+1, NAB.savedDisplayAverageTable[i], originalBalance, average))
+                        avgByForRow = NAB.getAvgByForRow(i)
+                        if avgByForRow == 0.0:
+                            average = balanceObj.getCurrencyType().getLongValue(0.0)
+                            if debug: myPrint("DB", ":: Row: %s >> WARNING: Avg/by ZERO detected - zeroing the result! originalBalance was: %s" %(i+1, originalBalance))
+                        else:
+                            average = balanceObj.getCurrencyType().getLongValue(balanceObj.getCurrencyType().getDoubleValue(originalBalance) / avgByForRow)
+                        if debug: myPrint("DB", ":: Row: %s using average / by: %s - converted: %s to %s" %(i+1, avgByForRow, originalBalance, average))
                         balanceObj.setBalance(average)
 
                 tookTime = System.currentTimeMillis() - startTime
@@ -12087,7 +12416,7 @@ Visit: %s (Author's site)
                                         filteredRows = True
                                         continue
 
-                                    lUseAverage = (NAB.savedDisplayAverageTable[i] != 1.0)
+                                    lUseAverage = NAB.doesRowUseAvgBy(i)
                                     lAdjustFinalBalance = (NAB.savedAdjustCalcByTable[i] != 0.0)
                                     lUsesOtherRow = (NAB.savedOperateOnAnotherRowTable[i][NAB.OPERATE_OTHER_ROW_ROW] is not None)
                                     lUseTaxDates = (NAB.savedUseTaxDates and not isIncomeExpenseAllDatesSelected(i))
@@ -12109,8 +12438,9 @@ Visit: %s (Author's site)
 
                                     showAverageText = ""
                                     if lUseAverage:
-                                        showAverageText = " (Avg/by: %s)" %(NAB.savedDisplayAverageTable[i])
-                                        if debug: myPrint("DB", ":: Row: %s using average / by: %s" %(onRow, NAB.savedDisplayAverageTable[i]))
+                                        avgByForRow = NAB.getAvgByForRow(i)
+                                        showAverageText = " (Avg/by: %s)" %(round(avgByForRow, 4))
+                                        if debug: myPrint("DB", ":: Row: %s using average / by: %s" %(onRow, avgByForRow))
 
                                     showAdjustFinalBalanceText = ""
                                     if lAdjustFinalBalance:
