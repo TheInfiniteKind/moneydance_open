@@ -61,59 +61,6 @@ WARNINGS:
 
 EXAMINING THE CHOICES/CONFIGURATION:
 
-- Hide row when options: Never, Always(Disable), balance=X, balance >= X, balance <= X. DEFAULT FOR X is ZERO
-... You can set X to any value (positive or negative)
-    NOTE: If you select row option 'Hide Decimal Places', AND auto-hide row when balance=X,
-          AND set X to a value with no decimals, then the calculated balance will be rounded when comparing to X.
-          Rounding will be towards X... This means that X=0 would include -0.99 to +0.99 (example)
-
-- Hide Decimal places: Will hide decimal places on the selected row's calculated balance (e.g. 1.99 will show as 1)
-                       This option impacts auto-hide logic in some situations - refer: Hide row when options....
-                       NOTE: Rounding towards X will be triggered for display formatting when this option selected:
-                       ... This means if X=1 for example, then 0.1 thru 1.9 would show as 1 (not zero)
-
-- Row separator: optionally put horizontal lines above / below rows to separate sections
-- Blink: Enables the blinking of the selected rows (when displayed / visible)
-
-- Average by options:
-    - Avg/by: Changes the final displayed calculated balance into an average by dividing the value set (DEFAULT 1.0)
-      ...or...
-    - I/E (date range): Avg/by no# of:                                               (Read below. The key word is WHOLE)
-      ... Select one of: NOTSET, DAYS, WEEKS, MONTHS, YEARS (prefixed with "-" will multiple result by -1/reverse sign)
-      ... Then tick 'Fractional' if required - see below.
-      ... Only enabled/allowed when Income/Expense categories are selected AND when NOT using 'All dates'
-      ... Normally returns a whole (integer) number. E.g. WHOLE MONTHS between 20240101 - 20240215 = 1 not 1.5
-          - UNLESS 'Fractional' is ticked which means an estimated avg/by will be calculated (e.g. return 1.5 not 1.0)
-      ... WARNING - this can return zero which will mean your calculated result is always zero or 'n/a'.
-      ... When allowed/enabled and used, then this overrides the first avg/by field.
-      ... NOTE: Fractional assumptions: DAYS_IN_YEAR = 365.2425, DAYS_IN_MONTH = DAYS_IN_YEAR / 12 (30.436875)
-
-- Adj/by: Allows you to adjust the final calculated balance by a +/- amount (DEFAULT 0.0)
-
-- Maths using another row: (OPTIONAL) When set, then you can retrieve the result from another row and then apply maths
-                           to the result of the current row.. E.g. take this row and divide it by the result from row x
-                           and treat the result as a percent. For example, this could calculate the value of investments
-                           as a percentage of total networth...
-
->> CALCULATION ORDER: The calculations are performed is this sequence:
-    - Skip any 'always hide' rows - these are never calculated / used anywhere
-    - Skip any rows filtered out by GroupID
-    - Calculate raw balances for selected rows/accounts, including recursive sub accounts for autosum rows
-    - Convert calculated balances to target currency
-    - Iterate over each row/calculation, apply any average/by calculations
-    - Iterate over each row/calculation, apply any Use Other Row (UOR) calculations
-    - Iterate over each row/calculation, apply any final calculation adjustment amounts specified
-
-** NOTE: When rows can be hidden, they may not display on the Summary screen widget. Click on the widget to config:
-         - In the row selector:
-           ... rows coloured red are currently filtered out / hidden by a groupid filter or AutoHide option
-           ... row numbers are suffixed with codes:
-               <always hide>    Always hide row option is set (red = NOT active and hidden)
-               <auto hide>      An auto hide row rule is active. (red = ACTIVE, but hidden)
-               <groupid: xxx>   A groupid value has been set on this row
-               <FILTERED OUT>   This row is currently NOT showing on the Summary Screen widget due to the active filter.
-                                NOTE: Filtered rows (red) are NOT active and hidden.
-
 - AutoSum:
   - You can turn AutoSum ON/OFF: When on,  AutoSum recursively totals the selected account and all its sub-accounts
                                            it auto summarises the whole account(s) including Investments/Cash/Securities
@@ -136,6 +83,44 @@ EXAMINING THE CHOICES/CONFIGURATION:
                  NOTE: For 'Multi-Warnings Detected' review Help>Console Window for details
                        .. The search for warnings stops after the first occurrence of each type of error it finds....
 
+- Average by options:
+    - Changes the final calculated balance into an average. Specify the number to divide by (DEFAULT 1.0)
+      ...or...
+    - Use the predefined: 'Inc/Exp Date Range' - calculate calendar units between XXX option:
+      ... Only enabled/allowed when Income/Expense categories are selected AND when NOT using 'All dates'
+      ... XXX: select one of: NOTSET, DAYS, WEEKS, MONTHS, YEARS (prefixed with "-" will reverse the sign of avg/result)
+      ... Tick/un-tick 'Fractional' as required - see below:
+          - ticked will return the exact result (including decimals) - (E.g. 1.45 months in the date range)
+          - un-ticked will chop off the decimals with no rounding to return an integer / whole number
+      ... WARNING - this can return zero which will mean your calculated result will also be zero or 'n/a'
+      ... When allowed/enabled and used, then this overrides the first avg/by field.
+
+      *** NOTE: DO NOT select to use a date range if no Inc/Exp categories are selected. It will automatically revert
+                back to All dates at a later point when it validates the settings.
+
+- Adj/by: Allows you to adjust the final calculated balance by a +/- amount (DEFAULT 0.0)
+
+- Maths using another row: If set, you can retrieve the result from another row and then apply maths
+                           to the result of the current row.. E.g. take this row and divide it by the result from row x
+                           and treat the result as a percent. For example, this could calculate the value of investments
+                           as a percentage of total networth...
+
+
+- Hide row when options: Never, Always(Disable), balance = X, balance >= X, balance <= X. DEFAULT FOR X is ZERO
+... You can set X to any value (positive or negative)
+    NOTE: If you select row option 'Hide Decimal Places', AND auto-hide row when balance=X,
+          AND set X to a value with no decimals, then the calculated balance will be rounded when comparing to X.
+          Rounding will be towards X... This means that X=0 would include -0.99 to +0.99 (example)
+
+- Hide Decimal places: Will hide decimal places on the selected row's calculated balance (e.g. 1.99 will show as 1)
+                       This option impacts auto-hide logic in some situations - refer: Hide row when options....
+                       NOTE: Rounding towards X will be triggered for display formatting when this option selected:
+                       ... This means if X=1 for example, then 0.1 thru 1.9 would show as 1 (not zero)
+
+- Row separator: You can put horizontal lines above / below rows to separate sections
+- Blink: Enables the blinking of the selected rows (when displayed / visible)
+
+
 - Active / Inactive Accounts:
   - MD ALWAYS includes the total balance(s) of all child accounts in an account's total. Irrespective of Active/Inactive
   - Thus if you select Active only and select an account containing inactive children, it will include inactive balances
@@ -147,6 +132,27 @@ EXAMINING THE CHOICES/CONFIGURATION:
                        in the MD/Tools/Securities menu. This will then treat this security in ALL investment accounts
                        as INACTIVE.
 
+** NOTE: When rows can be hidden, they may not display on the Summary screen widget. Click on the widget to config:
+         - In the row selector:
+           ... rows coloured red are currently filtered out / hidden by a groupid filter or AutoHide option
+           ... row numbers are suffixed with codes:
+               <always hide>    Always hide row option is set (red = NOT active and hidden)
+               <auto hide>      An auto hide row rule is active. (red = ACTIVE, but hidden)
+               <groupid: xxx>   A groupid value has been set on this row
+               <FILTERED OUT>   This row is currently NOT showing on the Summary Screen widget due to the active filter.
+                                NOTE: Filtered rows (red) are NOT active and hidden.
+
+>> CALCULATION ORDER: The calculations are performed is this sequence:
+    - Skip any 'always hide' rows - these are never calculated / used anywhere
+    - Skip any rows filtered out by GroupID
+    - Calculate raw balances for selected rows/accounts, including recursive sub accounts for autosum rows
+    - Convert calculated balances to target currency
+    - Iterate over each row/calculation, apply any average/by calculations
+    - Iterate over each row/calculation, apply any Use Other Row (UOR) calculations
+    - Iterate over each row/calculation, apply any final calculation adjustment amounts specified
+
+
+
 USING CATEGORIES:
 
 - Income / Expense Categories:
@@ -155,6 +161,9 @@ USING CATEGORIES:
              Calculated by sweeping through all transactions and calculating balances
              THIS CAN POTENTIALLY BE CPU CONSUMING. Do not use the widget for heavy reporting purposes!
              Any row that uses NON "All Dates" will trigger this parallel balances sweep
+
+  - NOTE: You can select to use a date range at any time. BUT if you have not selected any Inc/Exp categories, then
+          the date range will later revert back automatically to 'All dates'.
 
   - I/E Date Range options:
     Example: Given a today's date of 11th December 2023, the I/E Date Range filters will return the following:
@@ -174,9 +183,9 @@ USING CATEGORIES:
     DR_LAST_MONTH                  20231101 - 20231130
     DR_LAST_WEEK                   20231128 - 20231204
     DR_LAST_12_MONTHS              20221201 - 20231130
-    DR_LAST_365_DAYS               20221211 - 20231211
-    DR_LAST_30_DAYS                20231111 - 20231211
-    DR_LAST_1_DAY                  20231210 - 20231211
+    DR_LAST_365_DAYS               20221211 - 20231210
+    DR_LAST_30_DAYS                20231111 - 20231210
+    DR_LAST_1_DAY                  20231210 - 20231210
     DR_ALL_DATES                   (returns all dates)
 
     NOTE: The above will interact with your Balance/Current Balance/Cleared setting for that row:
@@ -191,6 +200,7 @@ USING CATEGORIES:
     NOTE: All the date options are dynamic and will auto adjust, except 'Custom' dates which remain as you set them
 
 >> DON'T FORGET TO SAVE CHANGES! <<
+
 
 OPTIONS MENU
 
@@ -209,6 +219,7 @@ OPTIONS MENU
   - Use Tax Dates: When selected then all calculations based on Income/Expense categories will use the Tax Date
   - Display underline dots: Display 'underline' dots that fill the blank space between row names and values
 
+
 BACKUP/RESTORE
 
 - When in the config GUI, the keystroke combination:
@@ -220,7 +231,8 @@ BACKUP/RESTORE
           CMD-SHIFT-W will display current warnings (same as clicking the warnings icon)...
           CMD-SHIFT-G allows you to edit the pre-defined/used GroupID Filter(s)... Click +/- cell (on right) to add/del
 
-ROW NAME FORMATTING (OPTIONAL)
+
+ROW NAME FORMATTING
 
 - ROW NAME Configuration Options:
   - You can embed the following text (lowercase) in the Row Name field to configure the row / total (value) as follows:
@@ -256,10 +268,10 @@ ROW NAME FORMATTING (OPTIONAL)
    <#html><b><font color=#0000ff>Expenses </font></b>Last month <small><u><font color=#bb0000>OVERDUE</font></u></small>
 
 
-FILTERS (OPTIONAL)
+FILTERS [Using GroupID]
 
-- You can enter a 'Group ID' per row. This is free format text (digits 0-9, Aa-Zz, '_', '-', '.', ':', '%')
-   NOTE: [OPTIONAL] You can also enter the ';' character to separate groups. But you cannot filter for ';' as
+- You can enter a 'GroupID' per row. This is free format text (digits 0-9, Aa-Zz, '_', '-', '.', ':', '%')
+   NOTE: You can also enter the ';' character to separate groups. But you cannot filter for ';' as
          this is the separator between filter search elements...
 
    When you enter 'Group ID' filter text (next to the row selector), then this will filter rows from

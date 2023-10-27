@@ -146,7 +146,7 @@
 # build: 1033 - Issuing new build number...
 # build: 1034 - Added .getNewJListCellRenderer() to reset the renderer and the MD Object references it stores....
 # build: 1035 - Help file spelling corrections...
-# build: 1036 - Added extra average options for CalUnits days/weeks/months/years etc.... Leverages java ChronoUnit.XXX.between() class/method
+# build: 1036 - Added extra average options for CalUnits days/weeks/months/years etc....
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -503,8 +503,6 @@ else:
     from javax.swing.event import DocumentListener, ListSelectionListener
     # from javax.swing.text import View
 
-    from java.time import LocalDate
-    from java.time.temporal import ChronoUnit
     from javax.swing.table import DefaultTableModel
     from java.awt.event import HierarchyListener
 
@@ -5180,16 +5178,6 @@ Visit: %s (Author's site)
                 mdImages = NAB.moneydanceContext.getUI().getImages()
                 NAB.selectorIcon = mdImages.getIconWithColor(GlobalVars.Strings.MD_GLYPH_SELECTOR_7_9, NAB.moneydanceContext.getUI().getColors().secondaryTextFG)
 
-    def getLocalDateFromDateInt(dateInt):
-        # type: (int) -> LocalDate
-        """Pass date as integer in (Moneydance) format yyyymmdd. Returns a LocalDate instance"""
-        ld = None
-        try: ld = LocalDate.of(dateInt / 10000, dateInt / 100 % 100, dateInt % 100)
-        except: pass
-        if ld is None:
-            if debug: myPrint("DB", "@@ WARNING: getLocalDateFromDateInt() was passed dateInt: '%s' (type: %s) >> appears invalid - returning None" %(dateInt, type(dateInt)))
-        return ld
-
     class ShowWarnings(AbstractAction):
         def actionPerformed(self, event): ShowWarnings.showWarnings()                                                   # noqa
 
@@ -5494,7 +5482,7 @@ Visit: %s (Author's site)
 
         ################################################################################################################
         class CalUnit:
-            # Note: The set repeats for negitive options...
+            # Note: The set repeats for negative options... BE CAREFUL IF YOU WANT TO ADD MORE OPTIONS DUE TO SAVED INDX
             NOTSET_IDX = 0
             NOTSET_ID = "notset"
             NOTSET_DISPLAY = "NOT SET"
@@ -5523,45 +5511,25 @@ Visit: %s (Author's site)
                 else: raise Exception("ERROR: Invalid index passed ('%s')" %(index))
 
             @staticmethod
-            def getCalUnitsBetweenDates(calUnit, startDateInt, endDateInt, lAllowZeroResult=True, lReturnFractionalResult=False):
-                # type: (NetAccountBalancesExtension.CalUnit, int, int, bool, bool) -> float
-                """Calculates the difference between two dates in units specified using Java ChronoUnit.UNIT.between() method.
-                Normally returns a WHOLE integer result (unless 'Fractional' requested - in which case an estimated result will be calculated).
-                This method can return zero, and converts / returns to a float result"""
+            def getCalUnitsBetweenDates(calUnit, startDateInt, endDateInt, lReturnFractionalResult):
+                # type: (NetAccountBalancesExtension.CalUnit, int, int, bool) -> float
+                """Calculates the difference between two MD integer dates, in calendar units requested, using MD's DateUtil methods.
+                Can return: an whole/integer(no rounding) or fractional(accurate) result, or zero. Returns a float result"""
                 NAB = NetAccountBalancesExtension.getNAB()
-
-                DAYS_IN_WEEK = 7
-                MONTHS_IN_YEAR = 12
-                DAYS_IN_YEAR = 365.2425
-                DAYS_IN_MONTH = DAYS_IN_YEAR / MONTHS_IN_YEAR   # Should be: 30.436875
-
-                ldStartDate = getLocalDateFromDateInt(startDateInt)
-                ldEndDate = getLocalDateFromDateInt(endDateInt)
-                ldEndDatePlusOne = ldEndDate.plusDays(1)    # ChronoUnit.UNIT.between() does not include the end date!
-                daysBetween = float(ChronoUnit.DAYS.between(ldStartDate, ldEndDatePlusOne))
+                endDateIntPlusOne = DateUtil.incrementDate(endDateInt, 0, 0, 1)  # MD's 'between' methods do not include the end date!
                 if calUnit.getTypeID() == NAB.CalUnit.DAYS_ID:
-                    calUnitsBetween = daysBetween
+                    calUnitsBetween = float(DateUtil.calculateDaysBetween(startDateInt, endDateIntPlusOne))
                 elif calUnit.getTypeID() == NAB.CalUnit.WEEKS_ID:
-                    if lReturnFractionalResult:
-                        calUnitsBetween = daysBetween / DAYS_IN_WEEK
-                    else:
-                        calUnitsBetween = ChronoUnit.WEEKS.between(ldStartDate, ldEndDatePlusOne)
+                    calUnitsBetween = DateUtil.calculateDaysBetween(startDateInt, endDateIntPlusOne) / 7.0
                 elif calUnit.getTypeID() == NAB.CalUnit.MONTHS_ID:
-                    if lReturnFractionalResult:
-                        calUnitsBetween = daysBetween / DAYS_IN_MONTH
-                    else:
-                        calUnitsBetween = ChronoUnit.MONTHS.between(ldStartDate, ldEndDatePlusOne)
+                    calUnitsBetween = DateUtil.monthsInPeriod(startDateInt, endDateIntPlusOne)
                 elif calUnit.getTypeID() == NAB.CalUnit.YEARS_ID:
-                    if lReturnFractionalResult:
-                        calUnitsBetween = daysBetween / DAYS_IN_YEAR
-                    else:
-                        calUnitsBetween = ChronoUnit.YEARS.between(ldStartDate, ldEndDatePlusOne)
+                    calUnitsBetween = DateUtil.yearsInPeriod(startDateInt, endDateIntPlusOne)
                 else: raise Exception("ERROR: Invalid typeID detected ('%s')" %(calUnit.getTypeID()))
-                if debug: myPrint("DB", "CalUnit::getCalUnitsBetweenDates(%s, %s, %s) returning: %s" %(calUnit, ldStartDate, ldEndDate, calUnitsBetween))
-                if calUnitsBetween == 0 and not lAllowZeroResult:
-                    if debug: myPrint("DB", "@@ WARNING - 'calUnitsBetween' zero result detected - returning 1")
-                    calUnitsBetween = 1
-                return float(calUnitsBetween * calUnit.multiplier)
+
+                if debug: myPrint("DB", "CalUnit::getCalUnitsBetweenDates(%s, %s, %s) returning: %s" %(calUnit, startDateInt, endDateInt, calUnitsBetween))
+                if not lReturnFractionalResult: calUnitsBetween = int(calUnitsBetween)
+                return (calUnitsBetween * calUnit.multiplier)
 
             def __init__(self, typeID, reverseSign=False):
                 # type: (basestring, bool) -> None
@@ -6472,7 +6440,7 @@ Visit: %s (Author's site)
         def hideRowXValueDefault(self):                 return 0.0
         def displayAverageDefault(self):                return 1.0
         def averageByCalUnitDefault(self):              return 0
-        def averageByFractionalsDefault(self):          return False
+        def averageByFractionalsDefault(self):          return True
         def adjustCalcByDefault(self):                  return 0.0
         def operateOnAnotherRowDefault(self):           return [None, None, None]   # int(row), str(operator), bool(%?)
         def disableWidgetTitleDefault(self):            return False
@@ -7518,12 +7486,10 @@ Visit: %s (Author's site)
                     dateRange = getDateRangeSelected(NAB.savedIncomeExpenseDateRange[_rowIdx], NAB.savedCustomDatesTable[_rowIdx])
                     startDateInt = dateRange.getStartDateInt()
                     endDateInt = NAB.getEndDate(dateRange.getEndDateInt(), NAB.savedBalanceType[_rowIdx])
-                    daysBetween = calUnit.getCalUnitsBetweenDates(calUnit, startDateInt, endDateInt,
-                                                                  lAllowZeroResult=True,
-                                                                  lReturnFractionalResult=NAB.savedAverageByFractionalsTable[_rowIdx])
+                    daysBetween = calUnit.getCalUnitsBetweenDates(calUnit, startDateInt, endDateInt, NAB.savedAverageByFractionalsTable[_rowIdx])
                     if debug: myPrint("DB", "... Calculated CalUnits '%s' between for DR: '%s' %s - %s = %s %s (allow fractional result: %s)"
                                       %(calUnit, NAB.savedIncomeExpenseDateRange[_rowIdx],
-                                        getLocalDateFromDateInt(startDateInt), getLocalDateFromDateInt(endDateInt),
+                                        startDateInt, endDateInt,
                                         daysBetween, "" if daysBetween != 0.0 else "** ZERO WARNING **",
                                         NAB.savedAverageByFractionalsTable[_rowIdx]))
                     avgByResult = daysBetween
@@ -10220,6 +10186,7 @@ Visit: %s (Author's site)
                     displayAverage_pnl.add(NAB.displayAverageCal_lbl, GridC.getc(onAverageCol, onAverageRow).east().leftInset(5))
                     onAverageCol += 1
 
+                    # Note: BE CAREFUL IF YOU WANT TO ADD MORE CalUnit() OPTIONS DUE TO THE SAVED INDEX 0-8!
                     calObjects = [NAB.CalUnit("notset"),
                                   NAB.CalUnit("days"), NAB.CalUnit("weeks"), NAB.CalUnit("months"), NAB.CalUnit("years"),
                                   NAB.CalUnit("days", reverseSign=True), NAB.CalUnit("weeks", reverseSign=True), NAB.CalUnit("months", reverseSign=True), NAB.CalUnit("years", reverseSign=True)]
