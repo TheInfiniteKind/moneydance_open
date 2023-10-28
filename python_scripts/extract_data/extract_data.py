@@ -3771,7 +3771,7 @@ Visit: %s (Author's site)
         user_extract_json = JRadioButton("Extract raw data as JSON file", False)
         user_extract_attachments = JRadioButton("Attachments - extract to disk", False)
         user_AccountNumbers = JRadioButton("Produce report of Accounts and bank/account number information (Useful for legacy / Will making)", False)
-        user_autoExtractWhenFileClosing = JCheckBox("Enable auto extract EVERY TIME this dataset (USE WITH CARE!)?", extnSettings.getBoolean(EXTN_PREF_KEY_AUTO_EXTRACT_WHEN_FILE_CLOSING, False))
+        user_autoExtractWhenFileClosing = JCheckBox("Enable auto extract EVERY TIME this dataset closes (USE WITH CARE!)?", extnSettings.getBoolean(EXTN_PREF_KEY_AUTO_EXTRACT_WHEN_FILE_CLOSING, False))
         user_autoExtractWhenFileClosing.setToolTipText("WARNING: When enabled, all the selected 'auto extracts' will execute every time this dataset closes!")
 
         bg = ButtonGroup()
