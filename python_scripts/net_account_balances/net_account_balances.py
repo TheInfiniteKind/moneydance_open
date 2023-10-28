@@ -147,6 +147,7 @@
 # build: 1034 - Added .getNewJListCellRenderer() to reset the renderer and the MD Object references it stores....
 # build: 1035 - Help file spelling corrections...
 # build: 1036 - Added extra average options for CalUnits days/weeks/months/years etc....
+#               Applied fix to getDateRangeSelected() for Last1/30/365 days (which were adding 1 days) - MD issue. Should be fixed in build 5047...
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -4596,11 +4597,25 @@ Visit: %s (Author's site)
         # myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()" )
         # myPrint("DB", ".. Passed '%s'Date Range with '%s':" %(_fromRangeKey, _fromCustomDates))
 
+        NAB = NetAccountBalancesExtension.getNAB()
+
         if _fromRangeKey == DateRangeOption.DR_ALL_DATES.getResourceKey():
             raise Exception("ERROR: getDateRangeSelected should not be passed: '%s'" %(_fromRangeKey))
 
-        if _fromRangeKey == DateRangeOption.DR_CUSTOM_DATE.getResourceKey():
+        if NAB.fixDateRange is None:  # Fix for builds upto/incl. MD2023.2(5046). The Last1/30/365 options return an extra day
+            last1dr = DateRangeOption.fromKey(DateRangeOption.DR_LAST_1_DAY.getResourceKey()).getDateRange()
+            endDateIntPlusOne = DateUtil.incrementDate(last1dr.getEndDateInt(), 0, 0, 1)
+            last1DaysBetween = DateUtil.calculateDaysBetween(last1dr.getStartDateInt(), endDateIntPlusOne)
+            if last1DaysBetween == 1:
+                NAB.fixDateRange = False
+                myPrint("DB", "DateRange fixes for Last1/30/365 days NOT required...");
+            elif last1DaysBetween == 2:
+                NAB.fixDateRange = True
+                myPrint("B", "@@ DateRange fixes for Last1/30/365 days REQUIRED (e.g. Last1days: %s = days between: %s, should be 1) - fix will be applied where required!" %(last1dr, last1DaysBetween))
+            else:
+                raise Exception("@@ LOGIC ERROR in getDateRangeSelected() - fixDateRange (%s) found %s days between?!" %(last1dr, last1DaysBetween))
 
+        if _fromRangeKey == DateRangeOption.DR_CUSTOM_DATE.getResourceKey():
             if isValidDateRange(_fromCustomDates[0], _fromCustomDates[1]):
                 # myPrint("DB", "... Returning custom date range for key: '%s'" %(_fromRangeKey))
                 dateRange = DateRange(Integer(_fromCustomDates[0]), Integer(_fromCustomDates[1]))
@@ -4610,7 +4625,16 @@ Visit: %s (Author's site)
         else:
             dateRange = DateRangeOption.fromKey(_fromRangeKey).getDateRange()
 
-        # myPrint("DB", ".. '%s'Date Range set to:" %(_fromRangeKey), dateRange)
+            if NAB.fixDateRange and "last_" in _fromRangeKey:
+                checkDRs = [DateRangeOption.DR_LAST_1_DAY.getResourceKey(),
+                            DateRangeOption.DR_LAST_30_DAYS.getResourceKey(),
+                            DateRangeOption.DR_LAST_365_DAYS.getResourceKey()]
+                if _fromRangeKey in checkDRs:
+                    fixedDateRange = DateRange(Integer(dateRange.getStartDateInt()), Integer(DateUtil.incrementDate(dateRange.getEndDateInt(), 0, 0, -1)))
+                    if debug: myPrint("DB", "@@ Applying fix on DR '%s' to DR: %s (was %s days) - changed to %s (now %s days)" %(_fromRangeKey, dateRange, dateRange.getNumDays(), fixedDateRange,fixedDateRange.getNumDays()))
+                    dateRange = fixedDateRange
+
+        # myPrint("DB", ".. '%s' Date Range set to:" %(_fromRangeKey), dateRange)
         return dateRange
 
     def updateIncExpTableWithTxn(_txn, _table, _dateRangeArray):
@@ -5256,6 +5280,8 @@ Visit: %s (Author's site)
 
             self.moneydanceContext = MD_REF
             self.moneydanceExtensionObject = None
+
+            self.fixDateRange = None
 
             self.decimal = None
             self.comma = None
