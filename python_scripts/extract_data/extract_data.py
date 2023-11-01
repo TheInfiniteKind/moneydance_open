@@ -132,6 +132,7 @@
 # build: 1035 - Added handle_event ability to auto extract upon 'md:file:closing' command...
 # build: 1036 - Release references to Model objects...... (so they don't stay in memory etc)....;
 #               Increased use of DateRange(); Fixed last1/30/365 days options
+#               Added "_CURRENTVALUETOBASE" and "_CURRENTVALUEINVESTCURR" fields to Extract Security Balances report.
 
 # todo - StockGlance2020 asof balance date...
 # todo - extract budget data?
@@ -11993,6 +11994,10 @@ Visit: %s (Author's site)
                                     dataKeys["_SECRELCURR"]                = [dki, "SecurityRelCurrency"];          dki += 1
                                     dataKeys["_CURRENTPRICETOBASE"]        = [dki, "CurrentPriceToBase"];           dki += 1
                                     dataKeys["_CURRENTPRICEINVESTCURR"]    = [dki, "CurrentPriceInvestCurr"];       dki += 1
+
+                                    dataKeys["_CURRENTVALUETOBASE"]        = [dki, "CurrentValueToBase"];           dki += 1
+                                    dataKeys["_CURRENTVALUEINVESTCURR"]    = [dki, "CurrentValueInvestCurr"];       dki += 1
+
                                     dataKeys["_KEY"]                       = [dki, "Key"];                          dki += 1
                                     dataKeys["_END"]                       = [dki, "_END"];                         dki += 1
 
@@ -12043,13 +12048,21 @@ Visit: %s (Author's site)
                                         _row[dataKeys["_SECMSTRUUID"][_COLUMN]] = securityCurr.getUUID()
                                         _row[dataKeys["_TICKER"][_COLUMN]] = unicode(securityCurr.getTickerSymbol())
                                         _row[dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
-                                        _row[dataKeys["_SECSHRHOLDING"][_COLUMN]] = securityCurr.getDoubleValue(securityAcct.getBalance())
+
+                                        secShrHolding = securityCurr.getDoubleValue(securityAcct.getBalance())
+                                        _row[dataKeys["_SECSHRHOLDING"][_COLUMN]] = secShrHolding
 
                                         _row[dataKeys["_SECRELCURR"][_COLUMN]] = unicode(securityCurr.getRelativeCurrency().getIDString())
 
+                                        cPriceToBase = (1.0 / securityCurr.getBaseRate())                               # same as .getRate(None)
+                                        cPriceInvestCurr = (1.0 / securityCurr.getRate(investAcctCurr))
+
                                         _row[dataKeys["_CURRENTPRICE"][_COLUMN]] = (1.0 / securityCurr.getRelativeRate())
-                                        _row[dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = (1.0 / securityCurr.getBaseRate())     # same as .getRate(None)
-                                        _row[dataKeys["_CURRENTPRICEINVESTCURR"][_COLUMN]] = (1.0 / securityCurr.getRate(investAcctCurr))
+                                        _row[dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = cPriceToBase
+                                        _row[dataKeys["_CURRENTPRICEINVESTCURR"][_COLUMN]] = cPriceInvestCurr
+
+                                        _row[dataKeys["_CURRENTVALUETOBASE"][_COLUMN]] = cPriceToBase * secShrHolding
+                                        _row[dataKeys["_CURRENTVALUEINVESTCURR"][_COLUMN]] = cPriceInvestCurr * secShrHolding
 
                                         _row[dataKeys["_SECINFO_TYPE"][_COLUMN]] = ""
                                         _row[dataKeys["_SECINFO_SUBTYPE"][_COLUMN]] = ""
