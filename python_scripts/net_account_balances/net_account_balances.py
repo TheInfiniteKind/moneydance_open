@@ -408,7 +408,7 @@ else:
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets, Point
-    from java.awt.event import KeyEvent, WindowAdapter, InputEvent, FocusListener
+    from java.awt.event import KeyEvent, WindowAdapter, InputEvent
     from java.util import Date, Locale
 
     from java.text import DecimalFormat, SimpleDateFormat, MessageFormat
@@ -510,7 +510,7 @@ else:
     from java.awt import FontMetrics, Event
     from java.awt import RenderingHints, BasicStroke, Graphics2D, Rectangle
     from java.awt.font import TextAttribute
-    from java.awt.event import FocusAdapter, MouseListener, ActionListener, KeyAdapter
+    from java.awt.event import FocusAdapter, MouseListener, ActionListener, KeyAdapter, FocusListener
     from java.awt.geom import Path2D
     from java.lang import StringBuilder
     from java.lang import Runtime                                                                                       # noqa
@@ -4608,7 +4608,7 @@ Visit: %s (Author's site)
             last1DaysBetween = DateUtil.calculateDaysBetween(last1dr.getStartDateInt(), endDateIntPlusOne)
             if last1DaysBetween == 1:
                 NAB.fixDateRange = False
-                myPrint("DB", "DateRange fixes for Last1/30/365 days NOT required...");
+                myPrint("DB", "DateRange fixes for Last1/30/365 days NOT required...")
             elif last1DaysBetween == 2:
                 NAB.fixDateRange = True
                 myPrint("B", "@@ DateRange fixes for Last1/30/365 days REQUIRED (e.g. Last1days: %s = days between: %s, should be 1) - fix will be applied where required!" %(last1dr, last1DaysBetween))

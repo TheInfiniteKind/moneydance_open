@@ -7,6 +7,8 @@
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
 #                                             ...NOTE: MD will auto-quit after executing this way...
 #
+#                 Using the parameter -nobackup will disable backups for that MD session (from build 5047 onwards)
+#
 #                 You can also enable the 'auto extract every time dataset is closed' option
 #                     WARNING: This will execute all extracts (except attachments) everytime dataset is closed.
 #                     Thus, you could launch MD with:
@@ -128,7 +130,8 @@
 # build: 1034 - You can call extension and auto-extract by launching MD with '-invoke=moneydance:fmodule:extract_data:autoextract' parameter
 # build: 1035 - Added extract raw data as JSON file option
 # build: 1035 - Added handle_event ability to auto extract upon 'md:file:closing' command...
-# build: 1036 - Release references to Model objects...... (so they don't stay in memory etc)....
+# build: 1036 - Release references to Model objects...... (so they don't stay in memory etc)....;
+#               Increased use of DateRange(); Fixed last1/30/365 days options
 
 # todo - StockGlance2020 asof balance date...
 # todo - extract budget data?
@@ -458,6 +461,8 @@ else:
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
 
+    from com.infinitekind.moneydance.model import DateRange
+
     # from extract_account_registers_csv & extract_investment_transactions_csv
     from copy import deepcopy
     import subprocess
@@ -585,9 +590,9 @@ else:
     # from extract_account_registers_csv
     lIncludeSubAccounts_EAR = False                                                                                     # noqa
     lIncludeOpeningBalances_EAR = True                                                                                  # noqa
-    lIncludeBalanceAdjustments_EAR = True                                                                                # noqa
-    userdateStart_EAR = 19600101                                                                                        # noqa
-    userdateEnd_EAR = 20301231                                                                                          # noqa
+    lIncludeBalanceAdjustments_EAR = True                                                                               # noqa
+    userdateStart_EAR = DateRange().getStartDateInt()                                                                   # noqa
+    userdateEnd_EAR = DateRange().getEndDateInt()                                                                       # noqa
     lAllTags_EAR = True                                                                                                 # noqa
     tagFilter_EAR = "ALL"                                                                                               # noqa
     lAllText_EAR = True                                                                                                 # noqa
@@ -627,8 +632,8 @@ else:
 
     # extract_currency_history
     lSimplify_ECH = False                                                                                               # noqa
-    userdateStart_ECH = 19600101                                                                                        # noqa
-    userdateEnd_ECH = 20301231                                                                                          # noqa
+    userdateStart_ECH = DateRange().getStartDateInt()                                                                   # noqa
+    userdateEnd_ECH = DateRange().getEndDateInt()                                                                       # noqa
     hideHiddenCurrencies_ECH = True                                                                                     # noqa
 
     autoExtract_SG2020 = False                                                                                          # noqa
@@ -4570,7 +4575,7 @@ Visit: %s (Author's site)
         else:            user_selectAccounts.setText(filterForAccounts)
 
         labelIncludeSubAccounts = JLabel("Include Sub Accounts?:")
-        user_includeSubAccounts = JCheckBox("",lIncludeSubAccounts_EAR)
+        user_includeSubAccounts = JCheckBox("", lIncludeSubAccounts_EAR)
         user_includeSubAccounts.setName("user_includeSubAccounts")
 
         labelSeparator1 = JLabel("--------------------------------------------------------------------")
@@ -4643,6 +4648,7 @@ Visit: %s (Author's site)
         def getDateRange( selectedOption ):         # DateRange
 
             todayInt = Util.getStrippedDateInt()
+            yesterdayInt = DateUtil.incrementDate(todayInt, 0, 0, -1)
 
             if selectedOption == "year_to_date":
                 return (DateUtil.firstDayInYear(todayInt), todayInt)
@@ -4684,11 +4690,11 @@ Visit: %s (Author's site)
                 firstDayInMonth = Util.firstDayInMonth(todayInt)
                 return (Util.incrementDate(firstDayInMonth, 0, -12, 0), Util.incrementDate(firstDayInMonth, 0, 0, -1))
             elif selectedOption ==  "last_1_day":
-                return (Util.incrementDate(todayInt, 0, 0, -1), Util.incrementDate(todayInt, 0, 0, 0))
+                return (Util.incrementDate(todayInt, 0, 0, -1), yesterdayInt)
             elif selectedOption == "last_30_days":
-                return (Util.incrementDate(todayInt, 0, 0, -30), todayInt)
+                return (Util.incrementDate(todayInt, 0, 0, -30), yesterdayInt)
             elif selectedOption ==  "last_365_days":
-                return (Util.incrementDate(todayInt, 0, 0, -365), todayInt)
+                return (Util.incrementDate(todayInt, 0, 0, -365), yesterdayInt)
             elif selectedOption ==  "custom_date":
                 pass
             elif selectedOption ==  "all_dates":
@@ -4699,7 +4705,8 @@ Visit: %s (Author's site)
 
             # cal = Calendar.getInstance()
             # cal.add(1, 1)
-            return 19600101,20301231
+            # return 19600101, 21000101
+            return DateRange().getStartDateInt(), DateRange().getEndDateInt()
 
 
         dateDropdown = JComboBox(dateOptions)
@@ -5283,6 +5290,9 @@ Visit: %s (Author's site)
             if lFilterDateRange_EIT:
                 filterDateStart_EIT = user_dateRangeChooser.getDateRange().getStartDateInt()
                 filterDateEnd_EIT = user_dateRangeChooser.getDateRange().getEndDateInt()
+                if user_dateRangeChooser.getAllDatesSelected():
+                    filterDateEnd_EIT = DateRange().getEndDateInt()  # Fix for DRC ALL_DATES Only returning +1 year! (upto builds 5046)
+                    myPrint("DB", "@@ All Dates detected; overriding filterDateEnd_EIT to: %s" %(filterDateEnd_EIT))
             else:
                 filterDateStart_EIT = 0
                 filterDateEnd_EIT = 0
@@ -5909,7 +5919,6 @@ Visit: %s (Author's site)
 
     GlobalVars.AUTO_INVOKE_CALLED = (cmd == "autoextract")
 
-    from com.moneydance.apps.md.controller import AppEventManager
     GlobalVars.HANDLE_EVENT_AUTO_EXTRACT_ON_CLOSE = (MD_EXTENSION_PARAMETER == AppEventManager.FILE_CLOSING)
     # md:file:closing	The Moneydance file is being closed
     # md:file:closed	The Moneydance file has closed

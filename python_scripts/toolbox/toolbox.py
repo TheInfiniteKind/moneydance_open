@@ -209,7 +209,7 @@
 #               ... added getDropboxSyncFolderForBasePath() for find_other_datasets()...
 #               Added checks for macOS Sonoma(14).... iCloud issues!
 #               Build 5046 fixes "Infinity" backups and defines .getNumBackupsToKeep() etc (no actual toolbox fix required)
-#               JFrame.dispose() added rootPane.getInputMap().clear() - ensure no memory leaks...
+#               JFrame.dispose() added rootPane.getInputMap().clear() - ensure no memory leaks...; Increased usage of DateRange()
 
 # todo - undo the patch to DetectMobileAppTxnFiles() for Sonoma.. Perhaps put into a Thread()?
 
@@ -609,6 +609,7 @@ else:
     from com.infinitekind.util import IOUtils as MDIOUtils
     from com.infinitekind.tiksync import SyncableItem, Syncer
 
+    from com.infinitekind.moneydance.model import DateRange
     from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem
     from com.infinitekind.moneydance.model import OnlinePayeeList, OnlinePaymentList, InvestFields, AbstractTxn
     from com.infinitekind.moneydance.model import CurrencySnapshot, CurrencySplit, OnlineTxnList, CurrencyTable
@@ -11184,7 +11185,7 @@ Visit: %s (Author's site)
 
                 def run(self):  # NOTE: This will not start in the EDT (the same as Moneybot Console)
                     myPrint("B","..About to execfile(%s)" %(self.scriptToRun))
-                    self.python.execfile(self.scriptStream,"Toolbox:Executing_Script_%s" %(self.scriptToRun))
+                    self.python.execfile(self.scriptStream, "Toolbox:Executing_Script_%s" %(self.scriptToRun))
                     myPrint("DB", "....I am back from script, within the special Thread().....")
                     self.scriptStream.close()
                     self.context.resetPythonInterpreter(self.python)
@@ -14016,8 +14017,8 @@ Visit: %s (Author's site)
 
         if objWhat.index(selectedObjType) == _OBJTRANSACTION:
 
-            dateStart = 20251231
-            dateEnd = 20251231
+            dateStart = DateRange().getEndDateInt()
+            dateEnd = DateRange().getEndDateInt()
 
             dateTxt=""
             if lForceOneTxn:

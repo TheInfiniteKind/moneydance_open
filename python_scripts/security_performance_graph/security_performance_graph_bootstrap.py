@@ -91,7 +91,7 @@ try:
         if _scriptStream is not None:
             _specialPrint("@@ BOOTSTRAP - will run normal (non)compiled script ('%s') @@" %(_launchedFile))
             _pyi = _getFieldByReflection(MD_REF.getModuleForID(_THIS_IS_), "python")
-            _pyi.execfile(_scriptStream)
+            _pyi.execfile(_scriptStream, _launchedFile)
             _scriptStream.close()
             del _pyi
     else:
