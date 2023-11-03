@@ -5265,9 +5265,9 @@ Visit: %s (Author's site)
         def __init__(self):  # This is the class' own initialise, just to set up variables
             self.myModuleID = myModuleID
 
-            myPrint("B", "\n##########################################################################################")
+            myPrint("B", "##########################################################################################")
             myPrint("B", "Extension: %s:%s (HomePageView widget) initialising...." %(self.myModuleID, GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME))
-            myPrint("B", "##########################################################################################\n")
+            myPrint("B", "##########################################################################################")
 
             if GlobalVars.specialDebug: myPrint("B", "@@ SPECIAL DEBUG enabled")
 
@@ -5287,7 +5287,7 @@ Visit: %s (Author's site)
             self.comma = None
             self.themeID = None
 
-            self.SWSS_CC = None     # StuWareSoftSystems special java common code (currently for java/swing .print() type meythods
+            self.SWSS_CC = None     # StuWareSoftSystems special java common code (currently for java/swing .print() type methods
 
             if float(self.moneydanceContext.getBuild()) >= 3051:
                 self.moneydanceExtensionLoader = moneydance_extension_loader  # This is the class loader for the whole extension
@@ -11495,7 +11495,6 @@ Visit: %s (Author's site)
             self.generatedView = None       # Transitory object
             self.views = []                 # New for build 1020.. Enabling multi home screen views....
             self.viewPnlCounter = 0
-            self.myModuleID = myModuleID
 
             self.refresher = None
             self.lastRefreshTimeDelayMs = 2000      # was originally 10000
