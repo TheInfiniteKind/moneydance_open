@@ -601,7 +601,7 @@ http://jakarta.apache.org/ant/index.html
   
   <target name="sign" description="sign the mxt" unless="dont_sign">
   	<fail unless="feature" message="Please specify property feature" />
-    <echo level="info" message="SIGNING ${feature}.mxt...:" />
+    <echo level="info" message="SIGNING ${feature}.mxt using key ${extprivkeyfile} (ID: ${privkeyid}):" />
     <java failonerror="true"
           newenvironment="true"
           classpathref="classpath"
@@ -622,6 +622,7 @@ http://jakarta.apache.org/ant/index.html
   <target name="package-python-mxt" description="package and sign python scripts into an extension file" unless="dont_sign">
     <fail unless="feature" message="Please specify the extension ID in the 'feature' parameter" />
     <fail unless="python-base" message="Please specify the folder containing python scripts and metadata files in the 'python-base' parameter" />
+    <echo level="info" message="SIGNING ${feature}.mxt using key ${extprivkeyfile} (ID: ${privkeyid}):" />
     <java newenvironment="true"
           classpathref="classpath"
           classname="com.moneydance.admin.PythonExtensionPackager"
