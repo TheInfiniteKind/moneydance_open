@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances.py build: 1036 - Oct 2023 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1037 - Oct 2023 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -148,6 +148,7 @@
 # build: 1035 - Help file spelling corrections...
 # build: 1036 - Added extra average options for CalUnits days/weeks/months/years etc....
 #               Applied fix to getDateRangeSelected() for Last1/30/365 days (which were adding 1 days) - MD issue. Should be fixed in build 5047...
+# build: 1037 - In line with MD build 5051 tweaked last 1/30/365 dates and avg fix again... (last 1 is today + yesterday; last30/365 include today)
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -157,7 +158,7 @@
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1036"
+version_build = "1037"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
 
@@ -4602,18 +4603,34 @@ Visit: %s (Author's site)
         if _fromRangeKey == DateRangeOption.DR_ALL_DATES.getResourceKey():
             raise Exception("ERROR: getDateRangeSelected should not be passed: '%s'" %(_fromRangeKey))
 
-        if NAB.fixDateRange is None:  # Fix for builds upto/incl. MD2023.2(5046). The Last1/30/365 options return an extra day
+        if NAB.fixDateRange is None:
+            # Fix for builds up to/incl. MD2023.2(5046): Previously, Last1/30/365 options returned an extra day (inclusive of today)
+            # Build 5047 changed Last1/30/365 to be inclusive of yesterday and actually return 1/30/365 days
+            # Build 5051: changed it again. Last1/30/365 now include today again. Last1 = 2 days. Last30/365 are 30/365 days.
+            # Hence Last1 is actually Last1(yesterday & today) = 2 days; whereas Last30/365 return 30/365 days
+
+            last365dr = DateRangeOption.fromKey(DateRangeOption.DR_LAST_365_DAYS.getResourceKey()).getDateRange()
+            endDate365PlusOne = DateUtil.incrementDate(last365dr.getEndDateInt(), 0, 0, 1)
+            last365DaysBetween = DateUtil.calculateDaysBetween(last365dr.getStartDateInt(), endDate365PlusOne)
+
+            last30dr = DateRangeOption.fromKey(DateRangeOption.DR_LAST_30_DAYS.getResourceKey()).getDateRange()
+            endDate30PlusOne = DateUtil.incrementDate(last30dr.getEndDateInt(), 0, 0, 1)
+            last30DaysBetween = DateUtil.calculateDaysBetween(last30dr.getStartDateInt(), endDate30PlusOne)
+
             last1dr = DateRangeOption.fromKey(DateRangeOption.DR_LAST_1_DAY.getResourceKey()).getDateRange()
-            endDateIntPlusOne = DateUtil.incrementDate(last1dr.getEndDateInt(), 0, 0, 1)
-            last1DaysBetween = DateUtil.calculateDaysBetween(last1dr.getStartDateInt(), endDateIntPlusOne)
-            if last1DaysBetween == 1:
+            endDate1PlusOne = DateUtil.incrementDate(last1dr.getEndDateInt(), 0, 0, 1)
+            last1DaysBetween = DateUtil.calculateDaysBetween(last1dr.getStartDateInt(), endDate1PlusOne)
+
+            if last365DaysBetween == 365 and last30DaysBetween == 30 and last1DaysBetween == 2:
                 NAB.fixDateRange = False
-                myPrint("DB", "DateRange fixes for Last1/30/365 days NOT required...")
-            elif last1DaysBetween == 2:
+                myPrint("DB", "DateRange fixes for Last30/365 days NOT required... (NOTE: Last1 with 2 inclusive days assumed to be correct)")
+            elif last365DaysBetween == 366 and last30DaysBetween == 31 and last1DaysBetween == 2:
                 NAB.fixDateRange = True
-                myPrint("B", "@@ DateRange fixes for Last1/30/365 days REQUIRED (e.g. Last1days: %s = days between: %s, should be 1) - fix will be applied where required!" %(last1dr, last1DaysBetween))
+                myPrint("B", "@@ DateRange fixes for Last30/365 days REQUIRED (e.g. Last365days: %s = days between: %s, should be 365; Last30days: %s(%s); Last1days: %s(%s)) - fix will be applied where required!"
+                        %(last365dr, last365DaysBetween, last30dr, last30DaysBetween, last1dr, last1DaysBetween))
             else:
-                raise Exception("@@ LOGIC ERROR in getDateRangeSelected() - fixDateRange (%s) found %s days between?!" %(last1dr, last1DaysBetween))
+                raise Exception("@@ LOGIC ERROR in getDateRangeSelected() - fixDateRange (%s) found %s days between (%s:%s; %s:%s)?!"
+                                %(last365dr, last365DaysBetween, last30dr, last30DaysBetween, last1dr, last1DaysBetween))
 
         if _fromRangeKey == DateRangeOption.DR_CUSTOM_DATE.getResourceKey():
             if isValidDateRange(_fromCustomDates[0], _fromCustomDates[1]):
@@ -4626,12 +4643,12 @@ Visit: %s (Author's site)
             dateRange = DateRangeOption.fromKey(_fromRangeKey).getDateRange()
 
             if NAB.fixDateRange and "last_" in _fromRangeKey:
-                checkDRs = [DateRangeOption.DR_LAST_1_DAY.getResourceKey(),
-                            DateRangeOption.DR_LAST_30_DAYS.getResourceKey(),
+                checkDRs = [DateRangeOption.DR_LAST_30_DAYS.getResourceKey(),
                             DateRangeOption.DR_LAST_365_DAYS.getResourceKey()]
                 if _fromRangeKey in checkDRs:
-                    fixedDateRange = DateRange(Integer(dateRange.getStartDateInt()), Integer(DateUtil.incrementDate(dateRange.getEndDateInt(), 0, 0, -1)))
-                    if debug: myPrint("DB", "@@ Applying fix on DR '%s' to DR: %s (was %s days) - changed to %s (now %s days)" %(_fromRangeKey, dateRange, dateRange.getNumDays(), fixedDateRange,fixedDateRange.getNumDays()))
+                    fixedDateRange = DateRange(Integer(DateUtil.incrementDate(dateRange.getStartDateInt(), 0, 0, 1)), Integer(dateRange.getEndDateInt()))
+                    if debug: myPrint("DB", "@@ Applying fix on DR '%s' to DR: %s (was %s days) - changed to %s (now %s days)"
+                                      %(_fromRangeKey, dateRange, dateRange.getNumDays(), fixedDateRange,fixedDateRange.getNumDays()))
                     dateRange = fixedDateRange
 
         # myPrint("DB", ".. '%s' Date Range set to:" %(_fromRangeKey), dateRange)

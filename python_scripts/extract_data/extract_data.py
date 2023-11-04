@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1036 - Sept 2023 - Stuart Beesley
+# extract_data.py - build: 1037 - Oct 2023 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -133,7 +133,10 @@
 # build: 1036 - Release references to Model objects...... (so they don't stay in memory etc)....;
 #               Increased use of DateRange(); Fixed last1/30/365 days options
 #               Added "_CURRENTVALUETOBASE" and "_CURRENTVALUEINVESTCURR" fields to Extract Security Balances report.
+# build: 1037 - Further tweaks to DateRangeChooser() last1/30/365 days options inline with build 5051
 
+# todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
+# todo - From client version: add Extract Account Balances; update Extract Security Balances with cash and asof date... (consider asof cost basis)
 # todo - StockGlance2020 asof balance date...
 # todo - extract budget data?
 # todo - import excel writer?
@@ -144,7 +147,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1036"
+version_build = "1037"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -4646,10 +4649,10 @@ Visit: %s (Author's site)
                         "custom_date",
                         "last_week",]
 
-        def getDateRange( selectedOption ):         # DateRange
+        def getDateRange(selectedOption):         # DateRange
 
             todayInt = Util.getStrippedDateInt()
-            yesterdayInt = DateUtil.incrementDate(todayInt, 0, 0, -1)
+            # yesterdayInt = DateUtil.incrementDate(todayInt, 0, 0, -1)
 
             if selectedOption == "year_to_date":
                 return (DateUtil.firstDayInYear(todayInt), todayInt)
@@ -4691,11 +4694,11 @@ Visit: %s (Author's site)
                 firstDayInMonth = Util.firstDayInMonth(todayInt)
                 return (Util.incrementDate(firstDayInMonth, 0, -12, 0), Util.incrementDate(firstDayInMonth, 0, 0, -1))
             elif selectedOption ==  "last_1_day":
-                return (Util.incrementDate(todayInt, 0, 0, -1), yesterdayInt)
+                return (Util.incrementDate(todayInt, 0, 0, -1), todayInt)    # from build 5051: actually 2 days (today & yesterday)
             elif selectedOption == "last_30_days":
-                return (Util.incrementDate(todayInt, 0, 0, -30), yesterdayInt)
+                return (Util.incrementDate(todayInt, 0, 0, -29), todayInt)   # from build 5051: 30 days including today
             elif selectedOption ==  "last_365_days":
-                return (Util.incrementDate(todayInt, 0, 0, -365), yesterdayInt)
+                return (Util.incrementDate(todayInt, 0, 0, -364), todayInt)  # from build 5051: 30 days including today
             elif selectedOption ==  "custom_date":
                 pass
             elif selectedOption ==  "all_dates":
@@ -4704,9 +4707,6 @@ Visit: %s (Author's site)
                 pass
                 # raise(Exception("Error - date range incorrect"))
 
-            # cal = Calendar.getInstance()
-            # cal.add(1, 1)
-            # return 19600101, 21000101
             return DateRange().getStartDateInt(), DateRange().getEndDateInt()
 
 

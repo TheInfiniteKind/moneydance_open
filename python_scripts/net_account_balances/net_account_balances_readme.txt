@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated October 2023
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated November 2023
 Credit: (dtd) Dan T Davis for his input, testing and suggestions to make a better product......
 
 Custom Balances works with 2021.1(3056) and newer.
@@ -166,27 +166,27 @@ USING CATEGORIES:
           the date range will later revert back automatically to 'All dates'.
 
   - I/E Date Range options:
-    Example: Given a today's date of 11th December 2023, the I/E Date Range filters will return the following:
-    DR_YEAR_TO_DATE                20230101 - 20231211
-    DR_FISCAL_YEAR_TO_DATE         20230406 - 20231211
+    Example: Given a today's date of 4th November 2023 (20231104), the I/E Date Range filters will return the following:
+    DR_YEAR_TO_DATE                20230101 - 20231104
+    DR_FISCAL_YEAR_TO_DATE         20230406 - 20231104  (assuming a UK tax year starting 6th April 2023)
     DR_LAST_FISCAL_QUARTER         20230706 - 20231005
-    DR_QUARTER_TO_DATE             20231001 - 20231211
-    DR_MONTH_TO_DATE               20231201 - 20231211
+    DR_QUARTER_TO_DATE             20231001 - 20231104
+    DR_MONTH_TO_DATE               20231101 - 20231104
     DR_THIS_YEAR                   20230101 - 20231231 **future**
     DR_THIS_FISCAL_YEAR            20230406 - 20240405 **future**
     DR_THIS_QUARTER                20231001 - 20231231 **future**
-    DR_THIS_MONTH                  20231201 - 20231231 **future**
-    DR_THIS_WEEK                   20231205 - 20231211
+    DR_THIS_MONTH                  20231101 - 20231130 **future**
+    DR_THIS_WEEK                   20231029 - 20231104
     DR_LAST_YEAR                   20220101 - 20221231
     DR_LAST_FISCAL_YEAR            20220406 - 20230405
     DR_LAST_QUARTER                20230701 - 20230930
-    DR_LAST_MONTH                  20231101 - 20231130
-    DR_LAST_WEEK                   20231128 - 20231204
-    DR_LAST_12_MONTHS              20221201 - 20231130
-    DR_LAST_365_DAYS               20221211 - 20231210
-    DR_LAST_30_DAYS                20231111 - 20231210
-    DR_LAST_1_DAY                  20231210 - 20231210
-    DR_ALL_DATES                   (returns all dates)
+    DR_LAST_MONTH                  20231001 - 20231031
+    DR_LAST_WEEK                   20231022 - 20231028
+    DR_LAST_12_MONTHS              20221101 - 20231031
+    DR_LAST_365_DAYS               20221105 - 20231104
+    DR_LAST_30_DAYS                20231006 - 20231104
+    DR_LAST_1_DAY                  20231103 - 20231104  (known as yesterday and today, which is actually 2 days)
+    DR_ALL_DATES                   (returns all dates)  (from 1970 thru 2100)
 
     NOTE: The above will interact with your Balance/Current Balance/Cleared setting for that row:
           E.G.  Current Balance will always cutoff to today's date
