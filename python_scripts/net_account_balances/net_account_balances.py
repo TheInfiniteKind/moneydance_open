@@ -149,6 +149,7 @@
 # build: 1036 - Added extra average options for CalUnits days/weeks/months/years etc....
 #               Applied fix to getDateRangeSelected() for Last1/30/365 days (which were adding 1 days) - MD issue. Should be fixed in build 5047...
 # build: 1037 - In line with MD build 5051 tweaked last 1/30/365 dates and avg fix again... (last 1 is today + yesterday; last30/365 include today)
+#               Common code - FileFilter fix...
 
 # todo add 'as of' balance date option (for non inc/exp rows) - perhaps??
 
@@ -1476,6 +1477,7 @@ Visit: %s (Author's site)
         def __init__(self, ext): self.ext = "." + ext.upper()                                                           # noqa
 
         def accept(self, thedir, filename):                                                                             # noqa
+            # type: (File, str) -> bool
             if filename is not None and filename.upper().endswith(self.ext): return True
             return False
 
@@ -1486,7 +1488,9 @@ Visit: %s (Author's site)
         def getDescription(self): return "*"+self.ext                                                                   # noqa
 
         def accept(self, _theFile):                                                                                     # noqa
+            # type: (File) -> bool
             if _theFile is None: return False
+            if _theFile.isDirectory(): return True
             return _theFile.getName().upper().endswith(self.ext)
 
     def MDDiag():

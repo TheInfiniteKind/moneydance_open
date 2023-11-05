@@ -134,6 +134,7 @@
 #               Increased use of DateRange(); Fixed last1/30/365 days options
 #               Added "_CURRENTVALUETOBASE" and "_CURRENTVALUEINVESTCURR" fields to Extract Security Balances report.
 # build: 1037 - Further tweaks to DateRangeChooser() last1/30/365 days options inline with build 5051
+#               Common code - FileFilter fix...
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 # todo - From client version: add Extract Account Balances; update Extract Security Balances with cash and asof date... (consider asof cost basis)
@@ -1529,6 +1530,7 @@ Visit: %s (Author's site)
         def __init__(self, ext): self.ext = "." + ext.upper()                                                           # noqa
 
         def accept(self, thedir, filename):                                                                             # noqa
+            # type: (File, str) -> bool
             if filename is not None and filename.upper().endswith(self.ext): return True
             return False
 
@@ -1539,7 +1541,9 @@ Visit: %s (Author's site)
         def getDescription(self): return "*"+self.ext                                                                   # noqa
 
         def accept(self, _theFile):                                                                                     # noqa
+            # type: (File) -> bool
             if _theFile is None: return False
+            if _theFile.isDirectory(): return True
             return _theFile.getName().upper().endswith(self.ext)
 
     def MDDiag():
