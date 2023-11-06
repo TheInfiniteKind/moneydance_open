@@ -134,7 +134,7 @@
 #               Increased use of DateRange(); Fixed last1/30/365 days options
 #               Added "_CURRENTVALUETOBASE" and "_CURRENTVALUEINVESTCURR" fields to Extract Security Balances report.
 # build: 1037 - Further tweaks to DateRangeChooser() last1/30/365 days options inline with build 5051
-#               Common code - FileFilter fix...
+#               Common code - FileFilter fix...; put options into scrollpane (was cutting off screen)
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 # todo - From client version: add Extract Account Balances; update Extract Security Balances with cash and asof date... (consider asof cost basis)
@@ -467,6 +467,7 @@ else:
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
 
     from com.infinitekind.moneydance.model import DateRange
+    from java.awt.event import HierarchyListener
 
     # from extract_account_registers_csv & extract_investment_transactions_csv
     from copy import deepcopy
@@ -3767,6 +3768,33 @@ Visit: %s (Author's site)
 
         return
 
+    class MyJScrollPaneForJOptionPane(JScrollPane, HierarchyListener):   # Allows a scrollable/resizeable menu in JOptionPane
+        def __init__(self, _component, _frame, _max_w=800, _max_h=600):
+            super(JScrollPane, self).__init__(_component)
+            self.maxWidth = _max_w
+            self.maxHeight = _max_h
+            self.parentFrame = _frame
+            self.borders = 90
+            self.screenSize = Toolkit.getDefaultToolkit().getScreenSize()
+            self.setOpaque(False)
+            self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
+            self.addHierarchyListener(self)
+
+        def getPreferredSize(self):
+            if self.parentFrame is None:
+                frame_width = 1024
+                frame_height = 768
+            else:
+                frame_width = int(round((self.parentFrame.getSize().width - self.borders) *.9,0))
+                frame_height = int(round((self.parentFrame.getSize().height - self.borders) *.9,0))
+            return Dimension(min(self.maxWidth, frame_width), min(self.maxHeight, frame_height))
+
+        def hierarchyChanged(self, e):                                                                                  # noqa
+            dialog = SwingUtilities.getWindowAncestor(self)
+            if isinstance(dialog, Dialog):
+                if not dialog.isResizable():
+                    dialog.setResizable(True)
+
     def getExtractChoice(defaultSelection):
         _exit = False
 
@@ -3851,12 +3879,13 @@ Visit: %s (Author's site)
 
         _options = ["EXIT", "PROCEED"]
 
-
         while True:
-
+            rowHeight = 24
+            rows = 12
+            jsp = MyJScrollPaneForJOptionPane(_userFilters, None, 750, rows * rowHeight)
             pane = JOptionPane()
             pane.setIcon(getMDIcon(lAlwaysGetIcon=True))
-            pane.setMessage(_userFilters)
+            pane.setMessage(jsp)
             pane.setMessageType(JOptionPane.QUESTION_MESSAGE)
             pane.setOptionType(JOptionPane.OK_CANCEL_OPTION)
             pane.setOptions(_options)
@@ -4063,10 +4092,10 @@ Visit: %s (Author's site)
         label7c = JLabel("Exclude Totals from CSV extract (helps pivots)?")
         user_excludeTotalsFromCSV = JCheckBox("", lExcludeTotalsFromCSV)
 
-        labelUseCurrentPrice = JLabel("Enabled = Use 'Current Price' (Not ticked = use latest dated price history price instead")
+        labelUseCurrentPrice = JLabel("Ticked = Use 'Current Price' (else latest dated history price)")
         user_useCurrentPrice = JCheckBox("", lUseCurrentPrice_SG2020)
 
-        labelMaxDecimalRounding = JLabel("Enter the maximum decimal rounding to use on calculated price (0-12; default=4)")
+        labelMaxDecimalRounding = JLabel("Set maximum decimal rounding on calculated price (default=4)")
         user_maxDecimalRounding = JTextField(2)
         user_maxDecimalRounding.setText(str(maxDecimalPlacesRounding_SG2020))
 
@@ -4135,8 +4164,12 @@ Visit: %s (Author's site)
         _exit = False
 
         options = ["Abort", "Display Data", "CSV Extract Data"]
+
+        rowHeight = 24
+        rows = 20
+        jsp = MyJScrollPaneForJOptionPane(userFilters, None, 1100, rows * rowHeight)
         userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
-                                                   userFilters,
+                                                   jsp,
                                                    "StockGlance2020 - Summarise Stocks/Funds: Set Script Parameters....",
                                                    JOptionPane.OK_CANCEL_OPTION,
                                                    JOptionPane.QUESTION_MESSAGE,
@@ -4276,7 +4309,7 @@ Visit: %s (Author's site)
         user_selectDELIMITER = JComboBox(GlobalVars.ALLOWED_CSV_FILE_DELIMITER_STRINGS)
         user_selectDELIMITER.setSelectedItem(csvDelimiter)
 
-        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        labelBOM = JLabel("Write BOM (Byte Order Mark) (helps Excel open files)?")
         user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
         labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
@@ -4314,8 +4347,11 @@ Visit: %s (Author's site)
         _exit = False
 
         options = ["Abort", "Display Data", "CSV Extract Data"]
+        rowHeight = 24
+        rows = 11
+        jsp = MyJScrollPaneForJOptionPane(userFilters, None, 800, rows * rowHeight)
         userAction = (JOptionPane.showOptionDialog( extract_data_frame_,
-                                                    userFilters,
+                                                    jsp,
                                                     "EXTRACT REMINDERS: Set Script Parameters....",
                                                     JOptionPane.OK_CANCEL_OPTION,
                                                     JOptionPane.QUESTION_MESSAGE,
@@ -4586,16 +4622,16 @@ Visit: %s (Author's site)
         user_includeSubAccounts = JCheckBox("", lIncludeSubAccounts_EAR)
         user_includeSubAccounts.setName("user_includeSubAccounts")
 
-        labelSeparator1 = JLabel("--------------------------------------------------------------------")
-        labelSeparator2 = JLabel("--<<Select Account above *OR* ACCT filters below - BUT NOT BOTH>>---".upper())
+        labelSeparator1 = JLabel("-"*53)
+        labelSeparator2 = JLabel("--<<Select Account above *OR* ACCT filters below>>---".upper())
         labelSeparator2.setForeground(getColorBlue())
-        labelSeparator3 = JLabel("--------------------------------------------------------------------")                # noqa
-        labelSeparator4 = JLabel("--------------------------------------------------------------------")                # noqa
-        labelSeparator5 = JLabel("--------------------------------------------------------------------")
-        labelSeparator6 = JLabel("-------------<<Filters below are AND (not OR)>> --------------------")
+        labelSeparator3 = JLabel("-"*53)                                                                                # noqa
+        labelSeparator4 = JLabel("-"*53)                                                                                # noqa
+        labelSeparator5 = JLabel("-"*53)
+        labelSeparator6 = JLabel("------<<Filters below are AND (not OR)>> ------------")
         labelSeparator6.setForeground(getColorBlue())
-        labelSeparator7 = JLabel("--------------------------------------------------------------------")
-        labelSeparator8 = JLabel("--------------------------------------------------------------------")
+        labelSeparator7 = JLabel("-"*53)
+        labelSeparator8 = JLabel("-"*53)
 
         labelOpeningBalances = JLabel("Include Unadjusted Opening Balances?")
         user_selectOpeningBalances = JCheckBox("", lIncludeOpeningBalances_EAR)
@@ -4877,9 +4913,11 @@ Visit: %s (Author's site)
         options = ["ABORT", "CSV Extract"]
 
         while True:
-
+            rowHeight = 24
+            rows = 26
+            jsp = MyJScrollPaneForJOptionPane(_userFilters, None, 1200, rows * rowHeight)
             userAction = (JOptionPane.showOptionDialog(extract_data_frame_,
-                                                       _userFilters, "EXTRACT ACCOUNT REGISTERS: Set Script Parameters....",
+                                                       jsp, "EXTRACT ACCOUNT REGISTERS: Set Script Parameters....",
                                                        JOptionPane.OK_CANCEL_OPTION,
                                                        JOptionPane.QUESTION_MESSAGE,
                                                        getMDIcon(lAlwaysGetIcon=True),
@@ -5181,7 +5219,7 @@ Visit: %s (Author's site)
         user_selectDELIMITER = JComboBox(GlobalVars.ALLOWED_CSV_FILE_DELIMITER_STRINGS)
         user_selectDELIMITER.setSelectedItem(csvDelimiter)
 
-        labelBOM = JLabel("Write BOM (Byte Order Mark) to file (helps Excel open files)?")
+        labelBOM = JLabel("Write BOM (Byte Order Mark) (helps Excel open files)?")
         user_selectBOM = JCheckBox("", lWriteBOMToExportFile_SWSS)
 
         labelExportParameters = JLabel("Write parameters out to file (added as rows at EOF)?")
@@ -5249,7 +5287,10 @@ Visit: %s (Author's site)
         _exit = False
 
         options = ["ABORT", "CSV Extract"]
-        userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT INVESTMENT TRANSACTIONS: Set Script Parameters....",
+        rowHeight = 24
+        rows = 26
+        jsp = MyJScrollPaneForJOptionPane(userFilters, None, 1200, rows * rowHeight)
+        userAction = (JOptionPane.showOptionDialog(extract_data_frame_, jsp, "EXTRACT INVESTMENT TRANSACTIONS: Set Script Parameters....",
                                                    JOptionPane.OK_CANCEL_OPTION,
                                                    JOptionPane.QUESTION_MESSAGE,
                                                    getMDIcon(lAlwaysGetIcon=True),
@@ -5438,8 +5479,10 @@ Visit: %s (Author's site)
         options = ["Abort", "CSV Extract"]
 
         while True:
-
-            userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT CURRENCY HISTORY: Set Script Parameters....",
+            rowHeight = 24
+            rows = 12
+            jsp = MyJScrollPaneForJOptionPane(userFilters, None, 900, rows * rowHeight)
+            userAction = (JOptionPane.showOptionDialog(extract_data_frame_, jsp, "EXTRACT CURRENCY HISTORY: Set Script Parameters....",
                                                        JOptionPane.OK_CANCEL_OPTION,
                                                        JOptionPane.QUESTION_MESSAGE,
                                                        getMDIcon(lAlwaysGetIcon=True),
@@ -5612,7 +5655,10 @@ Visit: %s (Author's site)
         _exit = False
 
         options = ["ABORT", "CSV Extract"]
-        userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT SECURITY BALANCES: Set Script Parameters....",
+        rowHeight = 24
+        rows = 15
+        jsp = MyJScrollPaneForJOptionPane(userFilters, None, 900, rows * rowHeight)
+        userAction = (JOptionPane.showOptionDialog(extract_data_frame_, jsp, "EXTRACT SECURITY BALANCES: Set Script Parameters....",
                                                    JOptionPane.OK_CANCEL_OPTION,
                                                    JOptionPane.QUESTION_MESSAGE,
                                                    getMDIcon(lAlwaysGetIcon=True),
