@@ -1,6 +1,13 @@
 /************************************************************\
  *       Copyright (C) 2010 Raging Coders                   *
 \************************************************************/
+
+// Fixed by Stuart Beesley - Nov 2023 (StuWareSoftSystems)
+// Build: 1017 - Fixed: casts on acctNum to String (previously Integer); implemented .unload(), calling .cleanup() etc;
+//               Fixed null budget name on home page; fixed spelling error;
+//               Fixed MD2023.2(5051) Reminder.Type.typeForCode() issue (changed to Reminder.Type.Companion.typeForCode())
+//               Also changed the broken test from effectively Reminder.NOTE to Reminder.TRANSACTION
+
 package com.moneydance.modules.features.moneyPie;
 
 import com.infinitekind.moneydance.model.*;
@@ -82,6 +89,14 @@ public class Main extends FeatureModule implements Observer {
 
   public void cleanup() {
     closeConsole();
+  }
+
+  public void unload() {
+    System.err.println("MoneyPie: Executing unload() and cleanup()");
+      if (this.homeView != null) {
+          this.homeView.cleanup();
+      }
+      cleanup();
   }
 
   protected AccountBook getBook() {
@@ -189,4 +204,8 @@ public class Main extends FeatureModule implements Observer {
 	    } catch (Throwable e) { }
 	    return null;
   }
+
+    public void setHomeView(BudgetHomePageViewController homeView) {
+        this.homeView = homeView;
+    }
 }

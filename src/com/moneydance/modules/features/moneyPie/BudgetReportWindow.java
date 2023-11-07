@@ -296,7 +296,7 @@ public class BudgetReportWindow extends JFrame {
 
         	Iterator<?> k = sortByValue(accounts).keySet().iterator();
     	    while (k.hasNext()) {
-    	      Integer acctNum = (Integer) k.next();
+    	      String acctNum = (String) k.next();
     	      String acctName = (String) accounts.get(acctNum);
 
     	      if(acctName.indexOf(":") > -1){
@@ -569,7 +569,7 @@ public class BudgetReportWindow extends JFrame {
 
         	Iterator<?> k = sortByValue(accounts).keySet().iterator();
     	    while (k.hasNext()) {
-    	      Integer acctNum = (Integer) k.next();
+    	      String acctNum = (String) k.next();
     	      String acctName = (String) accounts.get(acctNum);
 
     	      if(acctName.indexOf(":") > -1){

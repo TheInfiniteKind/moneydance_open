@@ -213,7 +213,7 @@ public class BudgetPreferencesWindow extends JFrame {
 	  		
 	  		Iterator<?> k = sortByValue(data.getMoneyAccounts()).keySet().iterator();
 		    while (k.hasNext()) {
-		      Integer acctNum = (Integer) k.next();
+		      String acctNum = (String) k.next();
 		      String acctName = (String) data.getMoneyAccounts().get(acctNum);
 		      accountMain.addItem(acctName);
 		    }

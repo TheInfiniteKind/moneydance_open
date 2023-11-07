@@ -780,7 +780,7 @@ public class BudgetWindow extends JFrame implements ActionListener, TableModelLi
 
 	    Iterator<?> k = sortByValue(accounts).keySet().iterator();
 	    while (k.hasNext()) {
-	      Integer acctNum = (Integer) k.next();
+	      String acctNum = (String) k.next();
 	      String acctName = (String) accounts.get(acctNum);
 
 	      boolean showNegative = false;

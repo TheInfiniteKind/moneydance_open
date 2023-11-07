@@ -177,9 +177,10 @@ public class BudgetHomePageView extends JPanel {
 	
 	private void generatePanel(){
         if(this.data != null){
-    	    
+
+			String budgetName = data.getCurrentBudgetName() == null ? "<NO BUDGET>" : data.getCurrentBudgetName();
         	int rowNumber = 1;
-        	this.addToTable(rowNumber, data.getCurrentBudgetName() + " - Year to Date", "", "", "",boldFont);
+        	this.addToTable(rowNumber, budgetName + " - Year to Date", "", "", "",boldFont);
     		rowNumber++;
     		this.addBlankRow(rowNumber);
     		rowNumber++;
@@ -336,7 +337,7 @@ public class BudgetHomePageView extends JPanel {
 		
 		Iterator<?> k = sortByValue(accounts).keySet().iterator();
 		while (k.hasNext()) {
-		Integer acctNum = (Integer) k.next();
+		String acctNum = (String) k.next();
 		String acctName = (String) accounts.get(acctNum);
 		
 		if(acctName.indexOf(":") > -1){

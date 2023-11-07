@@ -67,8 +67,8 @@ public class BudgetSplash extends JDialog{
 		textPane = new JTextPane(); // creates an empty text pane
         textPane.setContentType("text/html"); // lets Java know it will be HTML                  
         textPane.setText("<h1>"+title+" <small>build "+build+"</small></h1>" +
-                         "<p>This extension is provied with no limitation and at no cost by the <b>Raging Coders</b>.<br/><br/>Send all questions and comments to <a href='mailto:support@ragingcoders.com'>support@ragingcoders.com</a><br/></p>" +
-                         "<p>Alot of hard work goes into this, please consider a small donation to feed our coders.</p>");
+                         "<p>This extension is provided with no limitation and at no cost by the <b>Raging Coders</b>.<br/><br/>Send all questions and comments to <a href='mailto:support@ragingcoders.com'>support@ragingcoders.com</a><br/></p>" +
+                         "<p>A lot of hard work goes into this, please consider a small donation to feed our coders.</p>");
         textPane.setPreferredSize(new Dimension(280,180));
         textPane.setBackground(new Color(0,0,0,0));
         

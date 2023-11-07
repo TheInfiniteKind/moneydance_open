@@ -437,15 +437,18 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="moneyPie" depends="init">
-      <javac encoding="utf8" target="1.7" source="1.7" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      <delete file="${dist}/moneyPie.mxt" verbose="true" failonerror="false" />
+      <javac encoding="utf8" target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath" destdir="${build}"
       classpath="${lib}/moneyPieSupport.jar"
-      includes="com/moneydance/modules/features/moneyPie/**"/>
+      includes="com/moneydance/modules/features/moneyPie/**"
+      includeAntRuntime="false">
+      <compilerarg value="-Xlint:-options"/>
+      </javac>
       <jar destfile="${dist}/moneyPie.mxt">
           <manifest>
               <attribute name="Built-By" value="RagingCoders"/>
           </manifest>
-
           <fileset dir="${src}" includes="
           com/moneydance/modules/features/moneyPie/meta_info.dict
           com/moneydance/modules/features/moneyPie/images/*.gif
@@ -455,9 +458,12 @@ http://jakarta.apache.org/ant/index.html
           <fileset dir="${build}" includes="com/moneydance/modules/features/moneyPie/**"/>
       	  <zipgroupfileset dir="${lib}" includes="moneyPieSupport.jar" />
       </jar>
-      <java newenvironment="true"
+      <java failonerror="true"
+          newenvironment="true"
           classpathref="classpath"
-          classname="com.moneydance.admin.KeyAdmin">
+          classname="com.moneydance.admin.KeyAdmin"
+          fork="true">
+          <sysproperty key="moneydance_key_pass" value="${keypass}"/>
           <arg value="signextjar"/>
           <arg value="${extprivkeyfile}"/>
           <arg value="${privkeyid}"/>
@@ -465,6 +471,9 @@ http://jakarta.apache.org/ant/index.html
           <arg line="${dist}/moneyPie.mxt"/>
       </java>
       <move file="${src}/s-moneyPie.mxt" tofile="${dist}/moneyPie.mxt"/>
+    <echo level="info" message="FINISHED signing moneyPie.mxt..." />
+
+
   </target>
 
   <target name="all_python" depends="init,toolbox,extract_data,list_future_reminders,net_account_balances,extension_tester,accounts_categories_mega_search_window,security_performance_graph">

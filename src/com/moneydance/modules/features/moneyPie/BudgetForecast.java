@@ -426,9 +426,9 @@ public void run() {
 		  }
 		  Double lValue = new Double(largeThreshold);
 		  
-		  if(dataSeries.getMaxY() > lValue.doubleValue()){
+		  if (dataSeries.getMaxY() > lValue.doubleValue()) {
 			  datasetBig.addSeries(dataSeries);
-			  
+
 		  } else {
 			  datasetSmall.addSeries(dataSeries);
 		  }
@@ -550,43 +550,44 @@ private XYSeries calcPredictedRBalance(Account cacct) {
 
     //Find all Reminders
     //Calendar nextDay;
-    
-    while(curr.before(stop) || curr.equals(stop)) {
 
-      long currentTime = BudgetDateUtil.getLngDateTime(curr.getTime());
-      Calendar nextDay = Calendar.getInstance();
-      nextDay.setTime(curr.getTime());
-      nextDay.add(Calendar.DAY_OF_MONTH, 1);
+    while (curr.before(stop) || curr.equals(stop)) {
 
-      List<Reminder> rl = predConf.rs.getRemindersOnDay(nextDay);
-      for (int n = 0; n < rl.size(); n++) {
-        Reminder r = rl.get(n);
-        //if ( (r.getReminderType() == Reminder.Type.typeForCode(Reminder.TXN_REMINDER_TYPE)) ) {
-        	//if ( ((Boolean)remindersStatus.get(r)).booleanValue() ) {
+        long currentTime = BudgetDateUtil.getLngDateTime(curr.getTime());
+        Calendar nextDay = Calendar.getInstance();
+        nextDay.setTime(curr.getTime());
+        nextDay.add(Calendar.DAY_OF_MONTH, 1);
 
-            	ptxn = r.getTransaction();
-            	
+        List<Reminder> rl = predConf.rs.getRemindersOnDay(nextDay);
+        for (Reminder r : rl) {
+            //if ( (r.getReminderType() == Reminder.Type.typeForCode(Reminder.TXN_REMINDER_TYPE)) ) {
+            //if ( ((Boolean)remindersStatus.get(r)).booleanValue() ) {
+
+            if (r.getReminderType() == Reminder.Type.TRANSACTION) {
+                ptxn = r.getTransaction();
+
                 if (ptxn.getAccount().equals(cacct)) {
-                  changes += ptxn.getValue();
-                  addRow("R", currentTime, r.getDescription(), ptxn.getValue(), currentBalance + changes, txnList);
+                    changes += ptxn.getValue();
+                    addRow("R", currentTime, r.getDescription(), ptxn.getValue(), currentBalance + changes, txnList);
                 }
-                
-                for(int i=0; i<ptxn.getSplitCount(); i++) {
-                  stxn = ptxn.getSplit(i);
-                  if (stxn.getAccount().equals(cacct)) {
-                    long val = CurrencyTable.convertValue(stxn.getAmount(),
-                                                          stxn.getParentTxn().getAccount().getCurrencyType(),
-                                                          cacct.getCurrencyType(),
-                                                          ptxn.getDateInt());
-                    changes += val;
-                    addRow("R", currentTime, r.getDescription(), val, currentBalance + changes, txnList);
-                  }
-                }
-            //}
-        //}
-      }
 
-      curr.add(Calendar.DAY_OF_MONTH, 1);
+                for (int i = 0; i < ptxn.getSplitCount(); i++) {
+                    stxn = ptxn.getSplit(i);
+                    if (stxn.getAccount().equals(cacct)) {
+                        long val = CurrencyTable.convertValue(stxn.getAmount(),
+                                stxn.getParentTxn().getAccount().getCurrencyType(),
+                                cacct.getCurrencyType(),
+                                ptxn.getDateInt());
+                        changes += val;
+                        addRow("R", currentTime, r.getDescription(), val, currentBalance + changes, txnList);
+                    }
+                }
+                //}
+                //}
+            }
+        }
+
+        curr.add(Calendar.DAY_OF_MONTH, 1);
     }
 
     //Loop through all found transactions and chart by date
@@ -666,17 +667,18 @@ private XYSeries calcPredictedRBalance(Account cacct) {
 
 	    table.repaint();
   }
-  
-  private Vector<?> getTxnRemindersVect() {
-	  Vector<Reminder> res = new Vector<Reminder>();
-	  List <Reminder> rs = predConf.rs.getAllReminders();
-    
-	  for(int i=0;i<rs.size();i++) {
-		  Reminder r  = rs.get(i);
-		  if (r.getReminderType()==Reminder.Type.typeForCode(Reminder.TXN_REMINDER_TYPE)) res.add(r);
-	  }
-	  return res;
-  }
+
+    private Vector<?> getTxnRemindersVect() {
+        Vector<Reminder> res = new Vector<Reminder>();
+        List<Reminder> rs = predConf.rs.getAllReminders();
+
+        for (Reminder r : rs) {
+            if (r.getReminderType() == Reminder.Type.TRANSACTION) {
+                res.add(r);
+            }
+        }
+        return res;
+    }
 
   public void actionPerformed(ActionEvent e) {
     this.refresh();

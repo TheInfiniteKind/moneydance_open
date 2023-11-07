@@ -91,15 +91,13 @@ public class BudgetForecastConf implements ActionListener {
     Account acct = getAccount();
     
     List<Reminder> rl = rs.getAllReminders();
-    
-    for(int i=0; i<rl.size();i++) {
-      Reminder r = rl.get(i);
-      
-      if (r.getReminderType() == Reminder.Type.typeForCode(Reminder.TXN_REMINDER_TYPE)) {
-        ptxn = (ParentTxn)r.getTransaction();
+
+    for (Reminder r : rl) {
+      if (r.getReminderType() == Reminder.Type.TRANSACTION) {
+        ptxn = (ParentTxn) r.getTransaction();
         if (ptxn.getAccount().equals(acct)) rc++;
         else {
-          for(int j=0;j<ptxn.getSplitCount();j++) {
+          for (int j = 0; j < ptxn.getSplitCount(); j++) {
             stxn = ptxn.getSplit(j);
             if (stxn.getAccount().equals(acct)) rc++;
           }
