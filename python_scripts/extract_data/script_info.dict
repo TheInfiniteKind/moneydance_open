@@ -15,6 +15,16 @@
       "name" = "Extract Data: auto extract mode"
     }
     {
+      "type" = "menu"
+      "script_file" = "extract_data_bootstrap4.py"
+      "name" = "Extract Data: show StockGlance2020"
+    }
+    {
+      "type" = "menu"
+      "script_file" = "extract_data_bootstrap5.py"
+      "name" = "Extract Data: show Reminders"
+    }
+    {
       "type" = "method"
       "method" = "invoke"
       "script_file" = "extract_data_bootstrap3_invoke_handle_event.py"

@@ -73,7 +73,7 @@ global debug
 
 try:
     # Set moneydance_extension_parameter when using bootstrap and you want to detect different menus within main code...
-    moneydance_extension_parameter = "auto_extract"                                                                       # noqa
+    moneydance_extension_parameter = "show_reminders"                                                                   # noqa
 
     MD_EXTENSION_LOADER = moneydance_extension_loader
 
