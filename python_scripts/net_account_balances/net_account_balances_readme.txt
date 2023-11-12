@@ -104,6 +104,7 @@ EXAMINING THE CHOICES/CONFIGURATION:
                            to the result of the current row.. E.g. take this row and divide it by the result from row x
                            and treat the result as a percent. For example, this could calculate the value of investments
                            as a percentage of total networth...
+                           UORs can be chained together. E.G. row 3 can use row 2 and row 2 can use row 1
 
 
 - Hide row when options: Never, Always(Disable), balance = X, balance >= X, balance <= X. DEFAULT FOR X is ZERO
@@ -148,8 +149,8 @@ EXAMINING THE CHOICES/CONFIGURATION:
     - Calculate raw balances for selected rows/accounts, including recursive sub accounts for autosum rows
     - Convert calculated balances to target currency
     - Iterate over each row/calculation, apply any average/by calculations
-    - Iterate over each row/calculation, apply any Use Other Row (UOR) calculations
-    - Iterate over each row/calculation, apply any final calculation adjustment amounts specified
+    - Iterate over each row/calculation, apply any Use Other Row (UOR) calculations.. Iterate the whole UOR chain
+    - Lastly, iterate over each row/calculation, apply any final calculation adjustment amounts specified
 
 
 
