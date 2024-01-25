@@ -6,7 +6,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -549,7 +549,7 @@ class QuickDiag(Runnable):
                 if  usage > 0.60:
                     msg += ("** MD memory usage is %s of max allocated to JVM%s **\n"
                             %("{:.0%}".format(usage),
-                              ", consider editing .vmoptions file to increase '-Xmx' memory setting" if not Platform.isOSX() else ""))
+                              ", consider editing .vmoptions file to increase '-Xmx' or '-XX:MaxRAMPercentage=' memory setting" if not Platform.isOSX() else ""))
                 msg += "-----------------------------------------------------\n"
                 msg += "\n"
                 _specialPrint(msg)

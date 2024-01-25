@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_extra_code.py build: 1001 - Sept 2023 onwards - Stuart Beesley StuWareSoftSystems
+# toolbox_extra_code.py build: 1002 - Dec 2023 - Stuart Beesley StuWareSoftSystems
 
 # To avoid the dreaded issue below, moving some code here....:
 # java.lang.RuntimeException: java.lang.RuntimeException: For unknown reason, too large method code couldn't be resolved
@@ -9,10 +9,11 @@
 # build: 1000 - NEW SCRIPT
 #               Rebuilt all the encrypt/decrypt file to/from Dataset/Sync... Now can access Dropbox Cloud Sync files online too...
 # build: 1001 - Show encryption details report added - advanced_show_encryption_keys() ...
+# build: 1002 - Relocated advanced_clone_dataset() into here.
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
+# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -39,14 +40,17 @@
 global os
 
 # Moneydance definitions
-global AccountBookWrapper, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
+global AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
+global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot
+global TxnSearch
 
 # Java definitions
-global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System, String, Boolean
+global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System, String, Boolean, FilenameFilter
 global JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel, Color, Desktop
 global BorderFactory, JSeparator, DefaultComboBoxModel, SwingWorker, JPanel, GridLayout, JLabel, GridBagLayout, BorderLayout
 global Paths, Files, StandardCopyOption, Charset
 global AbstractAction, UUID
+global JTextField, JCheckBox, ArrayList
 
 # My definitions
 global toolbox_frame_
@@ -54,20 +58,25 @@ global MD_REF, GlobalVars, debug, myPrint, QuickAbortThisScriptException
 global myPopupInformationBox, getFileFromFileChooser, get_home_dir, myPopupAskQuestion
 global invokeMethodByReflection, getFieldByReflection, setFieldByReflection
 global MyPopUpDialogBox, logToolboxUpdates, file_chooser_wrapper, dump_sys_error_to_md_console_and_errorlog
-global get_sync_folder, pad, setDisplayStatus, doesUserAcceptDisclaimer, get_time_stamp_as_nice_text
+global get_sync_folder, pad, rpad, cpad, setDisplayStatus, doesUserAcceptDisclaimer, get_time_stamp_as_nice_text
 global MyJScrollPaneForJOptionPane, getMDIcon, QuickJFrame
 global genericSwingEDTRunner, genericThreadRunner
 global getColorBlue, getColorRed, getColorDarkGreen, MoneybotURLDebug
 global isKotlinCompiledBuild, convertBufferedSourceToInputStream
 global confirm_backup_confirm_disclaimer, backup_local_storage_settings, getNetSyncKeys, play_the_money_sound
-global ManuallyCloseAndReloadDataset
+global ManuallyCloseAndReloadDataset, perform_qer_quote_loader_check, safeStr, convertStrippedIntDateFormattedText
+global count_database_objects, SyncerDebug, calculateMoneydanceDatasetSize, removeEmptyDirs
 
 # New definitions
 from com.moneydance.apps.md.controller.sync import AbstractSyncFolder, MDSyncCipher
 from com.moneydance.apps.md.controller import LocalStorageCipher
+from com.moneydance.security import SecretKeyCallback
+from com.moneydance.apps.md.controller import MDException
+from java.util.zip import ZipOutputStream
 from javax.swing import DefaultListModel
 from java.lang import InterruptedException
 from java.util.concurrent import CancellationException
+from java.io import BufferedOutputStream
 
 try:
     if GlobalVars.EXTRA_CODE_INITIALISED: raise QuickAbortThisScriptException
@@ -944,6 +953,476 @@ try:
         myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
 
         ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
+
+    def advanced_clone_dataset():
+        """This feature clones the open dataset. It takes a backup, restores the backup, wipes sync, removes transactional data.
+        It deletes txns, price history, attachments from the clone (rather than recreating a new structure. The next evolution
+        of this function will allow recreation of balances and cutoff dates"""
+
+        _THIS_METHOD_NAME = "Clone Dataset".upper()
+        PARAMETER_KEY = "toolbox_clone_dataset"
+
+        output = "%s:\n" \
+                 "%s\n\n" %(_THIS_METHOD_NAME, ("-" * (len(_THIS_METHOD_NAME)+1)))
+
+        # Refer:
+        # com.moneydance.apps.md.view.gui.MoneydanceGUI.saveToBackup(SecondaryFrame) : void
+        # com.moneydance.apps.md.view.gui.MoneydanceGUI.openBackup(Frame) : boolean
+
+        currentBook = MD_REF.getCurrentAccountBook()                                                                    # type: AccountBook
+        if currentBook is None:
+            myPopupInformationBox(toolbox_frame_, "ERROR: AccountBook is missing?",theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
+            return
+
+        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return
+
+        MD_decimal = MD_REF.getPreferences().getDecimalChar()
+
+        currentName = currentBook.getName().strip()
+
+        fCurrentFilePath = MD_REF.getCurrentAccountBook().getRootFolder()
+        currentFilePath = fCurrentFilePath.getCanonicalPath()
+
+        # newName = AccountBook.stripNonFilenameSafeCharacters(currentName+"_CLONE_%s" %(System.currentTimeMillis()))
+        newName = AccountBook.stripNonFilenameSafeCharacters(currentName+"_CLONE")
+
+        lbl_cloneName = JLabel("Enter the name for the cloned dataset:")
+        user_cloneName = JTextField(newName)
+
+        user_zeroAcctOpeningBalances = JCheckBox("Zero all account opening balances?", True)
+        user_zeroAcctOpeningBalances.setToolTipText("When enabled, will reset account initial/opening balances to zero")
+
+        user_purgeAllTransactions = JCheckBox("Purge all transactions?", True)
+        user_purgeAllTransactions.setToolTipText("When enabled, purges all transactions from the clone")
+
+        user_purgeSnapHistory = JCheckBox("Purge all security price & currency rate history (keep current and most recent one)?", True)
+        user_purgeSnapHistory.setToolTipText("When enabled, purges security price & currency rate history (leaving current price/rate and most recent price/rate)")
+
+        filterPanel = JPanel(GridLayout(0, 1))
+        filterPanel.add(lbl_cloneName)
+        filterPanel.add(user_cloneName)
+        filterPanel.add(JLabel(""))
+        filterPanel.add(user_zeroAcctOpeningBalances)
+        filterPanel.add(user_purgeAllTransactions)
+        filterPanel.add(user_purgeSnapHistory)
+
+        _options = ["Cancel", "CLONE"]
+
+        while True:
+            jsp_acd = MyJScrollPaneForJOptionPane(filterPanel,850, 175)
+
+            userAction = JOptionPane.showOptionDialog(toolbox_frame_,
+                                                      jsp_acd,
+                                                      "%s: Select CLONE Options:" %(_THIS_METHOD_NAME.upper()),
+                                                      JOptionPane.OK_CANCEL_OPTION,
+                                                      JOptionPane.QUESTION_MESSAGE,
+                                                      getMDIcon(None),
+                                                      _options,
+                                                      _options[0])
+
+            if userAction < 1:
+                txt = "%s: User did not select clone options - no changes made" %(_THIS_METHOD_NAME)
+                setDisplayStatus(txt, "R")
+                myPopupInformationBox(toolbox_frame_,txt)
+                return
+
+            # userRequestedNewName = myPopupAskForInput(toolbox_frame_,
+            #                                           theTitle=_THIS_METHOD_NAME,
+            #                                           theFieldLabel="CLONED DATASET NAME:",
+            #                                           theFieldDescription="Enter a new name for the cloned dataset",
+            #                                           defaultValue=newName)
+            #
+            # if userRequestedNewName is None or userRequestedNewName == "":
+            #     txt = "No name entered for cloned dataset - no changes made"
+            #     myPopupInformationBox(toolbox_frame_,txt)
+            #     setDisplayStatus(txt, "R")
+            #     return
+
+            newName = AccountBook.stripNonFilenameSafeCharacters(user_cloneName.getText())
+            newNamePath = os.path.join(os.path.dirname(currentFilePath),newName + Common.ACCOUNT_BOOK_EXTENSION)
+            fNewNamePath = File(newNamePath)
+
+            if newName is None or newName == "" or fNewNamePath.exists():
+                myPopupInformationBox(toolbox_frame_, "ERROR: new cloned file name: '%s' invalid or already exists?" %(newName),theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
+                continue
+
+            if not user_zeroAcctOpeningBalances.isSelected() and not user_purgeAllTransactions.isSelected() and not user_purgeSnapHistory.isSelected():
+                myPopupInformationBox(toolbox_frame_, "ERROR: Nothing selected to remove whilst cloning (pointless!)?",theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
+                continue
+
+            break
+
+        if not doesUserAcceptDisclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Are you really sure you want to create a clone of current dataset?"):
+            txt = "%s: User declined the disclaimer - no changes made...." %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        # lKeepBalances = True
+        # keepTxnsAfterDate = None
+        lZeroOpeningBalances = user_zeroAcctOpeningBalances.isSelected()
+        lRemoveAllTxns = user_purgeAllTransactions.isSelected()
+        lRemoveAllSnapHistory = user_purgeSnapHistory.isSelected()
+
+        output += "CLONE PROCESSING OPTIONS:\n" \
+                  " ------------------------\n"
+        output += "Purge all transactions:                           %s\n" %(lRemoveAllTxns)
+        output += "Zero all accounts' opening balances:              %s\n" %(lZeroOpeningBalances)
+        output += "Purge all security price & currency rate history: %s\n" %(lRemoveAllSnapHistory)
+        output += "\n"
+
+        _msgPad = 100
+        _msg = pad("Please wait:",_msgPad,padChar=".")
+        diag = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False, OKButtonText="WAIT")
+        diag.go()
+
+        try:
+            output += "Current dataset file path:    %s\n" %(fCurrentFilePath.getCanonicalPath())
+            output += "New cloned dataset file path: %s\n" %(fNewNamePath.getCanonicalPath())
+
+            tmpFile = File.createTempFile("toolbox_%s" %(System.currentTimeMillis()), ".moneydancearchive")
+            tmpFile.deleteOnExit()
+
+            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
+
+            output += "Saving current dataset back to disk (trunk)\n"
+            currentBook.saveTrunkFile()    # Save dataset too before backup
+
+
+            class MyFilenameFilter(FilenameFilter):
+                def accept(self, thedirname, thefilename):
+
+                    keepDirs = ["attach"]
+                    ignoreFiles = ["processed.dct"]
+                    ignoreExtns = [".txn", ".txn-tmp", ".mdtxn", ".mdtxnarchive"]
+
+                    for keepDir in keepDirs:
+                        if thedirname.getPath().endswith(keepDir):
+                            return True
+
+                    for ignoreExt in ignoreExtns:
+                        if thefilename.endswith(ignoreExt): return False
+
+                    for ignoreFile in ignoreFiles:
+                        if thefilename == ignoreFile: return False
+                    return True
+
+            _msg = pad("Please wait: Creating a temporary backup",_msgPad,padChar=".")
+            diag.updateMessages(newTitle=_msg, newStatus=_msg)
+            try:
+                zipOut = ZipOutputStream(BufferedOutputStream(FileOutputStream(tmpFile), 65536))   # type: ZipOutputStream
+                MDIOUtils.zipRecursively(zipOut, currentBook.getRootFolder(), MyFilenameFilter())
+                zipOut.close()
+                output += "Current dataset backed up to: %s (stripping out txn and archive files)\n" %(tmpFile)
+            except:
+                myPopupInformationBox(toolbox_frame_, "ERROR: could not create temporary backup (review console)",theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
+                output += dump_sys_error_to_md_console_and_errorlog(True)
+                raise
+
+            passphrase = MD_REF.getUI().getCurrentAccounts().getEncryptionKey()
+            if passphrase and passphrase != "":
+                output += "Your encryption passphrase: '%s' will be reused in the cloned dataset\n" %(passphrase)
+            else:
+                output += "No user encryption passphrase will be set in the clone\n"
+
+            class MySecretKeyCallback(SecretKeyCallback):
+                def __init__(self, passPhrase):
+                    self.passPhrase = passPhrase
+
+                def setVerifier(self, paramSecretKeyVerifier): pass
+
+                def getPassphrase(self, hint):                                                                          # noqa
+                    return self.passPhrase
+
+                def getPassphrase(self, dataName, hint):                                                                # noqa
+                    return self.passPhrase
+
+            passwordCallback = MySecretKeyCallback(passphrase)
+
+            # try:
+            class MyFilenameFilter(FilenameFilter):
+                def accept(self, dirname, filename):                                                                    # noqa
+                    if filename.endswith(Common.ACCOUNT_BOOK_EXTENSION):
+                        return True
+                    return False
+
+            _msg = pad("Please wait: Restoring temporary backup to clone new dataset",_msgPad,padChar=".")
+            diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
+            tmpFolder = MDIOUtils.createTempFolder()
+            output += "Created temporary folder (for restore): %s\n" %(tmpFolder)
+            MDIOUtils.openZip(tmpFile, tmpFolder.getAbsolutePath())
+            output += "Unzipped temporary backup into: %s\n" %(tmpFolder)
+            zipContents = tmpFolder.list(MyFilenameFilter())
+            if zipContents is None or len(zipContents) < 1: raise Exception("ERROR: Zip file seems incorrect")
+            tmpMDFile = File(tmpFolder, zipContents[0])
+
+            newBookFile = fNewNamePath
+            if not tmpMDFile.renameTo(newBookFile):
+                MDIOUtils.copyFolder(tmpMDFile, newBookFile)
+                output += "Renamed restored dataset to: %s\n" %(newBookFile)
+
+            newWrapper = AccountBookWrapper.wrapperForFolder(newBookFile)   # type: AccountBookWrapper
+            if newWrapper is None: raise Exception("ERROR: 'AccountBookWrapper.wrapperForFolder' returned None")
+            output += "Successfully obtained 'wrapper' for: %s\n" %(newBookFile)
+
+            newWrapper.setUUIDResetFlag(True)
+
+            _msg = pad("Please wait: Opening cloned dataset",_msgPad,padChar=".")
+            diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
+            try:
+                if not newWrapper.loadLocalStorage(passwordCallback): raise Exception("ERROR: calling 'newWrapper.loadLocalStorage()'")
+                output += "Successfully loaded Clone's local storage \n"
+
+                if not newWrapper.loadDataModel(passwordCallback): raise Exception("ERROR: calling 'newWrapper.loadDataModel()'")
+                output += "Successfully loaded Clone's data model \n"
+
+                newBook = newWrapper.getBook()
+                if newBook is None: raise Exception("ERROR: 'AccountBook' is None")
+                output += "Successfully obtained Clone's AccountBook reference\n"
+
+                newBookSyncer = newBook.getSyncer()
+                if newBookSyncer is None: raise Exception("ERROR: cloned dataset's 'Syncer' is None")
+                output += "Clone's 'Syncer' is running (%s)\n" %(newBookSyncer)
+
+            except MDException as mde:
+                if mde.getCode() == 1004:
+                    MD_REF.getUI().showErrorMessage("ERROR: The dataset's password is incorrect!?  Failed to open clone?")
+                    raise
+                else:
+                    dump_sys_error_to_md_console_and_errorlog()
+                    raise
+
+            cloneTime = System.currentTimeMillis()
+            newRoot = newBook.getRootAccount()
+
+            newRoot.setParameter(PARAMETER_KEY, safeStr(cloneTime))
+            newRoot.setComment("This dataset was cloned by the Toolbox extension on: %s (%s)"
+                               %(convertStrippedIntDateFormattedText(DateUtil.getStrippedDateInt()), cloneTime))
+            if newRoot.getAccountName().strip() != newBook.getName():
+                output += "Updating new root's account name to: '%s'\n" %(newBook.getName())
+                newRoot.setAccountName(newBook.getName())
+            newBook.logModifiedItem(newRoot)
+
+            if not AccountBookUtil.isWithinInternalStorage(newBook):
+                AccountBookUtil.registerExternalAccountBook(newBook)
+                output += "Registered cloned dataset with the File/Open menu list\n"
+
+            _msg = pad("Please wait: Resetting Sync in cloned dataset..",_msgPad,padChar=".")
+            diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
+            SYNC_KEYS = getNetSyncKeys()
+
+            newStorage = newBook.getLocalStorage()
+            for skey in SYNC_KEYS: newStorage.remove(skey)                                                              # noqa
+            newStorage.put("netsync.dropbox.fileid", UUID.randomUUID())
+            newStorage.put("_is_master_node", True)
+            newStorage.put(PARAMETER_KEY, safeStr(cloneTime))
+            newStorage.save()
+            if newRoot is not None:
+                newRoot.setEditingMode()
+                for skey in SYNC_KEYS: newRoot.removeParameter(skey)
+                newBook.logModifiedItem(newRoot)
+
+            output += "Clone's Sync settings have been reset and the internal UUID set to: '%s'\n" %(newStorage.getStr("netsync.dropbox.fileid","<ERROR>"))
+
+            output += "Imported and created clone book: %s\n" %(newBookFile.getCanonicalPath())
+            # newBook.notifyAccountModified(newBook.getRootAccount())
+            MD_REF.getUI().updateOpenFilesMenus()
+            output += "Updated 'open files' menu...\n"
+
+            if lZeroOpeningBalances:
+                _msg = pad("Please wait: Zeroing account opening/initial balances..",_msgPad,padChar=".")
+                diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
+                allAccounts = AccountUtil.allMatchesForSearch(newBook, AcctFilter.ALL_ACCOUNTS_FILTER)
+                for acct in allAccounts:
+
+                    lChangedBal = False
+                    if not isKotlinCompiledBuild():     # Pre MD2023 there was only start balance (no adjustment balance)
+                        xbal = acct.getStartBalance()
+                        if xbal != 0:
+                            rCurr = acct.getCurrencyType()
+                            output += "Setting account's initial / opening balance to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
+                            acct.setStartBalance(0)
+                            lChangedBal = True
+                    else:
+                        xbal = acct.getUnadjustedStartBalance()
+                        if xbal != 0:
+                            rCurr = acct.getCurrencyType()
+                            output += "Setting account's unadjusted initial / opening balance to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
+                            acct.setStartBalance(0)
+                            lChangedBal = True
+                        xbal = acct.getBalanceAdjustment()
+                        if xbal != 0:
+                            rCurr = acct.getCurrencyType()
+                            output += "Setting account's balance adjustment to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
+                            acct.setBalanceAdjustment(0)
+                            lChangedBal = True
+
+                    if lChangedBal:
+                        SyncerDebug.changeState(debug)
+                        newBook.logModifiedItem(acct)
+                        SyncerDebug.resetState()
+                        # acct.syncItem()
+
+            # noinspection PyArgumentList
+            class MyCloneTxnSearchFilter(TxnSearch):
+
+                # def __init__(self,dateStart,dateEnd):
+                #     self.dateStart = dateStart
+                #     self.dateEnd = dateEnd
+
+                def matchesAll(self):                                                                                           # noqa
+                    return False
+
+                def matches(self, _txn):
+                    if not isinstance(_txn, ParentTxn): return False
+                    return True
+                    #
+                    # if txn.getDateInt() >= self.dateStart and txn.getDateInt() <= self.dateEnd:                                 # noqa
+                    #     return True
+                    # return False
+
+
+            if lRemoveAllTxns:
+                newBook.setRecalcBalances(False)
+
+                _msg = pad("Please wait: Deleting txns/attachments (as necessary)..",_msgPad,padChar=".")
+                diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
+                startTimeMs = System.currentTimeMillis()
+                attachmentsToDelete = []
+                ts = newBook.getTransactionSet().getTransactions(MyCloneTxnSearchFilter())
+                output += "Removing all (%s) transactions from clone...\n" %(ts.getSize())
+                for txn in ts:
+                    if not isinstance(txn, ParentTxn):
+                        myPrint("B",txn.getSyncInfo().toMultilineHumanReadableString())
+                        raise Exception("ERROR: Should not delete splits!")
+                    if txn.hasAttachments():
+                        for attachKey in txn.getAttachmentKeys():
+                            attachTag = txn.getAttachmentTag(attachKey)
+                            attachmentsToDelete.append(attachTag)
+                tsList = ArrayList()
+                ts.copyInto(tsList)
+
+                SyncerDebug.changeState(debug)
+                if not newBook.logRemovedItems(tsList): raise Exception("ERROR: newBook.logRemovedItems(tsList) returned false?")
+                SyncerDebug.resetState()
+
+                if len(attachmentsToDelete):
+                    output += "Deleting %s attachments from clone...\n" %(len(attachmentsToDelete))
+                    for attachment in attachmentsToDelete:
+                        fAttachFile = File(attachment)
+                        if fAttachFile.exists():
+                            fAttachFile.delete()
+
+                    if removeEmptyDirs(os.path.join(newBook.getRootFolder().getCanonicalPath(), AccountBookWrapper.SAFE_SUBFOLDER_NAME)):
+                        output += "Successfully removed empty attachment folders...\n"
+                    else:
+                        output += "Error whilst removing empty attachment folders... (ignoring and continuing)\n"
+
+                output += "Mass delete of %s txns and %s attachments took: %s seconds\n" %(ts.getSize(), len(attachmentsToDelete), (System.currentTimeMillis() - startTimeMs) / 1000.0)
+
+            if lRemoveAllSnapHistory:
+                startTimeMs = System.currentTimeMillis()
+
+                _msg = pad("Please wait: Purging security price / currency rate history..",_msgPad,padChar=".")
+                diag.updateMessages(newTitle=_msg, newStatus=_msg)
+
+                keepSnaps = []
+
+                allCurrencies = newBook.getCurrencies().getAllCurrencies()
+                allSnaps = newBook.getItemsWithType(CurrencySnapshot.SYNCABLE_TYPE_VALUE)
+
+                iCountSecurities = iCountCurrencies = 0
+
+                for curSec in allCurrencies:
+                    if curSec.getCurrencyType() == CurrencyType.Type.SECURITY: iCountSecurities += 1                    # noqa
+                    if curSec.getCurrencyType() == CurrencyType.Type.CURRENCY: iCountCurrencies += 1                    # noqa
+                    secSnapshots = curSec.getSnapshots()
+                    if len(secSnapshots) > 0: keepSnaps.append(secSnapshots[-1])
+
+                output += "Currency rate / Security price history ('csnaps') before purge: %s (%s currencies, %s securities)\n"\
+                          %(allSnaps.size(), iCountCurrencies, iCountSecurities)
+
+                for snap in keepSnaps: allSnaps.remove(snap)
+
+                output += "Price history - keeping: %s 'csnaps', deleting: %s 'csnaps'\n" %(len(keepSnaps), allSnaps.size())
+
+                SyncerDebug.changeState(debug)
+                if not newBook.logRemovedItems(allSnaps): raise Exception("ERROR: newBook.logRemovedItems(allSnaps) returned false?")
+                SyncerDebug.resetState()
+
+                output += "Mass delete of %s currency rate / security price history 'csnaps' took: %s seconds\n"\
+                          %(allSnaps.size(), (System.currentTimeMillis() - startTimeMs) / 1000.0)
+
+            newBook.setRecalcBalances(True)
+
+            if not newBook.save(): raise Exception("ERROR: cloned AccountBook .save() returned false")
+
+            # myPrint("B", "Syncer: %s, isSyncing: %s, isRunningInBackground: %s" %(newBookSyncer, newBookSyncer.isSyncing(), newBookSyncer.isRunningInBackground()))
+            newBookSyncer.stopSyncing()
+            output += "Cloned dataset's 'Syncer' has been shut down (flushing remaining in-memory changes)\n"
+
+            # register attachment for deletion etc
+            # delete all txn files afterwards
+
+            # newBook.saveTrunkFile()
+            newBookSyncer.saveNewTrunkFile(True)
+            output += "Cloned dataset has been re-saved to disk (as a new trunk file)\n"
+
+            # Copied from com.infinitekind.tiksync.Syncer
+            OUTGOING_PATH = "tiksync/out"
+            INCOMING_PATH = "tiksync/in"
+            TXN_FILE_EXTENSION = ".txn"
+            TXN_FILE_EXTENSION_TMP = ".txn-tmp"
+            OUTGOING_TXN_FILE_EXTENSION = ".mdtxn"
+            PROCESSED_FILES = "tiksync/processed.dct"
+            newStorage.delete(PROCESSED_FILES)
+            for mdDir in [OUTGOING_PATH, INCOMING_PATH]:
+                for filename in newStorage.listFiles(mdDir):
+                    if (filename.endswith(TXN_FILE_EXTENSION_TMP)
+                            or filename.endswith(OUTGOING_TXN_FILE_EXTENSION)
+                            or filename.endswith(TXN_FILE_EXTENSION)):
+                        newStorage.delete(mdDir + "/" + filename)
+            output += "Deleted clone's 'processed.dct' and all .txn type files.....\n"
+
+            output += "\n\n" \
+                      " ------------------------------------------------------------------------------------------------\n"
+            output += "Original dataset's object analysis:\n"
+            output += count_database_objects()
+            fileSize, fileCount = calculateMoneydanceDatasetSize(True)
+            output += "...dataset size: %sMB (%s files)\n" %(rpad(fileSize,12),fileCount)
+            output += "\n"
+
+            output += "Analysis of objects in cloned dataset:\n"
+            output += count_database_objects(newBook)
+            fileSize, fileCount = calculateMoneydanceDatasetSize(True, whichBook=newBook)
+            output += "...dataset size: %sMB (%s files)\n" %(rpad(fileSize,12),fileCount)
+            output += " ------------------------------------------------------------------------------------------------\n"
+            output += "\n"
+
+            txt = "DATASET '%s' WAS CREATED FROM A CLONE OF '%s'" %(newBook.getName(), currentFilePath)
+            myPrint("B", txt)
+            logToolboxUpdates("advanced_clone_dataset", txt, book=newBook)
+
+        except:
+            txt = "Clone function has failed. Review log and console (CLONE INCOMPLETE)"
+            myPrint("B", txt)
+            output += "%s\n" %(txt)
+            output += dump_sys_error_to_md_console_and_errorlog(True)
+            jif = QuickJFrame(title=_THIS_METHOD_NAME, output=output, lAlertLevel=2, copyToClipboard=True, lWrapText=False).show_the_frame()
+            myPopupInformationBox(jif,theMessage=txt, theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
+            return
+        finally:
+            diag.kill()
+
+        output += "\n\nCLONE %s SUCCESSFULLY CREATED - USE MENU>FILE>OPEN\n\n" %(newBook.getName())
+        output += "<END>"
+        jif = QuickJFrame(title=_THIS_METHOD_NAME,output=output,copyToClipboard=True,lWrapText=False).show_the_frame()
+        myPopupInformationBox(jif,"Clone dataset: %s created (review output)" %(newBook.getName()))
 
     class CollectTheGarbage(AbstractAction):
 

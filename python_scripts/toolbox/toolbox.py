@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1061 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1063 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -56,7 +56,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
+# Copyright (c) 2021-2024 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -80,63 +80,6 @@
 # NOTE: java.lang.IllegalArgumentException can occur when doing something like '"%s" %(java.util.HashMap)' containing unicode (or calling print on the same HashMap)
 #       Should be fixed in Jython 2.7.3 sometime)... Also note that unicode() should be used instead of str() where appropriate....
 
-# build: 1048 - Bugfix deleteOFXService() if no service selected...; Enhanced View OFX data for multiple service options (OFX and MD+)
-# build: 1048 - Improved the 'STOP-NOW' command message (suggest to check for upgrade)
-# build: 1049 - Updated Zap md+ option to wipe all md+ data from system (including all banking links)
-# build: 1049 - Added redactor() to various outputs (especially OFX and curious modes)
-# build: 1049 - Fixed calls to .setEscapeKeyCancels() on older MD versions...
-# build: 1050 - Added force change currency for categories options...
-# build: 1051 - Tweaks to internal code. Improved reset window positions code to pre-close all MD windows....
-# build: 1051 - Changed invalid preferences locations/sizes code to zap keys from toolbox_init.py at MD launch.......
-# build: 1051 - Improve vmoptions detector.
-# build: 1051 - Added 'Rename this dataset (within the same location)' & 'Relocate this dataset back to the default 'internal' location' features
-# build: 1051 - Added 'Cleanup MD's File/Open list of 'external' files (does not touch actual files)' feature
-# build: 1051 - Moved the Delete internal/external files option to General Tools Menu (and auto purge external orphans)
-# build: 1051 - Auto-magically restart MD (same dataset) when needed....; Changed menus so they all exit after each usage
-# build: 1051 - Added 'Force MD+ name cache & access tokens rebuild' feature; Tweaked Export/Import/Zap/Wipe MD+ features
-# build: 1051 - Added 'REGISTER MONEYDANCE' button (if not registered)...; Fixed invalid locations detection for off-screen negative (left)
-# build: 1052 - Small bugfix when debug message crashed merge duplicate securities with java.lang.IllegalArgumentException
-# build: 1052 - Updated toolbox_total_selected_transactions.py script; Added Detect/Fix Txns assigned to Root...
-# build: 1052 - Enhanced fix_non_hier_sec_acct_txns() with autofix and tweak for concurrent modification of txn list error
-# build: 1052 - Change lAutoPruneInternalBackups_TB default to True
-# build: 1052 - Redact these keys and also added to remove list: 'netsync.db.access_token_key', 'netsync.db.access_token_secret', 'netsync.db.v2token'
-# build: 1052 - Also detect/display/zap 'netsync.download_attachments'; Added 'Toggle Sync Downloading of Attachments' feature
-# build: 1052 - Turned off linewrap on main diagnostic display... WATCHOUT FOR SLUGGISH DIAGNOSTICS SCREEN with long lines and wordwrap off! (Probably Mac only)
-# build: 1052 - Fixed get_sync_folder() when Dropbox Connection (cloud service has no local folder on disk)
-# build: 1052 - Added some more startup diag info to console error log during init and main script
-# build: 1052 - Fixed bug with VAQua9 that causes Mac long lines in main display to slow down the scroll and cause memory issues. Don't do this: 'scrollpane.setBorder(BorderFactory.createLineBorder....
-# build: 1052 - .... and thus removed the call to System.gc()
-# build: 1052 - Tweaked init so that JVM stats captured from new thread after 10 seconds (to allow JVM memory to settle)...
-# build: 1052 - Added 'Relocate this dataset to another location' option
-# build: 1052 - Added AppleScript File Open selector (for when needed - e.g. trying to open 'special locations' or .moneydance bundle file)
-# build: 1052 - Enhanced 'FIX: Non-Hierarchical Security Acct Txns (& detect Orphans)' to self-repair where 'sec' split missing (creates dummy fake security)
-# build: 1052 - Added 'FIX: Detect and merge/fix duplicate Securities within same Investment Account(s)'
-# build: 1052 - Added check for no currencies at launch... Odd, but has happened!
-# build: 1052 - Enhanced Shrink Dataset... Allow 0 days, always delete out/txn-tmp...
-# build: 1052 - Fix Merge Duplicate Securities (security split match check); fix apple script check on Mac version
-# build: 1053 - Added 'DIAG: Show Securities with 'invalid' LOT Matching (cause of LOT matching popup window)' feature
-# build: 1053 - FileDialog() (refer: java.desktop/sun/lwawt/macosx/CFileDialog.java) seems to no longer use "com.apple.macos.use-file-dialog-packages" in favor of "apple.awt.use-file-dialog-packages" since Monterrey...
-# build: 1053 - New feature 'Decrypt entire dataset' feature...
-# build: 1053 - New feature 'Force Disconnect an MD+ Connection' (also added to view service profiles)
-# build: 1053 - Allow md+ payload ids to appear in the view service profile output, unless user selects redacted option...
-# build: 1053 - Now clear MDPlus.licenseCache when shutting down the plusPoller...
-# build: 1053 - Improved ManuallyCloseAndReloadDataset() to release all references to (old) book, and shutdown more things - memory consumption etc....
-# build: 1053 - Added CMD-/ - calls up QuickJVMDiags(); tweaked Common Code...
-# build: 1053 - Flip to restart after Import and Zap md+ license (was exit) - now that we reset licenseCache.....
-# build: 1053 - Alerts to detect invalid backup locations (or auto-backup off); init code now warns about memory % and invalid backup locations too...
-# build: 1053 - Common code update - remove Decimal Grouping Character - not necessary to collect and crashes on newer Java versions (> byte)
-# build: 1053 - Added unlock (secret) option 'Close Dataset'; added JVM Memory stats to status line...
-# build: 1054 - Fixed MyPopupDialogBox() height from becoming too tall on Windows.....; also set the relativeLocation to parent (not None).....
-# build: 1054 - Tweaked rename/relocate dataset to detect crash when calling .setCurrentBook() - e.g. out of memory.....
-# build: 1055 - Tweaked Dropbox Config error popup to recommend / try reset sync method...; New logger for all updates performed.....
-# build: 1055 - Tweaked diagnose_currencies... Stopped fix applying if newRate was still zero/NaN..... Remains as a warning....
-# build: 1055 - Turned off Syncer.DEBUG when performing mass changes - to stop console log filling up etc...; also MD_REF.DEBUG when refreshing (GUI) sync status
-# build: 1055 - Added Remove inactive accounts from SideBar function...
-# build: 1055 - Rebuilt launch code so that latest extension version checks download(s) from internet occur in parallel in own thread....
-# build: 1055 - New feature: 'Toggle investment securities with zero shares status to active/inactive'
-# build: 1055 - New options added to open md folder button: View Toolbox's common & dataset update logfile
-# build: 1055 - Tweaked md+ connections routines to call .getMask() to grab last digits of account number... ;->
-# build: 1055 - Added MD Build and Toolbox Build to logger...
 # build: 1056 - Tweaked toolbox_init.py with error message; tweaked OFX_view_reconcile_AsOf_Dates()
 # build: 1056 - New feature: 'DIAG: Produce report of Accounts and bank/account number information'
 # build: 1056 - Added startup check for accounts that have both OFX AND md+ connections configured...
@@ -210,6 +153,13 @@
 #               Added checks for macOS Sonoma(14).... iCloud issues!
 #               Build 5046 fixes "Infinity" backups and defines .getNumBackupsToKeep() etc (no actual toolbox fix required)
 #               JFrame.dispose() added rootPane.getInputMap().clear() - ensure no memory leaks...; Increased usage of DateRange()
+# build: 1062 - Common code - FileFilter fix...; Tweak OFX_view_CUSIP_settings() to deal with blank CUSIP schemes...
+#               add .getFullAccountName() to the error message in review_security_accounts()
+#               updated -Xmx to include -XX:MaxRAMPercentage= and tweak show vmoptions feature etc....
+#               Added new option showMDLaunchParameters()...; relocated advanced_clone_dataset() into extra_code...
+# build: 1063 - Common code - FileFilter fix...; Tweak OFX_view_CUSIP_settings() to deal with blank CUSIP schemes...
+#               tweaked: force_change_all_accounts_categories_currencies(); added: validateAndFixBaseCurrency. Tweaked base currency validation/repair code.
+#               Tweaked diag/fix currencies/securities and diag/fix base currency routines; tweak menu for fix base currency
 
 # todo - undo the patch to DetectMobileAppTxnFiles() for Sonoma.. Perhaps put into a Thread()?
 
@@ -232,7 +182,7 @@
 
 # NOTE - I Use IntelliJ IDE - you may see # noinspection Pyxxxx or # noqa comments
 # These tell the IDE to ignore certain irrelevant/erroneous warnings being reporting:
-# Further options at: https://ww`w.jetbrains.com/help/pycharm/disabling-and-enabling-inspections.html#comments-ref
+# Further options at: https://www.jetbrains.com/help/pycharm/disabling-and-enabling-inspections.html#comments-ref
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -240,7 +190,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1061"
+version_build = "1063"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
 
@@ -573,13 +523,13 @@ else:
     from javax.swing import BorderFactory, JSeparator, DefaultComboBoxModel                                                 # noqa
     from javax.swing import JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel
 
-    from java.io import ByteArrayInputStream, OutputStream, InputStream, BufferedOutputStream
+    from java.io import ByteArrayInputStream, OutputStream, InputStream
     from java.net import URL, URLEncoder, URLDecoder                                                                        # noqa
     from java.awt import Component                                                                                          # noqa
     from java.awt import GraphicsEnvironment, Rectangle, GraphicsDevice, Desktop, Event, GridBagConstraints, Window, Frame  # noqa
     from java.awt.event import ComponentAdapter, ItemListener, ItemEvent, HierarchyListener, ActionListener, MouseAdapter   # noqa
     from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector
-    from java.util.zip import ZipInputStream, ZipEntry, ZipOutputStream
+    from java.util.zip import ZipInputStream, ZipEntry
     from java.nio.charset import StandardCharsets
     from java.nio.file import Paths, Files, StandardCopyOption
     from java.security import MessageDigest, KeyFactory
@@ -598,7 +548,7 @@ else:
 
     from com.moneydance.apps.md.view.gui import MoneydanceGUI
     from com.moneydance.apps.md.view.gui.sync import SyncFolderUtil
-    from com.moneydance.apps.md.controller import MDException, Util, AppEventListener, PreferencesListener, UserPreferences
+    from com.moneydance.apps.md.controller import Util, AppEventListener, PreferencesListener, UserPreferences
     from com.moneydance.apps.md.controller import ModuleLoader, ModuleMetaData, LocalStorageCipher, Common, BalanceType
     from com.moneydance.apps.md.controller.sync import MDSyncCipher
     from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
@@ -617,7 +567,6 @@ else:
 
     from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
     from com.moneydance.awt import JCurrencyField, AwtUtil                                                              # noqa
-    from com.moneydance.security import SecretKeyCallback
     from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
     from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow            # noqa
     from com.moneydance.apps.md.view.gui import WelcomeWindow, SearchRegTxnListModel, SecondaryDialog
@@ -637,8 +586,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5050
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.3
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5064
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -654,6 +603,7 @@ else:
     GlobalVars.MD_MDPLUS_GETPLAIDCLIENT_BUILD = 4090                        # 2022.5
     GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL = 5008                          # 2023.2 (Entire codebase compiled in Kotlin)
     GlobalVars.MD_INFINITYBACKUPS_FIXED = 5046                              # 2023.2
+    GlobalVars.MD_VMOPTIONS_CHANGED = 5057                                  # 2023.2 (switched to -include files)
 
     GlobalVars.fixRCurrencyCheck = 0
     GlobalVars.globalSaveFI_data = None
@@ -1562,6 +1512,7 @@ Visit: %s (Author's site)
         def __init__(self, ext): self.ext = "." + ext.upper()                                                           # noqa
 
         def accept(self, thedir, filename):                                                                             # noqa
+            # type: (File, str) -> bool
             if filename is not None and filename.upper().endswith(self.ext): return True
             return False
 
@@ -1572,7 +1523,9 @@ Visit: %s (Author's site)
         def getDescription(self): return "*"+self.ext                                                                   # noqa
 
         def accept(self, _theFile):                                                                                     # noqa
+            # type: (File) -> bool
             if _theFile is None: return False
+            if _theFile.isDirectory(): return True
             return _theFile.getName().upper().endswith(self.ext)
 
     def MDDiag():
@@ -2027,6 +1980,10 @@ Visit: %s (Author's site)
 
         _THIS_METHOD_NAME = "Dynamic File Chooser"
 
+        if not Platform.isOSX() and lForceFD and not fileChooser_selectFiles:
+            myPrint("DB", "@@ Overriding lForceFD to False - as it won't work for selecting Folders on Windows/Linux!")
+            lForceFD = False
+
         if fileChooser_multiMode:
             myPrint("B","@@ SORRY Multi File Selection Mode has not been coded! Exiting...")
             return None
@@ -2079,7 +2036,6 @@ Visit: %s (Author's site)
             else:
                 fileDialog.setMode(FileDialog.SAVE)
 
-            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
             if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 fileDialog.setFilenameFilter(ExtFilenameFilter(fileChooser_fileFilterText))
@@ -2120,7 +2076,6 @@ Visit: %s (Author's site)
             else:
                 jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY)   # FILES_ONLY, DIRECTORIES_ONLY, FILES_AND_DIRECTORIES
 
-            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
             if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 jfc.setFileFilter(ExtFileFilterJFC(fileChooser_fileFilterText))
@@ -2981,7 +2936,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2023)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2024)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -3434,6 +3389,7 @@ Visit: %s (Author's site)
         global advanced_options_decrypt_file_from_dataset, advanced_options_decrypt_file_from_sync
         global advanced_options_decrypt_dataset, advanced_show_encryption_keys
         global CollectTheGarbage, getDropboxSyncFolderForBasePath, advanced_options_force_reset_sync_settings
+        global advanced_clone_dataset
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -5385,6 +5341,23 @@ Visit: %s (Author's site)
 
             ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
+    def createNewCurrency(setBase=False):
+        book = MD_REF.getCurrentAccountBook()
+        currencyTable = book.getCurrencies()
+        newCurrency = CurrencyType(book.getCurrencies())    # Creates a new CT object
+        newCurrency.setEditingMode()
+        newCurrency.setName("NEW CURRENCY - PLEASE EDIT ME LATER")
+        newCurrency.setIDString("AAA")
+        newCurrency.setDecimalPlaces(2)
+        newCurrency.setRelativeRate(1.0)
+        myPrint("B", "Created new currency record!", newCurrency)
+        if setBase:
+            currencyTable.setBaseType(newCurrency)          # Will auto call .syncItem()
+            myPrint("B", "... and set it as the base currency too.....")
+        else:
+            newCurrency.syncItem()
+        return newCurrency
+
     def find_other_datasets():
         output = ""
         output += ("\nQUICK SEARCH FOR OTHER DATASETS:\n"
@@ -7134,10 +7107,13 @@ Visit: %s (Author's site)
                     theScheme = key[len(PARAM_CURRID):]
                     theCUSIP = sec.getIDForScheme(theScheme)
 
-                    if not theCUSIP: raise Exception("ERROR: %s - empty CUSIP returned? Security: %s, Scheme: %s" %(_THIS_METHOD_NAME, sec, theScheme))
+                    if not theCUSIP:
+                        theCUSIP = "<INVALID SCHEME/CUSIP ID: blank or null!>"
+                        # raise Exception("ERROR: %s - empty CUSIP returned? Security: %s, Scheme: %s" %(_THIS_METHOD_NAME, sec, theScheme))
 
                     iCountFound += 1
-                    output += "%s %s %s %s %s %s %s\n" % (pad(sec.getName(), 45),
+                    output += "%s %s %s %s %s %s %s\n"\
+                                                  %(pad(sec.getName(), 45),
                                                     pad(sec.getIDString(), 15),
                                                     pad(sec.getTickerSymbol(), 15),
                                                     pad(theScheme, 12),
@@ -9582,6 +9558,172 @@ Visit: %s (Author's site)
         myPrint("DB","ORPHAN/OUTDATED Extension Files:", orphan_outdated_files)
         return [orphan_outdated_prefs, orphan_outdated_files, orphan_confirmed_extn_keys]
 
+    def validateAndFixBaseCurrency(validationOnly=False, popupAlert=False, modalPopup=True, adviseNoErrors=False):
+        """Validates that at least one currency exists and that a valid base type is detected. Returns True is error(s) detected. False = No Errors"""
+        _THIS_METHOD_NAME = "Validate and fix base currency"
+
+        PARAM_RRATE = "rrate"
+        PARAM_ISBASE = "isbase"
+
+        if not validationOnly: modalPopup = True
+
+        baseCurr = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+        allCurrs = [c for c in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies() if c.getCurrencyType() == CurrencyType.Type.CURRENCY]  # noqa
+
+        baseHasNoCurrencies = len(allCurrs) < 1
+        baseIsNotCurrency = (baseCurr.getCurrencyType() != CurrencyType.Type.CURRENCY)                                  # noqa
+        baseIsNotBase = (not baseCurr.getBooleanParameter(PARAM_ISBASE, False))
+        baseIsFallback = (not invokeMethodByReflection(baseCurr, "isSyncable", [], []))                                 # isPlaceholder only exists in 5064 onwards
+        baseHasInvalidRateParams = (baseCurr.getParameter(PARAM_RRATE, None) is None
+                                     or not isGoodRate(baseCurr.getDoubleParameter(PARAM_RRATE, 0.0))
+                                     or baseCurr.getDoubleParameter(PARAM_RRATE, 0.0) != 1.0
+                                     or baseCurr.getRate(None) != 1.0)
+
+        msgTxt = ""
+        if baseHasNoCurrencies:         msgTxt += "You seem to have no Currencies?!\n"
+        if baseIsFallback:              msgTxt += "Base Currency is emergency fallback?!\n"
+        if baseIsNotCurrency:           msgTxt += "Base Currency type is NOT a Currency?!\n"
+        if baseIsNotBase:               msgTxt += "Base Currency is not properly set as base (isbase)?!\n"
+        if baseHasInvalidRateParams:    msgTxt += "Base Currency has invalid rates?!\n"
+        baseHasErrors = (baseHasNoCurrencies or baseIsNotCurrency or baseIsFallback or baseIsNotBase or baseHasInvalidRateParams)
+
+        if baseHasErrors: myPrint("B", ".\nCURRENCY ERROR(s) DETECTED!\n" + msgTxt)
+
+        if not baseHasErrors:
+            if popupAlert and adviseNoErrors:
+                MyPopUpDialogBox(toolbox_frame_,
+                                 theTitle=_THIS_METHOD_NAME.upper(),
+                                 theStatus="BASE/CURRENCY OK",
+                                 theMessage="No errors in base currency detected",
+                                 OKButtonText="ACKNOWLEDGE",
+                                 lAlertLevel=0,
+                                 lModal=modalPopup).go()
+            return baseHasErrors
+
+        if validationOnly:
+            if popupAlert:
+                if baseHasErrors:
+                    MyPopUpDialogBox(toolbox_frame_,
+                                     theTitle=_THIS_METHOD_NAME.upper(),
+                                     theStatus="BASE/CURRENCY ERROR(s) DETECTED",
+                                     theMessage=(msgTxt +
+                                                "Try fixing in Tools/Currencies and add a Currency\n" 
+                                                "... then click 'Set Base Currency', and restart MD\n"
+                                                "OR run Toolbox > 'Validate and fix base currency'"),
+                                     OKButtonText="ACKNOWLEDGE",
+                                     lAlertLevel=2,
+                                     lModal=modalPopup).go()
+            return baseHasErrors
+
+        ask = MyPopUpDialogBox(toolbox_frame_,
+                             theTitle=_THIS_METHOD_NAME.upper(),
+                             theStatus="BASE/CURRENCY ERROR(s) DETECTED >> APPLY FIXES?",
+                             theMessage=(msgTxt +
+                                        "Click OK to apply base currency fix"),
+                             lCancelButton=True,
+                             OKButtonText="I AGREE - PROCEED",
+                             lAlertLevel=2)
+
+        if not ask.go():
+            txt = "User did not say yes to fix base currency - NO CHANGES MADE"
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME.upper(), "Fix base currency setup?"):
+            return False
+
+        myPrint("B", "User requested to fix base currency setup - proceeding....:")
+
+        myPrint("B", "... Flushing changes to sync...")
+        MD_REF.saveCurrentAccount()
+
+        if baseHasNoCurrencies: createNewCurrency(False)
+
+        allCurrs = [c for c in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies() if c.getCurrencyType() == CurrencyType.Type.CURRENCY]  # noqa
+        assert len(allCurrs) > 0, ("LOGIC ERROR.. There should now be at least one currency record?!")
+
+        selectToCreateNewCurrTxt = "<SELECT TO CREATE A NEW CURRENCY>"
+        # if not baseHasNoCurrencies: allCurrs.insert(0, selectToCreateNewCurrTxt)
+        selectedCurrency = JOptionPane.showInputDialog(toolbox_frame_,
+                                                       "Select Currency", "Select the currency to set as base",
+                                                       JOptionPane.INFORMATION_MESSAGE,
+                                                       getMDIcon(lAlwaysGetIcon=True),
+                                                       allCurrs,
+                                                       None)
+        if selectedCurrency is None:
+            txt = "No currency was selected to set as base (review Tools > Currencies)- aborting.."
+            setDisplayStatus(txt, "R")
+            return
+
+        if isinstance(selectedCurrency, basestring) and selectedCurrency == selectToCreateNewCurrTxt:
+            selectedCurrency = createNewCurrency(False)
+        assert selectedCurrency.getCurrencyType() == CurrencyType.Type.CURRENCY, ("LOGIC ERROR: '%s' type: '%s' found (should be: 'CURRENCY')" %(selectedCurrency, selectedCurrency.getCurrencyType()))  # noqa
+
+        if selectedCurrency is baseCurr:
+            myPrint("B", "The selected currency '%s' is already the base currency... will attempt manual repairs to existing base" %(selectedCurrency))
+        else:
+            myPrint("B", "The selected currency '%s' is NOT the base currency (currently: '%s')... will attempt manual repairs to selected currency before the switch to new base..." %(selectedCurrency, baseCurr))
+
+        if not checkCurrencyRawRatesOK(selectedCurrency):
+            myPrint("B", "... NOTE: rate(s) were wrong on new (to be) base currency '%s' - these will be set to 1.0" %(selectedCurrency))
+
+        myPrint("B", "Attempting to switch to new base currency '%s' (from old base: '%s') >> WITHOUT any rate conversions!" %(selectedCurrency, baseCurr))
+
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+
+        # .setBaseType() triggers rate conversions. Problematic... So let's not do this!
+        # book = MD_REF.getCurrentAccountBook()
+        # currencyTable = book.getCurrencies()
+        # currencyTable.setBaseType(selectedCurrency)
+
+        selectedCurrency.setEditingMode()
+        selectedCurrency.setRate(1.0, None)
+        selectedCurrency.setParameter(PARAM_ISBASE, Boolean(True))
+        selectedCurrency.setParameter("_toolbox_repair_base", Boolean(True))
+        selectedCurrency.setCurrencyParameter(None, "rel_curr_id", "relative_to_currid", None)
+        selectedCurrency.syncItem()
+
+        myPrint("B", "... '%s' set as new base currency....." %(selectedCurrency))
+
+        myPrint("B", "Scanning for accounts/categories that need their currency switched.....")
+
+        # This will include root account in the search, but exclude Securities...
+        accounts = [acct for acct in AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), AcctFilter.ALL_ACCOUNTS_FILTER)
+                    if acct.getAccountType != Account.AccountType.SECURITY]                                             # noqa
+
+        accountsChanged = 0
+        for account in accounts:
+            if account.getAccountType() == Account.AccountType.SECURITY:    # Never touch securities!                   # noqa
+                continue
+            acctCurr = account.getCurrencyType()
+            if acctCurr == selectedCurrency:               # Should already be OK
+                continue
+            if not baseHasNoCurrencies:
+                if acctCurr.getCurrencyType() == CurrencyType.Type.CURRENCY:                                            # noqa
+                    # Presumably, these were set to another currency for a reason?!
+                    if acctCurr != baseCurr:
+                        continue
+
+            myPrint("B","Setting account / category %s (%s) to currency %s" %(account, account.getAccountType(), selectedCurrency))
+            account.setCurrencyType(selectedCurrency)
+            account.syncItem()
+            accountsChanged += 1
+
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+
+        myPrint("B", "... %s accounts/categories switched to new base currency" %(accountsChanged))
+        myPrint("B", "FINISHED REPAIRING BASE CURRENCY!")
+
+        txt = "Base currency setup repaired (review Tools/Currencies) >> MONEYDANCE WILL NOW QUIT >> PLEASE RESTART"
+        setDisplayStatus(txt, "R"); myPrint("B", txt)
+        logToolboxUpdates("validateAndFixBaseCurrency", txt)
+
+        play_the_money_sound()
+        myPopupInformationBox(toolbox_frame_, txt, _THIS_METHOD_NAME.upper(), JOptionPane.WARNING_MESSAGE)
+
+        ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=False)  # force MD to quit
+
     # noinspection PyUnresolvedReferences
     def diagnose_currencies(lFix=False):
 
@@ -9591,7 +9733,7 @@ Visit: %s (Author's site)
         # It was supposed to be the case that MD2019+ would see the missing 'rrate' field and convert the legacy rate in memory
         # Even though new 'rrate' was now in memory (in a variable), the data was not stored back to the parameter 'rrate', and was always missing
         # Once you actually edited a price using Tools/Currencies, then the new 'rrate' parameter would be created...
-        # BUT, there is a bug and in fact as well as the new 'rrate' the old 'rate' was changed too. So, backwards compatibility to 2017 was lost.
+        # BUT, there is a bug. As well as the new 'rrate' the old 'rate' was changed too. So, backwards compatibility to 2017 was lost.
 
         # Example: Stock: Price £6.25 Old 'rate' was stored as 16 (2dpc) in MD2017. In MD2019 new 'rrate' is 0.16.
         # Old 'rate' was supposed to always stay as 16, but once edited in MD2019 it became 0.16 too (BUG).
@@ -9614,11 +9756,17 @@ Visit: %s (Author's site)
 
         # Other notes:
         # Currencies can only be relative to base (and should be set to None)
-        # Securities should be set to Base (as None), or can be relative to another Currency (not Security)
-        # Max relative relational depth is SEC>CURR>Base or CURR>Base
+        # Securities' relative currency should be set to Base (as None), or can be relative to another Currency (not Security)
+        # Max relative relational depth is SEC>CURR>Base or CURR>Base.
 
         _THIS_METHOD_NAME = "Diagnose currencies / securities (including relative currencies)"
         if lFix: _THIS_METHOD_NAME = "FIX currencies / securities (including relative currencies)"
+
+        if validateAndFixBaseCurrency(validationOnly=True, popupAlert=False, modalPopup=True, adviseNoErrors=False):
+            txt = "You have a base currency setup issue. Run 'DIAG - Diagnose base currency' first - NO CHANGES MADE"
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_,txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
 
         PARAM_RATE = "rate"
         PARAM_RRATE = "rrate"
@@ -9934,6 +10082,11 @@ Visit: %s (Author's site)
                                   %(curr, get_rrate, get_rate, newRate, safeInvertRate(newRate))
                             myPrint("J", txt); output += "---\n%s\n" %(txt)
 
+                            if not isGoodRate(newRate) and lFix and lFixWarnings:
+                                txt = "... CANNOT set 'rrate' to ZERO - overriding to 1.0"
+                                myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
+                                newRate = 1.0
+
                             if isGoodRate(newRate) and lFix and lFixWarnings:
                                 lSyncNeeded = True
                                 curr.setEditingMode()
@@ -9945,9 +10098,9 @@ Visit: %s (Author's site)
                                 txt = "@@SECURITY FIX APPLIED (reset new 'rrate') @@"
                                 myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
                             else:
-                                if not isGoodRate(newRate) and lFix and lFixWarnings:
-                                    txt = "!!SECURITY FIX NOT APPLIED (cannot set 'rrate' to ZERO) !!"
-                                    myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
+                                # if not isGoodRate(newRate) and lFix and lFixWarnings:
+                                #     txt = "!!SECURITY FIX NOT APPLIED (cannot set 'rrate' to ZERO) !!"
+                                #     myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
 
                                 lWarning = True; iWarnings  += 1
 
@@ -9959,6 +10112,12 @@ Visit: %s (Author's site)
                             txt = "@@ WARNING: '%s' ** Relative Curr is: '%s' ** legacy 'rate' is currently %s, whereas new relative 'rrate' is set to: %s. Should be new 'rrate': %s (inversed: %s)\n"\
                                   %(curr, rCurr, get_rate, get_rrate, newRRate, safeInvertRate(newRRate))
                             myPrint("J", txt); output += "---\n%s\n" %(txt)
+
+                            if not isGoodRate(newRRate) and lFix and lFixWarnings:
+                                txt = "... CANNOT set 'rrate' to ZERO - overriding to 1.0"
+                                myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
+                                newRate = 1.0
+                                newRRate = 1.0
 
                             if isGoodRate(newRRate) and lFix and lFixWarnings:
                                 lSyncNeeded = True
@@ -9980,9 +10139,9 @@ Visit: %s (Author's site)
                                     txt = "@@EXTRA SECURITY FIX APPLIED (set both relative currency parameters) @@"
                                     myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
                             else:
-                                if not isGoodRate(newRRate) and lFix and lFixWarnings:
-                                    txt = "@@SECURITY FIX NOT APPLIED (cannot set new 'rrate' to ZERO) !!"
-                                    myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
+                                # if not isGoodRate(newRRate) and lFix and lFixWarnings:
+                                #     txt = "@@SECURITY FIX NOT APPLIED (cannot set new 'rrate' to ZERO) !!"
+                                #     myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
 
                                 lWarning = True; iWarnings  += 1
 
@@ -10095,6 +10254,11 @@ Visit: %s (Author's site)
                           %(curr, get_rrate, get_rate, newRate, safeInvertRate(newRate))
                     myPrint("J", txt); output += "---\n%s\n---\n" %(txt)
 
+                    if not isGoodRate(newRate) and lFix and lFixWarnings:
+                        txt = "... CANNOT set 'rrate' to ZERO - overriding to 1.0"
+                        myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
+                        newRate = 1.0
+
                     if isGoodRate(newRate) and lFix and lFixWarnings:
                         lSyncNeeded = True
                         curr.setEditingMode()
@@ -10105,9 +10269,9 @@ Visit: %s (Author's site)
                         txt = "@@CURRENCY FIX APPLIED (reset new 'rrate') @@"
                         myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
                     else:
-                        if not isGoodRate(newRate) and lFix and lFixWarnings:
-                            txt = "!!CURRENCY FIX NOT APPLIED (cannot set 'rrate' to ZERO) !!"
-                            myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
+                        # if not isGoodRate(newRate) and lFix and lFixWarnings:
+                        #     txt = "!!CURRENCY FIX NOT APPLIED (cannot set 'rrate' to ZERO) !!"
+                        #     myPrint("J", txt); output += "----\n%s\n----\n" %(txt)
 
                         lWarning = True; iWarnings  += 1
 
@@ -10235,7 +10399,7 @@ Visit: %s (Author's site)
         if iWarnings: alertLevel = 1
         if lNeedFixScript: alertLevel = 2
 
-        jif = QuickJFrame(theTitle,output,lAlertLevel=alertLevel, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lRestartMDAfterClose=lFix, lAutoSize=True).show_the_frame()
+        jif = QuickJFrame(theTitle,output,lAlertLevel=alertLevel, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lQuitMDAfterClose=lFix, lAutoSize=True).show_the_frame()
 
         setDisplayStatus(txt, statusColor)
         play_the_money_sound()
@@ -10243,7 +10407,7 @@ Visit: %s (Author's site)
 
         if lFix:
             disableToolboxButtons()
-            myPopupInformationBox(jif,"RESTART OF MONEYDANCE REQUIRED - MD WILL RESTART AFTER VIEWING THIS OUTPUT", _THIS_METHOD_NAME.upper(), theMessageType=JOptionPane.ERROR_MESSAGE)
+            myPopupInformationBox(jif, "RESTART OF MONEYDANCE REQUIRED - MD WILL QUIT AFTER VIEWING THIS OUTPUT", _THIS_METHOD_NAME.upper(), theMessageType=JOptionPane.ERROR_MESSAGE)
 
         return output
 
@@ -11109,7 +11273,7 @@ Visit: %s (Author's site)
 
                     myPrint("B","setting old key %s to None" %(selectedUserIDKey))
                     myPrint("DB", "OLD pre %s %s" %(selectedUserIDKey,root.getParameter(selectedUserIDKey)))
-                    root.setParameter(selectedUserIDKey,None)
+                    root.setParameter(selectedUserIDKey, None)
 
                     root.syncItem()
                     myPrint("DB", "OLD post %s %s" %(selectedUserIDKey,root.getParameter(selectedUserIDKey)))
@@ -12190,13 +12354,13 @@ Visit: %s (Author's site)
                 setDisplayStatus(txt, "R")
                 return
 
-            dropdownSecsMoveTo = selectedSecurityMoveTo = None                                                      # noqa
+            dropdownSecsMoveTo = selectedSecurityMoveTo = None                                                          # noqa
 
         if lMove:
             dropdownSecsMoveTo = ArrayList()
             currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
             for curr in currencies:
-                if curr.getCurrencyType() != CurrencyType.Type.SECURITY: continue                               # noqa
+                if curr.getCurrencyType() != CurrencyType.Type.SECURITY: continue                                       # noqa
                 if curr == selectedSecurity: continue
                 dropdownSecsMoveTo.add(curr)
 
@@ -15521,18 +15685,28 @@ Visit: %s (Author's site)
                                   "AUTO-PRUNE INTERNAL BACKUPS",
                                   JOptionPane.ERROR_MESSAGE)
 
+    def quickReadTextFile(theFileToRead):
+        displayFile = "<ERROR READING FILE - OR DOES NOT EXIST>"
+        try:
+            with open(theFileToRead, "r") as myFile:
+                displayFile = myFile.readlines()
+
+            # If VMOptions, stick a "'" at the beginning for clipboard to Excel to work OK
+            if GlobalVars.lCopyAllToClipBoard_TB and "vmoptions" in theFileToRead.lower():
+                newDisplayFile = []
+                for line in displayFile:
+                    line = "'" + line
+                    newDisplayFile.append(line)
+                displayFile = newDisplayFile
+            else:
+                displayFile.append("\n<END>")
+
+            displayFile = ''.join(displayFile)
+        except:
+            dump_sys_error_to_md_console_and_errorlog()
+        return displayFile
+
     class ViewFileButtonAction(AbstractAction):
-
-        class CloseAction(AbstractAction):
-
-            def __init__(self, the_frame):
-                self.theFrame = the_frame
-
-            # noinspection PyUnusedLocal
-            def actionPerformed(self, event):
-                myPrint("DB", "Inner View File Frame shutting down....")
-                self.theFrame.dispose()     # Listener will already be on the EDT
-                return
 
         def __init__(self, theFile, displayText):
             self.theFile = theFile
@@ -15543,65 +15717,90 @@ Visit: %s (Author's site)
 
             myPrint("DB", "User requested to view " + self.displayText + " file...")
             if not os.path.exists(x):
-                txt = "Sorry - " + self.displayText + " file does not exist or is not available to view!?: " + x
+                txt = "ERROR - " + self.displayText + " file does not exist or is not available to view!?: " + x
                 setDisplayStatus(txt, "R")
                 return
 
-            try:
-                with open(x, "r") as myFile:
-                    displayFile = myFile.readlines()
+            displayFile = quickReadTextFile(x)
 
-                # If VMOptions, stick a "'" at the beginning for clipboard to Excel to work OK
-                if GlobalVars.lCopyAllToClipBoard_TB and x.lower().endswith(".vmoptions"):
-                    newDisplayFile=[]
-                    for line in displayFile:
-                        line ="'"+line
-                        newDisplayFile.append(line)
-                    displayFile = newDisplayFile
-                else:
-                    displayFile.append("\n<END>")
-
-                displayFile = ''.join(displayFile)
-            except:
-                displayFile = "Sorry - error opening file...."
-                dump_sys_error_to_md_console_and_errorlog()
-
-            if x.lower().endswith(".vmoptions"):
+            lViewVMOptions = x.lower().endswith(".vmoptions")
+            if lViewVMOptions:
                 vmoptionsPath = get_vmoptions_path()
-                displayFile += """
--------------------------------------------------------------------------------------------------------------------------------------------
+                vmoptionsLocalPath = os.path.join(Common.getRootDirectory().getCanonicalPath(), "vmoptions.txt")
+                lNewVMOptions = MD_REF.getBuild() >= GlobalVars.MD_VMOPTIONS_CHANGED
+
+                if not lNewVMOptions:
+                    displayFile = ("Contents of Moneydance's .vmoptions file: '%s'\n"
+                                   "-----------------------------------------\n" %(vmoptionsPath)
+                                   + displayFile)
+                else:
+
+                    displayFile = ("Contents of Moneydance's .vmoptions file (DO NOT CHANGE): '%s'\n"
+                                   "---------------------------------------------------------\n" %(vmoptionsPath)
+                                   + displayFile)
+
+                    displayFile2 = quickReadTextFile(vmoptionsLocalPath)
+
+                    displayFile += ("\n\n"
+                                    "---------------------------------------------------------------------------------------------------------------------------------------------\n"
+                                    "Contents of Local user vmoptions.txt file (create/edit): '%s'\n"
+                                    "--------------------------------------------------------\n" %(vmoptionsLocalPath)
+                                    + displayFile2
+                                    +"\n\n")
+
+                if lNewVMOptions:
+                    displayFile += """
+---------------------------------------------------------------------------------------------------------------------------------------------
 <INSTRUCTIONS - MEMORY>
 ======================
-You can allow for more memory by editing the '%s' file and set it to increase the amount of memory that
-Moneydance is allowed to use. To achieve this you can try the following:
+
+>>>> As of MD2023.2(%s) the default on all platforms is '-XX:MaxRAMPercentage=80' (allow up to 80%% usage of available memory)  <<<<<
+>>>>                      it is highly unlikely that you should need to adjust your memory settings on build %s or later        <<<<<
+>>>>                      however, changes should ONLY be made to the /.moneydance/vmoptions.txt file (which you should create)   <<<<<
+>>>>                      (note: the 'vmoptions.txt' file location is the same location as the  errlog.txt & config.dict files)   <<<<<
+>>>>                      the 'Moneydance.vmoptions' file should NOT be changed!                                                  <<<<<
+
+MD's .vmoptions file (DO NOT CHANGE):         '%s'
+Local user vmoptions.txt file to create/edit: '%s'
+
+You can change / override Moneydance's memory usage (and other JVM settings) by creating / editing your local 'vmoptions.txt' file.
+
+WITH MONEYDANCE CLOSED... Create/open/edit the '%s' file with a suitable text editor. Update your settings and save...
+... suggested text editors: Windows: Notepad, Linux: KWrite (from Software Manager/app Store)
+
+Using ONE of the following lines would override the default 80%% max memory JVM usage:
+-XX:MaxRAMPercentage=50             (would limit usage to 50%% of max memory available)
+-Xmx2048m                           (would limit usage to 2MB of memory)
+
+If you want to prove this worked.. At MD launch, the Toolbox extension informs you of the memory  being used in Help/Console Window.
+Also on opening Toolbox, the bottom status bar line provides JVM Memory information.
+
+""" %(GlobalVars.MD_VMOPTIONS_CHANGED, GlobalVars.MD_VMOPTIONS_CHANGED, vmoptionsPath, vmoptionsLocalPath, vmoptionsLocalPath)
+
+                else:
+                    displayFile += """
+---------------------------------------------------------------------------------------------------------------------------------------------
+<INSTRUCTIONS - MEMORY>
+======================
+
+You can change Moneydance's memory usage by editing the '%s' file and change/increase the amount of memory that Moneydance is allowed to use.
+To achieve this you can make the following changes:
+
+WITH MONEYDANCE CLOSED...
 
 Navigate to the '%s' file, located in the folder where Moneydance is installed:
 
-If you open that file with Notepad or any other text editor, you'll see some instructions for how to change it.
-Close Moneydance first!
+Open this file with a suitable text editor. The file contents contain some instructions on how to change the settings.
+... suggested text editors: Windows: Notepad, Linux: KWrite (from Software Manager/app Store)
 
-The basic recommendation is to changing the -Xmx1024m setting to -Xmx2048m which doubles the amount of memory that Moneydance is allowed to use.
-You can give it more if you wish, E.g.: you make it -Xmx3072m, for optimal results.
+The basic recommendation for builds prior to MD2023.2(%s) is to replace the old '-Xmx1024m' setting with a new line:
+-XX:MaxRAMPercentage=80     
+#-Xmx1024m                          (adding # in front of this line to comment it out)
+This would limit usage to 80%% of max memory available.  Or, at least use something like '-Xmx2048m' which will
+double the amount of memory that Moneydance is allowed to use to 2GB
+NOTE: The limit was previously set deliberately low to enable it to work with computers having very small amounts of RAM.
 
-NOTE: The limit is set deliberately low to enable it to work with computers having very small amounts of RAM.
-
-""" %(vmoptionsPath, vmoptionsPath)                                                                                     # noqa
-
-                windowsExtra = """
------
-Windows location: '%s'
-
-In Windows - due to permissions, you will need to do this:
-In the 'Type here to Search' box on the Windows 10 Toolbar, type CMD (do not press enter)
-When Command Prompt appears, click Run as Administrator
-Click yes/agree to allow this app to make changes to this device / grant administrator permissions
-notepad "%s" (and press enter)
-edit the file and change the -Xmx1024 setting
-ctrl-s to save and then exit Notepad
-exit
-restart Moneydance
--------------------------------------------------------------------------------------------------------------------------------------------
-""" %(vmoptionsPath, vmoptionsPath)                                                                                     # noqa
+""" %(vmoptionsPath, vmoptionsPath, GlobalVars.MD_VMOPTIONS_CHANGED)
 
                 linuxExtra = """
 <INSTRUCTIONS - Linux and High Resolution Screens>
@@ -15610,8 +15809,7 @@ When running Linux on a computer with a high resolution display, some distributi
 the interface to provide clearer graphics at a larger size. If you use scaling on your Linux desktop but the contents of
 the Moneydance window appears very small then you may need to adjust Moneydance's scaling.
 
-To change the scaling, open '%s' with a text editor (as per instructions below) add the following two
-lines to the bottom of the file:
+To change the scaling, open '%s' with a text editor (as per instructions below) add the following two lines to the bottom of the file:
 
 -Dsun.java2d.uiScale=2
 -Dsun.java2d.uiScale.enabled=true
@@ -15619,38 +15817,68 @@ lines to the bottom of the file:
 >>PLEASE NOTE: that as of this writing, non-integer scales (for example, 1.2) are not supported.
 refer: https://infinitekind.tenderapp.com/kb/linux/linux-and-hidpi-high-resolution-screens
 
+after saving the file, restart Moneydance
+---------------------------------------------------------------------------------------------------------------------------------------------
+""" %(vmoptionsLocalPath if lNewVMOptions else vmoptionsPath)
+
+                windowsExtraPermissions = """
+-----
+Windows location: '%s'
+
+In Windows - due to permissions, you will need to do this:
+
+To save the Moneydance.vmoptions file you need to run Notepad as a Administrator. 
+In the Windows search box, in the Task Bar, type Notepad. When Notepad appears in the list, right-click 
+and select 'run as administrator' to open Notepad.
+Then FILE > OPEN and use dropdown to change Text Document (*.txt) to *.* and navigate to 'Moneydance.vmoptions' file and click OPEN. 
+Edit the file and then use Menu > FILE > SAVE, then FILE > EXIT.
+
+restart Moneydance
+---------------------------------------------------------------------------------------------------------------------------------------------
+""" %(vmoptionsPath)
+
+                linuxExtraPermissions = """
 -----
 Linux file location: '%s'
 
-In Linux - due to permissions, you will need to do this:
-a) Either edit in Terminal using sudo before the command (e.g. sudo vi '%s') , or;
+In Linux - due to system-protection / file permissions, you will need to do ONE of the following:
 
-b) You ideally need to be able to open files as root via a right click.
-- This assumes you are on a Debian based system
-1. Open the Terminal
-2. Type sudo su and press enter. Provide your password and press enter
-3. Then type apt-get install -y nautilus-admin and press enter
-4. Now type nautilus -q and press enter
-5. Finally type exit and press enter, and close the terminal window
-6. All set. Now when you want to open a file as root, simply right click the FOLDER and select Open as Root (or Administrator).
+a) PREFERRED >> Edit the file using KWrite (install  Software Manager/app Store), or;
+   (upon clicking Save you will be asked to enter your admin password to gain Root privileges to allow the edits to be saved)
 
-So, now find the /Opt folder, right click on the Moneydance FOLDER, Open as Root. Enter your password. Now you can edit the '%s' file....
->> Note: You may need to logoff and then login to see the changes!
+b) Edit in Terminal using sudo before the command (e.g. sudo vi '%s' or sudo xed <file>), or;
 
-now after saving the file, restart Moneydance
--------------------------------------------------------------------------------------------------------------------------------------------
-""" %(vmoptionsPath, vmoptionsPath, vmoptionsPath, vmoptionsPath)                                                       # noqa
+c) Configure your system to be able to open files as root via a right-click:
+    >> This assumes you are on a Debian based system
+    1. Open the Terminal
+    2. Type sudo su and press enter. Provide your password and press enter
+    3. Then type apt-get install -y nautilus-admin and press enter
+    4. Now type nautilus -q and press enter
+    5. Finally type exit and press enter, and close the terminal window
+    6. All set. Now when you want to open a file as root, simply right click the FOLDER and select Open as Root (or Administrator).
+    
+    Now find the /Opt folder, right-click on the Moneydance FOLDER, Open as Root. Enter your password. Now you can edit the '%s' file....
+    >> Note: You may need to logoff and then login to see the changes!
+
+after saving the file, restart Moneydance
+---------------------------------------------------------------------------------------------------------------------------------------------
+""" %(vmoptionsPath, vmoptionsPath, vmoptionsPath)
 
                 if Platform.isWindows():
-                    displayFile += windowsExtra
+                    if not lNewVMOptions:
+                        displayFile += windowsExtraPermissions
                 elif Platform.isUnix():
                     displayFile += linuxExtra
+                    if not lNewVMOptions:
+                        displayFile += linuxExtraPermissions
                 try:
                     MD_REF.getPlatformHelper().openDirectory(self.theFile)
+                    if lNewVMOptions:
+                        MD_REF.getPlatformHelper().openDirectory(File(vmoptionsLocalPath))
                 except: pass
                 time.sleep(0.5)
 
-            jif = QuickJFrame("View " + self.displayText + " file: " + x, displayFile, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
+            jif = QuickJFrame("View " + self.displayText + " file: " + x, displayFile, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False).show_the_frame()
             jif.toFront()
 
     def reportAccountNumbers(lEditAlternativeAccountNumbers=False):
@@ -16983,10 +17211,11 @@ now after saving the file, restart Moneydance
         ask = MyPopUpDialogBox(toolbox_frame_,
                              theStatus="Are you sure you want to FORCE change ALL Accounts' / Categories' Currencies?",
                              theTitle="FORCE CHANGE ALL ACCOUNTS' / CATEGORYS' CURRENCIES",
-                             theMessage="This is normally a BAD idea, unless you know you want to do it....!\n"
+                             theMessage="This is normally a 'BAD' idea, unless you know you want to do it....!\n"
                                         "The typical scenario is where you have a missing currency, or need to change them all\n"
-                                        "This fix will not touch the ROOT account nor Security sub-accounts (which are stocks/shares)\n"
+                                        "This fix will not touch Security sub-accounts (which are stocks/shares)\n"
                                         "... it will include categories, along with all other account types...\n"
+                                        "... it will also set the currency as 'base' currency ('root' account)\n"
                                         "This fix will NOT attempt to correct any transactions or fx rates etc... It simply changes the currency\n"
                                         "set on all accounts to the new currency. You should carefully review your data afterwards and revert\n"
                                         "to a backup if you are not happy with the results....\n"
@@ -17002,27 +17231,20 @@ now after saving the file, restart Moneydance
             return
         del ask
 
-        accounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(19))
+        # This will include root account in the search, but exclude Securities...
+        accounts = [acct for acct in AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), AcctFilter.ALL_ACCOUNTS_FILTER)
+                    if acct.getAccountType != Account.AccountType.SECURITY]                                             # noqa
         accounts = sorted(accounts, key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
 
-        currencies = []
         book = MD_REF.getCurrentAccountBook()
-        allCurrencies = book.getCurrencies().getAllCurrencies()
-        for c in allCurrencies:
-            if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                       # noqa
-                currencies.append(c)
+        currencies = [c for c in book.getCurrencies().getAllCurrencies()
+                      if c.getCurrencyType() == CurrencyType.Type.CURRENCY]                                             # noqa
         currencies = sorted(currencies, key=lambda sort_x: (sort_x.getName().upper()))
 
         if len(currencies) < 1:
-            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES - Creating new currency record!")
-            selectedCurrency = CurrencyType(book.getCurrencies())       # Creates a new CT object
-            selectedCurrency.setEditingMode()
-            selectedCurrency.setName("NEW CURRENCY - PLEASE EDIT ME LATER")
-            selectedCurrency.setIDString("AAA")
-            selectedCurrency.setDecimalPlaces(2)
-            selectedCurrency.syncItem()
-            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES - Creating new currency: %s" %(selectedCurrency))
-            myPopupInformationBox(toolbox_frame_,"FYI - I have created a new Currency %s for you (Edit it later)" %(selectedCurrency),
+            selectedCurrency = createNewCurrency(False)
+            myPrint("B", "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES - New currency created: %s" %(selectedCurrency))
+            myPopupInformationBox(toolbox_frame_, "New Currency '%s' created (Edit/review in Tools>Currencies)" %(selectedCurrency),
                                   "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES")
         else:
             selectedCurrency = JOptionPane.showInputDialog(toolbox_frame_,
@@ -17039,20 +17261,21 @@ now after saving the file, restart Moneydance
             myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
             return
 
-        if not confirm_backup_confirm_disclaimer(toolbox_frame_, "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES", "FORCE CHANGE ALL %s ACCTS' / CATS' CURRENCIES TO %s?" %(len(accounts),selectedCurrency)):    # noqa
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, "FORCE CHANGE ALL ACCOUNTS' / CATEGORIES' CURRENCIES", "FORCE CHANGE ALL %s ACCTS' / CATS' CURRENCIES TO %s?" %(len(accounts),selectedCurrency)):
             return
 
-        myPrint("B","@@ User requested to Force Change the Currency of ALL %s Accounts / Categories to %s - APPLYING UPDATE NOW...."
-                %(len(accounts),selectedCurrency))     # noqa
+        myPrint("B","@@ User requested to Force Change the Currency of ALL %s Accounts / Categories to %s - APPLYING UPDATE NOW...." %(len(accounts), selectedCurrency))
 
         MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
         MD_REF.getCurrentAccountBook().setRecalcBalances(False)
         MD_REF.getUI().setSuspendRefresh(True)
 
+        myPrint("B","Setting currency: '%s' as base currency..." %(selectedCurrency))
+        currencyTable = book.getCurrencies()
+        currencyTable.setBaseType(selectedCurrency)
+
         accountsChanged = 0
         for account in accounts:
-            if account.getAccountType() == Account.AccountType.ROOT:                                                    # noqa
-                continue
             if account.getAccountType() == Account.AccountType.SECURITY:                                                # noqa
                 continue
             if account.getCurrencyType() == selectedCurrency:
@@ -17478,8 +17701,6 @@ now after saving the file, restart Moneydance
 
                 curr.setRelativeRate(1.0)
                 curr.syncItem()
-
-        myPrint(u"P", output)
 
         MD_REF.saveCurrentAccount()
         MD_REF.getCurrentAccountBook().setRecalcBalances(True)
@@ -18747,8 +18968,8 @@ now after saving the file, restart Moneydance
                 _i+=1
 
             if len(old_snapshots):
-                text += "  >> %s'd %s of %s eligible (old) snapshots (%s percent) from %s\n"%(ThnTxt, num_thinned, len(old_snapshots), 100*num_thinned/len(old_snapshots), _curr.getName())
-                text += "  >> %s'd %s of %s total snapshots          (%s percent) from %s\n"%(ThnTxt, num_thinned, len(_snapshots), 100*num_thinned/len(_snapshots), _curr.getName())
+                text += "  >> %s'd %s of %s eligible (old) snapshots (%s%%) from %s\n"%(ThnTxt, num_thinned, len(old_snapshots), 100*num_thinned/len(old_snapshots), _curr.getName())
+                text += "  >> %s'd %s of %s total snapshots          (%s%%) from %s\n"%(ThnTxt, num_thinned, len(_snapshots), 100*num_thinned/len(_snapshots), _curr.getName())
             else:
                 text += "  >> No old snapshots %s'd from %s\n" %(ThnTxt, _curr.getName())
 
@@ -20244,7 +20465,7 @@ now after saving the file, restart Moneydance
                                 price = CurrencyTable.getRawRate(secAcct.getCurrencyType(), parentAccount.getCurrencyType(), 1.0 / price)
 
                             pTxn.setEditingMode()
-                            txn.setParameter(PARAMETER_KEY,True)
+                            txn.setParameter(PARAMETER_KEY, True)
 
                             if debug:
                                 txn.setParameter(PARAMETER_KEY+PARAMETER_KEY_DATA,"{old_samt:%s,old_pamt:%s}" %(old_samt, old_pamt))
@@ -21460,7 +21681,7 @@ now after saving the file, restart Moneydance
                         for param in ["hide","hide_on_hp","ol.haspendingtxns", "ol.new_txn_count"]:
                             newSecurityAcct.setParameter(param, copyAcct.getParameter(param))
 
-                        newSecurityAcct.setParameter(PARAMETER_KEY,True)
+                        newSecurityAcct.setParameter(PARAMETER_KEY, True)
                         newSecurityAcct.syncItem()
 
                         break
@@ -21493,7 +21714,7 @@ now after saving the file, restart Moneydance
                             pTxn = srcTxn.getParentTxn()
                             pTxn.setEditingMode()
                             srcTxn.setAccount(primaryAcct)
-                            srcTxn.setParameter(PARAMETER_KEY,True)
+                            srcTxn.setParameter(PARAMETER_KEY, True)
                             pTxn.syncItem()
                             output += ".. %s %s %s %s\n" %(convertStrippedIntDateFormattedText(pTxn.getDateInt()),
                                                            pad(pTxn.getInvestTxnType().getIDString(),12),
@@ -21674,7 +21895,7 @@ now after saving the file, restart Moneydance
 
             def getAccountTypeTxt(acct):
                 _at = acct.getAccountType()
-                return ("Investment" if (_at == Account.AccountType.INVESTMENT) else "NON INVESTMENT(%s)" %(_at))   # noqa
+                return ("Investment" if (_at == Account.AccountType.INVESTMENT) else "NON INVESTMENT(%s)" %(_at))       # noqa
 
             txnSet = MD_REF.getCurrentAccountBook().getTransactionSet()
             txns = list(txnSet.iterableTxns())      # copy into list() to prevent concurrent modification when modifying.....
@@ -21839,8 +22060,8 @@ now after saving the file, restart Moneydance
 
                         if not isSittingInInvestmentAccount:
                             if fields.security is None:
-                                text += ("** CANNOT FIX Txn where the Parent is sitting within an %s account and the SECURITY is NONE - SKIPPING **"
-                                         %(getAccountTypeTxt(acct)))
+                                text += ("** CANNOT FIX Txn where the Parent is sitting within an %s account ('%s') and the SECURITY is NONE - SKIPPING **"
+                                         %(getAccountTypeTxt(acct), acct.getFullAccountName()))
                                 continue
 
                             # This fix is for where the investment txn is not sitting within an Investment account (batch change on xfr category usually)...
@@ -23328,8 +23549,8 @@ now after saving the file, restart Moneydance
         all_fonts_code =   ["Hack", "Monospaced"]
         all_fonts_print =   ["Helvetica", "Dialog"]
 
-        lExit=False
-        lAnyFontChanges=False
+        lExit = False
+        lAnyFontChanges = False
 
         for checkFont in ["main_font","mono_font","code_font","print.font_name"]:
             x = prefs.getSetting(checkFont, None)
@@ -24976,476 +25197,6 @@ now after saving the file, restart Moneydance
         play_the_money_sound()
         myPopupInformationBox(toolbox_frame_,txt,_THIS_METHOD_NAME,JOptionPane.WARNING_MESSAGE)
 
-    def advanced_clone_dataset():
-        """This feature clones the open dataset. It takes a backup, restores the backup, wipes sync, removes transactional data.
-        It deletes txns, price history, attachments from the clone (rather than recreating a new structure. The next evolution
-        of this function will allow recreation of balances and cutoff dates"""
-
-        _THIS_METHOD_NAME = "Clone Dataset".upper()
-        PARAMETER_KEY = "toolbox_clone_dataset"
-
-        output = "%s:\n" \
-                 "%s\n\n" %(_THIS_METHOD_NAME, ("-" * (len(_THIS_METHOD_NAME)+1)))
-
-        # Refer:
-        # com.moneydance.apps.md.view.gui.MoneydanceGUI.saveToBackup(SecondaryFrame) : void
-        # com.moneydance.apps.md.view.gui.MoneydanceGUI.openBackup(Frame) : boolean
-
-        currentBook = MD_REF.getCurrentAccountBook()     # type: AccountBook
-        if currentBook is None:
-            myPopupInformationBox(toolbox_frame_, "ERROR: AccountBook is missing?",theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
-            return
-
-        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return
-
-        MD_decimal = MD_REF.getPreferences().getDecimalChar()
-
-        currentName = currentBook.getName().strip()
-
-        fCurrentFilePath = MD_REF.getCurrentAccountBook().getRootFolder()
-        currentFilePath = fCurrentFilePath.getCanonicalPath()
-
-        # newName = AccountBook.stripNonFilenameSafeCharacters(currentName+"_CLONE_%s" %(System.currentTimeMillis()))
-        newName = AccountBook.stripNonFilenameSafeCharacters(currentName+"_CLONE")
-
-        lbl_cloneName = JLabel("Enter the name for the cloned dataset:")
-        user_cloneName = JTextField(newName)
-
-        user_zeroAcctOpeningBalances = JCheckBox("Zero all account opening balances?", True)
-        user_zeroAcctOpeningBalances.setToolTipText("When enabled, will reset account initial/opening balances to zero")
-
-        user_purgeAllTransactions = JCheckBox("Purge all transactions?", True)
-        user_purgeAllTransactions.setToolTipText("When enabled, purges all transactions from the clone")
-
-        user_purgeSnapHistory = JCheckBox("Purge all security price & currency rate history (keep current and most recent one)?", True)
-        user_purgeSnapHistory.setToolTipText("When enabled, purges security price & currency rate history (leaving current price/rate and most recent price/rate)")
-
-        filterPanel = JPanel(GridLayout(0, 1))
-        filterPanel.add(lbl_cloneName)
-        filterPanel.add(user_cloneName)
-        filterPanel.add(JLabel(""))
-        filterPanel.add(user_zeroAcctOpeningBalances)
-        filterPanel.add(user_purgeAllTransactions)
-        filterPanel.add(user_purgeSnapHistory)
-
-        _options = ["Cancel", "CLONE"]
-
-        while True:
-            jsp_acd = MyJScrollPaneForJOptionPane(filterPanel,850, 175)
-
-            userAction = JOptionPane.showOptionDialog(toolbox_frame_,
-                                                      jsp_acd,
-                                                      "%s: Select CLONE Options:" %(_THIS_METHOD_NAME.upper()),
-                                                      JOptionPane.OK_CANCEL_OPTION,
-                                                      JOptionPane.QUESTION_MESSAGE,
-                                                      getMDIcon(None),
-                                                      _options,
-                                                      _options[0])
-
-            if userAction < 1:
-                txt = "%s: User did not select clone options - no changes made" %(_THIS_METHOD_NAME)
-                setDisplayStatus(txt, "R")
-                myPopupInformationBox(toolbox_frame_,txt)
-                return
-
-            # userRequestedNewName = myPopupAskForInput(toolbox_frame_,
-            #                                           theTitle=_THIS_METHOD_NAME,
-            #                                           theFieldLabel="CLONED DATASET NAME:",
-            #                                           theFieldDescription="Enter a new name for the cloned dataset",
-            #                                           defaultValue=newName)
-            #
-            # if userRequestedNewName is None or userRequestedNewName == "":
-            #     txt = "No name entered for cloned dataset - no changes made"
-            #     myPopupInformationBox(toolbox_frame_,txt)
-            #     setDisplayStatus(txt, "R")
-            #     return
-
-            newName = AccountBook.stripNonFilenameSafeCharacters(user_cloneName.getText())
-            newNamePath = os.path.join(os.path.dirname(currentFilePath),newName + Common.ACCOUNT_BOOK_EXTENSION)
-            fNewNamePath = File(newNamePath)
-
-            if newName is None or newName == "" or fNewNamePath.exists():
-                myPopupInformationBox(toolbox_frame_, "ERROR: new cloned file name: '%s' invalid or already exists?" %(newName),theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
-                continue
-
-            if not user_zeroAcctOpeningBalances.isSelected() and not user_purgeAllTransactions.isSelected() and not user_purgeSnapHistory.isSelected():
-                myPopupInformationBox(toolbox_frame_, "ERROR: Nothing selected to remove whilst cloning (pointless!)?",theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
-                continue
-
-            break
-
-        if not doesUserAcceptDisclaimer(toolbox_frame_, _THIS_METHOD_NAME, "Are you really sure you want to create a clone of current dataset?"):
-            txt = "%s: User declined the disclaimer - no changes made...." %(_THIS_METHOD_NAME)
-            setDisplayStatus(txt, "R")
-            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
-            return
-
-        # lKeepBalances = True
-        # keepTxnsAfterDate = None
-        lZeroOpeningBalances = user_zeroAcctOpeningBalances.isSelected()
-        lRemoveAllTxns = user_purgeAllTransactions.isSelected()
-        lRemoveAllSnapHistory = user_purgeSnapHistory.isSelected()
-
-        output += "CLONE PROCESSING OPTIONS:\n" \
-                  " ------------------------\n"
-        output += "Purge all transactions:                           %s\n" %(lRemoveAllTxns)
-        output += "Zero all accounts' opening balances:              %s\n" %(lZeroOpeningBalances)
-        output += "Purge all security price & currency rate history: %s\n" %(lRemoveAllSnapHistory)
-        output += "\n"
-
-        _msgPad = 100
-        _msg = pad("Please wait:",_msgPad,padChar=".")
-        diag = MyPopUpDialogBox(toolbox_frame_, theStatus=_msg, theTitle=_msg, lModal=False, OKButtonText="WAIT")
-        diag.go()
-
-        try:
-            output += "Current dataset file path:    %s\n" %(fCurrentFilePath.getCanonicalPath())
-            output += "New cloned dataset file path: %s\n" %(fNewNamePath.getCanonicalPath())
-
-            tmpFile = File.createTempFile("toolbox_%s" %(System.currentTimeMillis()), ".moneydancearchive")
-            tmpFile.deleteOnExit()
-
-            MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record..
-
-            output += "Saving current dataset back to disk (trunk)\n"
-            currentBook.saveTrunkFile()    # Save dataset too before backup
-
-
-            class MyFilenameFilter(FilenameFilter):
-                def accept(self, thedirname, thefilename):
-
-                    keepDirs = ["attach"]
-                    ignoreFiles = ["processed.dct"]
-                    ignoreExtns = [".txn", ".txn-tmp", ".mdtxn", ".mdtxnarchive"]
-
-                    for keepDir in keepDirs:
-                        if thedirname.getPath().endswith(keepDir):
-                            return True
-
-                    for ignoreExt in ignoreExtns:
-                        if thefilename.endswith(ignoreExt): return False
-
-                    for ignoreFile in ignoreFiles:
-                        if thefilename == ignoreFile: return False
-                    return True
-
-            _msg = pad("Please wait: Creating a temporary backup",_msgPad,padChar=".")
-            diag.updateMessages(newTitle=_msg, newStatus=_msg)
-            try:
-                zipOut = ZipOutputStream(BufferedOutputStream(FileOutputStream(tmpFile), 65536))   # type: ZipOutputStream
-                MDIOUtils.zipRecursively(zipOut, currentBook.getRootFolder(), MyFilenameFilter())
-                zipOut.close()
-                output += "Current dataset backed up to: %s (stripping out txn and archive files)\n" %(tmpFile)
-            except:
-                myPopupInformationBox(toolbox_frame_, "ERROR: could not create temporary backup (review console)",theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
-                output += dump_sys_error_to_md_console_and_errorlog(True)
-                raise
-
-            passphrase = MD_REF.getUI().getCurrentAccounts().getEncryptionKey()
-            if passphrase and passphrase != "":
-                output += "Your encryption passphrase: '%s' will be reused in the cloned dataset\n" %(passphrase)
-            else:
-                output += "No user encryption passphrase will be set in the clone\n"
-
-            class MySecretKeyCallback(SecretKeyCallback):
-                def __init__(self, passPhrase):
-                    self.passPhrase = passPhrase
-
-                def setVerifier(self, paramSecretKeyVerifier): pass
-
-                def getPassphrase(self, hint):                                                                              # noqa
-                    return self.passPhrase
-
-                def getPassphrase(self, dataName, hint):                                                                    # noqa
-                    return self.passPhrase
-
-            passwordCallback = MySecretKeyCallback(passphrase)
-
-            # try:
-            class MyFilenameFilter(FilenameFilter):
-                def accept(self, dirname, filename):                                                                    # noqa
-                    if filename.endswith(Common.ACCOUNT_BOOK_EXTENSION):
-                        return True
-                    return False
-
-            _msg = pad("Please wait: Restoring temporary backup to clone new dataset",_msgPad,padChar=".")
-            diag.updateMessages(newTitle=_msg, newStatus=_msg)
-
-            tmpFolder = MDIOUtils.createTempFolder()
-            output += "Created temporary folder (for restore): %s\n" %(tmpFolder)
-            MDIOUtils.openZip(tmpFile, tmpFolder.getAbsolutePath())
-            output += "Unzipped temporary backup into: %s\n" %(tmpFolder)
-            zipContents = tmpFolder.list(MyFilenameFilter())
-            if zipContents is None or len(zipContents) < 1: raise Exception("ERROR: Zip file seems incorrect")
-            tmpMDFile = File(tmpFolder, zipContents[0])
-
-            newBookFile = fNewNamePath
-            if not tmpMDFile.renameTo(newBookFile):
-                MDIOUtils.copyFolder(tmpMDFile, newBookFile)
-                output += "Renamed restored dataset to: %s\n" %(newBookFile)
-
-            newWrapper = AccountBookWrapper.wrapperForFolder(newBookFile)   # type: AccountBookWrapper
-            if newWrapper is None: raise Exception("ERROR: 'AccountBookWrapper.wrapperForFolder' returned None")
-            output += "Successfully obtained 'wrapper' for: %s\n" %(newBookFile)
-
-            newWrapper.setUUIDResetFlag(True)
-
-            _msg = pad("Please wait: Opening cloned dataset",_msgPad,padChar=".")
-            diag.updateMessages(newTitle=_msg, newStatus=_msg)
-
-            try:
-                if not newWrapper.loadLocalStorage(passwordCallback): raise Exception("ERROR: calling 'newWrapper.loadLocalStorage()'")
-                output += "Successfully loaded Clone's local storage \n"
-
-                if not newWrapper.loadDataModel(passwordCallback): raise Exception("ERROR: calling 'newWrapper.loadDataModel()'")
-                output += "Successfully loaded Clone's data model \n"
-
-                newBook = newWrapper.getBook()
-                if newBook is None: raise Exception("ERROR: 'AccountBook' is None")
-                output += "Successfully obtained Clone's AccountBook reference\n"
-
-                newBookSyncer = newBook.getSyncer()
-                if newBookSyncer is None: raise Exception("ERROR: cloned dataset's 'Syncer' is None")
-                output += "Clone's 'Syncer' is running (%s)\n" %(newBookSyncer)
-
-            except MDException as mde:
-                if mde.getCode() == 1004:
-                    MD_REF.getUI().showErrorMessage("ERROR: The dataset's password is incorrect!?  Failed to open clone?")
-                    raise
-                else:
-                    dump_sys_error_to_md_console_and_errorlog()
-                    raise
-
-            cloneTime = System.currentTimeMillis()
-            newRoot = newBook.getRootAccount()
-
-            newRoot.setParameter(PARAMETER_KEY, safeStr(cloneTime))
-            newRoot.setComment("This dataset was cloned by the Toolbox extension on: %s (%s)"
-                               %(convertStrippedIntDateFormattedText(DateUtil.getStrippedDateInt()), cloneTime))
-            if newRoot.getAccountName().strip() != newBook.getName():
-                output += "Updating new root's account name to: '%s'\n" %(newBook.getName())
-                newRoot.setAccountName(newBook.getName())
-            newBook.logModifiedItem(newRoot)
-
-            if not AccountBookUtil.isWithinInternalStorage(newBook):
-                AccountBookUtil.registerExternalAccountBook(newBook)
-                output += "Registered cloned dataset with the File/Open menu list\n"
-
-            _msg = pad("Please wait: Resetting Sync in cloned dataset..",_msgPad,padChar=".")
-            diag.updateMessages(newTitle=_msg, newStatus=_msg)
-
-            SYNC_KEYS = getNetSyncKeys()
-
-            newStorage = newBook.getLocalStorage()
-            for skey in SYNC_KEYS: newStorage.remove(skey)                                                              # noqa
-            newStorage.put("netsync.dropbox.fileid", UUID.randomUUID())
-            newStorage.put("_is_master_node", True)
-            newStorage.put(PARAMETER_KEY, safeStr(cloneTime))
-            newStorage.save()
-            if newRoot is not None:
-                newRoot.setEditingMode()
-                for skey in SYNC_KEYS: newRoot.removeParameter(skey)
-                newBook.logModifiedItem(newRoot)
-
-            output += "Clone's Sync settings have been reset and the internal UUID set to: '%s'\n" %(newStorage.getStr("netsync.dropbox.fileid","<ERROR>"))
-
-            output += "Imported and created clone book: %s\n" %(newBookFile.getCanonicalPath())
-            # newBook.notifyAccountModified(newBook.getRootAccount())
-            MD_REF.getUI().updateOpenFilesMenus()
-            output += "Updated 'open files' menu...\n"
-
-            if lZeroOpeningBalances:
-                _msg = pad("Please wait: Zeroing account opening/initial balances..",_msgPad,padChar=".")
-                diag.updateMessages(newTitle=_msg, newStatus=_msg)
-
-                allAccounts = AccountUtil.allMatchesForSearch(newBook, AcctFilter.ALL_ACCOUNTS_FILTER)
-                for acct in allAccounts:
-
-                    lChangedBal = False
-                    if not isKotlinCompiledBuild():     # Pre MD2023 there was only start balance (no adjustment balance)
-                        xbal = acct.getStartBalance()
-                        if xbal != 0:
-                            rCurr = acct.getCurrencyType()
-                            output += "Setting account's initial / opening balance to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
-                            acct.setStartBalance(0)
-                            lChangedBal = True
-                    else:
-                        xbal = acct.getUnadjustedStartBalance()
-                        if xbal != 0:
-                            rCurr = acct.getCurrencyType()
-                            output += "Setting account's unadjusted initial / opening balance to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
-                            acct.setStartBalance(0)
-                            lChangedBal = True
-                        xbal = acct.getBalanceAdjustment()
-                        if xbal != 0:
-                            rCurr = acct.getCurrencyType()
-                            output += "Setting account's balance adjustment to zero (was: %s): %s\n" %(rCurr.formatFancy(xbal, MD_decimal), acct)
-                            acct.setBalanceAdjustment(0)
-                            lChangedBal = True
-
-                    if lChangedBal:
-                        SyncerDebug.changeState(debug)
-                        newBook.logModifiedItem(acct)
-                        SyncerDebug.resetState()
-                        # acct.syncItem()
-
-            # noinspection PyArgumentList
-            class MyCloneTxnSearchFilter(TxnSearch):
-
-                # def __init__(self,dateStart,dateEnd):
-                #     self.dateStart = dateStart
-                #     self.dateEnd = dateEnd
-
-                def matchesAll(self):                                                                                           # noqa
-                    return False
-
-                def matches(self, _txn):
-                    if not isinstance(_txn, ParentTxn): return False
-                    return True
-                    #
-                    # if txn.getDateInt() >= self.dateStart and txn.getDateInt() <= self.dateEnd:                                 # noqa
-                    #     return True
-                    # return False
-
-
-            if lRemoveAllTxns:
-                newBook.setRecalcBalances(False)
-
-                _msg = pad("Please wait: Deleting txns/attachments (as necessary)..",_msgPad,padChar=".")
-                diag.updateMessages(newTitle=_msg, newStatus=_msg)
-
-                startTimeMs = System.currentTimeMillis()
-                attachmentsToDelete = []
-                ts = newBook.getTransactionSet().getTransactions(MyCloneTxnSearchFilter())
-                output += "Removing all (%s) transactions from clone...\n" %(ts.getSize())
-                for txn in ts:
-                    if not isinstance(txn, ParentTxn):
-                        myPrint("B",txn.getSyncInfo().toMultilineHumanReadableString())
-                        raise Exception("ERROR: Should not delete splits!")
-                    if txn.hasAttachments():
-                        for attachKey in txn.getAttachmentKeys():
-                            attachTag = txn.getAttachmentTag(attachKey)
-                            attachmentsToDelete.append(attachTag)
-                tsList = ArrayList()
-                ts.copyInto(tsList)
-
-                SyncerDebug.changeState(debug)
-                if not newBook.logRemovedItems(tsList): raise Exception("ERROR: newBook.logRemovedItems(tsList) returned false?")
-                SyncerDebug.resetState()
-
-                if len(attachmentsToDelete):
-                    output += "Deleting %s attachments from clone...\n" %(len(attachmentsToDelete))
-                    for attachment in attachmentsToDelete:
-                        fAttachFile = File(attachment)
-                        if fAttachFile.exists():
-                            fAttachFile.delete()
-
-                    if removeEmptyDirs(os.path.join(newBook.getRootFolder().getCanonicalPath(), AccountBookWrapper.SAFE_SUBFOLDER_NAME)):
-                        output += "Successfully removed empty attachment folders...\n"
-                    else:
-                        output += "Error whilst removing empty attachment folders... (ignoring and continuing)\n"
-
-                output += "Mass delete of %s txns and %s attachments took: %s seconds\n" %(ts.getSize(), len(attachmentsToDelete), (System.currentTimeMillis() - startTimeMs) / 1000.0)
-
-            if lRemoveAllSnapHistory:
-                startTimeMs = System.currentTimeMillis()
-
-                _msg = pad("Please wait: Purging security price / currency rate history..",_msgPad,padChar=".")
-                diag.updateMessages(newTitle=_msg, newStatus=_msg)
-
-                keepSnaps = []
-
-                allCurrencies = newBook.getCurrencies().getAllCurrencies()
-                allSnaps = newBook.getItemsWithType(CurrencySnapshot.SYNCABLE_TYPE_VALUE)
-
-                iCountSecurities = iCountCurrencies = 0
-
-                for curSec in allCurrencies:
-                    if curSec.getCurrencyType() == CurrencyType.Type.SECURITY: iCountSecurities += 1                    # noqa
-                    if curSec.getCurrencyType() == CurrencyType.Type.CURRENCY: iCountCurrencies += 1                    # noqa
-                    secSnapshots = curSec.getSnapshots()
-                    if len(secSnapshots) > 0: keepSnaps.append(secSnapshots[-1])
-
-                output += "Currency rate / Security price history ('csnaps') before purge: %s (%s currencies, %s securities)\n"\
-                          %(allSnaps.size(), iCountCurrencies, iCountSecurities)
-
-                for snap in keepSnaps: allSnaps.remove(snap)
-
-                output += "Price history - keeping: %s 'csnaps', deleting: %s 'csnaps'\n" %(len(keepSnaps), allSnaps.size())
-
-                SyncerDebug.changeState(debug)
-                if not newBook.logRemovedItems(allSnaps): raise Exception("ERROR: newBook.logRemovedItems(allSnaps) returned false?")
-                SyncerDebug.resetState()
-
-                output += "Mass delete of %s currency rate / security price history 'csnaps' took: %s seconds\n"\
-                          %(allSnaps.size(), (System.currentTimeMillis() - startTimeMs) / 1000.0)
-
-            newBook.setRecalcBalances(True)
-
-            if not newBook.save(): raise Exception("ERROR: cloned AccountBook .save() returned false")
-
-            # myPrint("B", "Syncer: %s, isSyncing: %s, isRunningInBackground: %s" %(newBookSyncer, newBookSyncer.isSyncing(), newBookSyncer.isRunningInBackground()))
-            newBookSyncer.stopSyncing()
-            output += "Cloned dataset's 'Syncer' has been shut down (flushing remaining in-memory changes)\n"
-
-            # register attachment for deletion etc
-            # delete all txn files afterwards
-
-            # newBook.saveTrunkFile()
-            newBookSyncer.saveNewTrunkFile(True)
-            output += "Cloned dataset has been re-saved to disk (as a new trunk file)\n"
-
-            # Copied from com.infinitekind.tiksync.Syncer
-            OUTGOING_PATH = "tiksync/out"
-            INCOMING_PATH = "tiksync/in"
-            TXN_FILE_EXTENSION = ".txn"
-            TXN_FILE_EXTENSION_TMP = ".txn-tmp"
-            OUTGOING_TXN_FILE_EXTENSION = ".mdtxn"
-            PROCESSED_FILES = "tiksync/processed.dct"
-            newStorage.delete(PROCESSED_FILES)
-            for mdDir in [OUTGOING_PATH, INCOMING_PATH]:
-                for filename in newStorage.listFiles(mdDir):
-                    if (filename.endswith(TXN_FILE_EXTENSION_TMP)
-                            or filename.endswith(OUTGOING_TXN_FILE_EXTENSION)
-                            or filename.endswith(TXN_FILE_EXTENSION)):
-                        newStorage.delete(mdDir + "/" + filename)
-            output += "Deleted clone's 'processed.dct' and all .txn type files.....\n"
-
-            output += "\n\n" \
-                      " ------------------------------------------------------------------------------------------------\n"
-            output += "Original dataset's object analysis:\n"
-            output += count_database_objects()
-            fileSize, fileCount = calculateMoneydanceDatasetSize(True)
-            output += "...dataset size: %sMB (%s files)\n" %(rpad(fileSize,12),fileCount)
-            output += "\n"
-
-            output += "Analysis of objects in cloned dataset:\n"
-            output += count_database_objects(newBook)
-            fileSize, fileCount = calculateMoneydanceDatasetSize(True, whichBook=newBook)
-            output += "...dataset size: %sMB (%s files)\n" %(rpad(fileSize,12),fileCount)
-            output += " ------------------------------------------------------------------------------------------------\n"
-            output += "\n"
-
-            txt = "DATASET '%s' WAS CREATED FROM A CLONE OF '%s'" %(newBook.getName(), currentFilePath)
-            myPrint("B", txt)
-            logToolboxUpdates("advanced_clone_dataset", txt, book=newBook)
-
-        except:
-            txt = "Clone function has failed. Review log and console (CLONE INCOMPLETE)"
-            myPrint("B", txt)
-            output += "%s\n" %(txt)
-            output += dump_sys_error_to_md_console_and_errorlog(True)
-            jif = QuickJFrame(title=_THIS_METHOD_NAME, output=output, lAlertLevel=2, copyToClipboard=True, lWrapText=False).show_the_frame()
-            myPopupInformationBox(jif,theMessage=txt, theTitle="ERROR",theMessageType=JOptionPane.ERROR_MESSAGE)
-            return
-        finally:
-            diag.kill()
-
-        output += "\n\nCLONE %s SUCCESSFULLY CREATED - USE MENU>FILE>OPEN\n\n" %(newBook.getName())
-        output += "<END>"
-        jif = QuickJFrame(title=_THIS_METHOD_NAME,output=output,copyToClipboard=True,lWrapText=False).show_the_frame()
-        myPopupInformationBox(jif,"Clone dataset: %s created (review output)" %(newBook.getName()))
-
     def advanced_options_sync_push_pull(_push_pull):
         _THIS_METHOD_NAME = "FORCE SYNC PUSH/PULL"
 
@@ -26718,6 +26469,92 @@ now after saving the file, restart Moneydance
         txt = "Moneydance internal debug settings %s turned %s" %(selectedKey, not currentSetting)
         setDisplayStatus(txt, "B")
         myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL OTHER DEBUG", JOptionPane.WARNING_MESSAGE)
+
+    def showMDLaunchParameters():
+        _THIS_METHOD_NAME = "ADVANCED: SHOW MD LAUNCH PARAMETERS"
+
+        displayTxt = """
+------------------------------------------------------------------------------------------------------------------------
+ADVANCED MONEYDANCE LAUNCH SETTINGS / PARAMETERS:
+-------------------------------------------------
+
+Moneydance(MD) is built on Java. Hence the application runs on a Java Virtual Machine (JVM).
+- The MD installer typically creates an app package and launch icon for easy execution of the app
+
+- NOTE: You can also execute the moneydance.jar using Java as long as you set up your environment properly.
+        .. this is out of scope of this document, but refer to: https://yogi1967.github.io/MoneydancePythonScripts/
+        .. and the example launch scripts contained on my site.
+        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18.0.1, MD2023.2(5008) Java 20.0.1, MD2023.2(5047) Java 21
+
+- Windows and Linux: The launch package is built using install4j. The JVM can be modified by editing the vmoptions file.
+                     See separate Toolbox > Advanced Options menu > 'View Java VM Options File' for details
+                     You can edit this 'vmoptions' file and pass settings through to the JVM at launch:
+                         e.g. -XX:MaxRAMPercentage=80 (which is now the default anyway)                     
+                     You can in theory pass any valid JVM options in this file:
+                         e.g. -Dtoolbox=great (would set the System property key 'toolbox' with a value of 'great' 
+                     
+                     You can also pass options on the command line that will be captured by install4j and passed through
+                     to the JVM (so similar to the vmoptions file above, but via command line)
+                        e.g. -J-Dtoolbox=great
+                        refer: https://www.ej-technologies.com/resources/install4j/help/doc/installers/options.html
+
+- Windows: You can simply execute the Moneydance.exe file (with [optional] parameters - see below)
+           - NOTE: Even when launched this way, the vmoptions file will be processed.
+
+                   - using the exe does not write to stderr / stdout, so you cannot easily see results from -v
+                     .. you can use: "\\Program Files\\Moneydance\\Moneydance" -v > [pathto]outputfile.txt 2>&1
+                     .. as an alternative you can try:
+                     .. "\\Program Files\\Moneydance\\jre\\bin\\java" -jar "\\Program Files\\Moneydance\\lib\\moneydance.jar" -v
+
+- Linux: The app package is normally located in /opt/Moneydance. This is actually an .sh script file.
+         ... the [optional] parameters below will work with this app package using Terminal.
+         
+- Apple macOS: The installer creates an apple mac 'package' file called /Applications/Moneydance.app
+               .. (this is really a special folder. In Finder, right-click and 'Show Package Contents'
+               .. There is no vmoptions file option with macOS
+               .. But you can simply execute Moneydance from Terminal using the following command:
+               .. /Applications/Moneydance.app/Contents/MacOS/Moneydance (with [optional] parameters - see below)
+
+Moneydance parameters:
+----------------------
+-d                  Enables Moneydance DEBUG mode (extra messages in help/console)
+-v                  prints the current version (and then quits)
+--version           same as -v
+-nobackup'          disables backups for this MD session (from build 5047 onwards)
+datasetname         will open the specified dataset >> specify the full path wrapped in (plain text) "quotes" 
+pythonscriptname.py adds script to a list of scripts to execute (but this seems to then be ignored)
+importfilename      executes file import (mutually exclusive to datasetname option)
+-invoke_and_quit=x  will pass a string cmd that will invoke an 'fmodule' (extension) and quit (not showing UI)
+                    .. executes Main.showURL(invokeAndQuitURI)
+                    .. e.g. 'moneydance:fmodule:test:test:customevent:magic'
+                    .. (e.g. my extension(s) with an id of test defines it's own command called 'test:customevent:magic'
+                    .. (there are other variations of this parameter and with ? instead of ':' for parameters.....
+-invoke=x           Same as -invoke_and_quit but does launch the UI first and doesn't quit...!
+
+Extensions:
+-----------
+Two (known) extensions have been updated to leverage the -invoke command. These are: Quote Loader & Extract Data.
+The commands to execuite these are:
+                                    -invoke=moneydance:fmodule:securityquoteload:runstandalone:quit
+                                    -invoke=moneydance:fmodule:extract_data:autoextract:quit
+                                    (use :quit or :noquit) to quit the session or leave open after execution
+
+Dataset Master Password:
+------------------------
+MD2021.2(3088): Adds capability to set the encryption passphrase into an environment variable to bypass the logon.
+                Either: md_passphrase=   or  md_passphrase_[filename in lowercase format]=
+                E.g. md_passphrase=test would pass the password of 'test'
+                The variable must be set into the parent environment (using 'set' / 'export' command as appropriate)
+                NOTE: If you have not set a master password, then you do not need to worry about this!
+
+------------------------------------------------------------------------------------------------------------------------
+"""
+
+        jif = QuickJFrame(_THIS_METHOD_NAME, displayTxt, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False).show_the_frame()
+        jif.toFront()
+
+        txt = "Advanced Moneydance launch settings/parameters displayed"
+        setDisplayStatus(txt, "B")
 
     def advanced_options_demote_primary_to_secondary():
         # the reverse of convert_secondary_to_primary_data_set
@@ -28271,6 +28108,9 @@ now after saving the file, restart Moneydance
                     user_list_curr_sec_dpc = MenuJRadioButton("DIAG: List Security / Currency (hidden) decimal place settings", False)
                     user_list_curr_sec_dpc.setToolTipText("This will list your Security and Currency hidden decimal place settings (and attempt to advise of setup errors)")
 
+                    user_validateBaseCurr = MenuJRadioButton("DIAG: Validate and fix base currency (run this first)", False)
+                    user_validateBaseCurr.setToolTipText("This will diagnose your base Currency (and advise if you need to run a fix)")
+
                     user_diag_curr_sec = MenuJRadioButton("DIAG: Diagnose currencies / securities (including relative currencies) (if errors see fix below) (based on reset_relative_currencies.py)", False)
                     user_diag_curr_sec.setToolTipText("This will diagnose your Currency & Security setup, also checking relative currencies (and advise if you need to run a fix) (reset_relative_currencies.py)")
 
@@ -28291,6 +28131,9 @@ now after saving the file, restart Moneydance
 
                     user_fix_price_date = MenuJRadioButton("FIX: Manually edit a currency/ security's current price hidden 'price_date' field (2021.2(3089) onwards)", False, updateMenu=True, secondaryEnabled=(isRRateCurrencyIssueFixedBuild()))
                     user_fix_price_date.setToolTipText("Allows you to manually edit a Currency / Security's current price hidden 'price_date' field....")
+
+                    user_fixBaseCurr = MenuJRadioButton("FIX: Fix base currency (apply this fix before diagnosing/fixing currencies (below))", False, updateMenu=True, secondaryEnabled=(validateAndFixBaseCurrency(validationOnly=True, popupAlert=False, modalPopup=False, adviseNoErrors=False)))
+                    user_fixBaseCurr.setToolTipText("This will fix your base Currency. Apply this fix before diagnosing/fixing currencies (below)")
 
                     user_fix_curr_sec = MenuJRadioButton("FIX: Fix currencies / securities (including relative currencies) (based on reset_relative_currencies.py) (MUST RUN DIAGNOSE ABOVE FIRST)", False, updateMenu=True, secondaryEnabled=(GlobalVars.fixRCurrencyCheck is not None and GlobalVars.fixRCurrencyCheck > 1))
                     user_fix_curr_sec.setToolTipText("This will apply fixes to your Currency (& security) / Relative Currency setup (use after running the diagnose option first). THIS CHANGES DATA!  (reset_relative_currencies.py)")
@@ -28319,9 +28162,10 @@ now after saving the file, restart Moneydance
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 8
+                    rows = 9
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
+                    userFilters.add(user_validateBaseCurr)
                     userFilters.add(user_diag_curr_sec)
                     userFilters.add(user_can_i_delete_security)
                     userFilters.add(user_can_i_delete_currency)
@@ -28331,7 +28175,7 @@ now after saving the file, restart Moneydance
                     userFilters.add(user_diag_price_date)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 19
+                        rows += 20
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
 
@@ -28343,6 +28187,7 @@ now after saving the file, restart Moneydance
                                 rows += 1
                                 userFilters.add(labelFYI_curr_fix)
 
+                        userFilters.add(user_fixBaseCurr)
                         userFilters.add(user_fix_curr_sec)
 
                         userFilters.add(user_edit_security_decimal_places)
@@ -28368,6 +28213,8 @@ now after saving the file, restart Moneydance
                     while True:
                         if MD_REF.getCurrentAccountBook() is None: return
 
+                        invalidBase = validateAndFixBaseCurrency(validationOnly=True, popupAlert=False, modalPopup=False, adviseNoErrors=False)
+                        user_fixBaseCurr.setEnabled(ToolboxMode.isUpdateMode() and invalidBase)
                         user_fix_curr_sec.setEnabled(ToolboxMode.isUpdateMode() and GlobalVars.fixRCurrencyCheck is not None and GlobalVars.fixRCurrencyCheck > 1)
 
                         # Don't remove these as they are checked/disabled in the section below if certain conditions fail.....
@@ -28379,8 +28226,7 @@ now after saving the file, restart Moneydance
                         user_fix_invalid_price_history.setEnabled(ToolboxMode.isUpdateMode())
 
                         # Pre 2021.2(3089) there were internal code issues with old CurrencyType records (from pre 2019.4) with missing 'rrate' fields. Fixed in build 3089 onwards
-                        if not check_all_currency_raw_rates_ok():
-
+                        if invalidBase or not check_all_currency_raw_rates_ok():
                             user_diag_curr_sec.setForeground(getColorBlue())
 
                             if ToolboxMode.isUpdateMode() and not lAlertPopupShown:
@@ -28399,7 +28245,8 @@ now after saving the file, restart Moneydance
                                                      "ALERT: Currency/Security data issues need resolving - some menu items are disabled...",
                                                      "You have some Currency / Security records which have a data issue\n"
                                                      "These need to be fixed before Toolbox can allow some options\n"
-                                                     "Please run 'MENU: Currency & Security tools>Diag/Fix Currencies/Securities' to address this issue\n"
+                                                     "Please run 'MENU: Currency & Security tools>Diag: Fix base currency (IF ENABLED), or....\n"
+                                                     "..... then 'MENU: Currency & Security tools>Diag/Fix Currencies/Securities' to address this issue\n"
                                                      "Menu items will remain disabled until you do this....",
                                                      lModal=True, OKButtonText="Acknowledge", lAlertLevel=1).go()
 
@@ -28438,6 +28285,8 @@ now after saving the file, restart Moneydance
                         if user_list_curr_sec_dpc.isSelected():                                         list_security_currency_decimal_places()
                         if user_diag_price_date.isSelected():                                           list_security_currency_price_date()
                         if user_autofix_price_date.isSelected():                                        list_security_currency_price_date(autofix=True)
+                        if user_validateBaseCurr.isSelected():                                          validateAndFixBaseCurrency(validationOnly=True, popupAlert=True, modalPopup=True, adviseNoErrors=True)
+                        if user_fixBaseCurr.isSelected():                                               validateAndFixBaseCurrency(validationOnly=False, popupAlert=True, modalPopup=True, adviseNoErrors=True)
                         if user_diag_curr_sec.isSelected():                                             diagnose_currencies(False)
                         if user_fix_curr_sec.isSelected():                                              diagnose_currencies(True)
                         if user_fix_invalid_curr_sec.isSelected():                                      fix_invalid_relative_currency_rates()
@@ -28604,9 +28453,6 @@ now after saving the file, restart Moneydance
                     user_view_MD_custom_theme_file = MenuJRadioButton("View MD Custom Theme File (only when exists)", False, secondaryEnabled=(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath())))
                     user_view_MD_custom_theme_file.setToolTipText("View the contents of your Moneydance custom Theme file (if you have set one up)")
 
-                    user_view_java_vmoptions = MenuJRadioButton("View Java VM Options File (only when exists)", False, secondaryEnabled=(os.path.exists(get_vmoptions_path())))
-                    user_view_java_vmoptions.setToolTipText("View the contents of the Java VM Options runtime file that Moneydance uses")
-
                     user_view_extensions_details = MenuJRadioButton("View Extension(s) details", False)
                     user_view_extensions_details.setToolTipText("View details about the Extensions installed in your Moneydance system")
 
@@ -28642,8 +28488,8 @@ now after saving the file, restart Moneydance
                     user_cleanup_external_files = MenuJRadioButton("Cleanup MD's File/Open list of 'external' files (does not touch actual files)", False, updateMenu=True)
                     user_cleanup_external_files.setToolTipText("Cleans up the list of files shown on the MD File/Open menu - THIS CHANGES CONFIG.DICT!")
 
-                    user_advanced_delete_int_ext_files = MenuJRadioButton("DELETE Files from Menu>File>Open list and also from DISK", False, updateMenu=True)
-                    user_advanced_delete_int_ext_files.setToolTipText("This allows you to delete internal/external filenames from the list of File>Open files settings>> AND ASKS IF YOU WANT TO DELETE THE FILES TOO..... UPDATES CONFIG.DICT/CAN DELETE FILES")
+                    user_advanced_delete_int_ext_files = MenuJRadioButton("DELETE Files from Menu>File>Open list [and OPTIONALLY also from DISK]", False, updateMenu=True)
+                    user_advanced_delete_int_ext_files.setToolTipText("This allows you to delete internal/external filenames from the list of File>Open files settings>> AND OPTIONALLY ASKS IF YOU WANT TO DELETE THE FILES TOO..... UPDATES CONFIG.DICT/CAN DELETE FILES")
 
                     user_remove_inactive_from_sidebar = MenuJRadioButton("Remove inactive accounts/categories from SideBar (only when sidebar visible)", False, updateMenu=True, secondaryEnabled=(MD_REF.getPreferences().getBoolSetting("gui.source_list_visible", True)))
                     user_remove_inactive_from_sidebar.setToolTipText("This remove inactive accounts/categories from SideBar. THIS CHANGES CONFIG!")
@@ -28663,13 +28509,12 @@ now after saving the file, restart Moneydance
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 10
+                    rows = 9
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_display_passwords)
                     userFilters.add(user_view_searchable_console_log)
                     userFilters.add(user_view_MD_config_file)
                     userFilters.add(user_view_MD_custom_theme_file)
-                    userFilters.add(user_view_java_vmoptions)
                     userFilters.add(user_view_extensions_details)
                     userFilters.add(user_view_memorised_reports)
                     # userFilters.add(user_find_sync_password_in_ios_backups)
@@ -28703,7 +28548,6 @@ now after saving the file, restart Moneydance
                     while True:
                         if MD_REF.getCurrentAccountBook() is None: return
 
-                        user_view_java_vmoptions.setEnabled(os.path.exists(get_vmoptions_path()))
                         user_view_MD_custom_theme_file.setEnabled(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))                             # noqa
                         user_delete_custom_theme_file.setEnabled(ToolboxMode.isUpdateMode() and os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))   # noqa
                         bg.clearSelection()
@@ -28728,7 +28572,6 @@ now after saving the file, restart Moneydance
                         if user_view_searchable_console_log.isSelected():           ViewFileButtonAction(MD_REF.getLogFile(), "MD Console Log").actionPerformed(None)
                         if user_view_MD_config_file.isSelected():                   ViewFileButtonAction(Common.getPreferencesFile(), "MD Config").actionPerformed(None)
                         if user_view_MD_custom_theme_file.isSelected():             ViewFileButtonAction(ThemeInfo.customThemeFile, "MD Custom Theme").actionPerformed(None)
-                        if user_view_java_vmoptions.isSelected():                   ViewFileButtonAction(File(get_vmoptions_path()), "Java VM File").actionPerformed(None)
                         if user_view_extensions_details.isSelected():               view_extensions_details()
                         if user_view_memorised_reports.isSelected():                get_list_memorised_reports()
                         # if user_find_sync_password_in_ios_backups.isSelected():     find_IOS_sync_data()
@@ -28769,6 +28612,12 @@ now after saving the file, restart Moneydance
                     user_advanced_toggle_other_DEBUGs = MenuJRadioButton("Toggle Other Moneydance DEBUGs", False)
                     user_advanced_toggle_other_DEBUGs.setToolTipText("This will allow you to toggle other known Moneydance internal DEBUG setting(s) ON/OFF..... (these add extra messages to Console output))")
 
+                    user_view_java_vmoptions = MenuJRadioButton("View Java VM Options File (only when exists)", False, secondaryEnabled=(os.path.exists(get_vmoptions_path())))
+                    user_view_java_vmoptions.setToolTipText("View the contents of the Java VM Options runtime file that Moneydance uses")
+
+                    user_showMDLaunchParameters = MenuJRadioButton("Show advanced MD launch options/parameters", False)
+                    user_showMDLaunchParameters.setToolTipText("Displays advanced techniques / settings / parameters for launching Moneydance")
+
                     user_show_encryption_keys = MenuJRadioButton("Show your encryption keys, and the Moneydance encryption methodology (use with care)", False, updateMenu=True, secondaryEnabled=GlobalVars.EXTRA_CODE_INITIALISED)
                     user_show_encryption_keys.setToolTipText("Will show your encryption keys used to encrypt your dataset [and sync data], along with the encryption methodologies")
 
@@ -28784,7 +28633,7 @@ now after saving the file, restart Moneydance
                     user_advanced_shrink_dataset = MenuJRadioButton("Shrink Dataset size", False, updateMenu=True)
                     user_advanced_shrink_dataset.setToolTipText("This function deletes MD's log files of all prior changes (not needed).. Typically these are .txn, .mdtxn files...")
 
-                    user_advanced_clone_dataset = MenuJRadioButton("Clone Dataset's structure (purge transactional data)", False, updateMenu=True)
+                    user_advanced_clone_dataset = MenuJRadioButton("Clone Dataset's structure (purge transactional data)", False, updateMenu=True, secondaryEnabled=GlobalVars.EXTRA_CODE_INITIALISED)
                     user_advanced_clone_dataset.setToolTipText("Clones you dataset, keeps the structures, purges the transactional data - CREATES NEW DATASET")
 
                     user_advanced_save_trunk = MenuJRadioButton("Save Trunk File (Flush all in-memory changes & dataset to disk)", False, updateMenu=True)
@@ -28827,11 +28676,13 @@ now after saving the file, restart Moneydance
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 5
+                    rows = 7
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     # userFilters.add(user_advanced_toggle_DEBUG)
                     userFilters.add(user_advanced_toggle_other_DEBUGs)
+                    userFilters.add(user_view_java_vmoptions)
+                    userFilters.add(user_showMDLaunchParameters)
                     userFilters.add(user_advanced_extract_from_dataset)
                     userFilters.add(user_advanced_extract_from_sync)
                     userFilters.add(user_advanced_decrypt_dataset)
@@ -28870,6 +28721,8 @@ now after saving the file, restart Moneydance
                     while True:
                         if MD_REF.getCurrentAccountBook() is None: return
 
+                        user_view_java_vmoptions.setEnabled(os.path.exists(get_vmoptions_path()))
+
                         lDropbox, lSuppressed = check_dropbox_and_suppress_warnings()
                         user_advanced_suppress_dropbox_warning.setEnabled(ToolboxMode.isUpdateMode() and (lDropbox and not lSuppressed))
                         user_demote_primary_to_secondary.setEnabled(ToolboxMode.isUpdateMode() and (MD_REF.getUI().getCurrentAccounts().isMasterSyncNode()))
@@ -28880,6 +28733,7 @@ now after saving the file, restart Moneydance
                         user_advanced_extract_from_sync.setEnabled(MD_REF.getUI().getCurrentAccounts().getSyncFolder() is not None and GlobalVars.EXTRA_CODE_INITIALISED)
                         user_show_encryption_keys.setEnabled(ToolboxMode.isUpdateMode() and GlobalVars.EXTRA_CODE_INITIALISED)
                         user_force_reset_sync_settings.setEnabled(ToolboxMode.isUpdateMode() and GlobalVars.EXTRA_CODE_INITIALISED)
+                        user_advanced_clone_dataset.setEnabled(ToolboxMode.isUpdateMode() and GlobalVars.EXTRA_CODE_INITIALISED)
 
                         bg.clearSelection()
 
@@ -28901,6 +28755,8 @@ now after saving the file, restart Moneydance
 
                         # if user_advanced_toggle_DEBUG.isSelected():                 advanced_options_DEBUG()
                         if user_advanced_toggle_other_DEBUGs.isSelected():          advanced_options_other_DEBUG()
+                        if user_showMDLaunchParameters.isSelected():                showMDLaunchParameters()
+                        if user_view_java_vmoptions.isSelected():                   ViewFileButtonAction(File(get_vmoptions_path()), "Java VM File").actionPerformed(None)
                         if user_show_encryption_keys.isSelected():                  advanced_show_encryption_keys()
                         if user_advanced_extract_from_dataset.isSelected():         advanced_options_decrypt_file_from_dataset()
                         if user_advanced_extract_from_sync.isSelected():            advanced_options_decrypt_file_from_sync()
@@ -29988,41 +29844,8 @@ now after saving the file, restart Moneydance
                                      lModal=False).go()
                 del allAccounts, output
 
-
-            # Check for base Currency rate != 1.0
-            _baseCurr = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
-            _PARAM_RRATE = "rrate"
-            if (_baseCurr.getParameter(_PARAM_RRATE, None) is None
-                    or not isGoodRate(_baseCurr.getDoubleParameter(_PARAM_RRATE, 0.0))
-                    or _baseCurr.getDoubleParameter(_PARAM_RRATE, 0.0) != 1.0
-                    or _baseCurr.getRate(None) != 1.0):
-
-                statusTxt = "ERROR: Your base currency (relative) rate is NOT 1.0!"
-                output = ">> Use the 'Diagnose currencies / securities' to diagnose and then run the repair option..."
-                myPrint("B", statusTxt, output)
-                MyPopUpDialogBox(toolbox_frame_,
-                                 theStatus=statusTxt,
-                                 theMessage=output,
-                                 theTitle="ERROR - CURRENCY: BASE (RELATIVE) RATE NOT 1.0",
-                                 OKButtonText="ACKNOWLEDGE",
-                                 lAlertLevel=2,
-                                 lModal=False).go()
-            del _baseCurr, _PARAM_RRATE
-
-            # Check for no currencies.. Popup alert message
-            # noinspection PyUnresolvedReferences
-            allCurrs = [c for c in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies() if c.getCurrencyType() == CurrencyType.Type.CURRENCY]
-            if len(allCurrs) < 1:
-                MyPopUpDialogBox(toolbox_frame_, "PROBLEM DETECTED",
-                                                 "You seem to have no Currencies?!\n" 
-                                                 "Please go to Tools/Currencies and add a Currency\n" 
-                                                 "This would normally need to be your 'base' currency\n"
-                                                 "You should check the currency setup of your accounts too!",
-                                                 theTitle="ERROR - NO CURRENCIES EXIST",
-                                                 OKButtonText="ACKNOWLEDGE",
-                                                 lAlertLevel=2,
-                                                 lModal=False).go()
-            del allCurrs
+            # Validate Base Currency...
+            validateAndFixBaseCurrency(validationOnly=True, popupAlert=True, modalPopup=False, adviseNoErrors=False)
 
             # Check for problem with java.io.tmpdir - causes missing icons etc.. Popup alert message
             if not detect_broken_critical_javaio_temp_dir_OK():

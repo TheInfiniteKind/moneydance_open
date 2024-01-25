@@ -1,6 +1,6 @@
 The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
 
-Original Author: Stuart Beesley - StuWareSoftSystems (2020-2023 - originally my 'lockdown' project ~2000 coding hours)
+Original Author: Stuart Beesley - StuWareSoftSystems (2020-2024 - originally my 'lockdown' project ~2000 coding hours)
 Credit: Derek Kent(23) for his extensive testing and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
@@ -124,7 +124,6 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - View MD Console (the whole file - searchable)
         - View MD Config.dict file (the whole file - searchable)
         - View MD Custom Theme file  (only appears if it exists)
-        - View your Java .vmoptions file (only appears if it exists) - INCLUDES VARIOUS INSTRUCTIONS TOO
         - View Extension(s) details
         - View memorised reports (parameters and default settings)
         - Find my Sync Encryption password(s) in iOS Backup(s) - DECOMMISSIONED >> NO LONGER AVAILABLE
@@ -141,7 +140,8 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - View your accounts' calculated reconcile window auto 'as of' date (active accounts only)
 
     - MENU: Currency & Security tools:
-        - DIAG - Diagnose currencies / securities (including relative currencies) If errors, then go to FIX below
+        - DIAG - Diagnose base currency. Run this first. If errors, then go to FIX below
+        - DIAG - Diagnose currencies / securities (including relative currencies). If errors, then go to FIX below
         - DIAG - Can I delete a Security (tells you whether a security/stock is being used - and where)
         - DIAG - Can I delete a Currency (tells you whether a currency is being used - and where)
         - DIAG - List decimal places (currency & security). Shows you the hidden setting and related data.
@@ -199,7 +199,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Relocate this dataset back to the default 'internal' location
         - FIX - Relocate this dataset to another location [Note: IK do not recommend this]
         - FIX - Cleanup MD's File/Open list of 'external' files (does not touch actual files)
-        - DELETE Files from Menu>File>Open list and also from DISK (Removes files from 'Internal' and 'External' locations).
+        - DELETE Files from Menu>File>Open list [and OPTIONALLY also from DISK] (can remove files from 'Internal' and 'External' locations).
             >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
             >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
         - FIX - Remove inactive accounts/categories from SideBar
@@ -233,6 +233,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - USAA ONLY: Manually 'prime' / overwrite stored Root UserIDs/ClientUIDs
 
     - MENU: Currency & Security tools:
+        - FIX - Fix the base currency. Apply this fix before diagnosing/fixing currencies (below).
         - FIX - Fix currencies / securities (including relative currencies) (fixes your currency & security's key settings) (reset_relative_currencies.py)
         - FIX - Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly).  >> 2021.2 onwards
         - FIX - Merge 'duplicate' securities (and related Investment txns) into one master security record (by TickerSymbol).        >> 2021.2 onwards
@@ -274,6 +275,8 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
     - MENU: Advanced options
         >> SPECIAL ADVANCED FEATURES - USE WITH CARE!
         - Toggle other Moneydance DEBUGs (manually enable/disable debug mode on individual other known debug settings)
+        - View your Java .vmoptions file (only appears if it exists) - INCLUDES VARIOUS INSTRUCTIONS TOO (READONLY)
+        - Show advanced MD launch options/parameters. Displays advanced techniques / settings / parameters for launching Moneydance (READONLY)
         - Extract/decrypt a (single) file from within Dataset. Decrypts a Dataset file to Dataset/tmp/decrypted dir for viewing (tmp file self destructs after MD restart)
         - Extract/decrypt a (single) file from Sync folder. Decrypts a Sync file to Dataset/tmp/decrypted/fromSync dir for viewing (tmp file self destructs after MD restart)
         - Decrypt entire dataset. Decrypts entire dataset to a folder of your choosing...

@@ -2,7 +2,7 @@
 !! From June 2021 on, most extensions available via the Moneydance menu >> Manage Extensions - Check there first !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-Author: Stuart Beesley - StuWareSoftSystems 2020-2023
+Author: Stuart Beesley - StuWareSoftSystems 2020-2024
 Visit: https://yogi1967.github.io/MoneydancePythonScripts/ for more downloads and information
 
 THESE ARE EXTENSIONS / SCRIPTS FOR MONEYDANCE WRITTEN IN PYTHON (JYTHON 2.7)
