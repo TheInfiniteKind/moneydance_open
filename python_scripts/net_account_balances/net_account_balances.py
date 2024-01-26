@@ -138,7 +138,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 #               Fixed debug error - exclude ROOT account...; Fixed max screen/frame sizing (especially on non-Mac platforms)...
 #               Further tweaks to scrollpanes/scrollbars (move whole page scrollbar to left, expand view / frame on right (more) when on windows)
 #               Fix formula warning label reset accidentally wiping the date range label!
-#               Finally fix the GUI scrolling issue, with JSplitPane....
+#               Finally fix the GUI scrolling issue, with JSplitPane....; Final label height fix
 
 # todo - consider better formula handlers... e.g. com.infinitekind.util.StringUtils.parseFormula(String, char)
 # todo - option to show different dpc (e.g. full decimal precision)
@@ -14961,7 +14961,7 @@ Visit: %s (Author's site)
                     selectRow_pnl.add(NAB.debug_LBL, GridC.getc(onSelectCol, onSelectRow).wx(0.1).west())
                     onSelectCol += 1
 
-                    rowSelected_COMBOLabel = MyJLabel(wrap_HTML_BIG_small("Select Row:", "", _bigColor=getColorBlue(), _bold=True, _underline=True))
+                    rowSelected_COMBOLabel = MyJLabel(wrap_HTML_BIG_small("Select Row:", "", _bigColor=getColorBlue(), _bold=True, _underline=True), fixedHeight=20)
                     rowSelected_COMBOLabel.putClientProperty("%s.id" %(NAB.myModuleID), "rowSelected_COMBOLabel")
                     rowSelected_COMBOLabel.setIcon(NAB.selectorIcon)
                     rowSelected_COMBOLabel.setHorizontalTextPosition(SwingConstants.LEFT)
