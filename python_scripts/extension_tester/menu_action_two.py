@@ -3,15 +3,8 @@
 
 # You would only use this script if using script_info "type" = "menu" and click on the extensions menu
 
-global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_extension_loader
-global MY_EXTENSION_OBJ
-
-from java.lang import System
-
-def myPrint(theTest):
-    print(theTest)
-    System.err.write(u"%s\n" %(theTest))
-
+global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_extension_loader, moneydance_script_fixed_parameter
+global MY_EXTENSION_OBJ, myPrint
 
 myPrint(u"@@ Extension Tester >> menu_action_two.py was invoked.")
 myPrint(u"  moneydance: %s"%((moneydance)))
@@ -24,6 +17,8 @@ myPrint(u"  moneydance_extension_loader: %s"%((moneydance_extension_loader)))
 global thisObjectExistsEverywhere, ExtensionTester
 if u"thisObjectExistsEverywhere" in globals():
     myPrint(u"menu_action_two.py - 'thisObjectExistsEverywhere' exists and contains: %s" %(thisObjectExistsEverywhere))
+    if u"moneydance_script_fixed_parameter" in globals():
+        myPrint(u"... 'moneydance_script_fixed_parameter' was set to: '%s'" %(moneydance_script_fixed_parameter))
 
     # The next line is an example - you would not normally do this. I.e. you handle the script code here... This demos calling the ExtensionClass().invoke()
     moneydance.showURL(u"moneydance:fmodule:extension_tester:my_invoke_command:menu_two")   # another example - you would not do this here normally

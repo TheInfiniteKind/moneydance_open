@@ -1,5 +1,6 @@
-# This is the format to use when using the script methods invoke.py, handle_event.py, unload.py
+# This is the format to use when using the script methods invoke.py, handle_event.py, unload.py, context_actions_txns.py, context_actions_accts.py
 # you do not need the ExtensionClass() in this situation
+# the tag "script_fixed_parameter" is optional and will be passed into the variable 'moneydance_extension_parameter'
 # Rename this file to script_info.dict (and remove these comments)
 {
   "actions" = (
@@ -8,14 +9,28 @@
       "script_file" = "extension_tester.py"
     }
     {
+      "type" = "txn_menu"
+      "name" = "Extension Tester (script) >> SELECTED TXNS"
+      "script_file" = "context_actions_txns.py"
+      "script_fixed_parameter" = "context_actions_txns"
+    }
+    {
+      "type" = "account_menu"
+      "name" = "Extension Tester (script) >> SELECTED ACCTS"
+      "script_file" = "context_actions_accts.py"
+      "script_fixed_parameter" = "context_actions_accts"
+    }
+    {
       "type" = "menu"
       "script_file" = "menu_action_one.py"
       "name" = "Extension Tester >> ONE"
+      "script_fixed_parameter" = "menu_one"
     }
     {
       "type" = "menu"
       "script_file" = "menu_action_two.py"
       "name" = "Extension Tester >> TWO"
+      "script_fixed_parameter" = "menu_two"
     }
     {
       "type" = "method"

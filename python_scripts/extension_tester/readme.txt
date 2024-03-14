@@ -1,10 +1,12 @@
 InfiniteKind - Moneydance Python extensions
 
-Documented by Stuart Beesley - StuWareSoftSystems 2021 - https://yogi1967.github.io/MoneydancePythonScripts/
+Documented by Stuart Beesley - StuWareSoftSystems 2024 - https://yogi1967.github.io/MoneydancePythonScripts/
 
 NOTES ABOUT PYTHON EXTENSIONS:
 
-- You want to be on Moneydance version 2021.1 build 3056 onwards as this is when Py extensions became 'fully functional'
+- You want to be on (at least) Moneydance version 2021.1 build 3056 onwards as this is when Py extensions became 'fully functional'
+  (right-click context menu support is from MD2024(5100) onwards)
+
 - You can do anything in Python that a Java extension can do.
 
 - Python extensions have to be executed by the Python Interpreter. This consumes 200-300MB of RAM. Clearly an overhead over compiled Java
@@ -19,6 +21,7 @@ NOTES ABOUT PYTHON EXTENSIONS:
     - Download/install the development kit and read the notes: https://infinitekind.com/developer
     - At lot of the notes relate to java, but some are still valid.
     - You will need ANT and also to run "ant genkeys" (before you start) in the src directory (to create your own key-pair)
+      (strictly speaking you don't actually need to sign your own code)
 
     - You will also need to create an mxt (zip) build script (or use ANT)
 
@@ -46,18 +49,23 @@ NOTES ABOUT PYTHON EXTENSIONS:
           print("Python extension received invoke command: %s" % (uri))
       def handle_event(self, eventString):
           print("Python extension received handle_event: %s" % (eventString))
+      def getActionsForContext(self, context):
+          print("Python extension received getActionsForContext: %s" % (context))
+          return []
       def unload(self):
           print("unload actions here")
       >> also define; __init__(), __str__(), getName(), handleEvent() [or handle_event()], unload() # the latter three are called since build 3056....
+      >> also getActionsForContext() since MD2024(5100) for (optional) right-click context action support
+
    moneydance_extension = MyExtensionClass()
 
    - script_info.dict needs to contain the "type"="initializer" and that's it!
 
    2) The 'script' method Py extension >> you need the following minimum construct:
       - Your main script. Decide when to run it (run time using initializer, or more normally via the extensions menu click action)
-      - invoke.py, unload.py, handle_event.py, initializer.py scripts [all optional]
+      - invoke.py, unload.py, handle_event.py, context_actions_txns.py, context_actions_accts.py, initializer.py scripts [all optional]
       - I suggest you use unload.py to cleanup on uninstall or reinstall
-      - script_info.dict needs to contain a mixture of "type"="menu", "type"="method", "type"="initializer" options
+      - script_info.dict needs to contain a mixture of "type"="menu", "type"="method", "type"="initializer", "type"="txn_menu", "type"="account_menu" options
 
 >> AT THIS POINT, REVIEW THIS extension_tester example and the files within....
 
@@ -73,8 +81,19 @@ NOTES ABOUT PYTHON EXTENSIONS:
      then you get back into the same namespace from where you last left off. You need to handle this. Toolbox is an example of this.
      By default, this type of Py extension receives no extra method calls from Moneydance...
      - However, if you also define {"type" = "method", "method" = "x", "script_file" = "x.py"} entries in script_info.dict then
-     - your extension can execute invoke, handle_event, unload Py scripts
+     - your extension can execute invoke, handle_event, unload py scripts
+     - also true of {"type" = "txn_menu", "type" = "account_menu"} methods and the context_actions_txns.py and context_actions_accts.py scripts
      - This type of extension can also define an 'initializer' script,  but probably not needed
+
+    VARIABLES:
+    - When using the script methods, then the following global variables will be made available to your scripts:
+        moneydance                              The Moneydance Main Moneydance class object
+        moneydance_ui                           The Moneydance GUI
+        moneydance_data                         Your dataset reference
+        moneydance_extension_parameter          The parameter triggered by an invoke or handle event trigger
+        moneydance_extension_loader             The classloader reference for your extension
+        moneydance_script_fixed_parameter       When using {"script_fixed_parameter" = "xx"} an optional way to pass a fixed parameter string
+
   c) ExtensionClass(): You create an .mxt bundle (similar to option b above, using the ExtensionClass(). This also uses script_info.dict, but this time the
      file should just contain a {"type" = "initializer", "script_file" = "extension_tester.py"} entry - you need nothing else.
      Assuming you define the ExtensionClass() and then use moneydance_extension = MyExtensionClass() then it will install itself.
@@ -183,20 +202,23 @@ CODING TIPS
                                  (ignore the elements in Virantha's tips about using java to package the extension)
 
 - ExtensionClass():
-    - __init__():     Perform simple variable initialisation here.
-    - initialize():   Grab 'context' and 'extension wrapper' here. Context is your gateway into Moneydance. Perform simple startup tasks
-                      but, remember, you need to be thinking 'event' driven, and not sequentially programmed driven.
-                      at this point, during MD startup, the GUI is not loaded, the dataset is not loaded, and MD is firing up.....
-                      (unless during a install/reinstall, as you will always be in the GUI then of course)
-                      here you can call .registerFeature() [optional] to stick an item on the extensions menu
-                      here you can call .registerHomePageView() [optional] if your extension will build a HomePage view too
-    - invoke():       Will be called if you click on your [optional] extensions menu item; or via .showURL()
-                      importantly, your own extension can call this during execution to trigger your own events...
-    - handle_event(): Very important that you monitor MD events. The full list is at the end of this readme
-                      'md:file:opened' is your trigger that MD, the GUI, the dataset is loaded - or when a dataset has changed
-                      'md:file:closing' and 'closed' are good points to release all references to data objects
-    - unload():       This is your trigger that your extension is being uninstalled or reinstalled. It needs to cleanup, release references, shutdown
-    - other...        Use float(context.getBuild()) to check MD build and handle version control / compatibility accordingly
+    - __init__():             Perform simple variable initialisation here.
+    - initialize():           Grab 'context' and 'extension wrapper' here. Context is your gateway into Moneydance. Perform simple startup tasks
+                              but, remember, you need to be thinking 'event' driven, and not sequentially programmed driven.
+                              at this point, during MD startup, the GUI is not loaded, the dataset is not loaded, and MD is firing up.....
+                              (unless during a install/reinstall, as you will always be in the GUI then of course)
+                              here you can call .registerFeature() [optional] to stick an item on the extensions menu
+                              here you can call .registerHomePageView() [optional] if your extension will build a HomePage view too
+    - invoke():               Will be called if you click on your [optional] extensions menu item; or via .showURL()
+                              importantly, your own extension can call this during execution to trigger your own events...
+    - handle_event():         Very important that you monitor MD events. The full list is at the end of this readme
+                              'md:file:opened' is your trigger that MD, the GUI, the dataset is loaded - or when a dataset has changed
+                              'md:file:closing' and 'closed' are good points to release all references to data objects
+    - getActionsForContext(): Called when user right clicks on transactions or an account.. Used to create a context menu item
+                              for the selected items.. Must be quick and return a list of Actions - e.g. [Action]
+    - unload():               This is your trigger that your extension is being uninstalled or reinstalled. It needs to cleanup, release references, shutdown
+
+    - other...        Use context.getBuild() to check MD build and handle version control / compatibility accordingly
                       always consider what thread you are on (Swing EDT or not) and handle accordingly
                       to write to the MD console: 'from java.lang import System' and then 'System.err.write("text\n")'
                       there are some prebuilt popups you can use in .getUI() .askQuestion() .askForInput() .showInfoMessage()
@@ -249,7 +271,6 @@ meta_info.dict: Locate in the ./com/moneydance/modules/features/extension_name/ 
   "mac_sandbox_friendly" = "true"               # Optional
 }
 
-
 Moneydance Events:
 
 # These are the MD events...
@@ -257,21 +278,25 @@ Moneydance Events:
 
 # You should release any reference to MD data objects if dataset is closed/opened!
 
-# md:file:closing	The Moneydance file is being closed
-# md:file:closed	The Moneydance file has closed
-# md:file:opening	The Moneydance file is being opened
-# md:file:opened	The Moneydance file has opened
-# md:file:presave	The Moneydance file is about to be saved
-# md:file:postsave	The Moneydance file has been saved
-# md:app:exiting	Moneydance is shutting down
-# md:account:select	An account has been selected by the user
-# md:account:root	The root account has been selected
-# md:graphreport	An embedded graph or report has been selected
-# md:viewbudget	    One of the budgets has been selected
-# md:viewreminders	One of the reminders has been selected
-# md:licenseupdated	The user has updated the license
+# md:app:onlinedownloadstarted  Online (bank) download started
+# md:app:onlinedownloadfinished Online (bank) download finished
+# md:file:backupstarted         Backup started
+# md:file:backupfinished        Backup finished
+# md:file:closing	            The Moneydance file is being closed
+# md:file:closed	            The Moneydance file has closed
+# md:file:opening	            The Moneydance file is being opened
+# md:file:opened	            The Moneydance file has opened
+# md:file:presave	            The Moneydance file is about to be saved
+# md:file:postsave	            The Moneydance file has been saved
+# md:app:exiting	            Moneydance is shutting down
+# md:account:select	            An account has been selected by the user
+# md:account:root	            The root account has been selected
+# md:graphreport	            An embedded graph or report has been selected
+# md:viewbudget	                One of the budgets has been selected
+# md:viewreminders	            One of the reminders has been selected
+# md:licenseupdated	            The user has updated the license
 
 
 Thanks for reading.. Contact me with questions, updates... Happy Python coding.... Stuart Beesley
-Last updated: 7th April 2021
+Last updated: 14th March 2024
 

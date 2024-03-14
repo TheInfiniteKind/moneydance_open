@@ -5,29 +5,46 @@
       "script_file" = "extension_tester.py"
     }
     {
+      "type" = "txn_menu"
+      "name" = "Extension Tester (script) >> SELECTED TXNS"
+      "script_file" = "context_actions_txns.py"
+      "script_fixed_parameter" = "context_actions_txns"
+    }
+    {
+      "type" = "account_menu"
+      "name" = "Extension Tester (script) >> SELECTED ACCTS"
+      "script_file" = "context_actions_accts.py"
+      "script_fixed_parameter" = "context_actions_accts"
+    }
+    {
       "type" = "menu"
       "script_file" = "menu_action_one.py"
       "name" = "Extension Tester >> ONE"
+      "script_fixed_parameter" = "menu_one"
     }
     {
       "type" = "menu"
       "script_file" = "menu_action_two.py"
       "name" = "Extension Tester >> TWO"
+      "script_fixed_parameter" = "menu_two"
     }
     {
       "type" = "method"
       "method" = "invoke"
       "script_file" = "invoke.py"
+      "script_fixed_parameter" = "invoke"
     }
     {
       "type" = "method"
       "method" = "handle_event"
       "script_file" = "handle_event.py"
+      "script_fixed_parameter" = "handle_event"
     }
     {
       "type" = "method"
       "method" = "unload"
       "script_file" = "unload.py"
+      "script_fixed_parameter" = "unload"
     }
   )
 }

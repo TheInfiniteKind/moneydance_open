@@ -15,12 +15,24 @@
 # ..remove the "type" = "method" entries in script_info.dict - it's one or the other, not both...
 
 global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_extension_loader
+global moneydance_script_fixed_parameter, moneydance_action_context, moneydance_action_event
+
+if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
+if "moneydance_ui" in globals(): MD_REF_UI = moneydance_ui  # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
+if "MD_REF" not in globals(): raise Exception("ERROR: 'moneydance' / 'MD_REF' NOT set!?")
+if "MD_REF_UI" not in globals(): raise Exception("ERROR: 'moneydance_ui' / 'MD_REF_UI' NOT set!?")
 
 from java.lang import System
+from java.awt.event import ActionListener
+from com.infinitekind.moneydance.model import CurrencyUtil
+from com.moneydance.apps.md.view.gui import MDAction
+if MD_REF.getBuild() >= 5100: from com.infinitekind.util import AppDebug
 
 def myPrint(theTest):
-    print(theTest)
-    System.err.write(u"%s\n" %(theTest))
+    if MD_REF.getBuild() >= 5100:
+        AppDebug.ALL.log(theTest)
+    else:
+        System.err.println(theTest)
 
 
 myPrint(u"@@ Extension Tester object.init")
@@ -37,8 +49,7 @@ thisObjectExistsEverywhere = u"Yup - I really do exist everywhere.... ;->"      
 # If you do not want a run-time extension - i.e. your script just executes when you click the extensions menu, then..
 # do NOT use script_info "type" = "initializer", and just use script_info "type" = "menu".
 # ... and put your code here
-MD_REF = moneydance
-MD_REF_UI = moneydance_ui
+
 # CODE HERE - Do not use the code below....
 
 
@@ -51,7 +62,7 @@ class ExtensionTester():        # This can be called whatever you want - but set
     # Your own initialisation routines
     def __init__(self):
         myPrint(u"@@ Extension Tester object.init")
-        self.md_ui = moneydance_ui  # NOTE: This may be None. You need to test/grab at key points using self.ext_context.getUI()
+        self.md_ui = MD_REF_UI      # NOTE: This may be None. You need to test/grab at key points using self.ext_context.getUI()
         self.ext_context = None     # This is the same as the moneydance variable
         self.moneydanceExtensionObject = None
         self.moneydanceExtensionLoader = moneydance_extension_loader  # This is the class loader for the whole extension
@@ -65,11 +76,13 @@ class ExtensionTester():        # This can be called whatever you want - but set
         # This next line will install an item on the Extension menu.. This is optional. It causes MD to call .invoke() in your class
         # You can also do this using script_info "type" = "menu" option to run a script.
         # Use moneydance.showURL("moneydance:fmodule:extension_tester:my_invoke_command:menu_three") for example - to call
-        self.ext_context.registerFeature(self.moneydanceExtensionObject, "my_invoke_command:menu_three", None, "Extension Tester >> THREE")
+        self.ext_context.registerFeature(self.moneydanceExtensionObject, u"my_invoke_command:menu_three", None, u"Extension Tester >> THREE")
 
     # noinspection PyMethodMayBeStatic
     def invoke(self, uri):  # This method is called when requested by .showURL(), or from the extension menu - when item clicked
         myPrint(u"@@ Extension Tester object.invoke was called with uri %s" %(uri))
+        if "moneydance_script_fixed_parameter" in globals():
+            myPrint(u"... 'moneydance_script_fixed_parameter' was set to: " + moneydance_script_fixed_parameter)
 
     # noinspection PyMethodMayBeStatic
     def handle_event(self, uri):    # Called on all MD events - Unless you are using script_info "method" = "handle_event"
@@ -80,19 +93,66 @@ class ExtensionTester():        # This can be called whatever you want - but set
 
         # You should release any reference to MD data objects if dataset is closed/opened!
 
-        # md:file:closing	The Moneydance file is being closed
-        # md:file:closed	The Moneydance file has closed
-        # md:file:opening	The Moneydance file is being opened
-        # md:file:opened	The Moneydance file has opened
-        # md:file:presave	The Moneydance file is about to be saved
-        # md:file:postsave	The Moneydance file has been saved
-        # md:app:exiting	Moneydance is shutting down
-        # md:account:select	An account has been selected by the user
-        # md:account:root	The root account has been selected
-        # md:graphreport	An embedded graph or report has been selected
-        # md:viewbudget	One of the budgets has been selected
-        # md:viewreminders	One of the reminders has been selected
-        # md:licenseupdated	The user has updated the license
+        # REFER: com.moneydance.apps.md.controller.AppEventManager
+        # md:app:onlinedownloadstarted      Online (bank) download started
+        # md:app:onlinedownloadfinished     Online (bank) download finished
+        # md:file:backupstarted             Backup started
+        # md:file:backupfinished            Backup finished
+        # md:file:closing	                The Moneydance file is being closed
+        # md:file:closed	                The Moneydance file has closed
+        # md:file:opening	                The Moneydance file is being opened
+        # md:file:opened	                The Moneydance file has opened
+        # md:file:presave	                The Moneydance file is about to be saved
+        # md:file:postsave	                The Moneydance file has been saved
+        # md:app:exiting	                Moneydance is shutting down
+        # md:account:select	                An account has been selected by the user
+        # md:account:root	                The root account has been selected
+        # md:graphreport	                An embedded graph or report has been selected
+        # md:viewbudget	                    One of the budgets has been selected
+        # md:viewreminders	                One of the reminders has been selected
+        # md:licenseupdated	                The user has updated the license
+
+        if u"moneydance_script_fixed_parameter" in globals():
+            myPrint(u"... 'moneydance_script_fixed_parameter' was set to: '%s'" %(moneydance_script_fixed_parameter))
+
+    class ContextActionListener(ActionListener):
+        def __init__(self, context): self.context = context
+        def actionPerformed(self, e):                                                                                   # noqa
+            myPrint(u"... context: %s" %(self.context))
+            base = self.context.getAppGUI().getMain().getCurrentAccountBook().getCurrencies().getBaseType()
+            val = 0.0
+            countTxns = 0
+            for txn in self.context.getTransactions():
+                acct = txn.getAccount()
+                curr = acct.getCurrencyType()
+                val += base.getDoubleValue(CurrencyUtil.convertValue(txn.getValue(), curr, base))
+                countTxns += 1
+            bal = 0.0
+            countAccts = 0
+            for acct in self.context.getAccounts():
+                curr = acct.getCurrencyType()
+                bal += base.getDoubleValue(CurrencyUtil.convertValue(acct.getBalance(), curr, base))
+                countAccts += 1
+            self.context.getAppGUI().showInfoMessage(u"Extn class - ContextMenu: %s txns - value: %s, %s accts, %s totBal" %(countTxns, val, countAccts, bal))
+
+    def getActionsForContext(self, context):
+        # context is com.moneydance.apps.md.controller.MDActionContext from MD2024(5100) onwards
+        # return a list of [javax.swing.Action]s
+        myPrint(u"::getActionsForContext(%s)" %(context))
+        myPrint(u"  type:         %s" %context.getType())
+        myPrint(u"  component:    %s" %context.getComponent())
+        myPrint(u"  dateRange:    %s" %context.getDateRange())
+        myPrint(u"  items:        %s" %len(context.getItems()))
+        myPrint(u"  accounts:     %s" %len(context.getAccounts()))
+        myPrint(u"  transactions: %s" %len(context.getTransactions()))
+
+        if len(context.getAccounts() + context.getTransactions()) > 0:
+            returnActions = [MDAction.makeNonKeyedAction(context.getAppGUI(), "Extension Tester (extn class): total txns/accts", "test_context_total", self.ContextActionListener(context))]
+        else:
+            returnActions = []
+
+        myPrint(u"Returning: %s" %returnActions)
+        return returnActions
 
     # noinspection PyMethodMayBeStatic
     def unload(self):               # Called when extension uninstalled (re-installed) - unless using script_info "method" = "unload"

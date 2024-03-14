@@ -1,6 +1,7 @@
 # This is the format to use when using the script methods and you want to execute only on extensions menu click
 # Define your main script using {"type" = "menu","script_file" = "scriptname.py", "name" = "Extension Tester"}
 # unload.py is recommended. Optionally define 'initializer' script, and also invoke.py, handle_event.py.
+# the tag "script_fixed_parameter" is optional and will be passed into the variable 'moneydance_extension_parameter'
 # you do not need the ExtensionClass() in this situation
 # Rename this file to script_info.dict (and remove these comments)
 {
@@ -9,6 +10,7 @@
       "type" = "menu"
       "script_file" = "scriptname.py"
       "name" = "Extension Tester"
+      "script_fixed_parameter" = "menu"
     }
     {
       "type" = "method"

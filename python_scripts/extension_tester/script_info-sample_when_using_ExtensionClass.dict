@@ -1,4 +1,4 @@
-# This is the format to use when using an ExtensionClass(). It must define .invoke(), .handle_event(), .unload()
+# This is the format to use when using an ExtensionClass(). It must define .invoke(), .handle_event(), .unload(), .getActionsForContext()
 # you do not need the invoke.py, handle_event.py, unload.py scripts in this situation
 # Rename this file to script_info.dict (and remove these comments)
 {
