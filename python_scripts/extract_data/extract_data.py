@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1040 - Nov 2023 - Stuart Beesley
+# extract_data.py - build: 1041 - December 2023 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -32,7 +32,7 @@
 
 # MIT License
 #
-# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -65,7 +65,7 @@
 # It can also grab, decrypt, and extract/save your attachments
 # For Investments and Reminders, it will display on screen (includes stockglance2020)
 
-# Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
+# Use in Moneydance Menu Window->Show Developer Console >> Open Script >> RUN
 
 # Stuart Beesley Created 2021-02-10 tested on MacOS - MD2021 onwards - StuWareSoftSystems....
 # Build: 1000 - Initial consolidation of all prior extract scripts
@@ -137,12 +137,19 @@
 #               Common code - FileFilter fix...; put options into scrollpane (was cutting off screen)
 # build: 1038 - Modernised code, removed globals, use own settings file, revamped GUI and file/folder selection procedure
 #               New extensions menu option - run SG2020 / Reminders; removed 'from java.awt.print.Book import'
-# build: 1039 - Enhanced extract_security_balances with asof date, and cash values (inlcudes snazzy CostCalculation with asof date).
+# build: 1039 - Enhanced extract_security_balances with asof date, and cash values (includes snazzy CostCalculation with asof date).
 #               Added extract account balances...
 # build: 1040 - Fix file chooser on Windows - could not select Folder...
+# build: 1041 - Fix .getCostBasisAsOf() and the call to cope with builds prior to 5008 (CostCalculation not accessible).
+#               NOTE: On builds prior to 5008, zero costbasis will be returned.
+#               Tweak cell renderer(s) in SG2020 and Extract Reminders to fix cell padding and highlighted colors...
+#               Introduced MyCostCalculation...
+#               Added Date Entered, Sync Date, reconciled date, reconciled asof dates into EAR and EIT extracts...
+#               Tweaked MyCostCalculation::getSharesAndCostBasisForAsOf()
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
+# todo - LFR: switch to AsOfDateChooser for look forward days (instead of just a days = number)
 # todo - Consider StockGlance2020 asof balance date...
 # todo - extract budget data?
 # todo - import excel writer?
@@ -153,9 +160,9 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1040"
+version_build = "1041"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
-_I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
+_I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 
@@ -317,13 +324,13 @@ elif frameToResurrect and frameToResurrect.isRunTimeExtension:
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
-    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Developer Console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -473,7 +480,8 @@ else:
 
     from com.moneydance.apps.md.controller.time import TimeInterval, TimeIntervalUtil                                   # noqa
     from com.moneydance.apps.md.view.gui import MDAction
-    from com.infinitekind.moneydance.model import DateRange, CostCalculation
+    from com.infinitekind.moneydance.model import DateRange, TxnSet, CapitalGainResult, InvestFields, InvestTxnType
+    # from com.infinitekind.moneydance.model CostCalculation
     from java.awt.event import HierarchyListener, ActionListener
 
     # from extract_account_registers_csv & extract_investment_transactions_csv
@@ -501,12 +509,12 @@ else:
     from com.infinitekind.moneydance.model import ReminderListener                                                      # noqa
 
     from java.awt.event import MouseAdapter
-    from java.util import Comparator
-    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu
+    from java.util import Comparator, HashMap
+    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu, BorderFactory
     from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, TableRowSorter
     from javax.swing.border import CompoundBorder, MatteBorder
     from javax.swing.event import TableColumnModelListener
-    from java.lang import Number
+    from java.lang import Number, Object, StringBuilder
     from com.moneydance.apps.md.controller import AppEventListener
     from com.infinitekind.util import StringUtils
     # exec("from java.awt.print import Book")     # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
@@ -704,7 +712,7 @@ else:
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
 Thank you for using %s!
-The author has other useful Extensions / Moneybot Python scripts available...:
+The author has other useful Extensions / 'Developer Console' Python scripts available...:
 
 Extension (.mxt) format only:
 Toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more
@@ -2965,7 +2973,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2023)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2024)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -3371,6 +3379,847 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
+
+    GlobalVars.MD_COSTCALCULATION_PUBLIC = 5008                             # 2023.2 (CC made public with extra methods)
+    def isCostCalculationPublic():
+        return (float(MD_REF.getBuild()) >= GlobalVars.MD_COSTCALCULATION_PUBLIC)
+
+    ####################################################################################################################
+    # Copied from: com.infinitekind.moneydance.model.CostCalculation (quite inaccessible before build 5008, also buggy)
+    ####################################################################################################################
+    class MyCostCalculation:
+        """CostBasis calculation engine (v7). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
+        Params asof:None or zero = asof the most recent (future)txn date that affected the shareholding/costbasis balance.
+        preparedTxns is typically used by itself to recall the class to get the current cost basis
+        obtainCurrentBalanceToo is used to request that the class calls itself to also get the current/today balance too
+        # (v2: LOT control fixes, v3: added isCostBasisValid(), v4: don't incl. fees on misc inc/exp in cbasis with lots,
+        # ...fixes for  capital gains to work, v5: added in short/long term support, v6: added unRealizedSaleTxn parameter
+        support, v7: added SharesOwnedAsOf class to match MD's upgraded CostCalculation class)"""
+
+        ################################################################################################################
+        # This is used to calculate the cost of a security using either the average cost or lot-based method.
+        # This can be used to produce the cost and gains (both short and long-term) for the security or for individual
+        # transactions on the security.
+        #
+        # Follows U.S. IRS 'single-category' average cost method specification. Gains are split short/long-term using FIFO.
+        # From U.S. IRS Publication 564 for 2009, under Average Basis, for the 'single-category' method:
+        #           "Even though you include all unsold shares of a fund in a single category to compute average
+        #           basis, you may have both short-term and long-term gains or losses when you sell these shares.
+        #           To determine your holding period, the shares disposed of are considered to be those acquired first."
+        #           https://www.irs.gov/pub/irs-prior/p564--2009.pdf
+        #
+        # There was a 'double-category' method which allowed you to separate short-term and long-term average cost pools,
+        # but the IRS eliminated that method on April 1, 2011. NOTE: Custom Balances does compute the available shares
+        # in both short-term and long-term pools. However this data is only shown in console when COST_DEBUG is enabled).
+        ################################################################################################################
+
+        COST_DEBUG = False
+
+        def __init__(self, secAccount, asOfDate=None, preparedTxns=None, obtainCurrentBalanceToo=False, unRealizedSaleTxn=None):
+            # type: (Account, int, TxnSet, bool, SplitTxn) -> None
+
+            if self.COST_DEBUG: myPrint("B", "** MyCostCalculation() initialising..... running asof: %s, for account: '%s' (%s) **"%(asOfDate, secAccount, "AvgCost" if self.getUsesAverageCost() else "LotControl"))
+
+            if unRealizedSaleTxn is not None:
+                assert (isinstance(unRealizedSaleTxn, SplitTxn))
+                if self.COST_DEBUG: myPrint("B", "... unrealized (sale txn) gain calculation requested for:", unRealizedSaleTxn)
+
+            todayInt = DateUtil.getStrippedDateInt()
+            if (asOfDate is None or asOfDate < 19000000): asOfDate = None
+            self.asOfDate = asOfDate
+
+            self.positions = ArrayList()            # Use java Class to exactly mirror original code (rather than [list])
+            self.positionsByBuyID = HashMap()       # Use java Class to exactly mirror original code (rather than {dict})
+            self.longTermCutoffDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), -1, 0, 0)
+            self.secAccount = secAccount
+            self.investCurr = secAccount.getParentAccount().getCurrencyType()                                           # type: CurrencyType
+            self.secCurr = secAccount.getCurrencyType()                                                                 # type: CurrencyType
+            self.usesAverageCost = secAccount.getUsesAverageCost()
+            self.costBasisInvalid = False
+
+            # if isinstance(preparedTxns, TxnSet) and preparedTxns.getSize() > 0:
+            if isinstance(preparedTxns, TxnSet):
+                # Assume cost basis is valid if you are passing a TxnSet (e.g. on the second call for 'Current Balance'.
+                self.txns = preparedTxns                                                                                # type: TxnSet
+            else:
+                # Check isCostBasisValid() here for speed....
+                if InvestUtil.isCostBasisValid(self.getSecAccount()):
+                    self.txns = secAccount.getBook().getTransactionSet().getTransactionsForAccount(secAccount)          # type: TxnSet
+                    if unRealizedSaleTxn is not None: self.txns.addTxn(unRealizedSaleTxn)
+                    self.txns.sortWithComparator(TxnUtil.DATE_THEN_AMOUNT_COMPARATOR.reversed())                        # Newest first by index
+                else:
+                    self.costBasisInvalid = True
+                    self.txns = TxnSet()
+                    myPrint("B", "@@ WARNING: MD reports that the Cost Basis for account: '%s' is invalid! (Probably Lot controlled Security account with Sells not fully Lot Matched to Buys. Will return zero)" %(self.getSecAccount().getFullAccountName()))
+
+            self.asOfDate = self.deriveRealBalanceDateInt(self.getTxns())
+            self.isAsOfToday = (asOfDate == todayInt)
+
+            self.getPositions().add(MyCostCalculation.Position(self))               # Adds a dummy start Position
+
+            for secTxn in self.getTxns():
+                self.addTxn(secTxn)                                                 # Iterates in reverse = oldest first
+
+            if self.getUsesAverageCost():
+                self.allocateAverageCostSales()
+            else:
+                self.allocateLots()
+                self.updateCostBasisForLots()
+
+            if obtainCurrentBalanceToo:
+                if self.getAsOfDate() > todayInt:
+                    self.currentBalanceCostCalculation = MyCostCalculation(self.getSecAccount(), todayInt, self.getTxns(), False)
+                else:
+                    self.currentBalanceCostCalculation = self                                                           # type: MyCostCalculation
+            else:
+                self.currentBalanceCostCalculation = None                                                               # type: MyCostCalculation
+
+        def isCostBasisInvalid(self): return self.costBasisInvalid
+        def getUsesAverageCost(self): return self.usesAverageCost
+
+        def getCurrentBalanceCostCalculation(self):
+            # type: () -> MyCostCalculation
+            return self.currentBalanceCostCalculation
+
+        def getTxns(self): return self.txns                                     # New method
+
+        def getSecAccount(self): return self.secAccount                         # New method
+
+        def getAsOfDate(self): return self.asOfDate                             # New method
+
+        def deriveRealBalanceDateInt(self, txns):                               # New method
+            # type: (TxnSet) -> int
+            """When asof is None, you are requesting the Balance.. This determines the future date of that Balance"""
+            if self.getAsOfDate() is not None: return self.getAsOfDate()        # If you specify a date, then just use that...
+            todayInt = DateUtil.getStrippedDateInt()
+            mostRecentDateInt = todayInt
+            fields = InvestFields()                                                                                     # type: InvestFields
+            for i in range(0, txns.getSize()):                                  # Iterate by index = newest first
+                txn = txns.getTxnAt(i)
+                dateInt = txn.getDateInt()
+                if dateInt <= todayInt: break
+
+                fields.setFieldStatus(txn.getParentTxn())
+
+                # ie not [InvestTxnType.BANK, InvestTxnType.DIVIDEND, InvestTxnType.DIVIDENDXFR]
+                if fields.txnType not in [InvestTxnType.BUY, InvestTxnType.BUY_XFER, InvestTxnType.COVER, InvestTxnType.DIVIDEND_REINVEST,
+                                          InvestTxnType.SELL, InvestTxnType.SELL_XFER, InvestTxnType.SHORT,
+                                          InvestTxnType.MISCINC, InvestTxnType.MISCEXP]:
+                    continue    # Skip back in time....
+                mostRecentDateInt = dateInt
+                break
+
+            if self.COST_DEBUG: myPrint("B", "@@ deriveRealBalanceDateInt().. sec: '%s' requested asof: %s, derived asof: %s"
+                                             %(self.getSecAccount(), self.getAsOfDate(), mostRecentDateInt))
+            return mostRecentDateInt
+
+        def getPositions(self):                                                 # New method
+            # type: () -> [MyCostCalculation.Position]
+            return self.positions
+
+        def getPositionsByBuyID(self):                                          # New method
+            # type: () -> {String: MyCostCalculation.Position}
+            return self.positionsByBuyID
+
+        def getCurrentPosition(self):                                           # DEPRECATED
+            # type: () -> MyCostCalculation.Position
+            return self.getMostRecentPosition()
+
+        def getMostRecentPosition(self):                                        # Renamed method
+            # type: () -> MyCostCalculation.Position
+            """Returns the most recent Position. NOTE: This could in theory be future!"""
+            return self.getPositions().get(self.getPositions().size() - 1)      # NOTE: There is always a dummy first position
+
+        def getMostRecentCostBasis(self):                                       # New method
+            # type: () -> int
+            """Returns the (long) most recent cost basis. NOTE: This could in theory be future (perhaps not as we don't process txns past the asof date!"""
+            curPosn = self.getMostRecentPosition()                                                                      # type: MyCostCalculation.Position
+            return curPosn.getCostBasis()
+
+        def getPositionForAsOf(self):                                           # New method
+            # type: () -> MyCostCalculation.Position
+            """Returns the most recent Position upto/asof requested"""
+            rtnPos = self.getPositions().get(0)
+            for pos in reversed(self.getPositions()):                           # Reversed puts most recent first
+                if pos.getDate() > self.asOfDate: continue                      # Skip future posns
+                rtnPos = pos
+                if pos.getDate() <= self.asOfDate: break                        # Capture the most recent posn we find before/on asof
+            return rtnPos
+
+        def getSharesAndCostBasisForAsOf(self):                                 # New method
+            # type: () -> (int, int)
+            """Returns a tuple containing the (long) shares owned, (long) cost basis upto/asof the date requested"""
+            asofPos = self.getPositionForAsOf()
+            return MyCostCalculation.SharesOwnedAsOf(self.getSecAccount(), self.getAsOfDate(), asofPos.getSharesOwnedAsOfAsOf(), asofPos.getRunningCost())
+
+        def addTxn(self, txn):
+            # type: (AbstractTxn) -> None
+            if txn.getDateInt() <= self.getAsOfDate():
+                previousPos = self.getCurrentPosition()
+                newPos = MyCostCalculation.Position(self, txn, previousPos)
+                # if self.COST_DEBUG: myPrint("B", "adding position to end of position table:", newPos)
+                self.getPositions().add(newPos)
+                # ptxn = txn.getParentTxn()                                                                             # type: ParentTxn
+                self.getPositionsByBuyID().put(txn.getUUID(), newPos)  # MD Version used ptxn.getUUID()                 # todo - MDFIX
+
+        def allocateAverageCostSales(self):
+            #type: () -> None
+
+            buyIdx = 0
+            sellIdx = 0
+            numPositions = self.getPositions().size()
+
+            # skim through the sell transactions and allocate buys to them on a FIFO basis (used for U.S. IRS short/long-term allocation)
+            while (sellIdx < numPositions and buyIdx < numPositions):
+
+                if (buyIdx > sellIdx):
+                    myPrint("B", "Info: buy transactions overran sells; going short")
+
+                sell = self.getPositions().get(sellIdx)                                                                 # type: MyCostCalculation.Position
+
+                if (sell.getSharesAdded() >= 0):
+                    sellIdx += 1
+                    continue
+
+                if (sell.getUnallottedSharesAdded() >= 0):
+                    sellIdx += 1
+                    continue
+
+                # scan for buys while there are shares to allot in this sale
+                while (buyIdx < numPositions and sell.getUnallottedSharesAdded() < 0):
+                    buy = self.getPositions().get(buyIdx)                                                               # type: MyCostCalculation.Position
+
+                    if (buy.getSharesAdded() < 0):
+                        buyIdx += 1
+                        continue
+
+                    # allocate as many shares as possible from this buy transaction
+                    # but first, un-apply any splits so that we're talking about the same number shares
+                    unallottedSellShares = self.secCurr.unadjustValueForSplitsInt(buy.getDate(), -sell.getUnallottedSharesAdded(), sell.getDate())  # todo - MDFIX
+                    sharesFromBuy = Math.min(unallottedSellShares, buy.getUnallottedSharesAdded())
+                    sharesFromBuyAdjusted = self.secCurr.adjustValueForSplitsInt(buy.getDate(), sharesFromBuy, sell.getDate())
+
+                    # ensure sharesFromBuyAdjusted never go to zero (for example, from adjusting a small amount from a split),
+                    # because then no more allocations are made
+                    if (sharesFromBuyAdjusted == 0 and sharesFromBuy != 0):
+                        sharesFromBuyAdjusted = (-1 if (sharesFromBuy < 0) else 1)
+
+                    if (sharesFromBuy != 0):
+                        matchedBuyCostBasis = Math.round(buy.getCostBasis() * (float(sharesFromBuy) / float(buy.getSharesAdded())))
+                        sell.setUnallottedSharesAdded(sell.getUnallottedSharesAdded() + sharesFromBuyAdjusted)
+                        buy.setUnallottedSharesAdded(buy.getUnallottedSharesAdded() - sharesFromBuy)
+                        sell.getBuyAllocations().add(MyCostCalculation.Allocation(self, sharesFromBuyAdjusted, sharesFromBuy, matchedBuyCostBasis, buy))
+                        buy.getSellAllocations().add(MyCostCalculation.Allocation(self, sharesFromBuy, sharesFromBuyAdjusted, matchedBuyCostBasis, sell))
+                        if self.COST_DEBUG: myPrint("B", ".... . matchedBuyCostBasis: %s" %(self.investCurr.getDoubleValue(matchedBuyCostBasis)))
+
+                    if (buy.getUnallottedSharesAdded() == 0):
+                        buyIdx += 1
+
+            if self.COST_DEBUG:
+                myPrint("B", "-------------------------\npositions and allotments for '%s' (Avg Cost Basis: %s):" %(self.getSecAccount(), self.getUsesAverageCost()))
+                for pos in self.getPositions(): myPrint("B", "  ", pos)
+                myPrint("B", "-------------------------")
+
+        def allocateLots(self):
+            #type: () -> None
+
+            for sellPosition in [position for position in self.getPositions() if (position.getSharesAdded() < 0)]:
+
+                if self.COST_DEBUG: myPrint("B", ">> SELL: date: %s sellPos:" %(sellPosition.getDate()), sellPosition)
+
+                lotMatchedBuyTable = TxnUtil.parseCostBasisTag(sellPosition.getTxn())                                   # type: {String: Long}
+                if self.COST_DEBUG: myPrint("B", "@@ sell date: %s, txn's (lot matching) lotMatchedBuyTable: %s" %(sellPosition.getDate(), lotMatchedBuyTable))
+
+                if lotMatchedBuyTable is not None:
+                    for lotMatchedBuyID in lotMatchedBuyTable.keySet():
+                        lotMatchedBoughtPos = self.getPositionsByBuyID().get(lotMatchedBuyID)                           # type: MyCostCalculation.Position
+                        if self.COST_DEBUG: myPrint("B", "@@    txn lotMatchedBuyID: %s, (lot matched) lotMatchedBoughtPos: %s" %(lotMatchedBuyID, lotMatchedBoughtPos))
+                        if (lotMatchedBoughtPos is not None):
+                            lotMatchedBoughtShares = lotMatchedBuyTable.get(lotMatchedBuyID)
+
+                            lotMatchedBoughtSharesAdjusted = self.secCurr.unadjustValueForSplitsInt(lotMatchedBoughtPos.getDate(), lotMatchedBoughtShares, sellPosition.getDate())  # todo - MDFIX
+
+                            if self.COST_DEBUG: myPrint("B", "#### lotMatchedBoughtPos.getDate(): %s, lotMatchedBoughtShares: %s, sellPosition.getDate(): %s, lotMatchedBoughtSharesAdjusted: %s"
+                                                        %(lotMatchedBoughtPos.getDate(), self.secCurr.getDoubleValue(lotMatchedBoughtShares), sellPosition.getDate(), self.secCurr.getDoubleValue(lotMatchedBoughtSharesAdjusted)))
+                            if self.COST_DEBUG: myPrint("B", ".... (lot matched) lotMatchedBoughtShares: %s, (lot matched) lotMatchedBoughtSharesAdjusted: %s"
+                                                        %(self.secCurr.getDoubleValue(lotMatchedBoughtShares), self.secCurr.getDoubleValue(lotMatchedBoughtSharesAdjusted)))
+
+                            matchedBuyCostBasis = Math.round(lotMatchedBoughtPos.getCostBasis() * (float(lotMatchedBoughtSharesAdjusted) / float(lotMatchedBoughtPos.getSharesAdded())))
+
+                            sellPosition.getBuyAllocations().add(MyCostCalculation.Allocation(self, lotMatchedBoughtSharesAdjusted, lotMatchedBoughtShares, matchedBuyCostBasis, lotMatchedBoughtPos))   # todo - MDFIX
+                            if self.COST_DEBUG: myPrint("B", ".... 0. matchedBuyCostBasis: %s" %(self.investCurr.getDoubleValue(matchedBuyCostBasis)))
+
+                            if self.COST_DEBUG: myPrint("B", ".... 1. PRE  - sellPosition.getUnallottedSharesAdded: %s, lotMatchedBoughtShares: %s"
+                                                        %(self.secCurr.getDoubleValue(sellPosition.getUnallottedSharesAdded()), self.secCurr.getDoubleValue(lotMatchedBoughtShares)))
+
+                            sellPosition.setUnallottedSharesAdded(sellPosition.getUnallottedSharesAdded() + lotMatchedBoughtShares)
+
+                            if self.COST_DEBUG: myPrint("B", ".... 2. POST - sellPosition.getUnallottedSharesAdded: %s" %(self.secCurr.getDoubleValue(sellPosition.getUnallottedSharesAdded())))
+
+                            lotMatchedBoughtPos.getSellAllocations().add(MyCostCalculation.Allocation(self, lotMatchedBoughtShares, lotMatchedBoughtSharesAdjusted, matchedBuyCostBasis, sellPosition))
+
+                            if self.COST_DEBUG: myPrint("B", ".... 3. PRE  - lotMatchedBoughtPos.getUnallottedSharesAdded: %s, lotMatchedBoughtSharesAdjusted: %s"
+                                                        %(self.secCurr.getDoubleValue(lotMatchedBoughtPos.getUnallottedSharesAdded()), self.secCurr.getDoubleValue(lotMatchedBoughtSharesAdjusted)))
+                            lotMatchedBoughtPos.setUnallottedSharesAdded(lotMatchedBoughtPos.getUnallottedSharesAdded() - lotMatchedBoughtSharesAdjusted)
+                            if self.COST_DEBUG: myPrint("B", ".... 4. POST - lotMatchedBoughtPos.getUnallottedSharesAdded: %s"
+                                                        %(self.secCurr.getDoubleValue(lotMatchedBoughtPos.getUnallottedSharesAdded())))
+
+                        else:
+                            myPrint("B", "@@ Warning: Could NOT find: lotMatchedBuyID: '%s' in getPositionsByBuyID() for sellPosition: %s" %(lotMatchedBuyID, sellPosition))
+
+            if self.COST_DEBUG:
+                myPrint("B", "-------------------------\npositions and allotments for '%s':" %(self.getSecAccount()))
+                for pos in self.getPositions(): myPrint("B", "  ", pos)
+                myPrint("B", "-------------------------")
+
+        def updateCostBasisForLots(self):
+            sharedOwned = 0
+            runningCostBasis = 0
+
+            for pos in self.getPositions():
+
+                if self.COST_DEBUG:
+                    myPrint("B", "--------------------------")
+                    myPrint("B", "... on pos:", pos)
+
+                sharedOwned += self.secCurr.adjustValueForSplitsInt(pos.getDate(), pos.getSharesAdded(), self.getAsOfDate())
+                assert sharedOwned == pos.getSharesOwnedAsOfAsOf(), ("ERROR: failed sharedOwned(%s) == pos.getSharesOwnedAsOfAsOf()(%s)" %(sharedOwned, pos.getSharesOwnedAsOfAsOf()))
+
+                if pos.isSellTxn():
+                    if self.COST_DEBUG: myPrint("B", "...... isSell!")
+                    totMatchedBuyCostBasis = 0
+                    for buyAllocation in pos.getBuyAllocations():
+                        if self.COST_DEBUG: myPrint("B", "...... buyAllocation:", buyAllocation)
+                        buyMatchedPos = buyAllocation.getAllocatedPosition()                                            # type: MyCostCalculation.Position
+                        if self.COST_DEBUG: myPrint("B", "...... buyMatchedPos:", buyMatchedPos)
+                        buyCostBasis = buyMatchedPos.getCostBasis()
+                        buyShares = buyMatchedPos.getSharesAdded()
+                        buyCostBasisPrice = 0.0 if (buyShares == 0) else self.investCurr.getDoubleValue(buyCostBasis) / self.secCurr.getDoubleValue(buyShares)
+                        if self.COST_DEBUG: myPrint("B", "...... %s * %s" %(buyCostBasisPrice,  self.secCurr.getDoubleValue(buyAllocation.getSharesAllocated())))
+                        buyMatchedCostBasis = self.investCurr.getLongValue(buyCostBasisPrice * self.secCurr.getDoubleValue(buyAllocation.getSharesAllocated()))
+                        if self.COST_DEBUG: myPrint("B", "......... matched buy CB: %s" %(self.investCurr.getDoubleValue(buyMatchedCostBasis)))
+                        totMatchedBuyCostBasis += buyMatchedCostBasis
+                    pos.setCostBasis(-totMatchedBuyCostBasis)
+                    if self.COST_DEBUG: myPrint("B", "...... setting sellPos CostBasis to: %s" %(self.investCurr.getDoubleValue(pos.getCostBasis())))
+
+                if not pos.isMiscIncExpTxn():   # Assume that for LOT controlled, we do not add misc inc/exp fee into costbasis (as the cb cannot be assigned to any lot!)
+                    runningCostBasis += pos.getCostBasis()
+
+                pos.setRunningCost(runningCostBasis)
+                if self.COST_DEBUG: myPrint("B", "... setting Pos runningCost to: %s" %(self.investCurr.getDoubleValue(pos.getRunningCost())))
+
+        def getBasisPrice(self, asOfTxn):
+            # type: (AbstractTxn) -> float
+            """Returns the cost (per share) of the shares held as of the given transaction, or as of the last
+               transaction if the given transaction is null. Returns the cost per share"""
+
+            if asOfTxn is not None:
+                for pos in self.getPositions():                                                                         # type: MyCostCalculation.Position
+                    if pos.getTxn() is not None and pos.getTxn() is asOfTxn:
+                        return pos.getBasisPrice()
+                myPrint("B", "unable to find position for txn :%s; returning cost basis as of last position" %(asOfTxn))
+
+            curPos = self.getCurrentPosition()                                                                          # type: MyCostCalculation.Position
+            return curPos.getBasisPrice()
+
+        def getSaleGainsForDateRange(self, dateRange):           # New method
+            # type: (DateRange) -> HoldCapitalGainTotal
+            """Calculates / returns CapitalGainResult containing the grand total of all fields within the date requested
+            NOTE: DateRange should not end after the asof date!"""
+
+            gidv = self.investCurr.getDoubleValue
+            gsdv = self.secCurr.getDoubleValue
+
+            if self.COST_DEBUG: myPrint("B", ">> Calculating gains for '%s', DR: '%s'" %(self.getSecAccount(), dateRange))
+
+            totSaleShares = 0
+            totSaleSharesShort = 0
+            totSaleSharesLong = 0
+            totSaleValue = 0
+            totSaleValueShort = 0
+            totSaleValueLong = 0
+            totSaleBasis = 0
+            totSaleBasisShort = 0
+            totSaleBasisLong = 0
+            totSaleGains = 0
+            totSaleGainsShort = 0
+            totSaleGainsLong = 0
+
+            # Add up all the sales gains manually...
+            for pos in self.getPositions():                             # Iterate oldest to most recent
+                if pos.getDate() > self.asOfDate: break
+                if pos.getDate() > dateRange.getEndDateInt(): break
+                if pos.getDate() < dateRange.getStartDateInt(): continue
+                txn = pos.getTxn()
+                if not isinstance(txn, (AbstractTxn, SplitTxn)): continue
+                if not pos.isSellTxn(): continue
+                gainInfo = self.calculateGainsForPos(pos)
+                if not gainInfo.isValid(): continue                     # Sell zero shares will be invalid (no gain on this)
+
+                saleSharesShort = gainInfo.getShortTermShares()
+                saleSharesLong = gainInfo.getLongTermShares()
+                saleShares = (saleSharesShort + saleSharesLong)
+
+                saleValueGross = txn.getParentAmount()                  # Gross (does not include fee)
+                salePriceGross = self.investCurr.getDoubleValue(saleValueGross) / self.secCurr.getDoubleValue(saleShares)
+
+                # NOTE: MD puts the whole sale fee into short-term if there are any short term sales (this code copies that)
+
+                saleBasis = gainInfo.getBasis()                         # We put the fee into the calculated cb
+                saleGains = (saleValueGross - saleBasis)
+
+                saleBasisShort = gainInfo.getShortTermBasis()
+                saleBasisLong = gainInfo.getLongTermBasis()
+
+                saleValueLong = 0
+                if saleBasisLong != 0:
+                    saleValueLong = CurrencyUtil.convertValue(gainInfo.getLongTermShares(), self.secCurr, self.investCurr, salePriceGross)
+
+                saleValueShort = (saleValueGross - saleValueLong)
+
+                saleGainsShort = (saleValueShort - saleBasisShort)
+                saleGainsLong = (saleValueLong - saleBasisLong)
+
+                if self.COST_DEBUG: myPrint("B", "... "
+                                                 "saleShares: %s (short: %s, long: %s), "
+                                                 "saleValueGross: %s (short: %s, long: %s), "
+                                                 "saleBasis: %s (short: %s, long: %s), "
+                                                 "saleGains: %s (short: %s, long: %s)"
+                                            %(gsdv(saleShares),     gsdv(saleSharesShort), gsdv(saleSharesLong),
+                                              gidv(saleValueGross), gidv(saleValueShort),  gidv(saleValueLong),
+                                              gidv(saleBasis),      gidv(saleBasisShort),  gidv(saleBasisLong),
+                                              gidv(saleGains),      gidv(saleGainsShort),  gidv(saleGainsLong)))
+
+                if self.COST_DEBUG: myPrint("B", "... GAIN INFO:", gainInfo)
+
+                totSaleShares += (saleShares)
+                totSaleSharesShort += (saleSharesShort)
+                totSaleSharesLong += (saleSharesLong)
+                totSaleValue += (saleValueGross)
+                totSaleValueShort += (saleValueShort)
+                totSaleValueLong += (saleValueLong)
+                totSaleBasis += (saleBasis)
+                totSaleBasisShort += (saleBasisShort)
+                totSaleBasisLong += (saleBasisLong)
+                totSaleGains += (saleGains)
+                totSaleGainsShort += (saleGainsShort)
+                totSaleGainsLong += (saleGainsLong)
+
+            result = self.HoldCapitalGainTotal(self, self.getSecAccount(), self.asOfDate, dateRange,
+                                               totSaleShares, totSaleSharesShort, totSaleSharesLong,
+                                               totSaleValue,  totSaleValueShort,  totSaleValueLong,
+                                               totSaleBasis,  totSaleBasisShort,  totSaleBasisLong,
+                                               totSaleGains,  totSaleGainsShort, totSaleGainsLong)
+            if self.COST_DEBUG: myPrint("B", ">>>> Calculated gains for '%s', DR: '%s' Result:" %(self.getSecAccount(), dateRange), result)
+            return result
+
+        def getGainInfo(self, saleTxn):
+            # type: (AbstractTxn) -> CapitalGainResult                                                                  # todo - MDFIX
+            """Returns the overall capital gain information specific to the given sell transaction.
+               The sell transaction must have the security as its 'account' which means the transaction
+               must be the SplitTxn that is assigned to the security account.  If the transaction is
+               invalid or null then a zero/error capital gains is returned.
+               Returns a CapitalGainResult object with the details of the cost and gains for this transaction"""
+
+            if saleTxn is None:
+                myPrint("B", "you must supply a sale txn; returning Invalid/Zeros")
+                return CapitalGainResult("sale_txn_not_specified")
+            for pos in self.getPositions():                                                                             # type: MyCostCalculation.Position
+                if (pos.getTxn() is not None and pos.getTxn() is saleTxn):
+                    return self.calculateGainsForPos(pos)
+            myPrint("B", "unable to find position for txn :%s; returning Invalid/Zeros" %(saleTxn))
+            return CapitalGainResult("sale_txn_posn_not_found")
+
+        def calculateGainsForPos(self, pos):
+            # type: (MyCostCalculation.Position) -> CapitalGainResult
+
+            assert pos.isSellTxn(), "LOGIC ERROR: Can only be called with a sale txn!"
+
+            gidv = self.investCurr.getDoubleValue
+            gsdv = self.secCurr.getDoubleValue
+
+            if pos.getSharesAdded() == 0: return CapitalGainResult("sell_zero_shares_assume_no_gain")
+
+            messageKey = None
+            # if (pos.getSharesAdded() < 0 and pos.getSharesOwnedAsOfAsOf() <= pos.getSharesAdded()):                   # todo - MDFIX
+            if (pos.getSharesAddedAsOfAsOf() < 0 and pos.getSharesOwnedAsOfAsOf() < 0):
+                messageKey = "sell_short"       # Short sale: sold shares we didn't have
+                if self.COST_DEBUG: myPrint("B", ".... sell_short (sharesAdded: %s, sharesAddedAsOfAsOf: %s, sharesOwnedAsOfAsOf: %s"
+                                            %(gsdv(pos.getSharesAdded()), gsdv(pos.getSharesAddedAsOfAsOf()), gsdv(pos.getSharesOwnedAsOfAsOf())))
+
+            ltDate = self.longTermCutoffDate if (pos.getDate() <= 0) else DateUtil.incrementDate(pos.getDate(), -1, 0, 0)
+
+            # figure out how many of the sold shares were long or short term investments
+            longTermSharesSold = -(pos.getSharesAdded())
+            shortTermSalesSold = 0
+
+            longTermCostBasis = 0
+
+            for buy in pos.getBuyAllocations():                                                                         # type: MyCostCalculation.Allocation
+                if buy.getAllocatedPosition().getDate() >= ltDate:
+                    shortTermSalesSold += buy.getSharesAllocated()
+                    longTermSharesSold -= buy.getSharesAllocated()
+                else:
+                    longTermCostBasis += buy.getCostBasisAllocated()
+
+            # go through all transactions and add up all of the shares that were purchased
+            # posIdx = self.getPositions().indexOf(pos)
+            # previousPosition = self.getPositions().get(posIdx - 1) if (posIdx > 0) else self.getPositions().get(0)      # type: MyCostCalculation.Position
+            # costBasis = self.investCurr.getLongValue(self.secCurr.getDoubleValue(-pos.getSharesAdded()) * pos.getPreviousPos().getBasisPrice()) + pos.getFee()
+
+            longProportion = 0.0 if (pos.getSharesAdded() == 0) else (float(longTermSharesSold) / (longTermSharesSold + shortTermSalesSold))
+
+            saleFeeLongTermProportion = Math.round(pos.getFee() * longProportion)
+            if self.COST_DEBUG: myPrint("B", "...>>>> pos.getSharesAdded(): %s, longTermSharesSold: %s, shortTermSalesSold: %s = longProportion: %s,  pos.getFee(): %s, saleFeeLongTermProportion: %s"
+                                              %(gsdv(pos.getSharesAdded()), gsdv(longTermSharesSold), gsdv(shortTermSalesSold), longProportion, gidv(pos.getFee()), gidv(saleFeeLongTermProportion)))
+
+            costBasis = -(pos.getCostBasis()) + pos.getFee()                                                            # todo MDFIX
+
+            if self.getUsesAverageCost():
+                longTermCostBasis = Math.round(-(pos.getCostBasis()) * longProportion)      # Exclude sales fee at this point....
+                if self.COST_DEBUG: myPrint("B", "....... longTermCostBasis (excl. sale fee) recalculated to: %s" %(gidv(longTermCostBasis)))
+
+            # NOTE: MD puts the whole sale fee into short-term if there are any short term sales (this code copies that). Do the same for avg cost too...
+            longCostBasis = longTermCostBasis + (saleFeeLongTermProportion if shortTermSalesSold == 0 else 0)
+            shortCostBasis = costBasis - longCostBasis
+
+            # This method below allocates the fee across ST/LT (not used as MD dumps the whole fee into ST when split between ST/LT....
+            # longCostBasis = longTermCostBasis + saleFeeLongTermProportion;
+            # shortCostBasis = costBasis - longCostBasis
+
+            previousPosShrsOwnedAdjusted = self.secCurr.adjustValueForSplitsInt(pos.getPreviousPos().getDate(), pos.getPreviousPos().getSharesOwnedAsOfThisTxn(), pos.getDate())
+            longTermAvailShares = Math.round(float(previousPosShrsOwnedAdjusted) * longProportion)   # Only used for (the now obsolete) U.S. IRS double-category reporting with avg cost (not currently shown by CB)
+            shortTermAvailShares = previousPosShrsOwnedAdjusted - longTermAvailShares                # Only used for (the now obsolete) U.S. IRS double-category reporting with avg cost (not currently shown by CB)
+            if self.COST_DEBUG:
+                if self.getUsesAverageCost():
+                    if self.COST_DEBUG: myPrint("B", "...... (US IRS 'double-category' st/lt pools prior to this sale (as at the date of this sale): shortTermAvailShares: %s, longTermAvailShares: %s = shares owned: %s)"
+                                                      %(gsdv(shortTermAvailShares), gsdv(longTermAvailShares), gsdv(pos.getPreviousPos().getSharesOwnedAsOfThisTxn())))
+
+            result = CapitalGainResult(costBasis, shortCostBasis, longCostBasis, shortTermSalesSold, longTermSharesSold, shortTermAvailShares, longTermAvailShares, messageKey)
+            if self.COST_DEBUG: myPrint("B", "... calculated gain for '%s' from position " %(self.getSecAccount()), pos, "\nprevious position:", pos.getPreviousPos(), "\n-->", result)
+
+            return result
+
+        class SharesOwnedAsOf:
+            def __init__(self, secAccount, asOfDate, sharesOwnedAsOf, costBasisAsOf):
+                self.secAccount = secAccount
+                self.asOfDate = asOfDate
+                self.sharesOwnedAsOf = sharesOwnedAsOf
+                self.costBasisAsOf = costBasisAsOf
+            def getSecAccount(self): return self.secAccount
+            def getAsOfDate(self): return self.asOfDate
+            def getSharesOwnedAsOf(self): return self.sharesOwnedAsOf
+            def getCostBasisAsOf(self): return self.costBasisAsOf
+
+        class HoldCapitalGainTotal:
+            def __init__(self, callingClass,
+                         secAcct, asofDateInt, selectedDateRange,
+                         totSaleShares, totSaleSharesShort, totSaleSharesLong,
+                         totSaleValue,  totSaleValueShort,  totSaleValueLong,
+                         totSaleBasis,  totSaleBasisShort,  totSaleBasisLong,
+                         totSaleGains,  totSaleGainsShort,  totSaleGainsLong):
+                # type: (MyCostCalculation, Account, int, DateRange, int, int, int, int, int, int, int, int, int, int, int, int) -> None
+                self.callingClass = callingClass
+                self.secAcct = secAcct
+                self.asofDateInt = asofDateInt
+                self.selectedDateRange = selectedDateRange
+                self.totSaleShares = totSaleShares
+                self.totSaleSharesShort = totSaleSharesShort
+                self.totSaleSharesLong = totSaleSharesLong
+                self.totSaleValue = totSaleValue
+                self.totSaleValueShort = totSaleValueShort
+                self.totSaleValueLong = totSaleValueLong
+                self.totSaleBasis = totSaleBasis
+                self.totSaleBasisShort = totSaleBasisShort
+                self.totSaleBasisLong = totSaleBasisLong
+                self.totSaleGains = totSaleGains
+                self.totSaleGainsShort = totSaleGainsShort
+                self.totSaleGainsLong = totSaleGainsLong
+
+            def toString(self):
+                gidv = self.callingClass.investCurr.getDoubleValue
+                gsdv = self.callingClass.secCurr.getDoubleValue
+                i = 14
+                strTxt = ("HoldCapitalGainTotal: asof: %s, dateRange: '%s' "
+                          "totSaleShares: %s (short: %s, long: %s), "
+                          "totSaleValue:  %s (short: %s, long: %s), "
+                          "totSaleBasis:  %s (short: %s, long: %s), "
+                          "totSaleGains:  %s (short: %s, long: %s) "
+                          "- secAcct: '%s'"
+                          %(pad(self.asofDateInt, 8),   pad(self.selectedDateRange, 20),
+                            rpad(gsdv(self.totSaleShares),i), rpad(gsdv(self.totSaleSharesShort),i), rpad(gsdv(self.totSaleSharesLong),i),
+                            rpad(gidv(self.totSaleValue),i),  rpad(gidv(self.totSaleValueShort),i),  rpad(gidv(self.totSaleValueLong),i),
+                            rpad(gidv(self.totSaleBasis),i),  rpad(gidv(self.totSaleBasisShort),i),  rpad(gidv(self.totSaleBasisLong),i),
+                            rpad(gidv(self.totSaleGains),i),  rpad(gidv(self.totSaleGainsShort),i),  rpad(gidv(self.totSaleGainsLong),i),
+                            self.secAcct))
+                return strTxt
+            def __str__(self):  return self.toString()
+            def __repr__(self): return self.toString()
+
+        class Position:
+            def __init__(self, callingClass, txn=None, previousPosition=None):
+                # type: (MyCostCalculation, AbstractTxn, MyCostCalculation.Position) -> None
+                self.callingClass = callingClass
+                self.previousPos = previousPosition                                                                     # todo - MDFIX
+                self.buyAllocations = ArrayList()
+                self.sellAllocations = ArrayList()
+                self.sellTxn = False
+                self.buyTxn = False
+                self.miscIncExp = False
+                self.txn = txn
+                self.date = 0 if (txn is None) else txn.getDateInt()
+                fields = InvestFields()                                                                                 # type: InvestFields
+                if txn is not None:
+                    fields.setFieldStatus(txn.getParentTxn())
+                else:
+                    fields.txnType = InvestTxnType.BANK
+
+                txnCostBasis = 0
+                txnShares = 0
+                txnFee = 0
+                txnRunningCost = 0 if (previousPosition is None) else previousPosition.getRunningCost()
+
+                if fields.txnType in [InvestTxnType.BUY, InvestTxnType.BUY_XFER, InvestTxnType.COVER, InvestTxnType.DIVIDEND_REINVEST]:
+                    txnShares = fields.shares
+                    buyCost = Math.round(float(txnShares) / fields.price)
+                    txnCostBasis = fields.amount if (buyCost == 0) else buyCost + fields.fee    # Manual adjustment of costbasis when sell/buy zero shares
+                    txnFee = fields.fee
+                    self.buyTxn = True
+
+                elif fields.txnType in [InvestTxnType.SELL, InvestTxnType.SELL_XFER, InvestTxnType.SHORT]:
+                    txnShares = -fields.shares
+                    runningAvgPrice = float(fields.price)
+                    if (previousPosition is not None and previousPosition.getSharesOwnedAsOfAsOf() != 0):
+                        priorSharesOwnedAdjusted = self.callingClass.secCurr.unadjustValueForSplitsInt(previousPosition.getDate(), previousPosition.getSharesOwnedAsOfAsOf(), self.callingClass.getAsOfDate())
+                        runningAvgPrice = float(txnRunningCost) / float(priorSharesOwnedAdjusted)                       # todo - MDFIX
+                    sellCost = Math.round(float(txnShares) * runningAvgPrice)
+                    txnCostBasis = (-fields.amount - fields.fee) if (sellCost == 0) else sellCost       # Manual adjustment of costbasis when sell/buy zero shares
+                    txnFee = fields.fee
+                    self.sellTxn = True
+
+                elif fields.txnType in [InvestTxnType.MISCINC, InvestTxnType.MISCEXP]:
+                    txnFee = fields.fee
+                    txnCostBasis = fields.fee
+                    self.miscIncExp = True
+
+                elif fields.txnType in [InvestTxnType.BANK, InvestTxnType.DIVIDEND, InvestTxnType.DIVIDENDXFR]: pass
+
+                txnSharesUnadjusted = txnShares                                                                         # todo - MDFIX
+                txnSharesAdjusted = callingClass.secCurr.adjustValueForSplitsInt(self.getDate(), txnSharesUnadjusted, callingClass.getAsOfDate())
+                self.fee = txnFee
+                self.sharesAdded = txnSharesUnadjusted
+                self.sharesAddedAsOfAsOf = txnSharesAdjusted
+                self.unallottedSharesAdded = self.getSharesAdded()
+                self.costBasis = txnCostBasis
+                self.runningCost = (txnRunningCost + txnCostBasis)
+                self.sharesOwnedAsOfAsOf = (txnSharesAdjusted + (0 if previousPosition is None else previousPosition.getSharesOwnedAsOfAsOf()))
+
+                if self.sharesOwnedAsOfAsOf == 0:
+                    # No shares equals no cost basis..!
+                    # Possible issue when you perform sell zero with amount to adjust cost basis AFTER selling all!?
+                    self.runningCost = 0
+
+                if previousPosition is None:
+                    self.sharesOwnedAsOfThisTxn = txnSharesUnadjusted
+                else:
+                    previousPosShrsOwnedAdjusted = callingClass.secCurr.adjustValueForSplitsInt(previousPosition.getDate(), previousPosition.getSharesOwnedAsOfThisTxn(), self.getDate())
+                    self.sharesOwnedAsOfThisTxn = previousPosShrsOwnedAdjusted + txnSharesUnadjusted
+
+                if self.callingClass.COST_DEBUG: myPrint("B", "@@ Added Position:", self)
+
+            def getPreviousPos(self): return self.previousPos                                                           # todo - MDFIX
+            def isSellTxn(self): return self.sellTxn
+            def isBuyTxn(self): return self.buyTxn
+            def isMiscIncExpTxn(self): return self.miscIncExp
+
+            def getTxn(self):
+                # type: () -> AbstractTxn
+                return self.txn
+
+            def getSharesOwnedAsOfAsOf(self):
+                # type: () -> int
+                """This is the running total of all shares owned adjusted up to the requested asof date (i.e. not the number of shares as at the date of the txn)"""
+                return self.sharesOwnedAsOfAsOf
+
+            def getSharesOwnedAsOfThisTxn(self):
+                # type: () -> int
+                """This is the running total of all shares owned adjusted only up to the date of this txn (i.e. not the number of shares adjsted to the asof date)"""
+                return self.sharesOwnedAsOfThisTxn
+
+            def getSharesAdded(self):
+                # type: () -> int
+                """The number of shares on this txn asof the sell/buy date - not adjusted for splits"""
+                return self.sharesAdded
+
+            def getSharesAddedAsOfAsOf(self):
+                # type: () -> int
+                """The number of shares on this txn adjusted for splits up to the requested asof date"""
+                return self.sharesAddedAsOfAsOf
+
+            def getRunningCost(self):
+                # type: () -> int
+                return self.runningCost
+
+            def setRunningCost(self, newRunningCost):
+                # type: (int) -> None
+                self.runningCost = newRunningCost
+
+            def getCostBasis(self):
+                # type: () -> int
+                return self.costBasis
+
+            def setCostBasis(self, newCostBasis):
+                # type: (int) -> None
+                self.costBasis = newCostBasis
+
+            def getFee(self):
+                # type: () -> int
+                return self.fee
+
+            def getDate(self):
+                # type: () -> int
+                return self.date
+
+            def getUnallottedSharesAdded(self):                     # asof the sell/buy date unadjusted
+                # type: () -> int
+                return self.unallottedSharesAdded
+
+            def setUnallottedSharesAdded(self, uasa):
+                # type: (int) -> None
+                self.unallottedSharesAdded = uasa
+
+            def getBuyAllocations(self):
+                # type: () -> [MyCostCalculation.Allocation]
+                return self.buyAllocations
+
+            # def setBuys(self, buyList):
+            #     # type: ([MyCostCalculation.Allocation]) -> None
+            #     self.buyAllocations = buyList
+
+            def getSellAllocations(self):
+                # type: () -> [MyCostCalculation.Allocation]
+                return self.sellAllocations
+
+            # def setSells(self, sellList):
+            #     # type: ([MyCostCalculation.Allocation]) -> None
+            #     self.sellAllocations = sellList
+
+            def toString(self):
+                # type: () -> String
+                i = 12
+                isBuy = (self.getSharesAdded() > 0)
+                sb = StringBuilder()
+                sb.append(pad(self.getDate(), 8))
+                sb.append("\t").append(pad("buy:" if isBuy else "sell:",5)).append(rpad(self.callingClass.secCurr.formatSemiFancy(Math.abs(self.getSharesAdded()), '.'), i))
+                sb.append("\tfee:").append(rpad(self.callingClass.investCurr.formatSemiFancy(self.getFee(), '.'), i))
+                sb.append("\tcostBasis: ").append(rpad(self.callingClass.investCurr.formatSemiFancy(self.getCostBasis(), '.'),i))
+                sb.append("\ttotcost: ").append(rpad(self.callingClass.investCurr.formatSemiFancy(self.getRunningCost(), '.'),i))
+                if (self.getSharesAdded() != 0):
+                    sb.append("\tprice: ").append(rpad(self.callingClass.investCurr.getDoubleValue(self.getCostBasis()) / self.callingClass.secCurr.getDoubleValue(self.getSharesAdded()),i))
+                else:
+                    sb.append("\tprice: ").append(pad("",i))
+                sb.append("\ttotshrs (asof asof): ").append(rpad(self.callingClass.secCurr.formatSemiFancy(self.getSharesOwnedAsOfAsOf(), '.'),i))
+
+                if (self.getBuyAllocations().size() > 0):
+                    sb.append("\n  buys:\n")
+                    for aBuy in self.getBuyAllocations():                                                               # type: MyCostCalculation.Allocation
+                        sb.append("    ").append(aBuy).append('\n')
+
+                if (self.getSellAllocations().size() > 0):
+                    sb.append("\n  sells:\n")
+                    for aSell in self.getSellAllocations():                                                             # type: MyCostCalculation.Allocation
+                        sb.append("    ").append(aSell).append('\n')
+                return sb.toString()
+            def __str__(self):  return self.toString()
+            def __repr__(self): return self.toString()
+
+            def price(self, excludeFee):                                                                                # todo MDFIX
+                # type: (bool) -> float
+                """Return the price of this transaction, excluding the fee if excludeFee==true"""
+                shrsAdded = self.callingClass.secCurr.getDoubleValue(Math.abs(self.getSharesAdded()))
+                txnFee = self.getFee() if (excludeFee) else 0
+                return 0.0 if (shrsAdded == 0.0) else self.callingClass.investCurr.getDoubleValue(Math.abs(self.getCostBasis() - txnFee)) / shrsAdded
+
+            def getBasisPrice(self):
+                # type: () -> float
+                shares = self.getSharesOwnedAsOfAsOf()
+                return 0.0 if (shares == 0) else self.callingClass.investCurr.getDoubleValue(self.getRunningCost()) / self.callingClass.secCurr.getDoubleValue(shares)
+
+        class Allocation:
+            """Class that references a transaction and number of shares allocated from that transaction"""
+
+            def __init__(self, callingClass, sharesAllocated, sharesAllocatedAdjusted, costBasisAllocated, allocatedPosition):
+                # type: (MyCostCalculation, int, int, int, MyCostCalculation.Position) -> None
+                self.callingClass = callingClass
+                self.sharesAllocated = sharesAllocated
+                self.sharesAllocatedAdjusted = sharesAllocatedAdjusted
+                self.costBasisAllocated = costBasisAllocated
+                self.allocatedPosition = allocatedPosition
+
+            def getSharesAllocatedAdjusted(self):
+                # type: () -> int
+                return self.sharesAllocatedAdjusted
+
+            def setSharesAllocatedAdjusted(self, saa):
+                # type: (int) -> None
+                self.sharesAllocatedAdjusted = saa
+
+            def getSharesAllocated(self):
+                # type: () -> int
+                return self.sharesAllocated
+
+            def setSharesAllocated(self, sa):
+                # type: (int) -> None
+                self.sharesAllocated = sa
+
+            def getCostBasisAllocated(self):
+                # type: () -> int
+                return self.costBasisAllocated
+
+            def setCostBasisAllocated(self, cba):
+                # type: (int) -> None
+                self.costBasisAllocated = cba
+
+            def getAllocatedPosition(self):
+                # type: () -> MyCostCalculation.Position
+                return self.allocatedPosition
+
+            def setAllocatedPosition(self, position):
+                # type: (MyCostCalculation.Position) -> None
+                self.allocatedPosition = position
+
+            def toString(self):
+                i = 14
+                allocatedPosition = self.getAllocatedPosition()
+                price = allocatedPosition.price(False)
+                strTxt = ("%s %s shrs x %s = %s (shrs adjusted: %s)"
+                          %(pad(self.allocatedPosition.getDate(), 8),
+                            rpad(self.callingClass.secCurr.format(self.getSharesAllocated(), '.'), i),
+                            rpad(price, i),
+                            rpad(self.callingClass.secCurr.getDoubleValue(self.getSharesAllocated()) * price, i),
+                            rpad(self.callingClass.secCurr.format(self.getSharesAllocatedAdjusted(), '.'), i)))
+                return strTxt
+            def __str__(self):  return self.toString()
+            def __repr__(self): return self.toString()
+    ####################################################################################################################
+
+
+    def convertValue(value, fromCurr, toCurr, effectiveDateInt=None):
+        # type: (int, CurrencyType, CurrencyType, int) -> int
+        if effectiveDateInt is None: return CurrencyUtil.convertValue(value, fromCurr, toCurr)
+        return CurrencyUtil.convertValue(value, fromCurr, toCurr, effectiveDateInt)
+
+    # noinspection PyUnresolvedReferences
+    def isIncomeExpenseAcct(_acct):
+        return (_acct.getAccountType() == Account.AccountType.EXPENSE or _acct.getAccountType() == Account.AccountType.INCOME)
+
+    # noinspection PyUnresolvedReferences
+    def isSecurityAcct(_acct):
+        return (_acct.getAccountType() == Account.AccountType.SECURITY)
+
+    # noinspection PyUnresolvedReferences
+    def isInvestmentAcct(_acct):
+        return (_acct.getAccountType() == Account.AccountType.INVESTMENT)
 
     def resetGlobalVariables():
         myPrint("DB", "@@ RESETTING KEY GLOBAL REFERENCES.....")
@@ -4563,58 +5412,28 @@ Visit: %s (Author's site)
             todayInt = Util.getStrippedDateInt()
             # yesterdayInt = DateUtil.incrementDate(todayInt, 0, 0, -1)
 
-            if selectedOption == "year_to_date":
-                return (DateUtil.firstDayInYear(todayInt), todayInt)
-            elif selectedOption ==  "quarter_to_date":
-                return (DateUtil.firstDayInQuarter(todayInt), todayInt)
-            elif selectedOption ==  "month_to_date":
-                return (DateUtil.firstDayInMonth(todayInt), todayInt)
-            elif selectedOption ==  "this_year":
-                return (DateUtil.firstDayInYear(todayInt), DateUtil.lastDayInYear(todayInt))
-            elif selectedOption ==  "this_fiscal_year":
-                return (DateUtil.firstDayInFiscalYear(todayInt), DateUtil.lastDayInFiscalYear(todayInt))
-            elif selectedOption ==  "fiscal_year_to_date":
-                return (DateUtil.firstDayInFiscalYear(todayInt), todayInt)
-            elif selectedOption ==  "last_fiscal_year":
-                return (DateUtil.decrementYear(DateUtil.firstDayInFiscalYear(todayInt)),
-                        DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(todayInt)))
-            elif selectedOption ==  "last_fiscal_quarter":
-                baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
-                return (DateUtil.firstDayInFiscalQuarter(baseDate), DateUtil.lastDayInFiscalQuarter(baseDate))
-            elif selectedOption ==  "this_quarter":
-                return (Util.firstDayInQuarter(todayInt), Util.lastDayInQuarter(todayInt))
-            elif selectedOption ==  "this_month":
-                return (Util.firstDayInMonth(todayInt), Util.lastDayInMonth(todayInt))
-            elif selectedOption ==  "this_week":
-                return (Util.firstDayInWeek(todayInt), Util.lastDayInWeek(todayInt))
-            elif selectedOption ==  "last_year":
-                return (Util.firstDayInYear(Util.decrementYear(todayInt)),
-                        Util.lastDayInYear(Util.decrementYear(todayInt)))
-            elif selectedOption ==  "last_quarter":
-                baseDate = DateUtil.incrementDate(todayInt, 0, -3, 0)
-                return (DateUtil.firstDayInQuarter(baseDate), DateUtil.lastDayInQuarter(baseDate))
-            elif selectedOption ==  "last_month":
-                i = Util.firstDayInMonth(todayInt)
-                return (Util.incrementDate(i, 0, -1, 0), Util.incrementDate(i, 0, 0, -1))
-            elif selectedOption ==  "last_week":
-                firstDayInWeek = Util.firstDayInWeek(todayInt)
-                return (Util.incrementDate(firstDayInWeek, 0, 0, -7), Util.incrementDate(firstDayInWeek, 0, 0, -1))
-            elif selectedOption ==  "last_12_months":
-                firstDayInMonth = Util.firstDayInMonth(todayInt)
-                return (Util.incrementDate(firstDayInMonth, 0, -12, 0), Util.incrementDate(firstDayInMonth, 0, 0, -1))
-            elif selectedOption ==  "last_1_day":
-                return (Util.incrementDate(todayInt, 0, 0, -1), todayInt)    # from build 5051: actually 2 days (today & yesterday)
-            elif selectedOption == "last_30_days":
-                return (Util.incrementDate(todayInt, 0, 0, -29), todayInt)   # from build 5051: 30 days including today
-            elif selectedOption ==  "last_365_days":
-                return (Util.incrementDate(todayInt, 0, 0, -364), todayInt)  # from build 5051: 30 days including today
-            elif selectedOption ==  "custom_date":
-                pass
-            elif selectedOption ==  "all_dates":
-                pass
-            else:
-                pass
-                # raise(Exception("Error - date range incorrect"))
+            if selectedOption == "year_to_date":            return (DateUtil.firstDayInYear(todayInt), todayInt)
+            elif selectedOption ==  "quarter_to_date":      return (DateUtil.firstDayInQuarter(todayInt), todayInt)
+            elif selectedOption ==  "month_to_date":        return (DateUtil.firstDayInMonth(todayInt), todayInt)
+            elif selectedOption ==  "this_year":            return (DateUtil.firstDayInYear(todayInt), DateUtil.lastDayInYear(todayInt))
+            elif selectedOption ==  "this_fiscal_year":     return (DateUtil.firstDayInFiscalYear(todayInt), DateUtil.lastDayInFiscalYear(todayInt))
+            elif selectedOption ==  "fiscal_year_to_date":  return (DateUtil.firstDayInFiscalYear(todayInt), todayInt)
+            elif selectedOption ==  "last_fiscal_year":     return (DateUtil.decrementYear(DateUtil.firstDayInFiscalYear(todayInt)), DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(todayInt)))
+            elif selectedOption ==  "last_fiscal_quarter":  return (DateUtil.firstDayInFiscalQuarter(DateUtil.incrementDate(todayInt, 0, -3, 0)), DateUtil.lastDayInFiscalQuarter(DateUtil.incrementDate(todayInt, 0, -3, 0)))
+            elif selectedOption ==  "this_quarter":         return (Util.firstDayInQuarter(todayInt), Util.lastDayInQuarter(todayInt))
+            elif selectedOption ==  "this_month":           return (Util.firstDayInMonth(todayInt), Util.lastDayInMonth(todayInt))
+            elif selectedOption ==  "this_week":            return (Util.firstDayInWeek(todayInt), Util.lastDayInWeek(todayInt))
+            elif selectedOption ==  "last_year":            return (Util.firstDayInYear(Util.decrementYear(todayInt)), Util.lastDayInYear(Util.decrementYear(todayInt)))
+            elif selectedOption ==  "last_quarter":         return (DateUtil.firstDayInQuarter(DateUtil.incrementDate(todayInt, 0, -3, 0)), DateUtil.lastDayInQuarter(DateUtil.incrementDate(todayInt, 0, -3, 0)))
+            elif selectedOption ==  "last_month":           return (Util.incrementDate(Util.firstDayInMonth(todayInt), 0, -1, 0), Util.incrementDate(Util.firstDayInMonth(todayInt), 0, 0, -1))
+            elif selectedOption ==  "last_week":            return (Util.incrementDate(Util.firstDayInWeek(todayInt), 0, 0, -7), Util.incrementDate(Util.firstDayInWeek(todayInt), 0, 0, -1))
+            elif selectedOption ==  "last_12_months":       return (Util.incrementDate(Util.firstDayInMonth(todayInt), 0, -12, 0), Util.incrementDate(Util.firstDayInMonth(todayInt), 0, 0, -1))
+            elif selectedOption ==  "last_1_day":           return (Util.incrementDate(todayInt, 0, 0, -1), todayInt)    # from build 5051: actually 2 days (today & yesterday)
+            elif selectedOption == "last_30_days":          return (Util.incrementDate(todayInt, 0, 0, -29), todayInt)   # from build 5051: 30 days including today
+            elif selectedOption ==  "last_365_days":        return (Util.incrementDate(todayInt, 0, 0, -364), todayInt)  # from build 5051: 30 days including today
+            elif selectedOption ==  "custom_date":          pass
+            elif selectedOption ==  "all_dates":            pass
+            else: pass  # raise(Exception("Error - date range incorrect"))
 
             # return DateRange().getStartDateInt(), DateRange().getEndDateInt()
             return 19600101, DateRange().getEndDateInt()
@@ -6070,33 +6889,6 @@ Visit: %s (Author's site)
 
         return extractFullPath
 
-    def getCostBasisAsOf(sec, asofDate):        # asof = None means latest / current position
-        # type: (Account, int) -> (int, int)
-        """For a given Security Account, executes MD's CostCalculation routines and returns:
-        shareholding, costbasis as of the date specified. Pass None into asof for current/latest position"""
-
-        # noinspection PyUnresolvedReferences
-        if not isinstance(sec, Account) or sec.getAccountType() is not Account.AccountType.SECURITY:
-            raise Exception("ERROR: You must pass a Security Account to this method!")
-
-        costCalculation = CostCalculation(sec, asofDate)
-        lAllDates = (asofDate is None or asofDate == 0)
-
-        if lAllDates:
-            pos = invokeMethodByReflection(costCalculation, "getCurrentPosition", [], [])
-            currentRunningBasis = invokeMethodByReflection(pos, "getRunningCost", [], [])
-            currentCumulativeShares = invokeMethodByReflection(pos, "getSharesOwned", [], [])
-        else:
-            posns = getFieldByReflection(costCalculation, "positions")
-            currentRunningBasis = 0
-            currentCumulativeShares = 0
-            for pos in posns:
-                date = invokeMethodByReflection(pos, "getDate", [], [])
-                if date > asofDate: break
-                currentRunningBasis = invokeMethodByReflection(pos, "getRunningCost", [], [])
-                currentCumulativeShares = invokeMethodByReflection(pos, "getSharesOwned", [], [])
-        return currentCumulativeShares, currentRunningBasis
-
     def separateYearMonthDayFromDateInt(_dateInt):
         year = _dateInt / 10000
         month = _dateInt / 100 % 100
@@ -7247,6 +8039,7 @@ Visit: %s (Author's site)
 
                                             def __init__(self, tableModel, lSortTheTable, lInTheFooter):
                                                 super(JTable, self).__init__(tableModel)
+                                                # self.setIntercellSpacing(Dimension(8, 1))  # The problem with this is that it creates colour gaps between cells!
                                                 self.lInTheFooter = lInTheFooter
                                                 if lSortTheTable: self.fixTheRowSorter()
 
@@ -7259,22 +8052,21 @@ Visit: %s (Author's site)
                                                 renderer = None
 
                                                 if GlobalVars.stockGlanceInstance.columnTypes[column] == "Text":
-                                                    renderer = DefaultTableCellRenderer()
+                                                    renderer = GlobalVars.stockGlanceInstance.MyClunkyRenderer()
                                                     renderer.setHorizontalAlignment(JLabel.LEFT)
                                                 elif GlobalVars.stockGlanceInstance.columnTypes[column] == "TextNumber":
-                                                    renderer = GlobalVars.stockGlanceInstance.MyGainsRenderer()
+                                                    renderer = GlobalVars.stockGlanceInstance.MyClunkyRenderer(lTextNumber=True)
                                                     renderer.setHorizontalAlignment(JLabel.RIGHT)
                                                 elif GlobalVars.stockGlanceInstance.columnTypes[column] == "%":
-                                                    renderer = GlobalVars.stockGlanceInstance.MyPercentRenderer()
+                                                    renderer = GlobalVars.stockGlanceInstance.MyClunkyRenderer(lPercent=True)
                                                     renderer.setHorizontalAlignment(JLabel.RIGHT)
                                                 elif GlobalVars.stockGlanceInstance.columnTypes[column] == "TextC":
-                                                    renderer = DefaultTableCellRenderer()
+                                                    renderer = GlobalVars.stockGlanceInstance.MyClunkyRenderer()
                                                     renderer.setHorizontalAlignment(JLabel.CENTER)
                                                 else:
-                                                    renderer = DefaultTableCellRenderer()
+                                                    renderer = GlobalVars.stockGlanceInstance.MyClunkyRenderer()
 
                                                 renderer.setVerticalAlignment(JLabel.CENTER)
-
                                                 return renderer
 
                                             class MyTextNumberComparator(Comparator):
@@ -7356,70 +8148,90 @@ Visit: %s (Author's site)
                                                 self.getRowSorter().toggleSortOrder(1)
 
                                             def prepareRenderer(self, renderer, row, column):                           # noqa
-                                                # make Banded rows
+                                                # make Banded background rows
                                                 component = super(GlobalVars.stockGlanceInstance.MyJTable, self).prepareRenderer(renderer, row, column)    # noqa
-                                                if not self.isRowSelected(row):
+                                                isSelected = self.isRowSelected(row)
+                                                if not isSelected:
+                                                    flip = (row % 2 == 0)
+                                                    colors = MD_REF.getUI().getColors()
+
                                                     if (self.lInTheFooter):
-                                                        component.setBackground(MD_REF.getUI().getColors().registerBG1 if row % 2 == 0 else MD_REF.getUI().getColors().registerBG2)
+                                                        component.setBackground(colors.registerBG1 if (flip) else colors.registerBG2)
                                                         if "total" in str(self.getValueAt(row, 0)).lower():
-                                                            component.setForeground(MD_REF.getUI().getColors().headerFG)
-                                                            component.setBackground(MD_REF.getUI().getColors().headerBG1)
+                                                            component.setForeground(colors.headerFG)
+                                                            component.setBackground(colors.headerBG1)
                                                             component.setFont(component.getFont().deriveFont(Font.BOLD))
+
                                                     elif (not GlobalVars.saved_lSplitSecuritiesByAccount_SG2020):
-                                                        component.setBackground(MD_REF.getUI().getColors().registerBG1 if row % 2 == 0 else MD_REF.getUI().getColors().registerBG2)
+                                                        bg = colors.registerBG1 if (flip) else colors.registerBG2
+                                                        component.setBackground(bg)
+                                                        # fg = colors.registerSelectedFG if isSelected else colors.defaultTextForeground;
+                                                        # component.setForeground(fg)
+
                                                     elif str(self.getValueAt(row, 0)).lower()[:5] == "total":
-                                                        component.setBackground(MD_REF.getUI().getColors().registerBG1)
+                                                        component.setBackground(colors.registerBG1)
+
                                                 return component
 
                                         # This copies the standard class and just changes the colour to RED if it detects a negative - leaves field intact
                                         # noinspection PyArgumentList
-                                        class MyGainsRenderer(DefaultTableCellRenderer):
+                                        class MyClunkyRenderer(DefaultTableCellRenderer):
 
-                                            def __init__(self):
-                                                super(DefaultTableCellRenderer, self).__init__()
+                                            def __init__(self, lTextNumber=False, lPercent=False):
+                                                self.padding = BorderFactory.createEmptyBorder(0, 7, 0, 0)
+                                                self.paddingAccts = BorderFactory.createEmptyBorder(0, 20, 0, 0)
+                                                self.lTextNumber = lTextNumber
+                                                self.lPercent = lPercent
+                                                super(self.__class__, self).__init__()                                  # noqa
 
                                             def setValue(self, value):
-                                                validString = "-0123456789" + GlobalVars.decimalCharSep
-
-                                                self.setText(value)
-
-                                                if (value is None
-                                                        or value.strip() == ""
-                                                        or "==" in value
-                                                        or "--" in value):
+                                                if not self.lPercent:
+                                                    super(self.__class__, self).setValue(value)
                                                     return
 
-                                                # strip non numerics from string so can convert back to float - yes, a bit of a reverse hack
-                                                conv_string1 = ""
-                                                for char in value:
-                                                    if char in validString:
-                                                        conv_string1 = conv_string1 + char
-                                                try:
-                                                    str1 = float(conv_string1)
-                                                    if float(str1) < 0.0:
-                                                        self.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
-                                                    else:
-                                                        self.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
-                                                except:
-                                                    # No real harm done; so move on.... (was failing on 'Fr. 305.2' - double point in text)
-                                                    self.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
-
-                                        # This copies the standard class and just changes the colour to RED if it detects a negative - and formats as %
-                                        # noinspection PyArgumentList
-                                        class MyPercentRenderer(DefaultTableCellRenderer):
-
-                                            def __init__(self):
-                                                super(DefaultTableCellRenderer, self).__init__()
-
-                                            def setValue(self, value):
                                                 if value is None: return
-
                                                 self.setText("{:.1%}".format(value))
 
-                                                if value < 0.0:
-                                                    self.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
+                                            def getTableCellRendererComponent(self, table, value, isSelected, hasFocus, row, column):
+                                                # type: (JTable, Object, bool, bool, int, int) -> JLabel
+
+                                                # get the default first!
+                                                label = super(self.__class__, self).getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+                                                label.setBorder(BorderFactory.createCompoundBorder(label.getBorder(), self.paddingAccts if column == 10 else self.padding))
+
+                                                if (not self.lPercent and not self.lTextNumber) or isSelected: return label
+
+                                                showNegColor = False
+                                                if self.lPercent:
+                                                    if value < 0.0:
+                                                        showNegColor = True
                                                 else:
-                                                    self.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
+                                                    # Yup - this is 'clunky' not how I would do it now!!
+                                                    validString = "-0123456789" + GlobalVars.decimalCharSep
+
+                                                    if (value is None
+                                                            or value.strip() == ""
+                                                            or "==" in value
+                                                            or "--" in value):
+                                                        return label
+
+                                                    # strip non numerics from string so can convert back to float - yes, a bit of a reverse hack
+                                                    conv_string1 = ""
+                                                    for char in value:
+                                                        if char in validString:
+                                                            conv_string1 = conv_string1 + char
+                                                    try:
+                                                        flt = float(conv_string1)
+                                                        if flt < 0.0: showNegColor = True
+                                                    except:
+                                                        # No real harm done; so move on.... (was failing on 'Fr. 305.2' - double point in text)
+                                                        pass
+
+                                                if showNegColor:
+                                                    label.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
+                                                else:
+                                                    label.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
+                                                return label
 
                                         # Synchronises column widths of both JTables
                                         class ColumnChangeListener(TableColumnModelListener):
@@ -7825,41 +8637,15 @@ Visit: %s (Author's site)
 
                                     class DefaultTableHeaderCellRenderer(DefaultTableCellRenderer):
 
-                                        # /**
-                                        # * Constructs a <code>DefaultTableHeaderCellRenderer</code>.
-                                        # * <P>
-                                        # * The horizontal alignment and text position are set as appropriate to a
-                                        # * table header cell, and the opaque property is set to false.
-                                        # */
-
                                         def __init__(self):
                                             # super(DefaultTableHeaderCellRenderer, self).__init__()
+                                            self.padding = BorderFactory.createEmptyBorder(0, 7, 0, 0)
+                                            self.paddingAccts = BorderFactory.createEmptyBorder(0, 20, 0, 0)
                                             self.setHorizontalAlignment(JLabel.CENTER)  # This one changes the text alignment
                                             self.setHorizontalTextPosition(
                                                 JLabel.RIGHT)  # This positions the  text to the  left/right of  the sort icon
                                             self.setVerticalAlignment(JLabel.BOTTOM)
                                             self.setOpaque(True)  # if this is false then it hides the background colour
-
-                                        # enddef
-
-                                        # /**
-                                        # * returns the default table header cell renderer.
-                                        # * <P>
-                                        # * If the column is sorted, the appropriate icon is retrieved from the
-                                        # * current Look and Feel, and a border appropriate to a table header cell
-                                        # * is applied.
-                                        # * <P>
-                                        # * Subclasses may override this method to provide custom content or
-                                        # * formatting.
-                                        # *
-                                        # * @param table the <code>JTable</code>.
-                                        # * @param value the value to assign to the header cell
-                                        # * @param isSelected This parameter is ignored.
-                                        # * @param hasFocus This parameter is ignored.
-                                        # * @param row This parameter is ignored.
-                                        # * @param column the column of the header cell to render
-                                        # * @return the default table header cell renderer
-                                        # */
 
                                         # noinspection PyUnusedLocal
                                         def getTableCellRendererComponent(self, table, value, isSelected, hasFocus, row, column):   # noqa
@@ -7876,7 +8662,8 @@ Visit: %s (Author's site)
                                                 self.setHorizontalTextPosition(JLabel.LEFT)
 
                                             self.setIcon(self._getIcon(table, column))
-                                            self.setBorder(UIManager.getBorder("TableHeader.cellBorder"))
+                                            # self.setBorder(UIManager.getBorder("TableHeader.cellBorder"))
+                                            self.setBorder(BorderFactory.createCompoundBorder(UIManager.getBorder("TableHeader.cellBorder"), self.paddingAccts if column == 10 else self.padding))
 
                                             self.setForeground(MD_REF.getUI().getColors().headerFG)
                                             self.setBackground(MD_REF.getUI().getColors().headerBG1)
@@ -8531,40 +9318,13 @@ Visit: %s (Author's site)
 
                                     class DefaultTableHeaderCellRenderer(DefaultTableCellRenderer):
 
-                                        # /**
-                                        # * Constructs a <code>DefaultTableHeaderCellRenderer</code>.
-                                        # * <P>
-                                        # * The horizontal alignment and text position are set as appropriate to a
-                                        # * table header cell, and the opaque property is set to false.
-                                        # */
-
                                         def __init__(self):
                                             # super(DefaultTableHeaderCellRenderer, self).__init__()
+                                            self.padding = BorderFactory.createEmptyBorder(0, 7, 0, 0)
                                             self.setHorizontalAlignment(JLabel.CENTER)  # This one changes the text alignment
                                             self.setHorizontalTextPosition(JLabel.RIGHT)  # This positions the  text to the  left/right of  the sort icon
                                             self.setVerticalAlignment(JLabel.BOTTOM)
                                             self.setOpaque(True)  # if this is false then it hides the background colour
-
-                                        # enddef
-
-                                        # /**
-                                        # * returns the default table header cell renderer.
-                                        # * <P>
-                                        # * If the column is sorted, the appropriate icon is retrieved from the
-                                        # * current Look and Feel, and a border appropriate to a table header cell
-                                        # * is applied.
-                                        # * <P>
-                                        # * Subclasses may overide this method to provide custom content or
-                                        # * formatting.
-                                        # *
-                                        # * @param table the <code>JTable</code>.
-                                        # * @param value the value to assign to the header cell
-                                        # * @param isSelected This parameter is ignored.
-                                        # * @param hasFocus This parameter is ignored.
-                                        # * @param row This parameter is ignored.
-                                        # * @param column the column of the header cell to render
-                                        # * @return the default table header cell renderer
-                                        # */
 
                                         def getTableCellRendererComponent(self, table, value, isSelected, hasFocus, row, column):	# noqa
                                             # noinspection PyUnresolvedReferences
@@ -8581,7 +9341,8 @@ Visit: %s (Author's site)
                                                 self.setHorizontalTextPosition(JLabel.LEFT)
 
                                             self.setIcon(self._getIcon(table, column))
-                                            self.setBorder(UIManager.getBorder("TableHeader.cellBorder"))
+                                            # self.setBorder(UIManager.getBorder("TableHeader.cellBorder"))
+                                            self.setBorder(BorderFactory.createCompoundBorder(UIManager.getBorder("TableHeader.cellBorder"), self.padding))
 
                                             self.setForeground(MD_REF.getUI().getColors().headerFG)
                                             self.setBackground(MD_REF.getUI().getColors().headerBG1)
@@ -8590,16 +9351,6 @@ Visit: %s (Author's site)
 
                                             return self
 
-                                        # enddef
-
-                                        # /**
-                                        # * Overloaded to return an icon suitable to the primary sorted column, or null if
-                                        # * the column is not the primary sort key.
-                                        # *
-                                        # * @param table the <code>JTable</code>.
-                                        # * @param column the column index.
-                                        # * @return the sort icon, or null if the column is unsorted.
-                                        # */
                                         def _getIcon(self, table, column):												# noqa
                                             sortKey = self.getSortKey(table, column)
                                             if (sortKey is not None and table.convertColumnIndexToView(sortKey.getColumn()) == column):
@@ -8609,17 +9360,6 @@ Visit: %s (Author's site)
                                                 elif x == SortOrder.UNSORTED: return UIManager.getIcon("Table.naturalSortIcon")
                                             return None
 
-                                        # enddef
-
-                                        # /**
-                                        # * returns the current sort key, or null if the column is unsorted.
-                                        # *
-                                        # * @param table the table
-                                        # * @param column the column index
-                                        # * @return the SortKey, or null if the column is unsorted
-                                        # */
-                                        # noinspection PyMethodMayBeStatic
-                                        # noinspection PyUnusedLocal
                                         def getSortKey(self, table, column):											# noqa
                                             rowSorter = table.getRowSorter()
                                             if (rowSorter is None): return None
@@ -8790,11 +9530,11 @@ Visit: %s (Author's site)
                                         # noinspection PyMethodMayBeStatic
                                         def getCellRenderer(self, row, column):											# noqa
                                             if column == 0:
-                                                renderer = MyPlainNumberRenderer()
+                                                renderer = MyClunkyRenderer(lPlainNumber=True)
                                             elif GlobalVars.headerFormats_ERTC[column][0] == Number:
-                                                renderer = MyNumberRenderer()
+                                                renderer = MyClunkyRenderer(lNumber=True)
                                             else:
-                                                renderer = DefaultTableCellRenderer()
+                                                renderer = MyClunkyRenderer()
 
                                             renderer.setHorizontalAlignment(GlobalVars.headerFormats_ERTC[column][1])
 
@@ -8886,46 +9626,66 @@ Visit: %s (Author's site)
 
                                         # make Banded rows
                                         def prepareRenderer(self, renderer, row, column):  								# noqa
-
                                             # noinspection PyUnresolvedReferences
                                             component = super(MyJTable, self).prepareRenderer(renderer, row, column)
                                             if not self.isRowSelected(row):
                                                 component.setBackground(MD_REF.getUI().getColors().registerBG1 if row % 2 == 0 else MD_REF.getUI().getColors().registerBG2)
-
                                             return component
 
-                                    # This copies the standard class and just changes the colour to RED if it detects a negative - leaves field intact
-                                    # noinspection PyArgumentList
-                                    class MyNumberRenderer(DefaultTableCellRenderer):
+                                    class MyClunkyRenderer(DefaultTableCellRenderer):
 
-                                        def __init__(self):
-                                            super(DefaultTableCellRenderer, self).__init__()
+                                        def __init__(self, lPlainNumber=False, lNumber=False):
+                                            self.padding = BorderFactory.createEmptyBorder(0, 10, 0, 0)
+                                            self.lPlainNumber = lPlainNumber
+                                            self.lNumber = lNumber
+                                            super(self.__class__, self).__init__()                                      # noqa
 
                                         def setValue(self, value):
-                                            if isinstance(value, (float,int)):
-                                                if value < 0.0:
-                                                    self.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
+                                            if value is None: return
+
+                                            if self.lNumber:
+                                                if isinstance(value, (float, int)):
+                                                    base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+                                                    self.setText(base.formatFancy(int(value * 100), GlobalVars.decimalCharSep, True))
                                                 else:
-                                                    self.setForeground(MD_REF.getUI().getColors().budgetHealthyColor)
-                                                base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
-                                                self.setText(base.formatFancy(int(value*100), GlobalVars.decimalCharSep, True))
-                                            else:
+                                                    if isinstance(value, StoreDateInt):
+                                                        self.setText(value.getDateIntFormatted())
+                                                    else:
+                                                        self.setText(str(value))
+                                                return
+
+                                            elif self.lPlainNumber:
                                                 if isinstance(value, StoreDateInt):
                                                     self.setText(value.getDateIntFormatted())
                                                 else:
                                                     self.setText(str(value))
+                                                return
 
-                                            return
+                                            super(self.__class__, self).setValue(value)
 
-                                    class MyPlainNumberRenderer(DefaultTableCellRenderer):
-                                        def __init__(self):
-                                            super(DefaultTableCellRenderer, self).__init__()                            # noqa
+                                        def getTableCellRendererComponent(self, table, value, isSelected, hasFocus, row, column):
+                                            # type: (JTable, Object, bool, bool, int, int) -> JLabel
 
-                                        def setValue(self, value):
-                                            if isinstance(value, StoreDateInt):
-                                                self.setText(value.getDateIntFormatted())
+                                            # get the default first!
+                                            label = super(self.__class__, self).getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+                                            label.setBorder(BorderFactory.createCompoundBorder(label.getBorder(), self.padding))
+
+                                            if (not self.lPlainNumber and not self.lNumber) or isSelected: return label
+
+                                            showNegColor = False
+                                            if self.lNumber:
+                                                if isinstance(value, (float, int)):
+                                                    if value < 0.0:
+                                                        showNegColor = True
+
+                                            if showNegColor:
+                                                label.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
                                             else:
-                                                self.setText(str(value))
+                                                if self.lNumber:
+                                                    # label.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
+                                                    label.setForeground(MD_REF.getUI().getColors().budgetHealthyColor)
+
+                                            return label
 
                                     def ReminderTable(tabledata, ind):
                                         GlobalVars.reminderTableCount_ERTC += 1
@@ -9513,28 +10273,32 @@ Visit: %s (Author's site)
                                         "_ACCOUNT":                 [1,  "Account"],
                                         "_DATE":                    [2,  "Date"],
                                         "_TAXDATE":                 [3,  "TaxDate"],
-                                        "_CURR":                    [4,  "Currency"],
-                                        "_CHEQUE":                  [5,  "Cheque"],
-                                        "_DESC":                    [6,  "Description"],
-                                        "_MEMO":                    [7,  "Memo"],
-                                        "_CLEARED":                 [8,  "Cleared"],
-                                        "_TOTALAMOUNT":             [9,  "TotalAmount"],
-                                        "_FOREIGNTOTALAMOUNT":      [10, "ForeignTotalAmount"],
-                                        "_PARENTTAGS":              [11, "ParentTags"],
-                                        "_PARENTHASATTACHMENTS":    [12, "ParentHasAttachments"],
-                                        "_SPLITIDX":                [13, "SplitIndex"],
-                                        "_SPLITMEMO":               [14, "SplitMemo"],
-                                        "_SPLITCAT":                [15, "SplitCategory"],
-                                        "_SPLITAMOUNT":             [16, "SplitAmount"],
-                                        "_FOREIGNSPLITAMOUNT":      [17, "ForeignSplitAmount"],
-                                        "_SPLITTAGS":               [18, "SplitTags"],
-                                        "_ISTRANSFERTOACCT":        [19, "isTransferToAnotherAccount"],
-                                        "_ISTRANSFERSELECTED":      [20, "isTransferWithinThisExtract"],
-                                        "_SPLITHASATTACHMENTS":     [21, "SplitHasAttachments"],
-                                        "_ATTACHMENTLINK":          [22, "AttachmentLink"],
-                                        "_ATTACHMENTLINKREL":       [23, "AttachmentLinkRelative"],
-                                        "_KEY":                     [24, "Key"],
-                                        "_END":                     [25, "_END"]
+                                        "_DATE_ENTERED":            [4,  "DateEntered"],
+                                        "_SYNC_DATE":               [5,  "SyncDate"],
+                                        "_RECONCILED_DATE":         [6,  "ReconciledDate"],
+                                        "_RECONCILED_ASOF":         [7,  "ReconciledAsOf"],
+                                        "_CURR":                    [8,  "Currency"],
+                                        "_CHEQUE":                  [9,  "Cheque"],
+                                        "_DESC":                    [10, "Description"],
+                                        "_MEMO":                    [11, "Memo"],
+                                        "_CLEARED":                 [12, "Cleared"],
+                                        "_TOTALAMOUNT":             [13, "TotalAmount"],
+                                        "_FOREIGNTOTALAMOUNT":      [14, "ForeignTotalAmount"],
+                                        "_PARENTTAGS":              [15, "ParentTags"],
+                                        "_PARENTHASATTACHMENTS":    [16, "ParentHasAttachments"],
+                                        "_SPLITIDX":                [17, "SplitIndex"],
+                                        "_SPLITMEMO":               [18, "SplitMemo"],
+                                        "_SPLITCAT":                [19, "SplitCategory"],
+                                        "_SPLITAMOUNT":             [20, "SplitAmount"],
+                                        "_FOREIGNSPLITAMOUNT":      [21, "ForeignSplitAmount"],
+                                        "_SPLITTAGS":               [22, "SplitTags"],
+                                        "_ISTRANSFERTOACCT":        [23, "isTransferToAnotherAccount"],
+                                        "_ISTRANSFERSELECTED":      [24, "isTransferWithinThisExtract"],
+                                        "_SPLITHASATTACHMENTS":     [25, "SplitHasAttachments"],
+                                        "_ATTACHMENTLINK":          [26, "AttachmentLink"],
+                                        "_ATTACHMENTLINKREL":       [27, "AttachmentLinkRelative"],
+                                        "_KEY":                     [28, "Key"],
+                                        "_END":                     [29, "_END"]
                                     }
 
                                     GlobalVars.transactionTable = []
@@ -9685,8 +10449,26 @@ Visit: %s (Author's site)
                                         _row[GlobalVars.dataKeys["_ACCOUNT"][_COLUMN]] = txnAcct.getFullAccountName()
                                         _row[GlobalVars.dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
                                         _row[GlobalVars.dataKeys["_DATE"][_COLUMN]] = txn.getDateInt()
+
                                         if parent_Txn.getTaxDateInt() != txn.getDateInt():
                                             _row[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]] = txn.getTaxDateInt()
+
+                                        dtEntered = txn.getDateEntered()
+                                        if dtEntered is not None and dtEntered != 0:
+                                            _row[GlobalVars.dataKeys["_DATE_ENTERED"][_COLUMN]] = DateUtil.convertLongDateToInt(dtEntered)
+
+                                        syncTimestamp = txn.getSyncTimestamp()
+                                        if syncTimestamp is None or syncTimestamp == 0: syncTimestamp = parent_Txn.getSyncTimestamp()
+                                        if syncTimestamp is not None and syncTimestamp != 0:
+                                            _row[GlobalVars.dataKeys["_SYNC_DATE"][_COLUMN]] = DateUtil.convertLongDateToInt(syncTimestamp)
+
+                                        reconciledDate = txn.getLongParameter("rec_dt", 0)
+                                        if reconciledDate is not None and reconciledDate != 0:
+                                            _row[GlobalVars.dataKeys["_RECONCILED_DATE"][_COLUMN]] = DateUtil.convertLongDateToInt(reconciledDate)
+
+                                        reconciledAsOf = txn.getIntParameter("rec_asof", 0)
+                                        if reconciledAsOf is not None and reconciledAsOf != 0:
+                                            _row[GlobalVars.dataKeys["_RECONCILED_ASOF"][_COLUMN]] = reconciledAsOf
 
                                         _row[GlobalVars.dataKeys["_CHEQUE"][_COLUMN]] = txn.getCheckNumber()
 
@@ -10008,14 +10790,12 @@ Visit: %s (Author's site)
 
                                         myPrint("DB", _THIS_EXTRACT_NAME + "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
                                         for _theRow in GlobalVars.transactionTable:
-                                            dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys["_DATE"][_COLUMN]]), "%Y%m%d")  # Convert to Date field
-                                            _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
-                                            _theRow[GlobalVars.dataKeys["_DATE"][_COLUMN]] = _dateoutput
 
-                                            if _theRow[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]]:
-                                                dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]]), "%Y%m%d")  # Convert to Date field
-                                                _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
-                                                _theRow[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]] = _dateoutput
+                                            for convColumn in ["_DATE", "_TAXDATE", "_DATE_ENTERED", "_SYNC_DATE", "_RECONCILED_DATE", "_RECONCILED_ASOF"]:
+                                                if _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]:
+                                                    dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]), "%Y%m%d")  # Convert to Date field
+                                                    _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
 
                                             for col in range(0, GlobalVars.dataKeys["_ATTACHMENTLINK"][_COLUMN]):  # DO NOT MESS WITH ATTACHMENT LINK NAMES!!
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
@@ -10487,6 +11267,10 @@ Visit: %s (Author's site)
                                     GlobalVars.dataKeys["_ACCOUNT"]             = [dki, "Account"];                   dki += 1
                                     GlobalVars.dataKeys["_DATE"]                = [dki, "Date"];                      dki += 1
                                     GlobalVars.dataKeys["_TAXDATE"]             = [dki, "TaxDate"];                   dki += 1
+                                    GlobalVars.dataKeys["_DATE_ENTERED"]        = [dki, "DateEntered"];               dki += 1
+                                    GlobalVars.dataKeys["_SYNC_DATE"]           = [dki, "SyncDate"];                  dki += 1
+                                    GlobalVars.dataKeys["_RECONCILED_DATE"]     = [dki, "ReconciledDate"];            dki += 1
+                                    GlobalVars.dataKeys["_RECONCILED_ASOF"]     = [dki, "ReconciledAsOf"];            dki += 1
                                     GlobalVars.dataKeys["_CURR"]                = [dki, "Currency"];                  dki += 1
                                     GlobalVars.dataKeys["_SECURITY"]            = [dki, "Security"];                  dki += 1
                                     GlobalVars.dataKeys["_SECURITYID"]          = [dki, "SecurityID"];                dki += 1
@@ -10699,8 +11483,26 @@ Visit: %s (Author's site)
                                         _row[GlobalVars.dataKeys["_CURR"][_COLUMN]] = acctCurr.getIDString()
 
                                         _row[GlobalVars.dataKeys["_DATE"][_COLUMN]] = txn.getDateInt()
+
                                         if txn.getTaxDateInt() != txn.getDateInt():
                                             _row[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]] = txn.getTaxDateInt()
+
+                                        dtEntered = txn.getDateEntered()
+                                        if dtEntered is not None and dtEntered != 0:
+                                            _row[GlobalVars.dataKeys["_DATE_ENTERED"][_COLUMN]] = DateUtil.convertLongDateToInt(dtEntered)
+
+                                        syncTimestamp = txn.getSyncTimestamp()
+                                        if syncTimestamp is None or syncTimestamp == 0: syncTimestamp = parent.getSyncTimestamp()
+                                        if syncTimestamp is not None and syncTimestamp != 0:
+                                            _row[GlobalVars.dataKeys["_SYNC_DATE"][_COLUMN]] = DateUtil.convertLongDateToInt(syncTimestamp)
+
+                                        reconciledDate = txn.getLongParameter("rec_dt", 0)
+                                        if reconciledDate is not None and reconciledDate != 0:
+                                            _row[GlobalVars.dataKeys["_RECONCILED_DATE"][_COLUMN]] = DateUtil.convertLongDateToInt(reconciledDate)
+
+                                        reconciledAsOf = txn.getIntParameter("rec_asof", 0)
+                                        if reconciledAsOf is not None and reconciledAsOf != 0:
+                                            _row[GlobalVars.dataKeys["_RECONCILED_ASOF"][_COLUMN]] = reconciledAsOf
 
                                         if GlobalVars.saved_lExtractExtraSecurityAcctInfo:
                                             _row[GlobalVars.dataKeys["_SECINFO_TYPE"][_COLUMN]] = ""
@@ -11093,14 +11895,12 @@ Visit: %s (Author's site)
 
                                         myPrint("DB", _THIS_EXTRACT_NAME + "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
                                         for _theRow in GlobalVars.transactionTable:
-                                            dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys["_DATE"][_COLUMN]]), "%Y%m%d")  # Convert to Date field
-                                            _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
-                                            _theRow[GlobalVars.dataKeys["_DATE"][_COLUMN]] = _dateoutput
 
-                                            if _theRow[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]]:
-                                                dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]]), "%Y%m%d")  # Convert to Date field
-                                                _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
-                                                _theRow[GlobalVars.dataKeys["_TAXDATE"][_COLUMN]] = _dateoutput
+                                            for convColumn in ["_DATE", "_TAXDATE", "_DATE_ENTERED", "_SYNC_DATE", "_RECONCILED_DATE", "_RECONCILED_ASOF"]:
+                                                if _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]:
+                                                    dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]), "%Y%m%d")  # Convert to Date field
+                                                    _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
 
                                             for col in range(0, GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]):
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
@@ -11600,6 +12400,11 @@ Visit: %s (Author's site)
 
                                 def do_extract_security_balances():
 
+                                    # Override date to today if settings require this...
+                                    todayInt = DateUtil.getStrippedDateInt()
+                                    if GlobalVars.saved_lAlwaysUseCurrentPosition_ESB:
+                                        GlobalVars.saved_securityBalancesDate_ESB = todayInt
+
                                     class MyAcctFilterESB(AcctFilter):
 
                                         def __init__(self,
@@ -11689,6 +12494,7 @@ Visit: %s (Author's site)
                                             else: return False
 
                                             return True
+
 
                                     _COLUMN = 0
                                     _HEADING = 1
@@ -11780,15 +12586,24 @@ Visit: %s (Author's site)
                                         _row[GlobalVars.dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
                                         _row[GlobalVars.dataKeys["_SECRELCURR"][_COLUMN]] = unicode(securityCurr.getRelativeCurrency().getIDString())
 
-                                        if not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB:
-                                            asofShares, asofCostBasis = getCostBasisAsOf(securityAcct, GlobalVars.saved_securityBalancesDate_ESB)
-                                            costBasis = asofCostBasis
-                                            costBasisBase = CurrencyUtil.convertValue(costBasis, investAcctCurr, GlobalVars.baseCurrency, GlobalVars.saved_securityBalancesDate_ESB)
+                                        if GlobalVars.saved_lAlwaysUseCurrentPosition_ESB:
+                                            asOfDate = None             # This tells MyCostCalculation to derive the balance asof date....
+                                            effectiveDateInt = None     # Really means no conversion = asof today
                                         else:
-                                            costBasis = InvestUtil.getCostBasis(securityAcct)
-                                            costBasisBase = CurrencyUtil.convertValue(costBasis, investAcctCurr, GlobalVars.baseCurrency)
-                                        _row[GlobalVars.dataKeys["_ACCTCOSTBASIS"][_COLUMN]] = investAcctCurr.getDoubleValue(costBasis)
-                                        _row[GlobalVars.dataKeys["_BASECOSTBASIS"][_COLUMN]] = GlobalVars.baseCurrency.getDoubleValue(costBasisBase)
+                                            asOfDate = GlobalVars.saved_securityBalancesDate_ESB
+                                            effectiveDateInt = None if (asOfDate == todayInt) else asOfDate
+
+                                        costCalculationBal = MyCostCalculation(securityAcct, asOfDate, None, False)  # True replicates InvestUtil.getCostBasis(securityAcct) - i.e. Balance (not Current Balance)
+
+                                        sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
+                                        # asofSharesBal = sharesAndCostBasisForAsOf.getSharesOwnedAsOf()
+                                        asofCostBasisBal = sharesAndCostBasisForAsOf.getCostBasisAsOf()
+
+                                        costBasisBal = asofCostBasisBal
+                                        costBasisBalBase = convertValue(costBasisBal, investAcctCurr, GlobalVars.baseCurrency, effectiveDateInt)
+
+                                        _row[GlobalVars.dataKeys["_ACCTCOSTBASIS"][_COLUMN]] = investAcctCurr.getDoubleValue(costBasisBal)
+                                        _row[GlobalVars.dataKeys["_BASECOSTBASIS"][_COLUMN]] = GlobalVars.baseCurrency.getDoubleValue(costBasisBalBase)
 
                                         secShrHoldingLong = None
                                         if not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB:
@@ -12331,7 +13146,7 @@ Visit: %s (Author's site)
                                             currStr = acctCurr.getIDString()
                                         _row[GlobalVars.dataKeys["_CURR"][_COLUMN]] = currStr
 
-                                        _row[GlobalVars.dataKeys["_ACCOUNTTYPE"][_COLUMN]] = acctEAB.getAccountType().toString()
+                                        _row[GlobalVars.dataKeys["_ACCOUNTTYPE"][_COLUMN]] = acctEAB.getAccountType().toString()        # noqa
                                         _row[GlobalVars.dataKeys["_STATUS"][_COLUMN]] = "I" if acctEAB.getAccountIsInactive() else "A"
                                         _row[GlobalVars.dataKeys["_KEY"][_COLUMN]] = 0
 

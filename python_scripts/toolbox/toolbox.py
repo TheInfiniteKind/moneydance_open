@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1063 - November 2020 thru 2023 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1064 - November 2020 thru 2024 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -160,6 +160,10 @@
 # build: 1063 - Common code - FileFilter fix...; Tweak OFX_view_CUSIP_settings() to deal with blank CUSIP schemes...
 #               tweaked: force_change_all_accounts_categories_currencies(); added: validateAndFixBaseCurrency. Tweaked base currency validation/repair code.
 #               Tweaked diag/fix currencies/securities and diag/fix base currency routines; tweak menu for fix base currency
+# build: 1064 - Tweak buildDiagText() - 'OS Platform:' add space before version text....
+#               Take advantage of of context menu scriptinfo abilities (since MD2024(5100))... - e.g. set selected transactions...
+#               Switch to new debug controls in AppDebug class...
+#               From MD2024(5100) onwards, disable remove_inactive_from_sidebar(); rename 'MoneyBot' references to 'Developer Console'
 
 # todo - undo the patch to DetectMobileAppTxnFiles() for Sonoma.. Perhaps put into a Thread()?
 
@@ -190,9 +194,9 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1063"
+version_build = "1064"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
-_I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
+_I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 
@@ -354,13 +358,13 @@ elif frameToResurrect and frameToResurrect.isRunTimeExtension:
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
-    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Developer Console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -586,8 +590,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2023.3
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5064
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.0
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5100
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -666,7 +670,7 @@ else:
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
 Thank you for using %s!
-The author has other useful Extensions / Moneybot Python scripts available...:
+The author has other useful Extensions / 'Developer Console' Python scripts available...:
 
 Extension (.mxt) format only:
 Toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more
@@ -3347,6 +3351,24 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5100                                                                 # MD2024(5100)
+    def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
+    if isCostCalculationUpgradedBuild():
+        from com.infinitekind.moneydance.model import CostCalculation
+
+    GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD = 5100                                                                     # MD2024(5100)
+    def isContextMenuEnabledBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD)
+    if isContextMenuEnabledBuild():
+        from com.moneydance.apps.md.controller import MDActionContext                                                   # noqa
+
+    GlobalVars.MD_APPDEBUG_ENABLED_BUILD = 5100                                                                         # MD2024(5100)
+    def isAppDebugEnabledBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_APPDEBUG_ENABLED_BUILD)
+    if isAppDebugEnabledBuild():
+        from com.infinitekind.util import AppDebug                                                                      # noqa
+
+    GlobalVars.MD_ENHANCED_SIDEBAR_BUILD = 5100                                                                         # MD2024(5100)
+    def isEnhancedSidebarBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ENHANCED_SIDEBAR_BUILD)
+
     def isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=False):
         if ((not checkMainTask and not checkAttachmentsTask) or (checkMainTask and checkAttachmentsTask)):
             raise Exception("LOGIC ERROR: Must provide either checkMainTask or checkAttachmentsTask True parameter...!")
@@ -3555,19 +3577,29 @@ Visit: %s (Author's site)
         return "<html>%s<font color=#%s>%s</font></html>" %(_htmlBigText, _secondaryColorHex, _htmlMoreBigText)
 
     class MoneybotURLDebug:
+        # NOTE: as of MD2024(5100) MoneybotURLDebug uses CustomURLStreamHandlerFactory's AppLogger (i.e. the same logger)....
         saveState = None
 
         def __init__(self): raise Exception("ERROR: Do not call this constructor!")
 
         @staticmethod
         def changeState(newState):
-            MoneybotURLDebug.saveSyncerState = MoneybotURLStreamHandlerFactory.DEBUG
-            MoneybotURLStreamHandlerFactory.DEBUG = newState
+            if isAppDebugEnabledBuild():
+                LOGGER = AppDebug.logger(CustomURLStreamHandlerFactory.DEBUG_LOGGER_ID)                                 # noqa
+                MoneybotURLDebug.saveState = LOGGER.isEnabled()
+                LOGGER.setEnabled(newState)
+            else:
+                MoneybotURLDebug.saveState = MoneybotURLStreamHandlerFactory.DEBUG
+                MoneybotURLStreamHandlerFactory.DEBUG = newState
 
         @staticmethod
         def resetState():
             if MoneybotURLDebug.saveState is None: return
-            MoneybotURLStreamHandlerFactory.DEBUG = MoneybotURLDebug.saveState
+            if isAppDebugEnabledBuild():
+                LOGGER = AppDebug.logger(CustomURLStreamHandlerFactory.DEBUG_LOGGER_ID)                                 # noqa
+                LOGGER.setEnabled(MoneybotURLDebug.saveState)
+            else:
+                MoneybotURLStreamHandlerFactory.DEBUG = MoneybotURLDebug.saveState
 
     class SyncerDebug:
         saveState = None
@@ -3576,13 +3608,20 @@ Visit: %s (Author's site)
 
         @staticmethod
         def changeState(newState):
-            SyncerDebug.saveState = Syncer.DEBUG
-            Syncer.DEBUG = newState
+            if isAppDebugEnabledBuild():
+                SyncerDebug.saveState = AppDebug.SYNC.isEnabled()                                                       # noqa
+                AppDebug.SYNC.setEnabled(newState)                                                                      # noqa
+            else:
+                SyncerDebug.saveState = Syncer.DEBUG
+                Syncer.DEBUG = newState
 
         @staticmethod
         def resetState():
             if SyncerDebug.saveState is None: return
-            Syncer.DEBUG = SyncerDebug.saveState
+            if isAppDebugEnabledBuild():
+                AppDebug.SYNC.setEnabled(SyncerDebug.saveState)                                                         # noqa
+            else:
+                Syncer.DEBUG = SyncerDebug.saveState
 
     class MainDebug:
         saveState = None
@@ -3591,13 +3630,20 @@ Visit: %s (Author's site)
 
         @staticmethod
         def changeState(newState):
-            MainDebug.saveState = MD_REF.DEBUG
-            MD_REF.DEBUG = newState
+            if isAppDebugEnabledBuild():
+                MainDebug.saveState = AppDebug.DEBUG.isEnabled()                                                        # noqa
+                AppDebug.DEBUG.setEnabled(newState)                                                                     # noqa
+            else:
+                MainDebug.saveState = MD_REF.DEBUG
+                MD_REF.DEBUG = newState
 
         @staticmethod
         def resetState():
             if MainDebug.saveState is None: return
-            MD_REF.DEBUG = MainDebug.saveState
+            if isAppDebugEnabledBuild():
+                AppDebug.DEBUG.setEnabled(MainDebug.saveState)                                                          # noqa
+            else:
+                MD_REF.DEBUG = MainDebug.saveState
 
     def logToolboxUpdates(methodName, comments, book=None, onlyLogGenericEntry=False, lOnlyRtnCommonPath=False, lOnlyRtnDatasetPath=False):
         """
@@ -4237,7 +4283,7 @@ Visit: %s (Author's site)
 
     def isRRateCurrencyIssueFixedBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_RRATE_ISSUE_FIXED_BUILD)                                # 2021.2
 
-    def isKotlinCompiledBuildAll(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL)                                           # 2023.0(5000)
+    def isKotlinCompiledBuildAll(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL)                                    # 2023.0(5000)
 
     if isKotlinCompiledBuild():
         from okio import BufferedSource, Buffer, Okio
@@ -5978,7 +6024,7 @@ Visit: %s (Author's site)
         else:
             textArray.append(u"MD Execution Mode:                   %s" %(MD_REF.getExecutionMode()))
 
-        textArray.append(u"MD Debug Mode:                       %s" %(MD_REF.DEBUG))
+        textArray.append(u"MD Debug Mode:                       %s" %(MD_REF.DEBUG if not isAppDebugEnabledBuild() else AppDebug.DEBUG.isEnabled()))  # noqa
         textArray.append(u"Beta Features:                       %s" %(MD_REF.BETA_FEATURES))
         textArray.append(u"Architecture:                        %s%s" %(System.getProperty(u"os.arch"),
                                                                         u" (Intel 32-bit)" if isIntelX86_32bit() else u""))
@@ -6011,7 +6057,7 @@ Visit: %s (Author's site)
             username = u"???"
         textArray.append(u"Username:                            %s" %username)
 
-        textArray.append(u"OS Platform:                         %s" %System.getProperty(u"os.name") + u"OS Version: %s" %(System.getProperty(u"os.version")))
+        textArray.append(u"OS Platform:                         %s" %System.getProperty(u"os.name") + u" %s" %(System.getProperty(u"os.version")))
 
         textArray.append(u"Home Directory:                      %s" %(get_home_dir()))
         if System.getProperty(u"user.dir"): textArray.append(u"  user.dir:                          %s" %System.getProperty(u"user.dir"))
@@ -23165,7 +23211,7 @@ after saving the file, restart Moneydance
             ConsoleWindow.showConsoleWindow(MD_REF.getUI())
         except: myPrint("B", "%s: FAILED to open the Console Window... ignoring the error...." %(_THIS_METHOD_NAME))
 
-        if float(MD_REF.getBuild()) >= 4057:    # MoneyBot can be a bit quirky on ealrier builds....
+        if float(MD_REF.getBuild()) >= 4057:    # MoneyBot can be a bit quirky on earlier builds....
             try:
                 myPrint("B", "%s: Opening a Moneybot Window (as it might be useful)" %(_THIS_METHOD_NAME))
                 MoneyBotWindow.showBotView(MD_REF.getUI())
@@ -26348,10 +26394,9 @@ after saving the file, restart Moneydance
         myPopupInformationBox(jif,txt,theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
 
     def advanced_options_DEBUG(lForceON=False, lForceOFF=False):
-        md_debug = MD_REF.DEBUG
+        md_debug = MD_REF.DEBUG if (not isAppDebugEnabledBuild()) else AppDebug.DEBUG.isEnabled()                       # noqa
         moneydance_debug_props_key = "moneydance.debug"
         props_debug = Boolean.getBoolean(moneydance_debug_props_key)
-
 
         if lForceON:
             toggleText = "ON"
@@ -26360,24 +26405,34 @@ after saving the file, restart Moneydance
         else:
             toggleText = "OFF" if (md_debug or props_debug) else "ON"
 
-            ask = MyPopUpDialogBox(toolbox_frame_, "MONEYDANCE DEBUG(s) STATUS:",
-                                   "main.DEBUG                             currently set to: %s\n"
-                                   "System.getProperty('%s') currently set to: %s\n"
-                                   "OFXConnection.DEBUG_MESSAGES           currently set to: %s\n"
-                                   "MoneybotURLStreamHandlerFactory.DEBUG  currently set to: %s\n"
-                                   "OnlineTxnMerger.DEBUG                  currently set to: %s\n"
-                                   "Syncer.DEBUG                           currently set to: %s\n"
-                                   "CustomURLStreamHandlerFactory.DEBUG    currently set to: %s\n"
-                                   "PlaidConnection.DEBUG                  currently set to: %s\n"
-                                   %(md_debug,
-                                     moneydance_debug_props_key,
-                                     props_debug,
-                                     OFXConnection.DEBUG_MESSAGES,
-                                     MoneybotURLStreamHandlerFactory.DEBUG,
-                                     OnlineTxnMerger.DEBUG,
-                                     Syncer.DEBUG,
-                                     CustomURLStreamHandlerFactory.DEBUG,
-                                     "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG),
+            # noinspection PyUnresolvedReferences
+            if not isAppDebugEnabledBuild():
+                askStr = ("main.DEBUG                             currently set to: %s\n"
+                          "System.getProperty('%s') currently set to: %s\n"
+                          "Syncer.DEBUG                           currently set to: %s\n"
+                          "CustomURLStreamHandlerFactory.DEBUG    currently set to: %s\n"
+                          "MoneybotURLStreamHandlerFactory.DEBUG  currently set to: %s\n"
+                          "OFXConnection.DEBUG(_MESSAGES)         currently set to: %s\n"
+                          "OnlineTxnMerger.DEBUG                  currently set to: %s\n"
+                          "PlaidConnection.DEBUG                  currently set to: %s\n"
+                          %(md_debug,
+                            moneydance_debug_props_key, props_debug,
+                            Syncer.DEBUG,
+                            CustomURLStreamHandlerFactory.DEBUG,
+                            MoneybotURLStreamHandlerFactory.DEBUG,
+                            OFXConnection.DEBUG_MESSAGES,
+                            OnlineTxnMerger.DEBUG,
+                            "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG))
+            else:
+                askStr = ("main.DEBUG                             currently set to: %s\n" 
+                          "System.getProperty('%s') currently set to: %s\n"
+                          %(md_debug, moneydance_debug_props_key, props_debug))
+                for logger in AppDebug.getAllLoggers():                                                                 # noqa
+                    askStr += "AppDebug.AppLogger: %s isEnabled: %s  includeInEnableAll: %s\n" %(pad(logger.getId(), 18), pad(str(logger.isEnabled()), 5), pad(str(logger.getIncludeInEnableAll()), 5))
+
+            ask = MyPopUpDialogBox(toolbox_frame_,
+                                   "MONEYDANCE DEBUG(s) STATUS:",
+                                   askStr,
                                    theTitle="TOGGLE MONEYDANCE INTERNAL DEBUG(s)",
                                    lCancelButton=True,OKButtonText="SET ALL to %s" %toggleText)
             if not ask.go():
@@ -26394,13 +26449,18 @@ after saving the file, restart Moneydance
             newDebugSetting = True
             System.setProperty(moneydance_debug_props_key, Boolean.toString(newDebugSetting))
 
-        MD_REF.DEBUG = newDebugSetting
-        OFXConnection.DEBUG_MESSAGES = newDebugSetting
-        MoneybotURLStreamHandlerFactory.DEBUG = newDebugSetting
-        OnlineTxnMerger.DEBUG = newDebugSetting
-        Syncer.DEBUG = newDebugSetting
-        CustomURLStreamHandlerFactory.DEBUG = newDebugSetting
-        if isMDPlusEnabledBuild(): PlaidConnection.DEBUG = newDebugSetting
+        if isAppDebugEnabledBuild():
+            # These won't run on all debug loggers! AppDebug.enableAllFlags() / AppDebug.disableAllFlags()
+            for logger in AppDebug.getAllLoggers():                                                                     # noqa
+                logger.setEnabled(newDebugSetting, True)
+        else:
+            MD_REF.DEBUG = newDebugSetting
+            Syncer.DEBUG = newDebugSetting
+            CustomURLStreamHandlerFactory.DEBUG = newDebugSetting
+            MoneybotURLStreamHandlerFactory.DEBUG = newDebugSetting
+            OFXConnection.DEBUG_MESSAGES = newDebugSetting
+            OnlineTxnMerger.DEBUG = newDebugSetting
+            if isMDPlusEnabledBuild(): PlaidConnection.DEBUG = newDebugSetting
 
         txt = "All Moneydance internal debug modes turned %s" %(toggleText)
 
@@ -28491,7 +28551,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_advanced_delete_int_ext_files = MenuJRadioButton("DELETE Files from Menu>File>Open list [and OPTIONALLY also from DISK]", False, updateMenu=True)
                     user_advanced_delete_int_ext_files.setToolTipText("This allows you to delete internal/external filenames from the list of File>Open files settings>> AND OPTIONALLY ASKS IF YOU WANT TO DELETE THE FILES TOO..... UPDATES CONFIG.DICT/CAN DELETE FILES")
 
-                    user_remove_inactive_from_sidebar = MenuJRadioButton("Remove inactive accounts/categories from SideBar (only when sidebar visible)", False, updateMenu=True, secondaryEnabled=(MD_REF.getPreferences().getBoolSetting("gui.source_list_visible", True)))
+                    user_remove_inactive_from_sidebar = MenuJRadioButton("Remove inactive accounts/categories from SideBar (only when sidebar visible)", False, updateMenu=True, secondaryEnabled=(MD_REF.getPreferences().getBoolSetting("gui.source_list_visible", True) and not isEnhancedSidebarBuild()))
                     user_remove_inactive_from_sidebar.setToolTipText("This remove inactive accounts/categories from SideBar. THIS CHANGES CONFIG!")
 
                     user_change_moneydance_fonts = MenuJRadioButton("Set/Change Default Moneydance FONTS (MD 2021.1(3030) onwards)", False, updateMenu=True, secondaryEnabled=(float(MD_REF.getBuild()) >= 3030))
@@ -28548,8 +28608,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     while True:
                         if MD_REF.getCurrentAccountBook() is None: return
 
-                        user_view_MD_custom_theme_file.setEnabled(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))                             # noqa
-                        user_delete_custom_theme_file.setEnabled(ToolboxMode.isUpdateMode() and os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))   # noqa
+                        user_view_MD_custom_theme_file.setEnabled(os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))                                  # noqa
+                        user_delete_custom_theme_file.setEnabled(ToolboxMode.isUpdateMode() and os.path.exists(ThemeInfo.customThemeFile.getAbsolutePath()))    # noqa
                         bg.clearSelection()
 
                         options = ["EXIT", "PROCEED"]

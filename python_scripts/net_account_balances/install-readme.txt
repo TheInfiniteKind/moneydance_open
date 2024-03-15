@@ -20,7 +20,7 @@ If you downloaded a zip file (extension *.zip) then unzip first in a directory o
 NOTE: *.pyc files are CPython byte code files generated from the .py script. These are "helpers" to the Jython
 interpreter. Within the .mxt file you may also find a *$py.class file. This is a compiled version of the script
 for faster launch times. Some of my scripts are large and these "helpers" prevent a "method too large" RuntimeException.
-You don't normally need to worry about all this, but if you want to run the .py script manually (e.g. in Moneybot),
+You don't normally need to worry about this, but if you want to run the script manually (e.g. in 'Developer Console'),
 then please ensure the .pyc file is placed in the same location as the .py script you are running.
 
 As of Feb 2023 the precompiled versions (*$py.class files) are included with a bootstrap.py loader for faster
@@ -44,7 +44,7 @@ To install/run Extensions:
 5) From now on, just click Menu>Extensions and the name of the Extension
 
 To run Scripts:
-1) Load Moneydance. Menu>Window>Show Moneybot Console
+1) Load Moneydance. Menu>Window>Show Developer Console
 2) Open Script>choose <script_name>.py file
 3) Click RUN (and not run snippet)
 4) That's it.... Repeat these steps each time.

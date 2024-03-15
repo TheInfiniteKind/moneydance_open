@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1047 - Jan 2024 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1048 - Jan 2024 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -139,6 +139,9 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 #               Further tweaks to scrollpanes/scrollbars (move whole page scrollbar to left, expand view / frame on right (more) when on windows)
 #               Fix formula warning label reset accidentally wiping the date range label!
 #               Finally fix the GUI scrolling issue, with JSplitPane....; Final label height fix
+# build: 1048 - Tweak MyJLabel() to allow dynamic resizing (e.g. on Summary Page)...; tweak install routines; tweak JLabel getPreferredSize()
+#               Switch code to upgraded CostCalculation core code for 2024(5100) onwards...
+#               NOTE: New FeatureModule::getActionsForContext() method and MDActionContext
 
 # todo - consider better formula handlers... e.g. com.infinitekind.util.StringUtils.parseFormula(String, char)
 # todo - option to show different dpc (e.g. full decimal precision)
@@ -150,9 +153,9 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1047"
+version_build = "1048"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
-_I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
+_I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 
@@ -314,13 +317,13 @@ elif frameToResurrect and frameToResurrect.isRunTimeExtension:
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
-    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Developer Console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -486,7 +489,6 @@ else:
     from com.moneydance.apps.md.controller import FeatureModule, PreferencesListener, UserPreferences
     # from com.moneydance.apps.md.controller.time import DateRangeOption
     from com.infinitekind.moneydance.model import AccountListener, AbstractTxn, CurrencyListener, DateRange, TxnSet
-    # from com.infinitekind.moneydance.model import CostCalculation
     from com.infinitekind.moneydance.model import CapitalGainResult, InvestFields, InvestTxnType
 
     # from com.infinitekind.moneydance.model import TxnIterator
@@ -661,7 +663,7 @@ else:
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
 Thank you for using %s!
-The author has other useful Extensions / Moneybot Python scripts available...:
+The author has other useful Extensions / 'Developer Console' Python scripts available...:
 
 Extension (.mxt) format only:
 Toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more
@@ -3122,6 +3124,16 @@ Visit: %s (Author's site)
                 return fm
         return None
 
+    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5100                                                                 # MD2024(5100)
+    def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)                                           # 2023.0(5000)
+    if isCostCalculationUpgradedBuild():
+        from com.infinitekind.moneydance.model import CostCalculation
+
+    GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD = 5100                                                                     # MD2024(5100)
+    def isContextMenuEnabledBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD)                                           # 2023.0(5000)
+    # if isContextMenuEnabledBuild():
+    #     from  com.moneydance.apps.md.controller import MDActionContext                                                  # noqa
+
     GlobalVars.MD_KOTLIN_COMPILED_BUILD = 5000                                                                          # 2023.0
     def isKotlinCompiledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD)                                           # 2023.0(5000)
 
@@ -3419,13 +3431,13 @@ Visit: %s (Author's site)
     # Copied from: com.infinitekind.moneydance.model.CostCalculation (quite inaccessible before build 5008, also buggy)
     ####################################################################################################################
     class MyCostCalculation:
-        """CostBasis calculation engine (v5). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
+        """CostBasis calculation engine (v7). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
         Params asof:None or zero = asof the most recent (future)txn date that affected the shareholding/costbasis balance.
         preparedTxns is typically used by itself to recall the class to get the current cost basis
         obtainCurrentBalanceToo is used to request that the class calls itself to also get the current/today balance too
         # (v2: LOT control fixes, v3: added isCostBasisValid(), v4: don't incl. fees on misc inc/exp in cbasis with lots,
         # ...fixes for  capital gains to work, v5: added in short/long term support, v6: added unRealizedSaleTxn parameter
-        support)"""
+        support, v7: added SharesOwnedAsOf class to match MD's upgraded CostCalculation class)"""
 
         ################################################################################################################
         # This is used to calculate the cost of a security using either the average cost or lot-based method.
@@ -3581,7 +3593,7 @@ Visit: %s (Author's site)
             # type: () -> (int, int)
             """Returns a tuple containing the (long) shares owned, (long) cost basis upto/asof the date requested"""
             asofPos = self.getPositionForAsOf()
-            return asofPos.getSharesOwnedAsOfAsOf(), asofPos.getRunningCost()
+            return MyCostCalculation.SharesOwnedAsOf(self.getSecAccount(), self.getAsOfDate(), asofPos.getSharesOwnedAsOfAsOf(), asofPos.getRunningCost())
 
         def addTxn(self, txn):
             # type: (AbstractTxn) -> None
@@ -3853,7 +3865,7 @@ Visit: %s (Author's site)
                Returns a CapitalGainResult object with the details of the cost and gains for this transaction"""
 
             if saleTxn is None:
-                myPrint("B", "you must supply a sale txn; returning Invalid/Zeros" %(saleTxn))
+                myPrint("B", "you must supply a sale txn; returning Invalid/Zeros")
                 return CapitalGainResult("sale_txn_not_specified")
             for pos in self.getPositions():                                                                             # type: MyCostCalculation.Position
                 if (pos.getTxn() is not None and pos.getTxn() is saleTxn):
@@ -3930,6 +3942,17 @@ Visit: %s (Author's site)
             if self.COST_DEBUG: myPrint("B", "... calculated gain for '%s' from position " %(self.getSecAccount()), pos, "\nprevious position:", pos.getPreviousPos(), "\n-->", result)
 
             return result
+
+        class SharesOwnedAsOf:
+            def __init__(self, secAccount, asOfDate, sharesOwnedAsOf, costBasisAsOf):
+                self.secAccount = secAccount
+                self.asOfDate = asOfDate
+                self.sharesOwnedAsOf = sharesOwnedAsOf
+                self.costBasisAsOf = costBasisAsOf
+            def getSecAccount(self): return self.secAccount
+            def getAsOfDate(self): return self.asOfDate
+            def getSharesOwnedAsOf(self): return self.sharesOwnedAsOf
+            def getCostBasisAsOf(self): return self.costBasisAsOf
 
         class HoldCapitalGainTotal:
             def __init__(self, callingClass,
@@ -5149,8 +5172,9 @@ Visit: %s (Author's site)
 
         def __init__(self, *args, **kwargs):
             self.maxWidth = -1
-            self.fixedWidth = kwargs.pop("fixedWidth", None)
-            self.fixedHeight = kwargs.pop("fixedHeight", None)
+            self.fixedWidth = kwargs.pop("fixedWidth", None)                                                            # type: int
+            self.fixedHeight = kwargs.pop("fixedHeight", None)                                                          # type: int
+            self.allowDynamicSizing = kwargs.pop("allowDynamicSizing", False)                                           # type: bool
             self.hasMDHeaderBorder = False
             super(self.__class__, self).__init__(*args, **kwargs)
 
@@ -5164,22 +5188,27 @@ Visit: %s (Author's site)
             self.setBorder(BorderFactory.createLineBorder(GlobalVars.CONTEXT.getUI().getColors().headerBorder))
 
         def getMaximumSize(self):
-            if self.fixedWidth is not None or self.fixedHeight is not None: return self.getPreferredSize()
+            if not self.allowDynamicSizing:
+                if self.fixedWidth is not None or self.fixedHeight is not None: return self.getPreferredSize()
             return super(self.__class__, self).getMaximumSize()
 
         def getMinimumSize(self):
-            if self.fixedWidth is not None or self.fixedHeight is not None: return self.getPreferredSize()
+            if not self.allowDynamicSizing:
+                if self.fixedWidth is not None or self.fixedHeight is not None: return self.getPreferredSize()
             return super(self.__class__, self).getMinimumSize()
 
         # Avoid the field auto-resizing when using GridC layout (e.g. when blinking or updates change the field width)...
         def getPreferredSize(self):
             dim = super(self.__class__, self).getPreferredSize()
-            if self.fixedWidth is not None or self.fixedHeight is not None:
-                if self.fixedWidth is not None: dim.width = self.fixedWidth
-                if self.fixedHeight is not None: dim.height = self.fixedHeight
+            if self.allowDynamicSizing:
+                dim.width = Math.min(200, dim.width)
             else:
-                self.maxWidth = Math.max(self.maxWidth, dim.width)
-                dim.width = self.maxWidth
+                if self.fixedWidth is not None or self.fixedHeight is not None:
+                    if self.fixedWidth is not None: dim.width = self.fixedWidth
+                    if self.fixedHeight is not None: dim.height = self.fixedHeight
+                else:
+                    self.maxWidth = Math.max(self.maxWidth, dim.width)
+                    dim.width = self.maxWidth
             return dim
 
     class MyJComboBox(JComboBox, MouseListener):
@@ -5705,6 +5734,7 @@ Visit: %s (Author's site)
     class SpecialJLinkLabel(JLinkLabel):
         def __init__(self, *args, **kwargs):
             tdfsc = kwargs.pop("tdfsc", None)                                                                           # type: TextDisplayForSwingConfig
+            self.allowDynamicSizing = kwargs.pop("allowDynamicSizing", False)                                           # type: bool
             self.maxWidth = -1
             self.maxHeight = -1
             super(self.__class__, self).__init__(*args)
@@ -5722,10 +5752,13 @@ Visit: %s (Author's site)
 
         def getPreferredSize(self):
             dim = super(self.__class__, self).getPreferredSize()
-            self.maxWidth = Math.max(self.maxWidth, dim.width)
-            dim.width = self.maxWidth
-            self.maxHeight = Math.max(self.maxHeight, dim.height)
-            dim.height = self.maxHeight
+            if self.allowDynamicSizing:
+                dim.width = Math.min(200, dim.width)
+            else:
+                self.maxWidth = Math.max(self.maxWidth, dim.width)
+                dim.width = self.maxWidth
+                self.maxHeight = Math.max(self.maxHeight, dim.height)
+                dim.height = self.maxHeight
             return dim
 
         def paintComponent(self, g2d):
@@ -6577,6 +6610,8 @@ Visit: %s (Author's site)
 
         def loadFromParameters(self, drSettings, defaultKey):
             # type: ([bool, str, int, int, int], str) -> bool
+
+            # todo - the original 'setOption(defaultKey)' was recent;ly moved to only run when the settings don't contain this date config key...
             if not self.setSelectedOptionKey(defaultKey): raise Exception("ERROR: Default i/e date range option/key ('%s') not found?!" %(defaultKey))
 
             # drOptionEnabled = drSettings[MyDateRangeChooser.DRC_DR_ENABLED_IDX]
@@ -7031,7 +7066,10 @@ Visit: %s (Author's site)
 
         def loadFromParameters(self, settings, defaultKey):
             # type: ([bool, str, int, int], str) -> bool
+
+            # todo - the original 'setOption(defaultKey)' was recent;ly moved to only run when the settings don't contain this date config key...
             if not self.setSelectedOptionKey(defaultKey): raise Exception("ERROR: Default asof option/key ('%s') not found?!" %(defaultKey))
+
             foundSetting = False
             # asOfOptionSelected = settings[AsOfDateChooser.ASOF_DRC_ENABLED_IDX]
             asOfOptionKey = settings[AsOfDateChooser.ASOF_DRC_KEY_IDX]
@@ -7924,13 +7962,25 @@ Visit: %s (Author's site)
                 else:
                     assert isSecurityAcct(acct), ("ERROR: Acct: '%s' is not a security account (type: '%s')?!'" %(acct, acct.getAccountType()))
 
+                    # CostCalculation.DEBUG_COST = True;
                     # MyCostCalculation.COST_DEBUG = True;
 
-                    costCalculationBal = MyCostCalculation(acct, asOfDate, None, True)
-                    costCalculationCurrBal = costCalculationBal.getCurrentBalanceCostCalculation()
+                    if isCostCalculationUpgradedBuild():
+                        costCalculationBal = CostCalculation(acct, asOfDate, None, True)
+                        costCalculationCurrBal = costCalculationBal.getCurrentBalanceCostCalculation()
+                    else:
+                        costCalculationBal = MyCostCalculation(acct, asOfDate, None, True)
+                        costCalculationCurrBal = costCalculationBal.getCurrentBalanceCostCalculation()
 
-                    asofSharesBal, asofCostBasisBal = costCalculationBal.getSharesAndCostBasisForAsOf()
-                    asofSharesCurBal, asofCostBasisCurBal = costCalculationCurrBal.getSharesAndCostBasisForAsOf()
+                    sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
+                    asofSharesBal = sharesAndCostBasisForAsOf.getSharesOwnedAsOf()
+                    asofCostBasisBal = sharesAndCostBasisForAsOf.getCostBasisAsOf()
+
+                    sharesAndCostBasisForAsOf = costCalculationCurrBal.getSharesAndCostBasisForAsOf()
+                    asofSharesCurBal = sharesAndCostBasisForAsOf.getSharesOwnedAsOf()
+                    asofCostBasisCurBal = sharesAndCostBasisForAsOf.getCostBasisAsOf()
+
+                    del sharesAndCostBasisForAsOf
 
                     # for pos in costCalculationBal.getPositions():
                     #     if pos.isSellTxn(): myPrint("B", pos.toString())
@@ -10109,8 +10159,8 @@ Visit: %s (Author's site)
 
             if widgetID in righties:
 
-                if righties[-1] != widgetID:
-                    myPrint("DB", ".. Widget: '%s' already configured in '%s' (not last)... Will not change Layout further"  %(widgetID, prefs.GUI_VIEW_RIGHT))
+                if righties[-1] != widgetID or len(righties) == 1:
+                    myPrint("DB", ".. Widget: '%s' already configured in '%s' (not last or is only widget)... Will not change Layout further"  %(widgetID, prefs.GUI_VIEW_RIGHT))
                 else:
                     myPrint("DB", ".. Widget: '%s'... Will remove from last position in '%s' (Summary Page bottom right)"  %(widgetID, prefs.GUI_VIEW_RIGHT))
                     righties.remove(widgetID)
@@ -18458,7 +18508,7 @@ Visit: %s (Author's site)
                                                                       altFG,
                                                                       insertVars=insertVars)
 
-                                    nameLabel = SpecialJLinkLabel(tdfsc.getSwingComponentText(), "showConfig?%s" %(str(onRow)), tdfsc.getJustification(), tdfsc=tdfsc)
+                                    nameLabel = SpecialJLinkLabel(tdfsc.getSwingComponentText(), "showConfig?%s" %(str(onRow)), tdfsc.getJustification(), tdfsc=tdfsc, allowDynamicSizing=True)
 
                                     # NOTE: Leave "  " (two spaces) to avoid the row height collapsing.....
                                     if balanceOrAverageLong is None:
@@ -18607,7 +18657,7 @@ Visit: %s (Author's site)
                                             combinedTxt += "<BR>"
                                             _countTxtAdded = 0
                                     rowText = wrap_HTML_BIG_small("", combinedTxt, altFG, stripSmallChars=False)
-                                    nameLabel = MyJLabel(rowText, JLabel.LEFT)
+                                    nameLabel = MyJLabel(rowText, JLabel.LEFT, allowDynamicSizing=True)
                                     nameLabel.setBorder(_view.nameBorder)
                                     _view.listPanel.add(nameLabel, GridC.getc().xy(0, self.widgetOnPnlRow).wx(1.0).fillboth().west().pady(2))
                                     self.widgetOnPnlRow += 1
@@ -18656,7 +18706,7 @@ Visit: %s (Author's site)
                             self.widgetOnPnlRow = 0
 
                             rowText = "%s ERROR DETECTED! (review console)" %(GlobalVars.DEFAULT_WIDGET_DISPLAY_NAME)
-                            nameLabel = MyJLabel(rowText, JLabel.LEFT)
+                            nameLabel = MyJLabel(rowText, JLabel.LEFT, allowDynamicSizing=True)
                             nameLabel.setForeground(md.getUI().getColors().errorMessageForeground)
                             nameLabel.setBorder(_view.nameBorder)
                             _view.listPanel.add(nameLabel, GridC.getc().xy(0, self.widgetOnPnlRow).wx(1.0).fillboth().west().pady(2))

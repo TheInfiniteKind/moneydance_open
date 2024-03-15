@@ -9,7 +9,7 @@ Get more Scripts/Extensions from: https://yogi1967.github.io/MoneydancePythonScr
 Minimum Moneydance version for use as an Extension: 2021.1 (build: 3056, ideally 3069+) - (Minimum version 2020 if run as a script)
 (If you have installed the extension, but nothing happens, then check your Moneydance version)
 
-This is a Python(Jython 2.7) script that runs inside of Moneydance via the Moneybot Python Interpreter
+This is a Python(Jython 2.7) script that runs inside of Moneydance via the 'Developer Console' Python Interpreter
 As such it has full access to Moneydance's internals.
 However, where possible this script uses the published APIs. In certain circumstances, it calls internal functions.
 The script will never change anything without your permission - and it will always ask you for such (several times).
@@ -202,7 +202,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - DELETE Files from Menu>File>Open list [and OPTIONALLY also from DISK] (can remove files from 'Internal' and 'External' locations).
             >> External locations > Edits config.dict to remove references to external files for File/open - AND ALLOWS YOU TO DELETE THE FILES TOO
             >> Default / Internal locations > ALLOWS YOU TO DELETE THE Dataset from disk (this then removes it from the File/Open menu)
-        - FIX - Remove inactive accounts/categories from SideBar
+        - FIX - Remove inactive accounts/categories from SideBar (MD versions < MD2024)
         - FIX - Set/Change Default Moneydance FONTS                                                                     >> 2021.1 onwards
         - FIX - Delete Custom Theme file
         - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)

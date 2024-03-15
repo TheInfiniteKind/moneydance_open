@@ -40,5 +40,11 @@
       "method" = "unload"
       "script_file" = "toolbox_unload.py"
     }
+    {
+      "type" = "txn_menu"
+      "name" = "Toolbox: Total selected transactions"
+      "script_file" = "toolbox_total_selected_transactions.py"
+      "script_fixed_parameter" = "total_selected_transactions"
+    }
   )
 }

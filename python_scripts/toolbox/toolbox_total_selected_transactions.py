@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_total_selected_transactions.py build: 1017 - June 2023 - Stuart Beesley StuWareSoftSystems
+# toolbox_total_selected_transactions.py build: 1018 - March 2024 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -26,7 +26,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-# Use in Moneydance Menu Window->Show Moneybot Console >> Open Script >> RUN
+# Use in Moneydance Menu Window->Show Developer Console >> Open Script >> RUN
 
 # build: 1000 - Initial Release
 # build: 1001 - Enhanced the popup with extra info (e.g. average, fx)
@@ -52,12 +52,12 @@
 # build: 1015 - Fix for when Bank Register selected in Investment Account (rather than main Investment Register)
 # build: 1016 - Renamed buddy app to: toolbox_zap_mdplus_ofx_qif_default_memo_fields
 # build: 1017 - Common code - FileFilter fix...
+# build: 1018 - Take advantage of of context menu scriptinfo abilities & also MoneydanceGUI.getSelectedTxns() - since MD2024(5100)...
+#               Fix buys/sells detection...
 
 # Looks for an Account register that has focus and then totals the selected transactions. If any found, displays on screen
 # NOTE: 1st Aug 2021 - As a result of creating this extension, IK stated this would be core functionality in preview build 3070+
 # But.... it's nowhere near as good as this one....!
-
-# todo - does not seem to work in Loan accounts ("no txns selected, or no register in focus") - to be fixed....
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -65,9 +65,9 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox_total_selected_transactions"
-version_build = "1017"
+version_build = "1018"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
-_I_CAN_RUN_AS_MONEYBOT_SCRIPT = False
+_I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 
@@ -229,13 +229,13 @@ elif frameToResurrect and frameToResurrect.isRunTimeExtension:
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
-    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Developer Console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -408,7 +408,7 @@ else:
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
 Thank you for using %s!
-The author has other useful Extensions / Moneybot Python scripts available...:
+The author has other useful Extensions / 'Developer Console' Python scripts available...:
 
 Extension (.mxt) format only:
 Toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more
@@ -443,6 +443,10 @@ Visit: %s (Author's site)
         global toolbox_total_selected_transactions_frame_
         toolbox_total_selected_transactions_frame_ = None
         del toolbox_total_selected_transactions_frame_
+
+        global MD_ACTION_CONTEXT, MD_ACTION_EVENT
+        MD_ACTION_CONTEXT = MD_ACTION_EVENT = None
+        del MD_ACTION_CONTEXT, MD_ACTION_EVENT
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -3046,6 +3050,32 @@ Visit: %s (Author's site)
 
     MD_REF.getUI().setStatus(">> StuWareSoftSystems - %s launching......." %(GlobalVars.thisScriptName),0)
 
+    GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD = 5100                                                                     # MD2024(5100)
+    def isContextMenuEnabledBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD)                                           # 2023.0(5000)
+    if isContextMenuEnabledBuild():
+        from  com.moneydance.apps.md.controller import MDActionContext                                                  # noqa
+
+    global moneydance_action_context, moneydance_action_event, moneydance_script_fixed_parameter
+    if "moneydance_action_context" not in globals(): moneydance_action_context = None
+    if "moneydance_action_event" not in globals(): moneydance_action_event = None
+    if "moneydance_script_fixed_parameter" not in globals(): moneydance_script_fixed_parameter = None
+    if isContextMenuEnabledBuild() and isinstance(moneydance_action_context, MDActionContext):
+        if debug:
+            myPrint("B", "Right-Click context menu detected:", moneydance_action_context)
+            myPrint("B", "... fixed script parameter: '%s'" %(moneydance_script_fixed_parameter))
+            myPrint("B", "... action event:           '%s'" %(moneydance_action_event))
+            myPrint("B", "... type:        ", moneydance_action_context.getType())                                      # noqa
+            myPrint("B", "... items:       ", len(moneydance_action_context.getItems()))                                # noqa
+            myPrint("B", "... component:   ", moneydance_action_context.getComponent())                                 # noqa
+            myPrint("B", "... dateRange:   ", moneydance_action_context.getDateRange())                                 # noqa
+            myPrint("B", "... accounts:    ", len(moneydance_action_context.getAccounts()))                             # noqa
+            myPrint("B", "... transactions:", len(moneydance_action_context.getTransactions()))                         # noqa
+    else:
+        moneydance_action_context = None
+
+    MD_ACTION_CONTEXT = moneydance_action_context
+    MD_ACTION_EVENT = moneydance_action_event
+
     try:
 
         if not SwingUtilities.isEventDispatchThread():
@@ -3227,11 +3257,11 @@ Visit: %s (Author's site)
 
                             myPrint("DB","ALERT: Totalling mixed list (probably from Home/Summary page search results.... (MultiCurrency: %s, MultiAccountTypes: %s" %(lMultiCurrency, lMultiAccountTypes))
 
-                        if debug:
-                            if isinstance(txn, ParentTxn):
-                                myPrint("DB", "\n", txn.toMultilineString())
-                            else:
-                                myPrint("DB", "\n", txn)
+                        # if debug:
+                        #     if isinstance(txn, ParentTxn):
+                        #         myPrint("DB", "\n", txn.toMultilineString())
+                        #     else:
+                        #         myPrint("DB", "\n", txn)
 
                         # noinspection PyUnresolvedReferences
                         if txnAcct.getAccountType() == Account.AccountType.INVESTMENT:
@@ -3244,7 +3274,7 @@ Visit: %s (Author's site)
                             if fields.negateSecurity: mult = -1.0
 
                             if fields.hasShares:
-                                if shares > 0.0:
+                                if not fields.negateSecurity:
                                     buys += 1
                                 else:
                                     sells += 1
@@ -3279,8 +3309,8 @@ Visit: %s (Author's site)
                         acctType = pad("Account:", 11)
                         # noinspection PyUnresolvedReferences
                         if (not lMultiAccountTypes
-                                and primaryAccount.getAccountType() == Account.AccountType.INCOME
-                                or primaryAccount.getAccountType() == Account.AccountType.EXPENSE):
+                                and (primaryAccount.getAccountType() == Account.AccountType.INCOME
+                                or primaryAccount.getAccountType() == Account.AccountType.EXPENSE)):
                             acctType = pad("Category:", 11)
 
                         if lMultiCurrency:
@@ -3367,89 +3397,101 @@ Visit: %s (Author's site)
                             dump_sys_error_to_md_console_and_errorlog()
                 return
 
-            myPrint("DB","Scanning for selected register transactions...:")
-
-            myPrint("DB", "Found Main Application Windows: %s" %(MD_REF.getUI().getMainFrameCount()))
-            myPrint("DB", "First Application Window:       %s" %(MD_REF.getUI().getFirstMainFrame().getTitle()))
-            myPrint("DB", "Most Active Account Panel:      %s" %(MD_REF.getUI().getMostActiveAccountPanel()))
-
-            foundTxnRegister = None
-            foundJSplitPane = None                                                                                      # noqa
 
             storeSum = [None]
 
-            myPrint("DB", "Searching Secondary Windows....:")
+            if MD_ACTION_CONTEXT:
+                if debug: myPrint("B", "Using MenuContext - %s transactions...:" %(len(MD_ACTION_CONTEXT.getTransactions())))
+                analyseTxns(MD_ACTION_CONTEXT.getTransactions(), None)
 
-            for secondary_window in MD_REF.getUI().getSecondaryWindows():
-                if not isinstance(secondary_window,
-                                  (MainFrame,
-                                   BankAcctPanel,
-                                   AccountDetailPanel,
-                                   InvestAccountDetailPanel,
-                                   LoanAccountDetailPanel,
-                                   LiabilityAccountInfoPanel,
-                                   TxnSearchWindow)):
+            elif isContextMenuEnabledBuild():
+                _txns = MD_REF.getUI().getSelectedTxns()
+                if _txns is None: _txns = []
+                if debug: myPrint("B", "Using new MoneydanceGUI::getSelectedTxns() - %s transactions...:" %(len(_txns)))
+                analyseTxns(_txns, None)
 
-                    continue
+            else:
 
-                if not secondary_window.isFocused():                                                                        # noqa
-                    myPrint("DB", "Skipping Non-Focused Secondary Window: '%s'" %(secondary_window.getTitle()))             # noqa
-                    continue
-                else:
-                    myPrint("DB", "Secondary Window: '%s' - isFocused: %s, isVisible: %s, hasFocus: %s"
-                            %(secondary_window.getTitle(), secondary_window.isFocused(), secondary_window.isVisible(), secondary_window.hasFocus()))    # noqa
+                myPrint("DB", "Scanning for selected register transactions...:")
+                myPrint("DB", "Found Main Application Windows: %s" %(MD_REF.getUI().getMainFrameCount()))
+                myPrint("DB", "First Application Window:       %s" %(MD_REF.getUI().getFirstMainFrame().getTitle()))
+                myPrint("DB", "Most Active Account Panel:      %s" %(MD_REF.getUI().getMostActiveAccountPanel()))
 
-                # note: you could just hunt for TxnRegisterList down all components where .isVisible()... This works...
-                #       but... it will get the wrong register in investment accounts when Bank Register is selected....
+                foundTxnRegister = None
+                foundJSplitPane = None                                                                                  # noqa
 
-                if isinstance(secondary_window, TxnSearchWindow):
-                    myPrint("DB","Special handling for TxnSearchWindow....")
+                myPrint("DB", "Searching Secondary Windows....:")
 
-                    account_panel_component = None
-                    for account_panel_component in secondary_window.getComponents():                                        # noqa
-                        myPrint("DB", ".. hunting for TxnRegister (within Search Window)...")
-                        foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                for secondary_window in MD_REF.getUI().getSecondaryWindows():
+                    if not isinstance(secondary_window,
+                                      (MainFrame,
+                                       BankAcctPanel,
+                                       AccountDetailPanel,
+                                       InvestAccountDetailPanel,
+                                       LoanAccountDetailPanel,
+                                       LiabilityAccountInfoPanel,
+                                       TxnSearchWindow)):
 
-                else:
-                    try:
-                        accountPanel = secondary_window.getAccountPanel()
-                        if not accountPanel: continue
-                        if isinstance(accountPanel, JPanel): pass
-                    except:
-                        myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
                         continue
 
-                    account_panel_component = None
-
-                    myPrint("DB", ".. hunting for TxnRegister...")
-
-                    if isinstance(accountPanel.getLayout(), CardLayout) and isinstance(accountPanel, InvestAccountDetailPanel):
-
-                        cPnl = getFieldByReflection(accountPanel, "contentPanel")
-                        for account_panel_component in cPnl.getComponents():
-                            if not isinstance(account_panel_component, JPanel) or not account_panel_component.isVisible(): continue
-                            foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
-                            break
+                    if not secondary_window.isFocused():                                                                        # noqa
+                        myPrint("DB", "Skipping Non-Focused Secondary Window: '%s'" %(secondary_window.getTitle()))             # noqa
+                        continue
                     else:
-                        for account_panel_component in accountPanel.getComponents():
+                        myPrint("DB", "Secondary Window: '%s' - isFocused: %s, isVisible: %s, hasFocus: %s"
+                                %(secondary_window.getTitle(), secondary_window.isFocused(), secondary_window.isVisible(), secondary_window.hasFocus()))    # noqa
+
+                    # note: you could just hunt for TxnRegisterList down all components where .isVisible()... This works...
+                    #       but... it will get the wrong register in investment accounts when Bank Register is selected....
+
+                    if isinstance(secondary_window, TxnSearchWindow):
+                        myPrint("DB","Special handling for TxnSearchWindow....")
+
+                        account_panel_component = None
+                        for account_panel_component in secondary_window.getComponents():                                        # noqa
+                            myPrint("DB", ".. hunting for TxnRegister (within Search Window)...")
                             foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
-                            if foundTxnRegister:
+
+                    else:
+                        try:
+                            accountPanel = secondary_window.getAccountPanel()
+                            if not accountPanel: continue
+                            if isinstance(accountPanel, JPanel): pass
+                        except:
+                            myPrint("DB", "Error calling .getAccountPanel() on %s" %(secondary_window))
+                            continue
+
+                        account_panel_component = None
+
+                        myPrint("DB", ".. hunting for TxnRegister...")
+
+                        if isinstance(accountPanel.getLayout(), CardLayout) and isinstance(accountPanel, InvestAccountDetailPanel):
+
+                            cPnl = getFieldByReflection(accountPanel, "contentPanel")
+                            for account_panel_component in cPnl.getComponents():
+                                if not isinstance(account_panel_component, JPanel) or not account_panel_component.isVisible(): continue
+                                foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
                                 break
+                        else:
+                            for account_panel_component in accountPanel.getComponents():
+                                foundTxnRegister = hunt_component(account_panel_component, TxnRegister)
+                                if foundTxnRegister:
+                                    break
 
-                if not foundTxnRegister:
-                    myPrint("DB", "Failed to find TxnRegister in '%s'" %(account_panel_component))
-                    continue
+                    if not foundTxnRegister:
+                        myPrint("DB", "Failed to find TxnRegister in '%s'" %(account_panel_component))
+                        continue
 
-                myPrint("DB", ".....Found: TxnRegister: '%s'" %(foundTxnRegister))
+                    myPrint("DB", ".....Found: TxnRegister: '%s'" %(foundTxnRegister))
 
-                myPrint("DB", ".......hunting for JSplitPane...")
-                foundJSplitPane = hunt_component(foundTxnRegister, JSplitPane)
+                    myPrint("DB", ".......hunting for JSplitPane...")
+                    foundJSplitPane = hunt_component(foundTxnRegister, JSplitPane)
 
-                if foundJSplitPane:
-                    myPrint("DB", ".........Found: JSplitScreen", foundJSplitPane)
-                    huntRegister(foundJSplitPane)
-                else:
-                    myPrint("DB", "Failed to find JSplitPane in '%s'" %(foundTxnRegister))
+                    if foundJSplitPane:
+                        myPrint("DB", ".........Found: JSplitScreen", foundJSplitPane)
+                        huntRegister(foundJSplitPane)
+                    else:
+                        myPrint("DB", "Failed to find JSplitPane in '%s'" %(foundTxnRegister))
 
             if not lFoundAnySelectedTransactions[0]:
                 _msg = "No transactions selected and/or no register in focus"
@@ -3466,6 +3508,7 @@ Visit: %s (Author's site)
 
 
         doMain()
+
 
         myPrint("B","FINISHED....")
         cleanup_actions()

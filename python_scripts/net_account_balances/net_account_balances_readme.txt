@@ -713,7 +713,7 @@ NOTES ON COST BASIS / CAPITAL GAINS:
                  capital gains calculations. Do not rely on these calculations for tax returns or other important
                  documents. Please verify and use your own calculations for important / official government reporting.
 
-Cost basis can appear in Moneydance in multiple places. It is not calculated consistantly everywhere... For example:
+Cost basis can appear in Moneydance in multiple places. It is not calculated consistently everywhere... For example:
 - Investment account: Portfolio View tab (PVT)              (Avg Cost - new engine)
 - Cost Basis report (CBR)                                   (Avg Cost - old method)
 - Portfolio report (PR)                                     (Avg Cost - new engine)
@@ -724,16 +724,17 @@ Particularly for 'Average Cost' controlled securities, PVT and PR use MD's new C
 give a more accurate result. However, for securities with stock 'splits', this new engine has flaws and the CBR can
 sometimes give a 'better' result. In particular:
 
-- for average cost, if all shares are sold down to zero, and then later more shares are purchase, then CBR goes wrong
+- for average cost...:
+  .. if all shares are sold down to zero, and then later more shares are purchase, then CBR goes wrong
   from this point forward. MD's new engine deals properly with this situation.
 
-- for average cost, with securities with stock splits, MD's new engine fails to calculate properly. In this situation
+  .. with securities with stock splits, MD's new engine fails to calculate properly. In this situation
   the old CBR report is better. Note: In this scenario, the capital gains report will also be wrong.
 
-- for average cost, Buy/Sell txns zero shares sells with a fee, and also MiscInc/Exp with a fee can be used to 'adjust'
+  .. Buy/Sell txns zero shares sells with a fee, and also MiscInc/Exp with a fee can be used to 'adjust'
   MD's calculation of the cost basis. MD's new engine accounts for this.
 
-- for average cost, Sell shares at zero price/amount causes CBR to ignore the txn and hence MD's cost basis goes wrong
+  .. Sell shares at zero price/amount causes CBR to ignore the txn and hence MD's cost basis goes wrong
   from this point. MD's new engine accounts for this.
 
 - for 'Lot Control' securities, the original calculation method is used consistently for all screens/reports. But again,

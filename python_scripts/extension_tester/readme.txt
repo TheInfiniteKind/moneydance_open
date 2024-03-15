@@ -10,7 +10,7 @@ NOTES ABOUT PYTHON EXTENSIONS:
 - You can do anything in Python that a Java extension can do.
 
 - Python extensions have to be executed by the Python Interpreter. This consumes 200-300MB of RAM. Clearly an overhead over compiled Java
-- It's quicker to write Python over Java, and needs no compile, so you can very easily test within Moneybot
+- It's quicker to write Python over Java, and needs no compile, so you can very easily test within the 'Developer Console'
 - Really you are using Jython(2.7). This is Java based with full access to Moneydance's 'internals'. You can do anything that a pure Java app could do.
 - However, Python extensions have 'oddities' in how they are handled because of the way they are implemented in Moneydance:
    - this is not too much of an issue. You have to be aware of any 'oddities' and handle them a different way.
@@ -71,7 +71,7 @@ NOTES ABOUT PYTHON EXTENSIONS:
 
 - So the extension types available to you:
   a) Your Py script simply contains an extn Class that you have defined and set the variable moneydance_extension = ExtensionClass()
-     You run this script from Moneybot and then you will be asked if you want to install this extn. This lives until MD restart.
+     You run this script from 'Developer Console' and then you will be asked if you want to install this extn. This lives until MD restart.
      >> I don't personally see this type of extension as being of any 'real' use other than prototyping and playing etc <<
   b) Script 'method': You create an .mxt bundle that contains script_info.dict with the key: "type" = "menu". When you install this then
      at MD launch a PyII is created and this is registered as an Extension and each "menu" item appears on the extensions menu (normally one only)
@@ -148,7 +148,7 @@ SWING
 
 - For large scripts, especially  with Swing GUI components you should take care to run all GUI updates on the Swing Event Dispatch Thread (EDT)
   ... and 'heavy' non-GUI code off the EDT.
-  - Moneybot scripts run off the EDT.
+  - Developer Console scripts run off the EDT.
   - MXT type="menu" extensions/scripts (i.e. run via script_info: "type" = "menu") run ON the EDT (as you have to be in the MD GUI to click the menu).
   - ExtensionClass() runtime extensions will start OFF the EDT (as they trigger before the UI is loaded). (Unless you are installing, in which case it will be on the EDT then)
   - handle_events and invokes may be on or off the EDT

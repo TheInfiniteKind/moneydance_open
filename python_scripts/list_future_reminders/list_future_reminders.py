@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1028) - Sept 2023
+# list_future_reminders.py (build: 1029) - Dec 2023
 # Displays Moneydance future dated / scheduled reminders (along with options to auto-record, delete etc)
 
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2023 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -75,7 +75,11 @@
 # build: 1026 - Added 'Extract Reminders' feature to Menu and CMD-E keystroke...
 # build: 1027 - Ensure the code runs on the EDT...
 # build: 1028 - Cleaned up references to MD Objects; Added right-click menu option to reset/edit last acknowledged date.
+# build: 1029 - Common code - FileFilter fix...; Removed java.awt.print.Book import
+# build: 1029 - Tweaked cell renderer(s) for padding and highlighted colour...
+# build: 1029 - Replace look forward days with AsOfDateChooser; Fixed Menu Reset Sort...
 
+# todo - @he "Include subtotals / totals. Would be nice if user could select what to subtotal (by date / by account for sure)"
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -84,9 +88,9 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1028"
+version_build = "1029"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
-_I_CAN_RUN_AS_MONEYBOT_SCRIPT = True
+_I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
 
@@ -248,13 +252,13 @@ elif frameToResurrect and frameToResurrect.isRunTimeExtension:
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and u"__file__" in globals():
-    msg = "%s: Sorry - this script cannot be run in Moneybot console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and u"__file__" in globals():
+    msg = "%s: Sorry - this script cannot be run in Developer Console. Please install mxt and run extension properly. Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_MONEYBOT_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
     msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
@@ -400,19 +404,23 @@ else:
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##############################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ############################################################################################
+    import copy
     import threading
-    from java.awt import Image
+    from java.awt import Image, FontMetrics
     from java.awt.image import BufferedImage
-    from java.awt.event import FocusAdapter, MouseAdapter, KeyAdapter
+    from java.awt.event import FocusAdapter, MouseAdapter, KeyAdapter, ItemListener, ItemEvent, FocusListener, MouseListener
+    from java.beans import PropertyChangeListener
     from java.util import Comparator
-    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu, ImageIcon, RowFilter, RowSorter
+    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu, ImageIcon, RowFilter, RowSorter, BorderFactory
+    from javax.swing import DefaultComboBoxModel, SwingConstants, JSeparator
     from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, TableRowSorter
     from javax.swing.border import CompoundBorder, MatteBorder
     from javax.swing.event import TableColumnModelListener, ListSelectionListener, DocumentListener, RowSorterEvent
-    from java.lang import Number
+    from java.lang import Number, Object, StringBuilder
     from com.infinitekind.util import StringUtils
-    from com.moneydance.apps.md.controller import AppEventListener
+    from com.moneydance.apps.md.controller import AppEventListener, Util
     from com.moneydance.awt import QuickSearchField
+    from com.moneydance.util import BasePropertyChangeReporter
 
     # from com.moneydance.apps.md.view.gui import EditRemindersWindow
     from com.moneydance.apps.md.view.gui import LoanTxnReminderNotificationWindow
@@ -422,11 +430,12 @@ else:
     from com.moneydance.apps.md.view.gui import LoanTxnReminderInfoWindow
     from com.moneydance.apps.md.view.gui import TxnReminderInfoWindow
     from com.moneydance.apps.md.view.gui import BasicReminderInfoWindow
-    from com.infinitekind.moneydance.model import ReminderListener
+    from com.moneydance.apps.md.view.gui import MoneydanceGUI
+    from com.infinitekind.moneydance.model import ReminderListener, DateRange
     # from com.moneydance.apps.md.view.gui import MoneydanceGUI
 
-    exec("from java.awt.print import Book")     # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
-    global Book     # Keep this here for above import
+    # exec("from java.awt.print import Book")     # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
+    # global Book     # Keep this here for above import
     # >>> END THIS SCRIPT'S IMPORTS ########################################################################################
 
     # >>> THIS SCRIPT'S GLOBALS ############################################################################################
@@ -446,9 +455,10 @@ else:
     GlobalVars.save_lastViewedReminder_LFR = []
     GlobalVars.save_column_widths_LFR = []
     GlobalVars.save_column_order_LFR = []
-    GlobalVars.daysToLookForward_LFR = 365
     GlobalVars.lAllowEscapeExitApp_SWSS = True
     GlobalVars.extractPath_LFR = ""
+    GlobalVars.save_lookForwardToAsOfDate_LFR = None
+    GlobalVars.lookForwardAsOfDateCutoff_AODC = None
 
     # These come from extract_data extension
     GlobalVars.lStripASCII = False
@@ -473,7 +483,7 @@ else:
     scriptExit = """
 ----------------------------------------------------------------------------------------------------------------------
 Thank you for using %s!
-The author has other useful Extensions / Moneybot Python scripts available...:
+The author has other useful Extensions / 'Developer Console' Python scripts available...:
 
 Extension (.mxt) format only:
 Toolbox: View Moneydance settings, diagnostics, fix issues, change settings and much more
@@ -527,6 +537,15 @@ Visit: %s (Author's site)
         global list_future_reminders_frame_
         list_future_reminders_frame_ = None
         del list_future_reminders_frame_
+
+        # myPrint("DB", "... destroying all memory objects....")
+        # _variable = None
+        # _variableList = sorted(list(globals()));
+        # for _variable in _variableList:
+        #     if "_variable" in _variable: continue
+        #     if _variable[0:2] == "__": continue
+        #     exec "global %s;del %s" %(_variable, _variable)
+        # del _variableList, _variable
 
     def load_text_from_stream_file(theStream):
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -1327,6 +1346,7 @@ Visit: %s (Author's site)
         def __init__(self, ext): self.ext = "." + ext.upper()                                                           # noqa
 
         def accept(self, thedir, filename):                                                                             # noqa
+            # type: (File, str) -> bool
             if filename is not None and filename.upper().endswith(self.ext): return True
             return False
 
@@ -1337,7 +1357,9 @@ Visit: %s (Author's site)
         def getDescription(self): return "*"+self.ext                                                                   # noqa
 
         def accept(self, _theFile):                                                                                     # noqa
+            # type: (File) -> bool
             if _theFile is None: return False
+            if _theFile.isDirectory(): return True
             return _theFile.getName().upper().endswith(self.ext)
 
     def MDDiag():
@@ -1792,6 +1814,10 @@ Visit: %s (Author's site)
 
         _THIS_METHOD_NAME = "Dynamic File Chooser"
 
+        if not Platform.isOSX() and lForceFD and not fileChooser_selectFiles:
+            myPrint("DB", "@@ Overriding lForceFD to False - as it won't work for selecting Folders on Windows/Linux!")
+            lForceFD = False
+
         if fileChooser_multiMode:
             myPrint("B","@@ SORRY Multi File Selection Mode has not been coded! Exiting...")
             return None
@@ -1844,7 +1870,6 @@ Visit: %s (Author's site)
             else:
                 fileDialog.setMode(FileDialog.SAVE)
 
-            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
             if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 fileDialog.setFilenameFilter(ExtFilenameFilter(fileChooser_fileFilterText))
@@ -1885,7 +1910,6 @@ Visit: %s (Author's site)
             else:
                 jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY)   # FILES_ONLY, DIRECTORIES_ONLY, FILES_AND_DIRECTORIES
 
-            # if fileChooser_fileFilterText is not None and (not Platform.isOSX() or not Platform.isOSXVersionAtLeast("10.13")):
             if fileChooser_fileFilterText is not None and (not Platform.isOSX() or isOSXVersionMontereyOrLater()):
                 myPrint("DB",".. Adding file filter for: %s" %(fileChooser_fileFilterText))
                 jfc.setFileFilter(ExtFileFilterJFC(fileChooser_fileFilterText))
@@ -2746,7 +2770,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2023)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2024)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -3072,6 +3096,7 @@ Visit: %s (Author's site)
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
+
     def load_StuWareSoftSystems_parameters_into_memory():
 
         # >>> THESE ARE THIS SCRIPT's PARAMETERS TO LOAD
@@ -3090,7 +3115,7 @@ Visit: %s (Author's site)
         if GlobalVars.parametersLoadedFromFile.get("save_lastViewedReminder_LFR") is not None: GlobalVars.save_lastViewedReminder_LFR = GlobalVars.parametersLoadedFromFile.get("save_lastViewedReminder_LFR")
         if GlobalVars.parametersLoadedFromFile.get("_column_widths_LFR") is not None: GlobalVars.save_column_widths_LFR = GlobalVars.parametersLoadedFromFile.get("_column_widths_LFR")
         if GlobalVars.parametersLoadedFromFile.get("save_column_order_LFR") is not None: GlobalVars.save_column_order_LFR = GlobalVars.parametersLoadedFromFile.get("save_column_order_LFR")
-        if GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR") is not None: GlobalVars.daysToLookForward_LFR = GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR")
+        if GlobalVars.parametersLoadedFromFile.get("save_lookForwardToAsOfDate_LFR") is not None: GlobalVars.save_lookForwardToAsOfDate_LFR = GlobalVars.parametersLoadedFromFile.get("save_lookForwardToAsOfDate_LFR")
 
         # These are also loaded for extract - configure via extract_data extension...
         if GlobalVars.parametersLoadedFromFile.get("lStripASCII") is not None: GlobalVars.lStripASCII = GlobalVars.parametersLoadedFromFile.get("lStripASCII")
@@ -3104,9 +3129,29 @@ Visit: %s (Author's site)
                 myPrint("B","@@ Warning: loaded parameter 'extractPath_LFR' does not appear to be a valid directory:", GlobalVars.extractPath_LFR, "will ignore")
                 GlobalVars.extractPath_LFR = ""
 
-        myPrint("DB","parametersLoadedFromFile{} set into memory (as variables).....")
+        #######################################
+        # Migrate / upgrade old parameters....:
+        old_daysToLookForward_LFR = GlobalVars.parametersLoadedFromFile.get("daysToLookForward_LFR", None)
 
-        return
+        if (isinstance(old_daysToLookForward_LFR, int) and old_daysToLookForward_LFR > 0 and old_daysToLookForward_LFR <= 365):
+            myPrint("B", "@@ Old (valid) parameter detected.. Checking whether to upgrade 'daysToLookForward_LFR' to new asof format 'save_lookForwardToAsOfDate_LFR'...")
+            if GlobalVars.save_lookForwardToAsOfDate_LFR == lookForwardToAsOfDateDefault():
+                myPrint("B", "... CONFIRMED... Proceeding to upgrade....:")
+                todayInt = DateUtil.getStrippedDateInt()
+                oldLookForwardDate = min(DateUtil.incrementDate(todayInt, 0, 0, old_daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
+                GlobalVars.save_lookForwardToAsOfDate_LFR = [True, AsOfDateChooser.KEY_CUSTOM_ASOF, oldLookForwardDate, 0]
+                myPrint("B", "... Converted  days:%s into '%s'" %(old_daysToLookForward_LFR, GlobalVars.save_lookForwardToAsOfDate_LFR))
+            else:
+                myPrint("B", "... NO - 'save_lookForwardToAsOfDate_LFR' already set, so leaving new param alone: '%s'" %(GlobalVars.save_lookForwardToAsOfDate_LFR))
+
+        if old_daysToLookForward_LFR is not None:
+            myPrint("B", "... DELETING: '%s'" %("daysToLookForward_LFR"))
+            GlobalVars.parametersLoadedFromFile.pop("daysToLookForward_LFR")
+        ###########################################
+
+
+
+        myPrint("DB","parametersLoadedFromFile{} set into memory (as variables).....")
 
     # >>> CUSTOMISE & DO THIS FOR EACH SCRIPT
     def dump_StuWareSoftSystems_parameters_from_memory():
@@ -3124,14 +3169,14 @@ Visit: %s (Author's site)
         GlobalVars.parametersLoadedFromFile["save_lastViewedReminder_LFR"] = GlobalVars.save_lastViewedReminder_LFR
         GlobalVars.parametersLoadedFromFile["_column_widths_LFR"] = GlobalVars.save_column_widths_LFR
         GlobalVars.parametersLoadedFromFile["save_column_order_LFR"] = GlobalVars.save_column_order_LFR
-        GlobalVars.parametersLoadedFromFile["daysToLookForward_LFR"] = GlobalVars.daysToLookForward_LFR
         GlobalVars.parametersLoadedFromFile["extractPath_LFR"] = GlobalVars.extractPath_LFR
+        GlobalVars.parametersLoadedFromFile["save_lookForwardToAsOfDate_LFR"] = GlobalVars.save_lookForwardToAsOfDate_LFR
 
         myPrint("DB","variables dumped from memory back into parametersLoadedFromFile{}.....")
 
         return
 
-    get_StuWareSoftSystems_parameters_from_file()
+    # get_StuWareSoftSystems_parameters_from_file()
 
     # clear up any old left-overs....
     destroyOldFrames(myModuleID)
@@ -3173,9 +3218,679 @@ Visit: %s (Author's site)
 
     GlobalVars.md_dateFormat = MD_REF.getPreferences().getShortDateFormat()
 
-    class MainAppRunnable(Runnable):
+    def setJComponentStandardUIDefaults(component, opaque=False, border=False, background=True, foreground=True, font=True):
+
+        if isinstance(component,    JPanel):            key = "Panel"
+        elif isinstance(component,  JLabel):            key = "Label"
+        elif isinstance(component,  JComboBox):         key = "ComboBox"
+        elif isinstance(component,  JButton):           key = "Button"
+        elif isinstance(component,  JRadioButton):      key = "RadioButton"
+        elif isinstance(component,  JTextField):        key = "TextField"
+        elif isinstance(component,  JCheckBox):         key = "CheckBox"
+        elif isinstance(component,  JScrollPane):       key = "ScrollPane"
+        elif isinstance(component,  JMenu):             key = "Menu"
+        elif isinstance(component,  JMenuBar):          key = "MenuBar"
+        elif isinstance(component,  JCheckBoxMenuItem): key = "CheckBoxMenuItem"
+        elif isinstance(component,  JMenuItem):         key = "MenuItem"
+        elif isinstance(component,  JSeparator):        key = "Separator"
+        else: raise Exception("Error in setJComponentStandardUIDefaults() - unknown Component instance: %s" %(component))
+
+        if opaque: component.setOpaque(UIManager.getBoolean("%s.opaque" %(key)))
+
+        if isinstance(component, (JMenu)) or component.getClientProperty("%s.id.reversed" %(myModuleID)):
+            SetupMDColors.updateUI()
+            component.setForeground(SetupMDColors.FOREGROUND_REVERSED)
+            component.setBackground(SetupMDColors.BACKGROUND_REVERSED)
+        else:
+            if foreground: component.setForeground(UIManager.getColor("%s.foreground" %(key)))
+            if background and (component.isOpaque() or isinstance(component, (JComboBox, JTextField, JMenuBar))):
+                component.setBackground(UIManager.getColor("%s.background" %(key)))
+
+        if border: component.setBorder(UIManager.getBorder("%s.border" %(key)))
+        if font:   component.setFont(UIManager.getFont("%s.font" %(key)))
+
+    class JTextFieldIntDocument(PlainDocument):
+
         def __init__(self):
-            pass
+            self.maxWidth = -1
+            super(self.__class__, self).__init__()
+
+        def insertString(self, theOffset, theStr, theAttr):
+            if theStr is not None:
+                theStr = theStr.replace(" ", "")
+                currentBufferLength = self.getLength()
+                currentBufferContent = self.getText(0, currentBufferLength)
+
+                if (currentBufferLength == 0):
+                    newString = theStr
+                else:
+                    newString = StringBuilder(currentBufferContent).insert(theOffset, theStr).toString()
+
+                if newString[:1] == "-": newString = newString[1:]
+                if newString == "" or newString.isnumeric():
+                    super(self.__class__, self).insertString(theOffset, theStr, theAttr)
+
+        # Avoid width resizes changing the GUI back and forth....
+        def getPreferredSize(self):
+            dim = super(self.__class__, self).getPreferredSize()
+            self.maxWidth = Math.max(self.maxWidth, dim.width)
+            dim.width = self.maxWidth
+            return dim
+
+    class MyJLabel(JLabel):
+
+        def __init__(self, *args, **kwargs):
+            self.maxWidth = -1
+            self.hasMDHeaderBorder = False
+            super(self.__class__, self).__init__(*args, **kwargs)
+
+        def updateUI(self):
+            super(self.__class__, self).updateUI()
+            setJComponentStandardUIDefaults(self)
+
+            if self.hasMDHeaderBorder: self.setMDHeaderBorder()
+
+        def setMDHeaderBorder(self):
+            self.hasMDHeaderBorder = True
+            self.setBorder(BorderFactory.createLineBorder(GlobalVars.CONTEXT.getUI().getColors().headerBorder))
+
+        # Avoid the dreaded issue when Blinking changes the width...
+        def getPreferredSize(self):
+            dim = super(self.__class__, self).getPreferredSize()
+            self.maxWidth = Math.max(self.maxWidth, dim.width)
+            dim.width = self.maxWidth
+            return dim
+
+    class MyJPanel(JPanel):
+
+        def __init__(self, *args, **kwargs):
+            super(self.__class__, self).__init__(*args, **kwargs)
+
+        def updateUI(self):
+            super(self.__class__, self).updateUI()
+            setJComponentStandardUIDefaults(self)
+
+    class MyJComboBox(JComboBox, MouseListener):
+
+        def __init__(self, *args, **kwargs):
+            self.maxWidth = -1
+            super(self.__class__, self).__init__(*args, **kwargs)
+            self.setFocusable(True)
+            self.addMouseListener(self)
+            for component in self.getComponents():
+                component.addMouseListener(self)
+
+        def updateUI(self):
+            super(self.__class__, self).updateUI()
+            setJComponentStandardUIDefaults(self)
+
+        def mouseClicked(self, e):
+            myPrint("DB", "In MyJComboBox.mouseClicked(%s) - calling .requestFocus()" %(e))
+            self.requestFocus()
+
+        def mousePressed(self, e): pass
+        def mouseReleased(self, e): pass
+        def mouseEntered(self, e): pass
+        def mouseExited(self, e): pass
+
+        # Avoid the dreaded issue when Blinking changes the width...
+        def getPreferredSize(self):
+            dim = super(self.__class__, self).getPreferredSize()
+            self.maxWidth = Math.max(self.maxWidth, dim.width)
+            dim.width = self.maxWidth
+            return dim
+
+    class MyKeyAdapter(KeyAdapter):
+        def keyPressed(self, evt):
+            if (evt.getKeyCode() == KeyEvent.VK_ENTER):
+                evt.getSource().transferFocus()
+
+    class MyJTextFieldAsInt(JTextField, FocusListener):
+        PROP_SKIPBACK_PERIODS_CHANGED = "skipBackPeriodsChanged"
+
+        def __init__(self, cols, decimal):
+            super(self.__class__, self).__init__(cols)
+            self.fm = None                                                                                              # type: FontMetrics
+            self.fieldStringWidthChars = 3
+            self.fieldStringWidth = 20
+            self.defaultValue = 0
+            self._skipBackPeriods = self.defaultValue
+            self.allowBlank = True
+            self.dec = decimal
+            self.allowNegative = True
+            self.disabled = False
+            self.setDocument(JTextFieldIntDocument())
+            self.setHorizontalAlignment(SwingConstants.LEFT)
+            self.addFocusListener(self)
+            self.addKeyListener(MyKeyAdapter())
+            self.setFocusable(True)
+            self.setValueInt(self._skipBackPeriods)
+
+        def focusGained(self, evt):
+            myPrint("DB", "In MyJTextFieldAsInt:focusGained()...")
+            if self.disabled:
+                myPrint("DB", "... disabled is set, skipping this.....")
+            else:
+                evt.getSource().selectAll()
+
+        def focusLost(self, evt):
+            myPrint("DB", "In MyJTextFieldAsInt:focusLost()...")
+            if self.disabled:
+                myPrint("DB", "... disabled is set, skipping this.....")
+            else:
+                obj = evt.getSource()
+                # if (not obj.allowBlank or obj.getText() != ""):
+                #     obj.setValueInt(obj.getValueInt())
+                obj.setValueInt(obj.getValueInt())
+
+        def setAllowBlank(self, allowBlankField): self.allowBlank = allowBlankField
+
+        def getPreferredSize(self): return self.getMinimumSize()
+
+        def getMinimumSize(self):
+            dim = super(self.__class__, self).getMinimumSize()
+            if (self.fm is None):
+                f = self.getFont()
+                if (f is not None):
+                    self.fm = self.getFontMetrics(f)
+
+            strWidth = self.fieldStringWidth if self.fm is None else self.fm.stringWidth("8" * self.fieldStringWidthChars)
+            dim.width = Math.max(dim.width, strWidth)
+            return dim
+
+        def setValueInt(self, val):
+            if val is None or val == "": val = self.defaultValue
+            val = int(val)
+            if (val == 0 and self.allowBlank):
+                self.setText("")
+            else:
+                super(self.__class__, self).setText(str(val))
+            self.setCaretPosition(0)
+            self.internalSetValueInt(val)
+
+        def internalSetValueInt(self, newSkipBackPeriods):
+            oldSkipBackPeriods = self._skipBackPeriods
+            self._skipBackPeriods = newSkipBackPeriods
+            self.firePropertyChange(self.PROP_SKIPBACK_PERIODS_CHANGED, oldSkipBackPeriods, newSkipBackPeriods)
+
+        def getValueInt(self):
+            sVal = super(self.__class__, self).getText()
+            try:
+                val = int(float(sVal))
+                if not self.allowNegative: val = int(Math.abs(val))                 # Warning: Math.abs() converts an int into a long
+            except:
+                val = self.defaultValue
+            return val
+
+        def setText(self, sVal):
+            if sVal is None: sVal = ""
+            if (self.allowBlank and sVal == ""):
+                super(self.__class__, self).setText(sVal)
+            else:
+                try:
+                    val = int(float(sVal))
+                    if not self.allowNegative: val = int(Math.abs(val))         # Warning: Math.abs() converts an int into a long
+                except:
+                    val = self.defaultValue
+                self.setValueInt(val)
+
+        def getText(self):
+            rawText = super(self.__class__, self).getText()
+            result = rawText if (self.allowBlank and len(rawText.strip()) <= 0) else (str(rawText))
+            return result
+
+        def updateUI(self):
+            self.fm = None
+            super(self.__class__, self).updateUI()
+            setJComponentStandardUIDefaults(self)
+
+    class AsOfDateChooser(BasePropertyChangeReporter, ItemListener, PropertyChangeListener):    # Based on: com.moneydance.apps.md.view.gui.DateRangeChooser
+        """Class that allows selection of an AsOf date. Listen to changes using java.beans.PropertyChangeListener() on "asOfChanged
+        Version 1 (v1: initial release)"""
+
+        ASOF_DATE_VALID = 19000101
+
+        ASOF_DRC_ENABLED_IDX = 0
+        ASOF_DRC_KEY_IDX = 1
+        ASOF_DRC_DATEINT_IDX = 2
+        ASOF_DRC_SKIPBACKPERIODS_IDX = 3
+
+        PROP_ASOF_CHANGED = "asOfChanged"
+        ASOF_TODAY = "asof_today"
+        KEY_CUSTOM_ASOF = "custom_asof"
+        KEY_ASOF_END_FUTURE = "asof_end_future"
+        KEY_ASOF_END_THIS_MONTH = "asof_end_this_month"
+        ASOF_DATE_OPTIONS = [
+                              ["asof_today",                    "asof today",                      1],
+                              ["asof_yesterday",                "asof yesterday",                  2],
+                              ["asof_end_last_fiscal_quarter",  "asof end last Fiscal Quarter",   31],
+                              ["asof_end_this_fiscal_year",     "asof end this Fiscal Year",      30],
+                              ["asof_end_this_year",            "asof end this year",             13],
+                              ["asof_end_this_quarter",         "asof end this quarter",          12],
+                              ["asof_end_this_month",           "asof end this month",            11],
+                              ["asof_end_this_week",            "asof end this week",             10],
+                              ["asof_end_next_month",           "asof end next month",             3],
+                              ["asof_end_last_year",            "asof end last year",             23],
+                              ["asof_end_last_fiscal_year",     "asof end last Fiscal Year",      32],
+                              ["asof_end_last_quarter",         "asof end last quarter",          22],
+                              ["asof_end_last_month",           "asof end last month",            21],
+                              ["asof_end_last_week",            "asof end last week",             20],
+                              ["asof_30_days_ago",              "asof 30 days ago",               40],
+                              ["asof_60_days_ago",              "asof 60 days ago",               41],
+                              ["asof_90_days_ago",              "asof 90 days ago",               42],
+                              ["asof_120_days_ago",             "asof 120 days ago",              43],
+                              ["asof_180_days_ago",             "asof 180 days ago",              44],
+                              ["asof_365_days_ago",             "asof 365 days ago",              45],
+                              ["asof_end_future",               "asof end future (all dates)",     0],
+                              ["custom_asof",                   "Custom asof date",               99]
+                            ]
+
+        class AsOfDateChoice:
+            def __init__(self, key, displayName, sortIdx):
+                self.key = key
+                self.displayName = displayName
+                self.sortIdx = sortIdx
+            def getKey(self):           return self.key
+            def getDisplayName(self):   return self.displayName
+            def getSortIdx(self):       return self.sortIdx
+            def __str__(self):          return self.getDisplayName()
+            def __repr__(self):         return self.__str__()
+            def toString(self):         return self.__str__()
+
+            @staticmethod
+            def internalCalculateAsOfDateFromKey(forOptionKey, realTodayInt, calculatedTodayInt, skipBackPeriods):
+                # type: (str, int, int, int) -> int
+                if forOptionKey == "custom_asof":                    rtnVal = realTodayInt
+                elif forOptionKey ==  "asof_end_future":             rtnVal = DateRange().getEndDateInt()
+                elif forOptionKey == "asof_today":                   rtnVal = DateUtil.incrementDate(calculatedTodayInt, 0, 0, -0)
+                elif forOptionKey == "asof_yesterday":               rtnVal = DateUtil.incrementDate(calculatedTodayInt, 0, 0, -1)
+                elif forOptionKey == "asof_end_this_fiscal_year":    rtnVal = DateUtil.lastDayInFiscalYear(calculatedTodayInt)
+                elif forOptionKey == "asof_end_last_fiscal_year":    rtnVal = DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(calculatedTodayInt))
+                elif forOptionKey == "asof_end_last_fiscal_quarter": rtnVal = DateUtil.lastDayInFiscalQuarter(DateUtil.incrementDate(calculatedTodayInt, 0, -3, 0))
+                elif forOptionKey == "asof_end_this_quarter":        rtnVal = Util.lastDayInQuarter(calculatedTodayInt)
+                elif forOptionKey == "asof_end_this_year":           rtnVal = DateUtil.lastDayInYear(calculatedTodayInt)
+                elif forOptionKey == "asof_end_this_month":          rtnVal = Util.lastDayInMonth(calculatedTodayInt)
+                elif forOptionKey == "asof_end_next_month":          rtnVal = Util.lastDayInMonth(Util.incrementDate(calculatedTodayInt, 0, 1, 0))
+                elif forOptionKey == "asof_end_this_week":           rtnVal = Util.lastDayInWeek(calculatedTodayInt)
+                elif forOptionKey == "asof_end_last_year":           rtnVal = Util.lastDayInYear(Util.decrementYear(calculatedTodayInt))
+                elif forOptionKey == "asof_end_last_quarter":        rtnVal = DateUtil.lastDayInQuarter(DateUtil.incrementDate(calculatedTodayInt, 0, -3, 0))
+                elif forOptionKey == "asof_end_last_month":          rtnVal = Util.incrementDate(Util.firstDayInMonth(calculatedTodayInt), 0, 0, -1)
+                elif forOptionKey == "asof_end_last_week":           rtnVal = Util.incrementDate(Util.firstDayInWeek(calculatedTodayInt), 0, 0, -1)
+                elif forOptionKey == "asof_30_days_ago":             rtnVal = Util.incrementDate(realTodayInt, 0, 0, (-29  * (skipBackPeriods + 1)) -skipBackPeriods)
+                elif forOptionKey == "asof_60_days_ago":             rtnVal = Util.incrementDate(realTodayInt, 0, 0, (-59  * (skipBackPeriods + 1)) -skipBackPeriods)
+                elif forOptionKey == "asof_90_days_ago":             rtnVal = Util.incrementDate(realTodayInt, 0, 0, (-89  * (skipBackPeriods + 1)) -skipBackPeriods)
+                elif forOptionKey == "asof_120_days_ago":            rtnVal = Util.incrementDate(realTodayInt, 0, 0, (-119 * (skipBackPeriods + 1)) -skipBackPeriods)
+                elif forOptionKey == "asof_180_days_ago":            rtnVal = Util.incrementDate(realTodayInt, 0, 0, (-179 * (skipBackPeriods + 1)) -skipBackPeriods)
+                elif forOptionKey == "asof_365_days_ago":            rtnVal = Util.incrementDate(realTodayInt, 0, 0, (-364 * (skipBackPeriods + 1)) -skipBackPeriods)
+                else: raise Exception("Error: asof date key ('%s') invalid?!" %(forOptionKey))
+                return rtnVal
+
+            @staticmethod
+            def getAsOfDateFromKey(forOptionKey, skipBackPeriods):
+                # type: (str, int) -> int
+
+                if skipBackPeriods is None: skipBackPeriods = 0
+
+                skipBackPeriods *= -1
+
+                todayInt = Util.getStrippedDateInt()
+
+                skipBackDayTodayInt  = DateUtil.incrementDate(todayInt, 0, 0, -skipBackPeriods)
+                skipBackWeekTodayInt = DateUtil.incrementDate(todayInt, 0, 0, 7 * -skipBackPeriods)
+                skipBackMnthTodayInt = DateUtil.incrementDate(todayInt, 0, -skipBackPeriods, 0)
+                skipBackQrtrTodayInt = DateUtil.incrementDate(todayInt, 0, 3 * -skipBackPeriods, 0)
+                skipBackYearTodayInt = DateUtil.incrementDate(todayInt, -skipBackPeriods, 0, 0)
+
+                if forOptionKey == "custom_asof":                    calculatedTodayInt = None
+                elif forOptionKey ==  "asof_end_future":             calculatedTodayInt = None
+                elif forOptionKey == "asof_today":                   calculatedTodayInt = skipBackDayTodayInt
+                elif forOptionKey == "asof_yesterday":               calculatedTodayInt = skipBackDayTodayInt
+                elif forOptionKey == "asof_end_this_fiscal_year":    calculatedTodayInt = skipBackYearTodayInt
+                elif forOptionKey == "asof_end_last_fiscal_year":    calculatedTodayInt = skipBackYearTodayInt
+                elif forOptionKey == "asof_end_last_fiscal_quarter": calculatedTodayInt = skipBackQrtrTodayInt
+                elif forOptionKey == "asof_end_this_quarter":        calculatedTodayInt = skipBackQrtrTodayInt
+                elif forOptionKey == "asof_end_this_year":           calculatedTodayInt = skipBackYearTodayInt
+                elif forOptionKey == "asof_end_this_month":          calculatedTodayInt = skipBackMnthTodayInt
+                elif forOptionKey == "asof_end_next_month":          calculatedTodayInt = skipBackMnthTodayInt
+                elif forOptionKey == "asof_end_this_week":           calculatedTodayInt = skipBackWeekTodayInt
+                elif forOptionKey == "asof_end_last_year":           calculatedTodayInt = skipBackYearTodayInt
+                elif forOptionKey == "asof_end_last_quarter":        calculatedTodayInt = skipBackQrtrTodayInt
+                elif forOptionKey == "asof_end_last_month":          calculatedTodayInt = skipBackMnthTodayInt
+                elif forOptionKey == "asof_end_last_week":           calculatedTodayInt = skipBackWeekTodayInt
+                elif forOptionKey == "asof_30_days_ago":             calculatedTodayInt = None
+                elif forOptionKey == "asof_60_days_ago":             calculatedTodayInt = None
+                elif forOptionKey == "asof_90_days_ago":             calculatedTodayInt = None
+                elif forOptionKey == "asof_120_days_ago":            calculatedTodayInt = None
+                elif forOptionKey == "asof_180_days_ago":            calculatedTodayInt = None
+                elif forOptionKey == "asof_365_days_ago":            calculatedTodayInt = None
+                else: raise Exception("Error: asof date key ('%s') invalid?!" %(forOptionKey))
+
+                calculatedDateInt = AsOfDateChooser.AsOfDateChoice.internalCalculateAsOfDateFromKey(forOptionKey, todayInt, calculatedTodayInt, skipBackPeriods)
+
+                if debug:
+                    if skipBackPeriods != 0:
+                        originalDateInt = AsOfDateChooser.AsOfDateChoice.internalCalculateAsOfDateFromKey(forOptionKey, todayInt, todayInt, 0)
+                        myPrint("B", "@@ .getAsOfDateFromKey('%s', skipBackPeriods: %s): skipBackDayTodayInt: %s, skipBackWeekTodayInt: %s, skipBackMnthTodayInt: %s, skipBackQrtrTodayInt: %s, skipBackYearTodayInt: %s"
+                                %(forOptionKey, skipBackPeriods, skipBackDayTodayInt, skipBackWeekTodayInt, skipBackMnthTodayInt, skipBackQrtrTodayInt, skipBackYearTodayInt))
+                        myPrint("B", "@@ originalDateInt: %s, calculatedDateInt: %s" %(originalDateInt, calculatedDateInt))
+                    myPrint("B", "@@ .getAsOfDateFromKey('%s', %s) returning %s" %(forOptionKey, skipBackPeriods, calculatedDateInt))
+
+                return calculatedDateInt
+
+        class AsOfDateClickListener(MouseAdapter):
+            def __init__(self, callingClass):   self.callingClass = callingClass
+            def mouseClicked(self, event):
+                if (SwingUtilities.isLeftMouseButton(event) and event.getClickCount() > 1):
+                    self.callingClass.asOfChoice_COMBO.setSelectedItem(self.callingClass.customOption)
+
+        @staticmethod
+        def createAsOfDateChoiceFromKey(dateKey):
+            # type: (str) -> AsOfDateChooser.AsOfDateChoice
+            for optionKey, optionName, sortIdx in AsOfDateChooser.ASOF_DATE_OPTIONS:
+                if optionKey == dateKey: return AsOfDateChooser.AsOfDateChoice(optionKey, optionName, sortIdx)
+            return AsOfDateChooser.AsOfDateChoice("unknown", "Unknown AsOf Date Name", 0)
+
+        def __init__(self, mdGUI, defaultKey, excludeKeys=None):
+            # type: (MoneydanceGUI, str, [str]) -> None
+            if isinstance(excludeKeys, str): excludeKeys = [excludeKeys]
+            if excludeKeys is None or not isinstance(excludeKeys, list): excludeKeys = []
+            for checkKey in [self.KEY_CUSTOM_ASOF, self.KEY_ASOF_END_FUTURE]:
+                if checkKey in excludeKeys: excludeKeys.remove(checkKey)
+            self.mdGUI = mdGUI
+            self.customOption = None
+            self.excludeKeys = excludeKeys
+            self.name = "AsOfDateChooser"
+            self.defaultKey = defaultKey
+            self.allDatesOption = None
+            self.asOfDateIntResult = None
+            self.selectedOptionKeyResult = None
+            self.skipBackPeriodsResult = 0
+            self.lastDeselectedOptionKey = None
+            self.ignoreDateChanges = False
+            self.isEnabled = True
+            self.asOfOptions = self.createAsOfDateOptions()                                                             # type: [AsOfDateChooser.AsOfDateChoice]
+
+            self.asOfDate_JDF = JDateField(mdGUI)
+            self.asOfDate_JDF.addPropertyChangeListener(JDateField.PROP_DATE_CHANGED, self)
+            self.asOfDate_JDF.addMouseListener(self.AsOfDateClickListener(self))
+
+            self.skipBackPeriods_JTF = MyJTextFieldAsInt(2, self.mdGUI.getPreferences().getDecimalChar())
+            self.skipBackPeriods_JTF.addPropertyChangeListener(MyJTextFieldAsInt.PROP_SKIPBACK_PERIODS_CHANGED, self)
+
+            # self.asOfDate_JDF.setFocusable(True)
+            # self.asOfDate_JDF.addKeyListener(MyKeyAdapter())
+
+            self.asOfDate_LBL = MyJLabel(" ", 4)
+            self.asOfChoice_LBL = MyJLabel(" ", 4)
+            self.asOfChoice_COMBO = MyJComboBox()
+            self.skipBackPeriods_LBL = MyJLabel(" ", 4)
+            self.preferencesUpdated()
+            self.asOfSelected()
+            self.asOfChoice_COMBO.addItemListener(self)
+
+        def setDefaultKey(self, newDefault): self.defaultKey = newDefault
+        def getDefaultKey(self): return self.defaultKey
+        def setName(self, newName): self.name = newName
+        def getName(self): return self.name
+        def getActionListeners(self): return []
+        def getFocusListeners(self): return []
+        def getPropertyChangeListeners(self): return getFieldByReflection(self, "_eventNotify").getPropertyChangeListeners()
+
+        def createAsOfDateOptions(self):
+            choices = [AsOfDateChooser.AsOfDateChoice(choice[0], choice[1], choice[2]) for choice in sorted(self.ASOF_DATE_OPTIONS, key=lambda x: (x[2])) if choice[0] not in self.excludeKeys]
+            for choice in choices:
+                if choice.getKey() == self.KEY_CUSTOM_ASOF: self.customOption = choice
+                if choice.getKey() == self.KEY_ASOF_END_FUTURE: self.allDatesOption = choice
+            return choices
+
+        def getAsOfLabel(self):             return self.asOfDate_LBL
+        def getAsOfDateField(self):         return self.asOfDate_JDF
+        def getChoiceLabel(self):           return self.asOfChoice_LBL
+        def getChoiceCombo(self):           return self.asOfChoice_COMBO
+        def getSkipBackPeriodsLabel(self):  return self.skipBackPeriods_LBL
+        def getSkipBackPeriodsField(self):  return self.skipBackPeriods_JTF
+        def getAllSwingComponents(self):    return [self.getAsOfLabel(), self.getAsOfDateField(), self.getChoiceLabel(), self.getChoiceCombo(), self.getSkipBackPeriodsLabel(), self.getSkipBackPeriodsField()]
+
+        def isCustomAsOfDatesSelected(self): return self.getChoiceCombo().getSelectedItem().equals(self.customOption)
+        def isAllAsOfDatesSelected(self): return self.getChoiceCombo().getSelectedItem().equals(self.allDatesOption)
+
+        def selectAllAsOfDates(self):
+            self.getChoiceCombo().setSelectedItem(self.allDatesOption)
+            self.asOfSelected()
+
+        def preferencesUpdated(self):
+            prefs = self.mdGUI.getPreferences()
+            self.asOfDate_JDF.setDateFormat(prefs.getShortDateFormatter())
+            self.asOfDate_LBL.setText("date:")
+            self.asOfChoice_LBL.setText("Balance:")
+            self.skipBackPeriods_LBL.setText("offset:")
+            self.skipBackPeriods_JTF.setValueInt(self.skipBackPeriods_JTF.defaultValue)
+            asOfSel = self.getSelectedIndex()
+            self.getChoiceCombo().setModel(DefaultComboBoxModel(self.asOfOptions))
+            prototypeText = ""
+            # protoChoice = None
+            # for choice in self.asOfOptions:
+            #     text = choice.getDisplayName()
+            #     if len(text) <= len(prototypeText): continue
+            #     prototypeText = text
+            #     protoChoice = choice
+            # if protoChoice is None: protoChoice = self.asOfOptions[0]
+            # self.getChoiceCombo().setPrototypeDisplayValue(self.AsOfDateChoice(protoChoice.getKey(), protoChoice.getDisplayName(), protoChoice.getSortIdx()))
+            for choice in self.ASOF_DATE_OPTIONS:
+                text = choice[1]
+                if len(text) <= len(prototypeText): continue
+                prototypeText = text
+            self.getChoiceCombo().setPrototypeDisplayValue(prototypeText)
+            self.getChoiceCombo().setMaximumRowCount(len(self.asOfOptions))
+            if (asOfSel >= 0): self.getChoiceCombo().setSelectedIndex(asOfSel)
+
+        def getPanel(self, includeChoiceLabel=True, horizontal=True):
+            p = MyJPanel(GridBagLayout())
+            x = 0; y = 0
+            vertInc = 0 if horizontal else 1
+            if includeChoiceLabel:
+                p.add(self.getChoiceLabel(),        GridC.getc(x, y).label()); x += 1
+            p.add(self.getChoiceCombo(),            GridC.getc(x, y).field()); x += 1; y += vertInc
+            if not horizontal: x = 0
+            p.add(self.getAsOfLabel(),              GridC.getc(x, y).label()); x += 1
+            p.add(self.getAsOfDateField(),          GridC.getc(x, y).field()); x += 1; y += vertInc
+            if not horizontal: x = 0
+            p.add(self.getSkipBackPeriodsLabel(),   GridC.getc(x, y).label()); x += 1
+            p.add(self.getSkipBackPeriodsField(),   GridC.getc(x, y).field()); x += 1; y += vertInc
+            return p
+
+        def setSelectedOptionKey(self, asOfOptionKey):
+            lSetOption = False
+            for choice in self.asOfOptions:
+                if choice.getKey() == asOfOptionKey:
+                    lSetOption = True
+                    self.getChoiceCombo().setSelectedItem(choice)
+                    break
+            if lSetOption: self.asOfSelected()
+            return lSetOption
+
+        def getSelectedOptionKey(self, position): return self.asOfOptions[position].getKey()
+
+        def getSelectedIndex(self):
+            sel = self.getChoiceCombo().getSelectedIndex()
+            if sel < 0: sel = 0
+            return sel
+
+        def setAsOfDateInt(self, asofDateInt):
+            self.getChoiceCombo().setSelectedItem(self.customOption)
+            self.asOfDate_JDF.setDateInt(asofDateInt)
+            self.asOfSelected()
+
+        def getAsOfDateInt(self):
+            if self.asOfDateIntResult is None: self.asOfSelected()
+            # return Integer(self.asOfDateIntResult)
+            return Integer(self.asOfDateIntResult).intValue()
+
+        def setSkipBackPeriods(self, skipBackPeriods):
+            self.skipBackPeriods_JTF.setValueInt(skipBackPeriods)
+            self.asOfSelected()
+
+        def getSkipBackPeriods(self):
+            # if self.skipBackPeriodsResult is None: self.asOfSelected()
+            return self.skipBackPeriodsResult
+
+        def asOfSelected(self):
+            asofDateInt = self.getAsOfDateIntFromSelectedOption()
+            skipBackPeriods = self.skipBackPeriods_JTF.getValueInt()
+            # myPrint("B", "@@ AsOfDateChooser:%s:asOfSelected() - getAsOfDateIntFromSelectedOption() reports: '%s'" %(self.getName(), asofDateInt))
+            self.ignoreDateChanges = True
+            self.asOfDate_JDF.setDateInt(asofDateInt)
+            self.skipBackPeriods_JTF.setValueInt(skipBackPeriods)
+            self.ignoreDateChanges = False
+            self.setAsOfDateResult(asofDateInt, skipBackPeriods)
+            self.updateEnabledStatus()
+
+        def loadFromParameters(self, settings, defaultKey):
+            # type: ([bool, str, int, int], str) -> bool
+            if not self.setSelectedOptionKey(defaultKey): raise Exception("ERROR: Default asof option/key ('%s') not found?!" %(defaultKey))
+            foundSetting = False
+            # asOfOptionSelected = settings[AsOfDateChooser.ASOF_DRC_ENABLED_IDX]
+            asOfOptionKey = settings[AsOfDateChooser.ASOF_DRC_KEY_IDX]
+            asOfDateInt = settings[AsOfDateChooser.ASOF_DRC_DATEINT_IDX]
+            skipBackPeriods = settings[AsOfDateChooser.ASOF_DRC_SKIPBACKPERIODS_IDX]
+            self.skipBackPeriods_JTF.setValueInt(skipBackPeriods)
+            if asOfOptionKey == self.KEY_CUSTOM_ASOF:
+                if AsOfDateChooser.isValidAsOfDate(asOfDateInt):
+                    self.setAsOfDateInt(asOfDateInt)
+                    foundSetting = True
+            else:
+                foundSetting = self.setSelectedOptionKey(asOfOptionKey)
+            if not foundSetting:
+                myPrint("B", "@@ %s::loadFromParameters() - asof date settings ('%s') not found / invalid?! Loaded default ('%s')"
+                        %(self.getName(), settings, defaultKey))
+            else:
+                if debug: myPrint("B", "Successfully loaded asof date settings ('%s')" %(settings))
+            return foundSetting
+
+        def returnStoredParameters(self, defaultSettings):
+            # type: ([bool, str, int, int]) -> [bool, str, int, int]
+            settings = copy.deepcopy(defaultSettings)
+            asOfDateInt = self.getAsOfDateInt()
+            selectedOptionKey = self.getSelectedOptionKey(self.getSelectedIndex())
+            skipBackPeriods = self.skipBackPeriods_JTF.getValueInt()
+            # leave settings[AsOfDateChooser.ASOF_DRC_ENABLED_IDX] untouched
+            settings[AsOfDateChooser.ASOF_DRC_KEY_IDX] = selectedOptionKey
+            settings[AsOfDateChooser.ASOF_DRC_DATEINT_IDX] = asOfDateInt if (selectedOptionKey == self.KEY_CUSTOM_ASOF) else 0
+            settings[AsOfDateChooser.ASOF_DRC_SKIPBACKPERIODS_IDX] = skipBackPeriods
+            if debug: myPrint("B", "%s::returnStoredParameters() - Returning stored asof date parameters settings ('%s')" %(self.getName(), settings))
+            return settings
+
+        @staticmethod
+        def isValidAsOfDate(_dateInt):
+            # type: (int) -> bool
+            if not isinstance(_dateInt, (int, Integer)):    return False
+            if _dateInt < AsOfDateChooser.ASOF_DATE_VALID:  return False
+            return True
+
+        def setAsOfDateResult(self, asOfDateInt, skipBackPeriods):
+            oldAsOfDateInt = self.asOfDateIntResult
+            oldSelectedKey = self.selectedOptionKeyResult
+            oldSkipBackPeriods = self.skipBackPeriodsResult
+            selectedOptionKey = self.getSelectedOptionKey(self.getSelectedIndex())
+            # myPrint("B", "@@ AsOfDateChooser:%s:setAsOfDateResult(%s) (old asof date: %s), selectedKey: '%s' (old key: '%s')" %(self.getName(), asOfDateInt, oldAsOfDateInt, selectedOptionKey, oldSelectedKey));
+            if asOfDateInt != oldAsOfDateInt or selectedOptionKey != oldSelectedKey or skipBackPeriods != oldSkipBackPeriods:
+                self.asOfDateIntResult = asOfDateInt
+                self.selectedOptionKeyResult = selectedOptionKey
+                self.skipBackPeriodsResult = skipBackPeriods
+                if asOfDateInt != oldAsOfDateInt:
+                    # if debug:
+                    #     myPrint("B", "@@ AsOfDateChooser:%s:setAsOfDateResult(%s).firePropertyChange(%s) >> asof date changed (from: %s to %s) <<" %(self.getName(), asOfDateInt, self.PROP_ASOF_CHANGED, oldAsOfDateInt, asOfDateInt))
+                    getFieldByReflection(self, "_eventNotify").firePropertyChange(self.PROP_ASOF_CHANGED, oldAsOfDateInt, asOfDateInt)
+                elif selectedOptionKey != oldSelectedKey:
+                    # if debug:
+                    #     myPrint("B", "@@ AsOfDateChooser:%s:setAsOfDateResult(%s).firePropertyChange(%s) >> selected key changed (from: '%s' to '%s') <<" %(self.getName(), asOfDateInt, self.PROP_ASOF_CHANGED, oldSelectedKey, selectedOptionKey))
+                    getFieldByReflection(self, "_eventNotify").firePropertyChange(self.PROP_ASOF_CHANGED, oldSelectedKey, selectedOptionKey)
+                elif skipBackPeriods != oldSkipBackPeriods:
+                    # if debug:
+                    #     myPrint("B", "@@ AsOfDateChooser:%s:setAsOfDateResult(%s).firePropertyChange(%s) >> selected key changed (from: '%s' to '%s') <<" %(self.getName(), asOfDateInt, self.PROP_ASOF_CHANGED, oldSkipBackPeriods, skipBackPeriods))
+                    getFieldByReflection(self, "_eventNotify").firePropertyChange(self.PROP_ASOF_CHANGED, oldSkipBackPeriods, skipBackPeriods)
+
+        def setEnabled(self, isEnabled, shouldHide=False):
+            self.isEnabled = isEnabled
+            self.updateEnabledStatus(shouldHide=shouldHide)
+
+        def updateEnabledStatus(self, shouldHide=False):
+            for comp in self.getAllSwingComponents():
+                comp.setEnabled(self.isEnabled)
+                if shouldHide: comp.setVisible(self.isEnabled)
+
+        def itemStateChanged(self, evt):
+            src = evt.getItemSelectable()                                                                               # type: JComboBox
+            paramString = evt.paramString()
+            state = evt.getStateChange()
+            changedItem = evt.getItem()                                                                                 # type: AsOfDateChooser.AsOfDateChoice
+
+            myClazzName = "AsOfDateChooser"
+            propKey = self.PROP_ASOF_CHANGED
+            onSelectionMethod = self.asOfSelected
+
+            defaultLast = "<unknown>"
+            if self.lastDeselectedOptionKey is None: self.lastDeselectedOptionKey = defaultLast
+
+            if src is self.getChoiceCombo():
+
+                if state == ItemEvent.DESELECTED:
+                    oldDeselected = self.lastDeselectedOptionKey
+                    newDeselected = changedItem.getKey()
+                    self.lastDeselectedOptionKey = newDeselected
+                    if debug:
+                        myPrint("B", "@@ %s:%s:itemStateChanged(%s).firePropertyChange(%s) >> last deselected changed (from: '%s' to '%s') (paramString: '%s') <<"
+                                %(myClazzName, self.getName(), state, propKey, oldDeselected, newDeselected, paramString))
+
+                elif state == ItemEvent.SELECTED:
+                    lastDeselected = self.lastDeselectedOptionKey
+                    newSelected = changedItem.getKey()
+                    if debug:
+                        myPrint("B", "@@ %s:%s:itemStateChanged(%s).firePropertyChange(%s) >> selection changed (from: '%s' to '%s') (paramString: '%s') <<"
+                                %(myClazzName, self.getName(), state, propKey, lastDeselected, newSelected, paramString))
+                    getFieldByReflection(self, "_eventNotify").firePropertyChange(propKey,  lastDeselected, newSelected)
+                    onSelectionMethod()
+                    self.lastDeselectedOptionKey = None
+
+        def propertyChange(self, event):
+            # myPrint("B", "@@ AsOfDateChooser:%s:propertyChange('%s') - .getSelectedOptionKey() reports: '%s'" %(self.getName(), event.getPropertyName(), self.getSelectedOptionKey(self.getSelectedIndex())));
+            if (event.getPropertyName() == JDateField.PROP_DATE_CHANGED and not self.ignoreDateChanges):
+                selectedOptionKey = self.getSelectedOptionKey(self.getSelectedIndex())
+                if (selectedOptionKey != self.KEY_CUSTOM_ASOF and self.asOfVariesFromSelectedOption()):
+                    self.getChoiceCombo().setSelectedItem(self.customOption)
+                if (selectedOptionKey == self.KEY_CUSTOM_ASOF):
+                    self.setAsOfDateResult(self.asOfDate_JDF.getDateInt(), self.skipBackPeriods_JTF.getValueInt())
+            if (event.getPropertyName() == MyJTextFieldAsInt.PROP_SKIPBACK_PERIODS_CHANGED and not self.ignoreDateChanges):
+                self.setAsOfDateResult(self.asOfDate_JDF.getDateInt(), self.skipBackPeriods_JTF.getValueInt())
+                self.asOfSelected()
+
+        def asOfVariesFromSelectedOption(self):
+            asOfDateInt = self.asOfDate_JDF.getDateInt()
+            selectedAsOfDateInt = self.getAsOfDateIntFromSelectedOption()
+            return asOfDateInt != selectedAsOfDateInt
+
+        def getAsOfDateIntFromSelectedOption(self):
+            selectedOptionKey = self.getSelectedOptionKey(self.getSelectedIndex())
+            if (selectedOptionKey == self.KEY_CUSTOM_ASOF):
+                return self.asOfDate_JDF.parseDateInt()
+            return self.AsOfDateChoice.getAsOfDateFromKey(selectedOptionKey, self.getSkipBackPeriods())
+
+        def toString(self):  return self.__str__()
+        def __repr__(self):  return self.__str__()
+        def __str__(self):
+            return "AsOfDateChooser::%s - key: '%s' asofDate: %s, offset: %s" %(self.getName(), self.getSelectedOptionKey(self.getSelectedIndex()), self.getAsOfDateField().getDateInt(), self.getSkipBackPeriodsField().getValueInt())
+
+
+    def lookForwardToAsOfDateDefault(sel=True): return [sel, AsOfDateChooser.KEY_ASOF_END_THIS_MONTH, 0, 0]
+
+    GlobalVars.save_lookForwardToAsOfDate_LFR = lookForwardToAsOfDateDefault()
+
+    get_StuWareSoftSystems_parameters_from_file()
+    myPrint("DB", "DEBUG IS ON..")
+
+
+    class MainAppRunnable(Runnable):
+        def __init__(self): pass
 
         def run(self):                                                                                                  # noqa
             global list_future_reminders_frame_     # global as defined here
@@ -3192,6 +3907,32 @@ Visit: %s (Author's site)
                 list_future_reminders_frame_.setIconImage(MDImages.getImage(MD_REF.getSourceInformation().getIconResource()))
             list_future_reminders_frame_.setVisible(False)
             list_future_reminders_frame_.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+
+            # Setup the asof date chooser component
+            excludeAsOfs = [
+                            "asof_yesterday",
+                            "asof_end_last_fiscal_quarter",
+                            "asof_end_last_year",
+                            "asof_end_last_fiscal_year",
+                            "asof_end_last_quarter",
+                            "asof_end_last_month",
+                            "asof_end_last_week",
+                            "asof_30_days_ago",
+                            "asof_60_days_ago",
+                            "asof_90_days_ago",
+                            "asof_120_days_ago",
+                            "asof_180_days_ago",
+                            "asof_365_days_ago"
+                            ]
+
+            GlobalVars.lookForwardAsOfDateCutoff_AODC = AsOfDateChooser(MD_REF.getUI(), AsOfDateChooser.KEY_ASOF_END_THIS_MONTH, excludeAsOfs)
+            GlobalVars.lookForwardAsOfDateCutoff_AODC.setName("lookForwardAsOfDateCutoff_AODC")
+            GlobalVars.lookForwardAsOfDateCutoff_AODC.getChoiceCombo().setToolTipText("Select reminders look forward asof date cutoff")
+            GlobalVars.lookForwardAsOfDateCutoff_AODC.getAsOfDateField().setToolTipText("Select reminders look forward asof cutoff custom date")
+            GlobalVars.lookForwardAsOfDateCutoff_AODC.getSkipBackPeriodsField().setToolTipText("[OPTIONAL] Enter the number of period offsets to manipulate the asof cutoff date (-past, +future)")
+            # lookForwardAsOfDateCutoff_AODC.addPropertyChangeListener(MyPropertyChangeListener())
+
+            GlobalVars.lookForwardAsOfDateCutoff_AODC.loadFromParameters(GlobalVars.save_lookForwardToAsOfDate_LFR, AsOfDateChooser.KEY_ASOF_END_THIS_MONTH)
 
             myPrint("DB","Main JFrame %s for application created.." %(list_future_reminders_frame_.getName()))
 
@@ -3270,13 +4011,13 @@ Visit: %s (Author's site)
 
         myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
-    def getReminderNextDate(_reminder):
+    def getReminderNextDate(_reminder, cutoffDate):
         _todayInt = DateUtil.getStrippedDateInt()
         _lastdate = _reminder.getLastDateInt()
         if _lastdate < 1:
-            stopDate = min(DateUtil.incrementDate(_todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
+            stopDate = min(DateUtil.incrementDate(_todayInt, 0, 0, cutoffDate), GlobalVars.MAX_END_DATE)
         else:
-            stopDate = min(DateUtil.incrementDate(_todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), _lastdate)
+            stopDate = min(DateUtil.incrementDate(_todayInt, 0, 0, cutoffDate), _lastdate)
         return _reminder.getNextOccurance(stopDate)
 
     def getCurrentSelectedDateInt():
@@ -3284,17 +4025,27 @@ Visit: %s (Author's site)
         convertSelectedRowToModelIndex = jt.convertRowIndexToModel(GlobalVars.saveSelectedRowIndex)
         return jt.getModel().getValueAt(convertSelectedRowToModelIndex, GlobalVars.tableHeaderRowList.index("Next Due"))
 
+    def getAsOfCutoffDateSelected(limitEndNextYear=True):
+        newCutoffDateInt = GlobalVars.lookForwardAsOfDateCutoff_AODC.getAsOfDateIntFromSelectedOption()
+        if not limitEndNextYear: return newCutoffDateInt
+        todayInt = DateUtil.getStrippedDateInt()
+        maxCutoffInt = DateUtil.incrementDate(todayInt, 1, 0, 0)
+        maxCutoffInt = DateUtil.lastDayInYear(maxCutoffInt)
+        return min(newCutoffDateInt, maxCutoffInt)
+
     def recordAllNextOccurrenceForSamePeriod(lDay=False, lMonth=False):
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         myPrint("DB", "recordAllNextOccurrenceForSamePeriod() - Parameter(s) selected: lDay=%s, lMonth=%s" %(lDay, lMonth))
         if not lDay and not lMonth: raise Exception("LOGIC ERROR - select day or month parameter")
 
+        newCutoffDateInt = getAsOfCutoffDateSelected()
+
         saveSelectedRowAndObject()
 
         currentSelectedDate = getCurrentSelectedDateInt()
         r = GlobalVars.saveLastReminderObj
-        firstDateToUse = lastDateToUse = nextDateToUseInt = getReminderNextDate(r)                                      # noqa
+        firstDateToUse = lastDateToUse = nextDateToUseInt = getReminderNextDate(r, newCutoffDateInt)                    # noqa
 
         monthStr = "N/A"                                                                                                # noqa
         if lMonth:
@@ -3325,7 +4076,7 @@ Visit: %s (Author's site)
         rems = reminderSet.getAllReminders()
 
         for _r in rems:
-            _nextDate = getReminderNextDate(_r)
+            _nextDate = getReminderNextDate(_r, newCutoffDateInt)
             if _nextDate >= firstDateToUse and _nextDate <= lastDateToUse:
                 remindersToRecord.append(_r)
         if len(remindersToRecord) < 1: raise Exception("LOGIC ERROR: No reminders to record selected for date: %s (or month: '%s')" %(nextDateToUseTxt, monthStr))
@@ -3354,7 +4105,7 @@ Visit: %s (Author's site)
                     _commitDateLong = DateUtil.convertIntDateToLong(nextDateToUseInt)
                     myPrint("B", "... recording reminder %s for date: %s (occurrence: %s)" %(remToRecord, nextDateToUseTxt, iRepeatsForSameReminder))
                 elif lMonth:
-                    _commitDateInt = getReminderNextDate(remToRecord)
+                    _commitDateInt = getReminderNextDate(remToRecord, newCutoffDateInt)
                     if _commitDateInt < firstDateToUse or _commitDateInt > lastDateToUse:
                         break
                     _commitDateTxt = convertStrippedIntDateFormattedText(_commitDateInt)
@@ -3385,10 +4136,12 @@ Visit: %s (Author's site)
 
         saveSelectedRowAndObject()
 
+        newCutoffDateInt = getAsOfCutoffDateSelected()
+
         book = MD_REF.getCurrentAccountBook()
 
         currentSelectedDate = getCurrentSelectedDateInt()
-        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj)
+        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj, newCutoffDateInt)
 
         if rdate <= 0:
             myPopupInformationBox(list_future_reminders_frame_,
@@ -3425,8 +4178,10 @@ Visit: %s (Author's site)
 
         saveSelectedRowAndObject()
 
+        newCutoffDateInt = getAsOfCutoffDateSelected()
+
         currentSelectedDate = getCurrentSelectedDateInt()
-        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj)
+        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj, newCutoffDateInt)
 
         if rdate <= 0:
             myPopupInformationBox(list_future_reminders_frame_,
@@ -3484,6 +4239,8 @@ Visit: %s (Author's site)
         if not myPopupAskQuestion(list_future_reminders_frame_, theTitle="SKIP ALL REMINDERS", theQuestion="Skip the next occurrence of ALL reminders?", theMessageType=JOptionPane.WARNING_MESSAGE):
             return
 
+        newCutoffDateInt = getAsOfCutoffDateSelected()
+
         skippedReminders = 0
         _msgPad = 100
         _msg = pad("Please wait:", _msgPad, padChar=".")
@@ -3500,7 +4257,7 @@ Visit: %s (Author's site)
             _msg = pad("Please wait: On reminder '%s'" %(r.getDescription()), _msgPad, padChar=".")
             pleaseWait.updateMessages(newTitle=_msg, newStatus=_msg)
 
-            nextDate = getReminderNextDate(r)
+            nextDate = getReminderNextDate(r, newCutoffDateInt)
             if nextDate < 1:
                 myPrint("B", "... not skipping reminder %s, as next date calculated as: %s" %(r, nextDate))
                 continue
@@ -3674,80 +4431,129 @@ Visit: %s (Author's site)
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("show reminder".lower()):
+            if event.getActionCommand() == "show_reminders_raw_details":
                 MD_REF.getUI().showRawItemDetails(GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0), list_future_reminders_frame_)
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("edit reminder".lower()):
+            if event.getActionCommand() == "edit_reminder":
                 ShowEditForm()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("delete reminder".lower()):
+            if event.getActionCommand() == "delete_reminder":
                 deleteReminder()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("record next".lower()):
+            if event.getActionCommand() == "record_next_occurrence":
                 recordNextReminderOccurrence()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("edit last acknowledged date".lower()):
+            if event.getActionCommand() == "edit_last_acknowledged_date":
                 editLastAcknowledgedDate()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("run auto commit".lower()):
+            if event.getActionCommand() == "run_auto_commit_reminders_now":
                 myPrint("B", "Executing autocommitReminders() now...")
                 genericSwingEDTRunner(False, False, MD_REF.getUI().autocommitReminders)
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("record all next occurrence(s) for same day".lower()):
+            if event.getActionCommand() == "record_all_next_occurrences_for_same_day":
                 recordAllNextOccurrenceForSamePeriod(lDay=True, lMonth=False)
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("record all next occurrence(s) for same month".lower()):
+            if event.getActionCommand() == "record_all_next_occurrences_for_same_month":
                 recordAllNextOccurrenceForSamePeriod(lDay=False, lMonth=True)
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("skip next occurrence of all reminders".lower()):
+            if event.getActionCommand() == "skip_next_occurrence_of_all_reminders":
                 skipReminders()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("extract reminders".lower()):
+            if event.getActionCommand() == "extract_reminders":
                 ExtractReminders(fromHotKey=False).go()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("page setup".lower()):
+            if event.getActionCommand() == "page_setup":
                 pageSetup()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("change look".lower()):
-                days = myPopupAskForInput(list_future_reminders_frame_,
-                                          "LOOK FORWARD",
-                                          "DAYS:",
-                                          "Enter the number of days to look forward",
-                                          defaultValue=str(GlobalVars.daysToLookForward_LFR))
-
-                if StringUtils.isEmpty(days): days = "0"
-
-                if StringUtils.isInteger(days) and int(days) > 0 and int(days) <= 365:
-                    GlobalVars.daysToLookForward_LFR = int(days)
-                    myPrint("B","Days to look forward changed to %s" %(GlobalVars.daysToLookForward_LFR))
-
-                    formatDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, GlobalVars.daysToLookForward_LFR)
-                    GlobalVars.saveStatusLabel.setText(">>: %s" %(convertStrippedIntDateFormattedText(formatDate)))
-
-                    RefreshMenuAction().refresh()
-                elif StringUtils.isInteger(days) and int(days) > 365:
-                    myPopupInformationBox(list_future_reminders_frame_,"ERROR - Days must be between 1-365 - no changes made....",theMessageType=JOptionPane.WARNING_MESSAGE)
-                else:
-                    myPrint("DB","Invalid days entered.... doing nothing...")
+            # if event.getActionCommand() == "look_forward_days":
+            #     days = myPopupAskForInput(list_future_reminders_frame_,
+            #                               "LOOK FORWARD",
+            #                               "DAYS:",
+            #                               "Enter the number of days to look forward",
+            #                               defaultValue=str(GlobalVars.daysToLookForward_LFR))
+            #
+            #     if StringUtils.isEmpty(days): days = "0"
+            #
+            #     if StringUtils.isInteger(days) and int(days) > 0 and int(days) <= 365:
+            #         GlobalVars.daysToLookForward_LFR = int(days)
+            #         myPrint("B","Days to look forward changed to %s" %(GlobalVars.daysToLookForward_LFR))
+            #
+            #         formatDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, GlobalVars.daysToLookForward_LFR)
+            #         GlobalVars.saveStatusLabel.setText(">>: %s" %(convertStrippedIntDateFormattedText(formatDate)))
+            #
+            #         RefreshMenuAction().refresh()
+            #     elif StringUtils.isInteger(days) and int(days) > 365:
+            #         myPopupInformationBox(list_future_reminders_frame_,"ERROR - Days must be between 1-365 - no changes made....",theMessageType=JOptionPane.WARNING_MESSAGE)
+            #     else:
+            #         myPrint("DB","Invalid days entered.... doing nothing...")
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("debug".lower()):
+            if event.getActionCommand() == "change_look_forward_asof_date_cutoff":
+
+                mstrPnl = MyJPanel(GridBagLayout())
+
+                warnLbl = MyJLabel("** Cutoff limited end next year **")
+                warnLbl.setForeground(getColorBlue())
+
+                asofPnl = GlobalVars.lookForwardAsOfDateCutoff_AODC.getPanel(horizontal=False)
+
+                mstrPnl. add(asofPnl, GridC.getc(0, 0).label())
+                mstrPnl. add(warnLbl, GridC.getc(0, 1).label())
+
+                options = ["CANCEL", "STORE DATE"]
+
+                pane = JOptionPane()
+                pane.setIcon(None)
+                pane.setMessage(mstrPnl)
+                pane.setMessageType(JOptionPane.QUESTION_MESSAGE)
+                pane.setOptionType(JOptionPane.OK_CANCEL_OPTION)
+                pane.setOptions(options)
+                dlg = pane.createDialog(list_future_reminders_frame_, "CHANGE LOOK FORWARD ASOF CUTOFF DATE:")
+                dlg.setVisible(True)
+
+                rtnValue = pane.getValue()
+                _userAction = -1
+                for i in range(0, len(options)):
+                    if options[i] == rtnValue:
+                        _userAction = i
+                        break
+
+                if _userAction == 1:
+
+                    def _executeChangeCutoffDate():
+                        GlobalVars.save_lookForwardToAsOfDate_LFR = GlobalVars.lookForwardAsOfDateCutoff_AODC.returnStoredParameters(lookForwardToAsOfDateDefault())
+                        newCutoffDateInt = getAsOfCutoffDateSelected()
+                        newCutoffDateIntTxt = convertStrippedIntDateFormattedText(newCutoffDateInt)
+                        myPrint("B", "Look forward asof date cutoff changed to %s = %s" %(GlobalVars.save_lookForwardToAsOfDate_LFR, newCutoffDateIntTxt))
+                        GlobalVars.saveStatusLabel.setText(">>: %s" %(convertStrippedIntDateFormattedText(newCutoffDateInt)))
+
+                        RefreshMenuAction().refresh()
+
+                        save_StuWareSoftSystems_parameters_to_file()
+
+                    genericSwingEDTRunner(False, False, _executeChangeCutoffDate)       # Why?! To capture the asof date changes queued on the EDT
+
+                else:
+                    myPrint("DB","look forward asof date not changed.....")
+
+            # ##########################################################################################################
+            if event.getActionCommand() == "debug":
                 debug = not debug
                 myPrint("B","DEBUG is now set to: %s" %(debug))
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("allow escape".lower()):
+            if event.getActionCommand() == "allow_escape_exit":
                 GlobalVars.lAllowEscapeExitApp_SWSS = not GlobalVars.lAllowEscapeExitApp_SWSS
                 if GlobalVars.lAllowEscapeExitApp_SWSS:
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
@@ -3757,7 +4563,7 @@ Visit: %s (Author's site)
                 myPrint("B","Escape key can exit the app's main screen: %s" %(GlobalVars.lAllowEscapeExitApp_SWSS))
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("reset".lower()):
+            if event.getActionCommand() == "reset_default_column_order_widths_sort":
                 GlobalVars.save_column_widths_LFR = []
                 GlobalVars.save_column_order_LFR = []
                 GlobalVars.save_columnSort_LFR = []
@@ -3765,28 +4571,21 @@ Visit: %s (Author's site)
                 RefreshMenuAction().refresh()
 
             # ##########################################################################################################
-            if event.getActionCommand().lower().startswith("refresh".lower()):
+            if event.getActionCommand() == "refresh_data_default_sort":
+                GlobalVars.save_columnSort_LFR = []
                 RefreshMenuAction().refresh()
 
             # ##########################################################################################################
-            if event.getActionCommand() == "About":
+            if event.getActionCommand() == "about":
                 AboutThisScript(list_future_reminders_frame_).go()
 
             if event.getActionCommand().lower().startswith("close".lower()): terminate_script()
 
             # Save parameters now...
-            if (event.getActionCommand().lower().startswith("change look".lower())
-                    or event.getActionCommand().lower().startswith("debug".lower())
-                    or event.getActionCommand().lower().startswith("allow escape".lower())
-                    or event.getActionCommand().lower().startswith("reset".lower())):
-                try:
-                    save_StuWareSoftSystems_parameters_to_file()
-                except:
-                    myPrint("B", "Error - failed to save parameters to pickle file...!")
-                    dump_sys_error_to_md_console_and_errorlog()
+            if event.getActionCommand() in ["debug", "allow_escape_exit", "reset_default_column_order_widths_sort"]:
+                save_StuWareSoftSystems_parameters_to_file()
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-            return
 
     def terminate_script():
         myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()")
@@ -4023,7 +4822,7 @@ Visit: %s (Author's site)
             if rems.size() < 1:
                 return False
 
-            myPrint("DB", 'Success: read ', rems.size(), 'reminders')
+            myPrint("DB", "Success: read %s reminders" %(rems.size()))
             print
             GlobalVars.tableHeaderRowList = [
                 "THE_REMINDER_OBJECT",
@@ -4044,7 +4843,25 @@ Visit: %s (Author's site)
             # Read each reminder and create a csv line for each in the GlobalVars.reminderDataList array
             GlobalVars.reminderDataList = []  # Set up an empty array
 
+            # veryStartTime = thisSectionStartTime = System.currentTimeMillis();
+
+            newCutoffDateInt = getAsOfCutoffDateSelected()
+            myPrint("DB", ">> newCutoffDateInt: %s" %(newCutoffDateInt))
+
+            # tookTime = System.currentTimeMillis() - thisSectionStartTime
+            # if debug:
+            #     myPrint("B", "TOOK: %s milliseconds (%s seconds)" %(tookTime, tookTime / 1000.0))
+            # thisSectionStartTime = System.currentTimeMillis();
+
             for index in range(0, int(rems.size())):
+
+                # tookTime = System.currentTimeMillis() - thisSectionStartTime
+                # if debug:
+                #     myPrint("B", "TOOK: %s milliseconds (%s seconds)" %(tookTime, tookTime / 1000.0))
+                # thisSectionStartTime = System.currentTimeMillis();
+                #
+                # myPrint("DB", ".. processing reminder idx: %s" %(index));
+
                 rem = rems[index]  # Get the reminder
 
                 remtype = rem.getReminderType()  # NOTE or TRANSACTION
@@ -4119,15 +4936,15 @@ Visit: %s (Author's site)
                     remfreq = '!ERROR! NO ACTUAL FREQUENCY OPTIONS SET PROPERLY ' + remfreq
 
                 if countfreqs > 1:
-                    remfreq = "**MULTI** " + remfreq													            # noqa
+                    remfreq = "**MULTI** " + remfreq													                # noqa
 
-                todayInt = DateUtil.getStrippedDateInt()
+                # todayInt = DateUtil.getStrippedDateInt()
                 lastdate = rem.getLastDateInt()
 
                 if lastdate < 1:  # Detect if an enddate is set
-                    stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), GlobalVars.MAX_END_DATE)
+                    stopDate = min(newCutoffDateInt, GlobalVars.MAX_END_DATE)
                 else:
-                    stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, GlobalVars.daysToLookForward_LFR), lastdate)
+                    stopDate = min(newCutoffDateInt, lastdate)
 
                 nextDate = rem.getNextOccurance(stopDate)
                 if nextDate < 1: continue
@@ -4193,7 +5010,20 @@ Visit: %s (Author's site)
             # 	return False
             #
 
-            genericSwingEDTRunner(True, True, ReminderTable, GlobalVars.reminderDataList, ind)
+            # tookTime = System.currentTimeMillis() - thisSectionStartTime
+            # overallTookTime = System.currentTimeMillis() - veryStartTime
+            # if debug:
+            #     myPrint("B", "TOOK: %s milliseconds (%s seconds)" %(tookTime, tookTime / 1000.0))
+            #     myPrint("B", "(OVERALLTOOK: %s milliseconds (%s seconds))" %(overallTookTime, overallTookTime / 1000.0))
+            # thisSectionStartTime = System.currentTimeMillis();
+
+            genericSwingEDTRunner(True, True, reminderTable, GlobalVars.reminderDataList, ind)
+
+            # tookTime = System.currentTimeMillis() - thisSectionStartTime
+            # overallTookTime = System.currentTimeMillis() - veryStartTime
+            # if debug:
+            #     myPrint("B", "TOOK: %s milliseconds (%s seconds)" %(tookTime, tookTime / 1000.0))
+            #     myPrint("B", "(OVERALLTOOK: %s milliseconds (%s seconds))" %(overallTookTime, overallTookTime / 1000.0))
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name)
             return True
@@ -4231,45 +5061,16 @@ Visit: %s (Author's site)
                     GlobalVars.save_column_widths_LFR[_i] = sourceModel.getColumn(convert_i).getWidth()
                     myPrint("D","Saving column %s as width %s for later..." %(_i, GlobalVars.save_column_widths_LFR[_i]))
 
-        # The javax.swing package and its subpackages provide a fairly comprehensive set of default renderer implementations, suitable for customization via inheritance. A notable omission is the lack #of a default renderer for a JTableHeader in the public API. The renderer used by default is a Sun proprietary class, sun.swing.table.DefaultTableCellHeaderRenderer, which cannot be extended.
-        # DefaultTableHeaderCellRenderer seeks to fill this void, by providing a rendering designed to be identical with that of the proprietary class, with one difference: the vertical alignment of #the header text has been set to BOTTOM, to provide a better match between DefaultTableHeaderCellRenderer and other custom renderers.
         # The name of the class has been chosen considering this to be a default renderer for the cells of a table header, and not the table cells of a header as implied by the proprietary class name
         class DefaultTableHeaderCellRenderer(DefaultTableCellRenderer):
 
-            # /**
-            # * Constructs a <code>DefaultTableHeaderCellRenderer</code>.
-            # * <P>
-            # * The horizontal alignment and text position are set as appropriate to a
-            # * table header cell, and the opaque property is set to false.
-            # */
-
             def __init__(self):
                 # super(DefaultTableHeaderCellRenderer, self).__init__()
+                self.padding = BorderFactory.createEmptyBorder(0, 7, 0, 0)
                 self.setHorizontalAlignment(JLabel.CENTER)  # This one changes the text alignment
                 self.setHorizontalTextPosition(JLabel.RIGHT)  # This positions the  text to the  left/right of  the sort icon
                 self.setVerticalAlignment(JLabel.BOTTOM)
                 self.setOpaque(True)  # if this is false then it hides the background colour
-
-            # enddef
-
-            # /**
-            # * returns the default table header cell renderer.
-            # * <P>
-            # * If the column is sorted, the appropriate icon is retrieved from the
-            # * current Look and Feel, and a border appropriate to a table header cell
-            # * is applied.
-            # * <P>
-            # * Subclasses may overide this method to provide custom content or
-            # * formatting.
-            # *
-            # * @param table the <code>JTable</code>.
-            # * @param value the value to assign to the header cell
-            # * @param isSelected This parameter is ignored.
-            # * @param hasFocus This parameter is ignored.
-            # * @param row This parameter is ignored.
-            # * @param column the column of the header cell to render
-            # * @return the default table header cell renderer
-            # */
 
             def getTableCellRendererComponent(self, table, value, isSelected, hasFocus, row, column):				# noqa
                 # noinspection PyUnresolvedReferences
@@ -4286,7 +5087,8 @@ Visit: %s (Author's site)
                     self.setHorizontalTextPosition(JLabel.LEFT)
 
                 self.setIcon(self._getIcon(table, column))
-                self.setBorder(UIManager.getBorder("TableHeader.cellBorder"))
+                # self.setBorder(UIManager.getBorder("TableHeader.cellBorder"))
+                self.setBorder(BorderFactory.createCompoundBorder(UIManager.getBorder("TableHeader.cellBorder"), self.padding))
 
                 self.setForeground(MD_REF.getUI().getColors().headerFG)
                 self.setBackground(MD_REF.getUI().getColors().headerBG1)
@@ -4653,14 +5455,13 @@ Visit: %s (Author's site)
                 convertColIdx = self.convertColumnIndexToModel(column)
 
                 if convertColIdx == 0:
-                    # renderer = MyPlainNumberRenderer()
-                    renderer = DefaultTableCellRenderer()
+                    renderer = MyClunkyRenderer()
                 elif convertColIdx == 1:
-                    renderer = MyDateRenderer()
+                    renderer = MyClunkyRenderer(lDate=True)
                 elif GlobalVars.tableHeaderRowFormats[convertColIdx][0] == Number:
-                    renderer = MyNumberRenderer()
+                    renderer = MyClunkyRenderer(lNumber=True)
                 else:
-                    renderer = DefaultTableCellRenderer()
+                    renderer = MyClunkyRenderer()
 
                 renderer.setHorizontalAlignment(GlobalVars.tableHeaderRowFormats[convertColIdx][1])
 
@@ -4730,7 +5531,6 @@ Visit: %s (Author's site)
                         else:
                             return -1
 
-            # enddef
 
             def fixTheRowSorter(self):  # by default everything gets converted to strings. We need to fix this and code for my string number formats
 
@@ -4777,39 +5577,53 @@ Visit: %s (Author's site)
 
                 return component
 
-        # This copies the standard class and just changes the colour to RED if it detects a negative - leaves field intact
-        # noinspection PyArgumentList
-        class MyNumberRenderer(DefaultTableCellRenderer):
-            def __init__(self):
-                super(DefaultTableCellRenderer, self).__init__()
+
+        class MyClunkyRenderer(DefaultTableCellRenderer):
+
+            def __init__(self, lDate=False, lNumber=False):
+                self.padding = BorderFactory.createEmptyBorder(0, 10, 0, 0)
+                self.lDate = lDate
+                self.lNumber = lNumber
+                super(self.__class__, self).__init__()                                                                  # noqa
 
             def setValue(self, value):
-                if isinstance(value, (float,int)):
-                    if value < 0.0:
-                        self.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
+                if value is None: return
+
+                if self.lNumber:
+                    if isinstance(value, (float, int)):
+                        self.setText(GlobalVars.baseCurrency.formatFancy(int(value*100), GlobalVars.decimalCharSep, True))
                     else:
-                        self.setForeground(MD_REF.getUI().getColors().budgetHealthyColor)
-                    self.setText(GlobalVars.baseCurrency.formatFancy(int(value*100), GlobalVars.decimalCharSep, True))
+                        self.setText(str(value))
+                    return
+                elif self.lDate:
+                    self.setText(convertStrippedIntDateFormattedText(value, GlobalVars.md_dateFormat))
+                    return
+
+                super(self.__class__, self).setValue(value)
+
+            def getTableCellRendererComponent(self, table, value, isSelected, hasFocus, row, column):
+                # type: (JTable, Object, bool, bool, int, int) -> JLabel
+
+                # get the default first!
+                label = super(self.__class__, self).getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+                label.setBorder(BorderFactory.createCompoundBorder(label.getBorder(), self.padding))
+
+                if (not self.lNumber and not self.lDate) or isSelected: return label
+
+                showNegColor = False
+                if self.lNumber:
+                    if isinstance(value, (float, int)):
+                        if value < 0.0:
+                            showNegColor = True
+
+                if showNegColor:
+                    label.setForeground(MD_REF.getUI().getColors().budgetAlertColor)
                 else:
-                    self.setText(str(value))
+                    if self.lNumber:
+                        # label.setForeground(MD_REF.getUI().getColors().defaultTextForeground)
+                        label.setForeground(MD_REF.getUI().getColors().budgetHealthyColor)
 
-                return
-
-        # noinspection PyArgumentList
-        class MyDateRenderer(DefaultTableCellRenderer):
-            def __init__(self):
-                super(DefaultTableCellRenderer, self).__init__()
-
-            def setValue(self, value):
-                self.setText(convertStrippedIntDateFormattedText(value, GlobalVars.md_dateFormat))
-
-        # noinspection PyArgumentList
-        class MyPlainNumberRenderer(DefaultTableCellRenderer):
-            def __init__(self):
-                super(DefaultTableCellRenderer, self).__init__()
-
-            def setValue(self, value):
-                self.setText(str(value))
+                return label
 
         # noinspection PyUnusedLocal
         class MyDocListener(DocumentListener):
@@ -4837,11 +5651,6 @@ Visit: %s (Author's site)
                 self._document = _document
             # noinspection PyUnusedLocal
             def focusGained(self, e): self._searchField.setCaretPosition(self._document.getLength())
-
-        class MyKeyAdapter(KeyAdapter):
-            def keyPressed(self, evt):
-                if (evt.getKeyCode() == KeyEvent.VK_ENTER):
-                    evt.getSource().transferFocus()
 
         class MyJTextFieldEscapeAction(AbstractAction):
             def __init__(self): pass
@@ -4892,7 +5701,7 @@ Visit: %s (Author's site)
         GlobalVars.saveStatusLabel = JLabel("")
         GlobalVars.saveStatusLabel.setForeground(getColorRed())
 
-        def ReminderTable(tabledata, ind):
+        def reminderTable(tabledata, ind):
             global list_future_reminders_frame_     # global as set here
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", " - ind:", ind)
@@ -5031,43 +5840,57 @@ Visit: %s (Author's site)
                 menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                 menuItem = JMenuItem("About")
+                menuItem.setActionCommand("about")
                 menuItem.setToolTipText("About...")
                 menuItem.addActionListener(dtm)
                 menuO.add(menuItem)
 
                 menuItem = JMenuItem("Refresh Data/Default Sort")
+                menuItem.setActionCommand("refresh_data_default_sort")
                 menuItem.setToolTipText("Refresh (re-extract) the data, revert to default sort  order....")
                 menuItem.addActionListener(dtm)
                 menuO.add(menuItem)
 
-                menuItem = JMenuItem("Change look forward days")
-                menuItem.setToolTipText("Change the days to look forward")
+                # menuItem = JMenuItem("Change look forward days")
+                # menuItem.setActionCommand("look_forward_days")
+                # menuItem.setToolTipText("Change the days to look forward")
+                # menuItem.addActionListener(dtm)
+                # menuO.add(menuItem)
+
+                menuItem = JMenuItem("Change look forward asof date cutoff")
+                menuItem.setActionCommand("change_look_forward_asof_date_cutoff")
+                menuItem.setToolTipText("Change the look forward asof date cutoff")
                 menuItem.addActionListener(dtm)
                 menuO.add(menuItem)
 
                 menuItem = JMenuItem("Extract Reminders")
+                menuItem.setActionCommand("extract_reminders")
                 menuItem.setToolTipText("Extracts Reminders to CSV file")
                 menuItem.addActionListener(dtm)
                 menuO.add(menuItem)
 
                 menuItem = JCheckBoxMenuItem("Allow Escape to Exit")
+                menuItem.setActionCommand("allow_escape_exit")
                 menuItem.setToolTipText("When enabled, allows the Escape key to exit the main screen")
                 menuItem.addActionListener(dtm)
                 menuItem.setSelected(GlobalVars.lAllowEscapeExitApp_SWSS)
                 menuO.add(menuItem)
 
-                menuItem = JMenuItem("Reset default Column Order & Widths")
-                menuItem.setToolTipText("Reset default Column Order & Widths")
+                menuItem = JMenuItem("Reset default Column Order, Widths & Sort")
+                menuItem.setActionCommand("reset_default_column_order_widths_sort")
+                menuItem.setToolTipText("Reset default Column Order, Widths & Sort")
                 menuItem.addActionListener(dtm)
                 menuO.add(menuItem)
 
                 menuItem = JCheckBoxMenuItem("Debug")
+                menuItem.setActionCommand("debug")
                 menuItem.addActionListener(dtm)
                 menuItem.setToolTipText("Enables script to output debug information (internal technical stuff)")
                 menuItem.setSelected(debug)
                 menuO.add(menuItem)
 
                 menuItem = JMenuItem("Page Setup")
+                menuItem.setActionCommand("page_setup")
                 menuItem.setToolTipText("Printer Page Setup....")
                 menuItem.addActionListener(dtm)
                 menuO.add(menuItem)
@@ -5134,18 +5957,19 @@ Visit: %s (Author's site)
 
             popupMenu = JPopupMenu()
 
-            for menuOptionLbl in [
-                                  "Edit Reminder",
-                                  "Run Auto Commit Reminders NOW",
-                                  "Edit last Acknowledged date",
-                                  "Record next occurrence",
-                                  "Show Reminder's raw details",
-                                  "Delete Reminder",
-                                  "Record all next occurrence(s) for same day",
-                                  "Record all next occurrence(s) for same month",
-                                  "Skip next occurrence of ALL reminders"
-                                  ]:
+            for menuOptionLbl, actionCmd in [
+                                            ["Edit Reminder",                                "edit_reminder"],
+                                            ["Run Auto Commit Reminders NOW",                "run_auto_commit_reminders_now"],
+                                            ["Edit last Acknowledged date",                  "edit_last_acknowledged_date"],
+                                            ["Record next occurrence",                       "record_next_occurrence"],
+                                            ["Show Reminder's raw details",                  "show_reminders_raw_details"],
+                                            ["Delete Reminder",                              "delete_reminder"],
+                                            ["Record all next occurrence(s) for same day",   "record_all_next_occurrences_for_same_day"],
+                                            ["Record all next occurrence(s) for same month", "record_all_next_occurrences_for_same_month"],
+                                            ["Skip next occurrence of ALL reminders",        "skip_next_occurrence_of_all_reminders"]
+                                            ]:
                 menuItem = JMenuItem(menuOptionLbl)
+                menuItem.setActionCommand(actionCmd)
                 menuItem.addActionListener(dtm)
                 popupMenu.add(menuItem)
 
@@ -5171,13 +5995,20 @@ Visit: %s (Author's site)
 
                 searchPanel.add(GlobalVars.mySearchField,GridC.getc().xy(0,0).padx(50).fillx().wx(1.0).west().insets(0,2,0,2))
 
-                btnChangeLookForward = JButton("Change Look Forward Days")
-                btnChangeLookForward.setToolTipText("Changes the current 'Look forward [x] days' setting...")
-                btnChangeLookForward.addActionListener(dtm)
-                searchPanel.add(btnChangeLookForward, GridC.getc().xy(1,0).fillx().insets(0,2,0,2))
+                # btnChangeLookForward = JButton("Change Look Forward Days")
+                # btnChangeLookForward.setActionCommand("look_forward_days")
+                # btnChangeLookForward.setToolTipText("Changes the current 'Look forward [x] days' setting...")
+                # btnChangeLookForward.addActionListener(dtm)
+                # searchPanel.add(btnChangeLookForward, GridC.getc().xy(1,0).fillx().insets(0,2,0,2))
 
-                formatDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, GlobalVars.daysToLookForward_LFR)
-                GlobalVars.saveStatusLabel.setText(">>: %s" %(convertStrippedIntDateFormattedText(formatDate)))
+                btnChangeLookForward = JButton("Change look forward asof date cutoff")
+                btnChangeLookForward.setActionCommand("change_look_forward_asof_date_cutoff")
+                btnChangeLookForward.setToolTipText("Change the look forward asof date cutoff")
+                btnChangeLookForward.addActionListener(dtm)
+                searchPanel.add(btnChangeLookForward)
+
+                newCutoffDateInt = getAsOfCutoffDateSelected()
+                GlobalVars.saveStatusLabel.setText(">>: %s" %(convertStrippedIntDateFormattedText(newCutoffDateInt)))
                 searchPanel.add(GlobalVars.saveStatusLabel, GridC.getc().xy(2,0).fillx().east().insets(0,2,0,2))
 
                 p = JPanel(BorderLayout())
@@ -5253,66 +6084,6 @@ Visit: %s (Author's site)
 
 
             myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
-
-            return
-
-        def FormatAmount(oldamount):
-            # Amount is held as an integer in pence
-            # Remove - sign if present
-            if oldamount < 0:
-                oldamount = oldamount * -1
-
-            oldamount = str(oldamount)
-
-            # Ensure at least 3 character
-            if len(oldamount) < 3:
-                oldamount = "000" + oldamount
-                oldamount = (oldamount)[-3:]
-
-            # Extract whole portion of amount
-            whole = (oldamount)[0:-2]
-            if len(whole) == 0:
-                whole = "0"
-
-            # Extract decimal part of amount
-            decimal = (oldamount)[-2:]
-            declen = len(decimal)
-            if declen == 0:
-                decimal = "00"
-                whole = "0"
-            if declen == 1:
-                decimal = "0" + decimal
-                whole = "0"
-
-            # Insert , commas in whole part
-            wholelist = list(whole)
-            listlen = len(wholelist)
-            if wholelist[0] == "-":
-                listlen = listlen - 1
-            listpos = 3
-            while listpos < listlen:
-                wholelist.insert(-listpos, ",")
-                listpos = listpos + 4
-                listlen = listlen + 1
-
-            newwhole = "".join(wholelist)
-            newamount = newwhole + "." + decimal
-            return newamount
-
-        def FormatDate(olddate):
-            # Date is held as an integer in format YYYYMMDD
-            olddate = str(olddate)
-            if len(olddate) < 8:
-                olddate = "00000000"
-            year = olddate[0:4]
-            month = olddate[4:6]
-            day = olddate[6:8]
-
-            newdate = day + "/" + month + "/" + year
-            if newdate == "00/00/0000":
-                newdate = "Unavailable"
-
-            return newdate
 
         if build_the_data_file(0):
 
