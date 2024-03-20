@@ -38,7 +38,7 @@ class RatioCompute {
   public RatioCompute(final AccountBook root, final char decimal) {
     _root = root;
     _decimal = decimal;
-    _balanceCache = new HashMap<Account, BalanceHolder>();
+    _balanceCache = new HashMap<>();
   }
 
   public void computeRatios(final List<RatioEntry> ratios, DateRange dateRange) {

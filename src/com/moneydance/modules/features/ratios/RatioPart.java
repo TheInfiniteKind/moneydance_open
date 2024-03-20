@@ -12,7 +12,6 @@ package com.moneydance.modules.features.ratios;
 
 import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.AccountBook;
-import com.infinitekind.moneydance.model.AcctFilter;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.moneydance.model.CurrencyUtil;
 import com.infinitekind.moneydance.model.DateRange;
@@ -34,9 +33,9 @@ import java.util.Map;
  * @author Kevin Menningen
  */
 class RatioPart {
-  private final List<Account> _requiredAccounts = new ArrayList<Account>();
-  private final List<Account> _disallowedAccounts = new ArrayList<Account>();
-  private final List<String> _tags = new ArrayList<String>();
+  private final List<Account> _requiredAccounts = new ArrayList<>();
+  private final List<Account> _disallowedAccounts = new ArrayList<>();
+  private final List<String> _tags = new ArrayList<>();
   private String _encodedRequiredAccounts;
   private String _encodedDisallowedAccounts;
   private TagLogic _tagLogic;

@@ -209,10 +209,9 @@ class RatioReportGenerator extends ReportGenerator {
     RecordRow row = new RecordRow(labels, align, color, style, totals);
 
     // Account
-    StringBuilder sb = new StringBuilder(mdGUI.getStr(L10NRatios.REPORT_TOTAL));
-    sb.append(" - ");
-    sb.append(_mainModel.getResources().getString(typeKey));
-    labels[0] = sb.toString();
+    String sb = mdGUI.getStr(L10NRatios.REPORT_TOTAL) + " - " +
+            _mainModel.getResources().getString(typeKey);
+    labels[0] = sb;
     widths[0] = Math.max(widths[0], measureStringWidth(labels[0], _graphics, fontMetrics));
     style[0] = RecordRow.STYLE_BOLD;
     align[0] = RecordRow.ALIGN_LEFT;
@@ -296,11 +295,10 @@ class RatioReportGenerator extends ReportGenerator {
     totals[2] = RecordRow.TOTAL_GRANDTOTAL;
 
     // Description
-    StringBuilder sb = new StringBuilder();
-    sb.append(formatRatioPartValue(baseCurrency, _ratio.getNumeratorValue(), dec, nanString, _ratio.isNumeratorConstant()));
-    sb.append(" / ");
-    sb.append(formatRatioPartValue(baseCurrency, _ratio.getDenominatorValue(), dec, nanString, _ratio.isDenominatorConstant()));
-    labels[3] = sb.toString();
+    String sb = formatRatioPartValue(baseCurrency, _ratio.getNumeratorValue(), dec, nanString, _ratio.isNumeratorConstant()) +
+            " / " +
+            formatRatioPartValue(baseCurrency, _ratio.getDenominatorValue(), dec, nanString, _ratio.isDenominatorConstant());
+    labels[3] = sb;
     widths[3] = Math.max(widths[3], measureStringWidth(labels[3], _graphics, fontMetrics));
     style[3] = RecordRow.STYLE_BOLD;
     align[3] = RecordRow.ALIGN_LEFT;
@@ -423,10 +421,9 @@ class RatioReportGenerator extends ReportGenerator {
     RecordRow row = new RecordRow(labels, align, color, style, totals);
 
     // Account
-    StringBuilder sb = new StringBuilder(mdGUI.getStr(L10NRatios.REPORT_TOTAL));
-    sb.append(" - ");
-    sb.append(RatiosUtil.getAccountTypeNameAllCaps(mdGUI, accountType.code()));
-    labels[0] = sb.toString();
+    String sb = mdGUI.getStr(L10NRatios.REPORT_TOTAL) + " - " +
+            RatiosUtil.getAccountTypeNameAllCaps(mdGUI, accountType.code());
+    labels[0] = sb;
     style[0] = RecordRow.STYLE_PLAIN;
     align[0] = RecordRow.ALIGN_LEFT;
     totals[0] = RecordRow.TOTAL_SUBTOTAL;
