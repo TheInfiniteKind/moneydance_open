@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# categories_super_window.py build: 1013 - Sept 2023 - Stuart Beesley StuWareSoftSystems
+# categories_super_window.py build: 1014 - March 2024 - Stuart Beesley StuWareSoftSystems
 # >> Renamed to: accounts_categories_mega_search_window.py build: 1003 - April 2022 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
@@ -48,6 +48,7 @@
 # build: 1011 - Common code tweaks...
 # build: 1012 - Cleaned up references to MD Objects; .dispose() nuke 'storage'...
 # build: 1013 - Common code - FileFilter fix...
+# build: 1014 - No longer supported post MD2023.3(5064)....
 
 # Clones MD Menu > Tools>Categories and adds Search capability...
 
@@ -57,7 +58,7 @@
 
 # SET THESE LINES
 myModuleID = u"accounts_categories_mega_search_window"
-version_build = "1013"
+version_build = "1014"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -3046,6 +3047,15 @@ Visit: %s (Author's site)
 
             currentAccount = MD_REF.getCurrentAccount()
             if currentAccount is None: raise Exception("??")
+
+            if (MD_REF.getBuild() > 5064):
+                _txt = "Sorry: This extension is not supported post MD2023.3(5064)!"
+                myPrint("B", _txt)
+                myPopupInformationBox(None,
+                                      _txt,
+                                      "EXTENSION NOT SUPPORTED",
+                                      JOptionPane.ERROR_MESSAGE)
+                raise QuickAbortThisScriptException
 
             def isPreviewBuild():
                 if MD_EXTENSION_LOADER is not None:

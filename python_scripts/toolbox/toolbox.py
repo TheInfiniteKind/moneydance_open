@@ -579,8 +579,6 @@ else:
     from com.moneydance.apps.md.view.gui.txnreg import DownloadedTxnsView
     from com.moneydance.apps.md.view.gui.extensions import ExtensionsWindow                                             # noqa
     from com.moneydance.apps.md.view.gui.sync import DropboxSyncConfigurer
-    # from com.moneydance.apps.md.view.gui.sidebar import FullSideBarItemList
-    from com.moneydance.apps.md.view.gui.sidebar.nodes import SideBarNodeFactory, SideBarNodeType
 
     try: from com.infinitekind.moneydance.model import TxnSortOrder
     except: pass
@@ -3368,6 +3366,9 @@ Visit: %s (Author's site)
 
     GlobalVars.MD_ENHANCED_SIDEBAR_BUILD = 5100                                                                         # MD2024(5100)
     def isEnhancedSidebarBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ENHANCED_SIDEBAR_BUILD)
+    if not isEnhancedSidebarBuild():
+        # from com.moneydance.apps.md.view.gui.sidebar import FullSideBarItemList
+        from com.moneydance.apps.md.view.gui.sidebar.nodes import SideBarNodeFactory, SideBarNodeType
 
     def isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=False):
         if ((not checkMainTask and not checkAttachmentsTask) or (checkMainTask and checkAttachmentsTask)):

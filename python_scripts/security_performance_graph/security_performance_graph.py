@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# security_performance_graph.py build: 1011 - Jan 2024 - Stuart Beesley StuWareSoftSystems
+# security_performance_graph.py build: 1012 - April 2024 - Stuart Beesley StuWareSoftSystems
 
 # requires: MD 2021.1(3069) due to NPE on SwingUtilities - something to do with 'theGenerator.setInfo(reportSpec)'
 
@@ -46,6 +46,7 @@
 # build: 1009 - Common code - FileFilter fix...
 # build: 1010 - Fixed call to .setReportParameters(None) for 5064+ build
 # build: 1011 - Prevent popup jtable column reordering...
+# build: 1012 - jar/class name fixes for MD2024(5100)...
 
 # todo - hunt down why something retains a reference to MD object..?
 
@@ -58,7 +59,7 @@
 
 # SET THESE LINES
 myModuleID = u"security_performance_graph"
-version_build = "1011"
+version_build = "1012"
 MIN_BUILD_REQD = 3069
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -432,9 +433,13 @@ else:
     from org.jfree.chart.renderer.xy import XYLineAndShapeRenderer
     from org.jfree.data.time import TimeSeries, TimeSeriesCollection, RegularTimePeriod, TimeTableXYDataset
     from org.jfree.data.xy import XYDataset
-    from org.jfree.chart import ChartUtilities
+    if MD_REF.getBuild() < 5100:
+        from org.jfree.chart import ChartUtilities as ChartUtils
+        from org.jfree.ui import RectangleInsets
+    else:
+        from org.jfree.chart import ChartUtils
+        from org.jfree.chart.ui import RectangleInsets
     from org.jfree.chart.block import BlockBorder
-    from org.jfree.ui import RectangleInsets
     from org.jfree.chart.title import LegendTitle, TextTitle, Title                                                     # noqa
     from org.jfree.chart import ChartFactory
     from org.jfree.chart.renderer.xy import AbstractXYItemRenderer
@@ -3971,7 +3976,7 @@ Visit: %s (Author's site)
 
             if reset or currentSettings is None or currentSettings.isEmpty():
                 newSettings = SyncRecord()
-                newSettings.put(DateRangeOption.CONFIG_KEY, DateRangeChooser.DR_YEAR_TO_DATE)
+                newSettings.put(DateRangeOption.CONFIG_KEY, DateRangeOption.DR_YEAR_TO_DATE.getResourceKey())
                 newSettings.put(self.PARAM_GROUP_BY, "m")
                 return newSettings
 
@@ -5448,8 +5453,12 @@ Visit: %s (Author's site)
 
                 if isinstance(existing, AbstractXYItemRenderer):
                     renderer = existing
-                    renderer.setBaseToolTipGenerator(self.xyToolTipGenerator)
-                    renderer.setBaseLegendTextPaint(self.colors.defaultTextForeground)
+                    if MD_REF.getBuild() < 5100:
+                        renderer.setBaseToolTipGenerator(self.xyToolTipGenerator)                                       # noqa
+                        renderer.setBaseLegendTextPaint(self.colors.defaultTextForeground)                              # noqa
+                    else:
+                        renderer.setDefaultToolTipGenerator(self.xyToolTipGenerator)
+                        renderer.setDefaultLegendTextPaint(self.colors.defaultTextForeground)
                     for i in range(mainModel.getSeriesCount()):
                         seriesPaint = colorEnum.nextColor()
                         renderer.setSeriesPaint(i, seriesPaint)
@@ -5457,8 +5466,12 @@ Visit: %s (Author's site)
                         renderer.setSeriesShape(i, MyGraphViewer.circleShape)
                         mainColors.put(mainModel.getSeriesKey(i), seriesPaint)
                 if isinstance(existing, XYLineAndShapeRenderer):
-                    existing.setBaseShapesVisible(True)
-                    existing.setBaseShapesFilled(True)
+                    if MD_REF.getBuild() < 5100:
+                        existing.setBaseShapesVisible(True)                                                             # noqa
+                        existing.setBaseShapesFilled(True)                                                              # noqa
+                    else:
+                        existing.setDefaultShapesVisible(True)
+                        existing.setDefaultShapesFilled(True)
 
                 plot.setDomainGridlinePaint(self.graphGridColor)
                 plot.setRangeGridlinePaint(self.graphGridColor)
@@ -5518,7 +5531,7 @@ Visit: %s (Author's site)
         def saveGraph(self, outStream):
             # type: (OutputStream) -> None
             img = self.getGraphAsImage()                                                                                # type: BufferedImage
-            ChartUtilities.writeBufferedImageAsPNG(outStream, img)
+            ChartUtils.writeBufferedImageAsPNG(outStream, img)
 
         def getGraphAsImage(self):
             # type: (BufferedImage) ->  BufferedImage
@@ -5959,7 +5972,7 @@ Visit: %s (Author's site)
                     self.callingClass.viewer.mainChartPanel = None
                     self.callingClass.viewer.graphSet = None
                     self.callingClass.viewer.removeAll()
-                    myPrint("DB", "... also cleared out references to mainChart, mainPanel, graphSet, frame panel etc....");
+                    myPrint("DB", "... also cleared out references to mainChart, mainPanel, graphSet, frame panel etc....")
 
                 self.callingClass.viewer = None
 
@@ -5971,7 +5984,7 @@ Visit: %s (Author's site)
                 self.callingClass.STATUS_LABEL = None
 
                 myPrint("DB", "Executing cleanup_actions() ....")
-                cleanup_actions(self.theFrame);
+                cleanup_actions(self.theFrame)
 
         def editParameters(self):
             self.generator.setSuppressMessages(True)
