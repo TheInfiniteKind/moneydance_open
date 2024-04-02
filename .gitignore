@@ -9,7 +9,7 @@ user.properties
 src/priv_key
 src/pub_key
 src/user.properties
-lib/moneydance*.jar
+lib/moneydance.jar
 lib/jdk*.jar
 lib/okio*.jar
 lib/plaid*.jar
@@ -19,3 +19,4 @@ MoneydanceOpen.iws
 /python_scripts/*.pyc
 !bin/repackage-jython
 .jython_cache
+.DS_Store

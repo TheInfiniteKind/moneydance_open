@@ -36,10 +36,10 @@ http://jakarta.apache.org/ant/index.html
     <pathelement path="../lib/moneydance-dev.jar"/>
     <pathelement path="../lib/moneydance-private.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
 
-    <pathelement path="../lib/mdadmin.jar"/> <!-- Since mdadmin has a StringUtils, it needs to come after moneydance.jar -->
-    <pathelement path="../lib/jfreechart-1.0.13.jar"/>
-    <pathelement path="../lib/jcommon-1.0.16.jar"/>
-    <pathelement path="../lib/gson-2.8.7.jar"/>
+    <pathelement path="../lib/extadmin.jar"/> <!-- Since extadmin has a StringUtils, it needs to come after moneydance.jar -->
+    <pathelement path="../lib/jfreechart-1.5.4.jar"/>
+    <pathelement path="../lib/jcommon-1.0.24.jar"/>
+    <pathelement path="../lib/gson-2.10.1.jar"/>
     <pathelement path="../lib/mdpython.jar"/> <!-- Used for Python pre-compile -->
   </path>
 
