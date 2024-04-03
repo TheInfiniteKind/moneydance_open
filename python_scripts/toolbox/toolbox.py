@@ -3368,7 +3368,7 @@ Visit: %s (Author's site)
     def isEnhancedSidebarBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ENHANCED_SIDEBAR_BUILD)
     if not isEnhancedSidebarBuild():
         # from com.moneydance.apps.md.view.gui.sidebar import FullSideBarItemList
-        from com.moneydance.apps.md.view.gui.sidebar.nodes import SideBarNodeFactory, SideBarNodeType
+        from com.moneydance.apps.md.view.gui.sidebar.nodes import SideBarNodeFactory, SideBarNodeType                   # noqa (sidebar changed at 5100)
 
     def isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=False):
         if ((not checkMainTask and not checkAttachmentsTask) or (checkMainTask and checkAttachmentsTask)):
@@ -3586,18 +3586,18 @@ Visit: %s (Author's site)
         @staticmethod
         def changeState(newState):
             if isAppDebugEnabledBuild():
-                LOGGER = AppDebug.logger(CustomURLStreamHandlerFactory.DEBUG_LOGGER_ID)                                 # noqa
+                LOGGER = AppDebug.logger(CustomURLStreamHandlerFactory.DEBUG_LOGGER_ID)
                 MoneybotURLDebug.saveState = LOGGER.isEnabled()
                 LOGGER.setEnabled(newState)
             else:
-                MoneybotURLDebug.saveState = MoneybotURLStreamHandlerFactory.DEBUG
+                MoneybotURLDebug.saveState = MoneybotURLStreamHandlerFactory.DEBUG                                      # noqa (changed in 5100)
                 MoneybotURLStreamHandlerFactory.DEBUG = newState
 
         @staticmethod
         def resetState():
             if MoneybotURLDebug.saveState is None: return
             if isAppDebugEnabledBuild():
-                LOGGER = AppDebug.logger(CustomURLStreamHandlerFactory.DEBUG_LOGGER_ID)                                 # noqa
+                LOGGER = AppDebug.logger(CustomURLStreamHandlerFactory.DEBUG_LOGGER_ID)
                 LOGGER.setEnabled(MoneybotURLDebug.saveState)
             else:
                 MoneybotURLStreamHandlerFactory.DEBUG = MoneybotURLDebug.saveState
@@ -3610,17 +3610,17 @@ Visit: %s (Author's site)
         @staticmethod
         def changeState(newState):
             if isAppDebugEnabledBuild():
-                SyncerDebug.saveState = AppDebug.SYNC.isEnabled()                                                       # noqa
-                AppDebug.SYNC.setEnabled(newState)                                                                      # noqa
+                SyncerDebug.saveState = AppDebug.SYNC.isEnabled()
+                AppDebug.SYNC.setEnabled(newState)
             else:
-                SyncerDebug.saveState = Syncer.DEBUG
+                SyncerDebug.saveState = Syncer.DEBUG                                                                    # noqa (changed in 5100)
                 Syncer.DEBUG = newState
 
         @staticmethod
         def resetState():
             if SyncerDebug.saveState is None: return
             if isAppDebugEnabledBuild():
-                AppDebug.SYNC.setEnabled(SyncerDebug.saveState)                                                         # noqa
+                AppDebug.SYNC.setEnabled(SyncerDebug.saveState)
             else:
                 Syncer.DEBUG = SyncerDebug.saveState
 
@@ -3632,8 +3632,8 @@ Visit: %s (Author's site)
         @staticmethod
         def changeState(newState):
             if isAppDebugEnabledBuild():
-                MainDebug.saveState = AppDebug.DEBUG.isEnabled()                                                        # noqa
-                AppDebug.DEBUG.setEnabled(newState)                                                                     # noqa
+                MainDebug.saveState = AppDebug.DEBUG.isEnabled()
+                AppDebug.DEBUG.setEnabled(newState)                                                                     # noqa (changed in 5100)
             else:
                 MainDebug.saveState = MD_REF.DEBUG
                 MD_REF.DEBUG = newState
@@ -3642,7 +3642,7 @@ Visit: %s (Author's site)
         def resetState():
             if MainDebug.saveState is None: return
             if isAppDebugEnabledBuild():
-                AppDebug.DEBUG.setEnabled(MainDebug.saveState)                                                          # noqa
+                AppDebug.DEBUG.setEnabled(MainDebug.saveState)
             else:
                 MD_REF.DEBUG = MainDebug.saveState
 
@@ -4287,7 +4287,7 @@ Visit: %s (Author's site)
     def isKotlinCompiledBuildAll(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL)                                    # 2023.0(5000)
 
     if isKotlinCompiledBuild():
-        from okio import BufferedSource, Buffer, Okio
+        from okio import BufferedSource, Buffer, Okio                                                                   # noqa (5100 Kotlin/JVM version)
         if debug: myPrint("B", "** Kotlin compiled build detected, new libraries enabled.....")
 
     def convertBufferedSourceToInputStream(bufferedSource):
@@ -26418,12 +26418,12 @@ after saving the file, restart Moneydance
                           "PlaidConnection.DEBUG                  currently set to: %s\n"
                           %(md_debug,
                             moneydance_debug_props_key, props_debug,
-                            Syncer.DEBUG,
-                            CustomURLStreamHandlerFactory.DEBUG,
-                            MoneybotURLStreamHandlerFactory.DEBUG,
-                            OFXConnection.DEBUG_MESSAGES,
-                            OnlineTxnMerger.DEBUG,
-                            "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG))
+                            Syncer.DEBUG,                                                                               # noqa
+                            CustomURLStreamHandlerFactory.DEBUG,                                                        # noqa
+                            MoneybotURLStreamHandlerFactory.DEBUG,                                                      # noqa
+                            OFXConnection.DEBUG_MESSAGES,                                                               # noqa
+                            OnlineTxnMerger.DEBUG,                                                                      # noqa
+                            "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG))                          # noqa
             else:
                 askStr = ("main.DEBUG                             currently set to: %s\n" 
                           "System.getProperty('%s') currently set to: %s\n"

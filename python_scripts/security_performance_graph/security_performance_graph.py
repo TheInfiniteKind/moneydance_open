@@ -434,7 +434,7 @@ else:
     from org.jfree.data.time import TimeSeries, TimeSeriesCollection, RegularTimePeriod, TimeTableXYDataset
     from org.jfree.data.xy import XYDataset
     if MD_REF.getBuild() < 5100:
-        from org.jfree.chart import ChartUtilities as ChartUtils
+        from org.jfree.chart import ChartUtilities as ChartUtils                                                        # noqa (renamed from 5100 onwards)
         from org.jfree.ui import RectangleInsets
     else:
         from org.jfree.chart import ChartUtils

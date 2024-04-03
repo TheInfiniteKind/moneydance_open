@@ -2,11 +2,11 @@
   "id" = "net_account_balances"
   "extension_type" = "python"
   "vendor" = "Stuart Beesley - StuWareSoftSystems"
-  "module_build" = "1048"
+  "module_build" = "1049"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Custom Balances"
   "module_desc" = "Summary Page multi-row/currency widget that totals user-selected account/category/security balances with custom calculations/formulas"
   "mac_sandbox_friendly" = "true"
-  "news" = "Added: row formulas...."
+  "news" = "Added: row formulas....;now leveraging MD2024(5100) enhanced DateRangeChooser"
 }
