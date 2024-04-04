@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1049 - April 2024 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1050 - April 2024 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -146,6 +146,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 #               ... note: I considered switching to the MD upgraded DRC. It does work, but keeping my own (for now)...
 #               Switched to latest DateRangeOption resource keys, with behind the scenes method to fix them....
 #               5100 dropped QuickSearchField::setOuterBackground()
+# build: 1050 - Bumping the build number....
 
 # todo - consider better formula handlers... e.g. com.infinitekind.util.StringUtils.parseFormula(String, char)
 # todo - option to show different dpc (e.g. full decimal precision)
@@ -157,7 +158,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1049"
+version_build = "1050"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
