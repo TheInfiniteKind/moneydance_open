@@ -164,6 +164,9 @@
 #               Take advantage of of context menu scriptinfo abilities (since MD2024(5100))... - e.g. set selected transactions...
 #               Switch to new debug controls in AppDebug class...
 #               From MD2024(5100) onwards, disable remove_inactive_from_sidebar(); rename 'MoneyBot' references to 'Developer Console'
+#               Add checks for "add_to_sidebar.loc" and "add_to_sidebar.size" window size/location keys (5104)....
+
+# NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
 # todo - undo the patch to DetectMobileAppTxnFiles() for Sonoma.. Perhaps put into a Thread()?
 
@@ -4476,6 +4479,8 @@ Visit: %s (Author's site)
     def calculateMoneydanceDatasetSize(_lReturnMBs=False, whichBook=None):
         """Calculates and returns the size of the Moneydance dataset in bytes (or MBs when _lReturnMBs=True), and file count"""
 
+        myPrint("DB", "Starting calculation of dataset size.....")
+
         if whichBook is None or not isinstance(whichBook, AccountBook):
             book = MD_REF.getCurrentAccountBook()
         else:
@@ -5142,8 +5147,8 @@ Visit: %s (Author's site)
             _THIS_METHOD_NAME = "Detect invalid window locations/sizes".upper()
 
             virtualBounds = Rectangle(0, 0, 0, 0)
-            ge = GraphicsEnvironment.getLocalGraphicsEnvironment()  # type: GraphicsEnvironment
-            lstGDs = ge.getScreenDevices()                          # type: [GraphicsDevice]
+            ge = GraphicsEnvironment.getLocalGraphicsEnvironment()                                                      # type: GraphicsEnvironment
+            lstGDs = ge.getScreenDevices()                                                                              # type: [GraphicsDevice]
             for gd in lstGDs:
                 print gd, gd.getDefaultConfiguration(), gd.getDefaultConfiguration().getBounds()
                 virtualBounds.add(gd.getDefaultConfiguration().getBounds())
@@ -9228,6 +9233,7 @@ Visit: %s (Author's site)
                 or theKey.startswith("mbot.loc")
                 or theKey.startswith("mbot.size")
                 or theKey.startswith("gui.")
+                or theKey.startswith("add_to_sidebar.")
                 or theKey.endswith("rec_reg.credit")
                 or theKey.endswith("rec_reg.debit")
                 or "col_widths." in theKey
@@ -9250,6 +9256,8 @@ Visit: %s (Author's site)
                 or "divider" in theKey
                 or "location" in theKey
                 or "size" in theKey
+                or "sidebar.size" in theKey
+                or "sidebar.loc" in theKey
                 or "rec_reg.credit" in theKey
                 or "rec_reg.debit" in theKey
                 or "mbot.loc" in theKey
@@ -9274,6 +9282,7 @@ Visit: %s (Author's site)
                 or "_report_loc" in theKey
                 or "winloc" in theKey
                 or "location" in theKey
+                or "sidebar.loc" in theKey
                 or "mbot.loc" in theKey):
             return False
 
@@ -9289,6 +9298,7 @@ Visit: %s (Author's site)
 
         if not ("win_size" in theKey
                 or "size" in theKey
+                or "sidebar.size" in theKey
                 or "winsize" in theKey
                 or "winsz" in theKey
                 or "win.sz" in theKey
@@ -24917,7 +24927,7 @@ after saving the file, restart Moneydance
                     continue
 
                 lFoundKeyTest = False
-                for test in ["security_list", "curr_list", "ratioSettings.", "ol_acct_map_win"]:
+                for test in ["security_list", "curr_list", "ratioSettings.", "ol_acct_map_win", "add_to_sidebar."]:
                     if theKey.startswith(test) or "custom_filter" in theKey:
                         lFoundKeyTest = True
                         if lReset:
