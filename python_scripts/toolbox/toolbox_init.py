@@ -537,8 +537,10 @@ class QuickDiag(Runnable):
             # msg += ("OS PLATFORM:                     %s (%s)\n" %(System.getProperty("os.name"), System.getProperty("os.version")))
             # msg += ("ARCHITECTURE:                    %s\n" %(System.getProperty("os.arch")))
 
-            if self.mdRef.getBuild() < 5100:        # MD2024(5100) has this feature already
-                for i in range(3):
+            jvmStats = self.mdRef.getBuild() < 5100    # MD2024(5100) has this feature already
+
+            for i in range(3):
+                if jvmStats:
                     runTime = Runtime.getRuntime()
                     maxMemory = Runtime.getRuntime().maxMemory()
                     if i < 1: msg += ("JVM - Available processor cores: %s\n" %(runTime.availableProcessors()))
@@ -551,11 +553,12 @@ class QuickDiag(Runnable):
                         msg += ("** MD memory usage is %s of max allocated to JVM%s **\n"
                                 %("{:.0%}".format(usage),
                                   ", consider editing .vmoptions file to increase '-Xmx' or '-XX:MaxRAMPercentage=' memory setting" if not Platform.isOSX() else ""))
-                    msg += "-----------------------------------------------------\n"
-                    msg += "\n"
-                    _specialPrint(msg)
-                    msg = "\n-----------------------------------------------------\n"
-                    Thread.sleep((i + 1) * 60 * 1000)     # Sleep and repeat.....
+                msg += "-----------------------------------------------------\n"
+                msg += "\n"
+                _specialPrint(msg)
+                if not jvmStats: break
+                msg = "\n-----------------------------------------------------\n"
+                Thread.sleep((i + 1) * 60 * 1000)     # Sleep and repeat.....
 
         except InterruptedException: pass
 
