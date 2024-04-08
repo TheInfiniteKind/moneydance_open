@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1064 - November 2020 thru 2024 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1065 - November 2020 thru 2024 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -165,6 +165,7 @@
 #               Switch to new debug controls in AppDebug class...
 #               From MD2024(5100) onwards, disable remove_inactive_from_sidebar(); rename 'MoneyBot' references to 'Developer Console'
 #               Add checks for "add_to_sidebar.loc" and "add_to_sidebar.size" window size/location keys (5104)....
+# build: 1065 - Added MD2024(5106) new auto backup save everytime time recognition (etc)... Leverage new UserPreferences.getBackupOption() and class: BackupOption
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -197,7 +198,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1064"
+version_build = "1065"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -592,7 +593,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5100
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5106
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3372,6 +3373,11 @@ Visit: %s (Author's site)
     if not isEnhancedSidebarBuild():
         # from com.moneydance.apps.md.view.gui.sidebar import FullSideBarItemList
         from com.moneydance.apps.md.view.gui.sidebar.nodes import SideBarNodeFactory, SideBarNodeType                   # noqa (sidebar changed at 5100)
+
+    GlobalVars.MD_AUTO_BACKUP_ENHANCED_BUILD = 5106                                                                     # MD2024(5106)
+    def isAutoBackupEnhancedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_AUTO_BACKUP_ENHANCED_BUILD)
+    if isAutoBackupEnhancedBuild():
+        from com.moneydance.apps.md.controller import BackupOption                                                      # noqa
 
     def isSyncTaskSyncing(checkMainTask=False, checkAttachmentsTask=False):
         if ((not checkMainTask and not checkAttachmentsTask) or (checkMainTask and checkAttachmentsTask)):
@@ -6295,19 +6301,17 @@ Visit: %s (Author's site)
 
         textArray.append(u"\n>> BACKUPS")
 
-        destroyBackupChoices = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, u"5")
+        destroyBackupChoices = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5")
         destroyBackupChoicesInt = MD_REF.getPreferences().getIntSetting(UserPreferences.BACKUP_DESTROY_NUMBER, 5)
-        returnedBackupType = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, u"every_x_days")
-        if returnedBackupType == u"every_time":
-            dailyBackupCheckbox = True
-            destroyBackupChoices = u"1"
-            destroyBackupChoicesInt = 1
-        elif returnedBackupType == u"every_x_days":
-            dailyBackupCheckbox = True
-        else:
-            dailyBackupCheckbox = False
 
-        textArray.append(u"Save Backups Daily:     %s" %(dailyBackupCheckbox))
+        returnedBackupType = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
+        if isAutoBackupEnhancedBuild():
+            backupOption = MD_REF.getPreferences().getBackupOption()
+            textArray.append(u"Save Backups:           %s (key: '%s')" %(backupOption, returnedBackupType))
+        else:
+            dailyBackup = (returnedBackupType != "no_backup")
+            textArray.append(u"Save Backups Daily:     %s (key: '%s')" %(dailyBackup, returnedBackupType))
+
         textArray.append(u"Keep no more than       %s%s backups" %(destroyBackupChoices, u"(Infinity)" if destroyBackupChoicesInt < 1 else u""))
 
         textArray.append(u"separate Backup Folder: %s" %(MD_REF.getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))

@@ -169,6 +169,12 @@ def _saveExtensionGlobalPreferences(newExtnPrefs):
 # definitions unique to this script
 
 
+_MD_AUTO_BACKUP_ENHANCED_BUILD = 5106                                                                                   # MD2024(5106)
+def _isAutoBackupEnhancedBuild(): return (MD_REF.getBuild() >= _MD_AUTO_BACKUP_ENHANCED_BUILD)
+if _isAutoBackupEnhancedBuild(): pass
+    # from com.moneydance.apps.md.controller import BackupOption                                                          # noqa
+
+
 if debug:
     try:
         from org.violetlib.aqua import AquaLookAndFeel
@@ -481,17 +487,15 @@ class QuickDiag(Runnable):
 
             destroyBackupChoices = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5")
             destroyBackupChoicesInt = self.mdRef.getPreferences().getIntSetting(UserPreferences.BACKUP_DESTROY_NUMBER, 5)
-            returnedBackupType = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
-            if returnedBackupType == "every_time":
-                dailyBackupCheckbox = True
-                destroyBackupChoices = "1"
-                destroyBackupChoicesInt = 1
-            elif returnedBackupType == "every_x_days":
-                dailyBackupCheckbox = True
-            else:
-                dailyBackupCheckbox = False
 
-            msg += ("BACKUPS - Save Daily:            %s\n" %(dailyBackupCheckbox))
+            returnedBackupType = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
+            if _isAutoBackupEnhancedBuild():
+                backupOption = MD_REF.getPreferences().getBackupOption()
+                msg += ("BACKUPS - Save Daily option:     %s (key: '%s')\n" %(backupOption, returnedBackupType))
+            else:
+                dailyBackup = (returnedBackupType != "no_backup")
+                msg += ("BACKUPS - Save Daily:            %s (key: '%s')\n" %(dailyBackup, returnedBackupType))
+
             msg += ("BACKUPS - Keep no more than:     %s%s backups\n" %(destroyBackupChoices, "(Infinity)" if destroyBackupChoicesInt < 1 else ""))
             msg += ("BACKUPS - Separate Backup Foldr: %s\n" %(self.mdRef.getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))
 

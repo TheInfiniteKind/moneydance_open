@@ -2,7 +2,7 @@
   "id" = "toolbox"
   "extension_type" = "python"
   "vendor" = "The Infinite Kind (co-authored with Stuart Beesley - StuWareSoftSystems)"
-  "module_build" = "1064"
+  "module_build" = "1065"
   "minbuild" = "3056"
   "vendor_url" = "https://yogi1967.github.io/MoneydancePythonScripts/"
   "module_name" = "Toolbox"
