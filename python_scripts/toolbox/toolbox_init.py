@@ -458,6 +458,19 @@ def _disableMoneyForesight():
 _disableMoneyForesight()
 
 
+# Apply quick fix in case there is an invalid auto backup key
+if not _isAutoBackupEnhancedBuild():
+    from com.moneydance.apps.md.controller import UserPreferences
+    if (UserPreferences.BACKUP_BACKUP_TYPE == "backup.backup_type"):
+        _every_x_days = "every_x_days"
+        _currentBackupKey = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, _every_x_days)
+        if (_currentBackupKey != "no_backup" and _currentBackupKey != _every_x_days):
+            _specialPrint("WARNING: auto backup key: '%s' invalid: '%s' >> changing to '%s'" %(UserPreferences.BACKUP_BACKUP_TYPE, _currentBackupKey, _every_x_days))
+            MD_REF.getPreferences().setSetting(UserPreferences.BACKUP_BACKUP_TYPE, _every_x_days)
+        else:
+            if debug: _specialPrint("VERIFIED: auto backup key: '%s' valid: '%s' (no change)" %(UserPreferences.BACKUP_BACKUP_TYPE, _currentBackupKey))
+        del _currentBackupKey, _every_x_days
+
 from java.io import File
 
 class QuickDiag(Runnable):
