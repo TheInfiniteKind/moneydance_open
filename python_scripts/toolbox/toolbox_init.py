@@ -169,10 +169,10 @@ def _saveExtensionGlobalPreferences(newExtnPrefs):
 # definitions unique to this script
 
 
-_MD_AUTO_BACKUP_ENHANCED_BUILD = 5106                                                                                   # MD2024(5106)
+_MD_AUTO_BACKUP_ENHANCED_BUILD = 5108                                                                                   # MD2024(5106)
 def _isAutoBackupEnhancedBuild(): return (MD_REF.getBuild() >= _MD_AUTO_BACKUP_ENHANCED_BUILD)
-if _isAutoBackupEnhancedBuild(): pass
-    # from com.moneydance.apps.md.controller import BackupOption                                                          # noqa
+if _isAutoBackupEnhancedBuild():
+    from com.moneydance.apps.md.controller import BackupOption                                                          # noqa
 
 
 if debug:
@@ -485,22 +485,29 @@ class QuickDiag(Runnable):
             from com.moneydance.apps.md.controller.io import FileUtils
             from com.moneydance.apps.md.controller import UserPreferences
 
-            destroyBackupChoices = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5")
-            destroyBackupChoicesInt = self.mdRef.getPreferences().getIntSetting(UserPreferences.BACKUP_DESTROY_NUMBER, 5)
+            destroyBackupChoicesStr = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5")
 
-            returnedBackupType = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
+            if _isAutoBackupEnhancedBuild():
+                destroyBackupChoicesInt = self.mdRef.getPreferences().getNumUniqueBackupDaysToKeep()
+                returnedBackupType = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE_OLD, "every_x_days"))     # noqa
+            else:
+                destroyBackupChoicesInt = self.mdRef.getPreferences().getIntSetting(UserPreferences.BACKUP_DESTROY_NUMBER, 5)
+                returnedBackupType = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
+
             if _isAutoBackupEnhancedBuild():
                 backupOption = MD_REF.getPreferences().getBackupOption()
-                msg += ("BACKUPS - Save Daily option:     %s (key: '%s')\n" %(backupOption, returnedBackupType))
+                msg += ("BACKUPS - Save Daily option:     %s (config key: '%s' value: '%s')%s\n" %(backupOption, UserPreferences.BACKUP_BACKUP_TYPE, returnedBackupType,
+                                                                                                    " ** INTRA DAY BACKUPS ENABLED **" if (backupOption == BackupOption.dailyPlus) else ""))
+                msg += ("BACKUPS - Keep no more than:     %s%s unique days of backups\n" %(destroyBackupChoicesStr, "(Infinity)" if destroyBackupChoicesInt < 1 else ""))
             else:
                 dailyBackup = (returnedBackupType != "no_backup")
-                msg += ("BACKUPS - Save Daily:            %s (key: '%s')\n" %(dailyBackup, returnedBackupType))
+                msg += ("BACKUPS - Save Daily:            %s (config key: '%s' value: '%s')\n" %(dailyBackup, UserPreferences.BACKUP_BACKUP_TYPE, returnedBackupType))
+                msg += ("BACKUPS - Keep no more than:     %s%s backup filess\n" %(destroyBackupChoicesStr, "(Infinity)" if destroyBackupChoicesInt < 1 else ""))
 
-            msg += ("BACKUPS - Keep no more than:     %s%s backups\n" %(destroyBackupChoices, "(Infinity)" if destroyBackupChoicesInt < 1 else ""))
             msg += ("BACKUPS - Separate Backup Foldr: %s\n" %(self.mdRef.getPreferences().getBoolSetting(UserPreferences.BACKUP_LOCATION_SELECTED, True)))
 
             backupFolder = FileUtils.getBackupDir(self.mdRef.getPreferences())
-            backupType = self.mdRef.getPreferences().getSetting(UserPreferences.BACKUP_BACKUP_TYPE, "every_x_days")
+            backupType = returnedBackupType
             autoBackup = (backupType != "no_backup")
             if not autoBackup:
                 backupFileTxt = "** WARNING: AUTO BACKUPS ARE DISABLED **"
@@ -519,7 +526,7 @@ class QuickDiag(Runnable):
             msg += ("..key - '_default_backup_dir':  '%s'\n" %(self.mdRef.getPreferences().getSetting("_default_backup_dir", "<not set>")))
 
             if self.mdRef.getBuild() < 5046:  # MD2023.2(5046) onwards fixes 'Infinity' backups bug not working
-                try: int(destroyBackupChoices)
+                try: int(destroyBackupChoicesStr)
                 except: msg += ("\n@@ BUG ALERT: You have specified to retain 'Infinity' backups, but Moneydance will ignore this and only keep 5 backups. Fixed in build: 5046 onwards @@\n\n")
             msg += "-----\n"
 
