@@ -713,15 +713,25 @@ NOTES ON COST BASIS / CAPITAL GAINS:
                  capital gains calculations. Do not rely on these calculations for tax returns or other important
                  documents. Please verify and use your own calculations for important / official government reporting.
 
-Cost basis can appear in Moneydance in multiple places. It is not calculated consistently everywhere... For example:
-- Investment account: Portfolio View tab (PVT)              (Avg Cost - new engine)
-- Cost Basis report (CBR)                                   (Avg Cost - old method)
-- Portfolio report (PR)                                     (Avg Cost - new engine)
-- Investment Performance report (IPR)                       (Avg Cost - new engine)
-- Capital Gains report (CGR)                                (Avg Cost - new engine)
+Cost basis can appear in Moneydance in multiple places:
+-------------------------------------------------------
+FROM MD2024(5100) Moneydance's internal Cost Basis / Capital Gains engine was rewritten (using Custom Balances' code).
+.. The calculations were unified and all screens/reports use one calculation. Since this build, Custom Balances reuses
+.. Moneydance's internal engine.. NOTE: There were a couple of further fixes made in MD2024.2(5119)
 
-Particularly for 'Average Cost' controlled securities, PVT and PR use MD's new CostCalculation engine and this tends to
-give a more accurate result. However, for securities with stock 'splits', this new engine has flaws and the CBR can
+>> In simple terms, if you are using MD2024 onwards, then Custom Balances uses Moneydance's calculation. As far as we
+know, the calculations should be correct everywhere... If you are using an older build of MD, then read on >>>>
+
+PRIOR TO MD2024... it is not calculated consistently within Moneydance...:
+... for example:
+    - Investment account: Portfolio View tab (PVT)              (Avg Cost - newer method)
+    - Cost Basis report (CBR)                                   (Avg Cost - old method)
+    - Portfolio report (PR)                                     (Avg Cost - newer method)
+    - Investment Performance report (IPR)                       (Avg Cost - newer method)
+    - Capital Gains report (CGR)                                (Avg Cost - newer engmethodine)
+
+Particularly for 'Average Cost' controlled securities, PVT & PR use MD's newer CostCalculation engine and this tends to
+give a more accurate result. However, for securities with stock 'splits', this newer engine has flaws and the CBR can
 sometimes give a 'better' result. In particular:
 
 - for average cost...:
@@ -736,6 +746,8 @@ sometimes give a 'better' result. In particular:
 
   .. Sell shares at zero price/amount causes CBR to ignore the txn and hence MD's cost basis goes wrong
   from this point. MD's new engine accounts for this.
+
+  .. Sell all shares with a zero cost basis... causes the capital gains NOT to report the full txn value as the gain
 
 - for 'Lot Control' securities, the original calculation method is used consistently for all screens/reports. But again,
   there can be issues in some places.
@@ -767,6 +779,7 @@ in both short-term and long-term pools (however this data is only shown in conso
 >> MD can report this same data in the Capital Gains report when the 'Show double-category average cost data' option is
    enabled. However, this does not affect the cost basis or gains calculation, and is incorrect when the security has
    stock splits....
+------------------------------------------------------------------------------------------------------------------------
 
 
 
