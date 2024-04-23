@@ -4065,18 +4065,29 @@ Visit: %s (Author's site)
                 if fields.txnType in [InvestTxnType.BUY, InvestTxnType.BUY_XFER, InvestTxnType.COVER, InvestTxnType.DIVIDEND_REINVEST]:
                     txnShares = fields.shares
                     buyCost = Math.round(float(txnShares) / fields.price)
-                    txnCostBasis = fields.amount if (buyCost == 0) else buyCost + fields.fee    # Manual adjustment of costbasis when sell/buy zero shares
+
+                    # SCB: MD2024(5118) fix - previously checked 'if (buyCost == 0L)'; also added check for buy shares with zero value...
+                    # manual adjustment of costbasis when buy zero shares; or buy shares for zero value to make zero cost basis (features ;->)
+                    txnCostBasis = fields.amount if (txnShares == 0) else 0 if (fields.amount == 0) else (buyCost + fields.fee)
                     txnFee = fields.fee
                     self.buyTxn = True
+                    if self.callingClass.COST_DEBUG:
+                        myPrint("B", ">> BUY: prev date: %s prev shrs asofasof: %s asof date: %s "
+                                     "prev running cost: %s "
+                                     "txnShares: %s "
+                                     "fields.amount: %s "
+                                     "buyCost: %s "
+                                     "txnCostBasis: %s"
+                                     %(previousPosition.getDate(), previousPosition.getSharesOwnedAsOfAsOf(), self.callingClass.getAsOfDate(), txnRunningCost, txnShares, fields.amount, buyCost, txnCostBasis))
 
                 elif fields.txnType in [InvestTxnType.SELL, InvestTxnType.SELL_XFER, InvestTxnType.SHORT]:
                     txnShares = -fields.shares
-                    runningAvgPrice = float(fields.price)
+                    runningAvgPrice = 0.0 if (fields.amount == 0) else float(fields.price)  # SCB: MD2024(5118) fix. When amount is zero, set price to zero too
                     if (previousPosition is not None and previousPosition.getSharesOwnedAsOfAsOf() != 0):
                         priorSharesOwnedAdjusted = self.callingClass.secCurr.unadjustValueForSplitsInt(previousPosition.getDate(), previousPosition.getSharesOwnedAsOfAsOf(), self.callingClass.getAsOfDate())
                         runningAvgPrice = float(txnRunningCost) / float(priorSharesOwnedAdjusted)
                         if self.callingClass.COST_DEBUG:
-                            myPrint("B", ">> prev date: %s prev shrs asofasof: %s asof date: %s "
+                            myPrint("B", ">> SELL: prev date: %s prev shrs asofasof: %s asof date: %s "
                                          "prev running cost: %s "
                                          "prior shrs owned adjusted: %s "
                                          "new avg running price: %s"
@@ -4087,7 +4098,8 @@ Visit: %s (Author's site)
                     sellCost = self.callingClass.secCurr.unadjustValueForSplitsInt(previousPosition.getDate(), sellCost, self.getDate())
 
                     # SCB: MD2024(5118) fix - previously checked 'if (sellCost == 0L)'
-                    txnCostBasis = (-fields.amount - fields.fee) if (txnShares == 0L) else sellCost   # manual adjustment of costbasis when sell/buy zero shares (feature ;->)
+                    # manual adjustment of costbasis when sell/buy zero shares (feature ;->)
+                    txnCostBasis = (-fields.amount - fields.fee) if (txnShares == 0) else sellCost
 
                     txnFee = fields.fee
                     self.sellTxn = True
