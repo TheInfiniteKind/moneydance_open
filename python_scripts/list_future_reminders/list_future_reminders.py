@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1029) - Dec 2023
+# list_future_reminders.py (build: 1030) - April 2024
 # Displays Moneydance future dated / scheduled reminders (along with options to auto-record, delete etc)
 
 ###############################################################################
@@ -78,6 +78,8 @@
 # build: 1029 - Common code - FileFilter fix...; Removed java.awt.print.Book import
 # build: 1029 - Tweaked cell renderer(s) for padding and highlighted colour...
 # build: 1029 - Replace look forward days with AsOfDateChooser; Fixed Menu Reset Sort...
+# build: 1030 - Fix print button to refresh the JTable reference
+# build: 1031 - ???
 
 # todo - @he "Include subtotals / totals. Would be nice if user could select what to subtotal (by date / by account for sure)"
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
@@ -88,7 +90,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1029"
+version_build = "1030"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -5372,13 +5374,13 @@ Visit: %s (Author's site)
                 myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
         class PrintJTable(AbstractAction):
-            def __init__(self, _frame, _table, _title):
+            def __init__(self, _frame, globalVarsRef, _title):
                 self._frame = _frame
-                self._table = _table
+                self.globalVarsRef = globalVarsRef
                 self._title = _title
 
-            def actionPerformed(self, event):                                                               # noqa
-                printJTable(_theFrame=self._frame, _theJTable=self._table, _theTitle=self._title)
+            def actionPerformed(self, event):                                                                           # noqa
+                printJTable(_theFrame=self._frame, _theJTable=self.globalVarsRef.saveJTable, _theTitle=self._title)
 
         class ExtractMenuAction():
             def __init__(self): pass
@@ -5832,7 +5834,7 @@ Visit: %s (Author's site)
                 printButton.setToolTipText("Prints the output displayed in this window to your printer")
                 printButton.setOpaque(SetupMDColors.OPAQUE)
                 printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
-                printButton.addActionListener(PrintJTable(list_future_reminders_frame_, GlobalVars.saveJTable, "List Future Reminders"))
+                printButton.addActionListener(PrintJTable(list_future_reminders_frame_, GlobalVars, "List Future Reminders"))
 
                 mb = JMenuBar()
 
@@ -5914,7 +5916,7 @@ Visit: %s (Author's site)
 
             # As the JTable is new each time, add this here....
             list_future_reminders_frame_.getRootPane().getActionMap().remove("print-me")
-            list_future_reminders_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(list_future_reminders_frame_, GlobalVars.saveJTable, "List Future Reminders"))
+            list_future_reminders_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(list_future_reminders_frame_, GlobalVars, "List Future Reminders"))
 
             GlobalVars.saveJTable.getTableHeader().setReorderingAllowed(True)
             GlobalVars.saveJTable.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
