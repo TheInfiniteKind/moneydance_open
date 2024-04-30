@@ -4384,7 +4384,7 @@ Visit: %s (Author's site)
                     printURI = pAttrs.get(attribute.standard.Destination).getURI()
                     myPrint("B", "User has selected to print to destination: %s" %(printURI))
                 else:
-                    myPrint("DB", "User selected print service:", selectedPrintService)
+                    if debug: myPrint("DB", "User selected print service:", selectedPrintService)
 
                 thePageFormat = printerJob.getPageFormat(pAttrs)
 
@@ -4397,7 +4397,7 @@ Visit: %s (Author's site)
                 while pAttrs.containsKey(attribute.standard.JobName): pAttrs.remove(attribute.standard.JobName)
                 while pAttrs.containsKey(attribute.standard.Destination): pAttrs.remove(attribute.standard.Destination)
 
-                myPrint("DB", "Saving current print service:", printerJob.getPrintService())
+                if debug: myPrint("DB", "Saving current print service:", printerJob.getPrintService())
                 GlobalVars.defaultPrinterAttributes = attribute.HashPrintRequestAttributeSet(pAttrs)
                 GlobalVars.defaultPrintService = printerJob.getPrintService()
 
@@ -9902,7 +9902,7 @@ Visit: %s (Author's site)
                     if not sw.isCancelled() and not sw.isDone():
                         if debug: myPrint("`DB", "cancelSwingWorkers() sending CANCEL COMMAND to running SwingWorker:", sw)
                         if not sw.cancel(True):
-                            myPrint("`DB", " @@ ALERT - SwingWorker.cancel(True) failed >> Moving on.....:", sw)
+                            if debug: myPrint("DB", " @@ ALERT - SwingWorker.cancel(True) failed >> Moving on.....:", sw)
                         else:
                             lCancelledAny = True
                     else:
@@ -12728,7 +12728,7 @@ Visit: %s (Author's site)
 
                 if lFilter: myPrint("DB", ".... FILTER MODE: %s" %(lFilter))
 
-                if debug: myPrint("DB", "..X. Was passed:", unicode(_listOfAccountsForJList))                           # avoid: java.lang.IllegalArgumentException
+                if debug: myPrint("DB", ".. .setJListDataAndSelection() was passed:", _listOfAccountsForJList)          # can get 'java.lang.IllegalArgumentException' here
 
                 countMatch = 0
                 index = 0
@@ -15087,7 +15087,7 @@ Visit: %s (Author's site)
                                     myPrint("DB", ".. getValueIsAdjusting() is True.... Ignoring.....")
                                     return
 
-                                myPrint("DB", ".. internal master list of selected was:", self.listOfSelectedObjects)
+                                if debug: myPrint("DB", ".. internal master list of selected was:", self.listOfSelectedObjects)
 
                                 i = -1
                                 dataModel = self.getModel()
@@ -15119,7 +15119,7 @@ Visit: %s (Author's site)
                                     dump_sys_error_to_md_console_and_errorlog()
                                     raise
 
-                                myPrint("DB", ".. internal master list of selected is now:", self.listOfSelectedObjects)
+                                if debug: myPrint("DB", ".. internal master list of selected is now:", self.listOfSelectedObjects)
                             except:
                                 myPrint("B", "@@ ERROR in .valueChanged() routine")
                                 dump_sys_error_to_md_console_and_errorlog()
@@ -16688,7 +16688,7 @@ Visit: %s (Author's site)
 
                 f_ui_result = getFieldByReflection(self.moneydanceContext, "ui")
 
-                myPrint("DB", "** SPECIAL: f_ui_result:", f_ui_result)
+                if debug: myPrint("DB", "** SPECIAL: f_ui_result:", f_ui_result)
                 if f_ui_result is None or f_ui_result.firstMainFrame is None:
                     myPrint("DB", ".. Nope - the Moneydance UI is NOT yet loaded (fully)..... so exiting...")
                     debug = saveDebug
