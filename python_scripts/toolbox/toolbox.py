@@ -169,6 +169,7 @@
 # build: 1066 - ???
 # build: 1066 - Tweak debug on/off code adjusting for the CostCalculation debugger switch after 5118
 #               Tweak MyJFrame to catch individual errors....
+#               Improve 'Shrink Dataset' function to allow user to delete recent UPLOADBUF file....
 # build: 1066 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -4562,12 +4563,18 @@ Visit: %s (Author's site)
             dump_sys_error_to_md_console_and_errorlog()
 
         if not lOK: myPrint("B","ERROR: 1 or more directory structures could not be removed...")
-        myPrint("B","%s: %s directory structures sucessfully deleted" %(_pathToSearch, countDeleted))
+        myPrint("B","%s: %s directory structures successfully deleted" %(_pathToSearch, countDeleted))
         return lOK
 
     def is_file_older_than_x_days(_file, _days=1):
         file_time = os.path.getmtime(_file) 	# Check against 24 hours
         if ((time.time() - file_time) / 3600) > (24 * _days):
+            return True
+        return False
+
+    def is_file_newer_than_x_days(_file, _days=1):
+        file_time = os.path.getmtime(_file) 	# Check against 24 hours
+        if ((time.time() - file_time) / 3600) < (24 * _days):
             return True
         return False
 
@@ -26131,17 +26138,35 @@ after saving the file, restart Moneydance
                          theTitle=_THIS_METHOD_NAME,
                          lModal=True,OKButtonText="ACKNOWLEDGE").go()
 
+        lDeleteUploadBuffer = False
+        fp = os.path.join(safeFullPath, UPLOADBUFFER)
+        if (os.path.exists(fp) and is_file_newer_than_x_days(fp, 2)):
+            output += "\nSyncing file '%s' exists....\n" %(UPLOADBUFFER)
+            theMsg = MyPopUpDialogBox(toolbox_frame_,
+                                        "A recently modified 'uploadbuf' file exists.",
+                                        "If you have a corrupt/stuck/large 'uploadbuf' file then\n"
+                                        ".. click 'DELETE-UPLOADBUF', otherwise click 'Cancel'\n"
+                                        "(clicking 'Cancel' means proceed, but do NOT delete this file...)",
+                                        theTitle=_THIS_METHOD_NAME, lCancelButton=True, OKButtonText="DELETE-UPLOADBUF", lAlertLevel=1)
+            if theMsg.go():
+                output += "User agreed to delete '%s' file..\n" %(UPLOADBUFFER)
+                lDeleteUploadBuffer = True
+            else:
+                output += "User requested NOT to delete '%s' file..\n" %(UPLOADBUFFER)
+        else:
+            output += "\nNo recent '%s' file was detected, as such it will not be deleted...\n" %(UPLOADBUFFER)
+
         lPurgeOutDir = False
         if syncFolder is None:
             output += "\nSyncing appears disabled....\n"
             theMsg = MyPopUpDialogBox(toolbox_frame_,
                                         "It appears that you have Syncing disabled (is this correct?).",
-                                        "If you really are NOT using Sync, I can purge the 'out' directory too?\n"
+                                        "If you really are NOT using Sync, then you can purge the 'out' directory.\n"
                                         "Only Click 'PURGE-OUT' if you are NOT using Sync on this dataset.\n"
                                         "(i.e. if you have temporarily disabled Sync, click Cancel)\n"
                                         "If you 'PURGE-OUT', you can (re)create a NEW Sync relationship later (if needed)....\n"
                                         "(clicking 'Cancel' means Do NOT purge 'out' directory...)",
-                                        theTitle=_THIS_METHOD_NAME, lCancelButton=True, OKButtonText="PURGE-OUT")
+                                        theTitle=_THIS_METHOD_NAME, lCancelButton=True, OKButtonText="PURGE-OUT", lAlertLevel=1)
             if theMsg.go():
                 output += "User confirmed that Sync is not being used and to proceed with purge of '%s'..\n" %(OUTGOING_PATH)
                 lPurgeOutDir = True
@@ -26229,8 +26254,8 @@ after saving the file, restart Moneydance
         output += "\n%s targets...:\n" %(UPLOADBUFFER)
         targetUploadBufferForDeletion = []
         fp = os.path.join(safeFullPath, UPLOADBUFFER)
-        if (os.path.exists(fp) and is_file_older_than_x_days(fp, max(1, DAYS_TO_KEEP))):
-            # Should be an 'old' file... delete it.....
+        if (os.path.exists(fp) and (lDeleteUploadBuffer or is_file_older_than_x_days(fp, max(1, DAYS_TO_KEEP)))):
+            # Should be an 'old' file, or user agreed to delete it...
             targetUploadBufferForDeletion.append(StoreFileReference(UPLOADBUFFER, UPLOADBUFFER, fp))
             output += "%s (modified: %s)\n" %(UPLOADBUFFER, getHumanReadableModifiedDateTimeFromFile(fp))
         del fp
