@@ -147,10 +147,10 @@
 #               Added Date Entered, Sync Date, reconciled date, reconciled asof dates into EAR and EIT extracts...
 #               Tweaked MyCostCalculation::getSharesAndCostBasisForAsOf()
 #               Added Delete Reminder option on EFR view
-# build: 1042 - ???
-# build: 1042 - Update MyCostCalculation to v8
-# build: 1042 - MyJFrame(v5)
-# build: 1042 - ???
+# build: 1042 - Update MyCostCalculation to v8; MyJFrame(v5)
+#               Add extra price/hidden price date info to Extract Security Balances (ESB)... Also fix ESB Security Master prices for date
+# build: 1043 - ???
+# build: 1043 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -12481,6 +12481,8 @@ Visit: %s (Author's site)
                                     if GlobalVars.saved_lAlwaysUseCurrentPosition_ESB:
                                         GlobalVars.saved_securityBalancesDate_ESB = todayInt
 
+                                    baseCurr = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
+
                                     class MyAcctFilterESB(AcctFilter):
 
                                         def __init__(self,
@@ -12579,12 +12581,15 @@ Visit: %s (Author's site)
 
                                     dki = 0
                                     GlobalVars.dataKeys = {}                                                            # noqa
+                                    GlobalVars.dataKeys["_ASOFDATE"]                  = [dki, "AsOfDate"];                     dki += 1
                                     GlobalVars.dataKeys["_ACCOUNT"]                   = [dki, "Account"];                      dki += 1
+                                    GlobalVars.dataKeys["_ACT_AI_STATUS"]             = [dki, "A/I"];                          dki += 1
                                     GlobalVars.dataKeys["_ACCTCURR"]                  = [dki, "AcctCurrency"];                 dki += 1
                                     GlobalVars.dataKeys["_BASECURR"]                  = [dki, "BaseCurrency"];                 dki += 1
                                     GlobalVars.dataKeys["_SECURITY"]                  = [dki, "Security"];                     dki += 1
                                     GlobalVars.dataKeys["_SECURITYID"]                = [dki, "SecurityID"];                   dki += 1
                                     GlobalVars.dataKeys["_TICKER"]                    = [dki, "SecurityTicker"];               dki += 1
+                                    GlobalVars.dataKeys["_SECURITYSHOWSTATUS"]        = [dki, "ShowOnSummaryPage"];            dki += 1
                                     GlobalVars.dataKeys["_SECMSTRUUID"]               = [dki, "SecurityMasterUUID"];           dki += 1
                                     GlobalVars.dataKeys["_AVGCOST"]                   = [dki, "AverageCostControl"];           dki += 1
 
@@ -12609,6 +12614,11 @@ Visit: %s (Author's site)
                                     GlobalVars.dataKeys["_ACCTCOSTBASIS"]             = [dki, "AcctCostBasis"];                dki += 1
                                     GlobalVars.dataKeys["_BASECOSTBASIS"]             = [dki, "BaseCostBasis"];                dki += 1
                                     GlobalVars.dataKeys["_CURRENTPRICE"]              = [dki, "CurrentPrice"];                 dki += 1
+                                    GlobalVars.dataKeys["_MOSTRECENTPRICE"]           = [dki, "MostRecentPrice"];              dki += 1
+                                    GlobalVars.dataKeys["_PRICEDIFF"]                 = [dki, "PriceDiff"];                    dki += 1
+                                    GlobalVars.dataKeys["_HIDDENPRICEDATE"]           = [dki, "HiddenPriceDate"];              dki += 1
+                                    GlobalVars.dataKeys["_MOSTRECENTPRICEDATE"]       = [dki, "MostRecentPriceDate"];          dki += 1
+                                    GlobalVars.dataKeys["_PRICEDATEEDIFF"]            = [dki, "PriceDateDiff"];                dki += 1
                                     GlobalVars.dataKeys["_SECRELCURR"]                = [dki, "SecurityRelCurrency"];          dki += 1
                                     GlobalVars.dataKeys["_CURRENTPRICETOBASE"]        = [dki, "CurrentPriceToBase"];           dki += 1
                                     GlobalVars.dataKeys["_CURRENTPRICEINVESTCURR"]    = [dki, "CurrentPriceInvestCurr"];       dki += 1
@@ -12652,11 +12662,14 @@ Visit: %s (Author's site)
 
                                         _row[GlobalVars.dataKeys["_KEY"][_COLUMN]] = ""
 
+                                        _row[GlobalVars.dataKeys["_ASOFDATE"][_COLUMN]] = GlobalVars.saved_securityBalancesDate_ESB if (not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB) else todayInt
                                         _row[GlobalVars.dataKeys["_ACCOUNT"][_COLUMN]] = investAcct.getFullAccountName()
+                                        _row[GlobalVars.dataKeys["_ACT_AI_STATUS"][_COLUMN]] = ("I" if investAcct.getAccountIsInactive() else "A")
                                         _row[GlobalVars.dataKeys["_ACCTCURR"][_COLUMN]] = investAcctCurr.getIDString()
                                         _row[GlobalVars.dataKeys["_BASECURR"][_COLUMN]] = GlobalVars.baseCurrency.getIDString()
                                         _row[GlobalVars.dataKeys["_SECURITY"][_COLUMN]] = unicode(securityCurr.getName())
                                         _row[GlobalVars.dataKeys["_SECURITYID"][_COLUMN]] = unicode(securityCurr.getIDString())
+                                        _row[GlobalVars.dataKeys["_SECURITYSHOWSTATUS"][_COLUMN]] = ("N" if securityCurr.getHideInUI() else "Y")
                                         _row[GlobalVars.dataKeys["_SECMSTRUUID"][_COLUMN]] = securityCurr.getUUID()
                                         _row[GlobalVars.dataKeys["_TICKER"][_COLUMN]] = unicode(securityCurr.getTickerSymbol())
                                         _row[GlobalVars.dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
@@ -12706,16 +12719,38 @@ Visit: %s (Author's site)
                                             _row[GlobalVars.dataKeys["_CURRENTVALUETOBASE"][_COLUMN]] = round(secBalBaseCurrDbl, 2)
                                             _row[GlobalVars.dataKeys["_CURRENTVALUEINVESTCURR"][_COLUMN]] = round(secBalInvestCurrDbl, 2)
 
+                                            # These are meaningless when using an asof date...
+                                            _row[GlobalVars.dataKeys["_MOSTRECENTPRICE"][_COLUMN]] = ""
+                                            _row[GlobalVars.dataKeys["_PRICEDIFF"][_COLUMN]] = ""
+                                            _row[GlobalVars.dataKeys["_HIDDENPRICEDATE"][_COLUMN]] = ""
+                                            _row[GlobalVars.dataKeys["_MOSTRECENTPRICEDATE"][_COLUMN]] = ""
+                                            _row[GlobalVars.dataKeys["_PRICEDATEEDIFF"][_COLUMN]] = ""
+
                                         else:
 
                                             cPriceToBase = (1.0 / securityCurr.getBaseRate())                           # same as .getRate(None)
                                             cPriceInvestCurr = (1.0 / securityCurr.getRate(investAcctCurr))
 
-                                            _row[GlobalVars.dataKeys["_CURRENTPRICE"][_COLUMN]] = (1.0 / securityCurr.getRelativeRate())
+                                            currentPrice = (1.0 / securityCurr.getRelativeRate())
+                                            _row[GlobalVars.dataKeys["_CURRENTPRICE"][_COLUMN]] = currentPrice
                                             _row[GlobalVars.dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = round(cPriceToBase, 5)
                                             _row[GlobalVars.dataKeys["_CURRENTPRICEINVESTCURR"][_COLUMN]] = round(cPriceInvestCurr, 5)
                                             _row[GlobalVars.dataKeys["_CURRENTVALUETOBASE"][_COLUMN]] = round(cPriceToBase * secShrHolding, 2)
                                             _row[GlobalVars.dataKeys["_CURRENTVALUEINVESTCURR"][_COLUMN]] = round(cPriceInvestCurr * secShrHolding, 2)
+
+                                            updatedPriceDateLong = securityCurr.getLongParameter("price_date", 0)
+                                            updatePriceDateInt = "???" if (updatedPriceDateLong == 0) else DateUtil.convertLongDateToInt(updatedPriceDateLong)
+                                            _row[GlobalVars.dataKeys["_HIDDENPRICEDATE"][_COLUMN]] = updatePriceDateInt
+
+                                            priceHistory = securityCurr.getSnapshots()
+                                            latestSnapDateInt = "???" if (priceHistory.size() < 1) else priceHistory[-1].getDateInt()
+                                            _row[GlobalVars.dataKeys["_MOSTRECENTPRICEDATE"][_COLUMN]] = latestSnapDateInt
+                                            _row[GlobalVars.dataKeys["_PRICEDATEEDIFF"][_COLUMN]] = "X" if (updatePriceDateInt != latestSnapDateInt) else ""
+
+                                            latestSnapPrice = 0.0 if (priceHistory.size() < 1) else (1.0 / priceHistory[-1].getRate())
+                                            _row[GlobalVars.dataKeys["_MOSTRECENTPRICE"][_COLUMN]] = latestSnapPrice
+                                            _row[GlobalVars.dataKeys["_PRICEDIFF"][_COLUMN]] = "X" if (round(currentPrice, 8) != round(latestSnapPrice, 8)) else ""
+                                            del priceHistory
 
                                         _row[GlobalVars.dataKeys["_SECINFO_TYPE"][_COLUMN]] = unicode(securityAcct.getSecurityType())
                                         _row[GlobalVars.dataKeys["_SECINFO_SUBTYPE"][_COLUMN]] = securityAcct.getSecuritySubType()
@@ -12805,6 +12840,7 @@ Visit: %s (Author's site)
                                                 if cashBalCurrDbl != 0.0:
                                                     _row = ([None] * GlobalVars.dataKeys["_END"][0])                    # Create a blank row to be populated below...
                                                     _row[GlobalVars.dataKeys["_KEY"][_COLUMN]] = ""
+                                                    _row[GlobalVars.dataKeys["_ASOFDATE"][_COLUMN]] = GlobalVars.saved_securityBalancesDate_ESB if (not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB) else todayInt
                                                     _row[GlobalVars.dataKeys["_ACCOUNT"][_COLUMN]] = investAcct.getFullAccountName()
                                                     _row[GlobalVars.dataKeys["_ACCTCURR"][_COLUMN]] = investAcctCurr.getIDString()
                                                     _row[GlobalVars.dataKeys["_BASECURR"][_COLUMN]] = GlobalVars.baseCurrency.getIDString()
@@ -12815,6 +12851,9 @@ Visit: %s (Author's site)
                                                     _row[GlobalVars.dataKeys["_TICKER"][_COLUMN]] = "__CASH BALANCE__"
                                                     _row[GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]] = 0.0
                                                     _row[GlobalVars.dataKeys["_CURRENTPRICE"][_COLUMN]] = 1.0
+                                                    _row[GlobalVars.dataKeys["_MOSTRECENTPRICE"][_COLUMN]] = 1.0
+                                                    _row[GlobalVars.dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = 1.0
+                                                    _row[GlobalVars.dataKeys["_CURRENTPRICEINVESTCURR"][_COLUMN]] = 1.0
                                                     _row[GlobalVars.dataKeys["_ACCTCOSTBASIS"][_COLUMN]] = round(cashBalCurrDbl, 2)
                                                     _row[GlobalVars.dataKeys["_BASECOSTBASIS"][_COLUMN]] = round(cashBalBaseDbl, 2)
                                                     _row[GlobalVars.dataKeys["_CURRENTVALUEINVESTCURR"][_COLUMN]] = round(cashBalCurrDbl, 2)
@@ -12848,21 +12887,54 @@ Visit: %s (Author's site)
                                             del unusedSecurityMasters
 
                                             if len(unusedFilteredSecurityMasters) > 0:
+                                                # Yup - yes this code is duplicative.... lazy me!
                                                 myPrint("B", _THIS_EXTRACT_NAME + "Adding %s unused security master records...." %(len(unusedFilteredSecurityMasters)))
                                                 for secCurr in unusedFilteredSecurityMasters:
                                                     _row = ([None] * GlobalVars.dataKeys["_END"][0])  # Create a blank row to be populated below...
                                                     _row[GlobalVars.dataKeys["_KEY"][_COLUMN]] = ""
+                                                    _row[GlobalVars.dataKeys["_ASOFDATE"][_COLUMN]] = GlobalVars.saved_securityBalancesDate_ESB if (not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB) else todayInt
                                                     _row[GlobalVars.dataKeys["_ACCOUNT"][_COLUMN]] = "__SecurityMaster__"
                                                     _row[GlobalVars.dataKeys["_BASECURR"][_COLUMN]] = GlobalVars.baseCurrency.getIDString()
 
                                                     _row[GlobalVars.dataKeys["_SECURITY"][_COLUMN]] = unicode(secCurr.getName())
                                                     _row[GlobalVars.dataKeys["_SECURITYID"][_COLUMN]] = unicode(secCurr.getIDString())
                                                     _row[GlobalVars.dataKeys["_SECRELCURR"][_COLUMN]] = unicode(secCurr.getRelativeCurrency().getIDString())
+                                                    _row[GlobalVars.dataKeys["_SECURITYSHOWSTATUS"][_COLUMN]] = ("N" if secCurr.getHideInUI() else "Y")
                                                     _row[GlobalVars.dataKeys["_SECMSTRUUID"][_COLUMN]] = secCurr.getUUID()
                                                     _row[GlobalVars.dataKeys["_TICKER"][_COLUMN]] = unicode(secCurr.getTickerSymbol())
                                                     _row[GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]] = 0.0
-                                                    _row[GlobalVars.dataKeys["_CURRENTPRICE"][_COLUMN]] = (1.0 / secCurr.getRelativeRate())
-                                                    _row[GlobalVars.dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = (1.0 / secCurr.getBaseRate())          # same as .getRate(None)
+
+                                                    if not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB:
+                                                        currentPrice = (1.0 / secCurr.getRelativeRate(GlobalVars.saved_securityBalancesDate_ESB))
+                                                        cPriceToBase = (1.0 / secCurr.getRate(baseCurr, GlobalVars.saved_securityBalancesDate_ESB))
+                                                    else:
+                                                        currentPrice = (1.0 / secCurr.getRelativeRate())
+                                                        cPriceToBase = (1.0 / secCurr.getBaseRate())
+                                                    _row[GlobalVars.dataKeys["_CURRENTPRICE"][_COLUMN]] = currentPrice
+                                                    _row[GlobalVars.dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = cPriceToBase
+                                                    _row[GlobalVars.dataKeys["_PRICEDIFF"][_COLUMN]] = ""
+
+                                                    if not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB:
+                                                        # These are meaningless when using an asof date...
+                                                        _row[GlobalVars.dataKeys["_MOSTRECENTPRICE"][_COLUMN]] = ""
+                                                        _row[GlobalVars.dataKeys["_PRICEDIFF"][_COLUMN]] = ""
+                                                        _row[GlobalVars.dataKeys["_HIDDENPRICEDATE"][_COLUMN]] = ""
+                                                        _row[GlobalVars.dataKeys["_MOSTRECENTPRICEDATE"][_COLUMN]] = ""
+                                                        _row[GlobalVars.dataKeys["_PRICEDATEEDIFF"][_COLUMN]] = ""
+                                                    else:
+                                                        updatedPriceDateLong = secCurr.getLongParameter("price_date", 0)
+                                                        updatePriceDateInt = "???" if (updatedPriceDateLong == 0) else DateUtil.convertLongDateToInt(updatedPriceDateLong)
+                                                        _row[GlobalVars.dataKeys["_HIDDENPRICEDATE"][_COLUMN]] = updatePriceDateInt
+
+                                                        priceHistory = secCurr.getSnapshots()
+                                                        latestSnapDateInt = "???" if (priceHistory.size() < 1) else priceHistory[-1].getDateInt()
+                                                        _row[GlobalVars.dataKeys["_MOSTRECENTPRICEDATE"][_COLUMN]] = latestSnapDateInt
+                                                        _row[GlobalVars.dataKeys["_PRICEDATEEDIFF"][_COLUMN]] = "X" if (updatePriceDateInt != latestSnapDateInt) else ""
+
+                                                        latestSnapPrice = 0.0 if (priceHistory.size() < 1) else (1.0 / priceHistory[-1].getRate())
+                                                        _row[GlobalVars.dataKeys["_MOSTRECENTPRICE"][_COLUMN]] = latestSnapPrice
+                                                        _row[GlobalVars.dataKeys["_PRICEDIFF"][_COLUMN]] = "X" if (round(currentPrice, 8) != round(latestSnapPrice, 8)) else ""
+                                                        del priceHistory
 
                                                     myPrint("D", _THIS_EXTRACT_NAME, _row)
                                                     GlobalVars.transactionTable.append(_row)
@@ -12889,11 +12961,25 @@ Visit: %s (Author's site)
                                         for _theRow in GlobalVars.transactionTable:
 
                                             if not GlobalVars.saved_lOmitExtraSecurityDataFromExtract_ESB:
-                                                mDate = _theRow[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]]
-                                                if mDate is not None and mDate != "":
-                                                    dateasdate = datetime.datetime.strptime(str(mDate), "%Y%m%d")                       # Convert to Date field
+                                                val = _theRow[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]]
+                                                if val is not None and val != "":
+                                                    dateasdate = datetime.datetime.strptime(str(val), "%Y%m%d")       # Convert to Date field
                                                     _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
                                                     _theRow[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = _dateoutput
+
+                                            for convColumn in ["_HIDDENPRICEDATE", "_MOSTRECENTPRICEDATE"]:
+                                                val = _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]
+                                                if (val and val != "" and val != "???"):
+                                                    dateasdate = datetime.datetime.strptime(str(val), "%Y%m%d")         # Convert to Date field
+                                                    _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
+
+                                            for convColumn in ["_ASOFDATE"]:
+                                                val = _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]
+                                                if (val and val != ""):
+                                                    dateasdate = datetime.datetime.strptime(str(val), "%Y%m%d")         # Convert to Date field
+                                                    _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
 
                                             for col in range(0, GlobalVars.dataKeys["_SECINFO_SUBTYPE"][_COLUMN] + 1):
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
