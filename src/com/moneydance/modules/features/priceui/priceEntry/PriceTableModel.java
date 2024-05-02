@@ -68,10 +68,9 @@ public class PriceTableModel extends AbstractTableModel {
     }
     
     void updateCurrentPrice() {
-      String relCurrID = security.getParameter(CurrencyType.TAG_RELATIVE_TO_CURR);
-      relativeCurrency = relCurrID == null ? null : currencyTable.getCurrencyByIDString(relCurrID);
-      
-      double rate = 1 / Util.safeRate(security.getUserRate());
+      relativeCurrency = security.getRelativeCurrency();
+
+      double rate = 1 / Util.safeRate(security.getRate(null));
       
       if (relativeCurrency != null) {
         rate = CurrencyUtil.getUserRate(security, relativeCurrency);
@@ -90,7 +89,7 @@ public class PriceTableModel extends AbstractTableModel {
      * Returns true if any data was changed;
      */
     boolean applyPrice(int asOfDate, boolean makeCurrent) {
-      if (newPrice == null || newPrice.doubleValue() == 0) {
+      if (newPrice == null || newPrice == 0) {
         updateCurrentPrice();
         return false;
       }
@@ -102,7 +101,7 @@ public class PriceTableModel extends AbstractTableModel {
                                                          currencyTable.getBaseType());
           newPrice *= viewRateMult;
         }
-        security.setUserRate(1.0/newPrice);
+        security.setRate(1.0 / newPrice, null);
         security.setParameter("price_date", System.currentTimeMillis());
         security.syncItem();
       }
@@ -114,12 +113,7 @@ public class PriceTableModel extends AbstractTableModel {
   
   
   
-  static final Comparator<SecurityRow> SECURITY_ROW_COMPARATOR = new Comparator<SecurityRow>() {
-    @Override
-    public int compare(SecurityRow secRow1, SecurityRow secRow2) {
-      return CurrencyUtil.CURRENCY_NAME_COMPARATOR.compare(secRow1.security, secRow2.security);
-    }
-  };
+  static final Comparator<SecurityRow> SECURITY_ROW_COMPARATOR = (secRow1, secRow2) -> CurrencyUtil.CURRENCY_NAME_COMPARATOR.compare(secRow1.security, secRow2.security);
   
   
   

@@ -18,17 +18,10 @@ Modified: 2011-11-11
 
 package com.moneydance.modules.features.priceui.priceEntry;
 
-import com.infinitekind.moneydance.model.*;
-
-import com.moneydance.apps.md.controller.Util;
 import com.moneydance.modules.features.priceui.Main;
 
 import com.moneydance.modules.features.priceui.access.CurrencyTableSource;
 import com.moneydance.modules.features.priceui.access.Datastore;
-import com.moneydance.modules.features.priceui.utils.MoneyFormatter;
-
-import java.util.*;
-
 
 /**
  * This is the "unofficial main" class of the "security prices data entry" 
@@ -152,18 +145,14 @@ public class PriceEntryExec {
     
     private void initializeWindow() {
         screen = new PriceEntryScreen (tableModel, this);
-        java.awt.EventQueue.invokeLater (new Runnable() {
-          public void run() {
-             screen.setVisible(true);
-          }
-        });
+        java.awt.EventQueue.invokeLater (() -> screen.setVisible(true));
     } // end method initializeWindow
     
     
     /* -------------------------------------------------------------------------
      * 
      * Methods called in response to GUI events (i.e. called, directly or
-     * indirectly, feom PriceEntryScreen):
+     * indirectly, from PriceEntryScreen):
      * 
      */
     
@@ -176,7 +165,7 @@ public class PriceEntryExec {
         if (effDate == null) {
             System.out.print("\nEffective date not set yet.\n\n");
         } else {
-            System.out.print("Effective date: " + effDate.toString() + "\n\n");
+            System.out.print("Effective date: " + effDate + "\n\n");
         }
 
         System.out.print("\"Make current\" box is " 
