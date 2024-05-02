@@ -170,6 +170,7 @@
 # build: 1066 - Tweak debug on/off code adjusting for the CostCalculation debugger switch after 5118
 #               Tweak MyJFrame to catch individual errors....
 #               Improve 'Shrink Dataset' function to allow user to delete recent UPLOADBUF file....
+#               Add new menu option: quick_security_currency_price_check_report(); tweak list_security_currency_price_date() to look for 0.0001 near zero too
 # build: 1066 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -3413,6 +3414,22 @@ Visit: %s (Author's site)
                             %(checkMainTask, checkAttachmentsTask, _s.isSyncing()))
                     return _s.isSyncing()
         return False
+
+    def isGoodRateAndNotAlmostZero(theRate):
+        if not isGoodRate(theRate): return False
+        return not (theRate >= -0.0001 and theRate <= 0.0001)
+
+    def padTruncateWithDots(theText, theLength, padChar=u" ", stripSpaces=True, padString=True):
+        if not isinstance(theText, basestring): theText = safeStr(theText)
+        if theLength < 1: return ""
+        if stripSpaces: theText = theText.strip()
+        dotChop = min(3, theLength) if (len(theText) > theLength) else 0
+        if padString:
+            theText = (theText[:theLength-dotChop] + ("." * dotChop)).ljust(theLength, padChar)
+        else:
+            theText = (theText[:theLength-dotChop] + ("." * dotChop))
+        return theText
+
 
 
     # Variables initialised by _init.py script and managed by _invoke_handle_event.py script... (extension only)...
@@ -9039,11 +9056,11 @@ Visit: %s (Author's site)
                     output += "@@ WARNING: current price hidden 'price_date' field is newer than your latest dated price history date....\n"
                     output += "... latest dated price history date: %s\n" %(convertStrippedIntDateFormattedText(DateUtil.convertDateToInt(newestSnapshotDate)))
 
-                if not isGoodRate(sec_curr.getRelativeRate()):
-                    output += "@@ WARNING: current price/rate is not a valid number: %s\n" %(sec_curr.getRelativeRate())
+                if (not isGoodRate(sec_curr.getRelativeRate()) or not isGoodRateAndNotAlmostZero(1.0 / sec_curr.getRelativeRate())):
+                    output += "@@ WARNING: current price/rate is not a valid number (or <= 0.0001): %s\n" %(sec_curr.getRelativeRate())
 
-                if snap and not isGoodRate(snap.getRate()):
-                    output += "@@ WARNING: Latest dated price history price/rate is not a valid number: %s\n" %(snap.getRate())
+                if snap and (not isGoodRate(snap.getRate()) or not isGoodRateAndNotAlmostZero(1.0 / snap.getRate())):
+                    output += "@@ WARNING: Latest dated price history price/rate is not a valid number (or <= 0.0001): %s\n" %(snap.getRate())
 
                 if lUpdateRequired and snap and sec_curr.getRelativeRate() != snap.getRate():
                     output +=  "... current price/rate %s, latest dated price history price/rate %s\n" %(safeInvertRate(sec_curr.getRelativeRate()), safeInvertRate(snap.getRate()))
@@ -9171,7 +9188,8 @@ Visit: %s (Author's site)
             oldRate = curr.getRelativeRate()
 
             lUpdateThisPrice = lUpdatePricesToo
-            if newRate == 0 or newRate == oldRate or not isGoodRate(newRate):
+            if (newRate == 0 or newRate == oldRate
+                    or (not isGoodRate(newRate) or not isGoodRateAndNotAlmostZero(1.0 / newRate))):
                 lUpdateThisPrice = False
 
             myPrint("B","")
@@ -9217,6 +9235,155 @@ Visit: %s (Author's site)
         myPopupInformationBox(jif, "RESTART OF MONEYDANCE REQUIRED - MD WILL RESTART AFTER VIEWING THIS OUTPUT",
                               "AUTOFIX CURRENT PRICE HIDDEN 'PRICE_DATE' FIELD",
                               theMessageType=JOptionPane.ERROR_MESSAGE)
+
+    def quick_security_currency_price_check_report(lQuickCheckOnly=False, lReportAll=False):
+
+        lOnlyShowErrors = not lReportAll
+        iWarnings = 0
+
+        if MD_REF.getCurrentAccountBook() is None: return iWarnings
+
+
+        currs = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
+        currs = sorted(currs, key=lambda x: (x.getCurrencyType(), x.getName().upper()))
+
+        output = "\nQuick check: Security / Currency current prices:\n" \
+                 " =================================================\n\n"
+
+        def get_curr_sec_name(curr_sec):
+            if curr_sec.getName() is not None and len(curr_sec.getName().strip()) > 0:
+                return curr_sec.getName()
+            return (curr_sec.getIDString() + ":" + curr_sec.getIDString())
+
+        MD_decimal = MD_REF.getPreferences().getDecimalChar()
+        base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+        todayDateInt = DateUtil.getStrippedDateInt()
+
+        if not lQuickCheckOnly:
+            output += pad("Type", 10)
+            output += pad("", 2)
+            output += pad("", 2)
+            output += pad("Currency/Security name", 80)
+            output += pad("", 2)
+            output += rpad("Security Bal", 12)
+            output += pad("", 2)
+            output += rpad("Current Rate", 14)
+            output += pad("", 4)
+            output += rpad("Latest Rate", 14)
+            output += pad("", 4)
+            output += pad("Current Date", 12)
+            output += pad("", 2)
+            output += pad("Latest Date", 12)
+            output += pad("", 4)
+            output += pad("Message", 10)
+            output += "\n"
+
+            output += pad("-", 10, "-")
+            output += pad("", 2)
+            output += pad("- ", 2)
+            output += pad("-", 80, "-")
+            output += pad("", 2)
+            output += rpad("-", 12, "-")
+            output += pad("", 2)
+            output += rpad("-", 14, "-")
+            output += pad("", 4)
+            output += rpad("-", 14, "-")
+            output += pad("", 4)
+            output += pad("-", 12, "-")
+            output += pad("", 2)
+            output += pad("-", 12, "-")
+            output += pad("", 4)
+            output += pad("-", 10, "-")
+            output += "\n"
+
+        lastType = None
+        for cType in [CurrencyType.Type.CURRENCY, CurrencyType.Type.SECURITY]:                                          # noqa
+            for currSec in currs:
+                if currSec is base: continue
+                if currSec.getCurrencyType() != cType: continue
+
+                qtyHeld = get_security_holdings(currSec) if (currSec.getCurrencyType() == CurrencyType.Type.SECURITY) else 0    # noqa
+
+                currentRate = currSec.getRelativeRate()
+                currRateDate = currSec.getLongParameter("price_date", 0)
+                currRateDate = DateUtil.convertLongDateToInt(currRateDate) if currRateDate != 0 else 0
+
+                latestSnapRate = 0.0
+                latestSnapRateDate = 0
+                currSnapshots = currSec.getSnapshots()
+                lSnapsExist = (currSnapshots.size() > 0)
+                if lSnapsExist:
+                    snap = currSnapshots[-1]
+                    latestSnapRate = snap.getRate()
+                    latestSnapRateDate = snap.getDateInt()
+
+                lSnapRateError = (lSnapsExist and (not isGoodRate(latestSnapRate) or not isGoodRateAndNotAlmostZero(1.0 / latestSnapRate)))
+                lCurrentRateError = (not isGoodRate(currentRate)
+                                     or not isGoodRateAndNotAlmostZero(1.0 / currentRate)
+                                     or (lSnapsExist and not lSnapRateError and (round(currentRate, 8) != round(latestSnapRate, 8))))
+                lRateDatesDiffer = (lSnapsExist and currRateDate != latestSnapRateDate)
+                lFutureDates = (currRateDate > todayDateInt or latestSnapRateDate > todayDateInt)
+
+                if (lCurrentRateError or lSnapRateError or lRateDatesDiffer or lFutureDates):
+                    iWarnings += 1
+                else:
+                    if lOnlyShowErrors: continue
+
+                if lastType != currSec.getCurrencyType():
+                    output += "\n"
+                    lastType = currSec.getCurrencyType()
+
+                output += pad("%s" %(currSec.getCurrencyType()), 10)
+                output += pad("", 2)
+
+                output += pad("H" if (currSec.getHideInUI()) else "", 2)
+
+                currSecNameStr = "{}".format(padTruncateWithDots(get_curr_sec_name(currSec), theLength=35, padChar=" ", stripSpaces=True, padString=False))
+                if currSec.getCurrencyType() == CurrencyType.Type.SECURITY:                                                 # noqa
+                    currSecNameStr += " ({}:{})".format(currSec.getTickerSymbol(), currSec.getIDString())
+                else:
+                    currSecNameStr += " ({})".format(currSec.getIDString())
+
+                output += padTruncateWithDots(currSecNameStr, theLength=80, padChar=" ", stripSpaces=True, padString=True)
+                output += pad("", 2)
+
+                output += rpad("" if qtyHeld == 0 else "{}".format(currSec.formatSemiFancy(qtyHeld, MD_decimal)), 12)
+                output += pad("", 2)
+
+                output += rpad("" if not isGoodRate(currentRate) else 0.0 if not isGoodRateAndNotAlmostZero(1.0 / currentRate) else safeInvertRate(currentRate), 14)
+                output += pad("<e>" if lCurrentRateError else "", 4)
+
+                output += rpad("" if not isGoodRate(latestSnapRate) else 0.0 if not isGoodRateAndNotAlmostZero(1.0 / latestSnapRate) else safeInvertRate(latestSnapRate), 14)
+                output += pad("<e>" if lSnapRateError else "", 4)
+
+                output += pad("<not set>" if currRateDate == 0 else convertStrippedIntDateFormattedText(currRateDate), 12)
+                output += pad("", 2)
+                output += pad("<no hist>" if latestSnapRateDate == 0 else convertStrippedIntDateFormattedText(latestSnapRateDate), 12)
+                output += pad("<*>" if lRateDatesDiffer else "", 4)
+                output += pad("<future>" if lFutureDates else "", 10)
+                output += "\n"
+
+        if not lQuickCheckOnly:
+            output += "\n" \
+                      "The security / current rates/prices listed on this may may have issues:\n" \
+                      "- The current rate/price or the latest dated rate/price may be zero or invalid\n" \
+                      "- The current rate/price may be different to the latest dated rate/price\n" \
+                      "- The hidden 'price_date' date may be different to the latest dated price\n" \
+                      "- The rate/price(s) may be future dated\n" \
+                      ">> All these 'errors' may cause reconciling reports (especially Net Worth Report) difficult!\n\n" \
+                      "KEY:\n" \
+                      "H         The Currency/Security is hidden from the Summary Page (use Tools/Currencies/Securities/edit 'Show on Summary page' to change)\n" \
+                      "<e>       Current rate/price is invalid, or zero, or near zero (<= 0.0001), or different from latest dated price (rounded to 8 dpc)\n" \
+                      "<e>       Latest rate/price is invalid, or zero, or near zero (<= 0.0001)\n" \
+                      "<not set> The hidden current rate/price date has never been set\n" \
+                      "<no hist> There is no rate/price history\n" \
+                      "<*>       Both dates exist, but they are different\n" \
+                      "<future>  Either the hidden current price date or the latest price history date is future dated\n"
+
+            output += "\n<END>"
+            QuickJFrame("QUICK SECURITY/CURRENCY PRICE CHECK REPORT", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+
+        return iWarnings
 
     def read_preferences_file(lSaveFirst=False):
 
@@ -28234,6 +28401,12 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_diag_price_date = MenuJRadioButton("DIAG: Diagnose currency and security's current price hidden 'price_date' field", False)
                     user_diag_price_date.setToolTipText("This will diagnose your Currency & Security's current price hidden price_date field....")
 
+                    user_quick_check_prices = MenuJRadioButton("DIAG: Produce a quick validation report on Currency rates / Security prices / dates", False)
+                    user_quick_check_prices.setToolTipText("Performs a quick check that current/latest prices/date match, and are not future-dated....")
+
+                    user_quick_check_prices_all = MenuJRadioButton("DIAG: Produce a quick report on all Currency rates / Security prices / dates", False)
+                    user_quick_check_prices_all.setToolTipText("Performs a quick check on all current/latest prices/date and outputs all currencies/securities....")
+
                     user_edit_security_decimal_places = MenuJRadioButton("FIX: Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly) (2021.2(3089) onwards)", False, updateMenu=True, secondaryEnabled=(isRRateCurrencyIssueFixedBuild()))
                     user_edit_security_decimal_places.setToolTipText("This allows you to edit the hidden decimal places setting stored against a security (that you determined when you set the security up)")
 
@@ -28279,7 +28452,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 9
+                    rows = 11
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_validateBaseCurr)
@@ -28289,6 +28462,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters.add(user_list_curr_sec_dpc)
                     userFilters.add(user_show_open_share_lots)
                     userFilters.add(user_diagnose_matched_lot_data)
+                    userFilters.add(user_quick_check_prices)
+                    userFilters.add(user_quick_check_prices_all)
                     userFilters.add(user_diag_price_date)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
@@ -28401,6 +28576,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_can_i_delete_currency.isSelected():                                     can_I_delete_currency()
                         if user_list_curr_sec_dpc.isSelected():                                         list_security_currency_decimal_places()
                         if user_diag_price_date.isSelected():                                           list_security_currency_price_date()
+                        if user_quick_check_prices.isSelected():                                        quick_security_currency_price_check_report(lQuickCheckOnly=False)
+                        if user_quick_check_prices_all.isSelected():                                    quick_security_currency_price_check_report(lQuickCheckOnly=False, lReportAll=True)
                         if user_autofix_price_date.isSelected():                                        list_security_currency_price_date(autofix=True)
                         if user_validateBaseCurr.isSelected():                                          validateAndFixBaseCurrency(validationOnly=True, popupAlert=True, modalPopup=True, adviseNoErrors=True)
                         if user_fixBaseCurr.isSelected():                                               validateAndFixBaseCurrency(validationOnly=False, popupAlert=True, modalPopup=True, adviseNoErrors=True)
@@ -29514,6 +29691,18 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             # ----------------------------------------------------------------------------------------------------------
 
             # These are instant fix buttons
+            try:
+                _priceWarnings = quick_security_currency_price_check_report(lQuickCheckOnly=True)
+                if _priceWarnings > 0:
+                    myPrint("B", "WARNING: You appear to have %s currency/security rates/prices that may be invalid!\n"
+                                 "  >> Run report: 'MENU: Currency & Security tools' / 'DIAG: Produce a quick validation report on Currency rates / Security prices / dates'"
+                            %(_priceWarnings))
+                else:
+                    myPrint("B", "No invalid currency/security rates/prices detected...")
+            except:
+                myPrint("B", "Error in quick_security_currency_price_check_report() - continuing")
+                dump_sys_error_to_md_console_and_errorlog()
+
             if not MD_REF.isRegistered():
                 RegisterMD_button = MyJButton("<html><center>REGISTER<BR>MONEYDANCE</center></html>", registerMDButton=True)
                 RegisterMD_button.setToolTipText("This allows you to enter your registration key")

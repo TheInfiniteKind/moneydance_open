@@ -147,6 +147,8 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - DIAG - List decimal places (currency & security). Shows you the hidden setting and related data.
         - DIAG - Show your open LOTs on stocks/shares (when using LOT control) (show_open_tax_lots.py)
         - DIAG - Show Securities with 'invalid' LOT Matching (cause of LOT matching popup window)
+        - DIAG - Produce a quick validation report on Currency rates / Security prices / dates
+        - DIAG - Produce a quick report on all Currency rates / Security prices / dates
         - DIAG - Diagnose currency / security's current price hidden 'price_date' field. If warnings, then go to FIX below
 
     - MENU: Accounts & Categories tools
