@@ -32,6 +32,7 @@ http://jakarta.apache.org/ant/index.html
   <property name="python-executable" value="python2.7"/>  <!-- Need to use correct version if running ANT on Windows and Linux etc -->
 
   <path id="classpath">
+    <pathelement path="../lib/kotlin-stdlib-1.9.21.jar"/>
     <pathelement path="../lib/extadmin.jar"/>
     <pathelement path="../lib/moneydance-dev.jar"/>
     <pathelement path="../lib/moneydance-private.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
