@@ -171,6 +171,7 @@
 #               Tweak MyJFrame to catch individual errors....
 #               Improve 'Shrink Dataset' function to allow user to delete recent UPLOADBUF file....
 #               Add new menu option: quick_security_currency_price_check_report(); tweak list_security_currency_price_date() to look for 0.0001 near zero too
+#               Update licensing keys for MD2023/24 etc...
 # build: 1066 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -5797,9 +5798,13 @@ Visit: %s (Author's site)
         textArray.append(u"Moneydance updater version to track: %s" %MD_REF.getPreferences().getSetting(u"updater.version_to_track",u""))
         textArray.append(u"")
 
-        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2022",
+        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2024",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2023",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2022",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2021",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2020",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2019",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2018",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2017",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2015",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2014",
@@ -5807,11 +5812,15 @@ Visit: %s (Author's site)
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2010",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2008",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2004",
-                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key",u"?")))))))))))
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key", u"????")))))))))))))))
 
-        license2022 = MD_REF.getPreferences().getSetting(u"gen.lic_key2022", None)                               # noqa
-        license2021 = MD_REF.getPreferences().getSetting(u"gen.lic_key2021", None)                               # noqa
+        # license2024 = MD_REF.getPreferences().getSetting(u"gen.lic_key2024", None)
+        license2023 = MD_REF.getPreferences().getSetting(u"gen.lic_key2023", None)
+        license2022 = MD_REF.getPreferences().getSetting(u"gen.lic_key2022", None)
+        license2021 = MD_REF.getPreferences().getSetting(u"gen.lic_key2021", None)
+        license2020 = MD_REF.getPreferences().getSetting(u"gen.lic_key2020", None)
         license2019 = MD_REF.getPreferences().getSetting(u"gen.lic_key2019", None)
+        license2018 = MD_REF.getPreferences().getSetting(u"gen.lic_key2018", None)
         license2017 = MD_REF.getPreferences().getSetting(u"gen.lic_key2017", None)
         license2015 = MD_REF.getPreferences().getSetting(u"gen.lic_key2015", None)
         license2014 = MD_REF.getPreferences().getSetting(u"gen.lic_key2014", None)
@@ -5864,8 +5873,12 @@ Visit: %s (Author's site)
 
                 del licenseInfo
 
+        if license2023:      textArray.append(u" >old licenses (2023): " + license2023)
+        if license2022:      textArray.append(u" >old licenses (2022): " + license2022)
         if license2021:      textArray.append(u" >old licenses (2021): " + license2021)
+        if license2020:      textArray.append(u" >old licenses (2020): " + license2020)
         if license2019:      textArray.append(u" >old licenses (2019): " + license2019)
+        if license2018:      textArray.append(u" >old licenses (2018): " + license2018)
         if license2017:      textArray.append(u" >old licenses (2017): " + license2017)
         if license2015:      textArray.append(u" >old licenses (2015): " + license2015)
         if license2014:      textArray.append(u" >old licenses (2014): " + license2014)
