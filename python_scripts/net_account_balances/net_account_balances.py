@@ -152,6 +152,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1053 - ???
 # build: 1053 - Started adding period multiplier to saved DRC settings (ready for MD2024(5118) enhanced DRC.... (not yet used)...
 # build: 1053 - Update MyJFrame to v5....; Fix another myPrint causing IllegalArgumentException
+# build: 1053 - Fix DRC date transformation for fiscal periods and leap years...
 # build: 1053 - ???
 
 # todo - consider better formula handlers... e.g. com.infinitekind.util.StringUtils.parseFormula(String, char)
@@ -3145,7 +3146,7 @@ Visit: %s (Author's site)
     if isCostCalculationUpgradedBuild():
         from com.infinitekind.moneydance.model import CostCalculation
 
-    GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD = 5119;                                                                # MD2024(5100)
+    GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD = 5128;                                                                # MD2024.2(5128) - fixes between 5100 and 5128
     # def isDateRangeChooserUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD)
     def isDateRangeChooserUpgradedBuild(): return False
     if isDateRangeChooserUpgradedBuild():
@@ -6438,10 +6439,10 @@ Visit: %s (Author's site)
                 elif forOptionKey == "this_year":                   rtnVal = (DateUtil.firstDayInYear(calculatedTodayInt), DateUtil.lastDayInYear(calculatedTodayInt))
                 elif forOptionKey == "this_fiscal_year":            rtnVal = (DateUtil.firstDayInFiscalYear(calculatedTodayInt), DateUtil.lastDayInFiscalYear(calculatedTodayInt))
                 elif forOptionKey == "fiscal_year_to_date":         rtnVal = (DateUtil.firstDayInFiscalYear(calculatedTodayInt), calculatedTodayInt)
-                elif forOptionKey == "last_fiscal_year":            rtnVal = (DateUtil.decrementYear(DateUtil.firstDayInFiscalYear(calculatedTodayInt)), DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(calculatedTodayInt)))
-                elif forOptionKey == "dr_last_two_fiscal_years":    rtnVal = (DateUtil.incrementDate(DateUtil.firstDayInFiscalYear(calculatedTodayInt), -2, 0, 0), DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(calculatedTodayInt)))
-                elif forOptionKey == "dr_last_three_fiscal_years":  rtnVal = (DateUtil.incrementDate(DateUtil.firstDayInFiscalYear(calculatedTodayInt), -3, 0, 0), DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(calculatedTodayInt)))
-                elif forOptionKey == "dr_last_five_fiscal_years":   rtnVal = (DateUtil.incrementDate(DateUtil.firstDayInFiscalYear(calculatedTodayInt), -5, 0, 0), DateUtil.decrementYear(DateUtil.lastDayInFiscalYear(calculatedTodayInt)))
+                elif forOptionKey == "last_fiscal_year":            rtnVal = (DateUtil.firstDayInFiscalYear(DateUtil.decrementYear(calculatedTodayInt)), DateUtil.lastDayInFiscalYear(DateUtil.decrementYear(calculatedTodayInt)))
+                elif forOptionKey == "dr_last_two_fiscal_years":    rtnVal = (DateUtil.firstDayInFiscalYear(DateUtil.incrementDate(calculatedTodayInt, -2, 0, 0)), DateUtil.lastDayInFiscalYear(DateUtil.decrementYear(calculatedTodayInt)))
+                elif forOptionKey == "dr_last_three_fiscal_years":  rtnVal = (DateUtil.firstDayInFiscalYear(DateUtil.incrementDate(calculatedTodayInt, -3, 0, 0)), DateUtil.lastDayInFiscalYear(DateUtil.decrementYear(calculatedTodayInt)))
+                elif forOptionKey == "dr_last_five_fiscal_years":   rtnVal = (DateUtil.firstDayInFiscalYear(DateUtil.incrementDate(calculatedTodayInt, -5, 0, 0)), DateUtil.lastDayInFiscalYear(DateUtil.decrementYear(calculatedTodayInt)))
                 elif forOptionKey == "last_fiscal_quarter":         rtnVal = (DateUtil.firstDayInFiscalQuarter(DateUtil.incrementDate(calculatedTodayInt, 0, -3, 0)), DateUtil.lastDayInFiscalQuarter(DateUtil.incrementDate(calculatedTodayInt, 0, -3, 0)))
                 elif forOptionKey == "this_quarter":                rtnVal = (Util.firstDayInQuarter(calculatedTodayInt), Util.lastDayInQuarter(calculatedTodayInt))
                 elif forOptionKey == "this_month":                  rtnVal = (Util.firstDayInMonth(calculatedTodayInt), Util.lastDayInMonth(calculatedTodayInt))
