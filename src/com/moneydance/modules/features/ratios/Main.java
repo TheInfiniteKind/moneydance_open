@@ -13,6 +13,7 @@
 //               Added .unload() (and also a redirect from .cleanup())
 // Build: 1038 - Fix numerator issue - refer: https://infinitekind.tenderapp.com/discussions/problems/92963-ratios-extension
 //               Disabled help guide button(s) as the server with the help file is not available....
+// Build: 1039 - Fix negative issue caused by 1038 - refer: https://infinitekind.tenderapp.com/discussions/problems/97947-ratios-extension-1038-broke-transfers-difference-feature-shows-random-negative-values
 
 package com.moneydance.modules.features.ratios;
 
@@ -88,11 +89,11 @@ public class Main extends FeatureModule implements ResourceProvider {
         addPreferencesListener();
         MoneydanceGUI mdGUI = (MoneydanceGUI) ((com.moneydance.apps.md.controller.Main) context).getUI();
         _model.initialize(mdGUI);
-        final AccountBook root = getContext().getCurrentAccountBook();
-        // If root is null, then we'll just wait for the MD_OPEN_EVENT_ID event. When the plugin
-        // is first installed, the root should be non-null. When MD starts up, it is likely to be null
+        final AccountBook book = getContext().getCurrentAccountBook();
+        // If book is null, then we'll just wait for the MD_OPEN_EVENT_ID event. When the plugin
+        // is first installed, the book should be non-null. When MD starts up, it is likely to be null
         // until the file is opened.
-        if (root != null) _model.setData(root);
+        if (book != null) _model.setData(book);
         // setup the home page view
         _homePageView = new RatiosHomeView(this, _model);
         getContext().registerHomePageView(this, _homePageView);
@@ -175,19 +176,17 @@ public class Main extends FeatureModule implements ResourceProvider {
 
         if (N12ERatios.SHOW_DIALOG_COMMAND.equals(command)) {
             // should invoke later so this can be returned to its thread
-            SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
-                    Component parent = null;
-                    final AccountBook rootAccount = _model.getRootAccount();
-                    if (_homePageView != null) {
-                        parent = _homePageView.getGUIView(rootAccount);
-                    }
-                    RatioSettingsDialog dialog = new RatioSettingsDialog(_model.getGUI(), AwtUtil.getFrame(parent),
-                            _model.getResources(),
-                            _model, rootAccount, _model.getSettings());
-                    dialog.loadData();
-                    dialog.setVisible(true);
+            SwingUtilities.invokeLater(() -> {
+                Component parent = null;
+                final AccountBook rootAccount = _model.getRootAccount();
+                if (_homePageView != null) {
+                    parent = _homePageView.getGUIView(rootAccount);
                 }
+                RatioSettingsDialog dialog = new RatioSettingsDialog(_model.getGUI(), AwtUtil.getFrame(parent),
+                        _model.getResources(),
+                        _model, rootAccount, _model.getSettings());
+                dialog.loadData();
+                dialog.setVisible(true);
             });
         }
     }
