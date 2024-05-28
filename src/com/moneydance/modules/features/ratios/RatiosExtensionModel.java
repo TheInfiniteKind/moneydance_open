@@ -379,6 +379,10 @@ class RatiosExtensionModel
           // notify the UI on the main thread
           firePropertyChange(_eventNotify, N12ERatios.RECALCULATE, null, null);
           currentTaskDone();
+
+        } catch (NullPointerException error) {
+          Logger.log("Error computing ratios (NPE) - Moneydance is probably shutting down... ignoring....");
+
         } catch (Throwable error) {
           Logger.log("Error computing ratios: " + error.getMessage());
           error.printStackTrace();
