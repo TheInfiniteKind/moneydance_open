@@ -471,8 +471,7 @@ class RatioReportGenerator extends ReportGenerator {
     RecordRow row = new RecordRow(labels, align, color, style, totals);
     FontMetrics fontMetrics = _graphics.getFontMetrics();
     // Account
-    if ((account.getAccountType() != Account.AccountType.INCOME) &&
-        (account.getAccountType() != Account.AccountType.EXPENSE)) {
+    if (!com.moneydance.modules.features.ratios.Util.isCategory(account)) {
       labels[0] = showFullAccountName ? account.getFullAccountName() : account.getAccountName();
       widths[0] = Math.max(widths[0], measureStringWidth(labels[0], _graphics, fontMetrics));
       style[0] = RecordRow.STYLE_PLAIN;
@@ -516,10 +515,8 @@ class RatioReportGenerator extends ReportGenerator {
                                CurrencyType baseCurrency, int[] widths) {
     Account account = txn.getAccount();
     Account category = txn.getOtherTxn(0).getAccount();
-    // Should we flip? we keep categories on the right side (column 2). We don't need to
-    // negate the value because the algorithm in RatioPart.accumulateTxn() has already
-    // done so.
-    if (RatioCompute.shouldFlipTxn(account, category, info.isSourceRequired, info.isTargetRequired, false)) {
+    // TODO - Should we flip? we keep categories on the right side (column 2). We don't need to negate the value because the algorithm in RatioPart.accumulateTxn() has already done so.
+    if (RatioCompute.shouldFlipTxn(account, category, info.isSourceRequired, info.isTargetRequired, info.convertedValue)) {
       Account temp = account;
       account = category;
       category = temp;

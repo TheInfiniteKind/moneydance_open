@@ -339,7 +339,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
+    sb.append(-Account.AccountType.INCOME.code());
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic
@@ -396,7 +396,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
+    sb.append(-Account.AccountType.INCOME.code());
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic
@@ -452,7 +452,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
+    sb.append(-Account.AccountType.INCOME.code());
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic
@@ -502,7 +502,7 @@ public class RatioSettings
     ratioEntry.setDenominatorLabel(resources.getString(L10NRatios.INCOME_NAME));
     // denominator - accounts - income
     sb.setLength(0);
-    sb.append(Integer.toString(-Account.AccountType.INCOME.code()));
+    sb.append(-Account.AccountType.INCOME.code());
     ratioEntry.setDenominatorEncodedRequiredAccounts(sb.toString());
     ratioEntry.setDenominatorEncodedDisallowedAccounts(N12ERatios.EMPTY);
     // denominator - tags and tag logic

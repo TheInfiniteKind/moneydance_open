@@ -19,7 +19,6 @@ import com.infinitekind.moneydance.model.DateRange;
 import com.infinitekind.moneydance.model.Txn;
 import com.infinitekind.moneydance.model.TxnIterator;
 import com.moneydance.apps.md.controller.Util;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,27 +48,99 @@ class RatioCompute {
     computeFinalRatios(ratios);
   }
 
-    static boolean shouldFlipTxn(final Account sourceAccount, final Account targetAccount,
-                                 final boolean isSourceRequired, final boolean isTargetRequired, boolean mathsFlip) {
-        // if the source is a category and the target isn't, flip
-        final boolean isSourceCategory =
-                (sourceAccount.getAccountType() == Account.AccountType.EXPENSE)
-                        || (sourceAccount.getAccountType() == Account.AccountType.INCOME);
+  static boolean shouldFlipTxn(Account sourceAccount, Account targetAccount,
+                               boolean isSourceRequired, boolean isTargetRequired, long amt) {
 
-        // if the target is a loan account, treat it as an expense category so that the value has the same sign as the interest expense
-        final boolean isTargetCategory = (targetAccount.getAccountType() == Account.AccountType.EXPENSE)
-                || (targetAccount.getAccountType() == Account.AccountType.INCOME)
-                || (targetAccount.getAccountType() == Account.AccountType.LOAN);
-        if (isSourceCategory && !isTargetCategory) return true;
+    boolean flip = false;
+    final boolean isSourceCategory = com.moneydance.modules.features.ratios.Util.isCategory(sourceAccount);
 
-        // SCB fix: build 1038. Trying to correct signs for txfrs between accounts....
-        if (!mathsFlip) {
-            // if the source is not a Required account but the target is, flip as long as that doesn't
-            // violate the first clause where the target is a category.
-            return !isSourceRequired && isTargetRequired && !isTargetCategory;
-        }
-        return false;
+    // if the target is a loan account, treat it as an expense category so that the value has the same sign as the interest expense
+    final boolean isTargetCategory = (com.moneydance.modules.features.ratios.Util.isCategory(targetAccount)
+            || targetAccount.getAccountType() == Account.AccountType.LOAN);
+
+    // if the source is a category and the target isn't, flip
+    if (isSourceCategory && !isTargetCategory) {
+      //if (Main.DEBUG) {
+      //  System.err.println(String.format("will flip (as: 'isSourceCategory && !isTargetCategory'): amt: %s, src: '%s' (rqd: %s) trg: '%s' (rqd: %s)", amt, sourceAccount, isSourceRequired, targetAccount, isTargetRequired));
+      //}
+      flip = true;
     }
+
+    if (!flip) {
+      // if the source is not a Required account but the target is, flip as long as that doesn't violate the first clause where the target is a category.
+      flip = (!isSourceRequired && isTargetRequired && !isTargetCategory);
+      if (flip) {
+        //if (Main.DEBUG) {
+        //  System.err.println(String.format("will flip (as: '!isSourceRequired && isTargetRequired && !isTargetCategory'): amt: %s, src: '%s' (rqd: %s) trg: '%s' (rqd: %s)", amt, sourceAccount, isSourceRequired, targetAccount, isTargetRequired));
+        //}
+      }
+    }
+
+    //----
+    // First of all check if we already decided to flip the source/target accounts
+    if (flip) {
+      Account temp;
+      temp = sourceAccount;
+      sourceAccount = targetAccount;
+      targetAccount = temp;
+    }
+
+    Account.AccountType srcAT;
+    switch (sourceAccount.getAccountType()) {
+      case BANK:
+      case ASSET:
+      case INVESTMENT:
+        srcAT = Account.AccountType.BANK;
+        break;
+      case CREDIT_CARD:
+      case LIABILITY:
+      case LOAN:
+        srcAT = Account.AccountType.LIABILITY;
+        break;
+      case EXPENSE:
+        srcAT = Account.AccountType.EXPENSE;
+        break;
+      case INCOME:
+        srcAT = Account.AccountType.INCOME;
+        break;
+      default:
+        srcAT = null;
+    }
+    Account.AccountType trgAT;
+    switch (targetAccount.getAccountType()) {
+      case BANK:
+      case ASSET:
+      case INVESTMENT:
+        trgAT = Account.AccountType.BANK;
+        break;
+      case CREDIT_CARD:
+      case LIABILITY:
+      case LOAN:
+        trgAT = Account.AccountType.LIABILITY;
+        break;
+      case EXPENSE:
+        trgAT = Account.AccountType.EXPENSE;
+        break;
+      case INCOME:
+        trgAT = Account.AccountType.INCOME;
+        break;
+      default:
+        trgAT = null;
+    }
+
+    // todo - add more combinations here...
+    if (srcAT == Account.AccountType.BANK && trgAT == Account.AccountType.LIABILITY) {
+      // no change
+    } else if (srcAT == Account.AccountType.LIABILITY && trgAT == Account.AccountType.BANK) {
+      flip = !flip; // reverse
+      //if (Main.DEBUG) {
+      //  System.err.println(String.format(".. flipping: amt: %s, src: '%s' (type: %s) trg: '%s' (type: %s)", amt, sourceAccount, srcAT, targetAccount, trgAT));
+      //}
+    }
+    //----
+
+    return flip;
+  }
 
   static int getDaysInPeriod(DateRange dateRange) {
     return Util.calculateDaysBetween(dateRange.getStartDateInt(), dateRange.getEndDateInt()) + 1;

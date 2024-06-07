@@ -12,6 +12,7 @@ package com.moneydance.modules.features.ratios;
 
 
 import com.moneydance.apps.md.controller.Common;
+import com.moneydance.apps.md.controller.time.DateRangeOption;
 
 /**
  * <p>Non-localizable (N12E) string statics. Keeping all strings out of the Java code makes it
@@ -93,7 +94,8 @@ class N12ERatios {
   static final String DENOMINATOR_TAGS_KEY = "d.tags";
 
   // signal to request a custom date range from the user
-  static final String CUSTOM_DATE_KEY = "customDate";
+  // static final String CUSTOM_DATE_KEY = "customDate";
+  static final String CUSTOM_DATE_KEY = DateRangeOption.DR_CUSTOM_DATE.getResourceKey();
 
   // the name of the background thread for computing ratios
   static final String RATIO_THREAD_NAME = "Ratio Calculate";

@@ -1,4 +1,5 @@
 package com.moneydance.modules.features.ratios;
+import com.infinitekind.moneydance.model.Account;
 import com.moneydance.modules.features.ratios.Main;
 
 import java.awt.*;
@@ -37,6 +38,13 @@ public class Util {
 
     public static Color getPositiveGreen() {
         return Main.getMDGUI().getColors().budgetHealthyColor;
+    }
+
+    /**
+     * @since 1040
+     */
+    public static boolean isCategory(Account account) {
+        return (account.getAccountType() == Account.AccountType.EXPENSE || account.getAccountType() == Account.AccountType.INCOME);
     }
 
 }

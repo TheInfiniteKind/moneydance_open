@@ -13,7 +13,8 @@
 //               Added .unload() (and also a redirect from .cleanup())
 // Build: 1038 - Fix numerator issue - refer: https://infinitekind.tenderapp.com/discussions/problems/92963-ratios-extension
 //               Disabled help guide button(s) as the server with the help file is not available....
-// Build: 1039 - Fix negative issue caused by 1038 - refer: https://infinitekind.tenderapp.com/discussions/problems/97947-ratios-extension-1038-broke-transfers-difference-feature-shows-random-negative-values
+// Build: 1039 - Never actually released... Bumping build number....
+// Build: 1040 - Fix negative issue caused by 1038 fix - refer: https://infinitekind.tenderapp.com/discussions/problems/97947-ratios-extension-1038-broke-transfers-difference-feature-shows-random-negative-values
 
 package com.moneydance.modules.features.ratios;
 
@@ -44,11 +45,9 @@ import java.util.ResourceBundle;
  * @author Kevin Menningen
  */
 
-
-// todo - fix: NPE when closing dataset...:
-//             "ratios (1): 09-20 17:04:19.372|Error computing ratios: Cannot invoke "com.moneydance.modules.features.ratios.RatioSettings.getDateRange()" because the return value of "com.moneydance.modules.features.ratios.RatiosExtensionModel.access$600(com.moneydance.modules.features.ratios.RatiosExtensionModel)" is null"
-//             at com.moneydance.modules.features.ratios.RatiosExtensionModel$BackgroundRecalculateTask.run(RatiosExtensionModel.java:377)
-// todo - address several issues mentioned here: https://infinitekind.tenderapp.com/discussions/problems/92963-ratios-extension
+// Builds 1038-1040 address several issues mentioned here:
+// https://infinitekind.tenderapp.com/discussions/problems/92963-ratios-extension
+// https://infinitekind.tenderapp.com/discussions/problems/97947-ratios-extension-1038-broke-transfers-difference-feature-shows-random-negative-values
 
 public class Main extends FeatureModule implements ResourceProvider {
 

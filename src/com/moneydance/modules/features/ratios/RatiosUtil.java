@@ -52,32 +52,28 @@ public final class RatiosUtil {
    * Compare two accounts by type, for sorting a list by account type. This puts accounts in exactly the same
    * order as they appear in the side bar or in the account selector.
    */
-  private static final Comparator<Account> ACCOUNT_TYPE_COMPARATOR = new Comparator<Account>() {
-    public int compare(Account lhs, Account rhs) {
-      if (lhs == null) { return (rhs == null) ? 0 : -1; }
-      if (rhs == null) return 1;
-      final Account.AccountType lType = lhs.getAccountType();
-      final Account.AccountType rType = rhs.getAccountType();
-      if (lType == rType) return 0; // shortcut
-      // first put the non-income, non-expense accounts in account type order
-      if ((lType != Account.AccountType.INCOME)
-          && (lType != Account.AccountType.EXPENSE)
-          && (rType != Account.AccountType.INCOME)
-          && (rType != Account.AccountType.EXPENSE)) {
-        return lType.code() - rType.code();
-      }
-      // at this point one or both sides is a category
-      if ((lType != Account.AccountType.INCOME) && (lType != Account.AccountType.EXPENSE)) {
-        // normal accounts first, left hand side is normal account but right hand side isn't
-        return -1;
-      }
-      if ((rType != Account.AccountType.INCOME) && (rType != Account.AccountType.EXPENSE)) {
-        // normal accounts first, right hand side is normal account but left hand side isn't
-        return 1;
-      }
-      // both are income or expense accounts, put income accounts first which is in reverse numerical order
-      return rType.code() - lType.code();
+  private static final Comparator<Account> ACCOUNT_TYPE_COMPARATOR = (lhs, rhs) -> {
+    if (lhs == null) { return (rhs == null) ? 0 : -1; }
+    if (rhs == null) return 1;
+    final Account.AccountType lType = lhs.getAccountType();
+    final Account.AccountType rType = rhs.getAccountType();
+    if (lType == rType) return 0; // shortcut
+    // first put the non-income, non-expense accounts in account type order
+    if (!com.moneydance.modules.features.ratios.Util.isCategory(lhs)
+            && !com.moneydance.modules.features.ratios.Util.isCategory(rhs)) {
+      return lType.code() - rType.code();
     }
+    // at this point one or both sides is a category
+    if (!com.moneydance.modules.features.ratios.Util.isCategory(lhs)) {
+      // normal accounts first, left hand side is normal account but right hand side isn't
+      return -1;
+    }
+    if (!com.moneydance.modules.features.ratios.Util.isCategory(rhs)) {
+      // normal accounts first, right hand side is normal account but left hand side isn't
+      return 1;
+    }
+    // both are income or expense accounts, put income accounts first which is in reverse numerical order
+    return rType.code() - lType.code();
   };
 
   private static final Comparator<Txn> TXN_ACCOUNT_COMPARATOR = new Comparator<Txn>() {

@@ -293,22 +293,16 @@ class RatioPart {
       // transactions are specified in the currency of the source account, not the target account
       final long txnValue = sourceAccount.getCurrencyType().adjustValueForSplitsInt(txnDate, rawValue);
       // convert to the base currency for all calculations
-      final long convertedValue;
-      // we will flip the transaction if the category is the source and the non-category is the
-      // destination
+      long convertedValue;
 
-      if (RatioCompute.shouldFlipTxn(sourceAccount, targetAccount, sourceRequired, targetRequired, true)) {
-        convertedValue = -CurrencyUtil.convertValue(txnValue, sourceAccount.getCurrencyType(),
-                                                    _baseCurrency, txnDate);
-//        if (Main.DEBUG) System.err.printf("@@ source: %s target: %s srcRqs: %s tgtRqd: %s convertedValue: %s shouldFlip: %s txn: %s\n",
-//                sourceAccount, targetAccount, sourceRequired, targetRequired, convertedValue, true, txn);
-      } else {
-        convertedValue = CurrencyUtil.convertValue(txnValue, sourceAccount.getCurrencyType(),
-                                                    _baseCurrency, txnDate);
-//        if (Main.DEBUG) System.err.printf("@@ source: %s target: %s srcRqs: %s tgtRqd: %s convertedValue: %s shouldFlip: %s txn: %s\n",
-//                sourceAccount, targetAccount, sourceRequired, targetRequired, convertedValue, false, txn);
+      // we will flip the transaction if the category is the source and the non-category is the destination
+      convertedValue = CurrencyUtil.convertValue(txnValue, sourceAccount.getCurrencyType(), _baseCurrency, txnDate);
+      boolean flip = (RatioCompute.shouldFlipTxn(sourceAccount, targetAccount, sourceRequired, targetRequired, convertedValue));
+      if (flip) {
+        convertedValue = -convertedValue;
       }
       _txnValue += convertedValue;
+
       if (reporting != null) {
         reporting.addTxn(txn, new TxnReportInfo(convertedValue, sourceRequired, targetRequired));
       }
