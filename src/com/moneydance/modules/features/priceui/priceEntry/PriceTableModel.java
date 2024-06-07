@@ -93,8 +93,11 @@ public class PriceTableModel extends AbstractTableModel {
         updateCurrentPrice();
         return false;
       }
-      
+
       security.setSnapshotInt(asOfDate, 1 / Util.safeRate(newPrice), relativeCurrency).syncItem();
+      System.err.println("Security Price Entry: UPDATED PRICE >> '" + security + "' asof: " + asOfDate + " new price: " + newPrice +
+              (!makeCurrent ? "(not changing 'current price')" : " (also setting 'current price' and hidden 'price_date' fields)"));
+
       if (makeCurrent) {
         if(relativeCurrency!=null && !relativeCurrency.equals(currencyTable.getBaseType())) {
           double viewRateMult = CurrencyUtil.getUserRate(relativeCurrency,
@@ -302,7 +305,8 @@ public class PriceTableModel extends AbstractTableModel {
       } else if(value instanceof Double) {
         secRow.newPrice = (Double)value;
       } else {
-        double d = StringUtils.parseRate(String.valueOf(value), decimalChar);
+        // call with 0.0 default to allow blank / non-edited fields etc...
+        double d = StringUtils.parseRate(String.valueOf(value), 0.0, decimalChar);
         secRow.newPrice = d==0 ? null : d;
       }
       fireTableCellUpdated (row, col);
