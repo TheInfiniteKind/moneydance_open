@@ -101,9 +101,7 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         applyButton.setText("Apply");
         applyButton.addActionListener(this::applyButtonActionPerformed);
 
-        JRateField priceField = new JRateField(decimalChar);
-        priceField.setAllowBlank(true);
-        priceField.setHorizontalAlignment(SwingConstants.RIGHT);
+        JRateField priceField = makeRateEditorField();
         EditingCellEditor rateEditor = new EditingCellEditor(priceField);
         rateEditor.setClickCountToStart(1);
         priceField.addKeyListener(new KeyAdapter() {
@@ -126,7 +124,7 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         RightAlignedCellRenderer amountRenderer = new RightAlignedCellRenderer();
         //priceTable.setDefaultRenderer(CurrencyType.class, new SecurityNameCellRenderer());
         priceTable.setDefaultRenderer(String.class, amountRenderer);
-        priceTable.setDefaultEditor(Double.class, new SecurityPriceEditor());
+        priceTable.setDefaultEditor(Double.class, rateEditor);
         //System.err.println("editor column class: "+model.getColumnClass(PRICE_COLUMN));
         priceTable.getColumnModel().getColumn(PRICE_COLUMN).setCellEditor(rateEditor);
 
@@ -212,53 +210,13 @@ public class PriceEntryScreen extends javax.swing.JFrame {
     private javax.swing.JTable priceTable;
 
 
-    public class SecurityPriceEditor extends DefaultCellEditor {
-        public SecurityPriceEditor() {
-            super(makeRateEditorField());
-        }
-    }
-
     private static JRateField makeRateEditorField() {
         JRateField field = new JRateField(decimalChar);
         field.setAllowBlank(true);
         field.setHorizontalAlignment(SwingConstants.RIGHT);
+        field.setDefaultValue(0.0);
         return field;
     }
 
-
-    public class SecurityNameCellRenderer extends DefaultTableCellRenderer {
-
-        private String altCurrency = null;
-
-        public void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            String altCurrency = this.altCurrency;
-            if (altCurrency != null) {
-                g.setColor(Color.gray);
-                g.setFont(this.getFont());
-                FontMetrics fm = g.getFontMetrics();
-                int strWidth = fm.stringWidth(altCurrency);
-                g.drawString(altCurrency, getWidth() - strWidth - 6, getHeight() - fm.getMaxDescent());
-            }
-        }
-
-
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            Component comp = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            if (value == null) {
-                setText("<null>");
-            } else if (value instanceof String) {
-                setText((String) value);
-            } else if (value instanceof CurrencyType) {
-                CurrencyType curr = (CurrencyType) value;
-                String text = curr.getName();
-                CurrencyType relCurr = curr.getRelativeCurrency();
-                this.altCurrency = relCurr != null ? relCurr.getIDString() : null;
-                setText(text);
-            }
-            return comp;
-        }
-    }
 
 } // end class PriceEntryScreen
