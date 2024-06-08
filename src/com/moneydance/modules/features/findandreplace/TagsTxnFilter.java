@@ -9,7 +9,6 @@
 package com.moneydance.modules.features.findandreplace;
 
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import java.util.*;
 
 /**

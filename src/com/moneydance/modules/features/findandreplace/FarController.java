@@ -11,7 +11,6 @@ package com.moneydance.modules.features.findandreplace;
 import com.moneydance.apps.md.controller.AccountFilter;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
 import com.moneydance.apps.md.view.gui.select.AddRemoveAccountDialog;
 

@@ -11,7 +11,6 @@ package com.moneydance.modules.features.findandreplace;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.controller.*;
 import com.moneydance.apps.md.controller.Util;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.util.BasePropertyChangeReporter;
 
 import java.util.Collection;
