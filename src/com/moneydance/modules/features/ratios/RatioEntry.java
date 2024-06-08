@@ -17,7 +17,6 @@ import com.infinitekind.moneydance.model.Txn;
 import com.infinitekind.util.StreamTable;
 import com.moneydance.apps.md.controller.AccountFilter;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TagLogic;
 
 import java.util.List;
 import java.util.Map;
