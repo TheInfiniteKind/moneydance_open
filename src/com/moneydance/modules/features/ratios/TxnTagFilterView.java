@@ -12,7 +12,6 @@ package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.view.gui.MDAction;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import com.moneydance.apps.md.view.gui.select.ClickLabelListPanel;
 import com.moneydance.apps.md.view.resources.MDResourceProvider;
 import com.moneydance.awt.GridC;
