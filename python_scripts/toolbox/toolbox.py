@@ -172,6 +172,7 @@
 #               Improve 'Shrink Dataset' function to allow user to delete recent UPLOADBUF file....
 #               Add new menu option: quick_security_currency_price_check_report(); tweak list_security_currency_price_date() to look for 0.0001 near zero too
 #               Update licensing keys for MD2023/24 etc...
+#               Added Moneyforesight disabled status to main toolbox diagnostics screen....
 # build: 1066 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -605,8 +606,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5117
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.2
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5132
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -5767,6 +5768,7 @@ Visit: %s (Author's site)
         textArray = []                                                                                                  # noqa
 
         if isPreviewBuild(): textArray.append(u"*** PREVIEW BUILD (%s) DETECTED ***\n" %(version_build))
+        if isMoneyforesightDisabled(): textArray.append(u"*** Moneyforesight has been DISABLED by Toolbox ***\n")
 
         x = getMonoFont()
         textArray.append(u"FONT USED FOR TOOLBOX OUTPUT/DISPLAY(can be changed): %s(%s)" %(x.getFontName(), x.getSize()))
@@ -23384,6 +23386,10 @@ after saving the file, restart Moneydance
 
         MyPopUpDialogBox(toolbox_frame_,u"Moneydance Encryption Passphrases:",theMsg,theTitle=u"PASSWORDS",lAlertLevel=1).go()
         return theMsg, displayMsg
+
+    def isMoneyforesightDisabled():
+        extnPrefs = getExtensionGlobalPreferences()
+        return extnPrefs.getBoolean(GlobalVars.EXTN_PREF_KEY_DISABLE_FORESIGHT, False)
 
     def disable_moneyforesight():
         extnPrefs = getExtensionGlobalPreferences()
