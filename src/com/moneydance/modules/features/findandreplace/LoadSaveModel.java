@@ -9,7 +9,6 @@ package com.moneydance.modules.features.findandreplace;
 
 import com.moneydance.apps.md.controller.Util;
 import com.infinitekind.moneydance.model.*;
-import com.moneydance.apps.md.view.gui.TagLogic;
 import com.infinitekind.util.StreamTable;
 import com.infinitekind.util.StringEncodingException;
 
