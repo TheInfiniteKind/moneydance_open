@@ -19,5 +19,4 @@ MoneydanceOpen.iws
 /python_scripts/*.pyc
 !bin/repackage-jython
 .jython_cache
-.DS_Store
 src/user.properties.sh
