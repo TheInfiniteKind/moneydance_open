@@ -22,14 +22,20 @@ import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.CustomDateFormat;
 import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.UserPreferences;
+import com.moneydance.apps.md.view.gui.SecondaryFrame;
 import com.moneydance.awt.*;
+import com.moneydance.modules.features.priceui.Main;
 import com.moneydance.modules.features.priceui.swing.RightAlignedCellRenderer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Comparator;
+import java.util.Currency;
 
 
 /**
@@ -38,7 +44,7 @@ import java.awt.event.KeyEvent;
  *
  * @author Tom Edelson
  */
-public class PriceEntryScreen extends javax.swing.JFrame {
+public class PriceEntryScreen extends SecondaryFrame {
 
     /*
      * This is partly generated code, courtesy of NetBeans.
@@ -47,8 +53,6 @@ public class PriceEntryScreen extends javax.swing.JFrame {
      * personal finance software packages.
      *
      */
-
-    private final int PRICE_COLUMN = 2;
 
     private PriceEntryExec responder;
 
@@ -71,6 +75,20 @@ public class PriceEntryScreen extends javax.swing.JFrame {
      *                        execute user-requested actions.
      */
     public PriceEntryScreen(PriceTableModel model, PriceEntryExec responderObject) {
+        super(Main.getMDGUI(), "Security Prices (quick data entry)");
+
+        setUsesDataFile(true);
+
+        setRememberSizeLocationKeys(String.format("gui.%s_size", Main.EXTN_ID), String.format("gui.%s_location", Main.EXTN_ID), new Dimension(600, 500));
+        setMinimumSize(new Dimension(600, 500));
+
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close_window");
+        getRootPane().getActionMap().put("close_window", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                goAway();
+            }
+        });
 
         tableModel = model;
         responder = responderObject;
@@ -78,15 +96,13 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         CustomDateFormat dateFormat = UserPreferences.getInstance().getShortDateFormatter();
         jLabel2 = new javax.swing.JLabel();
         makeCurrentFlagChbox = new javax.swing.JCheckBox();
+        onlyShowActiveSecuritiesChbox = new javax.swing.JCheckBox();
+        onlyShowSecuritiesWithBalancesChbox = new javax.swing.JCheckBox();
         asOfDate = new JDateField(dateFormat);
         asOfDate.setDateInt(calcAsOfDate());
         jScrollPane1 = new javax.swing.JScrollPane();
         priceTable = new JTable();
         applyButton = new javax.swing.JButton();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        setTitle("Security Prices");
 
         jLabel2.setText("As-of Date:");
 
@@ -95,7 +111,55 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         makeCurrentFlagChbox.setSelected(true);
         makeCurrentFlagChbox.setText("Also set these prices as \"current\"");
 
+        onlyShowActiveSecuritiesChbox.setSelected(prefs.getBoolSetting(Main.EXTN_ID + "_" + Main.ONLY_SHOW_ACTIVE_SECURITIES_KEY, false));
+        onlyShowActiveSecuritiesChbox.setText("Only show active securities");
+        onlyShowActiveSecuritiesChbox.setToolTipText("When 'show on summary screen' is ticked in Tools/Securities");
+        onlyShowActiveSecuritiesChbox.addActionListener(e -> {
+            prefs.setSetting(Main.EXTN_ID + "_" + Main.ONLY_SHOW_ACTIVE_SECURITIES_KEY, onlyShowActiveSecuritiesChbox.isSelected());
+            tableModel.fireTableDataChanged();
+        });
+
+        onlyShowSecuritiesWithBalancesChbox.setSelected(prefs.getBoolSetting(Main.EXTN_ID + "_" + Main.ONLY_SHOW_SECURITIES_WITH_BALANCE_KEY, false));
+        onlyShowSecuritiesWithBalancesChbox.setText("Only show securities with a balance");
+        onlyShowSecuritiesWithBalancesChbox.addActionListener(e -> {
+            prefs.setSetting(Main.EXTN_ID + "_" + Main.ONLY_SHOW_SECURITIES_WITH_BALANCE_KEY, onlyShowSecuritiesWithBalancesChbox.isSelected());
+            tableModel.fireTableDataChanged();
+        });
+
         priceTable.setModel(tableModel);
+
+        final TableRowSorter<PriceTableModel> sortAndFilter = new TableRowSorter<>(tableModel);
+        RowFilter<Object, Object> includeRowFilter = new RowFilter<Object, Object>() {
+            public boolean include(Entry<?, ?> entry) {
+                if (getOnlyShowActiveSecuritiesFlag() || getOnlyShowSecuritiesWithBalancesFlag()){
+                    for (int i = entry.getValueCount() - 1; i >= 0; i--) {
+                        if (!(entry.getValue(i) instanceof CurrencyType))
+                            continue;
+                        CurrencyType sec = (CurrencyType) entry.getValue(i);
+                        if (sec.getCurrencyType() != CurrencyType.Type.SECURITY)
+                            continue;
+
+                        if (getOnlyShowActiveSecuritiesFlag() && sec.getHideInUI()) {
+                            return false;
+                        }
+
+                        if (getOnlyShowSecuritiesWithBalancesFlag() && PriceTableModel.getSecurityBalance(sec) == 0L) {
+                            return false;
+                        }
+
+                    }
+                }
+                return true;
+            }
+        };
+        sortAndFilter.setRowFilter(includeRowFilter);
+        priceTable.setRowSorter(sortAndFilter);
+
+        sortAndFilter.setSortable(PriceTableModel.CURRENT_PRICE_COLUMN, false);
+        sortAndFilter.setSortable(PriceTableModel.NEW_PRICE_COLUMN, false);
+
+        // TODO - right justify the column headings as appropriate....
+
         jScrollPane1.setViewportView(priceTable);
 
         applyButton.setText("Apply");
@@ -104,6 +168,7 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         JRateField priceField = makeRateEditorField();
         EditingCellEditor rateEditor = new EditingCellEditor(priceField);
         rateEditor.setClickCountToStart(1);
+
         priceField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -113,7 +178,7 @@ public class PriceEntryScreen extends javax.swing.JFrame {
                         rateEditor.stopCellEditing();
                         SwingUtilities.invokeLater(() -> {
                             priceTable.getSelectionModel().setSelectionInterval(nextRowIdx, nextRowIdx);
-                            priceTable.editCellAt(nextRowIdx, PRICE_COLUMN);
+                            priceTable.editCellAt(nextRowIdx, PriceTableModel.NEW_PRICE_COLUMN);
                             priceTable.scrollRectToVisible(priceTable.getCellRect(nextRowIdx, 0, true));
                         });
                     }
@@ -122,25 +187,33 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         });
 
         RightAlignedCellRenderer amountRenderer = new RightAlignedCellRenderer();
-        //priceTable.setDefaultRenderer(CurrencyType.class, new SecurityNameCellRenderer());
         priceTable.setDefaultRenderer(String.class, amountRenderer);
         priceTable.setDefaultEditor(Double.class, rateEditor);
-        //System.err.println("editor column class: "+model.getColumnClass(PRICE_COLUMN));
-        priceTable.getColumnModel().getColumn(PRICE_COLUMN).setCellEditor(rateEditor);
+        priceTable.getColumnModel().getColumn(PriceTableModel.NEW_PRICE_COLUMN).setCellEditor(rateEditor);
 
         Font rowFont = amountRenderer.getFont();
         FontMetrics fm = amountRenderer.getFontMetrics(rowFont);
         priceTable.setRowHeight((int) Math.round(fm.getHeight() * 1.2));
+        priceTable.getColumnModel().getColumn(PriceTableModel.SECURITY_NAME_COLUMN).setMinWidth(250);
+        priceTable.getColumnModel().getColumn(PriceTableModel.FLAG_COLUMN).setMaxWidth(40);
+        priceTable.getColumnModel().getColumn(PriceTableModel.CURRENT_PRICE_COLUMN).setMinWidth(125);
+        priceTable.getColumnModel().getColumn(PriceTableModel.NEW_PRICE_COLUMN).setMinWidth(125);
         priceTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
 
         JPanel p = new JPanel(new GridBagLayout());
         JPanel asOfPanel = new JPanel(new GridBagLayout());
         asOfPanel.add(jLabel2, GridC.getc(0, 0).label());
         asOfPanel.add(asOfDate, GridC.getc(1, 0).field());
-        asOfPanel.add(makeCurrentFlagChbox, GridC.getc(0, 1).colspan(2).insets(18, 0, 0, 0));
+        asOfPanel.add(makeCurrentFlagChbox, GridC.getc(0, 1).colspan(2).insets(5, 0, 0, 0));
         p.add(asOfPanel, GridC.getc(0, 1).center().insets(18, 18, 18, 18));
         p.add(jScrollPane1, GridC.getc(0, 2).wxy(1, 1).fillboth());
-        p.add(applyButton, GridC.getc(0, 3).east().insets(10, 50, 10, 10));
+
+        JPanel showOptionsPanel = new JPanel(new GridBagLayout());
+        showOptionsPanel.add(onlyShowActiveSecuritiesChbox, GridC.getc(0, 1).leftInset(10));
+        showOptionsPanel.add(onlyShowSecuritiesWithBalancesChbox, GridC.getc(1, 1).leftInset(10));
+        p.add(showOptionsPanel, GridC.getc(0, 3).center().insets(5, 18, 18, 5));
+
+        p.add(applyButton, GridC.getc(0, 4).east().insets(10, 50, 10, 10));
         setContentPane(p);
         pack();
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
@@ -184,11 +257,11 @@ public class PriceEntryScreen extends javax.swing.JFrame {
     public boolean getMakeCurrentFlag() {
         return makeCurrentFlagChbox.isSelected();
     }
-
+    public boolean getOnlyShowActiveSecuritiesFlag() { return onlyShowActiveSecuritiesChbox.isSelected(); }
+    public boolean getOnlyShowSecuritiesWithBalancesFlag() { return onlyShowSecuritiesWithBalancesChbox.isSelected(); }
 
     /*
-     * Returns a Date which represents the last day of the previous month,
-     * at noon.
+     * Returns a Date which represents the last day of the previous month.
      *
      * Ideally, I'd break out a separate utility function which took a Date
      * argument, so I could test the algorithm by feeding it lots of test cases.
@@ -197,8 +270,7 @@ public class PriceEntryScreen extends javax.swing.JFrame {
      *
      */
     private int calcAsOfDate() {
-        int today = DateUtil.getStrippedDateInt();
-        return DateUtil.incrementDate(today, 0, 0, (today % 100) * -1); // the last day of the previous month
+        return DateUtil.lastDayInMonth(DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, -1, 0));
     } // end method calcAsOfDate
 
 
@@ -207,6 +279,8 @@ public class PriceEntryScreen extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JCheckBox makeCurrentFlagChbox;
+    private javax.swing.JCheckBox onlyShowActiveSecuritiesChbox;
+    private javax.swing.JCheckBox onlyShowSecuritiesWithBalancesChbox;
     private javax.swing.JTable priceTable;
 
 
@@ -217,6 +291,7 @@ public class PriceEntryScreen extends javax.swing.JFrame {
         field.setDefaultValue(0.0);
         return field;
     }
+
 
 
 } // end class PriceEntryScreen

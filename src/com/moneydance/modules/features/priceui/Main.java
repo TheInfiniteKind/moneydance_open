@@ -16,15 +16,18 @@
 package com.moneydance.modules.features.priceui;
 
 
+import com.moneydance.apps.md.controller.AppEventManager;
 import com.moneydance.apps.md.controller.FeatureModule;
 import com.moneydance.apps.md.controller.FeatureModuleContext;
 import com.infinitekind.moneydance.model.*;
 
+import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.modules.features.priceui.access.CurrencyTableSource;
 import com.moneydance.modules.features.priceui.priceEntry.PriceEntryExec;
 import com.moneydance.modules.features.priceui.utils.IconSource;
 import com.moneydance.modules.features.priceui.tools.TestingAndDebugging;
 
+import javax.swing.*;
 import java.awt.Image;
 
 
@@ -41,17 +44,21 @@ import java.awt.Image;
  * @author Tom Edelson
  */
 
-public class Main extends FeatureModule
-        implements CurrencyTableSource {
+// TODO - consider adding PreferencesListener & also Currency & Account change listeners... (probably quit the extension if a change detected)... tbd...
 
+public class Main extends FeatureModule implements CurrencyTableSource {
+
+    public static final String EXTN_ID = "priceui";
+    public static com.moneydance.apps.md.controller.Main MD_REF;
+    public static com.moneydance.modules.features.priceui.Main THIS_EXTENSION_CONTEXT;
+    public static final String ONLY_SHOW_ACTIVE_SECURITIES_KEY = EXTN_ID + "_gui_only_show_active_securities";
+    public static final String ONLY_SHOW_SECURITIES_WITH_BALANCE_KEY = EXTN_ID + "_gui_only_show_securities_with_balance";
 
     private static boolean debugFlag = (com.moneydance.apps.md.controller.Main.DEBUG || Boolean.getBoolean("moneydance.debug"));
 
     private FeatureModuleContext context;
 
     private PriceEntryExec executor;
-
-    private final String iconPath = "/com/moneydance/modules/features/priceui/dollar.gif";
 
 
     /**
@@ -68,6 +75,17 @@ public class Main extends FeatureModule
     @Override
     public void unload() {
         cleanup();
+    }
+
+
+    @Override
+    public void handleEvent(String appEvent) {
+        switch (appEvent) {
+            case AppEventManager.FILE_CLOSED:
+            case AppEventManager.APP_EXITING:
+                SwingUtilities.invokeLater(this::unload);
+                break;
+        }
     }
 
 
@@ -109,17 +127,30 @@ public class Main extends FeatureModule
      */
     @Override
     public void init() {
+        THIS_EXTENSION_CONTEXT = this;
         debugFlag = TestingAndDebugging.calcDebugFlag("PriceEntryDebug");
         if (debugFlag)
             System.out.print("\nEntered init method for Security Price Entry.\n\n");
         context = getContext();
+        MD_REF = (com.moneydance.apps.md.controller.Main) context;
         String actionName = "priceEntry";
         IconSource imageMaker = new IconSource();
+        String iconPath = "/com/moneydance/modules/features/priceui/dollar.gif";
         Image icon = imageMaker.getIcon(iconPath);
         String name = getName();
         context.registerFeature(this, actionName, icon, name);
     }
 
+    public static com.moneydance.apps.md.controller.Main getMDMain() {
+        return MD_REF;
+    }
+    public static FeatureModuleContext getUnprotectedContext() {
+        return getMDMain();
+    }
+    public static com.moneydance.modules.features.priceui.Main getExtensionContext() { return THIS_EXTENSION_CONTEXT; }
+    public static MoneydanceGUI getMDGUI() {
+        return (MoneydanceGUI) getMDMain().getUI();
+    }
 
     /**
      * Called by Moneydance when the user directs the application

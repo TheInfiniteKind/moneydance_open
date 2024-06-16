@@ -88,7 +88,7 @@ public class PriceEntryExec {
     
     
      /**
-      * Called by the "cleanup" method of the "offical main" class
+      * Called by the "cleanup" method of the "official main" class
       * 
       *     (com.moneydance.modules.features.priceui.Main)
       * 

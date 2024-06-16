@@ -19,11 +19,10 @@ Modified: 2011-11-14
 
 package com.moneydance.modules.features.priceui.priceEntry;
 
-import com.infinitekind.moneydance.model.CurrencyTable;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.moneydance.model.CurrencyUtil;
+import com.infinitekind.moneydance.model.*;
 import com.infinitekind.util.StringUtils;
 import com.moneydance.apps.md.controller.Util;
+import com.moneydance.modules.features.priceui.Main;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
@@ -43,17 +42,18 @@ public class PriceTableModel extends AbstractTableModel {
   
   private Class[] colClasses = new Class[COLUMN_COUNT];
   
-  static final int COLUMN_COUNT = 3;
+  static final int COLUMN_COUNT = 4;
   static final int SECURITY_NAME_COLUMN = 0;
-  static final int CURRENT_PRICE_COLUMN = 1;
-  static final int NEW_PRICE_COLUMN = 2;
+  static final int FLAG_COLUMN = 1;
+  static final int CURRENT_PRICE_COLUMN = 2;
+  static final int NEW_PRICE_COLUMN = 3;
   
   private CurrencyTable currencyTable;
   private String basePrefix = "";
   private String baseSuffix = "";
   private List<SecurityRow> allSecurities = new ArrayList<>();
   
-  private static String[] headings = {"Security", "Current Price", "New Price"};
+  private static String[] headings = {"Security", "", "Current Price", "New Price"};
   private char decimalChar = '.';
   
   private class SecurityRow {
@@ -116,10 +116,10 @@ public class PriceTableModel extends AbstractTableModel {
   
   
   
-  static final Comparator<SecurityRow> SECURITY_ROW_COMPARATOR = (secRow1, secRow2) -> CurrencyUtil.CURRENCY_NAME_COMPARATOR.compare(secRow1.security, secRow2.security);
-  
-  
-  
+  //static final Comparator<SecurityRow> SECURITY_ROW_COMPARATOR = (secRow1, secRow2) -> CurrencyUtil.CURRENCY_NAME_COMPARATOR.compare(secRow1.security, secRow2.security);
+  static final Comparator<SecurityRow> SECURITY_ROW_COMPARATOR = Comparator.comparing(secRow -> secRow.security.getName().toLowerCase());
+
+
   public PriceTableModel(CurrencyTable currencyTable) {
     this.currencyTable = currencyTable;
     CurrencyType baseCurrency = currencyTable.getBaseType();
@@ -133,6 +133,7 @@ public class PriceTableModel extends AbstractTableModel {
     }
     
     colClasses[SECURITY_NAME_COLUMN] = CurrencyType.class;
+    colClasses[FLAG_COLUMN] = String.class;
     colClasses[CURRENT_PRICE_COLUMN] = Double.class;
     colClasses[NEW_PRICE_COLUMN] = Double.class;
     
@@ -239,6 +240,8 @@ public class PriceTableModel extends AbstractTableModel {
     switch(column) {
       case SECURITY_NAME_COLUMN:
         return CurrencyType.class;
+      case FLAG_COLUMN:
+        return String.class;
       case NEW_PRICE_COLUMN:
         return Double.class;
       case CURRENT_PRICE_COLUMN:
@@ -263,10 +266,16 @@ public class PriceTableModel extends AbstractTableModel {
    */
   
   public Object getValueAt(int row, int column) {
+    SecurityRow secRow = allSecurities.get(row);
     switch(column) {
-      case SECURITY_NAME_COLUMN: return allSecurities.get(row).security;
-      case CURRENT_PRICE_COLUMN: return allSecurities.get(row).currentPrice;
-      case NEW_PRICE_COLUMN: return allSecurities.get(row).newPrice;
+      case SECURITY_NAME_COLUMN: return secRow.security;
+      case FLAG_COLUMN:
+        StringBuilder flags = new StringBuilder("");
+        if (secRow.security.getHideInUI()) flags.append("-I");
+        if (PriceTableModel.getSecurityBalance(secRow.security) == 0) flags.append("-Z");
+        return flags.toString();
+      case CURRENT_PRICE_COLUMN: return secRow.currentPrice;
+      case NEW_PRICE_COLUMN: return secRow.newPrice;
       default: return "?";
     }
   }
@@ -313,5 +322,24 @@ public class PriceTableModel extends AbstractTableModel {
     }
   } // end method setValueAt
   
+  public static long getSecurityBalance(CurrencyType sec) {
+
+    ArrayList<Account> accts = new ArrayList<>();
+    AccountIterator iter = new AccountIterator(Main.getMDMain().getCurrentAccountBook());
+
+    while (iter.hasNext()) {
+      Account acct = iter.next();
+      if (acct.getCurrencyType() == sec) {
+        accts.add(acct);
+      }
+    }
+
+      long secBalTot = 0L;
+      for (Account secAcct : accts) {
+        secBalTot += secAcct.getBalance();
+      }
+
+    return secBalTot;
+  }
 
 } // end class PriceTableModel
