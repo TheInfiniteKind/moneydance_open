@@ -3,10 +3,10 @@
  *
  * Created: 2008-07-16
  * Modified: 2011-10-24
- * Updated: May 2024 - Stuart Beesley - allow price edits to auto move down to next row for quick entry
+ * Updated: May 2024 -  Stuart Beesley - allow price edits to auto move down to next row for quick entry
+ * Updated: June 2024 - Stuart Beesley - Switch to SecondaryFrame (save/reload window settings), add filters (exclude inactive/zero balance securities)
  *
- * This class is part of Security Price Entry, which is an extension
- * to the Moneydance personal finance program.
+ * This class is part of Security Price Entry, which is an extension to the Moneydance personal finance program.
  *
  * Original Copyright (C) 2011 by Thomas Edelson of Songline Software (www.songline-software.com).
  * Now Copyright (c) 2015 The Infinite Kind Limited (infinitekind.com)
@@ -60,16 +60,16 @@ public class Main extends FeatureModule implements CurrencyTableSource {
 
     private PriceEntryExec executor;
 
-
     /**
      * Called by Moneydance when a data set is closed.
-     * Delegates to the "executor" object, which was created when our "init"
-     * method was called.
+     * Delegates to the "executor" object, which was created when our "init" method was called.
      */
     @Override
     public void cleanup() {
-        executor.cleanup();
-        executor = null;
+        if (executor != null) {
+            executor.cleanup();
+            executor = null;
+        }
     }
 
     @Override

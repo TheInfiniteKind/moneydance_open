@@ -28,14 +28,11 @@ import com.moneydance.modules.features.priceui.Main;
 import com.moneydance.modules.features.priceui.swing.RightAlignedCellRenderer;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.Comparator;
-import java.util.Currency;
 
 
 /**
