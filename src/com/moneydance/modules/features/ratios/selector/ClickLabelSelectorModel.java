@@ -22,8 +22,7 @@ import java.util.List;
 class ClickLabelSelectorModel {
   final static String SELECTION_CHANGE = "selectIndexChange";
   private final List<String> _items;
-  private final SwingPropertyChangeSupport _eventNotify =
-      new SwingPropertyChangeSupport(this, true);
+  private final SwingPropertyChangeSupport eventNotify = new SwingPropertyChangeSupport(this, true);
   private int _selectedIndex;
 
   ClickLabelSelectorModel(final List<String> items, int defaultIndex) {
@@ -51,15 +50,15 @@ class ClickLabelSelectorModel {
     if (_selectedIndex != selectedIndex) {
       final int oldIndex = _selectedIndex;
       _selectedIndex = selectedIndex;
-      _eventNotify.firePropertyChange(SELECTION_CHANGE, oldIndex, selectedIndex);
+      eventNotify.firePropertyChange(SELECTION_CHANGE, oldIndex, selectedIndex);
     }
   }
 
   void addPropertyChangeListener(final PropertyChangeListener listener) {
-    _eventNotify.addPropertyChangeListener(listener);
+    eventNotify.addPropertyChangeListener(listener);
   }
 
   void removePropertyChangeListener(final PropertyChangeListener listener) {
-    _eventNotify.removePropertyChangeListener(listener);
+    eventNotify.removePropertyChangeListener(listener);
   }
 }
