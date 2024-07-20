@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
-    <comment>All localizable strings used by the Stock Quotes Synchronizer plugin.</comment>
+    <comment>All localizable strings used by the Quotes and Exchange Rates plugin.</comment>
 
     <entry key="title.text">Quotes and Exchange Rates</entry>
 

@@ -14,7 +14,6 @@ import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.controller.time.*;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.util.BasePropertyChangeReporter;
 
 import javax.swing.SwingUtilities;
 import java.beans.PropertyChangeListener;
@@ -180,7 +179,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     final StockQuotesModel model = this;
     Thread tempThread = new Thread(new Runnable() {
       public void run() {
-        firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
+        firePropertyChange(eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
         
         final ConnectionTask task = new ConnectionTask(new DownloadTask(model, _resources), model, _resources);
         setCurrentTask(task, false);
@@ -201,7 +200,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
     setCurrentTask(task, true);
     _executor.execute(_currentTask);
     // all notifications are set to the Swing EDT
-    firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
+    firePropertyChange(eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
   }
   
   public void runUpdateIfNeeded(final boolean delayStart, final PropertyChangeListener listener) {
@@ -218,7 +217,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
         _executor.execute(_currentTask);
         // all notifications are set to the Swing EDT
         if (_cancelTasks.get()) return;
-        firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
+        firePropertyChange(eventNotify, N12EStockQuotes.DOWNLOAD_BEGIN, null, null);
         waitForCurrentTaskToFinish();
         removePropertyChangeListener(listener);
       }
@@ -281,7 +280,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
 
   void showProgress(final float percent, final String status) {
     // all notifications are set to the Swing EDT
-    firePropertyChange(_eventNotify, N12EStockQuotes.STATUS_UPDATE, Float.toString(percent), status);
+    firePropertyChange(eventNotify, N12EStockQuotes.STATUS_UPDATE, Float.toString(percent), status);
   }
 
   void saveSettings(Account root) {
@@ -346,7 +345,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   void fireUpdateHeaderEvent() {
-   firePropertyChange(_eventNotify, N12EStockQuotes.HEADER_UPDATE, null, null);
+   firePropertyChange(eventNotify, N12EStockQuotes.HEADER_UPDATE, null, null);
   }
 
   void saveLastQuoteUpdateDate(final int lastDate) {
@@ -387,7 +386,7 @@ public class StockQuotesModel extends BasePropertyChangeReporter
   }
 
   private void fireDownloadEnd(String taskName, Boolean success) {
-    firePropertyChange(_eventNotify, N12EStockQuotes.DOWNLOAD_END, taskName, success);
+    firePropertyChange(eventNotify, N12EStockQuotes.DOWNLOAD_END, taskName, success);
   }
 
   private void setCurrentTask(final ConnectionTask task, final boolean cancelCurrentTask) {

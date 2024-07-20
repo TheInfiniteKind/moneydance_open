@@ -11,7 +11,6 @@
 package com.moneydance.modules.features.ratios;
 
 import com.infinitekind.moneydance.model.AccountBook;
-import com.moneydance.util.BasePropertyChangeReporter;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
@@ -77,7 +76,7 @@ class RatioSettingsModel
 
   public void propertyChange(PropertyChangeEvent event) {
     // a setting has changed, parrot it
-    _eventNotify.firePropertyChange(event);
+    eventNotify.firePropertyChange(event);
   }
 
 

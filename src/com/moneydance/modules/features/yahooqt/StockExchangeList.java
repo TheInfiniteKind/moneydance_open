@@ -145,16 +145,11 @@ public class StockExchangeList {
     try {
       settings.writeToFile(_configFile);
       success = true;
-    } catch (StringEncodingException e) {
-      System.err.println("Stock quote plugin unexpected error writing exchange list file: " +
-                         _configFile.getAbsolutePath());
-      e.printStackTrace();
-    } catch (IOException e) {
-      System.err.println("Stock quote synchronizer plugin error writing to file: " +
-                         _configFile.getAbsolutePath());
+    } catch (StringEncodingException | IOException e) {
+      System.err.println("Quotes and Exchange Rates plugin error writing to file: " + _configFile.getAbsolutePath());
       e.printStackTrace();
     }
-    return success;
+      return success;
   }
   
   private boolean loadFromFile() {
@@ -170,21 +165,18 @@ public class StockExchangeList {
         StockExchange exchange = new StockExchange();
         exchange.loadFromSettings((StreamTable)exchangeSetting);
         if (_exchangeList.containsKey(exchange.getExchangeId())) {
-          System.err.println("Stock quote synchronizer plugin found duplicate stock exchange " +
+          System.err.println("Quotes and Exchange Rates plugin found duplicate stock exchange " +
                              "entry name: "+exchange.getName()+" in file: "+_configFile.getAbsolutePath());
         } else {
           _exchangeList.put(exchange.getExchangeId(), exchange);
         }
       }
       return true;
-    } catch (StringEncodingException e) {
-      System.err.println("Stock quote synchronizer plugin error reading exchange list file: " +
-        _configFile.getAbsolutePath());
-    } catch (IOException e) {
-      System.err.println("Stock quote synchronizer plugin error reading exchange list file: " +
+    } catch (StringEncodingException | IOException e) {
+      System.err.println("Quotes and Exchange Rates plugin error reading exchange list file: " +
         _configFile.getAbsolutePath());
     }
-    return false;
+      return false;
   }
   
   /**

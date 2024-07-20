@@ -16,7 +16,6 @@ import com.infinitekind.moneydance.model.AccountListener;
 import com.infinitekind.moneydance.model.DateRange;
 import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
-import com.moneydance.util.BasePropertyChangeReporter;
 import com.infinitekind.util.StreamTable;
 import com.infinitekind.util.StringEncodingException;
 import com.infinitekind.util.StringUtils;
@@ -215,7 +214,7 @@ class RatiosExtensionModel
     _settings = settings;
     loadRatioList();
     recalculate();
-    _eventNotify.firePropertyChange(N12ERatios.SETTINGS_CHANGE, null, settings);
+    eventNotify.firePropertyChange(N12ERatios.SETTINGS_CHANGE, null, settings);
   }
 
 
@@ -231,7 +230,7 @@ class RatiosExtensionModel
     }
     //  save in preferences in case the user does not save the file, the system will still remember their choice
     _preferences.setSetting(N12ERatios.DATE_RANGE_PREF_KEY, dateRangeOption);
-    _eventNotify.firePropertyChange(N12ERatios.DATE_RANGE_OPTION, oldOption, dateRangeOption);
+    eventNotify.firePropertyChange(N12ERatios.DATE_RANGE_OPTION, oldOption, dateRangeOption);
   }
 
   void setCustomDateRange(final DateRange dateRange) {
@@ -240,7 +239,7 @@ class RatiosExtensionModel
       _settings.setCustomDateRange(dateRange);
       recalculate();
     }
-    _eventNotify.firePropertyChange(N12ERatios.DATE_RANGE_OPTION, oldOption, N12ERatios.CUSTOM_DATE_KEY);
+    eventNotify.firePropertyChange(N12ERatios.DATE_RANGE_OPTION, oldOption, N12ERatios.CUSTOM_DATE_KEY);
   }
 
   void recalculate() {
@@ -377,7 +376,7 @@ class RatiosExtensionModel
             _ratioCompute.computeRatios(_ratios, _settings.getDateRange());
           }
           // notify the UI on the main thread
-          firePropertyChange(_eventNotify, N12ERatios.RECALCULATE, null, null);
+          firePropertyChange(eventNotify, N12ERatios.RECALCULATE, null, null);
           currentTaskDone();
 
         } catch (NullPointerException error) {

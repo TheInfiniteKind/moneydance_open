@@ -11,7 +11,6 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.awt.GridC;
-import com.moneydance.util.BasePropertyChangeReporter;
 import com.moneydance.util.UiUtil;
 
 import java.awt.GridBagLayout;

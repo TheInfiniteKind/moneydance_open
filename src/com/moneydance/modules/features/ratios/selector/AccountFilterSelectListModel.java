@@ -11,7 +11,7 @@
 package com.moneydance.modules.features.ratios.selector;
 
 import com.moneydance.apps.md.controller.AccountFilter;
-import com.moneydance.util.BasePropertyChangeReporter;
+import com.moneydance.modules.features.ratios.BasePropertyChangeReporter;
 
 /**
  * <p>Model for a control that allows the user to select one or more accounts and shows the
@@ -58,7 +58,7 @@ class AccountFilterSelectListModel
 
   void setRequiredAccountFilter(AccountFilter accountFilter) {
     _requiredFilter = accountFilter;
-    _eventNotify.firePropertyChange(N12ESelector.FILTER_CHANGE, false, true);
+    eventNotify.firePropertyChange(N12ESelector.FILTER_CHANGE, false, true);
   }
 
   AccountFilter getRequiredAccountFilter() {
@@ -67,7 +67,7 @@ class AccountFilterSelectListModel
 
   void setDisallowedAccountFilter(AccountFilter accountFilter) {
     _disallowedFilter = accountFilter;
-    _eventNotify.firePropertyChange(N12ESelector.FILTER_CHANGE, false, true);
+    eventNotify.firePropertyChange(N12ESelector.FILTER_CHANGE, false, true);
   }
 
   AccountFilter getDisallowedAccountFilter() {

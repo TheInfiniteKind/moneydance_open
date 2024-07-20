@@ -89,7 +89,7 @@ public class SymbolMap {
       table.readFrom(settings);
       StreamVector settingsList = (StreamVector)table.get(EXCHANGE_LIST_KEY);
       if (settingsList == null) {
-        if(Main.DEBUG_YAHOOQT) System.err.println("Stock quote synchronizer plugin no symbol map found.");
+        if(Main.DEBUG_YAHOOQT) System.err.println("Quotes and Exchange Rates plugin no symbol map found.");
         return;
       }
       for (Object mapPair : settingsList) {
@@ -104,7 +104,7 @@ public class SymbolMap {
         }
       }
     } catch (StringEncodingException e) {
-      System.err.println("Stock quote synchronizer plugin error reading security to exchange Id map");
+      System.err.println("Quotes and Exchange Rates plugin error reading security to exchange Id map");
     }
   }
 

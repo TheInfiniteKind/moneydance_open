@@ -1,6 +1,6 @@
 {
   "vendor" = "The Infinite Kind (updated by Stuart Beesley)"
-  "module_build" = "1218"
+  "module_build" = "1219"
   "minbuild" = "1000"
   "vendor_url" = "https://infinitekind.com"
   "name" = "Find and Replace"
