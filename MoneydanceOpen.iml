@@ -71,7 +71,7 @@
     <orderEntry type="module-library" scope="PROVIDED">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/tablelayout-20070421.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/TableLayout-bin-jdk1.5-2009-08-26.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
