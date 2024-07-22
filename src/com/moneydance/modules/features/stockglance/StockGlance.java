@@ -313,14 +313,22 @@ class StockGlance implements HomePageView {
                         entry.add((price - price7) / price7);
                         entry.add((price - price30) / price30);
                         entry.add((price - price365) / price365);
-                        
+                        // Remove later so it isn't displayed
+                        entry.add(curr);
+
                         data.add(entry);
-                        rowCurrencies.add(curr);
                     }
                 }
             }
 
             data.sort((Vector r1, Vector r2) -> r1.get(0).toString().toLowerCase().compareTo(r2.get(0).toString().toLowerCase())); // Sort by symbol
+            // Save security currency
+            for (int i = 0; i < data.size(); i++) {
+                Vector<Object> entry = data.elementAt(i);
+                rowCurrencies.add((CurrencyType)entry.lastElement());
+                entry.removeElementAt(entry.size() - 1);
+            }
+
             model.setDataVector(data, columnNames);
 
             SGTableModel footerModel = (SGTableModel)footerTable.getModel();
