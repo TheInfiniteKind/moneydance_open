@@ -872,7 +872,7 @@ class StockGlance implements HomePageView {
             if (noDecimals) {
                 // MD format functions can't print comma-separated values without a decimal point so
                 // we have to do it ourselves
-                setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(valueAsDouble) + relativeTo.getSuffix());
+                setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(valueAsDouble) + " " + relativeTo.getSuffix());
             } else {
                 setText(relativeTo.formatFancy(relativeTo.getLongValue(valueAsDouble), decimalSeparator));
             }
