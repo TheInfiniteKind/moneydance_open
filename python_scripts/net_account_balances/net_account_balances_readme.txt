@@ -312,6 +312,15 @@ MATH ON CALCULATED BALANCES:
 
                  WARNING: NEVER use currency signs or commas in numbers, only use '.' as the decimal place!
 
+                 LIMITATIONS: Do not try to use any of the following characters within magic tags: "._-". They will be
+                              ignored and assumed to be word separators.. E.g. Canadian Security @shop.to won't work as
+                              it becomes @shop in the formula.
+
+                              For security tickers with a dot you may have conflicts with the Quote Loader extension.
+                              A workaround is to save the stock ticker as "SHOP" in the properties for the security
+                              (instead of SHOP.TO), and put "SHOP.TO" in the "Alt Ticker" column in Quote Loader. Then
+                              just use @shop in Custom Balances.
+
                  >> RECOMMENDATION: Do not mix formula and RMC/UOR/PUM. Ideally, just use formula where possible
 
 - Format display adjustment (FDA): You can apply maths to change the displayed value after all other calculations.

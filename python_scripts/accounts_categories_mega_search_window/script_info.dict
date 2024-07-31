@@ -4,6 +4,7 @@
       "type" = "menu"
       "script_file" = "accounts_categories_mega_search_window_bootstrap.py"
       "name" = "Accounts & Categories Mega Search Window"
+      "name.en-GB" = "Accounts & Categories Mega Search Window"
     }
     {
       "type" = "initializer"

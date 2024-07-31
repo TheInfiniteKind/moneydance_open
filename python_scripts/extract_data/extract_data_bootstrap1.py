@@ -4,7 +4,7 @@
 ########################################################################################################################
 ## extension_bootstrap.py: Execute a compiled script if possible (faster load times) ###################################
 ########################################################################################################################
-# Author: Stuart Beesley Aug 2023 - StuWareSoftSystems
+# Author: Stuart Beesley 2024 - StuWareSoftSystems
 # Purpose: a) load compiled version for faster launch time, b) avoid "method too large" RuntimeException (.pyc helper)
 #
 # NOTES: There are various ways to load/run/execute a script.... Some as follows:
@@ -27,7 +27,7 @@
 # Given Moneydance extensions will be running from within their own mxt file (ZIP) then you need a way to reference the
 # zip's resources. Use the moneydance_extension_loader (ClassLoader) variable and then use .getResourceAsStream().
 # I.E. you cannot just import / execute a file/directory/package that you created... You have to access the mxt's stream
-#
+# NOTE: moneydance_this_fm appeared in 2024.2(5142), when moneydance_extension_loader was nuked
 # NOTE: Security concerns with these methods are addressed by ensuring you only ever install/run IK signed mxt versions.
 ########################################################################################################################
 
@@ -63,7 +63,7 @@ global MD_REF, MD_REF_UI
 global sys, imp, builtins
 global System, Runtime, RuntimeException, Long, Boolean, Integer, Runnable, Thread, InterruptedException
 global Platform, Common, AppEventManager
-global moneydance_extension_parameter, moneydance_extension_loader
+global moneydance_extension_parameter, moneydance_extension_loader, moneydance_this_fm
 global _THIS_IS_, _QuickAbortThisScriptException, _specialPrint, _decodeCommand, _HANDLE_EVENT_ENABLED_IF_REQUESTED
 global _getExtensionDatasetSettings, _saveExtensionDatasetSettings
 global _getExtensionGlobalPreferences, _saveExtensionGlobalPreferences
@@ -75,7 +75,10 @@ try:
     # Set moneydance_extension_parameter when using bootstrap and you want to detect different menus within main code...
     moneydance_extension_parameter = "menu1_normal"                                                                     # noqa
 
-    MD_EXTENSION_LOADER = moneydance_extension_loader
+    if "moneydance_this_fm" in globals():
+        MD_EXTENSION_LOADER = moneydance_this_fm
+    else:
+        MD_EXTENSION_LOADER = moneydance_extension_loader
 
     _normalExtn = ".py"
     _compiledExtn = "$py.class"

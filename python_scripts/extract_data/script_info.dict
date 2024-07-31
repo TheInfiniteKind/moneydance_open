@@ -9,24 +9,28 @@
       "type" = "menu"
       "script_file" = "extract_data_bootstrap1.py"
       "name" = "Extract Data"
+      "name.en-GB" = "Extract Data"
       "script_fixed_parameter" = "extract_data_main_menu"
     }
     {
       "type" = "menu"
       "script_file" = "extract_data_bootstrap2.py"
       "name" = "Extract Data: auto extract mode"
+      "name.en-GB" = "Extract Data: auto extract mode"
       "script_fixed_parameter" = "extract_data_auto_extract"
     }
     {
       "type" = "menu"
       "script_file" = "extract_data_bootstrap4.py"
       "name" = "Extract Data: show StockGlance2020"
+      "name.en-GB" = "Extract Data: show StockGlance2020"
       "script_fixed_parameter" = "extract_data_show_stockglance2020"
     }
     {
       "type" = "menu"
       "script_file" = "extract_data_bootstrap5.py"
       "name" = "Extract Data: show Reminders"
+      "name.en-GB" = "Extract Data: show Reminders"
       "script_fixed_parameter" = "extract_data_show_reminders"
     }
     {

@@ -517,15 +517,15 @@ http://jakarta.apache.org/ant/index.html
       <param name="feature" value="net_account_balances" />
       <param name="python-base" value="${python-src}/net_account_balances" />
     </antcall>
-    <antcall target="compile-bundled-java" inheritall="true" inheritrefs="true">
-      <param name="feature" value="net_account_balances" />
-      <param name="python-base" value="${python-src}/net_account_balances" />
-      <param name="bundled-java" value="StuWareSoftSystems_CommonCode" />
-    </antcall>
+<!--    <antcall target="compile-bundled-java" inheritall="true" inheritrefs="true">-->
+<!--      <param name="feature" value="net_account_balances" />-->
+<!--      <param name="python-base" value="${python-src}/net_account_balances" />-->
+<!--      <param name="bundled-java" value="StuWareSoftSystems_CommonCode" />-->
+<!--    </antcall>-->
     <antcall target="package-python-mxt" inheritall="true" inheritrefs="true">
       <param name="feature" value="net_account_balances" />
       <param name="python-base" value="${python-src}/net_account_balances" />
-      <param name="bundled-java" value="StuWareSoftSystems_CommonCode" />
+<!--      <param name="bundled-java" value="StuWareSoftSystems_CommonCode" />-->
     </antcall>
   </target>
 
@@ -640,9 +640,9 @@ http://jakarta.apache.org/ant/index.html
     <delete file="${python-base}/${feature}.pyc" verbose="false" failonerror="false" />
     <delete file="${python-base}/${feature}$py.class" verbose="false" failonerror="false" />
 
-    <delete verbose="false" failonerror="false">
-      <fileset dir="${python-base}" includes="${bundled-java}*.class"/>
-    </delete>
+<!--    <delete verbose="false" failonerror="false">-->
+<!--      <fileset dir="${python-base}" includes="${bundled-java}*.class"/>-->
+<!--    </delete>-->
 
   </target>
 
@@ -677,17 +677,17 @@ http://jakarta.apache.org/ant/index.html
 
   </target>
 
-  <target name="compile-bundled-java" description="Compile java file bundled with python...">
-    <fail unless="bundled-java" message="Please specify the 'bundled java file as a parameter" />
+<!--  <target name="compile-bundled-java" description="Compile java file bundled with python...">-->
+<!--    <fail unless="bundled-java" message="Please specify the 'bundled java file as a parameter" />-->
 
-    <echo level="info" message="COMPILING bundled .java file(s)" />
+<!--    <echo level="info" message="COMPILING bundled .java file(s)" />-->
 
-    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${python-base}" debug="${debug}" optimize="${optimize}"
-      classpathref="classpath"  destdir="${python-base}"
-      includeAntRuntime="false" />
-    <echo level="info" message="COMPILATION of bundled .java file(s) COMPLETED" />
+<!--    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${python-base}" debug="${debug}" optimize="${optimize}"-->
+<!--      classpathref="classpath"  destdir="${python-base}"-->
+<!--      includeAntRuntime="false" />-->
+<!--    <echo level="info" message="COMPILATION of bundled .java file(s) COMPLETED" />-->
 
-  </target>
+<!--  </target>-->
 
   <target name="genkeys">
     <java

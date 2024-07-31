@@ -34,7 +34,7 @@ global MD_REF, MD_REF_UI
 global sys, imp, builtins
 global System, Runtime, RuntimeException, Long, Boolean, Integer, Runnable, Thread, InterruptedException
 global Platform, Common, AppEventManager
-global moneydance_extension_parameter, moneydance_extension_loader
+global moneydance_extension_parameter, moneydance_extension_loader, moneydance_this_fm
 global _THIS_IS_, _QuickAbortThisScriptException, _specialPrint, _decodeCommand, _HANDLE_EVENT_ENABLED_IF_REQUESTED
 global _getExtensionDatasetSettings, _saveExtensionDatasetSettings
 global _getExtensionGlobalPreferences, _saveExtensionGlobalPreferences

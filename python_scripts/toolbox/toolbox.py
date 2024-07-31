@@ -166,14 +166,13 @@
 #               From MD2024(5100) onwards, disable remove_inactive_from_sidebar(); rename 'MoneyBot' references to 'Developer Console'
 #               Add checks for "add_to_sidebar.loc" and "add_to_sidebar.size" window size/location keys (5104)....
 # build: 1065 - Added MD2024(5108) new auto backup save everytime time recognition (etc)... New key, also leverage new UserPreferences.getBackupOption() and class: BackupOption
-# build: 1066 - ???
 # build: 1066 - Tweak debug on/off code adjusting for the CostCalculation debugger switch after 5118
 #               Tweak MyJFrame to catch individual errors....
 #               Improve 'Shrink Dataset' function to allow user to delete recent UPLOADBUF file....
 #               Add new menu option: quick_security_currency_price_check_report(); tweak list_security_currency_price_date() to look for 0.0001 near zero too
 #               Update licensing keys for MD2023/24 etc...
 #               Added Moneyforesight disabled status to main toolbox diagnostics screen....
-# build: 1066 - ???
+# build: 1066 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -210,7 +209,7 @@ version_build = "1066"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
-global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter
+global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter, moneydance_this_fm
 
 global MD_REF, MD_REF_UI
 if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
@@ -247,10 +246,14 @@ def checkObjectInNameSpace(objectName):
 
 
 if MD_REF is None: raise Exception(u"CRITICAL ERROR - moneydance object/variable is None?")
-if checkObjectInNameSpace(u"moneydance_extension_loader"):
-    MD_EXTENSION_LOADER = moneydance_extension_loader
+
+if checkObjectInNameSpace(u"moneydance_this_fm"):
+    MD_EXTENSION_LOADER = moneydance_this_fm
 else:
-    MD_EXTENSION_LOADER = None
+    if checkObjectInNameSpace(u"moneydance_extension_loader"):
+        MD_EXTENSION_LOADER = moneydance_extension_loader
+    else:
+        MD_EXTENSION_LOADER = None
 
 if (u"__file__" in globals() and __file__.startswith(u"bootstrapped_")): del __file__       # Prevent bootstrapped loader setting this....
 
@@ -382,8 +385,9 @@ elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and u"__file__" in globals():
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
 
-elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader"):
-    msg = "%s: Error - moneydance_extension_loader seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
+elif not _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT and not checkObjectInNameSpace(u"moneydance_extension_loader")\
+        and not checkObjectInNameSpace(u"moneydance_this_fm"):
+    msg = "%s: Error - moneydance_extension_loader or moneydance_this_fm seems to be missing? Must be on build: %s onwards. Now exiting script!\n" %(myModuleID, MIN_BUILD_REQD)
     print(msg); System.err.write(msg)
     try: MD_REF_UI.showInfoMessage(msg)
     except: raise Exception(msg)
@@ -607,7 +611,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5132
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5141
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"

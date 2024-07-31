@@ -27,7 +27,7 @@
 # Given Moneydance extensions will be running from within their own mxt file (ZIP) then you need a way to reference the
 # zip's resources. Use the moneydance_extension_loader (ClassLoader) variable and then use .getResourceAsStream().
 # I.E. you cannot just import / execute a file/directory/package that you created... You have to access the mxt's stream
-#
+# NOTE: moneydance_this_fm appeared in 2024.2(5142), when moneydance_extension_loader was nuked
 # NOTE: Security concerns with these methods are addressed by ensuring you only ever install/run IK signed mxt versions.
 ########################################################################################################################
 
@@ -61,7 +61,7 @@
 ########################################################################################################################
 # common definitions / declarations
 if "__file__" in globals(): raise Exception("ERROR: This script should only be run as part of an extension!")
-global moneydance, moneydance_ui, moneydance_extension_loader
+global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_this_fm
 MD_REF = moneydance             # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
 MD_REF_UI = moneydance_ui       # Necessary as calls to .getUI() will try to load UI if None - we don't want this....
 
@@ -205,7 +205,10 @@ try:
     # Set moneydance_extension_parameter when using bootstrap and you want to detect different menus within main code...
     moneydance_extension_parameter = ""                                                                                 # noqa
 
-    MD_EXTENSION_LOADER = moneydance_extension_loader
+    if "moneydance_this_fm" in globals():
+        MD_EXTENSION_LOADER = moneydance_this_fm
+    else:
+        MD_EXTENSION_LOADER = moneydance_extension_loader
 
     _normalExtn = ".py"
     _compiledExtn = "$py.class"

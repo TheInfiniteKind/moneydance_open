@@ -4,6 +4,7 @@
       "type" = "menu"
       "script_file" = "list_future_reminders_bootstrap.py"
       "name" = "List Future Reminders"
+      "name.en-GB" = "List Future Reminders"
     }
     {
       "type" = "initializer"

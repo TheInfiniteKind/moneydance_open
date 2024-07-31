@@ -14,7 +14,7 @@
 # Note: to get the .invoke(), .handle_event(), .unload() methods below to work in the ExtensionClass(), you will have to
 # ..remove the "type" = "method" entries in script_info.dict - it's one or the other, not both...
 
-global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_extension_loader
+global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_extension_loader, moneydance_this_fm
 global moneydance_script_fixed_parameter, moneydance_action_context, moneydance_action_event
 
 if "moneydance" in globals(): MD_REF = moneydance           # Make my own copy of reference as MD removes it once main thread ends.. Don't use/hold on to _data variable
