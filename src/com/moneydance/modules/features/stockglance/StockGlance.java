@@ -59,8 +59,6 @@ import static javax.swing.SwingConstants.CENTER;
 import static javax.swing.SwingConstants.RIGHT;
 import static javax.swing.SwingConstants.HORIZONTAL;
 
-
-
 // Home page component to display active stock prices and returns.
 
 class StockGlance implements HomePageView {
@@ -69,24 +67,25 @@ class StockGlance implements HomePageView {
     private SGTable table;
     private SGPanel tablePane;
 
-    private String displayedSecuritiesList;         // Comma-separated list of security to display
-    private boolean allowMissingPrices = false;     // Display even if not all prices are available
-    private int timelySnapshotInterval = 7;         // Days to look back to find security price (-1 => infinity)
+    private String displayedSecuritiesList; // Comma-separated list of security to display
+    private boolean allowMissingPrices = false; // Display even if not all prices are available
+    private int timelySnapshotInterval = 7; // Days to look back to find security price (-1 => infinity)
 
     private final CurrencyCallback currencyTableCallback = new CurrencyCallback(this);
     private final AccountCallback allAccountsCallback = new AccountCallback(this);
     private final CollapsibleRefresher refresher;
 
     // Per column metadata
-    private final String[] names = {"Symbol", "Stock", "Price", "Change", "Balance", "Day", "7 Day", "30 Day", "365 Day"};
+    private final String[] names = { "Symbol", "Stock", "Price", "Change", "Balance", "Day", "7 Day", "30 Day",
+            "365 Day" };
     private final Vector<String> columnNames = new Vector<>(Arrays.asList(names));
     private static final String TEXT_COL = "Text";
     private static final String CURR0_COL = "Currency0";
     private static final String CURR2_COL = "Currency2";
     private static final String PERCENT_COL = "Percent";
-    private final String[] columnTypes = {TEXT_COL, TEXT_COL, CURR2_COL, CURR2_COL, CURR0_COL, PERCENT_COL, PERCENT_COL, PERCENT_COL, PERCENT_COL};
+    private final String[] columnTypes = { TEXT_COL, TEXT_COL, CURR2_COL, CURR2_COL, CURR0_COL, PERCENT_COL,
+            PERCENT_COL, PERCENT_COL, PERCENT_COL };
     static final int INFINITY = -1;
-
 
     StockGlance(MoneydanceGUI mdGUI) {
         this.mdGUI = mdGUI;
@@ -94,7 +93,6 @@ class StockGlance implements HomePageView {
         this.tablePane = null;
         this.refresher = new CollapsibleRefresher(StockGlance.this::actuallyRefresh);
     }
-
 
     //
     // HomePageView interface:
@@ -112,7 +110,8 @@ class StockGlance implements HomePageView {
         return "Stock Glance";
     }
 
-    // Returns a GUI component that provides a view of the info pane for the given data file.
+    // Returns a GUI component that provides a view of the info pane for the given
+    // data file.
     @Override
     public javax.swing.JComponent getGUIView(AccountBook book) {
         synchronized (this) {
@@ -126,8 +125,10 @@ class StockGlance implements HomePageView {
         }
     }
 
-    // Sets the view as active or inactive. When not active, a view should not have any registered listeners
-    // with other parts of the program. This will be called when an view is added to the home page,
+    // Sets the view as active or inactive. When not active, a view should not have
+    // any registered listeners
+    // with other parts of the program. This will be called when an view is added to
+    // the home page,
     // or the home page is refreshed after not being visible for a while.
     @Override
     public void setActive(boolean active) {
@@ -141,8 +142,10 @@ class StockGlance implements HomePageView {
         }
     }
 
-    // Forces a refresh of the information in the view. For example, this is called after the preferences are updated.
-    // Like the other home page controls, we actually do this lazily to avoid repeatedly recalculating after stock
+    // Forces a refresh of the information in the view. For example, this is called
+    // after the preferences are updated.
+    // Like the other home page controls, we actually do this lazily to avoid
+    // repeatedly recalculating after stock
     // price updates.
     @Override
     public void refresh() {
@@ -162,8 +165,10 @@ class StockGlance implements HomePageView {
         }
     }
 
-    // Called when the view should clean up everything. For example, this is called when a file is closed and the GUI
-    // is reset. The view should disconnect from any resources that are associated with the currently opened data file.
+    // Called when the view should clean up everything. For example, this is called
+    // when a file is closed and the GUI
+    // is reset. The view should disconnect from any resources that are associated
+    // with the currently opened data file.
     @Override
     public void reset() {
         setActive(false);
@@ -189,7 +194,7 @@ class StockGlance implements HomePageView {
         rootAccount.setPreference("StockGlance_TimelyWindow", timelySnapshotInterval);
     }
 
-    public Set<String> getDisplayedSecurities() { 
+    public Set<String> getDisplayedSecurities() {
         return decodeDisplayedSecurities(displayedSecuritiesList);
     }
 
@@ -223,14 +228,15 @@ class StockGlance implements HomePageView {
         savePreferences();
     }
 
-    public int getTimelySnapshotInterval() { return timelySnapshotInterval; }
+    public int getTimelySnapshotInterval() {
+        return timelySnapshotInterval;
+    }
 
     public void setTimelySnapshotInterval(int value) {
         timelySnapshotInterval = value;
         savePreferences();
     }
 
-    
     //
     // Implementation and private classes.
     //
@@ -248,7 +254,7 @@ class StockGlance implements HomePageView {
 
             this.setForeground(mdGUI.getColors().registerTextFG);
             this.setBackground(mdGUI.getColors().registerBG1);
-            
+
             // Body table
             SGTableModel tableModel = new SGTableModel(new Vector<>(), columnNames, new Vector<>());
             this.setModel(tableModel);
@@ -270,14 +276,14 @@ class StockGlance implements HomePageView {
             }
         }
 
-        public void recomputeModel(AccountBook book, Set<String> displayedSecurities, boolean allowMissingPrices, int timelySnapshotInterval) 
-        {
+        public void recomputeModel(AccountBook book, Set<String> displayedSecurities, boolean allowMissingPrices,
+                int timelySnapshotInterval) {
             CurrencyTable ct = book.getCurrencies();
             java.util.List<CurrencyType> allCurrencies = ct.getAllCurrencies();
             Calendar today = Calendar.getInstance();
 
             SGTableModel model = this.getDataModel();
-            Vector<CurrencyType> rowCurrencies = model.getRowCurrencies();      // Type of security in each row
+            Vector<CurrencyType> rowCurrencies = model.getRowCurrencies(); // Type of security in each row
             rowCurrencies.clear();
             Vector<Vector> data = model.getDataVector();
             data.clear();
@@ -286,24 +292,27 @@ class StockGlance implements HomePageView {
             Double totalBalance = 0.0;
             for (CurrencyType curr : allCurrencies) {
                 if (!curr.getHideInUI()
-                    && curr.getCurrencyType() == CurrencyType.Type.SECURITY
-                    && (displayedSecurities != null && displayedSecurities.contains(curr.getName()))) {
-                    Double price =    getAdjRelativeRate(curr, backDays(today, 0), timelySnapshotInterval);
-                    Double price1 =   getAdjRelativeRate(curr, backDays(today, 1), timelySnapshotInterval);
-                    Double price7 =   getAdjRelativeRate(curr, backDays(today, 7), timelySnapshotInterval);
-                    Double price30 =  getAdjRelativeRate(curr, backDays(today, 30), timelySnapshotInterval);
+                        && curr.getCurrencyType() == CurrencyType.Type.SECURITY
+                        && (displayedSecurities != null && displayedSecurities.contains(curr.getName()))) {
+                    Double price = getAdjRelativeRate(curr, backDays(today, 0), timelySnapshotInterval);
+                    Double price1 = getAdjRelativeRate(curr, backDays(today, 1), timelySnapshotInterval);
+                    Double price7 = getAdjRelativeRate(curr, backDays(today, 7), timelySnapshotInterval);
+                    Double price30 = getAdjRelativeRate(curr, backDays(today, 30), timelySnapshotInterval);
                     Double price365 = getAdjRelativeRate(curr, backDays(today, 365), timelySnapshotInterval);
-    
+
                     if (allowMissingPrices
-                        || (!Double.isNaN(price)
-                            && (!Double.isNaN(price1) || !Double.isNaN(price7) || !Double.isNaN(price30) || !Double.isNaN(price365)))) {
+                            || (!Double.isNaN(price)
+                                    && (!Double.isNaN(price1) || !Double.isNaN(price7) || !Double.isNaN(price30)
+                                            || !Double.isNaN(price365)))) {
                         Vector<Object> entry = new Vector<>(names.length);
                         Long shares = balances.get(curr);
                         Double dShares = curr.getDoubleValue((shares == null) ? 0 : shares);
-    
+
                         totalBalance += dShares * 1.0 / curr.getBaseRate();
-                        //System.err.println(curr.getName()+" ("+curr.getRelativeCurrency().getName()+") bal="+dShares+", baseRate="+1.0/curr.getBaseRate());
-    
+                        // System.err.println(curr.getName()+"
+                        // ("+curr.getRelativeCurrency().getName()+") bal="+dShares+",
+                        // baseRate="+1.0/curr.getBaseRate());
+
                         entry.add(curr.getTickerSymbol());
                         entry.add(curr.getName());
                         entry.add(price);
@@ -313,17 +322,26 @@ class StockGlance implements HomePageView {
                         entry.add((price - price7) / price7);
                         entry.add((price - price30) / price30);
                         entry.add((price - price365) / price365);
-                        
+                        // Remove later so it isn't displayed
+                        entry.add(curr);
+
                         data.add(entry);
-                        rowCurrencies.add(curr);
                     }
                 }
             }
 
-            data.sort((Vector r1, Vector r2) -> r1.get(0).toString().toLowerCase().compareTo(r2.get(0).toString().toLowerCase())); // Sort by symbol
+            data.sort((Vector r1, Vector r2) -> r1.get(0).toString().toLowerCase()
+                    .compareTo(r2.get(0).toString().toLowerCase())); // Sort by symbol
+            // Save security currency
+            for (int i = 0; i < data.size(); i++) {
+                Vector<Object> entry = data.elementAt(i);
+                rowCurrencies.add((CurrencyType) entry.lastElement());
+                entry.removeElementAt(entry.size() - 1);
+            }
+
             model.setDataVector(data, columnNames);
 
-            SGTableModel footerModel = (SGTableModel)footerTable.getModel();
+            SGTableModel footerModel = (SGTableModel) footerTable.getModel();
             Vector<Vector> footerData = footerModel.getDataVector();
             footerData.clear();
             Vector<Object> footerRow = new Vector<>();
@@ -335,13 +353,13 @@ class StockGlance implements HomePageView {
             footerRow.add(null);
             footerRow.add(null);
             footerRow.add(null);
-            footerRow.add(null);  
+            footerRow.add(null);
             footerData.add(footerRow);
             footerModel.setDataVector(footerData, columnNames);
 
             fixColumnAppearance();
         }
-   
+
         private void fixColumnAppearance() {
             getTableHeader().setDefaultRenderer(new SGTableHeaderRenderer());
 
@@ -351,7 +369,7 @@ class StockGlance implements HomePageView {
                 for (int row = 0; row < getRowCount(); row++) {
                     TableCellRenderer renderer = getCellRenderer(row, column);
                     Component comp = prepareRenderer(renderer, row, column);
-                    width = Math.max(Math.min(comp.getPreferredSize().width + 1, 150) , width);
+                    width = Math.max(Math.min(comp.getPreferredSize().width + 1, 150), width);
                 }
                 cm.getColumn(column).setPreferredWidth(width);
             }
@@ -396,19 +414,23 @@ class StockGlance implements HomePageView {
             return thisSG.getDisplayedSecurities();
         }
 
-        private void setDisplayedSecurities(Set<String>  securities) {
+        private void setDisplayedSecurities(Set<String> securities) {
             thisSG.setDisplayedSecurities(securities);
             thisSG.refresh();
         }
 
-        private boolean getAllowMissingPrices() { return thisSG.getAllowMissingPrices(); }
+        private boolean getAllowMissingPrices() {
+            return thisSG.getAllowMissingPrices();
+        }
 
         private void setAllowMissingPrices(boolean flag) {
             thisSG.setAllowMissingPrices(flag);
             thisSG.refresh();
         }
 
-        private int getTimelySnapshotInterval() { return thisSG.getTimelySnapshotInterval(); }
+        private int getTimelySnapshotInterval() {
+            return thisSG.getTimelySnapshotInterval();
+        }
 
         private void setTimelySnapshotInterval(int value) {
             thisSG.setTimelySnapshotInterval(value);
@@ -439,7 +461,7 @@ class StockGlance implements HomePageView {
                     Vector<CurrencyType> rowCurrencies = getDataModel().getRowCurrencies();
                     CurrencyType curr;
                     if (0 <= row && row < rowCurrencies.size()) {
-                        curr = rowCurrencies.get(row);              // Security
+                        curr = rowCurrencies.get(row); // Security
                     } else {
                         curr = book.getCurrencies().getBaseType(); // Footer reports base currency
                     }
@@ -475,11 +497,10 @@ class StockGlance implements HomePageView {
             Component c = super.prepareRenderer(renderer, row, column);
             if (!isRowSelected(row))
                 c.setBackground(row % 2 == 0 ? mdGUI.getColors().registerBG1
-                                             : mdGUI.getColors().registerBG2);   // Banded rows
+                        : mdGUI.getColors().registerBG2); // Banded rows
             return c;
         }
     }
-
 
     // TableModel
     private class SGTableModel extends DefaultTableModel {
@@ -493,7 +514,7 @@ class StockGlance implements HomePageView {
         // Need to define so columns are properly sorted, not treated as strings.
         @Override
         public Class<?> getColumnClass(int columnIndex) {
-            switch(columnTypes[columnIndex]) {
+            switch (columnTypes[columnIndex]) {
                 case TEXT_COL:
                     return String.class;
 
@@ -513,7 +534,6 @@ class StockGlance implements HomePageView {
             return rowCurrencies;
         }
     }
-
 
     // JPanel
     private class SGPanel extends JPanel {
@@ -546,9 +566,9 @@ class StockGlance implements HomePageView {
             this.add(this.table.getTableHeader());
             this.add(this.table);
             this.add(this.table.getFooterTable());
-            this.setBorder(BorderFactory.createCompoundBorder(MoneydanceLAF.homePageBorder, 
-                           BorderFactory.createEmptyBorder(0, 0, 0, 0)));
-            
+            this.setBorder(BorderFactory.createCompoundBorder(MoneydanceLAF.homePageBorder,
+                    BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+
         }
 
         private void openConfigPanel() {
@@ -591,7 +611,8 @@ class StockGlance implements HomePageView {
                 JPanel checkboxPanel = new JPanel(new GridLayout(0, 1));
                 checkboxPanel.add(missingPriceCheckbox);
 
-                SecuritySelection securitySelectionList = new SecuritySelection(securitesList(this.table.getDisplayedSecurities()));
+                SecuritySelection securitySelectionList = new SecuritySelection(
+                        securitesList(this.table.getDisplayedSecurities()));
                 JScrollPane listScroller = new JScrollPane(securitySelectionList);
 
                 resetUI(securitySelectionList, missingPriceCheckbox, intervalSlider);
@@ -600,7 +621,8 @@ class StockGlance implements HomePageView {
                 buttonPanel.setForeground(mdGUI.getColors().filterBarFG);
                 buttonPanel.setBackground(mdGUI.getColors().filterBarBtnBG);
                 JButton resetButton = new JButton("Reset");
-                resetButton.addActionListener(e -> resetUI(securitySelectionList, missingPriceCheckbox, intervalSlider));
+                resetButton
+                        .addActionListener(e -> resetUI(securitySelectionList, missingPriceCheckbox, intervalSlider));
                 JButton cancelButton = new JButton("Cancel");
                 cancelButton.addActionListener(e -> {
                     resetUI(securitySelectionList, missingPriceCheckbox, intervalSlider);
@@ -651,8 +673,9 @@ class StockGlance implements HomePageView {
             securities.sort((SecurityListEntry v1, SecurityListEntry v2) -> v1.name.compareTo(v2.name));
             return securities;
         }
-        
-        private void resetUI(SecuritySelection securitySelectionList, JCheckBox missingPriceCheckbox, JSlider intervalSlider) {
+
+        private void resetUI(SecuritySelection securitySelectionList, JCheckBox missingPriceCheckbox,
+                JSlider intervalSlider) {
             securitySelectionList.setSelected(this.table.getDisplayedSecurities());
             missingPriceCheckbox.setSelected(this.table.getAllowMissingPrices());
             intervalSlider.setValue(interval2Label(this.table.getTimelySnapshotInterval()));
@@ -666,7 +689,6 @@ class StockGlance implements HomePageView {
             }
             super.removeAll();
         }
-
 
         // Sliders have a linear scale, but we want to allow a large range of days
         // (1..365). The numberic value of the slider will not correspond to the
@@ -693,12 +715,15 @@ class StockGlance implements HomePageView {
         }
     }
 
-    class SecurityListEntry {             // Security displayed in a SecuritySelection
+    class SecurityListEntry { // Security displayed in a SecuritySelection
         public String name;
         public Boolean isDisplayed;
         public Double numShares;
+
         public SecurityListEntry(String name, Boolean isDispalyed, Double numShares) {
-            this.name = name; this.isDisplayed = isDispalyed; this.numShares = numShares;
+            this.name = name;
+            this.isDisplayed = isDispalyed;
+            this.numShares = numShares;
         }
     }
 
@@ -707,18 +732,20 @@ class StockGlance implements HomePageView {
             super();
             SecuritySelectTableModel model = new SecuritySelectTableModel();
             setModel(model);
-            String[] colNames = {"display", "security", "shares"};
+            String[] colNames = { "display", "security", "shares" };
             Vector<Vector> data = new Vector();
-            for (SecurityListEntry sec: securityList) {
+            for (SecurityListEntry sec : securityList) {
                 Vector entry = new Vector();
-                entry.add(sec.isDisplayed); entry.add(sec.name); entry.add(sec.numShares);
+                entry.add(sec.isDisplayed);
+                entry.add(sec.name);
+                entry.add(sec.numShares);
                 data.add(entry);
             }
             model.setDataVector(data, new Vector<>(Arrays.asList(colNames)));
             TableCellRenderer rendererFromHeader = getTableHeader().getDefaultRenderer();
             ((JLabel) rendererFromHeader).setHorizontalAlignment(CENTER);
             TableColumnModel colModel = getColumnModel();
-            //colModel.getColumn(0).setPreferredWidth(1); 
+            // colModel.getColumn(0).setPreferredWidth(1);
             colModel.getColumn(0).setMaxWidth(100);
             colModel.getColumn(1).setPreferredWidth(400);
             colModel.getColumn(2).setPreferredWidth(100);
@@ -727,10 +754,10 @@ class StockGlance implements HomePageView {
 
         public Set<String> getSelected() {
             Set<String> selectedSecurities = new HashSet<>();
-            DefaultTableModel model = (DefaultTableModel)getModel();
+            DefaultTableModel model = (DefaultTableModel) getModel();
             for (int row = 0; row < model.getRowCount(); row++) {
-                if ((boolean)model.getValueAt(row, 0)) {
-                    String name = (String)model.getValueAt(row, 1);
+                if ((boolean) model.getValueAt(row, 0)) {
+                    String name = (String) model.getValueAt(row, 1);
                     selectedSecurities.add(name);
                 }
             }
@@ -738,7 +765,7 @@ class StockGlance implements HomePageView {
         }
 
         public void setSelected(Set<String> selectedSecurities) {
-            DefaultTableModel model = (DefaultTableModel)getModel();
+            DefaultTableModel model = (DefaultTableModel) getModel();
             for (int row = 0; row < model.getRowCount(); row++) {
                 if (selectedSecurities.contains(model.getValueAt(row, 1))) {
                     model.setValueAt(true, row, 0);
@@ -756,7 +783,7 @@ class StockGlance implements HomePageView {
         public Class getColumnClass(int c) {
             return getValueAt(0, c).getClass();
         }
-    
+
         @Override
         public boolean isCellEditable(int row, int col) {
             return col < 2; // Only selection checkbox is editable
@@ -778,10 +805,11 @@ class StockGlance implements HomePageView {
         }
 
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+                int row, int column) {
             if (value instanceof Double) {
                 value = getNumberFormat().format(value);
-            } 
+            }
 
             if (column == 2) {
                 setHorizontalAlignment(RIGHT);
@@ -830,7 +858,8 @@ class StockGlance implements HomePageView {
     }
 
     // Renderers
-    // Render a currency with given number of fractional digits. NaN or null is an empty cell.
+    // Render a currency with given number of fractional digits. NaN or null is an
+    // empty cell.
     // Negative values are red.
     private static class CurrencyRenderer extends DefaultTableCellRenderer {
         private transient MoneydanceGUI mdGUI;
@@ -838,7 +867,6 @@ class StockGlance implements HomePageView {
         private final transient CurrencyType relativeTo;
         private final char decimalSeparator = '.'; // ToDo: Set from preferences (how?)
         private final NumberFormat noDecimalFormatter;
-
 
         CurrencyRenderer(MoneydanceGUI mdGUI, CurrencyType curr, boolean noDecimals) {
             super();
@@ -860,7 +888,7 @@ class StockGlance implements HomePageView {
                 setText("");
                 return;
             }
-            Double valueAsDouble = (Double)value;
+            Double valueAsDouble = (Double) value;
             if (Double.isNaN(valueAsDouble)) {
                 setText("");
                 return;
@@ -870,9 +898,11 @@ class StockGlance implements HomePageView {
                 valueAsDouble = 0.0;
             }
             if (noDecimals) {
-                // MD format functions can't print comma-separated values without a decimal point so
+                // MD format functions can't print comma-separated values without a decimal
+                // point so
                 // we have to do it ourselves
-                setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(valueAsDouble) + relativeTo.getSuffix());
+                setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(valueAsDouble) + " "
+                        + relativeTo.getSuffix());
             } else {
                 setText(relativeTo.formatFancy(relativeTo.getLongValue(valueAsDouble), decimalSeparator));
             }
@@ -884,7 +914,8 @@ class StockGlance implements HomePageView {
         }
     }
 
-    // Render a percentage with 2 digits after the decimal point. Conventions as CurrencyRenderer
+    // Render a percentage with 2 digits after the decimal point. Conventions as
+    // CurrencyRenderer
     private static class PercentRenderer extends DefaultTableCellRenderer {
         private transient MoneydanceGUI mdGUI;
         private final char decimalSeparator = '.'; // ToDo: Set from preferences (how?)
@@ -904,7 +935,7 @@ class StockGlance implements HomePageView {
                 setText("");
                 return;
             }
-            Double valueAsDouble = (Double)value;
+            Double valueAsDouble = (Double) value;
             if (Double.isNaN(valueAsDouble)) {
                 setText("");
                 return;
