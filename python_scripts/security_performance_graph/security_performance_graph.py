@@ -3143,6 +3143,9 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD = 5142                                                                      # MD2024.2(5142)
+    def isMemReportsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD)
+
     if isKotlinCompiledBuild():
         from okio import BufferedSource, Buffer, Okio                                                                   # noqa
         if debug: myPrint("B", "** Kotlin compiled build detected, new libraries enabled.....")
@@ -6066,11 +6069,12 @@ Visit: %s (Author's site)
 
         def getGraph(self): return self.viewer.getGraphSet()
 
-    class MyReportSpec(ReportSpec):
-        def __init__(self, *args):
-            super(self.__class__, self).__init__(*args)
-
-        def getReportGenerator(self): return None
+    if isMemReportsUpgradedBuild():
+        MyReportSpec = ReportSpec
+    else:
+        class MyReportSpec(ReportSpec):
+            def __init__(self, *args): super(self.__class__, self).__init__(*args)
+            def getReportGenerator(self): return None
 
     try:
         class MainAppRunnable(Runnable):
