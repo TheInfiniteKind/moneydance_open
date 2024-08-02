@@ -43,6 +43,8 @@ global os
 global AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
 global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot
 global TxnSearch
+global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUpdateTxnsWindow, MoneybotURLStreamHandlerFactory
+global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView
 
 # Java definitions
 global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System, String, Boolean, FilenameFilter
@@ -66,6 +68,7 @@ global isKotlinCompiledBuild, convertBufferedSourceToInputStream
 global confirm_backup_confirm_disclaimer, backup_local_storage_settings, getNetSyncKeys, play_the_money_sound
 global ManuallyCloseAndReloadDataset, perform_qer_quote_loader_check, safeStr, convertStrippedIntDateFormattedText
 global count_database_objects, SyncerDebug, calculateMoneydanceDatasetSize, removeEmptyDirs
+global isAppDebugEnabledBuild, isKotlinCompiledBuildAll, isMDPlusEnabledBuild
 
 # New definitions
 from com.moneydance.apps.md.controller.sync import AbstractSyncFolder, MDSyncCipher
@@ -1423,6 +1426,144 @@ try:
         output += "<END>"
         jif = QuickJFrame(title=_THIS_METHOD_NAME,output=output,copyToClipboard=True,lWrapText=False).show_the_frame()
         myPopupInformationBox(jif,"Clone dataset: %s created (review output)" %(newBook.getName()))
+
+    def advanced_options_DEBUG(lForceON=False, lForceOFF=False):
+        md_debug = MD_REF.DEBUG if (not isAppDebugEnabledBuild()) else AppDebug.DEBUG.isEnabled()                       # noqa
+        moneydance_debug_props_key = "moneydance.debug"
+        props_debug = Boolean.getBoolean(moneydance_debug_props_key)
+
+        if lForceON:
+            toggleText = "ON"
+        elif lForceOFF:
+            toggleText = "OFF"
+        else:
+            toggleText = "OFF" if (md_debug or props_debug) else "ON"
+
+            # noinspection PyUnresolvedReferences
+            if not isAppDebugEnabledBuild():
+                askStr = ("main.DEBUG                             currently set to: %s\n"
+                          "System.getProperty('%s') currently set to: %s\n"
+                          "Syncer.DEBUG                           currently set to: %s\n"
+                          "CustomURLStreamHandlerFactory.DEBUG    currently set to: %s\n"
+                          "MoneybotURLStreamHandlerFactory.DEBUG  currently set to: %s\n"
+                          "OFXConnection.DEBUG(_MESSAGES)         currently set to: %s\n"
+                          "OnlineTxnMerger.DEBUG                  currently set to: %s\n"
+                          "PlaidConnection.DEBUG                  currently set to: %s\n"
+                          %(md_debug,
+                            moneydance_debug_props_key, props_debug,
+                            Syncer.DEBUG,                                                                               # noqa
+                            CustomURLStreamHandlerFactory.DEBUG,                                                        # noqa
+                            MoneybotURLStreamHandlerFactory.DEBUG,                                                      # noqa
+                            OFXConnection.DEBUG_MESSAGES,                                                               # noqa
+                            OnlineTxnMerger.DEBUG,                                                                      # noqa
+                            "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG))                          # noqa
+            else:
+                askStr = ("main.DEBUG                             currently set to: %s\n" 
+                          "System.getProperty('%s') currently set to: %s\n"
+                          %(md_debug, moneydance_debug_props_key, props_debug))
+                for logger in AppDebug.getAllLoggers():                                                                 # noqa
+                    askStr += "AppDebug.AppLogger: %s isEnabled: %s  includeInEnableAll: %s\n" %(pad(logger.getId(), 18), pad(str(logger.isEnabled()), 5), pad(str(logger.getIncludeInEnableAll()), 5))
+
+            ask = MyPopUpDialogBox(toolbox_frame_,
+                                   "MONEYDANCE DEBUG(s) STATUS:",
+                                   askStr,
+                                   theTitle="TOGGLE MONEYDANCE INTERNAL DEBUG(s)",
+                                   lCancelButton=True,OKButtonText="SET ALL to %s" %toggleText)
+            if not ask.go():
+                txt = "NO CHANGES MADE TO MONEYDANCE's DEBUG(s)!"
+                setDisplayStatus(txt,"B")
+                return
+
+            myPrint("B","User requested to change all Moneydance's internal DEBUG mode(s) to %s - flipping these now...!" %(toggleText))
+
+        if toggleText == "OFF":
+            newDebugSetting = False
+            System.clearProperty(moneydance_debug_props_key)
+        else:
+            newDebugSetting = True
+            System.setProperty(moneydance_debug_props_key, Boolean.toString(newDebugSetting))
+
+        if isAppDebugEnabledBuild():
+            # These won't run on all debug loggers! AppDebug.enableAllFlags() / AppDebug.disableAllFlags()
+            for logger in AppDebug.getAllLoggers():                                                                     # noqa
+                logger.setEnabled(newDebugSetting, True)
+        else:
+            MD_REF.DEBUG = newDebugSetting
+            Syncer.DEBUG = newDebugSetting
+            CustomURLStreamHandlerFactory.DEBUG = newDebugSetting
+            MoneybotURLStreamHandlerFactory.DEBUG = newDebugSetting
+            OFXConnection.DEBUG_MESSAGES = newDebugSetting
+            OnlineTxnMerger.DEBUG = newDebugSetting
+            if isMDPlusEnabledBuild(): PlaidConnection.DEBUG = newDebugSetting
+
+        txt = "All Moneydance internal debug modes turned %s" %(toggleText)
+
+        if lForceON:
+            myPrint("DB", txt)
+            return
+
+        setDisplayStatus(txt,"B")
+        myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL DEBUG(s)", JOptionPane.WARNING_MESSAGE)
+
+    def advanced_options_other_DEBUG():
+        # Also: System.getProperty("ofx.debug.console") - Throws up connection issues in a new file/console...
+
+        debugKeys = ["com.moneydance.apps.md.view.gui.txnreg.DownloadedTxnsView.DEBUG",
+                     "com.moneydance.apps.md.view.gui.OnlineUpdateTxnsWindow.DEBUG",
+                     "com.infinitekind.util.StreamTable.DEBUG"]
+
+        if isKotlinCompiledBuildAll() and MD_REF.getBuild() < 5100:
+            # Before this build, the field is hidden as the class is not public even tho' field is public....
+            # After 5100, then AppDebug logger is used for this...
+            debugKeys.append("com.infinitekind.moneydance.model.CostCalculation.DEBUG_COST")
+
+        selectedKey = JOptionPane.showInputDialog(toolbox_frame_,
+                                                  "Select the DEBUG Setting you want to view/toggle",
+                                                  "OTHER DEBUG",
+                                                  JOptionPane.INFORMATION_MESSAGE,
+                                                  getMDIcon(lAlwaysGetIcon=True),
+                                                  debugKeys,
+                                                  None)
+
+        if not selectedKey or debugKeys.index(selectedKey) > len(debugKeys):
+            txt = "No Debug key was selected to view/toggle.."
+            setDisplayStatus(txt, "R")
+            return
+
+        if debugKeys.index(selectedKey) == 0:
+            currentSetting = DownloadedTxnsView.DEBUG
+        elif debugKeys.index(selectedKey) == 1:
+            currentSetting = OnlineUpdateTxnsWindow.DEBUG
+        elif debugKeys.index(selectedKey) == 2:
+            currentSetting = getFieldByReflection(StreamTable, "DEBUG")
+        elif debugKeys.index(selectedKey) == 3:
+            currentSetting = getFieldByReflection(CostCalculation, "DEBUG_COST")
+        else:
+            raise Exception("LOGIC ERROR: Unknown selectedKey:", selectedKey)
+
+        ask = MyPopUpDialogBox(toolbox_frame_, "OTHER DEBUG STATUS:",
+                               "%s currently set to: %s" %(selectedKey, currentSetting),
+                               theTitle="TOGGLE THIS MONEYDANCE INTERNAL OTHER DEBUG",
+                               lCancelButton=True,OKButtonText="SET to %s" %(not currentSetting))
+        if not ask.go():
+            txt = "NO CHANGES MADE TO OTHER DEBUG!"
+            setDisplayStatus(txt, "B")
+            return
+
+        myPrint("B","User requested to change DEBUG %s to %s - setting now...!" %(selectedKey,not currentSetting))
+
+        if debugKeys.index(selectedKey) == 0:
+            DownloadedTxnsView.DEBUG = not currentSetting
+        elif debugKeys.index(selectedKey) == 1:
+            OnlineUpdateTxnsWindow.DEBUG = not currentSetting
+        elif debugKeys.index(selectedKey) == 2:
+            setFieldByReflection(StreamTable, "DEBUG", not currentSetting)
+        elif debugKeys.index(selectedKey) == 3:
+            setFieldByReflection(CostCalculation, "DEBUG_COST", not currentSetting)
+
+        txt = "Moneydance internal debug settings %s turned %s" %(selectedKey, not currentSetting)
+        setDisplayStatus(txt, "B")
+        myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL OTHER DEBUG", JOptionPane.WARNING_MESSAGE)
 
     class CollectTheGarbage(AbstractAction):
 

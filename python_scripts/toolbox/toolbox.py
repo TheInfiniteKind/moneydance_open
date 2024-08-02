@@ -173,6 +173,9 @@
 #               Update licensing keys for MD2023/24 etc...
 #               Added Moneyforesight disabled status to main toolbox diagnostics screen....
 # build: 1066 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
+# build: 1066 - ???
+# build: 1066 - Tweaked wherever graphs/reports (default/memorized) are retrieved for to detect 'unknown' report generators et al...
+# build: 1066 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -555,6 +558,7 @@ else:
     from java.awt import GraphicsEnvironment, Rectangle, GraphicsDevice, Desktop, Event, GridBagConstraints, Window, Frame  # noqa
     from java.awt.event import ComponentAdapter, ItemListener, ItemEvent, HierarchyListener, ActionListener, MouseAdapter   # noqa
     from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector
+    from java.util.stream import Collectors
     from java.util.zip import ZipInputStream, ZipEntry
     from java.nio.charset import StandardCharsets
     from java.nio.file import Paths, Files, StandardCopyOption
@@ -579,7 +583,7 @@ else:
     from com.moneydance.apps.md.controller.sync import MDSyncCipher
     from com.moneydance.apps.md.controller.io import FileUtils, AccountBookUtil
     from com.moneydance.apps.md.controller.olb import MoneybotURLStreamHandlerFactory, CustomURLStreamHandlerFactory
-    from com.moneydance.apps.md.controller.olb.ofx import OFXConnection
+    from com.moneydance.apps.md.controller.olb.ofx import OFXConnection                                                 # noqa
 
     from com.infinitekind.util import StreamVector
     from com.infinitekind.util import IOUtils as MDIOUtils
@@ -589,16 +593,16 @@ else:
     from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem
     from com.infinitekind.moneydance.model import OnlinePayeeList, OnlinePaymentList, InvestFields, AbstractTxn
     from com.infinitekind.moneydance.model import CurrencySnapshot, CurrencySplit, OnlineTxnList, CurrencyTable
-    from com.infinitekind.moneydance.model import TxnSet, InvestTxnType, SecurityType, CostCalculation
+    from com.infinitekind.moneydance.model import TxnSet, InvestTxnType, SecurityType, CostCalculation                  # noqa
 
-    from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo
+    from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo                                         # noqa
     from com.moneydance.awt import JCurrencyField, AwtUtil                                                              # noqa
-    from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow
+    from com.moneydance.apps.md.view.gui import OnlineUpdateTxnsWindow, MDAccountProxy, ConsoleWindow, AboutWindow      # noqa
     from com.moneydance.apps.md.view.gui import MainFrame, SecondaryFrame, SecondaryWindow, LicenseKeyWindow            # noqa
     from com.moneydance.apps.md.view.gui import WelcomeWindow, SearchRegTxnListModel, SecondaryDialog
     from com.moneydance.apps.md.view.gui.bot import MoneyBotWindow
     from com.moneydance.apps.md.view.gui.txnreg import TxnDetailsPanel, TxnRegister, TxnRegisterType, InvestRegisterType
-    from com.moneydance.apps.md.view.gui.txnreg import DownloadedTxnsView
+    from com.moneydance.apps.md.view.gui.txnreg import DownloadedTxnsView                                               # noqa
     from com.moneydance.apps.md.view.gui.extensions import ExtensionsWindow                                             # noqa
     from com.moneydance.apps.md.view.gui.sync import DropboxSyncConfigurer
 
@@ -611,7 +615,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5141
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5142
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -981,7 +985,7 @@ Visit: %s (Author's site)
             try:
                 darkResponse = subprocess.check_output("defaults read -g AppleInterfaceStyle", shell=True)
                 darkResponse = darkResponse.strip().lower()
-            except: pass
+            except: pass  # causes "The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist" in console, also popup warnings in IDE
         return ("dark" in darkResponse)
 
     def isMDThemeDark():
@@ -3371,10 +3375,16 @@ Visit: %s (Author's site)
     # END ALL CODE COPY HERE ###############################################################################################
     # END ALL CODE COPY HERE ###############################################################################################
 
+    # GlobalVars.MD_REPGEN_UPGRADED_BUILD = 9999                                                                          # Changes did not make it into live code :-<
+    # def isRepGenUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_REPGEN_UPGRADED_BUILD)
+
+    GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD = 5142                                                                      # MD2024.2(5142)
+    def isMemReportsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD)
+
     GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5100                                                                 # MD2024(5100)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
     if isCostCalculationUpgradedBuild():
-        from com.infinitekind.moneydance.model import CostCalculation
+        from com.infinitekind.moneydance.model import CostCalculation                                                   # noqa
 
     GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD = 5100                                                                     # MD2024(5100)
     def isContextMenuEnabledBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_CONTEXT_MENU_ENABLED_BUILD)
@@ -3456,6 +3466,7 @@ Visit: %s (Author's site)
         global advanced_options_decrypt_dataset, advanced_show_encryption_keys
         global CollectTheGarbage, getDropboxSyncFolderForBasePath, advanced_options_force_reset_sync_settings
         global advanced_clone_dataset
+        global advanced_options_DEBUG, advanced_options_other_DEBUG
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -6502,18 +6513,53 @@ Visit: %s (Author's site)
 
         return returnString
 
+    def getMemorizedReports(includeMemorized, includeBuiltins, wantType, includeUnknowns):   # Own function to get hold of 'unknowns'
+        # type: (bool, bool, ReportSpec.Type, bool) -> [ReportSpec]                                                     # noqa
+        memReports = []
+        if isMemReportsUpgradedBuild():
+            allItems = MD_REF.getCurrentAccountBook().getMemorizedItems().streamItems(True).collect(Collectors.toList())
+        else:
+            allItems = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllItems()
+        allItems = sorted(allItems, key=lambda rSpec: (rSpec.getReportType() if isMemReportsUpgradedBuild() else ("" if rSpec.getReportGenerator() is None else rSpec.getReportGenerator().getReportType().asString()), rSpec.getName().lower()))
+        for rpt in allItems:
+            if (rpt.isMemorized() and not includeMemorized) or (not rpt.isMemorized() and not includeBuiltins): continue
+            repgen = rpt.getReportGenerator()
+            if repgen is None:
+                if not includeUnknowns: continue
+                if isMemReportsUpgradedBuild():
+                    if wantType is not None and wantType != rpt.getReportType(): continue
+                else:
+                    if wantType == ReportSpec.Type.GRAPH: continue  # We have to dump all unknowns into TEXT(Report)    # noqa
+                memReports.append(rpt)
+            else:
+                rt = repgen.getReportType()
+                if wantType is None or rt == wantType:
+                    memReports.append(rpt)
+        return memReports
+
     def get_list_memorised_reports():
         # Build a quick virtual file of Memorized reports and graphs to display
         memz = []
 
         iCount = 0
-        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs():
-            iCount += 1
-            memz.append("Graph: %s" % (x.getName()))
 
-        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports():
+        # if isRepGenUpgradedBuild():
+        #     mgs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(ReportSpec.Type.GRAPH, False, True)
+        #     mrs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(ReportSpec.Type.TEXT, False, True)
+        # else:
+        #     mgs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs()
+        #     mrs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports()
+
+        mgs = getMemorizedReports(True, False, ReportSpec.Type.GRAPH, True)                                             # noqa
+        mrs = getMemorizedReports(True, False, ReportSpec.Type.TEXT, True)                                              # noqa
+
+        for x in mgs:
             iCount += 1
-            memz.append("Report: %s" % (x.getName()))
+            memz.append("Graph: %s%s" % (x.getName(), " (unknown)" if (x.getReportGenerator()) is None else ""))
+
+        for x in mrs:
+            iCount += 1
+            memz.append("Report: %s%s" % (x.getName(), " (unknown)" if (x.getReportGenerator()) is None else ""))
 
         memz = sorted(memz, key=lambda sort_x: ((sort_x[0]).upper()))
 
@@ -6522,36 +6568,40 @@ Visit: %s (Author's site)
         memz.append("\nYOUR MEMORIZED REPORTS in detail\n ======================\n")
 
         iGs = 0
-        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs():
+
+        for x in mgs:
             if iGs:
                 memz.append("\n ---")
             iGs += 1
             memz.append("Graph:           %s" % (x.getName()))
             memz.append(">> SyncItemType: %s" %(x.getSyncItemType()))
             # memz.append(">> Graph ID:     %s" %(x.getReportID()))
-            memz.append(">> Graph Genr:   %s" %(x.getReportGenerator()))
+            memz.append(">> Graph Genr:   %s%s" %(x.getReportGenerator(), " (unknown)" if (x.getReportGenerator()) is None else ""))
             y = x.getReportParameters()
             for yy in y:
                 if yy.lower().strip() == "accounts" or yy.lower().strip() == "source_accts":
                     memz.append(">> Parameter key: %s: %s" %(yy, "<not displayed - but contains %s accounts>" %(y.get(yy).count(",")+1)))
                 else:
                     memz.append(">> Parameter key: %s: %s" %(yy, y.get(yy)))
+        del mgs
 
         iRs = 0
-        for x in MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports():
+
+        for x in mrs:
             if iRs or iGs:
                 memz.append("\n ---")
             iRs += 1
             memz.append("Report           %s" % (x.getName()))
             memz.append(">> SyncItemType: %s" %(x.getSyncItemType()))
             # memz.append(">> Report ID:    %s" %(x.getReportID()))
-            memz.append(">> Report Genr:  %s" %(x.getReportGenerator()))
+            memz.append(">> Report Genr:  %s%s" %(x.getReportGenerator(), " (unknown)" if (x.getReportGenerator()) is None else ""))
             y = x.getReportParameters()
             for yy in y:
                 if yy.lower().strip() == "accounts" or yy.lower().strip() == "source_accts":
                     memz.append(">> Parameter key: %s: %s" %(yy, "<not displayed - but contains %s accounts>" %(y.get(yy).count(",")+1)))
                 else:
                     memz.append(">> Parameter key: %s: %s" %(yy, y.get(yy)))
+        del mrs
 
         memz.append("\n\n\n====== DEFAULT REPORTS SETTINGS/PARAMETERS (from Local Storage) RAW DUMP ======\n")
         LS = MD_REF.getUI().getCurrentAccounts().getBook().getLocalStorage()
@@ -6593,12 +6643,15 @@ Visit: %s (Author's site)
         theData.append(" =====================\n")
 
         if len(MD_REF.getExternalViews()) > 0:
-            theData.append("External Views (HomePage widgets) views:\n")
-
-            for ev in MD_REF.getExternalViews():
-                theData.append("   - %s" %(ev.getID()))
-
+            theData.append("External Views (HomePage widgets):\n")
+            for ev in MD_REF.getExternalViews(): theData.append("   - %s:%s" %(ev.getID(), ev.toString()))
             theData.append("\n")
+
+        # if isRepGenUpgradedBuild():                                                                                     # Only works from MD2024.2(5141) onwards
+        #     if len(MD_REF.getExternalReportGenerators()) > 0:
+        #         theData.append("External Report Generators (that enable new graphs/reports):\n")
+        #         for erg in MD_REF.getExternalReportGenerators(): theData.append("   - %s" %(erg.toString()))
+        #         theData.append("\n")
 
         if not DownloadExtensionVersionData.downloadsCompleted():
             theData.append("** Live extension version / update data not available as these have not yet downloaded (try again later) **\n".upper())
@@ -14283,32 +14336,55 @@ Visit: %s (Author's site)
 
             theReports = None
 
-            repTable=ArrayList()
+            repTable = ArrayList()
+
+            # if isRepGenUpgradedBuild():
+            #     ais = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(None, True, True)
+            #     ami = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(None, False, True)
+            #     ars = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(ReportSpec.Type.TEXT, True, True)
+            #     ags = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(ReportSpec.Type.GRAPH, True, True)
+            #     mgs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(ReportSpec.Type.GRAPH, False, True)
+            #     mrs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedItems(ReportSpec.Type.TEXT, False, True)
+            # else:
+            #     ais = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllItems()
+            #     ami = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllMemorizedItems()
+            #     ars = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllReports()
+            #     ags = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllGraphs()
+            #     mgs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs()
+            #     mrs = MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports()
+
+            ais = getMemorizedReports(True, True, None, True)
+            ami = getMemorizedReports(True, False, None, True)
+            ars = getMemorizedReports(True, True, ReportSpec.Type.TEXT, True)                                           # noqa
+            ags = getMemorizedReports(True, True, ReportSpec.Type.GRAPH, True)                                          # noqa
+            mgs = getMemorizedReports(True, False, ReportSpec.Type.GRAPH, True)                                         # noqa
+            mrs = getMemorizedReports(True, False, ReportSpec.Type.TEXT, True)                                          # noqa
+
             if report_or_graph_or_all == "ALL":
                 if memorized_default_or_all == "ALL":
-                    return MD_REF.getCurrentAccountBook().getMemorizedItems().getAllItems()
+                    return ais
                 elif memorized_default_or_all == "MEMORIZED":
-                    return  MD_REF.getCurrentAccountBook().getMemorizedItems().getAllMemorizedItems()
+                    return  ami
                 elif memorized_default_or_all == "DEFAULT":
-                    theReports = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllItems()
+                    theReports = ais
                 else:
                     assert("ERROR - Report  type not defined: %s %s" %(memorized_default_or_all,report_or_graph_or_all))
             elif report_or_graph_or_all == "REPORT":
                 if memorized_default_or_all == "ALL":
-                    return MD_REF.getCurrentAccountBook().getMemorizedItems().getAllReports()
+                    return ars
                 elif memorized_default_or_all == "MEMORIZED":
-                    return  MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedReports()
+                    return  mrs
                 elif memorized_default_or_all == "DEFAULT":
-                    theReports = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllReports()
+                    theReports = ars
                 else:
                     assert("ERROR - Report  type not defined: %s %s" %(memorized_default_or_all,report_or_graph_or_all))
             elif report_or_graph_or_all == "GRAPH":
                 if memorized_default_or_all == "ALL":
-                    return MD_REF.getCurrentAccountBook().getMemorizedItems().getAllGraphs()
+                    return ags
                 elif memorized_default_or_all == "MEMORIZED":
-                    return  MD_REF.getCurrentAccountBook().getMemorizedItems().getMemorizedGraphs()
+                    return  mgs
                 elif memorized_default_or_all == "DEFAULT":
-                    theReports = MD_REF.getCurrentAccountBook().getMemorizedItems().getAllGraphs()
+                    theReports = ags
                 else:
                     assert("ERROR - Report  type not defined: %s %s" %(memorized_default_or_all,report_or_graph_or_all))
             else:
@@ -26638,144 +26714,6 @@ after saving the file, restart Moneydance
         setDisplayStatus("%s: %s" %(_THIS_METHOD_NAME, txt), "R")
         myPrint("B","%s: %s" %(_THIS_METHOD_NAME, txt))
         myPopupInformationBox(jif,txt,theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
-
-    def advanced_options_DEBUG(lForceON=False, lForceOFF=False):
-        md_debug = MD_REF.DEBUG if (not isAppDebugEnabledBuild()) else AppDebug.DEBUG.isEnabled()                       # noqa
-        moneydance_debug_props_key = "moneydance.debug"
-        props_debug = Boolean.getBoolean(moneydance_debug_props_key)
-
-        if lForceON:
-            toggleText = "ON"
-        elif lForceOFF:
-            toggleText = "OFF"
-        else:
-            toggleText = "OFF" if (md_debug or props_debug) else "ON"
-
-            # noinspection PyUnresolvedReferences
-            if not isAppDebugEnabledBuild():
-                askStr = ("main.DEBUG                             currently set to: %s\n"
-                          "System.getProperty('%s') currently set to: %s\n"
-                          "Syncer.DEBUG                           currently set to: %s\n"
-                          "CustomURLStreamHandlerFactory.DEBUG    currently set to: %s\n"
-                          "MoneybotURLStreamHandlerFactory.DEBUG  currently set to: %s\n"
-                          "OFXConnection.DEBUG(_MESSAGES)         currently set to: %s\n"
-                          "OnlineTxnMerger.DEBUG                  currently set to: %s\n"
-                          "PlaidConnection.DEBUG                  currently set to: %s\n"
-                          %(md_debug,
-                            moneydance_debug_props_key, props_debug,
-                            Syncer.DEBUG,                                                                               # noqa
-                            CustomURLStreamHandlerFactory.DEBUG,                                                        # noqa
-                            MoneybotURLStreamHandlerFactory.DEBUG,                                                      # noqa
-                            OFXConnection.DEBUG_MESSAGES,                                                               # noqa
-                            OnlineTxnMerger.DEBUG,                                                                      # noqa
-                            "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG))                          # noqa
-            else:
-                askStr = ("main.DEBUG                             currently set to: %s\n" 
-                          "System.getProperty('%s') currently set to: %s\n"
-                          %(md_debug, moneydance_debug_props_key, props_debug))
-                for logger in AppDebug.getAllLoggers():                                                                 # noqa
-                    askStr += "AppDebug.AppLogger: %s isEnabled: %s  includeInEnableAll: %s\n" %(pad(logger.getId(), 18), pad(str(logger.isEnabled()), 5), pad(str(logger.getIncludeInEnableAll()), 5))
-
-            ask = MyPopUpDialogBox(toolbox_frame_,
-                                   "MONEYDANCE DEBUG(s) STATUS:",
-                                   askStr,
-                                   theTitle="TOGGLE MONEYDANCE INTERNAL DEBUG(s)",
-                                   lCancelButton=True,OKButtonText="SET ALL to %s" %toggleText)
-            if not ask.go():
-                txt = "NO CHANGES MADE TO MONEYDANCE's DEBUG(s)!"
-                setDisplayStatus(txt,"B")
-                return
-
-            myPrint("B","User requested to change all Moneydance's internal DEBUG mode(s) to %s - flipping these now...!" %(toggleText))
-
-        if toggleText == "OFF":
-            newDebugSetting = False
-            System.clearProperty(moneydance_debug_props_key)
-        else:
-            newDebugSetting = True
-            System.setProperty(moneydance_debug_props_key, Boolean.toString(newDebugSetting))
-
-        if isAppDebugEnabledBuild():
-            # These won't run on all debug loggers! AppDebug.enableAllFlags() / AppDebug.disableAllFlags()
-            for logger in AppDebug.getAllLoggers():                                                                     # noqa
-                logger.setEnabled(newDebugSetting, True)
-        else:
-            MD_REF.DEBUG = newDebugSetting
-            Syncer.DEBUG = newDebugSetting
-            CustomURLStreamHandlerFactory.DEBUG = newDebugSetting
-            MoneybotURLStreamHandlerFactory.DEBUG = newDebugSetting
-            OFXConnection.DEBUG_MESSAGES = newDebugSetting
-            OnlineTxnMerger.DEBUG = newDebugSetting
-            if isMDPlusEnabledBuild(): PlaidConnection.DEBUG = newDebugSetting
-
-        txt = "All Moneydance internal debug modes turned %s" %(toggleText)
-
-        if lForceON:
-            myPrint("DB", txt)
-            return
-
-        setDisplayStatus(txt,"B")
-        myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL DEBUG(s)", JOptionPane.WARNING_MESSAGE)
-
-    def advanced_options_other_DEBUG():
-        # Also: System.getProperty("ofx.debug.console") - Throws up connection issues in a new file/console...
-
-        debugKeys = ["com.moneydance.apps.md.view.gui.txnreg.DownloadedTxnsView.DEBUG",
-                     "com.moneydance.apps.md.view.gui.OnlineUpdateTxnsWindow.DEBUG",
-                     "com.infinitekind.util.StreamTable.DEBUG"]
-
-        if isKotlinCompiledBuildAll() and MD_REF.getBuild() < 5100:
-            # Before this build, the field is hidden as the class is not public even tho' field is public....
-            # After 5100, then AppDebug logger is used for this...
-            debugKeys.append("com.infinitekind.moneydance.model.CostCalculation.DEBUG_COST")
-
-        selectedKey = JOptionPane.showInputDialog(toolbox_frame_,
-                                                  "Select the DEBUG Setting you want to view/toggle",
-                                                  "OTHER DEBUG",
-                                                  JOptionPane.INFORMATION_MESSAGE,
-                                                  getMDIcon(lAlwaysGetIcon=True),
-                                                  debugKeys,
-                                                  None)
-
-        if not selectedKey or debugKeys.index(selectedKey) > len(debugKeys):
-            txt = "No Debug key was selected to view/toggle.."
-            setDisplayStatus(txt, "R")
-            return
-
-        if debugKeys.index(selectedKey) == 0:
-            currentSetting = DownloadedTxnsView.DEBUG
-        elif debugKeys.index(selectedKey) == 1:
-            currentSetting = OnlineUpdateTxnsWindow.DEBUG
-        elif debugKeys.index(selectedKey) == 2:
-            currentSetting = getFieldByReflection(StreamTable, "DEBUG")
-        elif debugKeys.index(selectedKey) == 3:
-            currentSetting = getFieldByReflection(CostCalculation, "DEBUG_COST")
-        else:
-            raise Exception("LOGIC ERROR: Unknown selectedKey:", selectedKey)
-
-        ask = MyPopUpDialogBox(toolbox_frame_, "OTHER DEBUG STATUS:",
-                               "%s currently set to: %s" %(selectedKey, currentSetting),
-                               theTitle="TOGGLE THIS MONEYDANCE INTERNAL OTHER DEBUG",
-                               lCancelButton=True,OKButtonText="SET to %s" %(not currentSetting))
-        if not ask.go():
-            txt = "NO CHANGES MADE TO OTHER DEBUG!"
-            setDisplayStatus(txt, "B")
-            return
-
-        myPrint("B","User requested to change DEBUG %s to %s - setting now...!" %(selectedKey,not currentSetting))
-
-        if debugKeys.index(selectedKey) == 0:
-            DownloadedTxnsView.DEBUG = not currentSetting
-        elif debugKeys.index(selectedKey) == 1:
-            OnlineUpdateTxnsWindow.DEBUG = not currentSetting
-        elif debugKeys.index(selectedKey) == 2:
-            setFieldByReflection(StreamTable, "DEBUG", not currentSetting)
-        elif debugKeys.index(selectedKey) == 3:
-            setFieldByReflection(CostCalculation, "DEBUG_COST", not currentSetting)
-
-        txt = "Moneydance internal debug settings %s turned %s" %(selectedKey, not currentSetting)
-        setDisplayStatus(txt, "B")
-        myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL OTHER DEBUG", JOptionPane.WARNING_MESSAGE)
 
     def showMDLaunchParameters():
         _THIS_METHOD_NAME = "ADVANCED: SHOW MD LAUNCH PARAMETERS"
