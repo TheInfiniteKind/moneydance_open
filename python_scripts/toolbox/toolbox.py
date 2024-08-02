@@ -13995,9 +13995,13 @@ Visit: %s (Author's site)
                     txt = "Plaid ItemRemoveRequest(%s) reported SUCCESS (token: %s)!" %(accessToken, token)
                     output += "%s\n" %(txt); myPrint("B", txt)
                 else:
-                    errorResponse = plaidClient.parseError(response)
-                    txt = "Plaid ItemRemoveRequest(%s) FAILED (token: %s) - will continue... (error: %s %s)" %(accessToken, token, errorResponse, errorResponse.getErrorCode())
-                    output += "%s\n" %(txt); myPrint("B", txt)
+                    try:
+                        errorResponse = plaidClient.parseError(response)
+                        txt = "Plaid ItemRemoveRequest(%s) FAILED (token: %s) - will continue... (error: %s %s)" %(accessToken, token, errorResponse, errorResponse.getErrorCode())
+                        output += "%s\n" %(txt); myPrint("B", txt)
+                    except:
+                        txt = "Plaid ItemRemoveRequest(%s) FAILED (token: %s) - will continue... FAILED TO PARSE RESPONSE (raw: '%s') - continuing" %(accessToken, token, response)
+                        output += "%s\n" %(txt); myPrint("B", txt)
 
                 payloadID = token.getPayloadID()
                 if not StringUtils.isBlank(payloadID):
