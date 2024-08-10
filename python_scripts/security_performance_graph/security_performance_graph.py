@@ -49,6 +49,7 @@
 # build: 1012 - jar/class name fixes for MD2024(5100)...
 # build: 1013 - MyJFrame(v5); tweaks to cope with MD2024.2(5141) RepGen changes that impact GrapReportGenerator protected fields
 # build: 1014 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
+# build: 1014 - Switching to CurrencyUtil.convertValue()
 
 #######
 # NOTE: You cannot access protected fields on a subclassed class from python, only protected methods!
@@ -4394,8 +4395,8 @@ Visit: %s (Author's site)
 
                         startBal = AccountUtil.getBalanceAsOfDate(_book, secAcct, beginDate)
                         endBal = AccountUtil.getBalanceAsOfDate(_book, secAcct, endDate)
-                        startValue = CurrencyTable.convertValue(startBal, sec, base, beginDate)
-                        endValue = CurrencyTable.convertValue(endBal, sec, base, endDate)
+                        startValue = CurrencyUtil.convertValue(startBal, sec, base, beginDate)
+                        endValue = CurrencyUtil.convertValue(endBal, sec, base, endDate)
 
                         thisSecurityTotalStartValue += startValue
                         thisSecurityTotalEndValue += endValue
@@ -4518,7 +4519,7 @@ Visit: %s (Author's site)
                     for i in range(0, len(yValues_percentagePerformance)):
                         if yValues_percentagePerformance[i] is not None:
                             # yValues_value[i] = (yValues_price[i] * yValues_balances[i])
-                            yValues_value_new[i] = base.getDoubleValue(CurrencyTable.convertValue(sec.getLongValue(yValues_balances[i]), sec, base, intervals[i]))
+                            yValues_value_new[i] = base.getDoubleValue(CurrencyUtil.convertValue(sec.getLongValue(yValues_balances[i]), sec, base, intervals[i]))
 
                     # myPrint("DB", "%s: yValues_value:" %(sec), yValues_value)
                     myPrint("DB", "%s: yValues_value_new:" %(sec), yValues_value_new)
