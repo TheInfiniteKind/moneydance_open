@@ -6625,7 +6625,7 @@ Visit: %s (Author's site)
         NAB = NetAccountBalancesExtension.getNAB()
         book = NAB.moneydanceContext.getCurrentAccountBook()
 
-        todayInt = Util.getStrippedDateInt()
+        todayInt = DateUtil.getStrippedDateInt()
 
         for iRowIdx in range(0, len(_parallelBalanceTable)):
 
