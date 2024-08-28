@@ -310,6 +310,35 @@ http://jakarta.apache.org/ant/index.html
     </antcall>
   </target>
 
+  <target name="mousetester-compile" depends="init">
+    <touch file="com/moneydance/modules/features/mousetester/Main.java"/>
+    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+              classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/mousetester/**/*.java"
+      includeAntRuntime="false">
+      <compilerarg value="-Xlint:-options"/>
+    </javac>
+    <jar destfile="${dist}/mousetester.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/mousetester/meta_info.dict
+             com/moneydance/modules/features/mousetester/*.properties
+             com/moneydance/modules/features/mousetester/*.xml
+             com/moneydance/modules/features/mousetester/*.properties.xml
+             com/moneydance/modules/features/mousetester/*.gif
+             com/moneydance/modules/features/mousetester/*.png
+             com/moneydance/modules/features/mousetester/*.jpg
+             com/moneydance/modules/features/mousetester/*.jpeg"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/mousetester/**/*.class"/>
+    </jar>
+  </target>
+
+  <target name="mousetester" depends="mousetester-compile">
+    <touch file="com/moneydance/modules/features/mousetester/Main.java"/>
+    <antcall target="sign" inheritall="true" inheritrefs="true">
+      <param name="feature" value="mousetester" />
+    </antcall>
+  </target>
+
   <target name="yahoofx" depends="init">
     <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath"  destdir="${build}"
