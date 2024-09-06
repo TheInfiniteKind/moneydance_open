@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1044 - July 2024 - Stuart Beesley
+# extract_data.py - build: 1045 - August 2024 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -150,6 +150,11 @@
 # build: 1042 - Update MyCostCalculation to v8; MyJFrame(v5)
 #               Add extra price/hidden price date info to Extract Security Balances (ESB)... Also fix ESB Security Master prices for date
 # build: 1044 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
+# build: 1045 - ???
+# build: 1045 - Temporary fix for invalid / old dates (i.e. < 19000101) in EIT and EAR extracts...
+# build: 1045 - ???
+
+# todo - fix dateasdate.strftime() where dates < 19000101!
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -164,7 +169,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1044"
+version_build = "1045"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -503,7 +508,6 @@ else:
     from copy import deepcopy
     import subprocess
     from com.infinitekind.util import IOUtils as MDIOUtils
-    from com.moneydance.apps.md.controller import Util
     from com.moneydance.apps.md.view.gui import DateRangeChooser
     from com.infinitekind.moneydance.model import SecurityType, AbstractTxn                                             # noqa
 
@@ -10873,8 +10877,13 @@ Visit: %s (Author's site)
 
                                             for convColumn in ["_DATE", "_TAXDATE", "_DATE_ENTERED", "_SYNC_DATE", "_RECONCILED_DATE", "_RECONCILED_ASOF"]:
                                                 if _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]:
-                                                    dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]), "%Y%m%d")  # Convert to Date field
-                                                    _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    _dateTmp = _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]
+                                                    if _dateTmp >= 19000101:
+                                                        dateasdate = datetime.datetime.strptime(str(_dateTmp), "%Y%m%d")    # Convert to Date field
+                                                        _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    else:
+                                                        myPrint("B", "ALERT: INVALID DATE < 19000101 - found '%s'" %(_dateTmp))
+                                                        _dateoutput = "??%s??" %(_dateTmp)
                                                     _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
 
                                             for col in range(0, GlobalVars.dataKeys["_ATTACHMENTLINK"][_COLUMN]):  # DO NOT MESS WITH ATTACHMENT LINK NAMES!!
@@ -11978,8 +11987,13 @@ Visit: %s (Author's site)
 
                                             for convColumn in ["_DATE", "_TAXDATE", "_DATE_ENTERED", "_SYNC_DATE", "_RECONCILED_DATE", "_RECONCILED_ASOF"]:
                                                 if _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]:
-                                                    dateasdate = datetime.datetime.strptime(str(_theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]), "%Y%m%d")  # Convert to Date field
-                                                    _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    _dateTmp = _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]
+                                                    if _dateTmp >= 19000101:
+                                                        dateasdate = datetime.datetime.strptime(str(_dateTmp), "%Y%m%d")    # Convert to Date field
+                                                        _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    else:
+                                                        myPrint("B", "ALERT: INVALID DATE < 19000101 - found '%s'" %(_dateTmp))
+                                                        _dateoutput = "??%s??" %(_dateTmp)
                                                     _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
 
                                             for col in range(0, GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]):
