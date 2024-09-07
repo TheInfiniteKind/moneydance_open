@@ -151,10 +151,8 @@
 #               Add extra price/hidden price date info to Extract Security Balances (ESB)... Also fix ESB Security Master prices for date
 # build: 1044 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 # build: 1045 - ???
-# build: 1045 - Temporary fix for invalid / old dates (i.e. < 19000101) in EIT and EAR extracts...
+# build: 1045 - Fix for invalid / old dates (i.e. < 19000101) in EIT and EAR extracts...
 # build: 1045 - ???
-
-# todo - fix dateasdate.strftime() where dates < 19000101!
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -10873,8 +10871,9 @@ Visit: %s (Author's site)
                                         print
 
                                         myPrint("DB", _THIS_EXTRACT_NAME + "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
+                                        _rowIdx = 1
+                                        _preprocessingError = False
                                         for _theRow in GlobalVars.transactionTable:
-
                                             for convColumn in ["_DATE", "_TAXDATE", "_DATE_ENTERED", "_SYNC_DATE", "_RECONCILED_DATE", "_RECONCILED_ASOF"]:
                                                 if _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]:
                                                     _dateTmp = _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]
@@ -10882,12 +10881,14 @@ Visit: %s (Author's site)
                                                         dateasdate = datetime.datetime.strptime(str(_dateTmp), "%Y%m%d")    # Convert to Date field
                                                         _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
                                                     else:
-                                                        myPrint("B", "ALERT: INVALID DATE < 19000101 - found '%s'" %(_dateTmp))
+                                                        _preprocessingError = True
+                                                        myPrint("B", "ALERT: INVALID DATE < 19000101 - found on csv row: %s col: %s raw date int: '%s'" %(_rowIdx+1, convColumn, _dateTmp))
                                                         _dateoutput = "??%s??" %(_dateTmp)
                                                     _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
 
                                             for col in range(0, GlobalVars.dataKeys["_ATTACHMENTLINK"][_COLUMN]):  # DO NOT MESS WITH ATTACHMENT LINK NAMES!!
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
+                                            _rowIdx += 1
 
                                         myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records"  %(len(GlobalVars.transactionTable)))
 
@@ -10966,6 +10967,11 @@ Visit: %s (Author's site)
                                                     writer.writerow(["Selected Start Date................: %s" %(convertStrippedIntDateFormattedText(GlobalVars.saved_filterDateRangeStart_EAR))])
                                                     writer.writerow(["Selected End Date..................: %s" %(convertStrippedIntDateFormattedText(GlobalVars.saved_filterDateRangeEnd_EAR))])
                                                     writer.writerow(["user date format...................: %s" %(GlobalVars.saved_extractDateFormat_SWSS)])
+
+                                            if _preprocessingError:
+                                                _msgTxt = _THIS_EXTRACT_NAME + "@@ WARNING - non-critical date issue found preprocessing file (review console) @@"
+                                                myPrint("B", _msgTxt)
+                                                GlobalVars.AUTO_MESSAGES.append(_msgTxt)
 
                                             _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(GlobalVars.transactionTable))
                                             myPrint("B", _msgTxt)
@@ -11983,8 +11989,9 @@ Visit: %s (Author's site)
                                         print
 
                                         myPrint("DB", _THIS_EXTRACT_NAME + "Now pre-processing the file to convert integer dates and strip non-ASCII if requested....")
+                                        _rowIdx = 1
+                                        _preprocessingError = False
                                         for _theRow in GlobalVars.transactionTable:
-
                                             for convColumn in ["_DATE", "_TAXDATE", "_DATE_ENTERED", "_SYNC_DATE", "_RECONCILED_DATE", "_RECONCILED_ASOF"]:
                                                 if _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]:
                                                     _dateTmp = _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]]
@@ -11992,16 +11999,16 @@ Visit: %s (Author's site)
                                                         dateasdate = datetime.datetime.strptime(str(_dateTmp), "%Y%m%d")    # Convert to Date field
                                                         _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
                                                     else:
-                                                        myPrint("B", "ALERT: INVALID DATE < 19000101 - found '%s'" %(_dateTmp))
+                                                        _preprocessingError = True
+                                                        myPrint("B", "ALERT: INVALID DATE < 19000101 - found on csv row: %s col: %s raw date int: '%s'" %(_rowIdx+1, convColumn, _dateTmp))
                                                         _dateoutput = "??%s??" %(_dateTmp)
                                                     _theRow[GlobalVars.dataKeys[convColumn][_COLUMN]] = _dateoutput
 
                                             for col in range(0, GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]):
                                                 _theRow[col] = fixFormatsStr(_theRow[col])
+                                            _rowIdx += 1
 
                                         myPrint("B", _THIS_EXTRACT_NAME + "Opening file and writing %s records" %(len(GlobalVars.transactionTable)))
-
-
                                         try:
                                             # CSV Writer will take care of special characters / delimiters within fields by wrapping in quotes that Excel will decode
                                             with open(GlobalVars.csvfilename, "wb") as csvfile:  # PY2.7 has no newline parameter so opening in binary; juse "w" and newline='' in PY3.0
@@ -12080,6 +12087,11 @@ Visit: %s (Author's site)
                                                     writer.writerow(["Omit LOT matching data.............: %s" %(GlobalVars.saved_lOmitLOTDataFromExtract_EIT)])
                                                     writer.writerow(["Extract extra Sec Acct Info........: %s" %(GlobalVars.saved_lExtractExtraSecurityAcctInfo)])
                                                     writer.writerow(["Download Attachments...............: %s" %(GlobalVars.saved_lExtractAttachments_EIT)])
+
+                                            if _preprocessingError:
+                                                _msgTxt = _THIS_EXTRACT_NAME + "@@ WARNING - non-critical date issue found preprocessing file (review console) @@"
+                                                myPrint("B", _msgTxt)
+                                                GlobalVars.AUTO_MESSAGES.append(_msgTxt)
 
                                             _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(GlobalVars.transactionTable))
                                             myPrint("B", _msgTxt)
