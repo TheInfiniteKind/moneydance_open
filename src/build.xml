@@ -1,12 +1,22 @@
 <!--
-build file for ant
+build file for ant (java and also with mixed java/kotlin support)
 http://jakarta.apache.org/ant/index.html
+
+** SET ANY OVERRIDING PROPERTIES IN THE /src/user.properties file >> loads first and overrides the below settings **
+
+KOTLIN:
+- Kotlin tasks defined in kotlin-ant.jar library, located in the lib folder in the Kotlin Compiler archive. Ant version 1.8.2+ is required.
+- Kotlin command-line compiler: https://kotlinlang.org/docs/command-line.html
+
+to enable add `<withKotlin/>` to javac build command and make sure to include the *.kt source files...
 -->
 
-<!--SET ANY OVERRIDING PROPERTIES IN THE /src/user.properties file >> loads first and overrides the below settings -->
-
 <project name="moneydance_open" default="all" basedir=".">
-  <property name="version"  value="1.0"/>
+  <property name="kotlinlib" value="${user.home}/Applications/IntelliJ IDEA Community Edition.app/Contents/plugins/Kotlin/kotlinc/lib"/>
+
+  <typedef resource="org/jetbrains/kotlin/ant/antlib.xml" classpath="${kotlinlib}/kotlin-ant.jar"/>
+
+  <property name="version" value="1.0"/>
   <property name="src" value="."/>
   <property name="python-src" value="../python_scripts"/>
   <property file="${src}/user.properties"/>
@@ -89,10 +99,12 @@ http://jakarta.apache.org/ant/index.html
             <include name="contact.*" />
           </fileset>
         </copy>
-        <javac target="@{javac-target}" bootclasspath="${bootclasspath}" source="@{javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-          classpathref="classpath"  destdir="${build}"
-          includes="com/moneydance/modules/features/@{feature}/**"
-          includeAntRuntime="false">
+        <javac target="@{javac-target}" bootclasspath="${bootclasspath}" source="@{javac-source}" srcdir="${src}"
+               debug="${debug}" optimize="${optimize}"
+               classpathref="classpath" destdir="${build}"
+               includes="com/moneydance/modules/features/@{feature}/**"
+               includeAntRuntime="false">
+          <withKotlin/>
           <compilerarg value="-Xlint:-options"/>
         </javac>
         <jar destfile="${dist}/@{feature}.mxt">
@@ -283,10 +295,13 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="ratios-compile" depends="init">
     <touch file="com/moneydance/modules/features/ratios/Main.java"/>
-    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-              classpathref="classpath"  destdir="${build}"
-      includes="com/moneydance/modules/features/ratios/**/*.java"
-      includeAntRuntime="false">
+    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}"
+           debug="${debug}" optimize="${optimize}"
+           classpathref="classpath" destdir="${build}"
+           includes="com/moneydance/modules/features/ratios/**/*.java
+                     com/moneydance/modules/features/ratios/**/*.kt"
+           includeAntRuntime="false">
+      <withKotlin/>
       <compilerarg value="-Xlint:-options"/>
     </javac>
     <jar destfile="${dist}/ratios.mxt">
@@ -312,10 +327,13 @@ http://jakarta.apache.org/ant/index.html
 
   <target name="mousetester-compile" depends="init">
     <touch file="com/moneydance/modules/features/mousetester/Main.java"/>
-    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-              classpathref="classpath"  destdir="${build}"
-      includes="com/moneydance/modules/features/mousetester/**/*.java"
-      includeAntRuntime="false">
+    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}"
+           debug="${debug}" optimize="${optimize}"
+           classpathref="classpath" destdir="${build}"
+           includes="com/moneydance/modules/features/mousetester/*.java
+                     com/moneydance/modules/features/mousetester/*.kt"
+           includeAntRuntime="false">
+      <withKotlin/>
       <compilerarg value="-Xlint:-options"/>
     </javac>
     <jar destfile="${dist}/mousetester.mxt">
