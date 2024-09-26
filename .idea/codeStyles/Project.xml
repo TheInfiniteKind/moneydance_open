@@ -78,6 +78,8 @@
     <codeStyleSettings language="kotlin">
       <option name="CODE_STYLE_DEFAULTS" value="KOTLIN_OFFICIAL" />
       <option name="RIGHT_MARGIN" value="900" />
+      <option name="LINE_COMMENT_AT_FIRST_COLUMN" value="false" />
+      <option name="BLOCK_COMMENT_AT_FIRST_COLUMN" value="false" />
       <option name="ALIGN_MULTILINE_PARAMETERS_IN_CALLS" value="true" />
       <option name="ALIGN_MULTILINE_BINARY_OPERATION" value="true" />
       <option name="METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE" value="false" />
