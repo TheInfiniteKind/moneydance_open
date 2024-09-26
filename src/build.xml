@@ -44,7 +44,6 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   <path id="classpath">
     <pathelement path="../lib/kotlin-stdlib-1.9.21.jar"/>
     <pathelement path="../lib/extadmin.jar"/>
-    <pathelement path="../lib/moneydance.jar"/>
     <pathelement path="../lib/moneydance-dev.jar"/>
     <pathelement path="../lib/moneydance-private.jar"/> <!-- If you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't. -->
 
