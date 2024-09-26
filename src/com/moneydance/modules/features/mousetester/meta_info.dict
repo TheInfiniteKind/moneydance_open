@@ -3,8 +3,8 @@
   "vendor_url" = "https://github.com/TheInfiniteKind/moneydance_open"
   "xxmodule_url" = "https://infinitekind.com/app/md/extensions/mousetester.mxt"
   "module_name" = "Mouse Tester"
-  "module_desc" = "Simple mouse tester for click functions"
+  "module_desc" = "Simple mouse tester for click functions (kotlin version)"
   "id" = "mousetester"
-  "module_build" = "2"
+  "module_build" = "3"
   "minbuild" = "5064"
 }
