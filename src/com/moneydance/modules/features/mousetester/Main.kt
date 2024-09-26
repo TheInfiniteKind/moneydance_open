@@ -1,118 +1,95 @@
 /**
  * MouseTester: Simple java extension to test mouse clicks
- * @author Stuart Beesley August 2024
+ * Originally Java >> Kotlin'ized September 2024
+ * @author Stuart Beesley August-September 2024
  */
-package com.moneydance.modules.features.mousetester;
+package com.moneydance.modules.features.mousetester
 
-import com.moneydance.apps.md.controller.FeatureModule;
-import com.moneydance.apps.md.controller.FeatureModuleContext;
-import com.moneydance.apps.md.controller.PreferencesListener;
-import com.moneydance.apps.md.view.gui.MoneydanceGUI;
+import com.moneydance.apps.md.controller.FeatureModule
+import com.moneydance.apps.md.controller.FeatureModuleContext
+import com.moneydance.apps.md.controller.PreferencesListener
+import com.moneydance.apps.md.view.gui.MoneydanceGUI
 
-import static com.moneydance.modules.features.mousetester.Util.logConsole;
+class Main : FeatureModule(), PreferencesListener {
 
-public class Main extends FeatureModule implements PreferencesListener{
-
-    public static Main THIS_EXTENSION_CONTEXT;
-
-    public static boolean DEBUG = false;
-    public static boolean PREVIEW_BUILD = true;
-    public static com.moneydance.apps.md.controller.Main MD_REF;
-
-    public static final String EXTN_ID = "mousetester";
-    public static final String EXTN_NAME = "Mouse Tester";
-
-    public Main() {}
-
-    public void init() {
-
+    override fun init() {
         // if moneydance was launched with -d or the system property is set.....
-        Main.DEBUG = (com.moneydance.apps.md.controller.Main.DEBUG || Boolean.getBoolean("moneydance.debug"));
-        logConsole(true, Main.EXTN_ID + ": " + "** DEBUG IS ON **");
 
-        THIS_EXTENSION_CONTEXT = this;
+        DEBUG = (com.moneydance.apps.md.controller.Main.DEBUG || java.lang.Boolean.getBoolean("moneydance.debug"))
+        Util.logConsole(true, "$EXTN_ID: ** DEBUG IS ON **")
+
+        extensionContext = this
 
         // the first thing we will do is register this module to be invoked via the application toolbar
-        FeatureModuleContext context = getContext();
-        MD_REF = (com.moneydance.apps.md.controller.Main) context;
+        val context = context
+        mdMain = context as com.moneydance.apps.md.controller.Main
 
-        addPreferencesListener();
+        addPreferencesListener()
 
         // setup the home page view
-        assert getContext() != null;
-        getContext().registerHomePageView(this, new MouseTesterView());
-        logConsole(String.format("Initialized build %s %s", getVersionString(), (PREVIEW_BUILD ? "(PREVIEW) " : "")));
+        this.context!!.registerHomePageView(this, MouseTesterView())
+        Util.logConsole("Initialized (Kotlin) build - $versionString ${if (PREVIEW_BUILD) "(PREVIEW) " else ""}")
     }
 
-    public static com.moneydance.apps.md.controller.Main getMDMain() {
-        return MD_REF;
-    }
-
-    public static FeatureModuleContext getUnprotectedContext() {
-        return getMDMain();
-    }
-
-    public static Main getExtensionContext() { return THIS_EXTENSION_CONTEXT; }
-
-    public static MoneydanceGUI getMDGUI() {
-        return (MoneydanceGUI) getMDMain().getUI();
-    }
-
-    public void cleanup() {
+    override fun cleanup() {
         // I don't this this is ever called by Moneydance!?
-        logConsole(".cleanup() called (will pass onto .unload()....)...");
-        unload();
+        Util.logConsole(".cleanup() called (will pass onto .unload()....)...")
+        unload()
     }
 
-    @Override
-    public void unload() {
-        logConsole(".unload() called....");
-        removePreferencesListener();
+    override fun unload() {
+        Util.logConsole(".unload() called....")
+        removePreferencesListener()
     }
 
-    public static String getVersionString() {
-        return "Build " + getExtensionContext().getBuild();
-    }
-
-    @Override
-    public void handleEvent(String eventStr) {
-        logConsole(true, "MouseTester::handleEvent(" + eventStr + ") doing nothing");
+    override fun handleEvent(appEvent: String) {
+        Util.logConsole(true, "MouseTester::handleEvent($appEvent) doing nothing")
         //if (eventStr.equalsIgnoreCase(AppEventManager.FILE_OPENED)) {
         //    // do stuff with dataset here....
         //}
     }
 
-    /** Process an invocation of this module with the given URI */
-    public void invoke(String uri) {
-        String command = uri;
-        int colonIdx = uri.indexOf(':');
+    /** Process an invocation of this module with the given URI  */
+    override fun invoke(uri: String) {
+        var command = uri
+        val colonIdx = uri.indexOf(':')
         if (colonIdx >= 0) {
-            command = uri.substring(0, colonIdx);
+            command = uri.substring(0, colonIdx)
         }
-        logConsole("MouseTester::invoke(" + uri + ") - command: '"+ command + "' - doing nothing");
+        Util.logConsole("MouseTester::invoke($uri) - command: '$command' - doing nothing")
     }
 
-    public String getName() {
-        return EXTN_NAME;
-    }
+    override fun getName(): String { return EXTN_NAME }
 
-    private void addPreferencesListener() {
-        if (getContext() != null) {
-            ((com.moneydance.apps.md.controller.Main) getContext()).getPreferences()
-                    .addListener(this);
+    private fun addPreferencesListener() {
+        if (context != null) {
+            (context as com.moneydance.apps.md.controller.Main).preferences.addListener(this)
         }
     }
 
-    private void removePreferencesListener() {
-        if (getContext() != null) {
-            ((com.moneydance.apps.md.controller.Main) getContext()).getPreferences()
-                    .removeListener(this);
+    private fun removePreferencesListener() {
+        if (context != null) {
+            (context as com.moneydance.apps.md.controller.Main).preferences.removeListener(this)
         }
     }
 
-    @Override
-    public void preferencesUpdated() {
-        logConsole(true, "MouseTester::preferencesUpdated() called - doing nothing");
+    override fun preferencesUpdated() {
+        Util.logConsole(true, "MouseTester::preferencesUpdated() called - doing nothing")
+    }
+
+    companion object {
+        const val EXTN_ID: String = "mousetester"
+        const val EXTN_NAME: String = "Mouse Tester"
+
+        @JvmStatic var DEBUG: Boolean = false
+
+        var extensionContext: Main? = null
+        var PREVIEW_BUILD: Boolean = true
+        var mdMain: com.moneydance.apps.md.controller.Main? = null
+
+        val unprotectedContext: FeatureModuleContext? get() = mdMain
+        val mdGUI: MoneydanceGUI get() = mdMain?.ui as MoneydanceGUI
+        val versionString: String get() = "Build ${extensionContext?.build ?: "???"}"
     }
 }
 

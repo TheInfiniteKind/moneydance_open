@@ -1,52 +1,46 @@
-package com.moneydance.modules.features.mousetester;
+package com.moneydance.modules.features.mousetester
 
-import java.awt.*;
+import java.awt.Color
 
-public class Util {
-
-    public static void logConsole(String message) {
-        logConsole(false, message);
+object Util {
+    fun logConsole(message: String) {
+        logConsole(false, message)
     }
 
-    public static void logConsole(Object objMessage) {
-        logConsole(false, objMessage.toString());
+    fun logConsole(objMessage: Any) {
+        logConsole(false, objMessage.toString())
     }
 
-    public static void logConsole(Boolean onlyWhenDebug, String message) {
-        if (onlyWhenDebug && !Main.DEBUG) return;
-        System.err.println(Main.EXTN_ID + ": " + message);
+    fun logConsole(onlyWhenDebug: Boolean, message: String) {
+        if (onlyWhenDebug && !Main.DEBUG) return
+        System.err.println("${Main.EXTN_ID}: $message")
     }
 
-    public static void logConsoleAppend(String appendSequence) {
-        System.err.append(appendSequence);
+    fun logConsoleAppend(appendSequence: String?) {
+        System.err.append(appendSequence)
     }
 
-    public static void logTerminal(String message) {
-        logTerminal(true, message);
+    fun logTerminal(message: String) {
+        logTerminal(true, message)
     }
 
-    public static void logTerminal(Object objMessage) {
-        logTerminal(true, objMessage.toString());
+    fun logTerminal(objMessage: Any) {
+        logTerminal(true, objMessage.toString())
     }
 
-    public static void logTerminal(Boolean onlyWhenDebug, String message) {
-        if (onlyWhenDebug && !Main.DEBUG) return;
-        System.out.println(Main.EXTN_ID + ": " + message);
+    fun logTerminal(onlyWhenDebug: Boolean, message: String) {
+        if (onlyWhenDebug && !Main.DEBUG) return
+        println("${Main.EXTN_ID}: $message")
     }
 
-    public static Color getPositiveGreen() {
-        return Main.getMDGUI().getColors().budgetHealthyColor;
-    }
+    val positiveGreen: Color
+        get() = Main.mdGUI.colors.budgetHealthyColor
 
-    public static Color getBlue() {
-        return Main.getMDGUI().getColors().reportBlueFG;
-    }
-    public static Color getRed() {
-        return Main.getMDGUI().getColors().negativeBalFG;
-    }
+    val blue: Color
+        get() = Main.mdGUI.colors.reportBlueFG
+    val red: Color
+        get() = Main.mdGUI.colors.negativeBalFG
 
-    public static Color getDefaultFGColor() {
-        return Main.getMDGUI().getColors().defaultTextForeground;
-    }
-
+    val defaultFGColor: Color
+        get() = Main.mdGUI.colors.defaultTextForeground
 }
