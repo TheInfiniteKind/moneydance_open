@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1045 - August 2024 - Stuart Beesley
+# extract_data.py - build: 1045 - September 2024 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -152,6 +152,7 @@
 # build: 1044 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 # build: 1045 - ???
 # build: 1045 - Fix for invalid / old dates (i.e. < 19000101) in EIT and EAR extracts...
+# build: 1045 - Added tags to extract reminders...; retain sort between reminder refresh(s)
 # build: 1045 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -8954,6 +8955,7 @@ Visit: %s (Author's site)
 
                                 GlobalVars.csvfilename = getExtractFullPath("ERTC")
                                 GlobalVars.csvfilename_EFRTC = getExtractFullPath("EFRTC")
+                                GlobalVars.saveRemindersSortKeys = None
 
                                 def do_extract_reminders():
                                     def terminate_script():
@@ -9000,6 +9002,7 @@ Visit: %s (Author's site)
                                                 pageSetup()
 
                                             if event.getActionCommand().lower().startswith("refresh"):
+                                                GlobalVars.saveRemindersSortKeys = None
                                                 RefreshMenuAction().refresh()
 
                                             if event.getActionCommand().lower().startswith("close"):
@@ -9113,6 +9116,8 @@ Visit: %s (Author's site)
 
                                                 elif str(remtype) == 'TRANSACTION':
                                                     txnparent = rem.getTransaction()
+                                                    if isinstance(txnparent, ParentTxn): pass
+
                                                     amount = baseCurr.getDoubleValue(txnparent.getValue())
                                                     stripacct = txnparent.getAccount().getFullAccountName().strip()
 
@@ -9168,7 +9173,8 @@ Visit: %s (Author's site)
                                             "SplitAmount",
                                             "Category",
                                             "Description",
-                                            "Memo"
+                                            "Memo",
+                                            "Tags"
                                         ]
 
                                         GlobalVars.headerFormats_ERTC = [[Number,JLabel.CENTER],
@@ -9186,6 +9192,7 @@ Visit: %s (Author's site)
                                                          [String,JLabel.LEFT],
                                                          [String,JLabel.CENTER],
                                                          [Number,JLabel.RIGHT],
+                                                         [String,JLabel.LEFT],
                                                          [String,JLabel.LEFT],
                                                          [String,JLabel.LEFT],
                                                          [String,JLabel.LEFT]
@@ -9310,17 +9317,27 @@ Visit: %s (Author's site)
                                                 amount = GlobalVars.baseCurrency.getDoubleValue(txnparent.getValue())
 
                                                 for index2 in range(0, int(txnparent.getOtherTxnCount())):
-                                                    splitdesc = txnparent.getOtherTxn(index2).getDescription().replace(","," ")  # remove commas to keep csv format happy
-                                                    splitmemo = txnparent.getMemo().replace(",", " ")  # remove commas to keep csv format happy
+                                                    splitTxn = txnparent.getOtherTxn(index2)
+                                                    if isinstance(splitTxn, SplitTxn): pass
+
+                                                    # remove commas to keep csv format happy....
+                                                    splitdesc = splitTxn.getDescription().replace(",", " ").strip()
+                                                    splitmemo = txnparent.getMemo().replace(",", " ").strip()
                                                     maindesc = txnparent.getDescription().replace(",", " ").strip()
 
                                                     if index2 > 0: amount = ''  # Don't repeat the new amount on subsequent split lines (so you can total column). The split amount will be correct
 
-                                                    # stripacct = str(txnparent.getAccount()).replace(",", " ").strip()  # remove commas to keep csv format happy
-                                                    stripacct = txnparent.getAccount().getFullAccountName().replace(",", " ").strip()  # remove commas to keep csv format happy
+                                                    # stripacct = str(txnparent.getAccount()).replace(",", " ").strip()
+                                                    stripacct = txnparent.getAccount().getFullAccountName().replace(",", " ").strip()
 
-                                                    # stripcat = str(txnparent.getOtherTxn(index2).getAccount()).replace(","," ").strip()  # remove commas to keep csv format happy
-                                                    stripcat = txnparent.getOtherTxn(index2).getAccount().getFullAccountName().replace(","," ").strip()  # remove commas to keep csv format happy
+                                                    # stripcat = str(splitTxn.getAccount()).replace(","," ").strip()
+                                                    stripcat = splitTxn.getAccount().getFullAccountName().replace(","," ").strip()
+
+                                                    # use set() to create a unique list, and OR to concatenate...
+                                                    splitTags = list(set(txnparent.getKeywords() if index2 == 0 else []) | set(splitTxn.getKeywords()))
+                                                    splitTagsAsStr = ""
+                                                    if len(splitTags) > 0:
+                                                        splitTagsAsStr = "[%s]" %(", ".join(unicode(tag) for tag in splitTags))
 
                                                     csvline = []
                                                     csvline.append(index + 1)
@@ -9337,10 +9354,11 @@ Visit: %s (Author's site)
                                                     csvline.append(stripacct)
                                                     csvline.append(maindesc)
                                                     csvline.append(str(index + 1) + '.' + str(index2 + 1))
-                                                    csvline.append(GlobalVars.baseCurrency.getDoubleValue(txnparent.getOtherTxn(index2).getValue()) * -1)
+                                                    csvline.append(GlobalVars.baseCurrency.getDoubleValue(splitTxn.getValue()) * -1)
                                                     csvline.append(stripcat)
                                                     csvline.append(splitdesc)
                                                     csvline.append(splitmemo)
+                                                    csvline.append(splitTagsAsStr)
                                                     GlobalVars.csvlines_reminders.append(csvline)
 
                                             index += 1
@@ -9596,6 +9614,12 @@ Visit: %s (Author's site)
                                         def __init__(self, tableModel):
                                             super(JTable, self).__init__(tableModel)
                                             self.fixTheRowSorter()
+                                            self.getRowSorter().addRowSorterListener(self)
+
+                                        def sorterChanged(self, e):
+                                            # myPrint("DB", "sorterChanged - event:", e)
+                                            super(self.__class__, self).sorterChanged(e)
+                                            GlobalVars.saveRemindersSortKeys = self.getRowSorter().getSortKeys()
 
                                         # noinspection PyMethodMayBeStatic
                                         # noinspection PyUnusedLocal
@@ -9698,7 +9722,10 @@ Visit: %s (Author's site)
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("N"))
                                                 else:
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("T"))
-                                            self.getRowSorter().toggleSortOrder(0)
+                                            if GlobalVars.saveRemindersSortKeys is None:
+                                                self.getRowSorter().toggleSortOrder(0)
+                                            else:
+                                                self.getRowSorter().setSortKeys(GlobalVars.saveRemindersSortKeys)
 
                                         # make Banded rows
                                         def prepareRenderer(self, renderer, row, column):  								# noqa
@@ -9767,7 +9794,7 @@ Visit: %s (Author's site)
                                         GlobalVars.reminderTableCount_ERTC += 1
                                         myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()", ind, "  - On iteration/call: ", GlobalVars.reminderTableCount_ERTC)
 
-                                        myDefaultWidths = [70,95,110,150,150,95,95,95,120,100,80,100,150,50,100,150,150,150]
+                                        myDefaultWidths = [70,95,110,150,150,95,95,95,120,100,80,100,150,50,100,150,150,150,150]
 
                                         validCount=0
                                         lInvalidate=True
@@ -9913,9 +9940,12 @@ Visit: %s (Author's site)
                                         extract_data_frame_.getRootPane().getActionMap().remove("print-me")
                                         extract_data_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(extract_data_frame_, GlobalVars.table, "Extract Reminders"))
 
-                                        GlobalVars.table.getTableHeader().setReorderingAllowed(True)  # no more drag and drop columns, it didn't work (on the footer)
+                                        GlobalVars.table.getTableHeader().setReorderingAllowed(True)
                                         GlobalVars.table.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
                                         GlobalVars.table.selectionMode = ListSelectionModel.SINGLE_SELECTION
+
+
+
 
                                         fontSize = GlobalVars.table.getFont().getSize()+5
                                         GlobalVars.table.setRowHeight(fontSize)
@@ -10076,6 +10106,7 @@ Visit: %s (Author's site)
                                                                     fixFormatsStr(GlobalVars.csvlines_reminders[_iii][15], False),
                                                                     fixFormatsStr(GlobalVars.csvlines_reminders[_iii][16], False),
                                                                     fixFormatsStr(GlobalVars.csvlines_reminders[_iii][17], False),
+                                                                    fixFormatsStr(GlobalVars.csvlines_reminders[_iii][18], False),
                                                                     ""])
                                                             except:
                                                                 _msgTxt = _THIS_EXTRACT_NAME + "@@ ERROR writing to CSV on row %s. Please review console" %(_iii)
