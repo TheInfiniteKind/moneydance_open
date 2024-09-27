@@ -7,14 +7,16 @@ http://jakarta.apache.org/ant/index.html
 KOTLIN:
 - Kotlin tasks defined in kotlin-ant.jar library, located in the lib folder in the Kotlin Compiler archive. Ant version 1.8.2+ is required.
 - Kotlin command-line compiler: https://kotlinlang.org/docs/command-line.html
+- or use `brew install kotlin`. It's also pre-installed with IntelliJ: <install location>/Contents/plugins/Kotlin/kotlinc
+- use a symlink file named ${user.home}/bin/kotlin that points to the parent folder of your kotlin-compiler installation
 
 to enable add `<withKotlin/>` to javac build command and make sure to include the *.kt source files...
 -->
 
 <project name="moneydance_open" default="all" basedir=".">
-  <property name="kotlinlib" value="${user.home}/Applications/IntelliJ IDEA Community Edition.app/Contents/plugins/Kotlin/kotlinc/lib"/>
 
-  <typedef resource="org/jetbrains/kotlin/ant/antlib.xml" classpath="${kotlinlib}/kotlin-ant.jar"/>
+  <property name="kotlindir" value="${user.home}/bin/kotlin"/>
+  <typedef resource="org/jetbrains/kotlin/ant/antlib.xml" classpath="${kotlindir}/lib/kotlin-ant.jar"/>
 
   <property name="version" value="1.0"/>
   <property name="src" value="."/>
