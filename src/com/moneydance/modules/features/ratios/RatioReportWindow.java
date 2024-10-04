@@ -57,7 +57,10 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
   public RatioReportWindow(MoneydanceGUI mdGUI, Frame parent, ReportGenerator generator) {
     super(mdGUI, parent, mdGUI.getStr("report"), false);
     _generator = generator;
-    _generator.setSuppressMessageDialogs(true); // we'll handle the messages here
+    try {
+      // this method was removed in 2024.2(515x)....
+      _generator.setSuppressMessageDialogs(true); // we'll handle the messages here
+    } catch (NoSuchMethodError ignored) {}
 
     JPanel p = createControls(mdGUI, generator.isLandscape());
     addListeners();

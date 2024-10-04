@@ -49,6 +49,7 @@ import java.util.ResourceBundle;
 // https://infinitekind.tenderapp.com/discussions/problems/92963-ratios-extension
 // https://infinitekind.tenderapp.com/discussions/problems/97947-ratios-extension-1038-broke-transfers-difference-feature-shows-random-negative-values
 // Build 1041 implements own version of: BasePropertyChangeReporter
+// Build 1042 handle the nuked setSuppressMessageDialogs() method for 2024.2(515x)
 
 public class Main extends FeatureModule implements ResourceProvider {
 
