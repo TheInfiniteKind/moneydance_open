@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1032) - April 2024
+# list_future_reminders.py (build: 1033) - September 2024
 # Displays Moneydance future dated / scheduled reminders (along with options to auto-record, delete etc)
 
 ###############################################################################
@@ -81,6 +81,9 @@
 # build: 1030 - Fix print button to refresh the JTable reference
 # build: 1031 - MyJFrame(v5); _eventNotify rename fix for 5140; switch to MyBasePropertyChangeReporter
 # build: 1032 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
+# build: 1033 - ???
+# build: 1033 - More safety on 'skip next occurrence of all reminders' option; add undo manager on the en-mass change 'skip next occurrence of all reminders' option...
+# build: 1033 - ???
 
 # todo - @he "Include subtotals / totals. Would be nice if user could select what to subtotal (by date / by account for sure)"
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
@@ -91,7 +94,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1032"
+version_build = "1033"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -433,8 +436,9 @@ else:
     from javax.swing.event import TableColumnModelListener, ListSelectionListener, DocumentListener, RowSorterEvent
     from java.lang import Number, Object, StringBuilder
     from com.infinitekind.util import StringUtils
-    from com.moneydance.apps.md.controller import AppEventListener, Util
+    from com.moneydance.apps.md.controller import AppEventListener
     from com.moneydance.awt import QuickSearchField
+    from com.moneydance.apps.md.view.gui import MDUndoManager
 
     # from com.moneydance.apps.md.view.gui import EditRemindersWindow
     from com.moneydance.apps.md.view.gui import LoanTxnReminderNotificationWindow
@@ -4249,19 +4253,23 @@ Visit: %s (Author's site)
             if userAction != 1: return
 
             myPrint("B", "Updating Reminder (%s) hidden last acknowledged date from: %s to: %s" %(GlobalVars.saveLastReminderObj, GlobalVars.saveLastReminderObj.getDateAcknowledgedInt(), user_selectAckDate.getDateInt()))
-            GlobalVars.saveLastReminderObj.setEditingMode()
-            GlobalVars.saveLastReminderObj.setAcknowledgedInt(user_selectAckDate.getDateInt())
-            GlobalVars.saveLastReminderObj.syncItem()
+            r = GlobalVars.saveLastReminderObj
+            r.setEditingMode()
+            r.setAcknowledgedInt(user_selectAckDate.getDateInt())
+            r.syncItem()
 
             if myPopupAskQuestion(list_future_reminders_frame_, "REMINDER: EDIT LAST ACKNOWLEDGED DATE", "Ack date updated. Run autocommit now?"):
                 genericSwingEDTRunner(False, False, MD_REF.getUI().autocommitReminders)
 
             # RefreshMenuAction().refresh()
 
-    def skipReminders():
+    def skipAllReminders():
         myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
         if not myPopupAskQuestion(list_future_reminders_frame_, theTitle="SKIP ALL REMINDERS", theQuestion="Skip the next occurrence of ALL reminders?", theMessageType=JOptionPane.WARNING_MESSAGE):
+            return
+
+        if not myPopupAskQuestion(list_future_reminders_frame_, theTitle="SKIP ALL REMINDERS", theQuestion="REALLY skip the next occurrence of **ALL** reminders?", theMessageType=JOptionPane.WARNING_MESSAGE):
             return
 
         newCutoffDateInt = getAsOfCutoffDateSelected()
@@ -4274,10 +4282,16 @@ Visit: %s (Author's site)
 
         myPrint("B", "User has requested to skip next occurrence of ALL reminders...")
 
-        myPrint("DB", "... removing reminder listener (before mass change)...")
-        MD_REF.getCurrentAccountBook().getReminders().removeReminderListener(GlobalVars.reminderListener)
+        book = MD_REF.getCurrentAccountBook()
+        undo = book.getUndoManager()
+        if isinstance(undo, MDUndoManager): pass
+        remsToModify = []
+        remsOriginals = []
 
-        rems = MD_REF.getCurrentAccountBook().getReminders().getAllReminders()
+        myPrint("DB", "... removing reminder listener (before mass change)...")
+        book.getReminders().removeReminderListener(GlobalVars.reminderListener)
+
+        rems = book.getReminders().getAllReminders()
         for r in rems:
             _msg = pad("Please wait: On reminder '%s'" %(r.getDescription()), _msgPad, padChar=".")
             pleaseWait.updateMessages(newTitle=_msg, newStatus=_msg)
@@ -4288,18 +4302,62 @@ Visit: %s (Author's site)
                 continue
 
             myPrint("B", "... skipping reminder %s, setting acknowledged date to %s" %(r, nextDate))
-            r.setAcknowledgedInt(nextDate)
-            r.syncItem()
+
+            if undo:
+                remsOriginals.append(r.duplicate())
+                newRem = r.duplicate()
+                newRem.setEditingMode()
+                newRem.setAcknowledgedInt(nextDate)
+                remsToModify.append(newRem)
+            else:
+                r.setEditingMode()
+                r.setAcknowledgedInt(nextDate)
+                remsToModify.append(r)
             skippedReminders += 1
 
-        pleaseWait.updateMessages(newTitle="SKIP ALL REMINDERS", newStatus="FINISHED Skipping reminders:", newMessage="%s reminders skipped..." %(skippedReminders))
+        if undo:
+            myPrint("B", "En-mass updating %s reminders (UNDO enabled)" %(len(remsToModify)))
+            undo.modifyItems(remsOriginals, remsToModify)
+        else:
+            myPrint("B", "En-mass updating %s reminders (no undo available)" %(len(remsToModify)))
+            book.logModifiedItems(remsToModify)
+            MD_REF.saveCurrentAccount()
+
+        pleaseWait.updateMessages(newTitle="SKIP ALL REMINDERS", newStatus="FINISHED Skipping ALL reminders:", newMessage="%s reminders skipped... (%s)" %(skippedReminders, "UNDO enabled" if undo else "undo not available"))
 
         myPrint("DB", "... re-adding reminder listener (after mass change)...")
-        MD_REF.getCurrentAccountBook().getReminders().addReminderListener(GlobalVars.reminderListener)
+        book.getReminders().addReminderListener(GlobalVars.reminderListener)
 
         myPrint("B", ">> FINISHED skipping the next occurrence of ALL reminders - refreshing the table...")
         RefreshMenuAction().refresh()
 
+    def skipThisReminder():
+        myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
+
+        saveSelectedRowAndObject()
+        newCutoffDateInt = getAsOfCutoffDateSelected()
+        currentSelectedDate = getCurrentSelectedDateInt()
+        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj, newCutoffDateInt)
+
+        if rdate <= 0:
+            myPopupInformationBox(list_future_reminders_frame_,
+                                  "The next occurrence of reminder is non-existent or too far into the future (more than 5 years)",
+                                  "SKIP NEXT",
+                                  JOptionPane.WARNING_MESSAGE)
+
+        elif rdate != currentSelectedDate:
+            nextDateToUseTxt = convertStrippedIntDateFormattedText(rdate)
+            myPopupInformationBox(list_future_reminders_frame_,
+                                  "Only select this option on the next occurrence of Reminder (which is: %s)" %(nextDateToUseTxt),
+                                  "SKIP NEXT",
+                                  JOptionPane.WARNING_MESSAGE)
+
+        else:
+            myPrint("B", "Updating Reminder (%s) skipping next occurrence of reminder. Setting setAcknowledgedInt() to: %s" %(GlobalVars.saveLastReminderObj, rdate))
+            r = GlobalVars.saveLastReminderObj
+            r.setEditingMode()
+            r.setAcknowledgedInt(rdate)
+            r.syncItem()
 
     class ExtractReminders(AbstractAction, Runnable):
         def __init__(self, fromHotKey=False): self.fromHotKey = fromHotKey
@@ -4490,7 +4548,11 @@ Visit: %s (Author's site)
 
             # ##########################################################################################################
             if event.getActionCommand() == "skip_next_occurrence_of_all_reminders":
-                skipReminders()
+                skipAllReminders()
+
+            # ##########################################################################################################
+            if event.getActionCommand() == "skip_next_occurrence_of_this_reminder":
+                skipThisReminder()
 
             # ##########################################################################################################
             if event.getActionCommand() == "extract_reminders":
@@ -5387,13 +5449,13 @@ Visit: %s (Author's site)
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
                 terminate_script()
 
-        class SkipReminders(AbstractAction):
+        class SkipAllReminders(AbstractAction):
             # noinspection PyMethodMayBeStatic
             # noinspection PyUnusedLocal
             def actionPerformed(self, event):
 
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-                skipReminders()
+                skipAllReminders()
                 myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
         class PrintJTable(AbstractAction):
@@ -5830,7 +5892,7 @@ Visit: %s (Author's site)
                 list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, shortcut), "close-window")
                 list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, shortcut), "close-window")
                 list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, shortcut),  "print-me")
-                list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_K, shortcut),  "skip-reminders")
+                list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_K, shortcut),  "skip-all-reminders")
 
                 list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_E, shortcut),  "extract-reminders")
 
@@ -5838,7 +5900,7 @@ Visit: %s (Author's site)
                     list_future_reminders_frame_.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close-window")
 
                 list_future_reminders_frame_.getRootPane().getActionMap().put("close-window", CloseAction())
-                list_future_reminders_frame_.getRootPane().getActionMap().put("skip-reminders", SkipReminders())
+                list_future_reminders_frame_.getRootPane().getActionMap().put("skip-all-reminders", SkipAllReminders())
                 list_future_reminders_frame_.getRootPane().getActionMap().put("extract-reminders", ExtractReminders(fromHotKey=True))
 
 
@@ -5984,19 +6046,26 @@ Visit: %s (Author's site)
 
             for menuOptionLbl, actionCmd in [
                                             ["Edit Reminder",                                "edit_reminder"],
-                                            ["Run Auto Commit Reminders NOW",                "run_auto_commit_reminders_now"],
                                             ["Edit last Acknowledged date",                  "edit_last_acknowledged_date"],
                                             ["Record next occurrence",                       "record_next_occurrence"],
-                                            ["Show Reminder's raw details",                  "show_reminders_raw_details"],
+                                            ["Skip next occurrence",                         "skip_next_occurrence_of_this_reminder"],
                                             ["Delete Reminder",                              "delete_reminder"],
                                             ["Record all next occurrence(s) for same day",   "record_all_next_occurrences_for_same_day"],
                                             ["Record all next occurrence(s) for same month", "record_all_next_occurrences_for_same_month"],
-                                            ["Skip next occurrence of ALL reminders",        "skip_next_occurrence_of_all_reminders"]
+                                            [JSeparator(),                                   ""],
+                                            ["Run Auto Commit Reminders NOW",                "run_auto_commit_reminders_now"],
+                                            [JSeparator(),                                   ""],
+                                            ["Skip next occurrence of *ALL* reminders",      "skip_next_occurrence_of_all_reminders"],
+                                            [JSeparator(),                                   ""],
+                                            ["Show Reminder's raw details",                  "show_reminders_raw_details"]
                                             ]:
-                menuItem = JMenuItem(menuOptionLbl)
-                menuItem.setActionCommand(actionCmd)
-                menuItem.addActionListener(dtm)
-                popupMenu.add(menuItem)
+                if isinstance(menuOptionLbl, JSeparator):
+                    popupMenu.add(menuOptionLbl)
+                else:
+                    menuItem = JMenuItem(menuOptionLbl)
+                    menuItem.setActionCommand(actionCmd)
+                    menuItem.addActionListener(dtm)
+                    popupMenu.add(menuItem)
 
 
             GlobalVars.saveJTable.addMouseListener(MouseListener())
