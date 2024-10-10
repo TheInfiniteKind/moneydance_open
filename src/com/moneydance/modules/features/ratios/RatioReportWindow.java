@@ -21,6 +21,8 @@ import com.moneydance.util.UiUtil;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -59,9 +61,9 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
     _generator = generator;
     try {
       // this method was removed in 2024.2(515x)....
-      _generator.setSuppressMessageDialogs(true); // we'll handle the messages here
-    } catch (NoSuchMethodError ignored) {}
-
+      _generator.getClass().getMethod("setSuppressMessageDialogs", new Class[]{boolean.class}).invoke(_generator, new Object[] {false});
+    } catch (Throwable ignored) {}
+    
     JPanel p = createControls(mdGUI, generator.isLandscape());
     addListeners();
     getContentPane().add(p);
