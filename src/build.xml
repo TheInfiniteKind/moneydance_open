@@ -44,6 +44,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   <property name="python-executable" value="python2.7"/>  <!-- Need to use correct version if running ANT on Windows and Linux etc -->
 
   <path id="classpath">
+    <fileset dir="${md_ext_lib_dir}" includes="*.jar"/>
     <pathelement path="../lib/kotlin-stdlib-1.9.21.jar"/>
     <pathelement path="../lib/extadmin.jar"/>
     <pathelement path="../lib/moneydance-dev.jar"/>
