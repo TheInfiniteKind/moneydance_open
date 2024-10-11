@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1054 - July 2024 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1055 - September 2024 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -136,6 +136,11 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1053 - added the extra_code module (script now too large)...
 # build: 1054 - upgraded printing to MDPrinter using the getattr() tricks... Removed the usage of classloader for this and special java class...
 # build: 1054 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
+# build: 1055 - NOTE: MD2024.2(5153-5154) changes getUI() - now does not try to launch the GUI if not loaded.. Just returns null...
+# build: 1055 - ???
+# build: 1055 - Added useifeq() useifneq() useifgt() useifgte() useiflt() useiflte() to formula capability...
+# build: 1055 - Added menu option: 'Disable gray text info'
+# build: 1055 - ???
 
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
 # todo - ... this is deliberate... Python variables cannot contain dots.. So the regex would need to be changed along with some string replacements..
@@ -150,7 +155,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1054"
+version_build = "1055"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -489,7 +494,7 @@ else:
     from com.moneydance.awt import GridC, JLinkListener, JLinkLabel, AwtUtil, QuickSearchField, JRateField
 
     # from com.moneydance.awt import CollapsibleRefresher
-    from com.moneydance.apps.md.controller import Util
+    # from com.moneydance.apps.md.controller import Util
     # from com.moneydance.apps.md.view.gui import MDURLUtil
     from com.moneydance.apps.md.view import HomePageView
     # from com.moneydance.apps.md.view.gui import SearchFieldBorder
@@ -599,6 +604,7 @@ else:
     GlobalVars.extn_param_NEW_showPrintIcon_NAB              = None
     GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB   = None
     GlobalVars.extn_param_NEW_disableWarningIcon_NAB         = None
+    GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB        = None
     GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB    = None
     GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB      = None
     GlobalVars.extn_param_NEW_useTaxDates_NAB                = None
@@ -7618,8 +7624,8 @@ Visit: %s (Author's site)
             self.FILTER_FORMULA_EXPR_REGEX_WORDS = re.compile(r"\b(\w+[\(\[])", (re.IGNORECASE | re.UNICODE | re.LOCALE))               # noqa
             self.FILTER_FORMULA_EXPR_REGEX_SPECIALVARS = re.compile(r"(?:^|\s)(\@\w+)", (re.IGNORECASE | re.UNICODE | re.LOCALE))       # noqa
             self.FILTER_FORMULA_EXPR_REGEX_FREEVARS = re.compile(r"\b([a-z]\w*[a-z0-9]*)", (re.IGNORECASE | re.UNICODE | re.LOCALE))    # noqa
-            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random"]
-            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])", "max(a,b[,...])", "round(a[,n])", "float(a)", "random()"]
+            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random", "useifeq", "useifneq", "useifgt", "useifgte", "useiflt", "useiflte"]
+            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])", "max(a,b[,...])", "round(a[,n])", "float(a)", "random()", "useifeq(a,x)", "useifneq(a,x)", "useifgt(a,x)", "useifgte(a,x)", "useiflt(a,x)", "useiflte(a,x)"]
             self.FILTER_FORMULA_EXPR_DEFAULT_TAGS = ["@this"]
 
             self.savedFormulaTable = None
@@ -7646,6 +7652,7 @@ Visit: %s (Author's site)
             self.savedDisableWidgetTitle            = None
             self.savedShowDashesInsteadOfZeros      = None
             self.savedDisableWarningIcon            = None
+            self.savedDisableGrayTextInfo           = None
             self.savedTreatSecZeroBalInactive       = None
             self.savedUseIndianNumberFormat         = None
             self.savedUseTaxDates                   = None
@@ -7665,6 +7672,7 @@ Visit: %s (Author's site)
             self.menuItemShowDashesInsteadOfZeros = None
             self.menuItemTreatSecZeroBalInactive = None
             self.menuItemDisableWarningIcon = None
+            self.menuItemDisableGrayTextInfo = None
             self.menuItemUseIndianNumberFormat = None
             self.menuItemUseTaxDates = None
 
@@ -8183,6 +8191,7 @@ Visit: %s (Author's site)
             GlobalVars.extn_param_NEW_disableWidgetTitle_NAB         = copy.deepcopy(NAB.savedDisableWidgetTitle)
             GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB   = copy.deepcopy(NAB.savedShowDashesInsteadOfZeros)
             GlobalVars.extn_param_NEW_disableWarningIcon_NAB         = copy.deepcopy(NAB.savedDisableWarningIcon)
+            GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB        = copy.deepcopy(NAB.savedDisableGrayTextInfo)
             GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB    = copy.deepcopy(NAB.savedTreatSecZeroBalInactive)
             GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB      = copy.deepcopy(NAB.savedUseIndianNumberFormat)
             GlobalVars.extn_param_NEW_useTaxDates_NAB                = copy.deepcopy(NAB.savedUseTaxDates)
@@ -8857,6 +8866,7 @@ Visit: %s (Author's site)
         def disableWidgetTitleDefault(self):            return False
         def showDashesInsteadOfZerosDefault(self):      return False
         def disableWarningIconDefault(self):            return False
+        def disableGrayTextInfoDefault(self):           return False
         def treatSecZeroBalInactiveDefault(self):       return False
         def useIndianNumberFormatDefault(self):         return False
         def useTaxDatesDefault(self):                   return False
@@ -9043,6 +9053,8 @@ Visit: %s (Author's site)
                 self.resetParameters(44)
             elif self.savedDisableWarningIcon is None or not isinstance(self.savedDisableWarningIcon, bool):
                 self.resetParameters(45)
+            elif self.savedDisableGrayTextInfo is None or not isinstance(self.savedDisableGrayTextInfo, bool):
+                self.resetParameters(46)
             elif self.savedDisableWidgetTitle is None or not isinstance(self.savedDisableWidgetTitle, bool):
                 self.resetParameters(47)
             elif self.savedTreatSecZeroBalInactive is None or not isinstance(self.savedTreatSecZeroBalInactive, bool):
@@ -9612,12 +9624,90 @@ Visit: %s (Author's site)
                 # myPrint("B", "_random() result: %s" %(_result));
                 return _result
 
+            def _useifeq(*args):                                                                                        # noqa
+                if len(args) != 2: raise TypeError("CB's useifeq() takes exactly two arguments (%s given)" %(len(args)))
+                value = args[0]
+                compare = args[1]
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifeq() requires int, long, float value 1st parameter (%s given)" %(type(value)))
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifeq() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                value = float(value)
+                compare = float(compare)
+                _result = value if (value == compare) else 0.0
+                # myPrint("B", "_useifeq() result: %s" %(_result));
+                return _result
+
+            def _useifneq(*args):                                                                                        # noqa
+                if len(args) != 2: raise TypeError("CB's useifneq() takes exactly two arguments (%s given)" %(len(args)))
+                value = args[0]
+                compare = args[1]
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifneq() requires int, long, float value 1st parameter (%s given)" %(type(value)))
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifneq() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                value = float(value)
+                compare = float(compare)
+                _result = value if (value != compare) else 0.0
+                # myPrint("B", "_useifneq() result: %s" %(_result));
+                return _result
+
+            def _useifgt(*args):                                                                                        # noqa
+                if len(args) != 2: raise TypeError("CB's useifgt() takes exactly two arguments (%s given)" %(len(args)))
+                value = args[0]
+                compare = args[1]
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgt() requires int, long, float value 1st parameter (%s given)" %(type(value)))
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgt() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                value = float(value)
+                compare = float(compare)
+                _result = value if (value > compare) else 0.0
+                # myPrint("B", "_useifgt() result: %s" %(_result));
+                return _result
+
+            def _useifgte(*args):                                                                                        # noqa
+                if len(args) != 2: raise TypeError("CB's useifgte() takes exactly two arguments (%s given)" %(len(args)))
+                value = args[0]
+                compare = args[1]
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgte() requires int, long, float value 1st parameter (%s given)" %(type(value)))
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgte() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                value = float(value)
+                compare = float(compare)
+                _result = value if (value >= compare) else 0.0
+                # myPrint("B", "_useifgte() result: %s" %(_result));
+                return _result
+
+            def _useiflt(*args):                                                                                        # noqa
+                if len(args) != 2: raise TypeError("CB's useiflt() takes exactly two arguments (%s given)" %(len(args)))
+                value = args[0]
+                compare = args[1]
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflt() requires int, long, float value 1st parameter (%s given)" %(type(value)))
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflt() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                value = float(value)
+                compare = float(compare)
+                _result = value if (value < compare) else 0.0
+                # myPrint("B", "_useifeq() result: %s" %(_result));
+                return _result
+
+            def _useiflte(*args):                                                                                        # noqa
+                if len(args) != 2: raise TypeError("CB's useiflte() takes exactly two arguments (%s given)" %(len(args)))
+                value = args[0]
+                compare = args[1]
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflte() requires int, long, float value 1st parameter (%s given)" %(type(value)))
+                if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflte() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                value = float(value)
+                compare = float(compare)
+                _result = value if (value <= compare) else 0.0
+                # myPrint("B", "_useiflte() result: %s" %(_result));
+                return _result
+
             TAG_VARIABLES["sum"] = _sum
             TAG_VARIABLES["min"] = _min
             TAG_VARIABLES["max"] = _max
             TAG_VARIABLES["abs"] = _abs
             TAG_VARIABLES["round"] = _round
             TAG_VARIABLES["random"] = _random
+            TAG_VARIABLES["useifeq"] = _useifeq
+            TAG_VARIABLES["useifneq"] = _useifneq
+            TAG_VARIABLES["useifgt"] = _useifgt
+            TAG_VARIABLES["useifgte"] = _useifgte
+            TAG_VARIABLES["useiflt"] = _useiflt
+            TAG_VARIABLES["useiflte"] = _useiflte
             # No need to touch round() as it always provides a float back!
 
             ############################################################################################################
@@ -9873,6 +9963,7 @@ Visit: %s (Author's site)
                 self.savedDisableWidgetTitle            = self.disableWidgetTitleDefault()
                 self.savedShowDashesInsteadOfZeros      = self.showDashesInsteadOfZerosDefault()
                 self.savedDisableWarningIcon            = self.disableWarningIconDefault()
+                self.savedDisableGrayTextInfo           = self.disableGrayTextInfoDefault()
                 self.savedTreatSecZeroBalInactive       = self.treatSecZeroBalInactiveDefault()
                 self.savedUseIndianNumberFormat         = self.useIndianNumberFormatDefault()
                 self.savedUseTaxDates                   = self.useTaxDatesDefault()
@@ -10558,6 +10649,7 @@ Visit: %s (Author's site)
                 myPrint("B", ".....savedShowDashesInsteadOfZeros: %s"           %(NAB.savedShowDashesInsteadOfZeros))
                 myPrint("B", ".....savedTreatSecZeroBalInactive: %s"            %(NAB.savedTreatSecZeroBalInactive))
                 myPrint("B", ".....savedDisableWarningIcon: %s"                 %(NAB.savedDisableWarningIcon))
+                myPrint("B", ".....savedDisableGrayTextInfo: %s"                %(NAB.savedDisableGrayTextInfo))
                 myPrint("B", ".....savedUseIndianNumberFormat: %s"              %(NAB.savedUseIndianNumberFormat))
                 myPrint("B", ".....savedUseTaxDates: %s"                        %(NAB.savedUseTaxDates))
                 myPrint("B", ".....savedDisplayVisualUnderDots: %s"             %(NAB.savedDisplayVisualUnderDots))
@@ -10941,6 +11033,7 @@ Visit: %s (Author's site)
             myPrint("B", " %s" %(pad("savedShowDashesInsteadOfZeros",30)),      NAB.savedShowDashesInsteadOfZeros)
             myPrint("B", " %s" %(pad("savedTreatSecZeroBalInactive",30)),       NAB.savedTreatSecZeroBalInactive)
             myPrint("B", " %s" %(pad("savedDisableWarningIcon",30)),            NAB.savedDisableWarningIcon)
+            myPrint("B", " %s" %(pad("savedDisableGrayTextInfo",30)),           NAB.savedDisableGrayTextInfo)
             myPrint("B", " %s" %(pad("savedUseIndianNumberFormat",30)),         NAB.savedUseIndianNumberFormat)
             myPrint("B", " %s" %(pad("savedUseTaxDates",30)),                   NAB.savedUseTaxDates)
             myPrint("B", " %s" %(pad("savedDisplayVisualUnderDots",30)),        NAB.savedDisplayVisualUnderDots)
@@ -11462,19 +11555,20 @@ Visit: %s (Author's site)
                             NAB.simulateTotal_label.setFont(tdfsc.getValueFont())
                             NAB.simulateTotal_label.setForeground(tdfsc.getValueColor(balanceOrAverageLong))
 
-                            resultTxt = wrap_HTML_BIG_small(theFormattedValue + theDecimalPrecisionFormattedValue,
-                                                            showCurrText
-                                                            + showAverageText
-                                                            + showRowMathsCalcText
-                                                            + showFinalMathsCalcText
-                                                            + showFormulaText
-                                                            + showFinalDisplayAdjustText
-                                                            + showUseTaxDatesText
-                                                            + showBalanceAsOfText
-                                                            + showIncludeRemindersText
-                                                            + showCostBasisText
-                                                            + showUsesOtherRowTxt,
-                                                            altFG)
+                            _grayInfoText = "" if NAB.savedDisableGrayTextInfo else (""
+                                                                                     + showCurrText
+                                                                                     + showAverageText
+                                                                                     + showRowMathsCalcText
+                                                                                     + showFinalMathsCalcText
+                                                                                     + showFormulaText
+                                                                                     + showFinalDisplayAdjustText
+                                                                                     + showUseTaxDatesText
+                                                                                     + showBalanceAsOfText
+                                                                                     + showIncludeRemindersText
+                                                                                     + showCostBasisText
+                                                                                     + showUsesOtherRowTxt)
+
+                            resultTxt = wrap_HTML_BIG_small(theFormattedValue + theDecimalPrecisionFormattedValue, _grayInfoText, altFG)
                             NAB.simulateTotal_label.setText(resultTxt)
 
                             if NAB.savedBlinkTable[i]:
@@ -12236,6 +12330,12 @@ Visit: %s (Author's site)
                     NAB.configSaved = False
 
                 # ######################################################################################################
+                if event.getActionCommand() == "disable_gray_text_info":
+                    NAB.savedDisableGrayTextInfo = not NAB.savedDisableGrayTextInfo
+                    myPrint("B", "User has changed 'Disable gray text info' to: %s" %(NAB.savedDisableGrayTextInfo))
+                    NAB.configSaved = False
+
+                # ######################################################################################################
                 if event.getActionCommand() == "use_indian_number_format":
                     NAB.savedUseIndianNumberFormat = not NAB.savedUseIndianNumberFormat
                     myPrint("B", "User has changed 'Use Indian number format' to: %s" %(NAB.savedUseIndianNumberFormat))
@@ -12680,6 +12780,7 @@ Visit: %s (Author's site)
                 GlobalVars.extn_param_NEW_disableWidgetTitle_NAB            = NAB.disableWidgetTitleDefault()
                 GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB      = NAB.showDashesInsteadOfZerosDefault()
                 GlobalVars.extn_param_NEW_disableWarningIcon_NAB            = NAB.disableWarningIconDefault()
+                GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB           = NAB.disableGrayTextInfoDefault()
                 GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB       = NAB.treatSecZeroBalInactiveDefault()
                 GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB         = NAB.useIndianNumberFormatDefault()
                 GlobalVars.extn_param_NEW_useTaxDates_NAB                   = NAB.useTaxDatesDefault()
@@ -12747,6 +12848,7 @@ Visit: %s (Author's site)
                         self.savedDisableWidgetTitle            = copy.deepcopy(GlobalVars.extn_param_NEW_disableWidgetTitle_NAB)
                         self.savedShowDashesInsteadOfZeros      = copy.deepcopy(GlobalVars.extn_param_NEW_showDashesInsteadOfZeros_NAB)
                         self.savedDisableWarningIcon            = copy.deepcopy(GlobalVars.extn_param_NEW_disableWarningIcon_NAB)
+                        self.savedDisableGrayTextInfo           = copy.deepcopy(GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB)
                         self.savedTreatSecZeroBalInactive       = copy.deepcopy(GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB)
                         self.savedUseIndianNumberFormat         = copy.deepcopy(GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB)
                         self.savedUseTaxDates                   = copy.deepcopy(GlobalVars.extn_param_NEW_useTaxDates_NAB)
@@ -12971,6 +13073,12 @@ Visit: %s (Author's site)
             NAB.menuItemDisableWarningIcon.setToolTipText("Prevents the warning icon from appearing on the widget's title bar...")
             menuO.add(NAB.menuItemDisableWarningIcon)
 
+            NAB.menuItemDisableGrayTextInfo = MyJCheckBoxMenuItem("Disable gray text info")
+            NAB.menuItemDisableGrayTextInfo.setActionCommand("disable_gray_text_info")
+            NAB.menuItemDisableGrayTextInfo.addActionListener(NAB.saveActionListener)
+            NAB.menuItemDisableGrayTextInfo.setToolTipText("Prevents extra little gray info text from appearing...")
+            menuO.add(NAB.menuItemDisableGrayTextInfo)
+
             NAB.menuItemDeactivate = MyJMenuItem("Deactivate Extension")
             NAB.menuItemDeactivate.setActionCommand("deactivate_extension")
             NAB.menuItemDeactivate.addActionListener(NAB.saveActionListener)
@@ -13062,6 +13170,7 @@ Visit: %s (Author's site)
             NAB.menuItemShowDashesInsteadOfZeros.setSelected(NAB.savedShowDashesInsteadOfZeros)
             NAB.menuItemTreatSecZeroBalInactive.setSelected(NAB.savedTreatSecZeroBalInactive)
             NAB.menuItemDisableWarningIcon.setSelected(NAB.savedDisableWarningIcon)
+            NAB.menuItemDisableGrayTextInfo.setSelected(NAB.savedDisableGrayTextInfo)
             NAB.menuItemUseIndianNumberFormat.setSelected(NAB.savedUseIndianNumberFormat)
             NAB.menuItemUseTaxDates.setSelected(NAB.savedUseTaxDates)
             NAB.menuDisplayVisualUnderDots.setSelected(NAB.savedDisplayVisualUnderDots)
@@ -16746,22 +16855,22 @@ Visit: %s (Author's site)
                                                                                          NAB.savedUseCostBasisTable[i],
                                                                                          NAB.savedIncExpDateRangeTable[i])
 
-                                    tdfsc = TextDisplayForSwingConfig(("[%s] " %(i+1) if debug else "") + NAB.savedWidgetName[i],
-                                                                      balanceObj.getExtraRowTxt()
-                                                                      + showCurrText
-                                                                      + showAverageText
-                                                                      + showRowMathsCalcText
-                                                                      + showFinalMathsCalcText
-                                                                      + showFormulaText
-                                                                      + showFinalDisplayAdjustText
-                                                                      + showUseTaxDatesText
-                                                                      + showBalanceAsOfText
-                                                                      + showIncludeRemindersText
-                                                                      + showCostBasisText
-                                                                      + showUsesOtherRowTxt
-                                                                      + uuidTxt,
-                                                                      altFG,
-                                                                      insertVars=insertVars)
+                                    _grayInfoText = "" if NAB.savedDisableGrayTextInfo else (""
+                                                                                              + balanceObj.getExtraRowTxt()
+                                                                                              + showCurrText
+                                                                                              + showAverageText
+                                                                                              + showRowMathsCalcText
+                                                                                              + showFinalMathsCalcText
+                                                                                              + showFormulaText
+                                                                                              + showFinalDisplayAdjustText
+                                                                                              + showUseTaxDatesText
+                                                                                              + showBalanceAsOfText
+                                                                                              + showIncludeRemindersText
+                                                                                              + showCostBasisText
+                                                                                              + showUsesOtherRowTxt)
+                                                                                              # + uuidTxt)
+
+                                    tdfsc = TextDisplayForSwingConfig(("[%s] " %(i+1) if debug else "") + NAB.savedWidgetName[i], _grayInfoText, altFG, insertVars=insertVars)
 
                                     nameLabel = SpecialJLinkLabel(tdfsc.getSwingComponentText(), "showConfig?%s" %(str(onRow)), tdfsc.getJustification(), tdfsc=tdfsc, allowDynamicSizing=True)
 
@@ -16886,7 +16995,7 @@ Visit: %s (Author's site)
                                     _view.listPanel.add(nameLabel, GridC.getc().xy(0, self.widgetOnPnlRow).wx(1.0).fillboth().west().pady(2))
                                     self.widgetOnPnlRow += 1
 
-                                if NAB.isPreview or debug:
+                                if (not NAB.savedDisableGrayTextInfo and NAB.isPreview) or debug:
                                     self.widgetOnPnlRow += 1
                                     previewText = "" if not NAB.isPreview else "*PREVIEW(%s)* " %(version_build)
                                     debugText = "" if not debug else "*DEBUG* "

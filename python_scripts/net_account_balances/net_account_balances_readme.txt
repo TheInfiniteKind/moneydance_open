@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated January 2024
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated: October 2024
 Credit: (slack: @dtd) aka Dan T Davis for his input, testing and suggestions to make a (MUCH) better product......
 
 Custom Balances works with 2021.1(3056) and newer.
@@ -42,7 +42,7 @@ b) 'Format Display Adjust' (FDA)      (replacing FMC non-absorbed).
 DEFINITION: 'absorbed' in this context means that the math takes place before being rolled upwards into other
 UORs that refer to this row... I.e. 'non-absorbed' means the impact of the maths stays on this row alone.
 
-There is a new exciting Formula (FOR) capability with this build. This in effect can replace RMC, UOR, PUM. You can
+There is a new exciting Formula (FOR) capability from build 1046+. This in effect can replace RMC, UOR, PUM. You can
 continue to use these, or use the new superior formula capability. You can actually combine all these, but this is
 NOT RECOMMENDED as it's duplicative and confusing to understand. RECOMMENDATION: if you want to use formulas, then
 manually update your settings to only use formula. Average by is not affected by this change. FDA and *100 can remain,
@@ -276,7 +276,7 @@ MATH ON CALCULATED BALANCES:
 
 - Formula (FOR): You can write a formula expression to be applied (AFTER any RMC, UOR, PUM options).
 
-                 - You probably (always) should start with the default tag '@this'. @this will pull in this row's
+                 - You probably (always) should start with the default tag '@this' >> @this will pull in this row's
                    calculated balance without having to set a 'tag'... Or you can just set a tag on this row and refer
                    to it... If you don't refer to this row, then the result of any formula will ignore any selected
                    pre-formula accounts / RMC, UOR, PUM calculations etc....
@@ -284,6 +284,7 @@ MATH ON CALCULATED BALANCES:
                    Example formulas: '((@this - applestock) / networth) * 100.0'
                                      '@this * 0.2' or '(rowtagname / otherrowtagname)' or '@danspecialnumber'
                                      'NetWorth / @pi' or 'random()' or '@mdbuild * @mdversion'
+                                     'useifgt(sum(rowtagname1,rowtagname2,rowtagname3), 0)'
 
                  - You can also enter currencyIDs / security ticker symbols if you wish
                    (if setup in tools>Currencies / tools>Securities) >> E.g. '@this * @GBP' or '@this * @APPL'
@@ -303,8 +304,17 @@ MATH ON CALCULATED BALANCES:
                    management, you should probably only use (RMC, UOR, PUM) -OR- formulas,
                    ... not both (but it's up to you)!
 
-                 NOTE: Currently, the only functions allowed are: sum(), abs(), min(), max(), round(), float(), random()
-                       ** if these do not work properly for you, please contact the author
+                 SPECIAL FORMULA FUNCTIONS: The following special functions are available for use within formulas:
+                   useifeq(value, compare)      - uses the supplied value if value is equal to compare, else 0
+                   useifneq(value, compare)     - uses the supplied value if value is not equal to compare, else 0
+                   useifgt(value, compare)      - uses the supplied value if value is greater than compare, else 0
+                   useifgte(value, compare)     - uses the supplied value if value is greater than or equal to compare, else 0
+                   useiflt(value, compare)      - uses the supplied value if value is less than compare, else 0
+                   useiflte(value, compare)     - uses the supplied value if value is less than or equal to compare, else 0
+                   other/standard functions available are: sum(), abs(), min(), max(), round(), float(), random()
+
+                   NOTE: if you can dream up any additional functions to be added, or
+                         if any formulas/functions do not work properly for you, please contact the author
 
                  WARNING: You can enter an FORMULA with no accounts selected in the picklist. The formula will
                           try to resolve. BUT if you refer to @this or this row's tag, then you will probably get an
@@ -430,7 +440,7 @@ OPTIONS MENU:
                             - reminders,  cost basis / ur-gains / capital gains, or when using 'balance asof dates'.
                             ... as such, the 'normal' transaction date will be used.
   - Display underline dots: Display 'underline' dots that fill the blank space between row names and values
-  - Disable Warning Icon: Removes Warning Icon from the Widget
+  - Disable gray text info: Prevents extra little gray info text from appearing... (eg "(for) appended to the row name")
 
 
 BACKUP/RESTORE:
@@ -592,6 +602,29 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
 
    HTML EXAMPLE:
    <#html><b><font color=#0000ff>Expenses </font></b>Last month <small><u><font color=#bb0000>OVERDUE</font></u></small>
+
+  NOTE: You may see little gray words in (brackets) appended to each row name. These provide extra information about the
+        configuration of that row. These can appear when things other than straightforward accounts have been selected.
+        When debug is turned on, these are more descriptive. To disable use the menu option: 'Disable gray text info'...
+
+        (currencyID) - when not using the base currency - e.g. '(USD)'
+        (securities) - when including security balances
+        (avg/by: n)  - when using average by feature
+        (balasof)    - when using balance asof date. With debug '(balasof: <date>)'
+        (rems)       - when including reminders. With debug '(incl. reminders asof: <date>)'
+        (cb)         - when showing the cost basis of securities. With debug '(costbasis)'
+        (cb-c)       - when showing the cost basis including cash balances. With debug '(costbasis incl. cash)'
+        (urg)        - when showing security's unrealised gains. With debug '(u/r gains)'
+        (cg)         - when calculating capital gains. With debug '(capital gains - simple)'
+        (cg-s)       - when calculating capital gains 'short-term holding'. With debug '(capital gains - short)'
+        (cg-l)       - when calculating capital gains 'long-term holding'. With debug '(capital gains - long)'
+        (rmc)        - when using Row maths calculation. With debug '(rmc: 'x')' - x shows the detail of the RMC
+        (pum)        - when using Post UOR maths calculation. With debug '(pum: 'x')' - x shows the detail of the PUM
+        (for)        - when using a formula
+        (fda)        - when using Format Display Adjust
+        (txd)        - when tax dates are being used
+        (uor: n)     - when using another row; where n = the other row
+        (uuid: x)    - with debug enabled... shows the internal UUID reference.
 
 
 USING CATEGORIES (DATE RANGE)
