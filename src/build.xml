@@ -668,7 +668,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
           <arg line="${dist}/${feature}.mxt"/>
     </java>
     <move file="./s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
-    <copy file="${dist}/${feature}.mxt" tofile="${install}/${feature}.mxt" verbose="true" failonerror="false" />
+<!--    <copy file="${dist}/${feature}.mxt" tofile="${install}/${feature}.mxt" verbose="true" failonerror="false" />-->
     <echo level="info" message="FINISHED signing mxt..." />
   </target>
 
