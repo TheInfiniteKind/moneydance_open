@@ -325,14 +325,13 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   </target>
 
   <target name="ratios" depends="ratios-compile">
-    <touch file="com/moneydance/modules/features/ratios/Main.java"/>
     <antcall target="sign" inheritall="true" inheritrefs="true">
       <param name="feature" value="ratios" />
     </antcall>
   </target>
 
   <target name="mousetester-compile" depends="init">
-    <touch file="com/moneydance/modules/features/mousetester/Main.java"/>
+    <touch file="com/moneydance/modules/features/mousetester/Main.kt"/>
     <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}"
            debug="${debug}" optimize="${optimize}"
            classpathref="classpath" destdir="${build}"
@@ -357,7 +356,6 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   </target>
 
   <target name="mousetester" depends="mousetester-compile">
-    <touch file="com/moneydance/modules/features/mousetester/Main.java"/>
     <antcall target="sign" inheritall="true" inheritrefs="true">
       <param name="feature" value="mousetester" />
     </antcall>
