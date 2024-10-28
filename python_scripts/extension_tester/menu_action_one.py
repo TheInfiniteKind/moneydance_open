@@ -4,14 +4,13 @@
 # You would only use this script if using script_info "type" = "menu" and click on the extensions menu
 # Without an 'initializer' this would be where your main script is executed
 
-global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_extension_loader, moneydance_script_fixed_parameter
+global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_script_fixed_parameter
 global MY_EXTENSION_OBJ, myPrint
 
 myPrint(u"@@ Extension Tester >> menu_action_one.py was invoked.")
 myPrint(u"  moneydance: %s"%((moneydance)))
 myPrint(u"  moneydance_ui: %s"%((moneydance_ui)))
 myPrint(u"  moneydance_data: %s"%((moneydance_data)))
-myPrint(u"  moneydance_extension_loader: %s"%((moneydance_extension_loader)))
 
 # PUT YOUR CODE HERE
 

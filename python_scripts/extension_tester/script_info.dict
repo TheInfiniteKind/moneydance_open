@@ -7,12 +7,14 @@
     {
       "type" = "txn_menu"
       "name" = "Extension Tester (script) >> SELECTED TXNS"
+      "name.en-GB" = "Extension Tester (script) >> SELECTED TXNS (EN)"
       "script_file" = "context_actions_txns.py"
       "script_fixed_parameter" = "context_actions_txns"
     }
     {
       "type" = "account_menu"
       "name" = "Extension Tester (script) >> SELECTED ACCTS"
+      "name.en-GB" = "Extension Tester (script) >> SELECTED ACCTS (EN)"
       "script_file" = "context_actions_accts.py"
       "script_fixed_parameter" = "context_actions_accts"
     }
@@ -20,12 +22,14 @@
       "type" = "menu"
       "script_file" = "menu_action_one.py"
       "name" = "Extension Tester >> ONE"
+      "name.en-GB" = "Extension Tester >> ONE (EN)"
       "script_fixed_parameter" = "menu_one"
     }
     {
       "type" = "menu"
       "script_file" = "menu_action_two.py"
       "name" = "Extension Tester >> TWO"
+      "name.en-GB" = "Extension Tester >> TWO (EN)"
       "script_fixed_parameter" = "menu_two"
     }
     {
@@ -45,6 +49,13 @@
       "method" = "unload"
       "script_file" = "unload.py"
       "script_fixed_parameter" = "unload"
+    }
+    {
+      "type" = "homepageview"
+      "script_file" = "homepageview.py"
+      "name" = "Extension Tester HomePageView"
+      "name.en-GB" = "Extension Tester HomePageView (EN)"
+      "script_fixed_parameter" = "homepageview"
     }
   )
 }

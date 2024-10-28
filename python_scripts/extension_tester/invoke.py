@@ -5,7 +5,7 @@
 # This gets called when moneydance.showURL() is called. It might get called when clicking on the menu item, depending on the combination of options used.
 # If you are using the ExtensionClass() method and an initializer, then you do not need this file...
 
-global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_extension_loader, moneydance_script_fixed_parameter
+global moneydance, moneydance_ui, moneydance_data, moneydance_extension_parameter, moneydance_script_fixed_parameter
 global MY_EXTENSION_OBJ, myPrint
 
 myPrint(u"@@ Extension Tester >> invoke.py was invoked.")
@@ -13,7 +13,6 @@ myPrint(u"  parameter: %s" %((moneydance_extension_parameter)))
 myPrint(u"  moneydance: %s" %((moneydance)))
 myPrint(u"  moneydance_ui: %s" %((moneydance_ui)))
 myPrint(u"  moneydance_data: %s" %((moneydance_data)))
-myPrint(u"  moneydance_extension_loader: %s" %((moneydance_extension_loader)))
 
 # PUT YOUR CODE HERE
 

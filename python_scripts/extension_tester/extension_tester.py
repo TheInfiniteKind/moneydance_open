@@ -26,7 +26,7 @@ from java.lang import System
 from java.awt.event import ActionListener
 from com.infinitekind.moneydance.model import CurrencyUtil
 from com.moneydance.apps.md.view.gui import MDAction
-if MD_REF.getBuild() >= 5100: from com.infinitekind.util import AppDebug
+if MD_REF.getBuild() >= 5100: from com.infinitekind.util import AppDebug                                                # noqa
 
 def myPrint(theTest):
     if MD_REF.getBuild() >= 5100:
@@ -39,7 +39,15 @@ myPrint(u"@@ Extension Tester object.init")
 myPrint(u"  moneydance: %s" %((moneydance)))
 myPrint(u"  moneydance_ui: %s" %((moneydance_ui)))
 myPrint(u"  moneydance_data: %s" %((moneydance_data)))
-myPrint(u"  moneydance_extension_loader: %s" %((moneydance_extension_loader)))
+
+MD_CLASSLOADER = None
+if (u"moneydance_extension_loader" in globals()):
+    myPrint(u"  moneydance_extension_loader: %s" %((moneydance_extension_loader)))
+    MD_CLASSLOADER = moneydance_extension_loader
+elif (u"moneydance_this_fm" in globals()):
+    myPrint(u"  moneydance_this_fm: %s (proxy to allow getResourceAsStream())" %((moneydance_this_fm)))
+    # This is not really a classloader.. It's a proxy to allow the getResourceAsStream() method to be called
+    MD_CLASSLOADER = moneydance_this_fm
 
 # example of the namespace....
 thisObjectExistsEverywhere = u"Yup - I really do exist everywhere.... ;->"      # This will be a global variable
@@ -52,6 +60,8 @@ thisObjectExistsEverywhere = u"Yup - I really do exist everywhere.... ;->"      
 
 # CODE HERE - Do not use the code below....
 
+import threading
+EXTENSION_LOCK = threading.Lock()
 
 
 ########################################################################################################################
@@ -65,7 +75,7 @@ class ExtensionTester():        # This can be called whatever you want - but set
         self.md_ui = MD_REF_UI      # NOTE: This may be None. You need to test/grab at key points using self.ext_context.getUI()
         self.ext_context = None     # This is the same as the moneydance variable
         self.moneydanceExtensionObject = None
-        self.moneydanceExtensionLoader = moneydance_extension_loader  # This is the class loader for the whole extension
+        self.moneydanceExtensionLoader = MD_CLASSLOADER
 
     # Moneydance will come back and call this method after it knows your class name. It stores this for later use
     def initialize(self, context, extension_wrapper):

@@ -5,7 +5,7 @@
 # This gets called when you right-click on an account in Moneydance...
 # If you are using the ExtensionClass() method and an initializer, then you do not need this file...
 
-global moneydance, moneydance_ui, moneydance_data, moneydance_extension_loader
+global moneydance, moneydance_ui, moneydance_data
 global MY_EXTENSION_OBJ, myPrint
 
 global moneydance_script_fixed_parameter, moneydance_action_context, moneydance_action_event
@@ -14,7 +14,6 @@ myPrint(u"@@ Extension Tester >> context_actions_accts.py was invoked.")
 myPrint(u"  moneydance:                         %s" %(moneydance))
 myPrint(u"  moneydance_ui:                      %s" %(moneydance_ui))
 myPrint(u"  moneydance_data:                    %s" %(moneydance_data))
-myPrint(u"  moneydance_extension_loader:        %s" %(moneydance_extension_loader))
 
 myPrint(u"  moneydance_script_fixed_parameter: '%s'" %(moneydance_script_fixed_parameter))
 myPrint(u"  moneydance_action_context:         '%s'" %(moneydance_action_context))

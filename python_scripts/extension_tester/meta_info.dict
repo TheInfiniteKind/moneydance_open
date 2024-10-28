@@ -2,9 +2,11 @@
   "id" = "extension_tester"
   "extension_type" = "python"
   "vendor" = "The Infinite Kind"
-  "module_build" = "1"
-  "minbuild" = "3056"
+  "module_build" = "2"
+  "minbuild" = "5163"
   "vendor_url" = "https://infinitekind.com"
   "module_name" = "Extension Tester"
+  "module_name.en-GB" = "Extension Tester (English en-GB)"
+  "module_name.en" = "Extension Tester (English en)"
   "module_desc" = "Infinite Kind: A demo extension used to test moneydance's python extension interface, including the script_info.dict actions."
 }

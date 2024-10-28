@@ -6,6 +6,7 @@ NOTES ABOUT PYTHON EXTENSIONS:
 
 - You want to be on (at least) Moneydance version 2021.1 build 3056 onwards as this is when Py extensions became 'fully functional'
   (right-click context menu support is from MD2024(5100) onwards)
+  (ability to register HomePageViews was added MD2024.3(5201) onwards)
 
 - You can do anything in Python that a Java extension can do.
 
@@ -41,6 +42,7 @@ NOTES ABOUT PYTHON EXTENSIONS:
    class MyExtensionClass():
       def __init__(self):
           # Set up your variables here
+      def getName(self): return "Extension Name"
       def initialize(self, extension_context, extension_object):
           self.moneydanceContext = extension_context
           self.moneydanceExtensionObject = extension_object
@@ -49,13 +51,12 @@ NOTES ABOUT PYTHON EXTENSIONS:
           print("Python extension received invoke command: %s" % (uri))
       def handle_event(self, eventString):
           print("Python extension received handle_event: %s" % (eventString))
-      def getActionsForContext(self, context):
+      def getActionsForContext(self, context):  # since MD2024(5100) for (optional) right-click context action support
           print("Python extension received getActionsForContext: %s" % (context))
           return []
       def unload(self):
           print("unload actions here")
-      >> also define; __init__(), __str__(), getName(), handleEvent() [or handle_event()], unload() # the latter three are called since build 3056....
-      >> also getActionsForContext() since MD2024(5100) for (optional) right-click context action support
+      >> also define; __init__(), __str__(), handleEvent() [or handle_event()], unload() # the latter three are called since build 3056....
 
    moneydance_extension = MyExtensionClass()
 
@@ -64,8 +65,10 @@ NOTES ABOUT PYTHON EXTENSIONS:
    2) The 'script' method Py extension >> you need the following minimum construct:
       - Your main script. Decide when to run it (run time using initializer, or more normally via the extensions menu click action)
       - invoke.py, unload.py, handle_event.py, context_actions_txns.py, context_actions_accts.py, initializer.py scripts [all optional]
+      - homepageview.py script [optional]
       - I suggest you use unload.py to cleanup on uninstall or reinstall
-      - script_info.dict needs to contain a mixture of "type"="menu", "type"="method", "type"="initializer", "type"="txn_menu", "type"="account_menu" options
+      - script_info.dict needs to contain a mixture of "type"="menu", "type"="method", "type"="initializer",
+        "type"="txn_menu", "type"="account_menu", "type" = "homepageview" options
 
 >> AT THIS POINT, REVIEW THIS extension_tester example and the files within....
 
@@ -82,17 +85,36 @@ NOTES ABOUT PYTHON EXTENSIONS:
      By default, this type of Py extension receives no extra method calls from Moneydance...
      - However, if you also define {"type" = "method", "method" = "x", "script_file" = "x.py"} entries in script_info.dict then
      - your extension can execute invoke, handle_event, unload py scripts
-     - also true of {"type" = "txn_menu", "type" = "account_menu"} methods and the context_actions_txns.py and context_actions_accts.py scripts
+     - also true of {"type" = "txn_menu", "type" = "account_menu"} methods and also the context_actions_txns.py and context_actions_accts.py scripts
+       .. and also the homepageview.py script(s)
      - This type of extension can also define an 'initializer' script,  but probably not needed
 
     VARIABLES:
-    - When using the script methods, then the following global variables will be made available to your scripts:
+    - Always available:
         moneydance                              The Moneydance Main Moneydance class object
         moneydance_ui                           The Moneydance GUI
         moneydance_data                         Your dataset reference
+
+    - Normally available:
+        moneydance_extension_id                 Your extension's self-defined id
+        moneydance_this_fm                      A proxy that allows the getResourceAsStream() method to be called
+                                                (older builds provided 'moneydance_extension_loader' and the actual classloader)
+        moneydance_extension_modulemetadata     Your extension's self-defined meta_info.dict data (wrapped)
+
+    - When using the script methods, then the following global variables can be made available to your scripts:
         moneydance_extension_parameter          The parameter triggered by an invoke or handle event trigger
-        moneydance_extension_loader             The classloader reference for your extension
         moneydance_script_fixed_parameter       When using {"script_fixed_parameter" = "xx"} an optional way to pass a fixed parameter string
+        moneydance_extension_scriptreference    Your extension's scriptinfo.dict data (wrapped) for this action
+
+        When using the "type" = "account_menu", and/or "type" = "txn_menu" options:
+        moneydance_action_context               (receive the MDActionContext object so that your extension can act on the selected txns or accounts)
+        moneydance_action_event                 (receive the constructed ActionEvent object)
+        ... when using scriptinfo and these options it's a little different to using a true ExtensionObject (XO)... With scriptinfo, the extension
+        ... received the selected items and appears on all context menus... Whereas with an XO the extension is sent the MDActionContext, and the extension
+        ... has to decide what ActionEvent(s) to return (as a list). If the list is not empty then MD shows these on the context menu.
+
+        When using the "type" = "homepageview" option
+        moneydance_homepage_view                (send back the new instance of HomePageView)
 
   c) ExtensionClass(): You create an .mxt bundle (similar to option b above, using the ExtensionClass(). This also uses script_info.dict, but this time the
      file should just contain a {"type" = "initializer", "script_file" = "extension_tester.py"} entry - you need nothing else.
@@ -140,7 +162,7 @@ ACCESSING MONEYDANCE OBJECTS
 
 >> Again, note that moneydance, moneydance_ui, moneydance_data get deleted when your script exits
 
-- You can use moneydance_extension_loader.getResourceAsStream() to access files within your extension's mxt file (as of build 3056)
+- You can use moneydance_this_fm.getResourceAsStream() (proxy) to access files within your extension's mxt file (as of build 3056)
 
 
 SWING
@@ -216,7 +238,8 @@ CODING TIPS
                               'md:file:closing' and 'closed' are good points to release all references to data objects
     - getActionsForContext(): Called when user right clicks on transactions or an account.. Used to create a context menu item
                               for the selected items.. Must be quick and return a list of Actions - e.g. [Action]
-    - unload():               This is your trigger that your extension is being uninstalled or reinstalled. It needs to cleanup, release references, shutdown
+
+    - unload():       This is your trigger that your extension is being uninstalled or reinstalled. It needs to cleanup, release references, shutdown
 
     - other...        Use context.getBuild() to check MD build and handle version control / compatibility accordingly
                       always consider what thread you are on (Swing EDT or not) and handle accordingly
@@ -242,19 +265,44 @@ script_info.dict: Locate in the root of your .mxt file
 {
   "actions" = (
     {
-      "type" = "initializer"                    # [optional]
+      "type" = "initializer"                                                # [optional]
       "script_file" = "initializer_script.py"
     }
     {
-      "type" = "menu"                           # [optional] - Can have multiple entries
+      "type" = "menu"                                                       # [optional] - Can have multiple entries
       "script_file" = "menu_script.py"
-      "name" = "Extension Name"                 # This is the name of the extensions menu item
+      "name" = "Extension Name"                                             # This is the name of the extensions menu item
+      "name.en-GB" = ".. localized name"
+      "script_fixed_parameter" = "menu_xxx"                                 # Used for information by your scripts
     }
     {
-      "type" = "method"                         # [optional] - can be invoke, handle_event, unload. Can have multiple entries
+      "type" = "method"                                                     # [optional] - can be invoke, handle_event, unload. Can have multiple entries
       "method" = "the_method"
       "script_file" = "the_method.py"
-    }  )
+      "script_fixed_parameter" = "the_method"                               # Used for information by your scripts
+    }
+    {
+      "type" = "txn_menu"                                                   # [optional] - can appear only once
+      "name" = "the context menu popup name for selected transactions"
+      "name.en-GB" = ".. localized name"
+      "script_file" = "context_actions_txns.py"
+      "script_fixed_parameter" = "context_actions_txns"
+    }
+    {
+      "type" = "account_menu"                                               # [optional] - can appear only once
+      "name" = "the context menu popup name for selected accounts"
+      "name.en-GB" = ".. localized name"
+      "script_file" = "context_actions_accts.py"
+      "script_fixed_parameter" = "context_actions_accts"
+    }
+    {
+      "type" = "homepageview"                                               # [optional] - can appear only once
+      "script_file" = "homepageview.py"
+      "name" = "HomePageView widget name"
+      "name.en-GB" = ".. localized name"
+      "script_fixed_parameter" = "homepageview"
+    }
+  )
 }
 
 meta_info.dict: Locate in the ./com/moneydance/modules/features/extension_name/ directory of your .mxt file
@@ -264,9 +312,10 @@ meta_info.dict: Locate in the ./com/moneydance/modules/features/extension_name/ 
   "vendor" = "The Infinite Kind"                # This is you
   "module_build" = "1"                          # Your build/version
   "minbuild" = "3056"                           # The minimum MD build for this extension
-  "maxbuild" = "999"                            # Optional, not normally used. Max version of MD to run extension on.
+  "maxbuild" = "9999"                           # Optional, not normally used. Max version of MD to run extension on.
   "vendor_url" = "https://infinitekind.com"     # Your own url
   "module_name" = "Extension Tester"            # User friendly extension name
+  "module_name.en-GB" = "localized name..."     # Optional, localized module name
   "module_desc" = "extension description"       # Long description
   "mac_sandbox_friendly" = "true"               # Optional
 }
