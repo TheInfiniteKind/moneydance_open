@@ -1185,6 +1185,14 @@ try:
                 if newBook is None: raise Exception("ERROR: 'AccountBook' is None")
                 output += "Successfully obtained Clone's AccountBook reference\n"
 
+                if MD_REF.getBuild() > 5153:  # MD2024.2 - the dataset loading methods were tweaked..!
+                    newBook.setFinishedInitialLoad(True)
+                    newBook.performPostLoadVerification()
+
+                    newRoot = newBook.getRootAccountNullable()
+                    if newRoot is None: raise Exception("ERROR: 'root' is None")
+                    output += "Successfully obtained Clone's (nullable) 'root' reference\n"
+
                 newBookSyncer = newBook.getSyncer()
                 if newBookSyncer is None: raise Exception("ERROR: cloned dataset's 'Syncer' is None")
                 output += "Clone's 'Syncer' is running (%s)\n" %(newBookSyncer)
