@@ -11,7 +11,6 @@
 package com.moneydance.modules.features.ratios;
 
 import com.moneydance.apps.md.view.gui.*;
-import com.moneydance.apps.md.controller.*;
 import com.moneydance.apps.md.view.gui.reporttool.GraphReportUtil;
 import com.moneydance.apps.md.view.gui.reporttool.Report;
 import com.moneydance.apps.md.view.gui.reporttool.ReportGenerator;
@@ -21,7 +20,6 @@ import com.moneydance.util.UiUtil;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -57,11 +55,11 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
   private FutureTask _currentTask;
 
   public RatioReportWindow(MoneydanceGUI mdGUI, Frame parent, ReportGenerator generator) {
-    super(mdGUI, parent, mdGUI.getStr("report"), false);
+    super(mdGUI, parent, mdGUI.getStrings().report, false);
     _generator = generator;
     try {
       // this method was removed in 2024.2(515x)....
-      _generator.getClass().getMethod("setSuppressMessageDialogs", new Class[]{boolean.class}).invoke(_generator, new Object[] {false});
+      _generator.getClass().getMethod("setSuppressMessageDialogs", new Class[]{boolean.class}).invoke(_generator, false);
     } catch (Throwable ignored) {}
     
     JPanel p = createControls(mdGUI, generator.isLandscape());
@@ -80,7 +78,7 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
 
     // transfer the initial setting to the viewer too to keep _layoutButton in sync
     _reportViewer.setLandscape(generator.isLandscape());
-    setCalculationError(mdGUI.getStr("generating"));
+    setCalculationError(strings.generating);
 
     setCurrentTask(new GenerateReportTask(generator));
     ExecutorService executor = Executors.newFixedThreadPool(1);
@@ -92,13 +90,11 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
     saveButton.addActionListener(this);
     printButton.addActionListener(this);
     copyButton.addActionListener(this);
-    _orientationBox.addItemListener(new ItemListener() {
-      public void itemStateChanged(ItemEvent event) {
-        // toggle print orientation
-        final boolean isLandscape = (event.getStateChange() == ItemEvent.SELECTED);
-        _reportViewer.setLandscape(isLandscape);
-        _generator.setLandscape(isLandscape);
-      }
+    _orientationBox.addItemListener(event -> {
+      // toggle print orientation
+      final boolean isLandscape = (event.getStateChange() == ItemEvent.SELECTED);
+      _reportViewer.setLandscape(isLandscape);
+      _generator.setLandscape(isLandscape);
     });
   }
 
@@ -109,14 +105,14 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
   }
 
   private JPanel createControls(final MoneydanceGUI mdGUI, final boolean isLandscape) {
-    doneButton = new JButton(mdGUI.getStr("done"));
-    printButton = new JButton(mdGUI.getStr("report_print"));
-    saveButton = new JButton(mdGUI.getStr("report_save"));
-    copyButton = new JButton(mdGUI.getStr("edit_copy"));
+    doneButton = new JButton(strings.done);
+    printButton = new JButton(strings.report_print);
+    saveButton = new JButton(strings.report_save);
+    copyButton = new JButton(strings.edit_copy);
     _reportViewer = new ReportViewer(mdGUI);
-    _orientationBox = new JCheckBox(mdGUI.getStr("report_landscape"), isLandscape);
+    _orientationBox = new JCheckBox(strings.report_landscape, isLandscape);
     _orientationBox.setOpaque(false);
-    _nothingLabel = new JLabel(mdGUI.getStr("generating"));
+    _nothingLabel = new JLabel(strings.generating);
     _nothingLabel.setHorizontalAlignment(JLabel.CENTER);
     _nothingLabel.setVerticalAlignment(JLabel.CENTER);
     Font currentFont = _nothingLabel.getFont();
@@ -163,15 +159,11 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
   private void setCalculationError(final String errorMessage)
   {
     // refresh
-    UiUtil.runOnUIThread(new Runnable()
-    {
-      public void run()
-      {
-        _nothingLabel.setText(errorMessage);
-        _cardLayout.show(_mainDetailView, CARD_NOTHING);
-        validate();
-        repaint();
-      }
+    UiUtil.runOnUIThread(() -> {
+      _nothingLabel.setText(errorMessage);
+      _cardLayout.show(_mainDetailView, CARD_NOTHING);
+      validate();
+      repaint();
     });
   }
 
@@ -203,13 +195,9 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
 
   private void refresh() {
     // refresh
-    UiUtil.runOnUIThread(new Runnable()
-    {
-      public void run()
-      {
-        validate();
-        repaint();
-      }
+    UiUtil.runOnUIThread(() -> {
+      validate();
+      repaint();
     });
   }
 
@@ -245,20 +233,16 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
       try {
         final Report result = get();
         if (result == null) {
-          setCalculationError(mdGUI.getStr("nothing_to_report"));
+          setCalculationError(strings.nothing_to_report);
         } else {
-          UiUtil.runOnUIThread(new Runnable() {
-            public void run() {
-              showReport(result);
-            }
-          });
+          UiUtil.runOnUIThread(() -> showReport(result));
         }
       } catch (InterruptedException | CancellationException ignore) {
         // if multiple transaction changes come in, the task may be canceled with normal
         // program flow, therefore ignore
       } catch (ExecutionException exex) {
         exex.printStackTrace(System.err);
-        setCalculationError(mdGUI.getStr("gen_report_error"));
+        setCalculationError(strings.gen_report_error);
       }
       // remove the current task
       cleanUpTask();
@@ -273,12 +257,25 @@ public class RatioReportWindow extends SecondaryDialog implements ActionListener
     }
 
     public Report call() throws Exception {
-      final Report result = (Report) _generator.generate();
+      Report result;
+
+      try {
+        Method generate = _generator.getClass().getMethod("buildIt", (Class<?>[]) null);  // new for MD2024.3(517x)...
+        result = (Report) generate.invoke(_generator);
+        //System.err.println("RatiosReportWindows::ReportCalculateTask::call()... buildIt() executed....");
+      } catch (NoSuchMethodException e) {
+        //System.err.println("RatiosReportWindows::ReportCalculateTask::call()... buildIt() not detected, attempting generate()....");
+        Method generate = _generator.getClass().getMethod("generate", (Class<?>[]) null);
+        result = (Report) generate.invoke(_generator);
+        //System.err.println("RatiosReportWindows::ReportCalculateTask::call()... generate() executed....");
+      }
+
 //      // if the user has customized the report but not memorized, don't set the memorized
 //      // name (null) which makes the title disappear
 //      if ((result != null) && isMemorized()) {
 //        result.setTitle(_memorizedName);
 //      }
+
       return result;
     }
   }
