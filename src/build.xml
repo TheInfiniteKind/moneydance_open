@@ -307,7 +307,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
            includes="com/moneydance/modules/features/ratios/**/*.java
                      com/moneydance/modules/features/ratios/**/*.kt"
            includeAntRuntime="false">
-<!--      <withKotlin/>-->
+      <withKotlin/>
       <compilerarg value="-Xlint:-options"/>
     </javac>
     <jar destfile="${dist}/ratios.mxt">
