@@ -155,6 +155,7 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - View Check number settings
         - DIAG - View Categories with zero balance. You can also inactivate using Update mode.
         - DIAG - View Accounts' shouldBeIncludedInNetWorth() settings...
+        - DIAG - Validate Account 'start dates'... (based upon earliest transaction date)
         - DIAG - Produce report of Accounts and bank/account number information (Useful for legacy / Will making)
 
     - MENU: Transactions tools
@@ -258,6 +259,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Add alternative account numbers for 'Accounts and bank/account number' report (above)"
         - FIX - Inactivate all Categories with Zero Balance
         - FIX - Edit an Account's shouldBeIncludedInNetWorth() setting
+        - FIX - Fix Account 'start dates'... (based upon earliest transaction date)
         - FIX - FORCE change an Account's Type (use with care. Does not update any transactions) (set_account_type.py)
         - FIX - FORCE change an Account's / Category's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)
         - FIX - FORCE change ALL Accounts' / Categories' currencies (use with care. Does not update any transactions) (force_change_all_currencies.py)

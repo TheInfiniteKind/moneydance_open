@@ -40,7 +40,7 @@
 global os
 
 # Moneydance definitions
-global AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
+global Account, AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
 global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot
 global TxnSearch
 global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUpdateTxnsWindow, MoneybotURLStreamHandlerFactory
@@ -52,7 +52,7 @@ global JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionM
 global BorderFactory, JSeparator, DefaultComboBoxModel, SwingWorker, JPanel, GridLayout, JLabel, GridBagLayout, BorderLayout
 global Paths, Files, StandardCopyOption, Charset
 global AbstractAction, UUID
-global JTextField, JCheckBox, ArrayList
+global JTextField, JCheckBox, ArrayList, HashMap, Collections
 
 # My definitions
 global toolbox_frame_
@@ -1572,6 +1572,88 @@ try:
         txt = "Moneydance internal debug settings %s turned %s" %(selectedKey, not currentSetting)
         setDisplayStatus(txt, "B")
         myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL OTHER DEBUG", JOptionPane.WARNING_MESSAGE)
+
+
+    def fix_account_start_dates(): return validate_account_start_dates(fix=True)
+
+    def validate_account_start_dates(fix=False):
+        if MD_REF.getCurrentAccountBook() is None: return
+
+        if fix:
+            _THIS_METHOD_NAME = "FIX: Fix Account 'start dates'..."
+        else:
+            _THIS_METHOD_NAME = "DIAG: Validate Account 'Start Dates'..."
+
+        if fix:
+            if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME.upper(), "Fix/repair all invalid account start dates?"):
+                return False
+
+        output = "\n" \
+                 "%s:\n" \
+                 " ======================================================\n\n" %(_THIS_METHOD_NAME.upper())
+        if fix:
+            output += "Fixes accounts where there is an invalid 'Start Date' (that is not newer than the earliest transactional date)...\n\n\n"
+        else:
+            output += "Validates that accounts have a valid 'Start Date' that is not newer than the earliest transactional date...\n\n\n"
+
+        output += "%s %s %s %s\n" %(pad("Account Name",50),
+                                    pad("Account Type",20),
+                                    pad("Start Date",17),
+                                    pad("Earliest txn date",17))
+
+        output += "%s %s %s %s\n" %("-"*50,
+                                    "-"*20,
+                                    "-"*17,
+                                    "-"*17)
+        output += "\n"
+
+        book = MD_REF.getCurrentAccountBook()
+        dateFormatter = MD_REF.getPreferences().getShortDateFormatter()
+        creationMap = HashMap()
+        allAccts = AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER)
+        Collections.sort(allAccts, AccountUtil.ACCOUNT_TYPE_NAME_CASE_INSENSITIVE_COMPARATOR)
+        for acct in allAccts:
+            creationDate = acct.getCreationDateInt()
+            startBal = acct.getStartBalance()
+            creationMap.put(acct, [creationDate, startBal, 0L])
+
+        allTxns = book.getTransactionSet().getAllTxns()
+        for txn in allTxns:
+            txnDate = txn.getDateInt()
+            values = creationMap.get(txn.getAccount())
+            earliestTxnDate = values[2]
+            if earliestTxnDate == 0 or txnDate <= earliestTxnDate:
+                values[2] = txnDate
+
+        countInvalid = 0
+        for acct in creationMap:
+            if acct.getAccountType().isCategory(): continue
+            if acct.getAccountType() == Account.AccountType.SECURITY: continue
+            values = creationMap.get(acct)
+            creationDate = values[0]
+            earliestTxnDate = values[2]
+            if earliestTxnDate == 0: continue
+            if earliestTxnDate >= creationDate: continue
+            countInvalid+=1
+            output += "%s %s %s %s %s\n" % (pad(acct.getFullAccountName(), 50),
+                                            pad(str(acct.getAccountType()), 20),
+                                            pad(dateFormatter.format(creationDate), 17),
+                                            pad(dateFormatter.format(earliestTxnDate), 17),
+                                            "<FIXED>" if fix else "<INVALID>")
+            if fix:
+                acct.setCreationDateInt(earliestTxnDate)
+                acct.syncItem()
+
+        if countInvalid < 1: output += "<NO INVALID ACCOUNT 'START DATES' FOUND>\n"
+
+        output += "\n<END>"
+
+        if fix: txt = "%s: - Displaying Account 'Start Date' fix report..." %(_THIS_METHOD_NAME)
+        else: txt = "%s: - Displaying Account 'Start Date' validation report..." %(_THIS_METHOD_NAME)
+
+        setDisplayStatus(txt, "B")
+        jif = QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+        if fix: myPopupInformationBox(jif, "%s accounts with invalid 'start dates' repaired" %(countInvalid), theMessageType=JOptionPane.WARNING_MESSAGE)
 
     class CollectTheGarbage(AbstractAction):
 

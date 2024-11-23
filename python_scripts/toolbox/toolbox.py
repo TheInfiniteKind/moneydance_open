@@ -179,6 +179,7 @@
 # build: 1067 - NOTE: MD2024.2(5153-5154) changes getUI() - now does not try to launch the GUI if not loaded.. Just returns null...
 # build: 1067 - ???
 # build: 1067 - Tweak clone dataset as the manual methods of loading a dataset/model changed!
+# build: 1067 - Add Account Menu options to validate / fix account start dates (based on earliest txn dates)...
 # build: 1067 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -561,7 +562,7 @@ else:
     from java.awt import Component                                                                                          # noqa
     from java.awt import GraphicsEnvironment, Rectangle, GraphicsDevice, Desktop, Event, GridBagConstraints, Window, Frame  # noqa
     from java.awt.event import ComponentAdapter, ItemListener, ItemEvent, HierarchyListener, ActionListener, MouseAdapter   # noqa
-    from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector
+    from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector, Collections
     from java.util.stream import Collectors
     from java.util.zip import ZipInputStream, ZipEntry
     from java.nio.charset import StandardCharsets
@@ -618,8 +619,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.2
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5146
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.3
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5201
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3471,6 +3472,7 @@ Visit: %s (Author's site)
         global CollectTheGarbage, getDropboxSyncFolderForBasePath, advanced_options_force_reset_sync_settings
         global advanced_clone_dataset
         global advanced_options_DEBUG, advanced_options_other_DEBUG
+        global validate_account_start_dates, fix_account_start_dates
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -28222,11 +28224,17 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_view_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("DIAG: View Accounts' shouldBeIncludedInNetWorth() settings...", False)
                     user_view_shouldBeIncludedInNetWorth_settings.setToolTipText("This will list all Accounts/Categories and the shouldBeIncludedInNetWorth() setting - USE UPDATE MODE TO EDIT")
 
+                    user_validate_acct_start_dates = MenuJRadioButton("DIAG: Validate Account 'start dates'...", False)
+                    user_validate_acct_start_dates.setToolTipText("This will validate all Account 'start dates'  (based on earliest txn date) - USE UPDATE MODE TO FIX")
+
                     user_reportAccountNumbers = MenuJRadioButton("DIAG: Produce report of Accounts and bank/account number information (Useful for legacy / Will making)", False)
                     user_reportAccountNumbers.setToolTipText("This produces a report of bank accounts along with account & sort numbers etc... ")
 
                     user_edit_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("FIX: Edit an Account's shouldBeIncludedInNetWorth() setting", False, updateMenu=True)
                     user_edit_shouldBeIncludedInNetWorth_settings.setToolTipText("This will allow you to edit an Account's shouldBeIncludedInNetWorth() setting. THIS CHANGES DATA!")
+
+                    user_fix_acct_start_dates = MenuJRadioButton("FIX: Fix Account 'start dates'...", False, updateMenu=True)
+                    user_fix_acct_start_dates.setToolTipText("This will fix all Account 'start dates' (based on earliest txn date)")
 
                     user_fix_accounts_parent = MenuJRadioButton("FIX: Account's Invalid Parent Account (fix_account_parent.py)", False, updateMenu=True)
                     user_fix_accounts_parent.setToolTipText("This will diagnose your Parent Accounts and fix if invalid. THIS CHANGES DATA! (fix_account_parent.py)")
@@ -28243,16 +28251,17 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 5
+                    rows = 6
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_view_check_number_settings)
                     userFilters.add(user_view_zero_bal_cats)
                     userFilters.add(user_view_shouldBeIncludedInNetWorth_settings)
+                    userFilters.add(user_validate_acct_start_dates)
                     userFilters.add(user_reportAccountNumbers)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 11
+                        rows += 12
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
 
@@ -28263,6 +28272,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         userFilters.add(user_add_alternative_bank_number)
                         userFilters.add(user_inactivate_zero_bal_cats)
                         userFilters.add(user_edit_shouldBeIncludedInNetWorth_settings)
+                        userFilters.add(user_fix_acct_start_dates)
                         userFilters.add(user_force_change_an_accounts_type)
                         userFilters.add(user_force_change_accounts_currency)
                         userFilters.add(user_force_change_all_accounts_cats_currency)
@@ -28306,6 +28316,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_reportAccountNumbers.isSelected():                              reportAccountNumbers()
                         if user_view_shouldBeIncludedInNetWorth_settings.isSelected():          view_shouldBeIncludedInNetWorth_settings()
                         if user_edit_shouldBeIncludedInNetWorth_settings.isSelected():          edit_shouldBeIncludedInNetWorth_settings()
+                        if user_validate_acct_start_dates.isSelected():                         validate_account_start_dates()
+                        if user_fix_acct_start_dates.isSelected():                              fix_account_start_dates()
                         if user_force_change_an_accounts_type.isSelected():                     force_change_account_type()
                         if user_force_change_accounts_currency.isSelected():                    force_change_account_cat_currency()
                         if user_force_change_all_accounts_cats_currency.isSelected():           force_change_all_accounts_categories_currencies()
