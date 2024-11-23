@@ -307,7 +307,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
            includes="com/moneydance/modules/features/ratios/**/*.java
                      com/moneydance/modules/features/ratios/**/*.kt"
            includeAntRuntime="false">
-      <withKotlin/>
+<!--      <withKotlin/>-->
       <compilerarg value="-Xlint:-options"/>
     </javac>
     <jar destfile="${dist}/ratios.mxt">
@@ -358,6 +358,37 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   <target name="mousetester" depends="mousetester-compile">
     <antcall target="sign" inheritall="true" inheritrefs="true">
       <param name="feature" value="mousetester" />
+    </antcall>
+  </target>
+
+  <target name="customgraphreports-compile" depends="init">
+    <touch file="com/moneydance/modules/features/customgraphreports/Main.kt"/>
+    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}"
+           debug="${debug}" optimize="${optimize}"
+           classpathref="classpath" destdir="${build}"
+           includes="com/moneydance/modules/features/customgraphreports/*.java
+                     com/moneydance/modules/features/customgraphreports/*.kt"
+           includeAntRuntime="false">
+      <withKotlin/>
+      <compilerarg value="-Xlint:-options"/>
+    </javac>
+    <jar destfile="${dist}/customgraphreports.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/customgraphreports/meta_info.dict
+             com/moneydance/modules/features/customgraphreports/*.properties
+             com/moneydance/modules/features/customgraphreports/*.xml
+             com/moneydance/modules/features/customgraphreports/*.properties.xml
+             com/moneydance/modules/features/customgraphreports/*.gif
+             com/moneydance/modules/features/customgraphreports/*.png
+             com/moneydance/modules/features/customgraphreports/*.jpg
+             com/moneydance/modules/features/customgraphreports/*.jpeg"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/customgraphreports/**/*.class"/>
+    </jar>
+  </target>
+
+  <target name="customgraphreports" depends="customgraphreports-compile">
+    <antcall target="sign" inheritall="true" inheritrefs="true">
+      <param name="feature" value="customgraphreports" />
     </antcall>
   </target>
 
