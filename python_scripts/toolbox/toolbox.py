@@ -3479,7 +3479,7 @@ Visit: %s (Author's site)
         global advanced_clone_dataset
         global advanced_options_DEBUG, advanced_options_other_DEBUG
         global validate_account_start_dates, fix_account_start_dates
-        global view_shouldBeIncludedInNetWorth_settings, edit_shouldBeIncludedInNetWorth_settings
+        global view_shouldBeIncludedInNetWorth_settings, edit_shouldBeIncludedInNetWorth_settings, view_networthCalculations
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -28107,6 +28107,9 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_add_alternative_bank_number = MenuJRadioButton("FIX: Add alternative account numbers for 'Accounts and bank/account number' report (above)", False, updateMenu=True)
                     user_add_alternative_bank_number.setToolTipText("Enter alternative account number(s) to print in the 'Accounts and bank/account number' report above. THIS CHANGES DATA!")
 
+                    user_view_networthCalculations = MenuJRadioButton("DIAG: View all the possible system generated NetWorth calculations...", False)
+                    user_view_networthCalculations.setToolTipText("This executes and shows all of the possible networth calculations (MD2024.3(5203) onwards)")
+
                     user_view_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("DIAG: View Accounts' shouldBeIncludedInNetWorth() settings...", False)
                     user_view_shouldBeIncludedInNetWorth_settings.setToolTipText("This will list all Accounts/Categories and the shouldBeIncludedInNetWorth() setting - USE UPDATE MODE TO EDIT")
 
@@ -28142,6 +28145,9 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_view_check_number_settings)
                     userFilters.add(user_view_zero_bal_cats)
+                    if isNetWorthUpgradedBuild():
+                        userFilters.add(user_view_networthCalculations)
+                        rows += 1
                     userFilters.add(user_view_shouldBeIncludedInNetWorth_settings)
                     userFilters.add(user_validate_acct_start_dates)
                     userFilters.add(user_reportAccountNumbers)
@@ -28200,6 +28206,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_inactivate_zero_bal_cats.isSelected():                          zero_bal_categories(True)
                         if user_add_alternative_bank_number.isSelected():                       reportAccountNumbers(lEditAlternativeAccountNumbers=True)
                         if user_reportAccountNumbers.isSelected():                              reportAccountNumbers()
+                        if user_view_networthCalculations.isSelected():                         view_networthCalculations()
                         if user_view_shouldBeIncludedInNetWorth_settings.isSelected():          view_shouldBeIncludedInNetWorth_settings()
                         if user_edit_shouldBeIncludedInNetWorth_settings.isSelected():          edit_shouldBeIncludedInNetWorth_settings()
                         if user_validate_acct_start_dates.isSelected():                         validate_account_start_dates()

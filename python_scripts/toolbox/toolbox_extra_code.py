@@ -1656,6 +1656,54 @@ try:
         jif = QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
         if fix: myPopupInformationBox(jif, "%s accounts with invalid 'start dates' repaired" %(countInvalid), theMessageType=JOptionPane.WARNING_MESSAGE)
 
+    def view_networthCalculations():
+        if MD_REF.getCurrentAccountBook() is None: return
+        if not isNetWorthUpgradedBuild(): return
+
+        from com.infinitekind.moneydance.model import NetWorthCalculator
+
+        _THIS_METHOD_NAME = "View all possible system generated NetWorth calculations"
+
+        output = "\n" \
+                 "%s:\n" \
+                 " ======================================================\n\n" %(_THIS_METHOD_NAME.upper())
+
+        book = MD_REF.getCurrentAccountBook()
+        base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+        dec = MD_REF.getPreferences().getDecimalChar()
+
+        output += "Base currency: %s %s\n\n" %(base.getIDString(), base.getName())
+
+        for balType in [Account.BalanceType.CURRENT, Account.BalanceType.NORMAL]:
+            for ignoreFlag in [True, False]:
+                nwCalculator = NetWorthCalculator(book, base)
+                nwCalculator.setBalanceType(balType)
+                nwCalculator.setIgnoreAccountSpecificNetWorthFlags(ignoreFlag)                                          # noqa
+                netWorth = nwCalculator.calculateTotal()
+                output += ("BalanceType: %s ignoreAccountSpecificNetWorthFlags: %s NW Calculation: %s  \n"
+                           %(pad("Current" if balType == Account.BalanceType.CURRENT else "Balance/Future", 15),
+                             pad(str(ignoreFlag), 6),
+                             rpad(base.formatFancy(netWorth.getAmount(), dec),20)))
+
+
+        output += "\n\n"
+
+        countExcluded = 0
+        output += "Accounts with specific Net Worth exclusion flag set:\n"
+        output += "----------------------------------------------------\n"
+        for acct in AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER):
+            if acct.isAccountNetWorthEligible() and not acct.getIncludeInNetWorth():
+                countExcluded += 1
+                output += "AcctType: %s Account: '%s'\n" %(pad(str(acct.getAccountType()), 20), acct.getFullAccountName())
+        if (countExcluded < 1): output += "<none>\n"
+        output += "----------------------------------------------------\n"
+
+        output += "\n<END>"
+
+        txt = "%s: - Displaying NetWorth Settings" %(_THIS_METHOD_NAME)
+        setDisplayStatus(txt, "B")
+        QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+
     def view_shouldBeIncludedInNetWorth_settings():
         if MD_REF.getCurrentAccountBook() is None: return
 
