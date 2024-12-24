@@ -258,7 +258,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
     - MENU: Accounts & Categories tools
         - FIX - Add alternative account numbers for 'Accounts and bank/account number' report (above)"
         - FIX - Inactivate all Categories with Zero Balance
-        - FIX - Edit an Account's shouldBeIncludedInNetWorth() setting
+        - FIX - Edit an Account's shouldBeIncludedInNetWorth() setting. (disabled for builds MD2024.3 onwards, as builtin functionality)
         - FIX - Fix Account 'start dates'... (based upon earliest transaction date)
         - FIX - FORCE change an Account's Type (use with care. Does not update any transactions) (set_account_type.py)
         - FIX - FORCE change an Account's / Category's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)

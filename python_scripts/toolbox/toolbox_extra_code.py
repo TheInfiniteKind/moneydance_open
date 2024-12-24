@@ -68,7 +68,8 @@ global isKotlinCompiledBuild, convertBufferedSourceToInputStream
 global confirm_backup_confirm_disclaimer, backup_local_storage_settings, getNetSyncKeys, play_the_money_sound
 global ManuallyCloseAndReloadDataset, perform_qer_quote_loader_check, safeStr, convertStrippedIntDateFormattedText
 global count_database_objects, SyncerDebug, calculateMoneydanceDatasetSize, removeEmptyDirs
-global isAppDebugEnabledBuild, isKotlinCompiledBuildAll, isMDPlusEnabledBuild
+global isAppDebugEnabledBuild, isKotlinCompiledBuildAll, isMDPlusEnabledBuild, isNetWorthUpgradedBuild
+global MyAcctFilter, StoreAccountList
 
 # New definitions
 from com.moneydance.apps.md.controller.sync import AbstractSyncFolder, MDSyncCipher
@@ -1654,6 +1655,149 @@ try:
         setDisplayStatus(txt, "B")
         jif = QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
         if fix: myPopupInformationBox(jif, "%s accounts with invalid 'start dates' repaired" %(countInvalid), theMessageType=JOptionPane.WARNING_MESSAGE)
+
+    def view_shouldBeIncludedInNetWorth_settings():
+        if MD_REF.getCurrentAccountBook() is None: return
+
+        _THIS_METHOD_NAME = "View Accounts' shouldBeIncludedInNetWorth() settings"
+
+        output = "\n" \
+                 "%s:\n" \
+                 " ======================================================\n\n" %(_THIS_METHOD_NAME.upper())
+
+        if not isNetWorthUpgradedBuild():
+            output += "Prior to MD2024.3(5203) Moneydance predefined rules to include/exclude Accounts in both the Summary Page NetWorthView widget, & also the Titlebar's dashboard NW graph\n" \
+                      "- exclude when the account or its Parent is Inactive\n" \
+                      "- exclude the ROOT account and Income/Expense Categories\n" \
+                      "- Then it checks for a hidden account setting (you can set this in Toolbox Update Mode)\n" \
+                      "- You cannot force include an account into the rules, you can only force exclude accounts....\n" \
+                      "\n" \
+                      "Other NetWorth rules for information:\n" \
+                      "- NW Reports / Graphs are based on transactions up to the date you specify; uses Price history data for balance valuations\n" \
+                      "- The Top title bar / dashboard NW Graph's cutoff date can be changed: 'All Dates' includes future Balances; uses Price history data for balance valuations\n" \
+                      "- The Summary Screen's NW widget total ALWAYS uses Current Balance(s) - so future balances are excluded; uses Current Price\n" \
+                      "NOTE: In MD2024.3(5203) all the calculations were aligned, and you have more user-control over the settings...\n\n"
+        else:
+            output += "From MD2024.3(5203) onwards all the Networth calculations and rules were aligned. You also have more inbuilt control over the settings...\n" \
+                      "- ROOT and Income/Expense Categories are always excluded\n" \
+                      "- You can exclude certain accounts from the calculations using Tools/Accounts and change the 'include in NW' setting'\n" \
+                      "\n" \
+                      "Other NetWorth rules for information:\n" \
+                      "- right-click the dashboard and summary page widgets for settings" \
+                      "- in the NW Graph and Reports you can toggle the 'include all accounts' flag to override and ignore the 'include in NW' setting\n" \
+                      "- any end date that is today or future will always value using the current price field\n" \
+                      "\n\n"
+
+        output += "%s %s %s %s\n" %(pad("Account Name",50),
+                                    pad("Account Type",20),
+                                    pad("shouldBeIncludedInNetWorth()",30),
+                                    pad("Override Setting",20))
+
+        output += "%s %s %s %s\n" %("-"*50,
+                                    "-"*20,
+                                    "-"*30,
+                                    "-"*20)
+
+        output += "\n"
+
+        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(25))
+        allAccounts = sorted(allAccounts, key=lambda x: (x.getAccountType(), x.getFullAccountName().upper()))
+
+        # the method shouldBeIncludedInNetWorth() was removed in MD2024.3(5203) and subsumed into the (getter/setter) property includeInNetWorth...
+        for acct in allAccounts:
+            if isNetWorthUpgradedBuild():
+                if not acct.isAccountNetWorthEligible(): continue
+            else:
+                if acct.getAccountType() == Account.AccountType.INCOME or acct.getAccountType() == Account.AccountType.EXPENSE or acct.getAccountType() == Account.AccountType.ROOT:
+                    continue
+
+            output += "%s %s %s %s\n" %(pad(acct.getFullAccountName(),50),
+                                        pad(str(acct.getAccountType()),20),
+                                        pad(str(acct.shouldBeIncludedInNetWorth() if (not isNetWorthUpgradedBuild()) else acct.getIncludeInNetWorth()),30),
+                                        ("-" if (not acct.getParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, None)) else (str(acct.getBooleanParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, True)))))
+        output += "\n<END>"
+
+        txt = "%s: - Displaying NetWorth Settings" %(_THIS_METHOD_NAME)
+        setDisplayStatus(txt, "B")
+        QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+
+    def edit_shouldBeIncludedInNetWorth_settings():
+        if MD_REF.getCurrentAccountBook() is None: return
+        if isNetWorthUpgradedBuild(): return
+
+        _THIS_METHOD_NAME = "EDIT an Account's shouldBeIncludedInNetWorth() setting"
+
+        allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(25))
+        allAccounts = sorted(allAccounts, key=lambda x: (x.getAccountType(), x.getFullAccountName().upper()))
+
+        newAccounts = []
+        for acct in allAccounts:
+            if acct.getAccountType() == Account.AccountType.INCOME or acct.getAccountType() == Account.AccountType.EXPENSE or acct.getAccountType() == Account.AccountType.ROOT:
+                continue
+            newAccounts.append(StoreAccountList(acct))
+        del allAccounts
+
+        lPresentedBackupDisclaimer = False
+        iCountChanges = 0
+
+        while True:
+
+            selectedAcct = JOptionPane.showInputDialog(toolbox_frame_,
+                                                       "Select the Acct edit the shouldBeIncludedInNetWorth() setting",
+                                                       _THIS_METHOD_NAME.upper(),
+                                                       JOptionPane.INFORMATION_MESSAGE,
+                                                       getMDIcon(lAlwaysGetIcon=True),
+                                                       newAccounts,
+                                                       None)
+            if not selectedAcct: break
+
+            selectedAcct = selectedAcct.obj       # type: Account                                                       # noqa
+
+            currentNWsettingBool = selectedAcct.getBooleanParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, True)
+
+            options = ["YES - Include", "NO - Exclude"]
+            if currentNWsettingBool:
+                current = options[0]
+            else:
+                current = options[1]
+
+            selectedIncludeInNW = JOptionPane.showInputDialog(toolbox_frame_,
+                                                       "Select whether to include/exclude this account in the default NW Home Screen Widget & Titlebar Graph",
+                                                       _THIS_METHOD_NAME.upper()+" for: %s" %(selectedAcct.getAccountName()),
+                                                       JOptionPane.WARNING_MESSAGE,
+                                                       getMDIcon(None),
+                                                       options,
+                                                       current)
+            if not selectedIncludeInNW: continue
+
+            if not lPresentedBackupDisclaimer:
+                if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME.upper(), "Change 'include in NW' to '%s'?" %(selectedIncludeInNW)):
+                    return
+                lPresentedBackupDisclaimer = True
+
+            if options.index(selectedIncludeInNW) == 0:
+                # Include selected
+                selectedAcct.setParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, None)
+            else:
+                # Exclude selected
+                selectedAcct.setParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, False)
+
+            selectedAcct.syncItem()
+            iCountChanges += 1
+
+            txt = "%s: Account: '%s' Parameter: '%s' set to %s" %(_THIS_METHOD_NAME, selectedAcct, GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, selectedIncludeInNW)
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+            logToolboxUpdates("edit_shouldBeIncludedInNetWorth_settings", txt)
+            myPopupInformationBox(toolbox_frame_,txt)
+
+            continue
+
+        if iCountChanges:
+            txt = "%s: Updated the NW setting in %s Account(s)!" %(_THIS_METHOD_NAME, iCountChanges)
+        else:
+            txt = "%s: No Accounts changed" %(_THIS_METHOD_NAME)
+        setDisplayStatus(txt, "R")
+        myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
 
     class CollectTheGarbage(AbstractAction):
 
