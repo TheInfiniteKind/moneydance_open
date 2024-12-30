@@ -313,6 +313,14 @@ MATH ON CALCULATED BALANCES:
                    useiflte(value, compare)     - uses the supplied value if value is less than or equal to compare, else 0
                    other/standard functions available are: sum(), abs(), min(), max(), round(), float(), random()
 
+                   Builds MD2023.3(5203) onwards includes Net Worth calculations (calculated by Moneydance):
+                   nw()     Net Worth, current balance, all eligible accounts, apply account specific NW exclusion flags
+                   nwif()   Net Worth, current balance, all eligible accounts (ignore all NW exclusion flags)
+                   nwf()    Net Worth, future balance,  all eligible accounts, apply account specific NW exclusion flags
+                   nwfif()  Net Worth, future balance,  all eligible accounts (ignore all NW exclusion flags)
+                   NOTE: When you use these Net Worth formulas, it is not necessary to configure any other settings on
+                         the row unless you plan to use the result of the row in conjunction with the formula.
+
                    NOTE: if you can dream up any additional functions to be added, or
                          if any formulas/functions do not work properly for you, please contact the author
 
@@ -453,6 +461,7 @@ BACKUP/RESTORE:
           CMD-SHIFT-L will display debugging information about the internal lastResultsTable (not for 'normal' users)...
           CMD-SHIFT-W will display current warnings (same as clicking the warnings icon)...
           CMD-SHIFT-G allows you to edit the pre-defined/used GroupID Filter(s)... Click +/- cell (on right) to add/del
+          CMD-SHIFT-N will display Moneydance's pre-defined Net Worth calculations (builds MD2024.3(5203) onwards)
 
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DETAILS SECTION <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -600,8 +609,12 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
                                                     default MD foreground color(black-ish): #4a4a4a
                                         Refer: https://www.rapidtables.com/web/color/RGB_Color.html
 
-   HTML EXAMPLE:
+   HTML EXAMPLES:
    <#html><b><font color=#0000ff>Expenses </font></b>Last month <small><u><font color=#bb0000>OVERDUE</font></u></small>
+   <#html><font size="5">Networth</font>
+
+   ... NOTE: row name length checking is not performed on html formatted rows. If the row name ends up too long
+             (i.e. too wide on the summary screen), then you'll have to manually edit/tweak your html coding...
 
   NOTE: You may see little gray words in (brackets) appended to each row name. These provide extra information about the
         configuration of that row. These can appear when things other than straightforward accounts have been selected.

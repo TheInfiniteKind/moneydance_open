@@ -140,6 +140,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1055 - ???
 # build: 1055 - Added useifeq() useifneq() useifgt() useifgte() useiflt() useiflte() to formula capability...
 # build: 1055 - Added menu option: 'Disable gray text info'; prevent html rowname code from truncating with dots...
+# build: 1055 - Added formula to allow Moneydance's internal net worth calculations to be utilised... nw() nwif() nwf() nwfif(). Added CMD-SHIFT-N popup display too...
 # build: 1055 - ???
 
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -3155,6 +3156,11 @@ Visit: %s (Author's site)
     def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)                         # 2022.0
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
+
+    GlobalVars.MD_NETWORTH_UPGRADED_BUILD = 5203                                                                        # MD2024.3(5203)
+    def isNetWorthUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NETWORTH_UPGRADED_BUILD)
+    if isNetWorthUpgradedBuild():
+        from com.infinitekind.moneydance.model import NetWorthCalculator
 
     def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
         """Will detect and then run the codeblock on the EDT"""
@@ -7253,6 +7259,61 @@ Visit: %s (Author's site)
                       "-----------------\n\n" + warningText + "\n\n<END>\n"
             QuickJFrame("WARNINGS", theText, lAlertLevel=1, lWrapText=False, lAutoSize=True).show_the_frame()
 
+    class ShowNetWorth(AbstractAction):
+        def actionPerformed(self, event): ShowNetWorth.showNetWorth()                                                   # noqa
+
+        @staticmethod
+        def showNetWorth():
+            myPrint("DB", "In ShowNetWorth.showNetWorth()... EDT: %s" %(SwingUtilities.isEventDispatchThread()))
+            if not SwingUtilities.isEventDispatchThread():
+                genericSwingEDTRunner(False, False, ShowWarnings.showWarnings)
+                return
+            NAB = NetAccountBalancesExtension.getNAB()
+            theFrame = NAB.theFrame
+            if theFrame is None: return
+
+            if not isNetWorthUpgradedBuild():
+                myPopupInformationBox(theFrame, "Moneydance's standard Net Worth calculations not available on this build", "NETWORTH", JOptionPane.WARNING_MESSAGE)
+                return
+
+            output = "View all possible system generated NetWorth calculations:\n" \
+                     "---------------------------------------------------------\n\n"
+
+            book = NAB.moneydanceContext.getCurrentAccountBook()
+            base = book.getCurrencies().getBaseType()
+            dec = NAB.decimal
+
+            output += "Base currency: %s %s\n\n" %(base.getIDString(), base.getName())
+
+            for balType in [Account.BalanceType.CURRENT, Account.BalanceType.NORMAL]:
+                for ignoreFlag in [True, False]:
+                    nwCalculator = NetWorthCalculator(book, base)
+                    nwCalculator.setBalanceType(balType)
+                    nwCalculator.setIgnoreAccountSpecificNetWorthFlags(ignoreFlag)                                      # noqa
+                    netWorth = nwCalculator.calculateTotal()
+                    output += ("BalanceType: %s ignoreAccountSpecificNetWorthFlags: %s NW Calculation: %s  \n"
+                               %(pad("Current" if balType == Account.BalanceType.CURRENT else "Balance/Future", 15),
+                                 pad(str(ignoreFlag), 6),
+                                 rpad(base.formatFancy(netWorth.getAmount(), dec),20)))
+
+            output += "\n\n"
+
+            countExcluded = 0
+            output += "Accounts with specific Net Worth exclusion flag set:\n"
+            output += "----------------------------------------------------\n"
+            for acct in AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER):
+                if acct.isAccountNetWorthEligible() and not acct.getIncludeInNetWorth():
+                    countExcluded += 1
+                    output += "AcctType: %s Account: '%s'\n" %(pad(str(acct.getAccountType()), 20), acct.getFullAccountName())
+            if (countExcluded < 1):
+                output += "<none>\n"
+            else:
+                output += "\n** NOTE: by default children accounts are excluded when parents are excluded\n"
+            output += "----------------------------------------------------\n"
+
+            output += "\n\n<END>\n"
+            QuickJFrame("NETWORTH", output, lAlertLevel=0, lWrapText=False, lAutoSize=True).show_the_frame()
+
     def setFontAllElements(_comp, _font):
         for _menuComp in _comp.getSubElements():
             _menuComp.setFont(_font)
@@ -7583,6 +7644,7 @@ Visit: %s (Author's site)
             self.lastFormulaWarning = None
             self.parallelBalanceTableOperating = False
             self.lastResultsBalanceTable = {}
+            self.lastNetworthValues = self.StoreNetWorthValues()
 
             self.parametersLoaded = False
             self.listenersActive = False
@@ -7641,8 +7703,8 @@ Visit: %s (Author's site)
             self.FILTER_FORMULA_EXPR_REGEX_WORDS = re.compile(r"\b(\w+[\(\[])", (re.IGNORECASE | re.UNICODE | re.LOCALE))               # noqa
             self.FILTER_FORMULA_EXPR_REGEX_SPECIALVARS = re.compile(r"(?:^|\s)(\@\w+)", (re.IGNORECASE | re.UNICODE | re.LOCALE))       # noqa
             self.FILTER_FORMULA_EXPR_REGEX_FREEVARS = re.compile(r"\b([a-z]\w*[a-z0-9]*)", (re.IGNORECASE | re.UNICODE | re.LOCALE))    # noqa
-            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random", "useifeq", "useifneq", "useifgt", "useifgte", "useiflt", "useiflte"]
-            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])", "max(a,b[,...])", "round(a[,n])", "float(a)", "random()", "useifeq(a,x)", "useifneq(a,x)", "useifgt(a,x)", "useifgte(a,x)", "useiflt(a,x)", "useiflte(a,x)"]
+            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random", "useifeq", "useifneq", "useifgt", "useifgte", "useiflt", "useiflte", "nw", "nwif", "nwf", "nwfif"]
+            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])", "max(a,b[,...])", "round(a[,n])", "float(a)", "random()", "useifeq(a,x)", "useifneq(a,x)", "useifgt(a,x)", "useifgte(a,x)", "useiflt(a,x)", "useiflte(a,x)", "nw()", "nwif()", "nwf()", "nwfif()"]
             self.FILTER_FORMULA_EXPR_DEFAULT_TAGS = ["@this"]
 
             self.savedFormulaTable = None
@@ -7849,6 +7911,14 @@ Visit: %s (Author's site)
 
             myPrint("DB", "Exiting ", inspect.currentframe().f_code.co_name, "()")
             myPrint("DB", "##########################################################################################")
+
+        ################################################################################################################
+        class StoreNetWorthValues:
+            def __init__(self):
+                self.netWorth = 0.0
+                self.netWorthIgnoreFlags = 0.0
+                self.netWorthFuture = 0.0
+                self.netWorthFutureIgnoreFlags = 0.0
 
         ################################################################################################################
         class CalUnit:
@@ -9713,6 +9783,34 @@ Visit: %s (Author's site)
                 # myPrint("B", "_useiflte() result: %s" %(_result));
                 return _result
 
+            def _nw(*args):                                                                                             # noqa
+                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                if len(args) != 0: raise TypeError("CB's nw() function takes no arguments (%s given)" %(len(args)))
+                _result = self.lastNetworthValues.netWorth
+                # myPrint("B", "_nw() result: %s" %(_result));
+                return _result
+
+            def _nwif(*args):                                                                                           # noqa
+                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                if len(args) != 0: raise TypeError("CB's nwif() function takes no arguments (%s given)" %(len(args)))
+                _result = self.lastNetworthValues.netWorthIgnoreFlags
+                # myPrint("B", "_nwif() result: %s" %(_result));
+                return _result
+
+            def _nwf(*args):                                                                                            # noqa
+                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                if len(args) != 0: raise TypeError("CB's nwf() function takes no arguments (%s given)" %(len(args)))
+                _result = self.lastNetworthValues.netWorthFuture
+                # myPrint("B", "_nwf() result: %s" %(_result));
+                return _result
+
+            def _nwfif(*args):                                                                                          # noqa
+                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                if len(args) != 0: raise TypeError("CB's nwfif() function takes no arguments (%s given)" %(len(args)))
+                _result = self.lastNetworthValues.netWorthFutureIgnoreFlags
+                # myPrint("B", "_nwfif() result: %s" %(_result));
+                return _result
+
             TAG_VARIABLES["sum"] = _sum
             TAG_VARIABLES["min"] = _min
             TAG_VARIABLES["max"] = _max
@@ -9725,6 +9823,11 @@ Visit: %s (Author's site)
             TAG_VARIABLES["useifgte"] = _useifgte
             TAG_VARIABLES["useiflt"] = _useiflt
             TAG_VARIABLES["useiflte"] = _useiflte
+            TAG_VARIABLES["nw"] = _nw
+            TAG_VARIABLES["nwif"] = _nwif
+            TAG_VARIABLES["nwf"] = _nwf
+            TAG_VARIABLES["nwfif"] = _nwfif
+
             # No need to touch round() as it always provides a float back!
 
             ############################################################################################################
@@ -14811,6 +14914,9 @@ Visit: %s (Author's site)
                     NAB.theFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, (shortcut | Event.SHIFT_MASK)), "show-warnings")
                     NAB.theFrame.getRootPane().getActionMap().put("show-warnings", ShowWarnings())
 
+                    NAB.theFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_N, (shortcut | Event.SHIFT_MASK)), "show-networth")
+                    NAB.theFrame.getRootPane().getActionMap().put("show-networth", ShowNetWorth())
+
                     NAB.theFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_G, (shortcut | Event.SHIFT_MASK)), "pick_groupid_filter")
                     NAB.theFrame.getRootPane().getActionMap().put("pick_groupid_filter", NAB.EditRememberedGroupIDFilters(NAB.theFrame, False, True))
 
@@ -15040,11 +15146,12 @@ Visit: %s (Author's site)
 
 
         def clearLastResultsBalanceTable(self, obtainLockFirst=True):
-            if debug: myPrint("DB", "In .clearLastResultsBalanceTable() - Wiping out NAB's temporary balance table (and associated references)....")
+            if debug: myPrint("DB", "In .clearLastResultsBalanceTable() - Wiping out NAB's temporary balance table (and associated references), also stored networth values ....")
             NAB = self
             with (NAB.NAB_TEMP_BALANCE_TABLE_LOCK if (obtainLockFirst) else NoneLock()):
                 if NAB.lastResultsBalanceTable is not None:
                     NAB.lastResultsBalanceTable.clear()
+                NAB.lastNetworthValues = NAB.StoreNetWorthValues()
 
         def getActionsForContext(self, context):                                                                        # noqa
             # context is com.moneydance.apps.md.controller.MDActionContext from MD2024(5100) onwards
@@ -15746,7 +15853,44 @@ Visit: %s (Author's site)
 
                 tookTime = System.currentTimeMillis() - thisSectionStartTime
                 if debug or TIMING_DEBUG:
-                    stage = "1"; stageTxt = "::calculateBalances()"
+                    stage = "1.1"; stageTxt = "::calculateBalances()"
+                    myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
+                thisSectionStartTime = System.currentTimeMillis()
+
+                # -------- QUICKLY OBTAIN MONEYDANCE's NETWORTH VALUES -------------------------------------------------
+                NAB.lastNetworthValues = NAB.StoreNetWorthValues()
+                if isNetWorthUpgradedBuild():
+                    if debug: myPrint("B", "... quickly obtaining Moneydance's internal NetWorth values (for formula usage)...")
+                    nwc = NetWorthCalculator(_book)  # will default to the base currency
+                    # setAsOfDate(None) & setExcludeChildrenOfExcludedParents(True) are defaults
+
+                    nwc.setBalanceType(Account.BalanceType.CURRENT)                                                     # noqa
+                    nwc.setIgnoreAccountSpecificNetWorthFlags(False)                                                    # noqa
+                    nwcResult = nwc.calculateTotal()
+                    NAB.lastNetworthValues.netWorth = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+
+                    nwc.setBalanceType(Account.BalanceType.CURRENT)                                                     # noqa
+                    nwc.setIgnoreAccountSpecificNetWorthFlags(True)                                                     # noqa
+                    nwcResult = nwc.calculateTotal()
+                    NAB.lastNetworthValues.netWorthIgnoreFlags = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+
+                    nwc.setBalanceType(Account.BalanceType.NORMAL)                                                      # noqa
+                    nwc.setIgnoreAccountSpecificNetWorthFlags(False)                                                    # noqa
+                    nwcResult = nwc.calculateTotal()
+                    NAB.lastNetworthValues.netWorthFuture = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+
+                    nwc.setBalanceType(Account.BalanceType.NORMAL)                                                      # noqa
+                    nwc.setIgnoreAccountSpecificNetWorthFlags(True)                                                     # noqa
+                    nwcResult = nwc.calculateTotal()
+                    NAB.lastNetworthValues.netWorthFutureIgnoreFlags = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+
+                    if debug: myPrint("B", "... netWorth: %s netWorthIgnoreFlags: %s netWorthFuture: %s netWorthFutureIgnoreFlags: %s"
+                                      %(NAB.lastNetworthValues.netWorth, NAB.lastNetworthValues.netWorthIgnoreFlags, NAB.lastNetworthValues.netWorthFuture, NAB.lastNetworthValues.netWorthFutureIgnoreFlags))
+                    del nwc
+
+                tookTime = System.currentTimeMillis() - thisSectionStartTime
+                if debug or TIMING_DEBUG:
+                    stage = "1.2"; stageTxt = "::calculateBalances()"
                     myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
                 thisSectionStartTime = System.currentTimeMillis()
 
@@ -16515,7 +16659,6 @@ Visit: %s (Author's site)
                     stage = "7b"; stageTxt = "::calculateBalances()"
                     myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
                 thisSectionStartTime = System.currentTimeMillis()
-
 
 
                 # Update NABs temporary balance table with results
