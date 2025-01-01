@@ -180,7 +180,7 @@
 # build: 1067 - ???
 # build: 1067 - Tweak clone dataset as the manual methods of loading a dataset/model changed!
 # build: 1067 - Add Account Menu options to validate / fix account start dates (based on earliest txn dates)...
-# build: 1067 - Fixes as the shouldBeIncludedInNetWorth() was renamed in MD2024.3(5203) to get/setIncludeInNetWorth()
+# build: 1067 - Fixes as the shouldBeIncludedInNetWorth() was renamed in MD2024.3(5204) to get/setIncludeInNetWorth()
 # build: 1067 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -621,7 +621,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.3
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5203
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5204
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3387,7 +3387,7 @@ Visit: %s (Author's site)
     GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD = 5142                                                                      # MD2024.2(5142)
     def isMemReportsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD)
 
-    GlobalVars.MD_NETWORTH_UPGRADED_BUILD = 5203                                                                        # MD2024.3(5203)
+    GlobalVars.MD_NETWORTH_UPGRADED_BUILD = 5204                                                                        # MD2024.3(5204)
     def isNetWorthUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NETWORTH_UPGRADED_BUILD)
     if isNetWorthUpgradedBuild():
         GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW = Account.PARAM_INCLUDE_IN_NET_WORTH
@@ -28108,7 +28108,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_add_alternative_bank_number.setToolTipText("Enter alternative account number(s) to print in the 'Accounts and bank/account number' report above. THIS CHANGES DATA!")
 
                     user_view_networthCalculations = MenuJRadioButton("DIAG: View all the possible system generated NetWorth calculations...", False)
-                    user_view_networthCalculations.setToolTipText("This executes and shows all of the possible networth calculations (MD2024.3(5203) onwards)")
+                    user_view_networthCalculations.setToolTipText("This executes and shows all of the possible networth calculations (MD2024.3(5204) onwards)")
 
                     user_view_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("DIAG: View Accounts' shouldBeIncludedInNetWorth() settings...", False)
                     user_view_shouldBeIncludedInNetWorth_settings.setToolTipText("This will list all Accounts/Categories and the shouldBeIncludedInNetWorth() setting - USE UPDATE MODE TO EDIT")

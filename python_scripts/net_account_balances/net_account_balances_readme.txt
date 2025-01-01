@@ -313,7 +313,7 @@ MATH ON CALCULATED BALANCES:
                    useiflte(value, compare)     - uses the supplied value if value is less than or equal to compare, else 0
                    other/standard functions available are: sum(), abs(), min(), max(), round(), float(), random()
 
-                   Builds MD2023.3(5203) onwards includes Net Worth calculations (calculated by Moneydance):
+                   Builds MD2023.3(5204) onwards includes Net Worth calculations (calculated by Moneydance):
                    nw()     Net Worth, current balance, all eligible accounts, apply account specific NW exclusion flags
                    nwif()   Net Worth, current balance, all eligible accounts (ignore all NW exclusion flags)
                    nwf()    Net Worth, future balance,  all eligible accounts, apply account specific NW exclusion flags
@@ -461,7 +461,7 @@ BACKUP/RESTORE:
           CMD-SHIFT-L will display debugging information about the internal lastResultsTable (not for 'normal' users)...
           CMD-SHIFT-W will display current warnings (same as clicking the warnings icon)...
           CMD-SHIFT-G allows you to edit the pre-defined/used GroupID Filter(s)... Click +/- cell (on right) to add/del
-          CMD-SHIFT-N will display Moneydance's pre-defined Net Worth calculations (builds MD2024.3(5203) onwards)
+          CMD-SHIFT-N will display Moneydance's pre-defined Net Worth calculations (builds MD2024.3(5204) onwards)
 
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DETAILS SECTION <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

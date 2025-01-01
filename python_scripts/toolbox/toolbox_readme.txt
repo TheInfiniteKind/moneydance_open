@@ -154,7 +154,7 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
     - MENU: Accounts & Categories tools
         - View Check number settings
         - DIAG - View Categories with zero balance. You can also inactivate using Update mode.
-        - DIAG - View all the possible system generated NetWorth calculations... (MD2024.3(5203) onwards)
+        - DIAG - View all the possible system generated Net Worth calculations... (MD2024.3(5204) onwards)
         - DIAG - View Accounts' shouldBeIncludedInNetWorth() settings...
         - DIAG - Validate Account 'start dates'... (based upon earliest transaction date)
         - DIAG - Produce report of Accounts and bank/account number information (Useful for legacy / Will making)

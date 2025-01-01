@@ -1714,7 +1714,7 @@ try:
                  " ======================================================\n\n" %(_THIS_METHOD_NAME.upper())
 
         if not isNetWorthUpgradedBuild():
-            output += "Prior to MD2024.3(5203) Moneydance predefined rules to include/exclude Accounts in both the Summary Page NetWorthView widget, & also the Titlebar's dashboard NW graph\n" \
+            output += "Prior to MD2024.3(5204) Moneydance predefined rules to include/exclude Accounts in both the Summary Page NetWorthView widget, & also the Titlebar's dashboard NW graph\n" \
                       "- exclude when the account or its Parent is Inactive\n" \
                       "- exclude the ROOT account and Income/Expense Categories\n" \
                       "- Then it checks for a hidden account setting (you can set this in Toolbox Update Mode)\n" \
@@ -1724,9 +1724,9 @@ try:
                       "- NW Reports / Graphs are based on transactions up to the date you specify; uses Price history data for balance valuations\n" \
                       "- The Top title bar / dashboard NW Graph's cutoff date can be changed: 'All Dates' includes future Balances; uses Price history data for balance valuations\n" \
                       "- The Summary Screen's NW widget total ALWAYS uses Current Balance(s) - so future balances are excluded; uses Current Price\n" \
-                      "NOTE: In MD2024.3(5203) all the calculations were aligned, and you have more user-control over the settings...\n\n"
+                      "NOTE: In MD2024.3(5204) all the calculations were aligned, and you have more user-control over the settings...\n\n"
         else:
-            output += "From MD2024.3(5203) onwards all the Networth calculations and rules were aligned. You also have more inbuilt control over the settings...\n" \
+            output += "From MD2024.3(5204) onwards all the Networth calculations and rules were aligned. You also have more inbuilt control over the settings...\n" \
                       "- ROOT and Income/Expense Categories are always excluded\n" \
                       "- You can exclude certain accounts from the calculations using Tools/Accounts and change the 'include in NW' setting'\n" \
                       "\n" \
@@ -1751,7 +1751,7 @@ try:
         allAccounts = AccountUtil.allMatchesForSearch(MD_REF.getCurrentAccountBook(), MyAcctFilter(25))
         allAccounts = sorted(allAccounts, key=lambda x: (x.getAccountType(), x.getFullAccountName().upper()))
 
-        # the method shouldBeIncludedInNetWorth() was removed in MD2024.3(5203) and subsumed into the (getter/setter) property includeInNetWorth...
+        # the method shouldBeIncludedInNetWorth() was removed in MD2024.3(5204) and subsumed into the (getter/setter) property includeInNetWorth...
         for acct in allAccounts:
             if isNetWorthUpgradedBuild():
                 if not acct.isAccountNetWorthEligible(): continue

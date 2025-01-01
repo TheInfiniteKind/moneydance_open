@@ -3157,7 +3157,7 @@ Visit: %s (Author's site)
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
 
-    GlobalVars.MD_NETWORTH_UPGRADED_BUILD = 5203                                                                        # MD2024.3(5203)
+    GlobalVars.MD_NETWORTH_UPGRADED_BUILD = 5204                                                                        # MD2024.3(5204)
     def isNetWorthUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NETWORTH_UPGRADED_BUILD)
     if isNetWorthUpgradedBuild():
         from com.infinitekind.moneydance.model import NetWorthCalculator
