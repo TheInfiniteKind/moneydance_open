@@ -181,6 +181,7 @@
 # build: 1067 - Tweak clone dataset as the manual methods of loading a dataset/model changed!
 # build: 1067 - Add Account Menu options to validate / fix account start dates (based on earliest txn dates)...
 # build: 1067 - Fixes as the shouldBeIncludedInNetWorth() was renamed in MD2024.3(5204) to get/setIncludeInNetWorth()
+# build: 1067 - BUGFIX read_preferences_file() .readFromFile() was calling str(file)... switched to pass the File reference.
 # build: 1067 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -9479,7 +9480,7 @@ Visit: %s (Author's site)
 
         try:
             st = StreamTable()
-            st.readFromFile(str(cf))
+            st.readFromFile(cf)
             tk = st.getKeyArray()
             tk = sorted(tk)
         except:
