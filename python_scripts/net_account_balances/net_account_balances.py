@@ -140,9 +140,12 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1055 - ???
 # build: 1055 - Added useifeq() useifneq() useifgt() useifgte() useiflt() useiflte() to formula capability...
 # build: 1055 - Added menu option: 'Disable gray text info'; prevent html rowname code from truncating with dots...
-# build: 1055 - Added formula to allow Moneydance's internal net worth calculations to be utilised... nw() nwif() nwf() nwfif(). Added CMD-SHIFT-N popup display too...
+# build: 1055 - Added formula to allow Moneydance's internal net worth calculations to be utilised... nw() nwif() nwf() nwfif() xnw() xnwf(). Added CMD-SHIFT-N popup display too...
+# build: 1055 - Add "XNW" to to the account selector (picklist) to show when an account is flagged to be excluded from net worth calculations...
+# build: 1055 - Add 'apply net worth flags' feature... Switch 'All Accounts (no categories)" to appear first in the picklist combo; added @nothis.
 # build: 1055 - ???
 
+# todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
 # todo - ... this is deliberate... Python variables cannot contain dots.. So the regex would need to be changed along with some string replacements..
 
@@ -582,6 +585,7 @@ else:
     GlobalVars.extn_param_NEW_disableCurrencyFormatting_NAB  = None
     GlobalVars.extn_param_NEW_includeInactive_NAB            = None
     GlobalVars.extn_param_NEW_autoSumAccounts_NAB            = None
+    GlobalVars.extn_param_NEW_applyNWRules_NAB               = None
     GlobalVars.extn_param_NEW_incExpDateRangeTable_NAB       = None
     GlobalVars.extn_param_NEW_showWarningsTable_NAB          = None
     GlobalVars.extn_param_NEW_useCostBasisTable_NAB          = None
@@ -3799,14 +3803,14 @@ Visit: %s (Author's site)
         # if sudoAccount is None: sudoAccount = acct
         sudoAccount = acct
 
+        bal = StoreAccount.getConvertXBalanceRecursive(balType, sudoAccount, recursive=False, user=False,applyNWRules=False, toCurrency=None, effectiveDate=None)
+
         if isSecurityAcct(sudoAccount):
             if (sudoAccount.getCurrencyType().getHideInUI()): return False
-            if (NetAccountBalancesExtension.getNAB().savedTreatSecZeroBalInactive
-                    and StoreAccount.getXBalance(balType, sudoAccount) == 0):
+            if (NetAccountBalancesExtension.getNAB().savedTreatSecZeroBalInactive and bal == 0):
                 return False
         else:
-            if (sudoAccount.getHideOnHomePage()
-                    and StoreAccount.getXBalance(balType, sudoAccount) == 0):
+            if (sudoAccount.getHideOnHomePage() and bal == 0):
                 return False
         return True
 
@@ -3823,8 +3827,11 @@ Visit: %s (Author's site)
                 sudoChild = sudoAccount.getSubAccountsBalanceObject(child)                                              # noqa
 
             if (not isAccountActive(child, balType, checkParents=False, sudoAccount=sudoChild)
-                    and StoreAccount.getRecursiveXBalance(balType, (child if sudoChild is None else sudoChild)) != 0):
+                    and StoreAccount.getConvertXBalanceRecursive(balType, (child if sudoChild is None else sudoChild),
+                                                                 recursive=True, user=False, applyNWRules=False, toCurrency=None,
+                                                                 effectiveDate=None) != 0):
                 return child
+
             childResult = accountIncludesInactiveChildren(child, balType, sudoAccount=sudoAccount)
             if childResult: return childResult
         return None
@@ -3925,7 +3932,9 @@ Visit: %s (Author's site)
     class HoldBalance:
         """Holds an Account object along with [calculated or real] balance information"""
 
-        def __init__(self, acct, autoSum):
+        def __init__(self, acct, autoSum, applyNWRules):
+            if not isinstance(acct, Account): raise Exception("ERROR: HoldBalance can only hold Account objects")
+
             self.NAB = NetAccountBalancesExtension.getNAB()
             self.acct = acct
 
@@ -3969,18 +3978,21 @@ Visit: %s (Author's site)
             self.isSecurityAcct = isSecurityAcct(acct)
             self.isInvestmentAcct = isInvestmentAcct(acct)
 
-            if not isinstance(acct, Account): raise Exception("ERROR: HoldBalance can only hold Account objects")
-            # if not self.isIncomeExpense(): raise Exception("ERROR: HoldBalance only programmed for Income/Expense Categories");
+            self.applyNWRules = applyNWRules and isNetWorthUpgradedBuild()
+            self.includeInNetWorth = includeInNetWorth(self.getAccount()) if self.shouldApplyNWRules() else True        # cache this result (don't bother checking if we're not interested!)...
+            self.makeNWBalanceZero = (self.shouldApplyNWRules() and not self.shouldIncludeInNetWorth())                 # do this here and cache the result...
 
         def getAccount(self):               return self.acct
         def isIncomeExpense(self):          return self.isIncomeExpenseAcct
         def isSecurity(self):               return self.isSecurityAcct
         def isInvestment(self):             return self.isInvestmentAcct
-        def getAccountName(self):           return self.getAccount().getAccountName()
-        def getFullAccountName(self):       return self.getAccount().getFullAccountName()
-        def getAccountType(self):           return self.getAccount().getAccountType()
-        def getCurrencyType(self):          return self.getAccount().getCurrencyType()
-        def getHideOnHomePage(self):        return self.getAccount().getHideOnHomePage()
+
+        # pass-thru proxy methods
+        def getAccountName(self):               return self.getAccount().getAccountName()
+        def getFullAccountName(self):           return self.getAccount().getFullAccountName()
+        def getAccountType(self):               return self.getAccount().getAccountType()
+        def getCurrencyType(self):              return self.getAccount().getCurrencyType()
+        def getHideOnHomePage(self):            return self.getAccount().getHideOnHomePage()
 
         def setEffectiveDateInt(self, effectiveDateInt): self.effectiveDateInt = effectiveDateInt
         def getEffectiveDateInt(self): return self.effectiveDateInt
@@ -4006,6 +4018,9 @@ Visit: %s (Author's site)
         def isCostBasisInvalid(self):                   return self.costBasisInvalid
 
         def isAutoSum(self):                                        return self.autoSum
+        def shouldApplyNWRules(self):                               return self.applyNWRules
+        def shouldMakeNWBalanceZero(self):                          return self.makeNWBalanceZero
+        def shouldIncludeInNetWorth(self):                          return self.includeInNetWorth
         def setSubAccountsBalanceObjects(self, _subAccountObjects): self.subAccountsBalanceObjects = _subAccountObjects
         def getSubAccountsBalanceObject(self, _acct):               return self.subAccountsBalanceObjects[_acct]
 
@@ -4016,35 +4031,28 @@ Visit: %s (Author's site)
         def getParallelRemindersBalAdjs(self): return [self.rems_balance, self.rems_currentBalance, self.rems_clearedBalance]
         def getParallelCostBasisBalAdjs(self): return [self.cbasis_balance, self.cbasis_currentBalance, self.cbasis_clearedBalance]
 
-        def getXBalance(self, _balType, _autoSum):
-            if _balType == GlobalVars.BALTYPE_BALANCE:          return self.getBalance()         if not _autoSum else self.getRecursiveBalance()
-            elif _balType == GlobalVars.BALTYPE_CURRENTBALANCE: return self.getCurrentBalance()  if not _autoSum else self.getRecursiveCurrentBalance()
-            elif _balType == GlobalVars.BALTYPE_CLEAREDBALANCE: return self.getClearedBalance()  if not _autoSum else self.getRecursiveClearedBalance()
-            else: raise Exception("@@@ LOGIC ERROR: BalanceType: '%s' NOT coded?!" %(_balType))
+        def balanceIsNegated(self):      return self.getAccount().balanceIsNegated()
 
         def getStartBalance(self):       return (self.startBalance)
 
-        def getBalance(self):
+        def getBalance(self, applyNWRules=False):
             # if not self.shouldIncludeInactive() and not isAccountActive(self.getAccount(),GlobalVars.BALTYPE_BALANCE, self): return 0
+            if applyNWRules and self.shouldMakeNWBalanceZero(): return 0
             return (self.getStartBalance() + self.balance)  # fixme - "TypeError: unsupported operand type(s) for +: 'int' and 'NoneType'"
 
-        def getCurrentBalance(self):
+        def getCurrentBalance(self, applyNWRules=False):
             # if not self.shouldIncludeInactive() and not isAccountActive(self.getAccount(),GlobalVars.BALTYPE_CURRENTBALANCE, self): return 0
+            if applyNWRules and self.shouldMakeNWBalanceZero(): return 0
             return (self.getStartBalance() + self.currentBalance)
 
-        def getClearedBalance(self):
+        def getClearedBalance(self, applyNWRules=False):
             # if not self.shouldIncludeInactive() and not isAccountActive(self.getAccount(),GlobalVars.BALTYPE_CLEAREDBALANCE, self): return 0
+            if applyNWRules and self.shouldMakeNWBalanceZero(): return 0
             return (self.getStartBalance() + self.clearedBalance)
 
-        def balanceIsNegated(self):      return self.getAccount().balanceIsNegated()
-
-        def getUserBalance(self):        return (-self.getBalance()        if self.balanceIsNegated() else self.getBalance())
-        def getUserCurrentBalance(self): return (-self.getCurrentBalance() if self.balanceIsNegated() else self.getCurrentBalance())
-        def getUserClearedBalance(self): return (-self.getClearedBalance() if self.balanceIsNegated() else self.getClearedBalance())
-
-        def getRecursiveUserBalance(self):        return (-self.getRecursiveBalance()        if self.balanceIsNegated() else self.getRecursiveBalance())
-        def getRecursiveUserCurrentBalance(self): return (-self.getRecursiveCurrentBalance() if self.balanceIsNegated() else self.getRecursiveCurrentBalance())
-        def getRecursiveUserClearedBalance(self): return (-self.getRecursiveClearedBalance() if self.balanceIsNegated() else self.getRecursiveClearedBalance())
+        def getUserBalance(self, applyNWRules=False):        return (-self.getBalance(applyNWRules)        if self.balanceIsNegated() else self.getBalance(applyNWRules))
+        def getUserCurrentBalance(self, applyNWRules=False): return (-self.getCurrentBalance(applyNWRules) if self.balanceIsNegated() else self.getCurrentBalance(applyNWRules))
+        def getUserClearedBalance(self, applyNWRules=False): return (-self.getClearedBalance(applyNWRules) if self.balanceIsNegated() else self.getClearedBalance(applyNWRules))
 
         def calculateAndSetAccountStartBalance(self, _dateRange):
             # type: (DateRange) -> None
@@ -4059,62 +4067,6 @@ Visit: %s (Author's site)
         def setBalance(self, _bal):         self.balance        = _bal
         def setCurrentBalance(self, _bal):  self.currentBalance = _bal
         def setClearedBalance(self, _bal):  self.clearedBalance = _bal
-
-        def getRecursiveStartBalance(self):
-            bal = self.getStartBalance()
-            if not self.isAutoSum(): return bal
-            thisAcct = self.getAccount()
-            for i in reversed(range(0, thisAcct.getSubAccountCount())):
-                subAcct = thisAcct.getSubAccount(i)
-                try:
-                    bal += convertValue(self.getSubAccountsBalanceObject(subAcct).getRecursiveStartBalance(),
-                                        subAcct.getCurrencyType(),
-                                        thisAcct.getCurrencyType(),
-                                        self.getEffectiveDateInt())
-                except: dump_sys_error_to_md_console_and_errorlog()
-            return bal
-
-        def getRecursiveBalance(self):
-            bal = self.getBalance()
-            if not self.isAutoSum(): return bal
-            thisAcct = self.getAccount()
-            for i in reversed(range(0, thisAcct.getSubAccountCount())):
-                subAcct = thisAcct.getSubAccount(i)
-                try:
-                    bal += convertValue(self.getSubAccountsBalanceObject(subAcct).getRecursiveBalance(),
-                                        subAcct.getCurrencyType(),
-                                        thisAcct.getCurrencyType(),
-                                        self.getEffectiveDateInt())
-                except: dump_sys_error_to_md_console_and_errorlog()
-            return bal
-
-        def getRecursiveCurrentBalance(self):
-            bal = self.getCurrentBalance()
-            if not self.isAutoSum(): return bal
-            thisAcct = self.getAccount()
-            for i in reversed(range(0, thisAcct.getSubAccountCount())):
-                subAcct = thisAcct.getSubAccount(i)
-                try:
-                    bal += convertValue(self.getSubAccountsBalanceObject(subAcct).getRecursiveCurrentBalance(),
-                                        subAcct.getCurrencyType(),
-                                        thisAcct.getCurrencyType(),
-                                        self.getEffectiveDateInt())
-                except: dump_sys_error_to_md_console_and_errorlog()
-            return bal
-
-        def getRecursiveClearedBalance(self):
-            bal = self.getClearedBalance()
-            if not self.isAutoSum(): return bal
-            thisAcct = self.getAccount()
-            for i in reversed(range(0, thisAcct.getSubAccountCount())):
-                subAcct = thisAcct.getSubAccount(i)
-                try:
-                    bal += convertValue(self.getSubAccountsBalanceObject(subAcct).getRecursiveClearedBalance(),
-                                        subAcct.getCurrencyType(),
-                                        thisAcct.getCurrencyType(),
-                                        self.getEffectiveDateInt())
-                except: dump_sys_error_to_md_console_and_errorlog()
-            return bal
 
         def __str__(self):
             i = 10
@@ -4131,13 +4083,13 @@ Visit: %s (Author's site)
                 if self.isParallelReturnCostBasis():
                     extraDebugInfo += " DEBUG [%s BALS: %s]" %(getCostBasisTypeStrFromOption(self.getParallelReturnCostBasisType()), self.getParallelCostBasisBalAdjs())
             return ("HoldBalance: isIncExp: %s, isSec: %s, isInv: %s, "
+                    "applyNWRules: %s, incldInNW: %s, NWBalZero: %s, "
                     "Bal: %s, CurBal: %s, ClearedBal: %s, "
-                    "RBal: %s, RCurBal: %s, RClearedBal: %s "
                     "(isParRealBals: %s, isParIncExpBals: %s, isParAsOfBals: %s, isParRems: %s, isParCB: %s(%s)) "
                     "- Account: %s %s"
                     %(self.isIncomeExpense(), self.isSecurity(), self.isInvestment(),
+                      self.shouldApplyNWRules(), self.shouldIncludeInNetWorth(), self.shouldMakeNWBalanceZero(),
                       rpad(self.getBalance(), i), rpad(self.getCurrentBalance(), i), rpad(self.getClearedBalance(), i),
-                      rpad(self.getRecursiveBalance(), i), rpad(self.getRecursiveCurrentBalance(), i), rpad(self.getRecursiveClearedBalance(), i),
                       self.isParallelRealBalances(), self.isParallelIncExpBalances(), self.isParallelBalanceAsOfDateBalances(), self.isParallelIncludeReminders(), self.isParallelReturnCostBasis(), self.getParallelReturnCostBasisType(),
                       self.getAccount().getFullAccountName(),
                       extraDebugInfo))
@@ -4206,8 +4158,8 @@ Visit: %s (Author's site)
         def generateListForCombo():
             # type: () -> [Account.AccountType]
             comboList = []
-            comboList.append(AccountTypeHolder(allTypes=True))
             comboList.append(AccountTypeHolder(allAcctsNoCats=True))
+            comboList.append(AccountTypeHolder(allTypes=True))
             comboList.append(AccountTypeHolder(allAcctsNoSecsNoCats=True))
             comboList.append(AccountTypeHolder(bankAndCC=True))
             comboList.append(AccountTypeHolder(investAndSec=True))
@@ -4218,61 +4170,61 @@ Visit: %s (Author's site)
 
     class StoreAccount:
         """Stores an Account object with convenience methods for returning balances (depending on balance type requested)"""
-        def __init__(self, obj, _autoSum):
-            self.obj = None
-            self._autoSum = _autoSum
-            if isinstance(obj, Account): self.obj = obj                                                                 # type: Account
+        def __init__(self, obj):
+            self.obj = obj if isinstance(obj, Account) else None                                                        # type: Account
 
         def getAccount(self):
             # type: () -> Account
             return self.obj
 
         @staticmethod
-        def getUserXBalance(_type, _acct):
-            # type: (int, Account) -> int
-            if _type == GlobalVars.BALTYPE_BALANCE:
-                return _acct.getUserBalance()
-            elif _type == GlobalVars.BALTYPE_CURRENTBALANCE:
-                return _acct.getUserCurrentBalance()
-            elif _type == GlobalVars.BALTYPE_CLEAREDBALANCE:
-                return _acct.getUserClearedBalance()
-            else: raise Exception("@@@ LOGIC ERROR: BalanceType: '%s' NOT coded?!" %(_type))
+        def getConvertXBalanceRecursive(balType, parentAcct, recursive=False, user=False, applyNWRules=False, toCurrency=None, effectiveDate=None):
+            # type: (int, Account, bool, bool, bool, CurrencyType, int) -> int
+            """replicate Moneydance's getBalance() & getRecursiveBalance() methods, but convert each (sub)account to the target currency before totalling (to avoid rounding issues)"""
+
+            if not isNetWorthUpgradedBuild(): applyNWRules = False
+            bal = 0
+            isHoldBalObj = isinstance(parentAcct, HoldBalance)
+
+            if effectiveDate is None and isHoldBalObj:
+                effectiveDate = parentAcct.getEffectiveDateInt()
+
+            try:
+                accts = returnThisAccountAndAllChildren(parentAcct.getAccount() if (isHoldBalObj) else parentAcct, None, recursive, False)
+                for thisAcct in accts:
+                    if applyNWRules and not includeInNetWorth(thisAcct): continue
+                    acctObj = parentAcct.getSubAccountsBalanceObject(thisAcct) if isHoldBalObj else thisAcct
+                    bal += convertValue(StoreAccount.getXBalance(balType, acctObj, user, applyNWRules=applyNWRules),
+                                            thisAcct.getCurrencyType(),
+                                            toCurrency if (toCurrency is not None) else parentAcct.getCurrencyType(),
+                                            effectiveDate)
+            except: dump_sys_error_to_md_console_and_errorlog()
+            return bal
 
         @staticmethod
-        def getXBalance(_type, _acct):
-            # type: (int, Account) -> int
+        def getXBalance(_type, _acct, user=False, applyNWRules=False):
+            # type: (int, Account, bool, bool) -> int
+            """retrieves the balance value (in the account's currency) from the Account/HoldBalance object depending on the balance type"""
+            isHoldBalObj = isinstance(_acct, HoldBalance)
             if _type == GlobalVars.BALTYPE_BALANCE:
-                return _acct.getBalance()
+                if isHoldBalObj:
+                    return _acct.getBalance(applyNWRules) if not user else _acct.getUserBalance(applyNWRules)
+                else:
+                    return _acct.getBalance() if not user else _acct.getUserBalance()
             elif _type == GlobalVars.BALTYPE_CURRENTBALANCE:
-                return _acct.getCurrentBalance()
+                if isHoldBalObj:
+                    return _acct.getCurrentBalance(applyNWRules) if not user else _acct.getUserCurrentBalance(applyNWRules)
+                else:
+                    return _acct.getCurrentBalance() if not user else _acct.getUserCurrentBalance()
             elif _type == GlobalVars.BALTYPE_CLEAREDBALANCE:
-                return _acct.getClearedBalance()
-            else: raise Exception("@@@ LOGIC ERROR: BalanceType: '%s' NOT coded?!" %(_type))
-
-        @staticmethod
-        def getRecursiveUserXBalance(_type, _acct):
-            # type: (int, Account) -> int
-            if _type == GlobalVars.BALTYPE_BALANCE:
-                return _acct.getRecursiveUserBalance()
-            elif _type == GlobalVars.BALTYPE_CURRENTBALANCE:
-                return _acct.getRecursiveUserCurrentBalance()
-            elif _type == GlobalVars.BALTYPE_CLEAREDBALANCE:
-                return _acct.getRecursiveUserClearedBalance()
-            else: raise Exception("@@@ LOGIC ERROR: BalanceType: '%s' NOT coded?!" %(_type))
-
-        @staticmethod
-        def getRecursiveXBalance(_type, _acct):
-            # type: (int, Account) -> int
-            if _type == GlobalVars.BALTYPE_BALANCE:
-                return _acct.getRecursiveBalance()
-            elif _type == GlobalVars.BALTYPE_CURRENTBALANCE:
-                return _acct.getRecursiveCurrentBalance()
-            elif _type == GlobalVars.BALTYPE_CLEAREDBALANCE:
-                return _acct.getRecursiveClearedBalance()
+                if isHoldBalObj:
+                    return _acct.getClearedBalance(applyNWRules) if not user else _acct.getUserClearedBalance(applyNWRules)
+                else:
+                    return _acct.getClearedBalance() if not user else _acct.getUserClearedBalance()
             else: raise Exception("@@@ LOGIC ERROR: BalanceType: '%s' NOT coded?!" %(_type))
 
         def __str__(self):
-            if self.obj is None: return "Invalid Acct Obj or None"
+            if self.obj is None: return "Invalid Account object or None"
             return self.getAccount().toString()
         def __repr__(self): return self.__str__()
         def toString(self): return self.__str__()
@@ -5711,6 +5663,9 @@ Visit: %s (Author's site)
             if isIncomeExpenseDatesSelected(iRowIndex):
                 # if (_rowIdx is None and debug): myPrint("B", "** Row: %s >> Parallel Balances for 'Inc/Exp Txns based on date range' is in operation.." %(onRow))
                 lAnyParallel = True
+            if isNetWorthUpgradedBuild() and NAB.savedApplyNWRules[iRowIndex]:
+                # if (_rowIdx is None and debug): myPrint("B", "** Row: %s >> Parallel Balances for 'apply net worth rules' has been forced into operation.." %(onRow))
+                lAnyParallel = True
 
         if _rowIdx is not None:
             # if lAnyParallel:
@@ -5733,10 +5688,12 @@ Visit: %s (Author's site)
         # 2. if Income/Expense dates were requested, then gather related I/E txns and put into the txn table...
         # 3. convert this I/E txn table into balances...
         # 4. for all accounts / balances not derived by steps 2 & 3, then calculate balance asof dates (only if requested)..
-        # 5. for all accounts / balances not derived by steps 2, 3 & 4, then grab the remaining Account's real balance(s)
+        # 5. for all accounts / balances not derived by steps 2, 3 & 4, then grab the remaining Account's real balance(s) - (this is also used when 'apply networth rules' is enabled for the row)
         # 6. for all account balances in the table, replace balance with cost basis / u/r gains on Security Accounts (where requested).
         # 7. for all accounts selected, add Reminder txn/balances up to the reminders asof date (where requested).
         # ** NOTE: The use cost basis / unrealised gains option is mutually exclusive to the other options (i.e. no other asof balances, no inc/exp, no reminders etc)...
+        # ** NOTE: When 'apply net worth rules' is enabled, then parallel operations are always triggered. The .getBalance() methods will always return zero,
+        #          so it doesn't matter if any of these phases build balances, as the accounts that are excluded from net worth will always return zero.
 
         if debug: myPrint("B", "In .rebuildParallelAccountBalancesStages2to7()")
 
@@ -5858,15 +5815,16 @@ Visit: %s (Author's site)
 
         return rebuildParallelAccountBalancesStages2to7(parallelTxnTable, swClass, True, emptyTxnOrBalanceArray)
 
-    def returnThisAccountAndAllChildren(_acct, _listAccounts=None, autoSum=False, justIncomeExpense=True):
+    def returnThisAccountAndAllChildren(_acct, _listAccounts=None, recursive=False, justIncomeExpense=True):
         # type: (Account, [Account], bool, bool) -> [Account]
         if _listAccounts is None: _listAccounts = []
 
         if justIncomeExpense and not isIncomeExpenseAcct(_acct): return _listAccounts
 
         if _acct not in _listAccounts: _listAccounts.append(_acct)
-        if autoSum:
-            for child in _acct.getSubAccounts(): returnThisAccountAndAllChildren(child, _listAccounts, autoSum=autoSum, justIncomeExpense=justIncomeExpense)
+        if recursive:
+            for child in _acct.getSubAccounts():
+                returnThisAccountAndAllChildren(child, _listAccounts, recursive=recursive, justIncomeExpense=justIncomeExpense)
         return _listAccounts
 
     def getCapitalGainsDateRangeSelected(_fromDrSettings, adjForBalType=None, allowAllDatesKey=True):
@@ -6001,8 +5959,22 @@ Visit: %s (Author's site)
 
     def convertValue(value, fromCurr, toCurr, effectiveDateInt=None):
         # type: (int, CurrencyType, CurrencyType, int) -> int
-        if effectiveDateInt is None: return CurrencyUtil.convertValue(value, fromCurr, toCurr)
+        if (effectiveDateInt is None or effectiveDateInt == 0): return CurrencyUtil.convertValue(value, fromCurr, toCurr)
         return CurrencyUtil.convertValue(value, fromCurr, toCurr, effectiveDateInt)
+
+    def includeInNetWorth(acct):
+        if not isNetWorthUpgradedBuild(): raise Exception("LOGIC ERROR: includeInNetWorth() called but not on an eligible Moneydance build!")
+
+        if acct is None: return False
+
+        # The NW rules changed from MD2024.3(5204) onwards.... refer: com.infinitekind.moneydance.model.NetWorthCalculator#getAccountFilter
+        if not acct.isAccountNetWorthEligible(): return False
+        if not acct.getIncludeInNetWorth(): return False
+
+        # check if one of the eligible parents have been excluded
+        for ancestor in acct.getAncestors():
+            if (ancestor.isAccountNetWorthEligible() and not ancestor.getIncludeInNetWorth()): return False
+        return True
 
     def buildRemindersByAccountDict(_reminders):            # One massive sweep....
         # type: ([Reminder]) -> {Account: [Reminder]}
@@ -6345,7 +6317,7 @@ Visit: %s (Author's site)
                     raise Exception("LOGIC ERROR: gatherRemainingRealBalances() HoldBalance obj exists and contains invalid data?! (RowIdx: %s, Acct: %s):" %(iRowIdx, acct), balObj)
                 del balObj
 
-                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]))
+                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]), NAB.savedApplyNWRules[iRowIdx])
                 balanceObj.setParallelRealBalances(True)
                 balanceObj.setEffectiveDateInt(None)
 
@@ -6591,7 +6563,7 @@ Visit: %s (Author's site)
                 acctTxns = asofBalanceTxnTable[iRowIdx][acct]
                 balance = getBalanceAsOfDate(book, acct, balAsOfDate, True, swClass, acctTxns)  # NOTE: we have already filtered out rows where asof date is not required above..
 
-                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]))
+                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]), NAB.savedApplyNWRules[iRowIdx])
                 balanceObj.setParallelBalanceAsOfDateBalances(True)
                 balanceObj.setEffectiveDateInt(effectiveDateInt)
 
@@ -6684,7 +6656,7 @@ Visit: %s (Author's site)
                 #         %(rpad(acctBalLong, 12), rpad(acctBalLongMyVersion, 12), balAsOfDate, acct));
                 # assert acctBalLong == acctBalLongMyVersion, "LOGIC ERROR: asof balances differ?! MD: %s vs Simulant: %s" %(acctBalLong, acctBalLongMyVersion);
 
-                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]))
+                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]), NAB.savedApplyNWRules[iRowIdx])
                 balanceObj.setParallelBalanceAsOfDateBalances(True)
                 balanceObj.setEffectiveDateInt(balAsOfDate)
 
@@ -6744,7 +6716,7 @@ Visit: %s (Author's site)
                     _parallelBalanceTable[iRowIdx][acct] = None
                     continue
 
-                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]))
+                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]), NAB.savedApplyNWRules[iRowIdx])
                 balanceObj.setEffectiveDateInt(None)
 
                 balanceObj.setParallelIncExpBalances(True)
@@ -6808,9 +6780,10 @@ Visit: %s (Author's site)
 
         _incExpDateRangeArray = buildEmptyDateRangeArray()
         for iRowIdx in range(0, len(_parallelTxnTable)):
-            if len(_parallelTxnTable[iRowIdx]) < 1: continue            # If no Accounts in the table for this row, then just ignore/skip
-            if isAnyCostBasisOptionTypeSelected(iRowIdx): continue                # Don't allow I/E when cost basis selected for this row!
-            if isIncomeExpenseDatesSelected(iRowIdx):                   # Only add a date range if this row is configured for I/E date range
+            if len(_parallelTxnTable[iRowIdx]) < 1: continue            # if no Accounts in the table for this row, then just ignore/skip
+            if isAnyCostBasisOptionTypeSelected(iRowIdx): continue      # don't allow I/E when cost basis selected for this row!
+            if NAB.savedApplyNWRules[iRowIdx]: continue                 # don't compute I/E balances as these can never be included in net worth calculations!
+            if isIncomeExpenseDatesSelected(iRowIdx):                   # only add a date range if this row is configured for I/E date range
                 _incExpDateRangeArray[iRowIdx] = getIncExpDateRangeSelected(NAB.savedIncExpDateRangeTable[iRowIdx])
 
         iTxns = 0                                                                                                       # noqa
@@ -7058,6 +7031,7 @@ Visit: %s (Author's site)
             self.finalMathsApplied = False                      # type: bool
             self.formatAsPercent100Applied = False              # type: bool
             self.formulaApplied = False                         # type: bool
+            self.netWorthRulesApplied = False                   # type: bool
             self.finalDisplayAdjustApplied = False              # type: bool
             self.countSelectedAccounts = 0                      # type: int
             self.autoSum = False                                # type: bool
@@ -7079,6 +7053,8 @@ Visit: %s (Author's site)
         def setFinalMathsApplied(self, finalMathsApplied): self.finalMathsApplied = finalMathsApplied
         def getFormulaApplied(self): return self.formulaApplied
         def setFormulaApplied(self, formulaApplied): self.formulaApplied = formulaApplied
+        def getNetWorthRulesApplied(self): return self.netWorthRulesApplied
+        def setNetWorthRulesApplied(self, netWorthRulesApplied): self.netWorthRulesApplied = netWorthRulesApplied
         def getFinalDisplayAdjustApplied(self): return self.finalDisplayAdjustApplied
         def setFinalDisplayAdjustApplied(self, finalDisplayAdjustApplied): self.finalDisplayAdjustApplied = finalDisplayAdjustApplied
         def getFormatAsPercent100Applied(self): return self.formatAsPercent100Applied
@@ -7120,6 +7096,7 @@ Visit: %s (Author's site)
             clonedBalObj.setMathsUORApplied(self.getMathsUORApplied())
             clonedBalObj.setFinalMathsApplied(self.getFinalMathsApplied())
             clonedBalObj.setFormulaApplied(self.getFormulaApplied())
+            clonedBalObj.setNetWorthRulesApplied(self.getNetWorthRulesApplied())
             clonedBalObj.setFinalDisplayAdjustApplied(self.getFinalDisplayAdjustApplied())
             clonedBalObj.setFormatAsPercent100Applied(self.getFormatAsPercent100Applied())
             clonedBalObj.setUORChain(self.getUORChain())
@@ -7130,7 +7107,11 @@ Visit: %s (Author's site)
 
         def toString(self):     return self.__str__()
         def __repr__(self):     return self.__str__()
-        def __str__(self):      return  "[uuid: '%s', row name: '%s', curr: '%s', balance: %s, balanceWithDecimals: %s, extra row txt: '%s', isUORError: %s, isFormulaError: %s, rowNumber: %s, avgByApplied: %s, rowMathsApplied: %s, MUORApplied: %s, finalMathsApplied: %s, formulaApplied: %s, finalDisplayAdjustApplied: %s, formatAsPercent100Applied: %s, countSelectedAccounts: %s, autoSum: %s, UORChain: %s]"\
+        def __str__(self):      return  "[uuid: '%s', row name: '%s', curr: '%s', balance: %s, balanceWithDecimals: %s, " \
+                                        "extra row txt: '%s', isUORError: %s, isFormulaError: %s, rowNumber: %s, " \
+                                        "avgByApplied: %s, rowMathsApplied: %s, MUORApplied: %s, finalMathsApplied: %s, " \
+                                        "formulaApplied: %s, netWorthRulesApplied: %s, finalDisplayAdjustApplied: %s, " \
+                                        "formatAsPercent100Applied: %s, countSelectedAccounts: %s, autoSum: %s, UORChain: %s]"\
                                         %(self.getUUID(),
                                           self.getRowName(),
                                           self.getCurrencyType(),
@@ -7145,6 +7126,7 @@ Visit: %s (Author's site)
                                           self.getMathsUORApplied(),
                                           self.getFinalMathsApplied(),
                                           self.getFormulaApplied(),
+                                          self.getNetWorthRulesApplied(),
                                           self.getFinalDisplayAdjustApplied(),
                                           self.getFormatAsPercent100Applied(),
                                           self.getCountSelectedAccounts(),
@@ -7285,14 +7267,14 @@ Visit: %s (Author's site)
 
             output += "Base currency: %s %s\n\n" %(base.getIDString(), base.getName())
 
-            for balType in [Account.BalanceType.CURRENT, Account.BalanceType.NORMAL]:
+            for balType in [Account.BalanceType.CURRENT, Account.BalanceType.NORMAL]:                                   # noqa
                 for ignoreFlag in [True, False]:
                     nwCalculator = NetWorthCalculator(book, base)
                     nwCalculator.setBalanceType(balType)
                     nwCalculator.setIgnoreAccountSpecificNetWorthFlags(ignoreFlag)                                      # noqa
                     netWorth = nwCalculator.calculateTotal()
                     output += ("BalanceType: %s ignoreAccountSpecificNetWorthFlags: %s NW Calculation: %s  \n"
-                               %(pad("Current" if balType == Account.BalanceType.CURRENT else "Balance/Future", 15),
+                               %(pad("Current" if balType == Account.BalanceType.CURRENT else "Balance/Future", 15),    # noqa
                                  pad(str(ignoreFlag), 6),
                                  rpad(base.formatFancy(netWorth.getAmount(), dec),20)))
 
@@ -7665,6 +7647,7 @@ Visit: %s (Author's site)
             self.savedBalanceType                = None
             self.savedBalanceAsOfDateTable       = None
             self.savedAutoSumAccounts            = None
+            self.savedApplyNWRules               = None
             self.savedWidgetName                 = None
             self.savedCurrencyTable              = None      # Only contains UUID strings
             self.savedDisableCurrencyFormatting  = None
@@ -7703,9 +7686,9 @@ Visit: %s (Author's site)
             self.FILTER_FORMULA_EXPR_REGEX_WORDS = re.compile(r"\b(\w+[\(\[])", (re.IGNORECASE | re.UNICODE | re.LOCALE))               # noqa
             self.FILTER_FORMULA_EXPR_REGEX_SPECIALVARS = re.compile(r"(?:^|\s)(\@\w+)", (re.IGNORECASE | re.UNICODE | re.LOCALE))       # noqa
             self.FILTER_FORMULA_EXPR_REGEX_FREEVARS = re.compile(r"\b([a-z]\w*[a-z0-9]*)", (re.IGNORECASE | re.UNICODE | re.LOCALE))    # noqa
-            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random", "useifeq", "useifneq", "useifgt", "useifgte", "useiflt", "useiflte", "nw", "nwif", "nwf", "nwfif"]
-            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])", "max(a,b[,...])", "round(a[,n])", "float(a)", "random()", "useifeq(a,x)", "useifneq(a,x)", "useifgt(a,x)", "useifgte(a,x)", "useiflt(a,x)", "useiflte(a,x)", "nw()", "nwif()", "nwf()", "nwfif()"]
-            self.FILTER_FORMULA_EXPR_DEFAULT_TAGS = ["@this"]
+            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random", "useifeq", "useifneq", "useifgt", "useifgte", "useiflt", "useiflte", "nw", "nwif", "nwf", "nwfif", "xnw", "xnwf"]
+            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])", "max(a,b[,...])", "round(a[,n])", "float(a)", "random()", "useifeq(a,x)", "useifneq(a,x)", "useifgt(a,x)", "useifgte(a,x)", "useiflt(a,x)", "useiflte(a,x)", "nw()", "nwif()", "nwf()", "nwfif()", "xnw()", "xnwf()"]
+            self.FILTER_FORMULA_EXPR_DEFAULT_TAGS = ["@this", "@nothis"]
 
             self.savedFormulaTable = None
             self.FORMULA_EXPR_IDX    = 0
@@ -7793,6 +7776,7 @@ Visit: %s (Author's site)
             self.separatorSelectorBoth_JRB            = None
             self.includeInactive_COMBO                = None
             self.autoSumAccounts_CB                   = None
+            self.applyNWRules_CB                      = None
             self.showWarnings_CB                      = None
             self.hideRowWhenNever_JRB                 = None
             self.hideRowWhenAlways_JRB                = None
@@ -7821,6 +7805,8 @@ Visit: %s (Author's site)
             self.blinkRow_CB                          = None
             self.hideDecimals_CB                      = None
             self.filterOutZeroBalAccts_INACTIVE_CB    = None
+            self.filterOnlyParents_CB                 = None
+            self.filterOnlyNWEligible_CB              = None
             self.filterOutZeroBalAccts_ACTIVE_CB      = None
             self.filterIncludeSelected_CB             = None
             self.filterOnlyShowSelected_CB            = None
@@ -8254,6 +8240,7 @@ Visit: %s (Author's site)
             GlobalVars.extn_param_NEW_blinkTable_NAB                 = copy.deepcopy(NAB.savedBlinkTable)
             GlobalVars.extn_param_NEW_hideDecimalsTable_NAB          = copy.deepcopy(NAB.savedHideDecimalsTable)
             GlobalVars.extn_param_NEW_autoSumAccounts_NAB            = copy.deepcopy(NAB.savedAutoSumAccounts)
+            GlobalVars.extn_param_NEW_applyNWRules_NAB               = copy.deepcopy(NAB.savedApplyNWRules)
             GlobalVars.extn_param_NEW_includeInactive_NAB            = copy.deepcopy(NAB.savedIncludeInactive)
             GlobalVars.extn_param_NEW_widget_display_name_NAB        = copy.deepcopy(NAB.savedWidgetName)
             GlobalVars.extn_param_NEW_currency_NAB                   = copy.deepcopy(NAB.savedCurrencyTable)
@@ -8368,20 +8355,32 @@ Visit: %s (Author's site)
 
                 if (self.filterOutZeroBalAccts_INACTIVE_CB.isSelected()
                         and not isAccountActive(obj.getAccount(), NAB.savedBalanceType[row])
-                        and StoreAccount.getRecursiveXBalance(NAB.savedBalanceType[row], sudoAccount) == 0):
+                        and StoreAccount.getConvertXBalanceRecursive(NAB.savedBalanceType[row], sudoAccount, recursive=True,
+                                                                     user=False, applyNWRules=False, toCurrency=None,
+                                                                     effectiveDate=None) == 0):
                     if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
                         continue
 
                 if (self.filterOutZeroBalAccts_ACTIVE_CB.isSelected()
                         and isAccountActive(obj.getAccount(), NAB.savedBalanceType[row])
-                        and StoreAccount.getRecursiveXBalance(NAB.savedBalanceType[row], sudoAccount) == 0):
+                        and StoreAccount.getConvertXBalanceRecursive(NAB.savedBalanceType[row], sudoAccount, recursive=True,
+                                                                     user=False, applyNWRules=False, toCurrency=None,
+                                                                     effectiveDate=None) == 0):
                     if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
                         continue
+
+                if (self.filterOnlyParents_CB.isSelected() and obj.getAccount().getDepth() != 1):
+                    if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
+                        continue
+
+                if isNetWorthUpgradedBuild():
+                    if (self.filterOnlyNWEligible_CB.isSelected() and not includeInNetWorth(obj.getAccount())):
+                        if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
+                            continue
 
                 if obj.getAccount().getAccountType() not in selectedTypes:
                     if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
                         continue
-
                 filteredListAccounts.append(obj)
 
             self.setJListDataAndSelection(filteredListAccounts, lFilter=True)
@@ -8937,6 +8936,7 @@ Visit: %s (Author's site)
         def includeInactiveDefault(self):               return 0
         def showPrintIconDefault(self):                 return False
         def autoSumDefault(self):                       return (False if self.savedAutoSumDefault is None else self.savedAutoSumDefault)
+        def applyNWRulesDefault(self):                  return False
         def showWarningsDefault(self):                  return True
         def disableRowDefault(self):                    return False
         def hideRowWhenXXXDefault(self):                return GlobalVars.HIDE_ROW_WHEN_NEVER
@@ -8985,6 +8985,10 @@ Visit: %s (Author's site)
             if self.savedAutoSumAccounts == [self.autoSumDefault()] and len(self.savedAutoSumAccounts) != self.getNumberOfRows():
                 self.savedAutoSumAccounts = [self.autoSumDefault() for i in range(0, self.getNumberOfRows())]            # Don't just do [] * n (as you will get references to same list)
                 myPrint("B", "New parameter savedAutoSumAccounts detected, pre-populating with %s (= Auto Sum Accounts)" %(self.savedAutoSumAccounts))
+
+            if self.savedApplyNWRules == [self.applyNWRulesDefault()] and len(self.savedApplyNWRules) != self.getNumberOfRows():
+                self.savedApplyNWRules = [self.applyNWRulesDefault() for i in range(0, self.getNumberOfRows())]
+                myPrint("B", "New parameter savedApplyNWRules detected, pre-populating with %s (= Don't automatically apply NW rules)" %(self.savedApplyNWRules))
 
             if self.savedIncExpDateRangeTable == [self.incExpDateRangeDefault()] and len(self.savedIncExpDateRangeTable) != self.getNumberOfRows():
                 self.savedIncExpDateRangeTable = [self.incExpDateRangeDefault() for i in range(0, self.getNumberOfRows())]
@@ -9090,6 +9094,8 @@ Visit: %s (Author's site)
                 self.resetParameters(11)
             elif self.savedAutoSumAccounts is None or not isinstance(self.savedAutoSumAccounts, list) or len(self.savedAutoSumAccounts) < 1:
                 self.resetParameters(13)
+            elif self.savedApplyNWRules is None or not isinstance(self.savedApplyNWRules, list) or len(self.savedApplyNWRules) < 1:
+                self.resetParameters(14)
             elif self.savedIncExpDateRangeTable is None or not isinstance(self.savedIncExpDateRangeTable, list) or len(self.savedIncExpDateRangeTable) < 1:
                 self.resetParameters(15)
             elif self.savedUseCostBasisTable is None or not isinstance(self.savedUseCostBasisTable, list) or len(self.savedUseCostBasisTable) < 1:
@@ -9168,6 +9174,8 @@ Visit: %s (Author's site)
                 self.resetParameters(67)
             elif len(self.savedAutoSumAccounts) != self.getNumberOfRows():
                 self.resetParameters(69)
+            elif len(self.savedApplyNWRules) != self.getNumberOfRows():
+                self.resetParameters(70)
             elif len(self.savedIncExpDateRangeTable) != self.getNumberOfRows():
                 self.resetParameters(71)
             elif len(self.savedUseCostBasisTable) != self.getNumberOfRows():
@@ -9252,6 +9260,9 @@ Visit: %s (Author's site)
                     if self.savedAutoSumAccounts[i] is None or not isinstance(self.savedAutoSumAccounts[i], bool):
                         printResetMessage("savedAutoSumAccounts", self.savedAutoSumAccounts[i], self.autoSumDefault(), i)
                         self.savedAutoSumAccounts[i] = self.autoSumDefault()
+                    if self.savedApplyNWRules[i] is None or not isinstance(self.savedApplyNWRules[i], bool):
+                        printResetMessage("savedApplyNWRules", self.savedApplyNWRules[i], self.applyNWRulesDefault(), i)
+                        self.savedApplyNWRules[i] = self.applyNWRulesDefault()
 
                     # This parameter will have been newly migrated, so will be in correct format!
                     if self.savedIncExpDateRangeTable[i] is None or not isinstance(self.savedIncExpDateRangeTable[i], list) or len(self.savedIncExpDateRangeTable[i]) != len(self.incExpDateRangeDefault()):
@@ -9562,19 +9573,23 @@ Visit: %s (Author's site)
             validTagsFormulaDict = {}
 
             class _StoreTagFormula:
-                def __init__(self, _idx, _tag, _formula):
+                def __init__(self, _idx, _tag, _formula, _nothis):
                     self.idx = _idx
                     self.tag = _tag
                     self.formula = _formula
                     self.shouldIgnore = (self.tag is None and self.formula is None)
+                    self.nothis = _nothis
+                def __str__(self): return "StoreTagFormula: idx: %s tag: '%s' formula: '%s' shouldIgnore: %s nothis: %s" %(self.idx, self.tag, self.formula, self.shouldIgnore, self.nothis)
+                def __repr__(self): return self.__str__()
+                def toString(self): return self.__str__()
 
             for i in range(0, NAB.getNumberOfRows()):
-                validTagsFormulaDict[i] = _StoreTagFormula(i, None, None)
+                validTagsFormulaDict[i] = _StoreTagFormula(i, None, None, False)
                 if not NAB.savedTagNameTable[i] and not NAB.savedFormulaTable[i][NAB.FORMULA_EXPR_IDX]: continue        # built for speed
                 tagName = NAB.getTagVariableNameForRowIdx(i)
-                formula, errorType, exc_value = NAB.getFormulaExprForRowIdx(i, True)
+                formula, errorType, exc_value, nothis = NAB.getFormulaExprForRowIdx(i, True)
                 if tagName is None and formula is None: continue
-                validTagsFormulaDict[i] = _StoreTagFormula(i, tagName, formula)
+                validTagsFormulaDict[i] = _StoreTagFormula(i, tagName, formula, nothis)
                 if tagName is None: continue
                 if validTagsDict.get(tagName, None) is not None:
                     del validTagsDict[tagName]                                   # Remove all instances of duplicates...
@@ -9631,7 +9646,7 @@ Visit: %s (Author's site)
             if formulaExpr is None: return isValidFormula
             isValidFormula = NAB.confirmEvalExprValid(formulaExpr)
             if not isValidFormula: return isValidFormula
-            # todo - Extra validation checks here? Valid tags? Does forumla compile? That result is double/float?
+            # todo - Extra validation checks here? Valid tags? Does formula compile? That result is double/float?
             return isValidFormula
 
         def compileFormula(self, formulaExpr):
@@ -9811,6 +9826,20 @@ Visit: %s (Author's site)
                 # myPrint("B", "_nwfif() result: %s" %(_result));
                 return _result
 
+            def _xnw(*args):                                                                                             # noqa
+                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                if len(args) != 0: raise TypeError("CB's xnw() function takes no arguments (%s given)" %(len(args)))
+                _result = self.lastNetworthValues.netWorthIgnoreFlags - self.lastNetworthValues.netWorth
+                # myPrint("B", "_xnw() result: %s" %(_result));
+                return _result
+
+            def _xnwf(*args):                                                                                           # noqa
+                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                if len(args) != 0: raise TypeError("CB's xnwf() function takes no arguments (%s given)" %(len(args)))
+                _result = self.lastNetworthValues.netWorthFutureIgnoreFlags - self.lastNetworthValues.netWorthFuture
+                # myPrint("B", "_xnwf() result: %s" %(_result));
+                return _result
+
             TAG_VARIABLES["sum"] = _sum
             TAG_VARIABLES["min"] = _min
             TAG_VARIABLES["max"] = _max
@@ -9827,6 +9856,8 @@ Visit: %s (Author's site)
             TAG_VARIABLES["nwif"] = _nwif
             TAG_VARIABLES["nwf"] = _nwf
             TAG_VARIABLES["nwfif"] = _nwfif
+            TAG_VARIABLES["xnw"] = _xnw
+            TAG_VARIABLES["xnwf"] = _xnwf
 
             # No need to touch round() as it always provides a float back!
 
@@ -9847,15 +9878,19 @@ Visit: %s (Author's site)
             return result, e_type, exc_value
 
         def getFormulaExprForRowIdx(self, rowIdx, onlyReturnValidFormula):
-            # type: (int, bool) -> (basestring, Exception, Exception)
+            # type: (int, bool) -> (basestring, Exception, Exception, bool)
             """Retrieves the formula expression for the specified row(idx) (stripped of leading/trailing whitespace, and lowercase)"""
             NAB = self
             expr = NAB.savedFormulaTable[rowIdx][NAB.FORMULA_EXPR_IDX]
             if expr is None: expr = ""
             expr = expr.strip()
             if len(expr) < 1:
-                return None, None, None
+                return None, None, None, None
             expr = expr.lower()
+
+            nothis = "@nothis" in expr
+            if nothis: expr = expr.replace("@nothis", "")
+
             if "@this" in expr: expr = expr.replace("@this", "this00000row%s" %(str(rowIdx+1)))
             if "@danspecialnumber" in expr: expr = expr.replace("@danspecialnumber", "dan00000specialnumber")
             if "@pi" in expr: expr = expr.replace("@pi", "pi00000")
@@ -9872,11 +9907,11 @@ Visit: %s (Author's site)
             expr = expr.replace("@", "")
             expr = expr.strip()
             if len(expr) < 1:
-                return None, None, None
+                return None, None, None, None
             if onlyReturnValidFormula:
                 if not NAB.isFormulaValid(expr):
-                    return None, SyntaxError, SyntaxError("Formula syntax appears invalid (own validations)?!")
-            return expr, None, None
+                    return None, SyntaxError, SyntaxError("Formula syntax appears invalid (own validations)?!"), None
+            return expr, None, None, nothis
 
         def isRowFilteredOutByGroupID(self, thisRowIdx):
             FILTER_SPLIT_TOKEN = ";"
@@ -10058,6 +10093,7 @@ Visit: %s (Author's site)
             self.savedHideDecimalsTable             = [self.hideDecimalsDefault()]
             self.savedIncludeInactive               = [self.includeInactiveDefault()]
             self.savedAutoSumAccounts               = [self.autoSumDefault()]
+            self.savedApplyNWRules                  = [self.applyNWRulesDefault()]
             self.savedWidgetName                    = [self.widgetRowDefault()]
             self.savedCurrencyTable                 = [self.currencyDefault()]
             self.savedDisableCurrencyFormatting     = [self.disableCurrencyFormattingDefault()]
@@ -10440,6 +10476,8 @@ Visit: %s (Author's site)
                                       NAB.disableCurrencyFormatting_CB,
                                       NAB.includeInactive_COMBO,
                                       NAB.filterOutZeroBalAccts_INACTIVE_CB,
+                                      NAB.filterOnlyParents_CB,
+                                      NAB.filterOnlyNWEligible_CB,
                                       NAB.filterOutZeroBalAccts_ACTIVE_CB,
                                       NAB.filterIncludeSelected_CB,
                                       NAB.filterOnlyShowSelected_CB,
@@ -10470,7 +10508,8 @@ Visit: %s (Author's site)
                                       NAB.hideRowWhenNotZeroOrX_JRB,
                                       NAB.blinkRow_CB,
                                       NAB.hideDecimals_CB,
-                                      NAB.autoSumAccounts_CB]
+                                      NAB.autoSumAccounts_CB,
+                                      NAB.applyNWRules_CB]
 
             # Don't need to remove/reinstall Listeners on these buttons....
             # clearList_button
@@ -10500,17 +10539,25 @@ Visit: %s (Author's site)
             myPrint("DB", "..about to reset filterOutZeroBalAccts_INACTIVE_CB ..")
             NAB.filterOutZeroBalAccts_INACTIVE_CB.setSelected(False)
 
+            # Reset Filter filterOnlyParents_CB
+            myPrint("DB", "..about to reset filterOnlyParents_CB ..")
+            NAB.filterOnlyParents_CB.setSelected(False)
+
+            # Reset Filter filterOnlyNWEligible_CB
+            myPrint("DB", "..about to reset filterOnlyNWEligible_CB ..")
+            NAB.filterOnlyNWEligible_CB.setSelected(False)
+
             # Reset Filter filterOutZeroBalAccts_ACTIVE_CB
             myPrint("DB", "..about to reset filterOutZeroBalAccts_ACTIVE_CB ..")
             NAB.filterOutZeroBalAccts_ACTIVE_CB.setSelected(False)
 
             # Reset Filter filterIncludeSelected_CB
             myPrint("DB", "..about to reset filterIncludeSelected_CB ..")
-            NAB.filterIncludeSelected_CB.setSelected(False)
+            NAB.filterIncludeSelected_CB.setSelected(len(NAB.savedAccountListUUIDs[selectRowIndex]) > 0)
 
             # Reset Filter filterOnlyShowSelected_CB
             myPrint("DB", "..about to reset filterOnlyShowSelected_CB ..")
-            NAB.filterOnlyShowSelected_CB.setSelected(False)
+            NAB.filterOnlyShowSelected_CB.setSelected(len(NAB.savedAccountListUUIDs[selectRowIndex]) > 0)
 
             # Reset Filter filterOnlyAccountType_COMBO
             myPrint("DB", "..about to reset filterOnlyAccountType_COMBO ..")
@@ -10539,6 +10586,9 @@ Visit: %s (Author's site)
 
             myPrint("DB", "..about to set autoSumAccounts_CB..")
             NAB.autoSumAccounts_CB.setSelected(NAB.savedAutoSumAccounts[selectRowIndex])
+
+            myPrint("DB", "..about to set applyNWRules_CB..")
+            NAB.applyNWRules_CB.setSelected(NAB.savedApplyNWRules[selectRowIndex])
 
             myPrint("DB", "..about to set useCostBasisNone_JRB, useCostBasisCB_JRB, useCostBasisCBInclCash_JRB, useCostBasisURGains_JRB, useCostBasisCapitalGainsSimple_JRB, useCostBasisCapitalGainsShort_JRB, useCostBasisCapitalGainsLong_JRB..")
             NAB.useCostBasisNone_JRB.setSelected(not isAnyCostBasisOptionTypeSelected(selectRowIndex))
@@ -10717,6 +10767,8 @@ Visit: %s (Author's site)
                 myPrint("B", ".....includeInactive_COMBO: %s"                   %(NAB.includeInactive_COMBO.getSelectedIndex()))
                 myPrint("B", ".....savedAutoSumAccounts: %s"                    %(NAB.savedAutoSumAccounts[selectRowIndex]))
                 myPrint("B", ".....autoSumAccounts_CB: %s"                      %(NAB.autoSumAccounts_CB.isSelected()))
+                myPrint("B", ".....savedApplyNWRules: %s"                       %(NAB.savedApplyNWRules[selectRowIndex]))
+                myPrint("B", ".....applyNWRules_CB: %s"                         %(NAB.applyNWRules_CB.isSelected()))
                 myPrint("B", ".....savedShowWarningsTable: %s"                  %(NAB.savedShowWarningsTable[selectRowIndex]))
                 myPrint("B", ".....showWarnings_CB: %s"                         %(NAB.showWarnings_CB.isSelected()))
                 myPrint("B", ".....savedHideRowWhenXXXTable: %s"                %(NAB.savedHideRowWhenXXXTable[selectRowIndex]))
@@ -10755,6 +10807,8 @@ Visit: %s (Author's site)
                 myPrint("B", ".....hideDecimals_CB: %s"                         %(NAB.hideDecimals_CB.isSelected()))
                 myPrint("B", ".....filterOutZeroBalAccts_INACTIVE_CB: %s"       %(NAB.filterOutZeroBalAccts_INACTIVE_CB.isSelected()))
                 myPrint("B", ".....filterOutZeroBalAccts_ACTIVE_CB: %s"         %(NAB.filterOutZeroBalAccts_ACTIVE_CB.isSelected()))
+                myPrint("B", ".....filterOnlyParents_CB: %s"                    %(NAB.filterOnlyParents_CB.isSelected()))
+                myPrint("B", ".....filterOnlyNWEligible_CB: %s"                 %(NAB.filterOnlyNWEligible_CB.isSelected()))
                 myPrint("B", ".....filterIncludeSelected_CB: %s"                %(NAB.filterIncludeSelected_CB.isSelected()))
                 myPrint("B", ".....filterOnlyShowSelected_CB: %s"               %(NAB.filterOnlyShowSelected_CB.isSelected()))
                 myPrint("B", ".....filterOnlyAccountType_COMBO: %s"             %(NAB.filterOnlyAccountType_COMBO.getSelectedItem()))
@@ -11132,7 +11186,7 @@ Visit: %s (Author's site)
                              self.savedBalanceType[self.getSelectedRowIndex()],
                              self.savedIncExpDateRangeTable[self.getSelectedRowIndex()][MyDateRangeChooser.DRC_DR_KEY_IDX]))
 
-            for acct in getAccounts: listOfAllAccountsForJList.append(StoreAccount(acct, self.savedAutoSumAccounts[self.getSelectedRowIndex()]))
+            for acct in getAccounts: listOfAllAccountsForJList.append(StoreAccount(acct))
 
             self.rebuildParallelBalanceTable()
 
@@ -11175,6 +11229,7 @@ Visit: %s (Author's site)
                 myPrint("B", "  %s" %(pad("savedBalanceType",60)),                NAB.savedBalanceType[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedBalanceAsOfDateTable",60)),       NAB.savedBalanceAsOfDateTable[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedAutoSumAccounts",60)),            NAB.savedAutoSumAccounts[iRowIdx])
+                myPrint("B", "  %s" %(pad("savedApplyNWRules",60)),               NAB.savedApplyNWRules[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedIncludeInactive",60)),            NAB.savedIncludeInactive[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedShowWarningsTable",60)),          NAB.savedShowWarningsTable[iRowIdx])
                 myPrint("B", "  %s" %(pad("savedHideRowWhenXXXTable",60)),        NAB.savedHideRowWhenXXXTable[iRowIdx])
@@ -11465,6 +11520,8 @@ Visit: %s (Author's site)
                 return("TAG NAMES SHOULD NOT START WITH 'ROW' OR USE ROW NUMBER WARNING")
             elif _type == 22:
                 return("TAG NAMES SHOULD NOT BE THE SAME AS FUNCTION NAMES WARNING")
+            elif _type == 23:
+                return("APPLY NET WORTH RULES ENABLED ON INVALID MONEYDANCE VERSION")
             return("WARNING <<UNKNOWN>> DETECTED")
 
         class SimulateTotalForRowSwingWorker(SwingWorker):
@@ -11549,6 +11606,7 @@ Visit: %s (Author's site)
                         lFormatAsPercent = (NAB.savedFormatAsPercentTable[i][NAB.FORMAT_AS_PERCENT_IDX])
                         lUsesOtherRow = (NAB.savedOperateOnAnotherRowTable[i][NAB.OPERATE_OTHER_ROW_ROW] is not None)
                         lUseTaxDates = (NAB.savedUseTaxDates and isIncomeExpenseDatesSelected(i))
+                        lApplyNWRules = (NAB.savedApplyNWRules[i])
 
                         balanceOrAverageLong = balanceObj.getBalance()
                         balanceOrAverageDecimals = balanceObj.getBalanceWithDecimalsPreserved()
@@ -11586,6 +11644,11 @@ Visit: %s (Author's site)
                                 avgByForRow = NAB.getAvgByForRow(i)
                                 showAverageText = " (avg)"
                                 if debug: myPrint("DB", ":: Row: %s using average / by: %s" %(i+1, avgByForRow))
+
+                            applyNWRulesText = ""
+                            if lApplyNWRules:
+                                applyNWRulesText = " (nw)"
+                                if debug: myPrint("DB", ":: Row: %s is applying net worth rules to calculations (i.e. it may be excluding some selected accounts)" %(i+1))
 
                             showRowMathsCalcText = ""
                             if lRowMathsCalculation:
@@ -11686,7 +11749,8 @@ Visit: %s (Author's site)
                                                                                                      + showBalanceAsOfText
                                                                                                      + showIncludeRemindersText
                                                                                                      + showCostBasisText
-                                                                                                     + showUsesOtherRowTxt)
+                                                                                                     + showUsesOtherRowTxt
+                                                                                                     + applyNWRulesText)
 
                             resultTxt = wrap_HTML_BIG_small(theFormattedValue + theDecimalPrecisionFormattedValue, _grayInfoText, altFG)
                             NAB.simulateTotal_label.setText(resultTxt)
@@ -11912,6 +11976,7 @@ Visit: %s (Author's site)
                                    NAB.savedBlinkTable,
                                    NAB.savedHideDecimalsTable,
                                    NAB.savedAutoSumAccounts,
+                                   NAB.savedApplyNWRules,
                                    NAB.savedIncludeInactive,
                                    NAB.savedShowWarningsTable,
                                    NAB.savedHideRowWhenXXXTable,
@@ -11956,6 +12021,14 @@ Visit: %s (Author's site)
                     if NAB.savedAutoSumAccounts[NAB.getSelectedRowIndex()] != event.getSource().isSelected():
                         myPrint("DB", ".. setting savedAutoSumAccounts to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
                         NAB.savedAutoSumAccounts[NAB.getSelectedRowIndex()] = event.getSource().isSelected()
+                        NAB.configSaved = False
+                        NAB.refreshJListDisplay()
+
+                # ######################################################################################################
+                if event.getSource() is NAB.applyNWRules_CB:
+                    if NAB.savedApplyNWRules[NAB.getSelectedRowIndex()] != event.getSource().isSelected():
+                        myPrint("DB", ".. setting savedApplyNWRules to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
+                        NAB.savedApplyNWRules[NAB.getSelectedRowIndex()] = event.getSource().isSelected()
                         NAB.configSaved = False
                         NAB.refreshJListDisplay()
 
@@ -12073,6 +12146,14 @@ Visit: %s (Author's site)
                 # ######################################################################################################
                 if event.getSource() is NAB.filterOutZeroBalAccts_INACTIVE_CB:
                     myPrint("DB", ".. setting filterOutZeroBalAccts_INACTIVE_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
+                    NAB.searchFiltersUpdated()
+
+                if event.getSource() is NAB.filterOnlyParents_CB:
+                    myPrint("DB", ".. setting filterOnlyParents_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
+                    NAB.searchFiltersUpdated()
+
+                if event.getSource() is NAB.filterOnlyNWEligible_CB:
+                    myPrint("DB", ".. setting filterOnlyNWEligible_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
                     NAB.searchFiltersUpdated()
 
                 if event.getSource() is NAB.filterOutZeroBalAccts_ACTIVE_CB:
@@ -12203,6 +12284,7 @@ Visit: %s (Author's site)
                         NAB.savedBlinkTable.insert(NAB.getSelectedRowIndex(),                 NAB.blinkDefault())
                         NAB.savedHideDecimalsTable.insert(NAB.getSelectedRowIndex(),          NAB.hideDecimalsDefault())
                         NAB.savedAutoSumAccounts.insert(NAB.getSelectedRowIndex(),            NAB.autoSumDefault())
+                        NAB.savedApplyNWRules.insert(NAB.getSelectedRowIndex(),               NAB.applyNWRulesDefault())
                         NAB.savedWidgetName.insert(NAB.getSelectedRowIndex(),                 NAB.widgetRowDefault())
                         NAB.savedCurrencyTable.insert(NAB.getSelectedRowIndex(),              NAB.currencyDefault())
                         NAB.savedDisableCurrencyFormatting.insert(NAB.getSelectedRowIndex(),  NAB.disableCurrencyFormattingDefault())
@@ -12246,6 +12328,7 @@ Visit: %s (Author's site)
                         NAB.savedBlinkTable.insert(NAB.getSelectedRowIndex()+1,                 NAB.blinkDefault())
                         NAB.savedHideDecimalsTable.insert(NAB.getSelectedRowIndex()+1,          NAB.hideDecimalsDefault())
                         NAB.savedAutoSumAccounts.insert(NAB.getSelectedRowIndex()+1,            NAB.autoSumDefault())
+                        NAB.savedApplyNWRules.insert(NAB.getSelectedRowIndex()+1,               NAB.applyNWRulesDefault())
                         NAB.savedWidgetName.insert(NAB.getSelectedRowIndex()+1,                 NAB.widgetRowDefault())
                         NAB.savedCurrencyTable.insert(NAB.getSelectedRowIndex()+1,              NAB.currencyDefault())
                         NAB.savedDisableCurrencyFormatting.insert(NAB.getSelectedRowIndex()+1,  NAB.disableCurrencyFormattingDefault())
@@ -12582,6 +12665,7 @@ Visit: %s (Author's site)
                 self.account = None
                 self.isAccountActive = None
                 self.incomeExpenseFlag = None
+                self.excludeNWFlag = None
                 self.listItem = None
                 self.acctName = None
                 self.acctType = None
@@ -12681,14 +12765,17 @@ Visit: %s (Author's site)
                         self.isAccountActive = isAccountActive(self.account, NAB.savedBalanceType[NAB.getSelectedRowIndex()], sudoAccount=self.sudoAccountHoldBalanceObj)
                         self.hasInactiveChildren = accountIncludesInactiveChildren(self.account, NAB.savedBalanceType[NAB.getSelectedRowIndex()], sudoAccount=self.sudoAccountHoldBalanceObj)
 
-                    acctCurr = self.account.getCurrencyType()
                     balType = NAB.savedBalanceType[NAB.getSelectedRowIndex()]
                     thisRowCurr = MyHomePageView.getCurrencyByUUID(NAB.savedCurrencyTable[NAB.getSelectedRowIndex()], baseCurr)
 
                     self.includeInactive = NAB.savedIncludeInactive[NAB.getSelectedRowIndex()]
                     self.hasDisabledCurrencyFormatting = NAB.savedDisableCurrencyFormatting[NAB.getSelectedRowIndex()]
 
+                    self.incomeExpenseFlag = ""
+                    self.excludeNWFlag = ""
+
                     mult = 1
+
                     # noinspection PyUnresolvedReferences
                     if self.account.getAccountType() == Account.AccountType.INCOME:
                         self.incomeExpenseFlag = "I"
@@ -12696,16 +12783,15 @@ Visit: %s (Author's site)
                         self.incomeExpenseFlag = "E"
                         mult = -1
                     else:
-                        self.incomeExpenseFlag = ""
+                        # Income / Expense accounts can never be NW eligible, so don't bother checking!
+                        if (isNetWorthUpgradedBuild() and not includeInNetWorth(self.account)):
+                            self.excludeNWFlag = "XNW"
 
                     effectiveDateInt = None if (not isinstance(self.sudoAccountHoldBalanceObj, HoldBalance)) else self.sudoAccountHoldBalanceObj.getEffectiveDateInt()
-                    self.userXBalance = StoreAccount.getUserXBalance(balType, self.sudoAccountHoldBalanceObj) * mult
+                    self.userXBalance = StoreAccount.getConvertXBalanceRecursive(balType, self.sudoAccountHoldBalanceObj, recursive=False,
+                                                                                 user=True, applyNWRules=False, toCurrency=thisRowCurr,
+                                                                                 effectiveDate=effectiveDateInt) * mult
                     if not NAB.savedShowDashesInsteadOfZeros or self.userXBalance:
-                        if self.userXBalance != 0 and acctCurr != thisRowCurr:
-                            self.userXBalance = convertValue(self.userXBalance, acctCurr, thisRowCurr, effectiveDateInt)
-
-                        # self.userXBalanceStr = (thisRowCurr.formatFancy(self.userXBalance, NAB.decimal) if (not self.hasDisabledCurrencyFormatting)
-                        #                         else thisRowCurr.formatSemiFancy(self.userXBalance, NAB.decimal))
                         self.userXBalanceStr = formatFancy(thisRowCurr, self.userXBalance, NAB.decimal, fancy=(not self.hasDisabledCurrencyFormatting), indianFormat=NAB.savedUseIndianNumberFormat)
                     else:
                         self.userXBalanceStr = "-"
@@ -12713,13 +12799,10 @@ Visit: %s (Author's site)
                     if NAB.isParallelRebuildRunning_NOLOCKFIRST(): self.userXBalanceStr = "<rebuilding>"
 
                     if self.acctSubAcctCount > 0:
-                        self.recursiveUserXBalance = StoreAccount.getRecursiveUserXBalance(balType, self.sudoAccountHoldBalanceObj) * mult
+                        self.recursiveUserXBalance = StoreAccount.getConvertXBalanceRecursive(balType, self.sudoAccountHoldBalanceObj, recursive=True,
+                                                                                              user=True, applyNWRules=False, toCurrency=thisRowCurr,
+                                                                                              effectiveDate=effectiveDateInt) * mult
                         if not NAB.savedShowDashesInsteadOfZeros or self.recursiveUserXBalance:
-                            if self.recursiveUserXBalance != 0 and acctCurr != thisRowCurr:
-                                self.recursiveUserXBalance = convertValue(self.recursiveUserXBalance, acctCurr, thisRowCurr, effectiveDateInt)
-
-                            # self.recursiveUserXBalanceStr = (thisRowCurr.formatFancy(self.recursiveUserXBalance, NAB.decimal) if (not self.hasDisabledCurrencyFormatting)
-                            #                                  else thisRowCurr.formatSemiFancy(self.recursiveUserXBalance, NAB.decimal))
                             self.recursiveUserXBalanceStr = formatFancy(thisRowCurr, self.recursiveUserXBalance, NAB.decimal, fancy=(not self.hasDisabledCurrencyFormatting), indianFormat=NAB.savedUseIndianNumberFormat)
                         else:
                             self.recursiveUserXBalanceStr = "-"
@@ -12828,10 +12911,16 @@ Visit: %s (Author's site)
                 recurBalText = self.recursiveUserXBalanceStr
 
                 flagWidth = 0
+                miniFlags = ""
                 if self.incomeExpenseFlag:
+                    miniFlags += self.incomeExpenseFlag
+                elif self.excludeNWFlag:
+                    miniFlags += self.excludeNWFlag
+
+                if miniFlags != "":
                     # g2d.setPaint(altFG)
-                    flagWidth = fm.stringWidth(self.incomeExpenseFlag)
-                    g2d.drawString(self.incomeExpenseFlag, self.coord_w - x_right_shift - (self.valueWidth * 2) - flagWidth - self.INITIAL_SHIFT, texty)
+                    flagWidth = fm.stringWidth(miniFlags)
+                    g2d.drawString(miniFlags, self.coord_w - x_right_shift - (self.valueWidth * 2) - flagWidth - self.INITIAL_SHIFT, texty)
                     # g2d.setPaint(fg)
 
                 if balText is not None:
@@ -12873,6 +12962,7 @@ Visit: %s (Author's site)
                 GlobalVars.extn_param_NEW_disableCurrencyFormatting_NAB     = [NAB.disableCurrencyFormattingDefault()]
                 GlobalVars.extn_param_NEW_includeInactive_NAB               = [NAB.includeInactiveDefault()]
                 GlobalVars.extn_param_NEW_autoSumAccounts_NAB               = [NAB.autoSumDefault()]
+                GlobalVars.extn_param_NEW_applyNWRules_NAB                  = [NAB.applyNWRulesDefault()]
                 GlobalVars.extn_param_NEW_incExpDateRangeTable_NAB          = [NAB.incExpDateRangeDefault()]
                 GlobalVars.extn_param_NEW_useCostBasisTable_NAB             = [NAB.useCostBasisDefault()]
                 GlobalVars.extn_param_NEW_includeRemindersTable_NAB         = [NAB.includeRemindersDefault()]
@@ -12945,6 +13035,7 @@ Visit: %s (Author's site)
                         self.savedHideDecimalsTable             = copy.deepcopy(GlobalVars.extn_param_NEW_hideDecimalsTable_NAB)
                         self.savedIncludeInactive               = copy.deepcopy(GlobalVars.extn_param_NEW_includeInactive_NAB)
                         self.savedAutoSumAccounts               = copy.deepcopy(GlobalVars.extn_param_NEW_autoSumAccounts_NAB)
+                        self.savedApplyNWRules                  = copy.deepcopy(GlobalVars.extn_param_NEW_applyNWRules_NAB)
                         self.savedWidgetName                    = copy.deepcopy(GlobalVars.extn_param_NEW_widget_display_name_NAB)
                         self.savedCurrencyTable                 = copy.deepcopy(GlobalVars.extn_param_NEW_currency_NAB)
                         self.savedDisableCurrencyFormatting     = copy.deepcopy(GlobalVars.extn_param_NEW_disableCurrencyFormatting_NAB)
@@ -14080,6 +14171,17 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.disableCurrencyFormatting_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).rightInset(colRightInset).fillx())
                     onCol += 1
 
+                    NAB.applyNWRules_CB = MyJCheckBox("Apply Net Worth rules", False)
+                    NAB.applyNWRules_CB.putClientProperty("%s.id" %(NAB.myModuleID), "applyNWRules_CB")
+                    NAB.applyNWRules_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.applyNWRules_CB.setName("applyNWRules_CB")
+                    NAB.applyNWRules_CB.setToolTipText("When enabled then accounts that have been flagged as excluded from Net Worth will be ignored even when selected")
+                    NAB.applyNWRules_CB.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.applyNWRules_CB.addActionListener(NAB.saveActionListener)
+                    NAB.applyNWRules_CB.setEnabled(isNetWorthUpgradedBuild())
+                    controlPnl.add(NAB.applyNWRules_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).rightInset(colRightInset).fillx())
+                    onCol += 1
+
                     onRow += 1
 
                     # --------------------------------------------------------------------------------------------------
@@ -14618,7 +14720,7 @@ Visit: %s (Author's site)
 
                     onCol = 0
                     topInset = 8
-                    bottomInset = 5
+                    bottomInset = 0
                     js = MyJSeparator()
                     js.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                     controlPnl.add(js, GridC.getc(onCol, onRow).leftInset(colLeftInset).topInset(topInset).rightInset(colRightInset).bottomInset(bottomInset).colspan(4).fillx())
@@ -14739,7 +14841,17 @@ Visit: %s (Author's site)
                     filters_pnl.add(NAB.filterOutZeroBalAccts_INACTIVE_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
 
-                    NAB.filterIncludeSelected_CB = MyJCheckBox("Filter Include Selected", False)
+                    NAB.filterOnlyParents_CB = MyJCheckBox("Only Show Parents", False)
+                    NAB.filterOnlyParents_CB.setActionCommand("filter_only_parents")
+                    NAB.filterOnlyParents_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyParents_CB")
+                    NAB.filterOnlyParents_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.filterOnlyParents_CB.setName("filterOnlyParents_CB")
+                    NAB.filterOnlyParents_CB.setToolTipText("Applies an additional filter: Only show parent accounts (useful with AutoSum)")
+                    NAB.filterOnlyParents_CB.addActionListener(NAB.saveActionListener)
+                    filters_pnl.add(NAB.filterOnlyParents_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
+                    onFiltersCol += 1
+
+                    NAB.filterIncludeSelected_CB = MyJCheckBox("Filter Include Selected", True)
                     NAB.filterIncludeSelected_CB.setActionCommand("filter_include_selected")
                     NAB.filterIncludeSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterIncludeSelected_CB")
                     NAB.filterIncludeSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
@@ -14773,7 +14885,18 @@ Visit: %s (Author's site)
                     filters_pnl.add(NAB.filterOutZeroBalAccts_ACTIVE_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
 
-                    NAB.filterOnlyShowSelected_CB = MyJCheckBox("Only Show Selected", False)
+                    NAB.filterOnlyNWEligible_CB = MyJCheckBox("Only Show Net Worth accounts", False)
+                    NAB.filterOnlyNWEligible_CB.setActionCommand("filter_only_networth_eligible")
+                    NAB.filterOnlyNWEligible_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyNWEligible_CB")
+                    NAB.filterOnlyNWEligible_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.filterOnlyNWEligible_CB.setName("filterOnlyNWEligible_CB")
+                    NAB.filterOnlyNWEligible_CB.setToolTipText("Applies an additional filter: Only show accounts that are eligible for Net Worth calculations")
+                    NAB.filterOnlyNWEligible_CB.addActionListener(NAB.saveActionListener)
+                    NAB.filterOnlyNWEligible_CB.setEnabled(isNetWorthUpgradedBuild())
+                    filters_pnl.add(NAB.filterOnlyNWEligible_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
+                    onFiltersCol += 1
+
+                    NAB.filterOnlyShowSelected_CB = MyJCheckBox("Only Show Selected", True)
                     NAB.filterOnlyShowSelected_CB.setActionCommand("only_show_selected")
                     NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyShowSelected_CB")
                     NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
@@ -15847,7 +15970,6 @@ Visit: %s (Author's site)
                         if acct is not None:
                             # myPrint("DB", "....found and adding account to list: %s" %acct)
                             accountsToShow[iAccountLoop].append(acct)
-
                         else:
                             if debug: myPrint("B", "....WARNING - Row: %s >> Account with UUID %s not found..? Skipping this one...." %(onRow, accID))
 
@@ -15858,7 +15980,7 @@ Visit: %s (Author's site)
                 thisSectionStartTime = System.currentTimeMillis()
 
                 # -------- QUICKLY OBTAIN MONEYDANCE's NETWORTH VALUES -------------------------------------------------
-                NAB.lastNetworthValues = NAB.StoreNetWorthValues()
+                NAB.lastNetworthValues = NAB.StoreNetWorthValues()  # fixme - only do this if any net worth formulas are actually being used
                 if isNetWorthUpgradedBuild():
                     if debug: myPrint("B", "... quickly obtaining Moneydance's internal NetWorth values (for formula usage)...")
                     nwc = NetWorthCalculator(_book)  # will default to the base currency
@@ -15920,7 +16042,7 @@ Visit: %s (Author's site)
                             if swClass and swClass.isCancelled(): return []
 
                             returnThisAccountAndAllChildren(acct, _listAccounts=parallelFullAccountsList,
-                                                            autoSum=NAB.savedAutoSumAccounts[iAccountLoop],
+                                                            recursive=NAB.savedAutoSumAccounts[iAccountLoop],
                                                             justIncomeExpense=False)
 
                         if len(parallelFullAccountsList) > 0:
@@ -16091,7 +16213,7 @@ Visit: %s (Author's site)
                                     if (debug or NAB.savedShowWarningsTable[iAccountLoop]) and (not lFromSimulate or iAccountLoop == justIndex):
 
                                         # Check for invalid cost basis issues...
-                                        if sudoAcctRef.isCostBasisInvalid():
+                                        if sudoAcctRef.isCostBasisInvalid():    # todo - is this check actually correct (ie it's not checking that one of these types was requested)?
                                             lWarningDetected = True
                                             iWarningType = (14 if (iWarningType is None or iWarningType == 14) else 0)
                                             iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
@@ -16110,40 +16232,41 @@ Visit: %s (Author's site)
                                 if debug: myPrint("DB", ">> RowIdx: %s - Parallel balances NOT operating on this row - retaining system calculated balances....:" %(iAccountLoop))
                                 sudoAcctRef = acct                                                                      # type: Account
 
-                            if NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_BALANCE:
-                                bal = sudoAcctRef.getBalance() if not autoSumFlag else sudoAcctRef.getRecursiveBalance()
-                                if debug: myPrint("DB", "HomePageView: adding acct: %s Balance: %s - RecursiveAutoSum: %s"
-                                        %((sudoAcctRef.getFullAccountName()), rpad(formatSemiFancy(acctCurr, bal, NAB.decimal, indianFormat=NAB.savedUseIndianNumberFormat),12), autoSumFlag))
-                            elif NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_CURRENTBALANCE:
-                                bal = sudoAcctRef.getCurrentBalance() if not autoSumFlag else sudoAcctRef.getRecursiveCurrentBalance()
-                                if debug: myPrint("DB", "HomePageView: adding acct: %s Current Balance: %s - RecursiveAutoSum: %s"
-                                        %((sudoAcctRef.getFullAccountName()), rpad(formatSemiFancy(acctCurr, bal, NAB.decimal, indianFormat=NAB.savedUseIndianNumberFormat),12), autoSumFlag))
-                            elif NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_CLEAREDBALANCE:
-                                bal = sudoAcctRef.getClearedBalance() if not autoSumFlag else sudoAcctRef.getRecursiveClearedBalance()
-                                if debug: myPrint("DB", "HomePageView: adding acct: %s Cleared Balance: %s - RecursiveAutoSum: %s"
-                                        %((sudoAcctRef.getFullAccountName()), rpad(formatSemiFancy(acctCurr, bal, NAB.decimal, indianFormat=NAB.savedUseIndianNumberFormat),12), autoSumFlag))
-                            else:
-                                bal = 0
-                                myPrint("B", "@@ HomePageView widget - INVALID BALANCE TYPE: %s?" %(NAB.savedBalanceType[iAccountLoop]))
+                            #######
+                            # NOTE: at this point if apply net worth rules has been selected, then we have forced parallel balances, so that we control the result of .getBalance() etc...
+                            if isNetWorthUpgradedBuild() and NAB.savedApplyNWRules[iAccountLoop] and not isParallelBalanceTableOperational(iAccountLoop):
+                                raise Exception("LOGIC ERROR 'apply net worth rules' but not using parellel balances?!")
 
-                            mult = 1
-                            if isIncomeExpenseAcct(acct): mult = -1
+                            #######
+                            # this is it - get the balance and add it to the total...
+                            bal = StoreAccount.getConvertXBalanceRecursive(NAB.savedBalanceType[iAccountLoop],
+                                                                           sudoAcctRef,
+                                                                           recursive=autoSumFlag,
+                                                                           user=False,
+                                                                           applyNWRules=NAB.savedApplyNWRules[iAccountLoop],
+                                                                           toCurrency=thisRowCurr,
+                                                                           effectiveDate=effectiveDateInt)
+                            if debug: myPrint("DB", "HomePageView: adding acct: %s Balance: %s - RecursiveAutoSum: %s"
+                                    %((sudoAcctRef.getFullAccountName()), rpad(formatSemiFancy(acctCurr, bal, NAB.decimal, indianFormat=NAB.savedUseIndianNumberFormat),12), autoSumFlag))
 
-                            # This bit is neat, as it seems to work for Securities with just the qty balance!!
-                            if bal != 0 and acctCurr != thisRowCurr:
-                                balConv = convertValue(bal, acctCurr, thisRowCurr, effectiveDateInt)
-                                # myPrint("DB", ".. Converted %s to %s (%s)" %(acctCurr.formatSemiFancy(bal, NAB.decimal), thisRowCurr.formatSemiFancy(balConv, NAB.decimal), thisRowCurr))
-                                if debug: myPrint("DB", ".. Converted %s to %s (%s)"
-                                        %(formatSemiFancy(acctCurr, bal, NAB.decimal, indianFormat=NAB.savedUseIndianNumberFormat),
-                                          formatSemiFancy(thisRowCurr, balConv, NAB.decimal, indianFormat=NAB.savedUseIndianNumberFormat), thisRowCurr))
-                                totalBalance += (balConv * mult)
-                            else:
-                                totalBalance += (bal * mult)
+                            mult = -1 if (isIncomeExpenseAcct(acct)) else 1
+                            totalBalance += (bal * mult)
+
 
                         ### START WARNING CHECKS ####
                         if (debug or NAB.savedShowWarningsTable[iAccountLoop]) and (not lFromSimulate or iAccountLoop == justIndex):
 
                             # DETECT ILLOGICAL CALCULATIONS - OR OTHER WARNINGS...
+
+                            if (not isNetWorthUpgradedBuild() and NAB.savedApplyNWRules[iAccountLoop]):
+                                lWarningDetected = True
+                                iWarningType = (23 if (iWarningType is None or iWarningType == 23) else 0)
+                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                warnTxt = ("WARNING: Row: %s >> 'Apply Net Worth rules' enabled, but Moneydance version too old! (minimum build: %s). Calculations will be ignoring this setting!"
+                                           %(onRow, GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                                myPrint("B", warnTxt)
+                                NAB.warningMessagesTable.append(warnTxt)
+
                             if not NAB.isValidTagNameForRowIdx(iAccountLoop, validTagDict):
                                 lWarningDetected = True
                                 iWarningType = (17 if (iWarningType is None or iWarningType == 17) else 0)
@@ -16264,6 +16387,14 @@ Visit: %s (Author's site)
 
                         ### END WARNING CHECKS ###
 
+
+                    # todo - consider if nuking the balance is the right thing to do here...?
+                    # if the 'apply net worth rules' flag has been set and not on a valid Moneydance build, then kill the balance - sorry!
+                    if (not isNetWorthUpgradedBuild() and NAB.savedApplyNWRules[iAccountLoop]):
+                        if debug: myPrint("DB", "@@ Row %s - nuking the calculated (raw)balance was: %s (now None) as 'applyNetWorthRules' flag was detected - on invalid Moneydance build (sorry)!" %(onRow, totalBalance))
+                        totalBalance = None
+
+
                     # This is it, store the calculated balance!
                     calculatedBalanceObj = CalculatedBalance(rowName=NAB.savedWidgetName[iAccountLoop],
                                                              currencyType=thisRowCurr,
@@ -16275,6 +16406,7 @@ Visit: %s (Author's site)
                     calculatedBalanceObj.setBalanceWithDecimalsPreserved(None if (totalBalance is None) else thisRowCurr.getDoubleValue(totalBalance))
                     calculatedBalanceObj.setCountSelectedAccounts(len(accountsToShow[iAccountLoop]))
                     calculatedBalanceObj.setAutoSum(NAB.savedAutoSumAccounts[iAccountLoop])
+                    calculatedBalanceObj.setNetWorthRulesApplied(NAB.savedApplyNWRules[iAccountLoop])
                     _totalBalanceTable.append(calculatedBalanceObj)
 
                 del accountsToShow, totalBalance, parallelFullAccountsList
@@ -16535,7 +16667,7 @@ Visit: %s (Author's site)
 
                         result = None
 
-                        formula, errorType, errorValue = NAB.getFormulaExprForRowIdx(i, True)
+                        formula, errorType, errorValue, nothis = NAB.getFormulaExprForRowIdx(i, True)
                         if formula is None:
                             if errorType:
                                 balanceObj.setFormulaError(True)
@@ -16568,14 +16700,15 @@ Visit: %s (Author's site)
                         if (debug or NAB.savedShowWarningsTable[i]) and (not lFromSimulate or i == justIndex):
                             if formula is not None:
                                 thisTag = validTagsFormulaDict[i].tag
-                                if ("this00000row" not in formula and (thisTag is None or thisTag not in formula)):
-                                    lWarningDetected = True
-                                    iWarningType = (20 if (iWarningType is None or iWarningType == 20) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Formula appears to NOT reference this row ?! ('%s')" %(onRow, NAB.savedFormulaTable[i][NAB.FORMULA_EXPR_IDX]))
-                                    if debug: myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
-                                    if not NAB.lastFormulaWarning: NAB.lastFormulaWarning = "Warning: Formula appears to NOT reference this row?!"
+                                if not validTagsFormulaDict[i].nothis:
+                                    if ("this00000row" not in formula and (thisTag is None or thisTag not in formula)):
+                                        lWarningDetected = True
+                                        iWarningType = (20 if (iWarningType is None or iWarningType == 20) else 0)
+                                        iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                        warnTxt = ("WARNING: Row: %s >> Formula appears to NOT reference this row ?! ('%s')" %(onRow, NAB.savedFormulaTable[i][NAB.FORMULA_EXPR_IDX]))
+                                        if debug: myPrint("B", warnTxt)
+                                        NAB.warningMessagesTable.append(warnTxt)
+                                        if not NAB.lastFormulaWarning: NAB.lastFormulaWarning = "Warning: Formula appears to NOT reference this row?!"
 
                         if formula is None or balanceObj.isFormulaError(): continue
 
@@ -16908,6 +17041,7 @@ Visit: %s (Author's site)
                                     lFormatAsPercent = (NAB.savedFormatAsPercentTable[i][NAB.FORMAT_AS_PERCENT_IDX])
                                     lUsesOtherRow = (NAB.savedOperateOnAnotherRowTable[i][NAB.OPERATE_OTHER_ROW_ROW] is not None)
                                     lUseTaxDates = (NAB.savedUseTaxDates and isIncomeExpenseDatesSelected(i))
+                                    lApplyNWRules = (NAB.savedApplyNWRules[i])
 
                                     balanceOrAverageLong = balanceObj.getBalance()
                                     balanceOrAverageDecimals = balanceObj.getBalanceWithDecimalsPreserved()
@@ -16930,6 +17064,11 @@ Visit: %s (Author's site)
                                         avgByForRow = NAB.getAvgByForRow(i)
                                         showAverageText = " (avg/by: %s)" %(round(avgByForRow, 4))
                                         if debug: myPrint("DB", ":: Row: %s using average / by: %s" %(onRow, avgByForRow))
+
+                                    applyNWRulesText = ""
+                                    if lApplyNWRules:
+                                        applyNWRulesText = " (nw)"
+                                        if debug: myPrint("DB", ":: Row: %s is applying net worth rules to calculations (i.e. it may be excluding some selected accounts)" %(onRow))
 
                                     showBalanceAsOfText = ""
                                     if isBalanceAsOfDateSelected(i):
@@ -17027,7 +17166,8 @@ Visit: %s (Author's site)
                                                                                                               + showBalanceAsOfText
                                                                                                               + showIncludeRemindersText
                                                                                                               + showCostBasisText
-                                                                                                              + showUsesOtherRowTxt)  # + uuidTxt)
+                                                                                                              + showUsesOtherRowTxt
+                                                                                                              + applyNWRulesText)  # + uuidTxt)
 
                                     tdfsc = TextDisplayForSwingConfig(("[%s] " %(i+1) if debug else "") + NAB.savedWidgetName[i], _grayInfoText, altFG, insertVars=insertVars)
 

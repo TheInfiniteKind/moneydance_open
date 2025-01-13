@@ -1,8 +1,8 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated: October 2024
-Credit: (slack: @dtd) aka Dan T Davis for his input, testing and suggestions to make a (MUCH) better product......
+Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated: January 2025
+Credit: (slack: @dtd) aka Dan T Davis for his input, testing, patience and suggestions to make a (much) better product..
 
 Custom Balances works with 2021.1(3056) and newer.
-DISCLAIMER: THIS EXTENSION IS READONLY (IT DOES NOT CHANGE DATA) >> BUT YOU USE AT YOUR OWN RISK!
+DISCLAIMER: THIS EXTENSION IS READONLY (IT DOES NOT CHANGE DATA) >> YOU USE AT YOUR OWN RISK!
 
 DEFINITIONS:
 - CB means this extension / Custom Balances
@@ -32,26 +32,6 @@ This extension creates a 'widget' that calculates / displays totals on the Money
 - You can change the name of each row, the balance type, and the currency to display. Also Active/Inactive items.
 
 ------------------------------------------------------------------------------------------------------------------------
-UPGRADE NOTES:
-If you have been using recent PREVIEW builds (since 1038 / November 2023) then you may have configured
-'Final Maths Calculation' (FMC), and also come across 'absorbed into other UORs' and also 'not absorbed'. These settings
-have gone, and have been migrated into:
-a) 'Post UOR maths calculation' (PUM) (replacing FMC absorbed), or...
-b) 'Format Display Adjust' (FDA)      (replacing FMC non-absorbed).
-
-DEFINITION: 'absorbed' in this context means that the math takes place before being rolled upwards into other
-UORs that refer to this row... I.e. 'non-absorbed' means the impact of the maths stays on this row alone.
-
-There is a new exciting Formula (FOR) capability from build 1046+. This in effect can replace RMC, UOR, PUM. You can
-continue to use these, or use the new superior formula capability. You can actually combine all these, but this is
-NOT RECOMMENDED as it's duplicative and confusing to understand. RECOMMENDATION: if you want to use formulas, then
-manually update your settings to only use formula. Average by is not affected by this change. FDA and *100 can remain,
-or be replaced by formula - your choice.
-
-Formula gives you the ability to add multiple rows together, or perhaps subtract one row from another (for example).
-These types of calculations are quite tricky to perform using the 'old' UOR maths.
-------------------------------------------------------------------------------------------------------------------------
-
 LET'S GET STARTED:
 
 The GUI config screen utilises a split screen to show you the main settings (top) and the accounts picklist (bottom).
@@ -218,6 +198,16 @@ CHOICES/CONFIGURATION FOR A ROW:
 - Display Currency: Allows you to display the balance in a chosen currency, or security value, or other format.
                     Disable Currency Formatting: drops any symbol/prefix/suffix associated with the currency.
 
+- Apply Net Worth rules: Default OFF. When enabled, any selected accounts will have their MD 'include in net worth'
+                         flag checked, and this will determine whether that account's balance will actually be included.
+                         In other words, accounts selected for inclusion in this row's balance may be ignored /
+                         excluded anyway if this setting is enabled and the account is flagged to be excluded from NW.
+                         When enabling this setting, you still must select all accounts to be considered in the picklist
+                         If you enable this feature and then revert to an older version of Moneydance, then this setting
+                         will simply be ignored, perhaps giving different results. (enabled from MD2024.3(5204) onwards).
+
+                         ** NOTE: this setting will force parallel balances to be calculated for that row...
+                                  rows with this setting enabled may be slower to calculate than by using other means.
 ------------------------------------------------------------------------------------------------------------------------
 
 MATH ON CALCULATED BALANCES:
@@ -254,7 +244,7 @@ MATH ON CALCULATED BALANCES:
 
 - Maths using another row (UOR): You can retrieve the result from another row(x) and then apply maths to the result of
                                  the current row.. E.g. take this row and divide it by the result from row(x).
-                                 E.g. this could calculate the value of investments as a percentage of total networth.
+                                 E.g. this could calculate the value of investments as a percentage of total net worth.
                                  UORs can be chained together. E.G. row 3 can use row 2 and row 2 can use row 1
 
                                  WARNING: There is no currency conversion between chained UORs
@@ -283,7 +273,7 @@ MATH ON CALCULATED BALANCES:
 
                    Example formulas: '((@this - applestock) / networth) * 100.0'
                                      '@this * 0.2' or '(rowtagname / otherrowtagname)' or '@danspecialnumber'
-                                     'NetWorth / @pi' or 'random()' or '@mdbuild * @mdversion'
+                                     'networth / @pi' or 'random()' or '@mdbuild * @mdversion'
                                      'useifgt(sum(rowtagname1,rowtagname2,rowtagname3), 0)'
 
                  - You can also enter currencyIDs / security ticker symbols if you wish
@@ -291,7 +281,7 @@ MATH ON CALCULATED BALANCES:
 
                  - Formula can refer to the calculated result from any row with a 'tag' name (including it's own row)
 
-                 - For example '((investments / networth) * 100)' to obtain your investments as a percentage of networth
+                 - For example '((investments / networth) * 100)' to obtain investments as a percentage of net worth
                    ... assuming that you set the tags 'investments' and 'networth' on the appropriate row(s)
 
                  - Formulas NEVER absorb / roll up into other UORs
@@ -314,10 +304,14 @@ MATH ON CALCULATED BALANCES:
                    other/standard functions available are: sum(), abs(), min(), max(), round(), float(), random()
 
                    Builds MD2023.3(5204) onwards includes Net Worth calculations (calculated by Moneydance):
-                   nw()     Net Worth, current balance, all eligible accounts, apply account specific NW exclusion flags
+                   nw()   **Net Worth, current balance, all eligible accounts, apply account specific NW exclusion flags
                    nwif()   Net Worth, current balance, all eligible accounts (ignore all NW exclusion flags)
                    nwf()    Net Worth, future balance,  all eligible accounts, apply account specific NW exclusion flags
                    nwfif()  Net Worth, future balance,  all eligible accounts (ignore all NW exclusion flags)
+                   xnw()    Net Worth, current balance, all eligible accounts, only total the excluded accounts (debug)
+                   xnwf()   Net Worth, future balance,  all eligible accounts, only total the excluded accounts (debug)
+                          **this is the formula that most people should use for a 'normal' / 'standard' net worth
+
                    NOTE: When you use these Net Worth formulas, it is not necessary to configure any other settings on
                          the row unless you plan to use the result of the row in conjunction with the formula.
 
@@ -327,6 +321,10 @@ MATH ON CALCULATED BALANCES:
                  WARNING: You can enter an FORMULA with no accounts selected in the picklist. The formula will
                           try to resolve. BUT if you refer to @this or this row's tag, then you will probably get an
                           invalid result!
+
+                 WARNING: If you don't refer to @this in a row's formula you will get a warning. To hide the warning,
+                          either a) disable warnings for that row, or b) specify @nothis anywhere within the formula.
+                          The '@nothis' is simply a marker to disable the warning. It gets excluded from the formula.
 
                  WARNING: NEVER use currency signs or commas in numbers, only use '.' as the decimal place!
 
@@ -404,6 +402,11 @@ ACCOUNT SELECTION LIST (PICKLIST)':
 
     >> You must click 'STORE LIST CHANGES' before you click simulate or exit the config screen. If you do not do this
        then your selection changes could be lost! However, you will be asked if you want to store the changes first.
+
+    KEY:
+         "I" or "E" within the row signifies an Income or Expense category.
+         "XNW" signifies that this account has the 'include in net worth' flag un-ticked (i.e. eXclude from net worth)
+               (only enabled from MD2024.3(5204) onwards)
 
 >> DON'T FORGET TO 'SAVE ALL SETTINGS'! (for convenience, this also stores your current account selection list too) <<
 
@@ -611,7 +614,7 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
 
    HTML EXAMPLES:
    <#html><b><font color=#0000ff>Expenses </font></b>Last month <small><u><font color=#bb0000>OVERDUE</font></u></small>
-   <#html><font size="5">Networth</font>
+   <#html><font size="5">Net Worth</font>
 
    ... NOTE: row name length checking is not performed on html formatted rows. If the row name ends up too long
              (i.e. too wide on the summary screen), then you'll have to manually edit/tweak your html coding...
@@ -723,20 +726,26 @@ DETAILS ON HOW CALCULATIONS OF BALANCES OCCURS:
                       functions that operate on the row's calculated result (e.g. average by, RMC, UOR, PUM, FOR, FDA)..
 
 
->> ROUNDING:
-Rounding is only performed on the displayed result when 'Hide Decimal Places' is selected. The internal number
-is never rounded, and full decimal precision is always preserved internally for onward UOR consumption.
-- Rounding of Java Double / Python float numbers can be problematic. Custom Balances calls Jython's round() method. This
-  internally uses Java's BigDecimal class with the RoundingMode.HALF_UP mode (e.g. 0.5 should become 1.0).
-  NOTE: you won't always get what you expect. If you are interested - refer:
-        https://docs.python.org/2.7/library/functions.html#round
-        https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/RoundingMode.html#HALF_UP
+>> ROUNDING ISSUES:
+
+1. The approach taken when totalling balances per accounts is to always convert that account's balance to the target
+   currency before adding it into the total (if sub accounts in the same local currency were totalled before conversion,
+   this could cause slight rounding differences).
+
+2. Rounding is only performed on the displayed result when 'Hide Decimal Places' is selected. The internal number
+   is never rounded, and full decimal precision is always preserved internally for onward UOR consumption.
+   - Rounding of Java Double / Python float numbers can be problematic. Custom Balances calls Jython's round() method. This
+     internally uses Java's code with RoundingMode.HALF_UP mode (e.g. 0.5 should become 1.0).
+     NOTE: you won't always get what you expect. If you are interested - refer:
+           https://docs.python.org/2.7/library/functions.html#round
+           https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/RoundingMode.html#HALF_UP
 
 
 >> PARALLEL BALANCES:
     - Selecting any of the following options will trigger 'parallel balance operations' for that row, for all accounts
       ... used by that row: Balance asof date; Income/Expense date range; Cost Basis / Unrealised Gains / Capital Gains;
-      ...  including Reminders...
+      ... including Reminders...
+      ... enabling 'apply net worth rules' for a row...
 
     - The sequence of harvesting data / calculating balances for rows using parallel balances is as follows:
         # 1. per row, gather all selected accounts along with all child/sub accounts...
@@ -757,9 +766,35 @@ is never rounded, and full decimal precision is always preserved internally for 
                Balance asof dates & I/E date ranges harvest transactions...
                Future reminders are forward calculated...
                Cost Basis / Unrealised / Capital Gains sweep Buy/Sell txns... (possibly twice for Bal vs Current Bal)
-               Remaining real balances, sweep accounts and uses the Account's real stored balance(s)
+               Remaining 'real balances', sweep accounts and uses the Account's real stored balance(s)
+               ('apply net worth rules' triggers the sweep for 'real balances' so that recursive balances can be
+               intercepted. This is why enabling this option can slow down the calculation)
                ALL THIS CAN POTENTIALLY BE CPU CONSUMING. Do not use the widget for heavy reporting purposes!
                No harm will be caused, but these rows may take a few seconds to calculate / appear....
+
+
+
+NOTES ON NET WORTH FEATURES:
+
+To produce a net worth you can use the following methods:
+1. use the nw() formula (and its variants) to replicate Moneydance's default net worth calculation. With this option,
+   you do not need to select any accounts, or enable the 'apply net worth rules' setting.
+2. Select all account parents, enable auto sum, enable the 'apply net worth rules' setting (assuming you have set XNW
+   flags on accounts that should always be excluded from net worth).
+3. Select all account parents except any that should not be included, enable auto sum, don't bother with
+   'apply net worth rules'
+4. Same as option(s) 2 & 3, but select both parents and sub-accounts, and turn off auto sum.
+>> all the above options should result in the same net worth value...
+
+Net Worth features are only properly enabled when MD2024.3(5204) or later is detected. This is because net worth
+features inside Moneydance were not fully enabled / aligned prior to this.
+   - previously inactive accounts were excluded, now they are included by Moneydance
+   - previously there was a hidden flag to exclude single accounts from NW, now this flag is exposed in the GUI and also
+     children of excluded parent accounts are also excluded
+    - a bug was fixed whereby any calculation using a rate/price for today / future date now always uses current price,
+     whereas previously there was a mixed approach to using the last dated price vs current price..
+  >> thus if you enable NW features in your custom balance rows, then you will probably see different results if you
+     attempt to look at these rows in prior Moneydance builds
 
 
 NOTES ON COST BASIS / CAPITAL GAINS:
@@ -834,10 +869,30 @@ in both short-term and long-term pools (however this data is only shown in conso
 >> MD can report this same data in the Capital Gains report when the 'Show double-category average cost data' option is
    enabled. However, this does not affect the cost basis or gains calculation, and is incorrect when the security has
    stock splits....
+
+
 ------------------------------------------------------------------------------------------------------------------------
+HISTORICAL UPGRADE NOTES:
+If you have been using more recent PREVIEW builds (since 1038 / November 2023) then you may have configured
+'Final Maths Calculation' (FMC), and also come across 'absorbed into other UORs' and also 'not absorbed'. These settings
+have gone, and were migrated into:
+a) 'Post UOR maths calculation' (PUM) (replacing FMC absorbed), or...
+b) 'Format Display Adjust' (FDA)      (replacing FMC non-absorbed).
+
+DEFINITION: 'absorbed' in this context means that the math takes place before being rolled upwards into other
+UORs that refer to this row... I.e. 'non-absorbed' means the impact of the maths stays on this row alone.
+
+There is a new exciting Formula (FOR) capability from build 1046+. This in effect can replace RMC, UOR, PUM. You can
+continue to use these, or use the new superior formula capability. You can actually combine all these, but this is
+NOT RECOMMENDED as it's duplicative and confusing to understand. RECOMMENDATION: if you want to use formulas, then
+manually update your settings to only use formula. Average by is not affected by this change. FDA and *100 can remain,
+or be replaced by formula - your choice.
+
+Formula gives you the ability to add multiple rows together, or perhaps subtract one row from another (for example).
+These types of calculations are quite tricky to perform using the 'old' UOR maths.
 
 
-
+------------------------------------------------------------------------------------------------------------------------
 TECHNICAL/HISTORICAL NOTES:
 - My original concept was to add balances to target zero. Thus a positive number is 'good', a negative is 'bad'
 - The idea was that you net cash and debt to get back to zero every month (but you can do so much more than this now)!
