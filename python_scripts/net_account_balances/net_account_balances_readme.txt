@@ -96,6 +96,17 @@ CHOICES/CONFIGURATION FOR A ROW:
 
   - You set the AutoSum setting by row. Thus some rows can be on, and others can be off.
 
+- Apply Net Worth rules: Default OFF. When enabled, selected accounts will have Moneydance's 'include in net worth'
+                         flag checked, and this will determine whether that account's balance will actually be included.
+                         In other words, accounts selected for inclusion in this row's balance may be ignored /
+                         excluded anyway if this setting is enabled and the account is flagged to be excluded from NW.
+                         When enabling this setting, you still must select all accounts to be considered in the picklist
+                         If you enable this feature and then revert to an older version of Moneydance, then this setting
+                         will simply be ignored, perhaps giving different results. (enabled from MD2024.3(5204) onwards).
+
+                         ** NOTE: this setting will force parallel balances to be calculated for that row...
+                                  rows with this setting enabled may be slower to calculate than by using other means.
+
 - Override Balance asof Date:  Allows you to obtain the balance asof a specified date.
         - Includes all transactions / balances up to, and including, the selected balance asof date
           When selected, the balance asof date options are enabled. Here you select the automatic asof end date,
@@ -198,16 +209,6 @@ CHOICES/CONFIGURATION FOR A ROW:
 - Display Currency: Allows you to display the balance in a chosen currency, or security value, or other format.
                     Disable Currency Formatting: drops any symbol/prefix/suffix associated with the currency.
 
-- Apply Net Worth rules: Default OFF. When enabled, any selected accounts will have their MD 'include in net worth'
-                         flag checked, and this will determine whether that account's balance will actually be included.
-                         In other words, accounts selected for inclusion in this row's balance may be ignored /
-                         excluded anyway if this setting is enabled and the account is flagged to be excluded from NW.
-                         When enabling this setting, you still must select all accounts to be considered in the picklist
-                         If you enable this feature and then revert to an older version of Moneydance, then this setting
-                         will simply be ignored, perhaps giving different results. (enabled from MD2024.3(5204) onwards).
-
-                         ** NOTE: this setting will force parallel balances to be calculated for that row...
-                                  rows with this setting enabled may be slower to calculate than by using other means.
 ------------------------------------------------------------------------------------------------------------------------
 
 MATH ON CALCULATED BALANCES:
@@ -314,6 +315,7 @@ MATH ON CALCULATED BALANCES:
 
                    NOTE: When you use these Net Worth formulas, it is not necessary to configure any other settings on
                          the row unless you plan to use the result of the row in conjunction with the formula.
+                         - i.e. you can just use the formula 'nw() @nothis'
 
                    NOTE: if you can dream up any additional functions to be added, or
                          if any formulas/functions do not work properly for you, please contact the author
@@ -425,10 +427,27 @@ FILTERS FOR LIST CHOICES:
   - Inactive Securities: You can flag a security as inactive by un-ticking the 'Show on summary page' box on a security
                        in the MD/Tools/Securities menu. This will then treat this security in ALL investment accounts
                        as INACTIVE.
+    >> ONLY this filter setting is 'sticky' and is saved against the row's settings.
 
-- List Choices - you can filter the pick list by multiple criteria.
-	       - other filters include filtering out zero values, and by what has been selected.
+  ** there is an extra / special option in this filter dropdown list: 'Inactive Only'. This only shows you inactive
+     accounts in the picklist. This selection is not 'sticky' and not saved between row selections. If you save settings
+     with this set, then the saved option is downgraded to 'Include Inactive'... (debugging purposes)...
 
+- List Choices - you can filter the pick list by multiple criteria:
+           - By account type(s). There are various options/combinations
+             >> the default is 'All Accounts (no categories)'
+           - Filter out Zeros Inactive:     hides inactive accounts with a zero balance
+           - Filter out Zeros Active:       hides active accounts with a zero balance
+           - Only show Parents:             only shows parent accounts, hiding all sub-accounts; useful for autosum
+           - Only Show XNW accounts:        only shows accounts marked as exclude from net worth calculations in MD
+           - Only Show Selected:            only show selected/marked accounts in the list
+           - Filter Include Selected:       despite all filters, always show marked/selected accounts in the list
+       >> these filters are NOT 'sticky' and are not saved against the row's settings. Please reset when you change
+          rows according to what you want to see. These filters have no relevance to the actual calculations.
+
+>> By default, the 'Filter Include Selected' and 'Only Show Selected' options will be ticked when you select any row.
+   this helps you instantly see what accounts you have previous marked/selected and saved. On new rows, these two
+   settings will not be selected which means that you will see 'All Accounts (no categories)'.
 ------------------------------------------------------------------------------------------------------------------------
 
 OPTIONS MENU:

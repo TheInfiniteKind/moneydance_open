@@ -143,6 +143,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1055 - Added formula to allow Moneydance's internal net worth calculations to be utilised... nw() nwif() nwf() nwfif() xnw() xnwf(). Added CMD-SHIFT-N popup display too...
 # build: 1055 - Add "XNW" to to the account selector (picklist) to show when an account is flagged to be excluded from net worth calculations...
 # build: 1055 - Add 'apply net worth flags' feature... Switch 'All Accounts (no categories)" to appear first in the picklist combo; added @nothis.
+# build: 1055 - Enabled right-click popup context menus on some JLinkLabels and JLabels (aka copy value string to clipboard)...
 # build: 1055 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -519,6 +520,7 @@ else:
     from javax.swing import DefaultListCellRenderer, BorderFactory, Timer as SwingTimer
     from javax.swing.event import DocumentListener, ListSelectionListener
     # from javax.swing.text import View
+    from javax.swing.text import JTextComponent
 
     from javax.swing.table import DefaultTableModel
 
@@ -3166,6 +3168,13 @@ Visit: %s (Author's site)
     if isNetWorthUpgradedBuild():
         from com.infinitekind.moneydance.model import NetWorthCalculator
 
+    GlobalVars.MD_POPUP_CONTEXT_MENU_UPGRADED_BUILD = 5202                                                              # MD2024.3(5202)
+    def isPopupContextMenuUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_POPUP_CONTEXT_MENU_UPGRADED_BUILD)
+    if isPopupContextMenuUpgradedBuild():
+        from com.moneydance.apps.md.view.gui import ContextPopupable
+    else:
+        class ContextPopupable: pass
+
     def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
         """Will detect and then run the codeblock on the EDT"""
 
@@ -3873,6 +3882,12 @@ Visit: %s (Author's site)
         _textToStrip = _textToStrip.replace("  ","&nbsp;&nbsp;")
         return _textToStrip
 
+    def html_reverse(_textToReverse):
+        if "<html>" not in _textToReverse.lower(): return _textToReverse
+        _textToReverse = String(_textToReverse).replaceAll("<[^>]*>", "")
+        _textToReverse = StringEscapeUtils.unescapeHtml4(_textToReverse)
+        return _textToReverse
+
     def wrap_HTML_wrapper(wrapperCharacter, _textToWrap, stripChars=True, addHTML=True):
         newText = "<%s>%s</%s>" %(wrapperCharacter, _textToWrap if not stripChars else html_strip_chars(_textToWrap), wrapperCharacter)
         if addHTML: newText = wrap_HTML(newText, stripChars=False)
@@ -4305,7 +4320,13 @@ Visit: %s (Author's site)
         if border: component.setBorder(UIManager.getBorder("%s.border" %(key)))
         if font:   component.setFont(UIManager.getFont("%s.font" %(key)))
 
-    class MyJPanel(JPanel):
+
+    def addPopupContextMenu(mdGUI, component):
+        if isPopupContextMenuUpgradedBuild() and mdGUI is not None:
+            mdGUI.getActions().listenForPopupClicks(component)
+
+
+    class MyJPanel(JPanel, ContextPopupable):
 
         def __init__(self, *args, **kwargs):
             self.fixedWidth = kwargs.pop("fixedWidth", None)
@@ -4328,6 +4349,15 @@ Visit: %s (Author's site)
             dim = super(self.__class__, self).getPreferredSize()
             if self.fixedWidth is not None: dim.width = self.fixedWidth
             return dim
+
+        def doubleClicked(self, source, atPoint): pass
+
+        def getContextMenuTargets(self, source, atPoint):
+            if isinstance(source, (JLabel, JTextComponent)):
+                text = html_reverse(source.getText())
+                if not StringUtils.isBlank(text):
+                    return Collections.singletonList(text.strip())
+            return None
 
     class MyJLabel(JLabel):
 
@@ -7806,7 +7836,7 @@ Visit: %s (Author's site)
             self.hideDecimals_CB                      = None
             self.filterOutZeroBalAccts_INACTIVE_CB    = None
             self.filterOnlyParents_CB                 = None
-            self.filterOnlyNWEligible_CB              = None
+            self.filterOnlyXNWAccts_CB                = None
             self.filterOutZeroBalAccts_ACTIVE_CB      = None
             self.filterIncludeSelected_CB             = None
             self.filterOnlyShowSelected_CB            = None
@@ -8349,6 +8379,12 @@ Visit: %s (Author's site)
                     if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
                         continue
 
+                # This is a fudgey 'hack' to allow 'only show inactive' accounts..... This setting is not saved!
+                if (NAB.includeInactive_COMBO.getSelectedIndex() == 2  # i.e. if we only want inactive accounts...
+                        and isAccountActive(obj.getAccount(), self.savedBalanceType[row])):
+                    if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
+                        continue
+
                 if (_filterText not in obj.getAccount().getFullAccountName().lower()):
                     if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
                         continue
@@ -8374,7 +8410,7 @@ Visit: %s (Author's site)
                         continue
 
                 if isNetWorthUpgradedBuild():
-                    if (self.filterOnlyNWEligible_CB.isSelected() and not includeInNetWorth(obj.getAccount())):
+                    if (self.filterOnlyXNWAccts_CB.isSelected() and includeInNetWorth(obj.getAccount())):
                         if not self.filterIncludeSelected_CB.isSelected() or lObjNotInListOfSelectedObjects:
                             continue
 
@@ -10477,7 +10513,7 @@ Visit: %s (Author's site)
                                       NAB.includeInactive_COMBO,
                                       NAB.filterOutZeroBalAccts_INACTIVE_CB,
                                       NAB.filterOnlyParents_CB,
-                                      NAB.filterOnlyNWEligible_CB,
+                                      NAB.filterOnlyXNWAccts_CB,
                                       NAB.filterOutZeroBalAccts_ACTIVE_CB,
                                       NAB.filterIncludeSelected_CB,
                                       NAB.filterOnlyShowSelected_CB,
@@ -10543,9 +10579,9 @@ Visit: %s (Author's site)
             myPrint("DB", "..about to reset filterOnlyParents_CB ..")
             NAB.filterOnlyParents_CB.setSelected(False)
 
-            # Reset Filter filterOnlyNWEligible_CB
-            myPrint("DB", "..about to reset filterOnlyNWEligible_CB ..")
-            NAB.filterOnlyNWEligible_CB.setSelected(False)
+            # Reset Filter filterOnlyXNWAccts_CB
+            myPrint("DB", "..about to reset filterOnlyXNWAccts_CB ..")
+            NAB.filterOnlyXNWAccts_CB.setSelected(False)
 
             # Reset Filter filterOutZeroBalAccts_ACTIVE_CB
             myPrint("DB", "..about to reset filterOutZeroBalAccts_ACTIVE_CB ..")
@@ -10808,7 +10844,7 @@ Visit: %s (Author's site)
                 myPrint("B", ".....filterOutZeroBalAccts_INACTIVE_CB: %s"       %(NAB.filterOutZeroBalAccts_INACTIVE_CB.isSelected()))
                 myPrint("B", ".....filterOutZeroBalAccts_ACTIVE_CB: %s"         %(NAB.filterOutZeroBalAccts_ACTIVE_CB.isSelected()))
                 myPrint("B", ".....filterOnlyParents_CB: %s"                    %(NAB.filterOnlyParents_CB.isSelected()))
-                myPrint("B", ".....filterOnlyNWEligible_CB: %s"                 %(NAB.filterOnlyNWEligible_CB.isSelected()))
+                myPrint("B", ".....filterOnlyXNWAccts_CB: %s"                   %(NAB.filterOnlyXNWAccts_CB.isSelected()))
                 myPrint("B", ".....filterIncludeSelected_CB: %s"                %(NAB.filterIncludeSelected_CB.isSelected()))
                 myPrint("B", ".....filterOnlyShowSelected_CB: %s"               %(NAB.filterOnlyShowSelected_CB.isSelected()))
                 myPrint("B", ".....filterOnlyAccountType_COMBO: %s"             %(NAB.filterOnlyAccountType_COMBO.getSelectedItem()))
@@ -12152,8 +12188,8 @@ Visit: %s (Author's site)
                     myPrint("DB", ".. setting filterOnlyParents_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
                     NAB.searchFiltersUpdated()
 
-                if event.getSource() is NAB.filterOnlyNWEligible_CB:
-                    myPrint("DB", ".. setting filterOnlyNWEligible_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
+                if event.getSource() is NAB.filterOnlyXNWAccts_CB:
+                    myPrint("DB", ".. setting filterOnlyXNWAccts_CB to: %s for row: %s" %(event.getSource().isSelected(), NAB.getSelectedRow()))
                     NAB.searchFiltersUpdated()
 
                 if event.getSource() is NAB.filterOutZeroBalAccts_ACTIVE_CB:
@@ -12196,7 +12232,7 @@ Visit: %s (Author's site)
                 if event.getSource() is NAB.includeInactive_COMBO:
                     if NAB.savedIncludeInactive[NAB.getSelectedRowIndex()] != event.getSource().getSelectedIndex():
                         myPrint("DB", ".. setting savedIncludeInactive to: %s for row: %s" %(event.getSource().getSelectedIndex(), NAB.getSelectedRow()))
-                        NAB.savedIncludeInactive[NAB.getSelectedRowIndex()] = event.getSource().getSelectedIndex()
+                        NAB.savedIncludeInactive[NAB.getSelectedRowIndex()] = min(1, event.getSource().getSelectedIndex())  # downgrade inactive only to including inactive...
                         NAB.setAcctListKeyLabel(NAB.getSelectedRowIndex())
                         NAB.configSaved = False
                         NAB.searchFiltersUpdated()
@@ -13415,7 +13451,8 @@ Visit: %s (Author's site)
                     document = NAB.quickSearchField.getDocument()                                                       # noqa
                     document.addDocumentListener(MyQuickSearchDocListener(NAB, NAB.quickSearchField))
                     NAB.quickSearchField.addFocusListener(MyQuickSearchFocusAdapter(NAB.quickSearchField, document))    # noqa
-
+                    NAB.quickSearchField.setPlaceholderText("Type here to filter the list of accounts by full account name....")
+                    NAB.quickSearchField.setToolTipText("Type here to filter the list of accounts by full account name.... (not 'sticky', not saved)")
                     # At startup, create dummy settings to build frame if nothing set.. Real settings will get loaded later
                     if NAB.savedAccountListUUIDs is None: NAB.resetParameters()
 
@@ -13811,6 +13848,7 @@ Visit: %s (Author's site)
                     onRowNameCol += 1
 
                     NAB.simulateTotal_label = MyJLabel("<html><i>result here</i></html>", JLabel.CENTER, fixedWidth=150)
+                    addPopupContextMenu(NAB.moneydanceContext.getUI(), NAB.simulateTotal_label)
                     NAB.simulateTotal_label.putClientProperty("%s.id" %(NAB.myModuleID), "simulateTotal_label")
                     NAB.simulateTotal_label.setMDHeaderBorder()
                     rowName_pnl.add(NAB.simulateTotal_label, GridC.getc(onRowNameCol, onRowNameRow).leftInset(25).padx(150).fillx().wx(0.0))
@@ -13853,12 +13891,24 @@ Visit: %s (Author's site)
                     NAB.autoSumAccounts_CB.setToolTipText("AutoSum will auto sum/total the account recursively down the tree, including Securities. AutoSum=OFF means each item is totalled separately")
                     NAB.autoSumAccounts_CB.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
                     NAB.autoSumAccounts_CB.addActionListener(NAB.saveActionListener)
-                    balanceOption_pnl.add(NAB.autoSumAccounts_CB, GridC.getc(onBalanceOptionCol, onBalanceOptionRow).leftInset(colInsetFiller).topInset(topInset).rightInset(35))
+                    balanceOption_pnl.add(NAB.autoSumAccounts_CB, GridC.getc(onBalanceOptionCol, onBalanceOptionRow).leftInset(colInsetFiller).topInset(topInset))
+                    onBalanceOptionCol += 1
+
+                    NAB.applyNWRules_CB = MyJCheckBox("Apply Net Worth rules", False)
+                    NAB.applyNWRules_CB.putClientProperty("%s.id" %(NAB.myModuleID), "applyNWRules_CB")
+                    NAB.applyNWRules_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.applyNWRules_CB.setName("applyNWRules_CB")
+                    NAB.applyNWRules_CB.setToolTipText("When enabled then accounts that have been flagged as excluded from Net Worth (XNW in picklist) will be ignored even when selected")
+                    NAB.applyNWRules_CB.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    NAB.applyNWRules_CB.addActionListener(NAB.saveActionListener)
+                    NAB.applyNWRules_CB.setEnabled(isNetWorthUpgradedBuild())
+                    balanceOption_pnl.add(NAB.applyNWRules_CB, GridC.getc(onBalanceOptionCol, onBalanceOptionRow).leftInset(colInsetFiller).topInset(topInset))
                     onBalanceOptionCol += 1
 
                     tagNameLabel = MyJLabel("Tag:")
                     tagNameLabel.putClientProperty("%s.id" %(NAB.myModuleID), "tagNameLabel")
                     tagNameLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    tagNameLabel.setToolTipText("Enter a 'tag' (variable) name (text >> digits Aa-Zz, 0-9) that can be referred to in UOR / formula expressions (refer CMD-I help)")
                     balanceOption_pnl.add(tagNameLabel, GridC.getc(onBalanceOptionCol, onBalanceOptionRow).wx(0.1).east())
                     onBalanceOptionCol += 1
 
@@ -13875,6 +13925,7 @@ Visit: %s (Author's site)
                     groupIDLabel = MyJLabel("GroupID:")
                     groupIDLabel.putClientProperty("%s.id" %(NAB.myModuleID), "groupIDLabel")
                     groupIDLabel.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    groupIDLabel.setToolTipText("Enter 'Group ID' (text >> digits 0-9, Aa-Zz, '_', '-', '.', ':', '%', ';') that can be used to filter out rows (refer CMD-I help)")
                     balanceOption_pnl.add(groupIDLabel, GridC.getc(onBalanceOptionCol, onBalanceOptionRow).wx(0.1).east().leftInset(5))
                     onBalanceOptionCol += 1
 
@@ -14171,17 +14222,6 @@ Visit: %s (Author's site)
                     controlPnl.add(NAB.disableCurrencyFormatting_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).rightInset(colRightInset).fillx())
                     onCol += 1
 
-                    NAB.applyNWRules_CB = MyJCheckBox("Apply Net Worth rules", False)
-                    NAB.applyNWRules_CB.putClientProperty("%s.id" %(NAB.myModuleID), "applyNWRules_CB")
-                    NAB.applyNWRules_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
-                    NAB.applyNWRules_CB.setName("applyNWRules_CB")
-                    NAB.applyNWRules_CB.setToolTipText("When enabled then accounts that have been flagged as excluded from Net Worth will be ignored even when selected")
-                    NAB.applyNWRules_CB.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
-                    NAB.applyNWRules_CB.addActionListener(NAB.saveActionListener)
-                    NAB.applyNWRules_CB.setEnabled(isNetWorthUpgradedBuild())
-                    controlPnl.add(NAB.applyNWRules_CB, GridC.getc(onCol, onRow).leftInset(colInsetFiller).topInset(topInset).rightInset(colRightInset).fillx())
-                    onCol += 1
-
                     onRow += 1
 
                     # --------------------------------------------------------------------------------------------------
@@ -14420,6 +14460,7 @@ Visit: %s (Author's site)
                     formula_lbl = MyJLabel("Formula (FOR):")
                     formula_lbl.putClientProperty("%s.id" %(NAB.myModuleID), "formula_lbl")
                     formula_lbl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    formula_lbl.setToolTipText("Enter a formula expression - e.g. '@this * 0.2' or '(('rowtagname / otherrowtagname') * 100)' (REFER HELP GUIDE CMD-I)")
                     controlPnl.add(formula_lbl, GridC.getc(onCol, onRow).east().leftInset(colLeftInset))
                     onCol += 1
 
@@ -14821,12 +14862,12 @@ Visit: %s (Author's site)
                     filters_pnl = MyJPanel(GridBagLayout())
                     filters_pnl.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
 
-                    includeInactiveOptions = ["Active Only", "Include Inactive"]
+                    includeInactiveOptions = ["Active Only", "Include Inactive", "Inactive Only"]
                     NAB.includeInactive_COMBO = MyJComboBox(includeInactiveOptions)
                     NAB.includeInactive_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "includeInactive_COMBO")
                     NAB.includeInactive_COMBO.setName("includeInactive_COMBO")
                     NAB.includeInactive_COMBO.setPrototypeDisplayValue(" "*60)
-                    NAB.includeInactive_COMBO.setToolTipText("Select to only list Active items, or also include Inactive too")
+                    NAB.includeInactive_COMBO.setToolTipText("Select to a) only show Active items, or b) include Inactive too ('sticky' and saved), or c) only show inactive accounts (not saved)")
                     NAB.includeInactive_COMBO.addActionListener(NAB.saveActionListener)
                     filters_pnl.add(NAB.includeInactive_COMBO, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colLeftInset).fillx().west())
                     onFiltersCol += 1
@@ -14836,7 +14877,7 @@ Visit: %s (Author's site)
                     NAB.filterOutZeroBalAccts_INACTIVE_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOutZeroBalAccts_INACTIVE_CB")
                     NAB.filterOutZeroBalAccts_INACTIVE_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.filterOutZeroBalAccts_INACTIVE_CB.setName("filterOutZeroBalAccts_INACTIVE_CB")
-                    NAB.filterOutZeroBalAccts_INACTIVE_CB.setToolTipText("Applies an additional filter: hide inactive accounts with a zero balance")
+                    NAB.filterOutZeroBalAccts_INACTIVE_CB.setToolTipText("Applies an additional filter: hide inactive accounts with a zero balance (not 'sticky', not saved)")
                     NAB.filterOutZeroBalAccts_INACTIVE_CB.addActionListener(NAB.saveActionListener)
                     filters_pnl.add(NAB.filterOutZeroBalAccts_INACTIVE_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
@@ -14846,19 +14887,19 @@ Visit: %s (Author's site)
                     NAB.filterOnlyParents_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyParents_CB")
                     NAB.filterOnlyParents_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.filterOnlyParents_CB.setName("filterOnlyParents_CB")
-                    NAB.filterOnlyParents_CB.setToolTipText("Applies an additional filter: Only show parent accounts (useful with AutoSum)")
+                    NAB.filterOnlyParents_CB.setToolTipText("Applies an additional filter: Only show parent accounts (useful with AutoSum) (not 'sticky', not saved)")
                     NAB.filterOnlyParents_CB.addActionListener(NAB.saveActionListener)
                     filters_pnl.add(NAB.filterOnlyParents_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
 
-                    NAB.filterIncludeSelected_CB = MyJCheckBox("Filter Include Selected", True)
-                    NAB.filterIncludeSelected_CB.setActionCommand("filter_include_selected")
-                    NAB.filterIncludeSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterIncludeSelected_CB")
-                    NAB.filterIncludeSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
-                    NAB.filterIncludeSelected_CB.setName("filterIncludeSelected_CB")
-                    NAB.filterIncludeSelected_CB.setToolTipText("Applies an additional filter: when filtering, always include selected lines too")
-                    NAB.filterIncludeSelected_CB.addActionListener(NAB.saveActionListener)
-                    filters_pnl.add(NAB.filterIncludeSelected_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
+                    NAB.filterOnlyShowSelected_CB = MyJCheckBox("Only Show Selected", True)
+                    NAB.filterOnlyShowSelected_CB.setActionCommand("only_show_selected")
+                    NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyShowSelected_CB")
+                    NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.filterOnlyShowSelected_CB.setName("filterOnlyShowSelected_CB")
+                    NAB.filterOnlyShowSelected_CB.setToolTipText("Applies an additional filter: Only show all selected lines (not 'sticky', not saved)")
+                    NAB.filterOnlyShowSelected_CB.addActionListener(NAB.saveActionListener)
+                    filters_pnl.add(NAB.filterOnlyShowSelected_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
                     onFiltersRow += 1
 
@@ -14870,7 +14911,7 @@ Visit: %s (Author's site)
                     NAB.filterOnlyAccountType_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyAccountType_COMBO")
                     NAB.filterOnlyAccountType_COMBO.setName("filterOnlyAccountType_COMBO")
                     NAB.filterOnlyAccountType_COMBO.setPrototypeDisplayValue(" "*60)
-                    NAB.filterOnlyAccountType_COMBO.setToolTipText("Applies an additional filter: Only show the selected account type")
+                    NAB.filterOnlyAccountType_COMBO.setToolTipText("Applies an additional filter: Only show the selected account type(s) (not 'sticky', not saved)")
                     NAB.filterOnlyAccountType_COMBO.addActionListener(NAB.saveActionListener)
                     filters_pnl.add(NAB.filterOnlyAccountType_COMBO, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colLeftInset).fillx().west())
                     onFiltersCol += 1
@@ -14880,30 +14921,30 @@ Visit: %s (Author's site)
                     NAB.filterOutZeroBalAccts_ACTIVE_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOutZeroBalAccts_ACTIVE_CB")
                     NAB.filterOutZeroBalAccts_ACTIVE_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
                     NAB.filterOutZeroBalAccts_ACTIVE_CB.setName("filterOutZeroBalAccts_ACTIVE_CB")
-                    NAB.filterOutZeroBalAccts_ACTIVE_CB.setToolTipText("Applies an additional filter: hide active accounts with a zero balance")
+                    NAB.filterOutZeroBalAccts_ACTIVE_CB.setToolTipText("Applies an additional filter: hide active accounts with a zero balance (not 'sticky', not saved)")
                     NAB.filterOutZeroBalAccts_ACTIVE_CB.addActionListener(NAB.saveActionListener)
                     filters_pnl.add(NAB.filterOutZeroBalAccts_ACTIVE_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
 
-                    NAB.filterOnlyNWEligible_CB = MyJCheckBox("Only Show Net Worth accounts", False)
-                    NAB.filterOnlyNWEligible_CB.setActionCommand("filter_only_networth_eligible")
-                    NAB.filterOnlyNWEligible_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyNWEligible_CB")
-                    NAB.filterOnlyNWEligible_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
-                    NAB.filterOnlyNWEligible_CB.setName("filterOnlyNWEligible_CB")
-                    NAB.filterOnlyNWEligible_CB.setToolTipText("Applies an additional filter: Only show accounts that are eligible for Net Worth calculations")
-                    NAB.filterOnlyNWEligible_CB.addActionListener(NAB.saveActionListener)
-                    NAB.filterOnlyNWEligible_CB.setEnabled(isNetWorthUpgradedBuild())
-                    filters_pnl.add(NAB.filterOnlyNWEligible_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
+                    NAB.filterOnlyXNWAccts_CB = MyJCheckBox("Only Show XNW accounts", False)
+                    NAB.filterOnlyXNWAccts_CB.setActionCommand("filter_only_xnw_accts")
+                    NAB.filterOnlyXNWAccts_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyXNWAccts_CB")
+                    NAB.filterOnlyXNWAccts_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.filterOnlyXNWAccts_CB.setName("filterOnlyXNWAccts_CB")
+                    NAB.filterOnlyXNWAccts_CB.setToolTipText("Applies an additional filter: Only show accounts that are flagged as excluded from Net Worth calculations (XNW in the picklist) - debugging purposes  (not 'sticky', not saved)")
+                    NAB.filterOnlyXNWAccts_CB.addActionListener(NAB.saveActionListener)
+                    NAB.filterOnlyXNWAccts_CB.setEnabled(isNetWorthUpgradedBuild())
+                    filters_pnl.add(NAB.filterOnlyXNWAccts_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
 
-                    NAB.filterOnlyShowSelected_CB = MyJCheckBox("Only Show Selected", True)
-                    NAB.filterOnlyShowSelected_CB.setActionCommand("only_show_selected")
-                    NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyShowSelected_CB")
-                    NAB.filterOnlyShowSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
-                    NAB.filterOnlyShowSelected_CB.setName("filterOnlyShowSelected_CB")
-                    NAB.filterOnlyShowSelected_CB.setToolTipText("Applies an additional filter: Only show all selected lines")
-                    NAB.filterOnlyShowSelected_CB.addActionListener(NAB.saveActionListener)
-                    filters_pnl.add(NAB.filterOnlyShowSelected_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
+                    NAB.filterIncludeSelected_CB = MyJCheckBox("Filter Include Selected", True)
+                    NAB.filterIncludeSelected_CB.setActionCommand("filter_include_selected")
+                    NAB.filterIncludeSelected_CB.putClientProperty("%s.id" %(NAB.myModuleID), "filterIncludeSelected_CB")
+                    NAB.filterIncludeSelected_CB.putClientProperty("%s.id.reversed" %(NAB.myModuleID), False)
+                    NAB.filterIncludeSelected_CB.setName("filterIncludeSelected_CB")
+                    NAB.filterIncludeSelected_CB.setToolTipText("Applies an additional filter: when filtering, always include selected lines too (not 'sticky', not saved)")
+                    NAB.filterIncludeSelected_CB.addActionListener(NAB.saveActionListener)
+                    filters_pnl.add(NAB.filterIncludeSelected_CB, GridC.getc(onFiltersCol, onFiltersRow).leftInset(colInsetFiller).fillx())
                     onFiltersCol += 1
 
                     # --------------------------------------------------------------------------------------------------
@@ -17172,6 +17213,7 @@ Visit: %s (Author's site)
                                     tdfsc = TextDisplayForSwingConfig(("[%s] " %(i+1) if debug else "") + NAB.savedWidgetName[i], _grayInfoText, altFG, insertVars=insertVars)
 
                                     nameLabel = SpecialJLinkLabel(tdfsc.getSwingComponentText(), "showConfig?%s" %(str(onRow)), tdfsc.getJustification(), tdfsc=tdfsc, allowDynamicSizing=True)
+                                    addPopupContextMenu(md.getUI(), nameLabel)
 
                                     # NOTE: Leave "  " (two spaces) to avoid the row height collapsing.....
                                     if balanceOrAverageLong is None:
@@ -17222,6 +17264,7 @@ Visit: %s (Author's site)
                                                     theDecimalPrecisionFormattedValue = " (%s)" %(balanceOrAverageDecimals)
 
                                         netTotalLbl = SpecialJLinkLabel(theFormattedValue + theDecimalPrecisionFormattedValue, "showConfig?%s" %(onRow), JLabel.RIGHT, tdfsc=tdfsc)
+                                        addPopupContextMenu(md.getUI(), netTotalLbl)
                                         netTotalLbl.setFont(tdfsc.getValueFont())                                       # noqa
                                         netTotalLbl.setForeground(tdfsc.getValueColor(balanceOrAverageLong))            # noqa
 
@@ -17397,7 +17440,7 @@ Visit: %s (Author's site)
 
                     if len(blinkers) > 0: BlinkSwingTimer(1200, blinkers, flipColor=(GlobalVars.CONTEXT.getUI().getColors().defaultTextForeground), flipBold=True).start()
 
-        class ViewPanel(JPanel, JLinkListener, MouseListener):
+        class ViewPanel(JPanel, JLinkListener, MouseListener, ContextPopupable):
 
             def linkActivated(self, link, event):                                                                       # noqa
                 myPrint("DB", "In ViewPanel.linkActivated()")
@@ -17470,6 +17513,15 @@ Visit: %s (Author's site)
 
                     SwingUtilities.invokeLater(NAB.SaveSettingsRunnable(lFromHomeScreen=True))
                     MyHomePageView.getHPV().refresher.enqueueRefresh()
+
+            def doubleClicked(self, source, atPoint): pass
+
+            def getContextMenuTargets(self, source, atPoint):
+                if isinstance(source, (JLabel, JTextComponent)):
+                    text = html_reverse(source.getText())
+                    if not StringUtils.isBlank(text):
+                        return Collections.singletonList(text.strip())
+                return None
 
             def __init__(self):
 
