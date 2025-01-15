@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1045 - September 2024 - Stuart Beesley
+# extract_data.py - build: 1045 - January 2025 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -153,6 +153,7 @@
 # build: 1045 - ???
 # build: 1045 - Fix for invalid / old dates (i.e. < 19000101) in EIT and EAR extracts...
 # build: 1045 - Added tags to extract reminders...; retain sort between reminder refresh(s)
+# build: 1045 - Tweaked EAR extract... copy check to parent if empty, added isParentTxn
 # build: 1045 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -10407,11 +10408,12 @@ Visit: %s (Author's site)
                                         "_SPLITTAGS":               [22, "SplitTags"],
                                         "_ISTRANSFERTOACCT":        [23, "isTransferToAnotherAccount"],
                                         "_ISTRANSFERSELECTED":      [24, "isTransferWithinThisExtract"],
-                                        "_SPLITHASATTACHMENTS":     [25, "SplitHasAttachments"],
-                                        "_ATTACHMENTLINK":          [26, "AttachmentLink"],
-                                        "_ATTACHMENTLINKREL":       [27, "AttachmentLinkRelative"],
-                                        "_KEY":                     [28, "Key"],
-                                        "_END":                     [29, "_END"]
+                                        "_ISPARENTTXN":             [25, "isParentTxn"],
+                                        "_SPLITHASATTACHMENTS":     [26, "SplitHasAttachments"],
+                                        "_ATTACHMENTLINK":          [27, "AttachmentLink"],
+                                        "_ATTACHMENTLINKREL":       [28, "AttachmentLinkRelative"],
+                                        "_KEY":                     [29, "Key"],
+                                        "_END":                     [30, "_END"]
                                     }
 
                                     GlobalVars.transactionTable = []
@@ -10583,7 +10585,9 @@ Visit: %s (Author's site)
                                         if reconciledAsOf is not None and reconciledAsOf != 0:
                                             _row[GlobalVars.dataKeys["_RECONCILED_ASOF"][_COLUMN]] = reconciledAsOf
 
-                                        _row[GlobalVars.dataKeys["_CHEQUE"][_COLUMN]] = txn.getCheckNumber()
+                                        check = txn.getCheckNumber()
+                                        pCheck = parent_Txn.getCheckNumber()
+                                        _row[GlobalVars.dataKeys["_CHEQUE"][_COLUMN]] = check if check != "" else pCheck  # use the parent check if the split's check is missing
 
                                         _row[GlobalVars.dataKeys["_DESC"][_COLUMN]] = parent_Txn.getDescription()
                                         if lParent:
@@ -10735,6 +10739,7 @@ Visit: %s (Author's site)
                                             splitRowCopy[GlobalVars.dataKeys["_SPLITHASATTACHMENTS"][_COLUMN]] = splitHasAttachments
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERTOACCT"][_COLUMN]] = isTransfer
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERSELECTED"][_COLUMN]] = isTransferWithinExtract
+                                            splitRowCopy[GlobalVars.dataKeys["_ISPARENTTXN"][_COLUMN]] = lParent
 
                                             holdTheKeys = ArrayList()
                                             holdTheLocations = ArrayList()
