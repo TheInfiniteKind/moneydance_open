@@ -1,6 +1,6 @@
 The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
 
-Original Author: Stuart Beesley - StuWareSoftSystems (2020-2024 - originally my 'lockdown' project ~2000 coding hours)
+Original Author: Stuart Beesley - StuWareSoftSystems (2020-2025 - originally my 'lockdown' project ~2000 coding hours)
 Credit: Derek Kent(23) for his extensive testing and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 
@@ -210,6 +210,8 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Set/Change Default Moneydance FONTS                                                                     >> 2021.1 onwards
         - FIX - Delete Custom Theme file
         - FIX - Delete Orphaned/Outdated Extensions (from config.dict and .mxt files)
+        - FIX - RESET all inbuilt report/graph parameters to defaults (does not touch Memorized Reports)
+        - FIX - DELETE all memorized reports/graphs (exactly as it says!)
 
     - MENU: Online (OFX) Banking Tools:
         - Forget OFX Banking Import Link (so it asks which account when importing ofx files) (remove_ofx_account_bindings.py) (MD versions < 2022)

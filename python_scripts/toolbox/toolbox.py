@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1067 - 2020 thru 2024 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1067 - 2020 thru 2025 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -56,7 +56,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2024 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
+# Copyright (c) 2021-2025 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -80,91 +80,6 @@
 # NOTE: java.lang.IllegalArgumentException can occur when doing something like '"%s" %(java.util.HashMap)' containing unicode (or calling print on the same HashMap)
 #       Should be fixed in Jython 2.7.3 sometime)... Also note that unicode() should be used instead of str() where appropriate....
 
-# build: 1056 - Tweaked toolbox_init.py with error message; tweaked OFX_view_reconcile_AsOf_Dates()
-# build: 1056 - New feature: 'DIAG: Produce report of Accounts and bank/account number information'
-# build: 1056 - Added startup check for accounts that have both OFX AND md+ connections configured...
-# build: 1056 - DECOMMISSIONED find_IOS_sync_data() as py file too large...
-# build: 1056 - Added SwingTimer Blinking JMenuItem for Toolbox Options....; Changed menus to popup alerts when update/advanced modes not enabled...
-# build: 1056 - Eliminated Advanced Mode... Now all updates within Update Mode..
-# build: 1056 - Tweaks for .getAbsolutePath() vs .getCanonicalPath() and Dropbox updated Dropbox location on MacOS
-# build: 1056 - Accepted Pull Request from xx whereby Edit Security Decimals Places was changed to allow 16dpc. NOTE: 922.3372036854775807 is the max shares number MD can hold at 16dpc
-# build: 1056 - Added 'FIX: Add alternative account numbers for 'Accounts and bank/account number' report (above)' feature
-# build: 1056 - Added 'lBypassAllBackupsAndDisclaimers_TB' feature....
-# build: 1056 - Added launch check for base CurrencyType relative rate != 1.0; fixed diagnose/repair currency option to fix != 1.0 (properly)
-# build: 1057 - Changed errortrap in force disconnect md+ connection....
-# build: 1057 - Bold'ified [sic] blinking cells...; tweaked security account information output (curious view selected object)
-# build: 1057 - Added MacOSx Finder path for internal root folder (fake alias)....; launch check for non-hierarchical security txn(s)
-# build: 1057 - Added bootstrap to execute compiled version of extension (faster to load)....
-# build: 1057 - Added launch detection for potential duplicate securities....
-# build: 1058 - Support for MD2023.0(5000) Kotlin compiled version(s)....; Wrapped responses that now return okio.BufferedSource instead of java.io.InputStream
-#               Kotlin affected LocalStorage and getSyncFolder methods: extract_attachments, Shrink Dataset, Load (old) Pickle file, advanced_options_decrypt_file_from_sync...
-#               More Kotlin fixes.... loadMDPreferences() to .readSet() call when using StringBuilder()...
-#               More Kotlin fixes.... Import MD+ Licence call to .getDecryptStream() needs BufferredSource.
-#               Clone Dataset - fix for new balance adjustment methods...; also outputs that show Start Balance...
-#               Fixed call to .updateFonts() with True parameter from MD2022.3(4077) onwards
-#               updated bundled toolbox_move_merge_investment_txns.py script to handle/block when balance adjustment detected...
-#               Updated reset window data methods to account for new/enhanced filter keys ("custom_filter_int" and "last_custom_filter_int")
-#               MD2023 fixes to common code...
-#               Quick check for earlier MD2023 Sync issue repair flagged......
-# build: 1059 - MD2023.2(5007); Launch check for invalid 'processed.dct' file (I have seen this as a folder!?)....
-#               Change isSwingComponentInvalid() not to check for .isValid()...
-#               Fixed Windows, (hot) keystrokes to use CTRL when attached to Menus so they are consistent (also with MD)...
-#               Tweak to IAGREE message - wrap to next line...
-#               Fix CMD-M (CTRL-M) that didn't work on Windows.... (keystroke 'm' not passed to .getActionCommand())
-#               Tweak startup check messages detect_non_hier_sec_acct_or_orphan_txns()....
-#               Common code tweaks...
-#               Added 'toolbox_zap_mdplus_default_memo_fields' menu option
-#               Enhanced: detect_non_hier_sec_acct_or_orphan_txns() and fix_non_hier_sec_acct_txns() for when investment txn is sitting in a non investment account
-#                         Usually caused by batch change category feature view viewing a xfr split in a non investment register (should be blocked really).
-#               Fix to missing class reference in 'buddy' toolbox_move_merge_investment_txns.py script....
-#               Added "Remove (hidden) downloaded OFX/MD+ data from Transactions within an Account" feature
-#               Renamed script to toolbox_zap_mdplus_ofx_default_memo_fields.py. Now fixes OFX too...
-# build: 1060 - Enhanced buddy 'toolbox_zap_mdplus_ofx_default_memo_fields' script
-#               Renamed script to 'toolbox_zap_mdplus_ofx_qif_default_memo_fields' script
-#               Tweaked OFX_removeDownloadedDataFromTxns() to include QIF in the settings zap routines....
-#               Disabled the createUSAAProfile() menu option (no longer needed)
-#               MD2023.2(5008): Kotlin entire code set recompiled build >> tweaks/fixes...
-#               ... Tweaked ManuallyCloseAndReloadDataset() to cope with multi syncer threads...
-#               added call to .showURL("moneydance:fmodule:extract_data:disable_events") and enable_events when restarting dataset....
-#               Deprecated DetectAndChangeMacTabbingMode class to avoid PyBytecode-approach: java.lang.RuntimeException: java.lang.RuntimeException: For unknown reason, too large method code couldn't be resolved
-#               Added new DetectMobileAppTxnFiles class...; Added new advanced_options_encrypt_file_into_sync_folder() feature
-#               Deprecated: advanced_options_set_check_days()
-#               NOTE: MD2023.2(5008+) KOTLIN ALL uses Java 20.0.1 on Mac. Thread.stop() no longer work affects ManuallyCloseAndReloadDataset's ability to kill Syncer Threads.. :-(
-#               Tweak to detect_fix_txns_assigned_root (removed detect_non_hier_sec_acct_or_orphan_txns() check).
-#               Tweaks to class ManuallyCloseAndReloadDataset() to better handle (new) syncer threads when dataset closing
-#               Enhanced _init, _handle_event, _invoke (etc).py scripts; Now maintain list of WeakReferences() to all observed wrapper, book, syncer, thread objects
-#               MD2023.2(5019) started using WeakReference()s to 'book' (as 'book' and 'bookRef')...
-#               New menu for Observer Mode. Enable/Disable the capture of WeakReferences. Normally disabled.
-#               MD2023.2(5020) fixes - .getInternalAccountBooks() / getExternalAccountBooks() now returns [books]...
-#               Tweak MyJFrame.dispose() with .getContentsPane().removeAll()
-#               Change when Moneydance's DEBUGs are turned on (when debug on, or from new options menu toggle):
-#               Enhanced: advanced_options_DEBUG() and advanced_options_other_DEBUG()
-#               Tweaked isSyncing() detection capability
-#               Build 5031 removed the MD+ licenseCache field - tweak to deal with the change...
-#               Added feature to disable MoneyForesight whenever MD is launched (prevents memory leaks etc)
-#               Cleaned up references holding onto MD Objects....
-#               Added advanced_show_encryption_keys() feature
-#               Build: 5036 - changed MoneyForesight fields - fixed disable MFS feature...
-# build: 1061 - Added closeBotInterface() and set moneyBotInterface to None when closing dataset....; Added 'moneyBotInterface' to .gatherJVMDiagnostics()
-#               More memory leak cleanups....; Added: CMD-G - Requests the JVM to run Garbage Collection....
-#               Enhanced can_I_delete_security() to show transaction count..
-#               Enhanced error traps in find_other_datasets()... Tweaked get_sync_folder() with option to return sync base folder too...
-#               ... added getDropboxSyncFolderForBasePath() for find_other_datasets()...
-#               Added checks for macOS Sonoma(14).... iCloud issues!
-#               Build 5046 fixes "Infinity" backups and defines .getNumBackupsToKeep() etc (no actual toolbox fix required)
-#               JFrame.dispose() added rootPane.getInputMap().clear() - ensure no memory leaks...; Increased usage of DateRange()
-# build: 1062 - Common code - FileFilter fix...; Tweak OFX_view_CUSIP_settings() to deal with blank CUSIP schemes...
-#               add .getFullAccountName() to the error message in review_security_accounts()
-#               updated -Xmx to include -XX:MaxRAMPercentage= and tweak show vmoptions feature etc....
-#               Added new option showMDLaunchParameters()...; relocated advanced_clone_dataset() into extra_code...
-# build: 1063 - Common code - FileFilter fix...; Tweak OFX_view_CUSIP_settings() to deal with blank CUSIP schemes...
-#               tweaked: force_change_all_accounts_categories_currencies(); added: validateAndFixBaseCurrency. Tweaked base currency validation/repair code.
-#               Tweaked diag/fix currencies/securities and diag/fix base currency routines; tweak menu for fix base currency
-# build: 1064 - Tweak buildDiagText() - 'OS Platform:' add space before version text....
-#               Take advantage of of context menu scriptinfo abilities (since MD2024(5100))... - e.g. set selected transactions...
-#               Switch to new debug controls in AppDebug class...
-#               From MD2024(5100) onwards, disable remove_inactive_from_sidebar(); rename 'MoneyBot' references to 'Developer Console'
-#               Add checks for "add_to_sidebar.loc" and "add_to_sidebar.size" window size/location keys (5104)....
 # build: 1065 - Added MD2024(5108) new auto backup save everytime time recognition (etc)... New key, also leverage new UserPreferences.getBackupOption() and class: BackupOption
 # build: 1066 - Tweak debug on/off code adjusting for the CostCalculation debugger switch after 5118
 #               Tweak MyJFrame to catch individual errors....
@@ -182,6 +97,8 @@
 # build: 1067 - Add Account Menu options to validate / fix account start dates (based on earliest txn dates)...
 # build: 1067 - Fixes as the shouldBeIncludedInNetWorth() was renamed in MD2024.3(5204) to get/setIncludeInNetWorth()
 # build: 1067 - BUGFIX read_preferences_file() .readFromFile() was calling str(file)... switched to pass the File reference.
+# build: 1067 - Added menu options for Reset inbuilt report/graph parameters (to defaults), and Delete all memorized reports/graphs...
+# build: 1067 - BUGFIX issue referencing PlaidConection - use isMDPlusGetPlaidClientEnabledBuild() instead.
 # build: 1067 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -622,7 +539,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.3
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5204
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5207
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -2971,7 +2888,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2024)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2025)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -3477,6 +3394,7 @@ Visit: %s (Author's site)
         global advanced_options_decrypt_file_from_dataset, advanced_options_decrypt_file_from_sync
         global advanced_options_decrypt_dataset, advanced_show_encryption_keys
         global CollectTheGarbage, getDropboxSyncFolderForBasePath, advanced_options_force_reset_sync_settings
+        global reset_all_inbuilt_report_params_defaults, delete_all_memorized_reports
         global advanced_clone_dataset
         global advanced_options_DEBUG, advanced_options_other_DEBUG
         global validate_account_start_dates, fix_account_start_dates
@@ -28675,6 +28593,12 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_reset_window_display_settings = MenuJRadioButton("RESET Window Display Settings (disabled when script)", False, updateMenu=True, secondaryEnabled=(GlobalVars.i_am_an_extension_so_run_headless))
                     user_reset_window_display_settings.setToolTipText("This tells MD to 'forget' window display settings. CLOSE ALL REGISTER WINDOWS FIRST! The beauty is it keeps all other settings intact! THIS CHANGES DATA!")
 
+                    user_reset_all_inbuilt_report_params_defaults = MenuJRadioButton("RESET all inbuilt report/graph parameters to defaults", False, updateMenu=True)
+                    user_reset_all_inbuilt_report_params_defaults.setToolTipText("Erases any settings saved against inbuilt reports/graphs (does not touch Memorized Reports/Graphs). THIS CHANGES DATA!")
+
+                    user_delete_all_memorized_reports = MenuJRadioButton("DELETE all memorized reports/graphs", False, updateMenu=True)
+                    user_delete_all_memorized_reports.setToolTipText("DELETE all memorized reports/graphs (does not touch inbuilt report/graph parameters). THIS CHANGES DATA!")
+
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
@@ -28691,7 +28615,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters.add(user_convert_timestamp)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 14
+                        rows += 16
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
 
@@ -28711,6 +28635,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         userFilters.add(user_change_moneydance_fonts)
                         userFilters.add(user_delete_custom_theme_file)
                         userFilters.add(user_delete_orphan_extensions)
+                        userFilters.add(user_reset_all_inbuilt_report_params_defaults)
+                        userFilters.add(user_delete_all_memorized_reports)
 
                     bg = setupMenuRadioButtons(userFilters)
 
@@ -28737,27 +28663,29 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
                         selectHomeScreen()      # Stops the LOT Control box popping up..... Get back to home screen....
 
-                        if user_display_passwords.isSelected():                     display_passwords()
-                        if user_view_searchable_console_log.isSelected():           ViewFileButtonAction(MD_REF.getLogFile(), "MD Console Log").actionPerformed(None)
-                        if user_view_MD_config_file.isSelected():                   ViewFileButtonAction(Common.getPreferencesFile(), "MD Config").actionPerformed(None)
-                        if user_view_MD_custom_theme_file.isSelected():             ViewFileButtonAction(ThemeInfo.customThemeFile, "MD Custom Theme").actionPerformed(None)
-                        if user_view_extensions_details.isSelected():               view_extensions_details()
-                        if user_view_memorised_reports.isSelected():                get_list_memorised_reports()
-                        # if user_find_sync_password_in_ios_backups.isSelected():     find_IOS_sync_data()
-                        if user_import_QIF.isSelected():                            import_QIF()
-                        if user_convert_timestamp.isSelected():                     convert_timestamp_readable_date()
-                        if user_disable_moneyforesight.isSelected():                disable_moneyforesight()
-                        if user_close_dataset.isSelected():                         close_dataset()
-                        if user_rename_dataset.isSelected():                        rename_relocate_dataset(lRelocateDataset=False)
-                        if user_relocate_dataset_internal.isSelected():             rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=True)
-                        if user_relocate_dataset_external.isSelected():             rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=False)
-                        if user_cleanup_external_files.isSelected():                cleanup_external_files_setting()
-                        if user_advanced_delete_int_ext_files.isSelected():         remove_int_external_files_settings()
-                        if user_remove_inactive_from_sidebar.isSelected():          remove_inactive_from_sidebar()
-                        if user_change_moneydance_fonts.isSelected():               change_fonts()
-                        if user_delete_custom_theme_file.isSelected():              delete_theme_file()
-                        if user_delete_orphan_extensions.isSelected():              force_remove_extension()
-                        if user_reset_window_display_settings.isSelected():         reset_window_positions()
+                        if user_display_passwords.isSelected():                         display_passwords()
+                        if user_view_searchable_console_log.isSelected():               ViewFileButtonAction(MD_REF.getLogFile(), "MD Console Log").actionPerformed(None)
+                        if user_view_MD_config_file.isSelected():                       ViewFileButtonAction(Common.getPreferencesFile(), "MD Config").actionPerformed(None)
+                        if user_view_MD_custom_theme_file.isSelected():                 ViewFileButtonAction(ThemeInfo.customThemeFile, "MD Custom Theme").actionPerformed(None)
+                        if user_view_extensions_details.isSelected():                   view_extensions_details()
+                        if user_view_memorised_reports.isSelected():                    get_list_memorised_reports()
+                        # if user_find_sync_password_in_ios_backups.isSelected():         find_IOS_sync_data()
+                        if user_import_QIF.isSelected():                                import_QIF()
+                        if user_convert_timestamp.isSelected():                         convert_timestamp_readable_date()
+                        if user_disable_moneyforesight.isSelected():                    disable_moneyforesight()
+                        if user_close_dataset.isSelected():                             close_dataset()
+                        if user_rename_dataset.isSelected():                            rename_relocate_dataset(lRelocateDataset=False)
+                        if user_relocate_dataset_internal.isSelected():                 rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=True)
+                        if user_relocate_dataset_external.isSelected():                 rename_relocate_dataset(lRelocateDataset=True, lRelocateToInternal=False)
+                        if user_cleanup_external_files.isSelected():                    cleanup_external_files_setting()
+                        if user_advanced_delete_int_ext_files.isSelected():             remove_int_external_files_settings()
+                        if user_remove_inactive_from_sidebar.isSelected():              remove_inactive_from_sidebar()
+                        if user_change_moneydance_fonts.isSelected():                   change_fonts()
+                        if user_delete_custom_theme_file.isSelected():                  delete_theme_file()
+                        if user_delete_orphan_extensions.isSelected():                  force_remove_extension()
+                        if user_reset_window_display_settings.isSelected():             reset_window_positions()
+                        if user_reset_all_inbuilt_report_params_defaults.isSelected():  reset_all_inbuilt_report_params_defaults()
+                        if user_delete_all_memorized_reports.isSelected():              delete_all_memorized_reports()
 
                         for button in bg.getElements():
                             if button.isSelected(): return      # Quit the menu system after running something....

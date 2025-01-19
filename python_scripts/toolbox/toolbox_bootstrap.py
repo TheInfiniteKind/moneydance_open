@@ -4,7 +4,7 @@
 ########################################################################################################################
 ## extension_bootstrap.py: Execute a compiled script if possible (faster load times) ###################################
 ########################################################################################################################
-# Author: Stuart Beesley 2024 - StuWareSoftSystems
+# Author: Stuart Beesley 2025 - StuWareSoftSystems
 # Purpose: a) load compiled version for faster launch time, b) avoid "method too large" RuntimeException (.pyc helper)
 #
 # NOTES: There are various ways to load/run/execute a script.... Some as follows:
@@ -34,7 +34,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2020-2025 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

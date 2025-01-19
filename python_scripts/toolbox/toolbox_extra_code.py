@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_extra_code.py build: 1002 - Dec 2023 - Stuart Beesley StuWareSoftSystems
+# toolbox_extra_code.py build: 1003 - Jan 2025 - Stuart Beesley StuWareSoftSystems
 
 # To avoid the dreaded issue below, moving some code here....:
 # java.lang.RuntimeException: java.lang.RuntimeException: For unknown reason, too large method code couldn't be resolved
@@ -10,10 +10,11 @@
 #               Rebuilt all the encrypt/decrypt file to/from Dataset/Sync... Now can access Dropbox Cloud Sync files online too...
 # build: 1001 - Show encryption details report added - advanced_show_encryption_keys() ...
 # build: 1002 - Relocated advanced_clone_dataset() into here.
+# build: 1003 - Added delete all reports/graphs, and reset all inbuilt report/graph parameters to defaults...
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
+# Copyright (c) 2020-2025 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +43,7 @@ global os
 # Moneydance definitions
 global Account, AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
 global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot
-global TxnSearch
+global TxnSearch, ReportSpec
 global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUpdateTxnsWindow, MoneybotURLStreamHandlerFactory
 global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView
 
@@ -68,8 +69,10 @@ global isKotlinCompiledBuild, convertBufferedSourceToInputStream
 global confirm_backup_confirm_disclaimer, backup_local_storage_settings, getNetSyncKeys, play_the_money_sound
 global ManuallyCloseAndReloadDataset, perform_qer_quote_loader_check, safeStr, convertStrippedIntDateFormattedText
 global count_database_objects, SyncerDebug, calculateMoneydanceDatasetSize, removeEmptyDirs
-global isAppDebugEnabledBuild, isKotlinCompiledBuildAll, isMDPlusEnabledBuild, isNetWorthUpgradedBuild
+global isAppDebugEnabledBuild, isKotlinCompiledBuildAll, isMDPlusEnabledBuild, isMDPlusGetPlaidClientEnabledBuild
+global isNetWorthUpgradedBuild
 global MyAcctFilter, StoreAccountList
+global getMemorizedReports
 
 # New definitions
 from com.moneydance.apps.md.controller.sync import AbstractSyncFolder, MDSyncCipher
@@ -1465,7 +1468,7 @@ try:
                             MoneybotURLStreamHandlerFactory.DEBUG,                                                      # noqa
                             OFXConnection.DEBUG_MESSAGES,                                                               # noqa
                             OnlineTxnMerger.DEBUG,                                                                      # noqa
-                            "n/a" if (not isMDPlusEnabledBuild()) else PlaidConnection.DEBUG))                          # noqa
+                            "n/a" if (not isMDPlusGetPlaidClientEnabledBuild()) else PlaidConnection.DEBUG))            # noqa
             else:
                 askStr = ("main.DEBUG                             currently set to: %s\n" 
                           "System.getProperty('%s') currently set to: %s\n"
@@ -1503,7 +1506,7 @@ try:
             MoneybotURLStreamHandlerFactory.DEBUG = newDebugSetting
             OFXConnection.DEBUG_MESSAGES = newDebugSetting
             OnlineTxnMerger.DEBUG = newDebugSetting
-            if isMDPlusEnabledBuild(): PlaidConnection.DEBUG = newDebugSetting
+            if isMDPlusGetPlaidClientEnabledBuild(): PlaidConnection.DEBUG = newDebugSetting
 
         txt = "All Moneydance internal debug modes turned %s" %(toggleText)
 
@@ -1654,7 +1657,66 @@ try:
 
         setDisplayStatus(txt, "B")
         jif = QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
-        if fix: myPopupInformationBox(jif, "%s accounts with invalid 'start dates' repaired" %(countInvalid), theMessageType=JOptionPane.WARNING_MESSAGE)
+        if fix:
+            logToolboxUpdates("validate_account_start_dates", txt)
+            myPopupInformationBox(jif, "%s accounts with invalid 'start dates' repaired" %(countInvalid), theMessageType=JOptionPane.WARNING_MESSAGE)
+
+    def reset_all_inbuilt_report_params_defaults():
+        if MD_REF.getCurrentAccountBook() is None: return
+
+        _THIS_METHOD_NAME = "FIX: RESET all inbuilt report/graph parameters to defaults"
+
+        if not myPopupAskQuestion(toolbox_frame_, theQuestion="Do you want to RESET all inbuilt report/graph parameters to defaults?", theTitle=_THIS_METHOD_NAME):
+            txt = "%s: User decided not to erase all inbuilt report/graph parameters - no changes made.." %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            return
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME.upper(), "RESET all inbuilt report/graph parameters?"):
+            return False
+
+        ls = MD_REF.getCurrentAccountBook().getLocalStorage()
+        erasedKeys = {}
+        for key in sorted(ls.keys()):
+            value = ls.getStr(key, None)
+            if (value is not None and key.startswith("report_params.")):
+                erasedKeys[key] = value
+                ls.put(key, None)
+                myPrint("B", "ERASED inbuilt report/graph key: '%s' value: '%s'" %(key, value))
+
+        txt = "%s: %s inbuilt report/graph parameter settings erased (review console for details)" %(_THIS_METHOD_NAME, len(erasedKeys))
+        setDisplayStatus(txt, "B")
+        logToolboxUpdates("reset_all_inbuilt_report_params_defaults", txt)
+        myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+
+    def delete_all_memorized_reports():
+        if MD_REF.getCurrentAccountBook() is None: return
+
+        _THIS_METHOD_NAME = "FIX: DELETE all memorized reports/graphs"
+
+        allMemGraphsReports = getMemorizedReports(True, False, None, True)                                              # type: [ReportSpec]
+        allMemGraphs = getMemorizedReports(True, False, ReportSpec.Type.GRAPH, True)                                    # type: [ReportSpec]
+        allMemReports = getMemorizedReports(True, False, ReportSpec.Type.TEXT, True)                                    # type: [ReportSpec]
+
+        if (len(allMemReports) + len(allMemGraphs)) != len(allMemGraphsReports):
+            raise Exception("LOGIC ERROR: delete_all_memorized_reports() - memorized reports(%s) + graphs(%s) != all(%s)!?" %(len(allMemReports), len(allMemGraphs), len(allMemGraphsReports)))
+
+        if not myPopupAskQuestion(toolbox_frame_, theQuestion="Do you want to DELETE all %s memorized reports(%s) and graphs(%s)?" %(len(allMemGraphsReports), len(allMemReports), len(allMemGraphs)), theTitle=_THIS_METHOD_NAME):
+            txt = "%s: User decided not to delete all %s memorized reports/graphs - no changes made.." %(_THIS_METHOD_NAME, len(allMemGraphsReports))
+            setDisplayStatus(txt, "B")
+            return
+
+        if not confirm_backup_confirm_disclaimer(toolbox_frame_, _THIS_METHOD_NAME.upper(), "DELETE all %s memorized reports/graphs?" %(len(allMemGraphsReports))):
+            return False
+
+        for reportSpec in allMemGraphsReports:
+            if not reportSpec.isMemorized(): raise Exception("LOGIC ERROR: ReportSpec: '%s' is NOT memorized!?" %(reportSpec))
+            reportSpec.deleteItem()
+            myPrint("B", "DELETED Memorized Graph/Report: '%s'" %(reportSpec))
+
+        txt = "%s: %s memorized reports(%s) and graphs(%s) deleted (review console for details)" %(_THIS_METHOD_NAME, len(allMemGraphsReports), len(allMemReports), len(allMemGraphs))
+        setDisplayStatus(txt, "B")
+        logToolboxUpdates("delete_all_memorized_reports", txt)
+        myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
 
     def view_networthCalculations():
         if MD_REF.getCurrentAccountBook() is None: return
