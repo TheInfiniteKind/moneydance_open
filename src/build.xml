@@ -701,7 +701,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
     <!--    <move file="./s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>-->
     <!--    NOTE: KeyAdmin (Sean) changed location 7/12/24-->
-    <move file="${dist}/s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
+    <move file="s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
 
     <!--    <copy file="${dist}/${feature}.mxt" tofile="${install}/${feature}.mxt" verbose="true" failonerror="false" />-->
 
