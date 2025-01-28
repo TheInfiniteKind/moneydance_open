@@ -157,7 +157,7 @@ class TxnTagFilterView extends JPanel {
     _buttonPanel = new ClickLabelListPanel();
     _buttonPanel.setOpaque(false);
 
-    MDAction selectAll = MDAction.makeKeyedAction(_mdGui, "accountfilter.all", "accountfilter.all", new ActionListener() {
+    MDAction selectAll = MDAction.makeNonKeyedAction(_mdGui, "All", "accountfilter.all", new ActionListener() {
       public void actionPerformed(ActionEvent evt) {
         _tagField.selectAll();
         _useTagFilter.setSelected(true);
