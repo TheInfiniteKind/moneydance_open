@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1055 - January 2025 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1056 - January 2025 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -23,7 +23,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 ########################################################################################################################
 # MIT License
 #
-# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2020-2025 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -144,7 +144,9 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1055 - Add "XNW" to to the account selector (picklist) to show when an account is flagged to be excluded from net worth calculations...
 # build: 1055 - Add 'apply net worth flags' feature... Switch 'All Accounts (no categories)" to appear first in the picklist combo; added @nothis.
 # build: 1055 - Enabled right-click popup context menus on some JLinkLabels and JLabels (aka copy value string to clipboard)...
-# build: 1055 - ???
+# build: 1056 - ???
+# build: 1056 - Tweak the Account type selector so that all accounts and categories is first/selected (for @dtd)
+# build: 1056 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -160,7 +162,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1055"
+version_build = "1056"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -2940,7 +2942,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2024)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2025)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -4173,8 +4175,8 @@ Visit: %s (Author's site)
         def generateListForCombo():
             # type: () -> [Account.AccountType]
             comboList = []
-            comboList.append(AccountTypeHolder(allAcctsNoCats=True))
             comboList.append(AccountTypeHolder(allTypes=True))
+            comboList.append(AccountTypeHolder(allAcctsNoCats=True))
             comboList.append(AccountTypeHolder(allAcctsNoSecsNoCats=True))
             comboList.append(AccountTypeHolder(bankAndCC=True))
             comboList.append(AccountTypeHolder(investAndSec=True))
@@ -14906,7 +14908,6 @@ Visit: %s (Author's site)
                     # --------------------------------------------------------------------------------------------------
 
                     onFiltersCol = 0
-
                     NAB.filterOnlyAccountType_COMBO = MyJComboBox(AccountTypeHolder.generateListForCombo())
                     NAB.filterOnlyAccountType_COMBO.putClientProperty("%s.id" %(NAB.myModuleID), "filterOnlyAccountType_COMBO")
                     NAB.filterOnlyAccountType_COMBO.setName("filterOnlyAccountType_COMBO")
