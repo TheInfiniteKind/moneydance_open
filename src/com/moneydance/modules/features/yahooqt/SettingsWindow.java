@@ -465,7 +465,7 @@ public class SettingsWindow
 
   private void showIncludeMenu(final JComponent parent) {
     JPopupMenu menu = new JPopupMenu();
-    JMenuItem menuItem = new JMenuItem(_model.getGUI().getStr("accountfilter.all"));
+    JMenuItem menuItem = new JMenuItem("All");
     menuItem.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
         includeAll(true);
