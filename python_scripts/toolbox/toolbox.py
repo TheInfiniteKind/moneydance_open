@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1067 - 2020 thru 2025 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1068 - 2020 thru 2025 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -99,7 +99,9 @@
 # build: 1067 - BUGFIX read_preferences_file() .readFromFile() was calling str(file)... switched to pass the File reference.
 # build: 1067 - Added menu options for Reset inbuilt report/graph parameters (to defaults), and Delete all memorized reports/graphs...
 # build: 1067 - BUGFIX issue referencing PlaidConection - use isMDPlusGetPlaidClientEnabledBuild() instead.
-# build: 1067 - ???
+# build: 1068 - ???
+# build: 1068 - Tweak validate account start dates to look for future dates.
+# build: 1068 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -132,7 +134,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1067"
+version_build = "1068"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -539,7 +541,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.3
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5207
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5215
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -26544,7 +26546,7 @@ Moneydance(MD) is built on Java. Hence the application runs on a Java Virtual Ma
 - NOTE: You can also execute the moneydance.jar using Java as long as you set up your environment properly.
         .. this is out of scope of this document, but refer to: https://yogi1967.github.io/MoneydancePythonScripts/
         .. and the example launch scripts contained on my site.
-        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18.0.1, MD2023.2(5008) Java 20.0.1, MD2023.2(5047) Java 21
+        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18, MD2023.2(5008) Java 20, MD2023.2(5047) Java 21
 
 - Windows and Linux: The launch package is built using install4j. The JVM can be modified by editing the vmoptions file.
                      See separate Toolbox > Advanced Options menu > 'View Java VM Options File' for details

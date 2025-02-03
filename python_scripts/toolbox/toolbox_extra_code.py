@@ -84,6 +84,7 @@ from javax.swing import DefaultListModel
 from java.lang import InterruptedException
 from java.util.concurrent import CancellationException
 from java.io import BufferedOutputStream
+from java.util import LinkedHashMap
 
 try:
     if GlobalVars.EXTRA_CODE_INITIALISED: raise QuickAbortThisScriptException
@@ -1613,10 +1614,11 @@ try:
 
         book = MD_REF.getCurrentAccountBook()
         dateFormatter = MD_REF.getPreferences().getShortDateFormatter()
-        creationMap = HashMap()
+        creationMap = LinkedHashMap()
         allAccts = AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER)
         Collections.sort(allAccts, AccountUtil.ACCOUNT_TYPE_NAME_CASE_INSENSITIVE_COMPARATOR)
         for acct in allAccts:
+            if acct.getAccountType() == Account.AccountType.ROOT: continue
             creationDate = acct.getCreationDateInt()
             startBal = acct.getStartBalance()
             creationMap.put(acct, [creationDate, startBal, 0L])
@@ -1625,28 +1627,49 @@ try:
         for txn in allTxns:
             txnDate = txn.getDateInt()
             values = creationMap.get(txn.getAccount())
-            earliestTxnDate = values[2]
+            earliestTxnDate = values[2]                                                                                 # noqa
             if earliestTxnDate == 0 or txnDate <= earliestTxnDate:
-                values[2] = txnDate
+                values[2] = txnDate                                                                                     # noqa
+
+        todayInt = DateUtil.getStrippedDateInt()
 
         countInvalid = 0
+        countRepaired = 0
+        countNotRepaired = 0
         for acct in creationMap:
             if acct.getAccountType().isCategory(): continue
             if acct.getAccountType() == Account.AccountType.SECURITY: continue
             values = creationMap.get(acct)
             creationDate = values[0]
             earliestTxnDate = values[2]
-            if earliestTxnDate == 0: continue
-            if earliestTxnDate >= creationDate: continue
-            countInvalid+=1
+
+            lFutureDate = (creationDate > todayInt)
+            lZeroDate = (creationDate == 0)
+            if lFutureDate and earliestTxnDate > 0 and earliestTxnDate <= todayInt: pass    # make future dated invalid
+            if lFutureDate: pass                                                            # make future dated invalid
+            elif not lZeroDate and earliestTxnDate == 0: continue                           # assume OK
+            elif lZeroDate: pass                                                            # zero date is invalid/illogical
+            elif earliestTxnDate == 0: continue                                             # assume OK
+            elif earliestTxnDate >= creationDate: continue                                  # assume OK
+            else: pass                                                                      # anything else is invalid
+
+            if earliestTxnDate != 0: lZeroDate = False
+            if earliestTxnDate > 0 and earliestTxnDate <= todayInt: lFutureDate = False
+
+            countInvalid += 1
+            status = "<%s NOT FIXED - ATTENTION NEEDED>" %("*FUTURE-DATE*" if (lFutureDate) else "*ZERO-DATE*  ") if (lFutureDate or lZeroDate) else "<FIXED>" if fix else "<INVALID>"
             output += "%s %s %s %s %s\n" % (pad(acct.getFullAccountName(), 50),
                                             pad(str(acct.getAccountType()), 20),
                                             pad(dateFormatter.format(creationDate), 17),
                                             pad(dateFormatter.format(earliestTxnDate), 17),
-                                            "<FIXED>" if fix else "<INVALID>")
+                                            status)
             if fix:
-                acct.setCreationDateInt(earliestTxnDate)
-                acct.syncItem()
+                if lZeroDate or lFutureDate:
+                    countNotRepaired += 1                           # we cannot fix these... manual attention needed
+                else:
+                    countRepaired += 1
+                    acct.setCreationDateInt(earliestTxnDate)
+                    acct.syncItem()
 
         if countInvalid < 1: output += "<NO INVALID ACCOUNT 'START DATES' FOUND>\n"
 
@@ -1659,7 +1682,7 @@ try:
         jif = QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
         if fix:
             logToolboxUpdates("validate_account_start_dates", txt)
-            myPopupInformationBox(jif, "%s accounts with invalid 'start dates' repaired" %(countInvalid), theMessageType=JOptionPane.WARNING_MESSAGE)
+            myPopupInformationBox(jif, "%s accounts with invalid 'start dates' %s repaired (%s NOT repaired)" %(countInvalid, countRepaired, countNotRepaired), theMessageType=JOptionPane.WARNING_MESSAGE)
 
     def reset_all_inbuilt_report_params_defaults():
         if MD_REF.getCurrentAccountBook() is None: return
