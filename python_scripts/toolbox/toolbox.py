@@ -98,9 +98,9 @@
 # build: 1067 - Fixes as the shouldBeIncludedInNetWorth() was renamed in MD2024.3(5204) to get/setIncludeInNetWorth()
 # build: 1067 - BUGFIX read_preferences_file() .readFromFile() was calling str(file)... switched to pass the File reference.
 # build: 1067 - Added menu options for Reset inbuilt report/graph parameters (to defaults), and Delete all memorized reports/graphs...
-# build: 1067 - BUGFIX issue referencing PlaidConection - use isMDPlusGetPlaidClientEnabledBuild() instead.
+# build: 1067 - BUGFIX issue referencing PlaidConnection - use isMDPlusGetPlaidClientEnabledBuild() instead.
 # build: 1068 - ???
-# build: 1068 - Tweak validate account start dates to look for future dates.
+# build: 1068 - Tweak validate account start dates to look for future dates. Adding 2025 license keys...
 # build: 1068 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -483,7 +483,7 @@ else:
     from java.awt import Component                                                                                          # noqa
     from java.awt import GraphicsEnvironment, Rectangle, GraphicsDevice, Desktop, Event, GridBagConstraints, Window, Frame  # noqa
     from java.awt.event import ComponentAdapter, ItemListener, ItemEvent, HierarchyListener, ActionListener, MouseAdapter   # noqa
-    from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector, Collections
+    from java.util import UUID, Timer, TimerTask, Map, HashMap, Vector, Collections                                         # noqa
     from java.util.stream import Collectors
     from java.util.zip import ZipInputStream, ZipEntry
     from java.nio.charset import StandardCharsets
@@ -541,7 +541,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.3
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5215
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5219
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -5749,7 +5749,8 @@ Visit: %s (Author's site)
         textArray.append(u"Moneydance updater version to track: %s" %MD_REF.getPreferences().getSetting(u"updater.version_to_track",u""))
         textArray.append(u"")
 
-        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2024",
+        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2025",
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key2024",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2023",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2022",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2021",
@@ -5763,15 +5764,14 @@ Visit: %s (Author's site)
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2010",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2008",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2004",
-                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key", u"????")))))))))))))))
+                                                                MD_REF.getPreferences().getSetting(u"gen.lic_key", u"????"))))))))))))))))
 
-        # license2024 = MD_REF.getPreferences().getSetting(u"gen.lic_key2024", None)
+        # license2025 = MD_REF.getPreferences().getSetting(u"gen.lic_key2025", None)
+        license2024 = MD_REF.getPreferences().getSetting(u"gen.lic_key2024", None)
         license2023 = MD_REF.getPreferences().getSetting(u"gen.lic_key2023", None)
         license2022 = MD_REF.getPreferences().getSetting(u"gen.lic_key2022", None)
         license2021 = MD_REF.getPreferences().getSetting(u"gen.lic_key2021", None)
-        license2020 = MD_REF.getPreferences().getSetting(u"gen.lic_key2020", None)
         license2019 = MD_REF.getPreferences().getSetting(u"gen.lic_key2019", None)
-        license2018 = MD_REF.getPreferences().getSetting(u"gen.lic_key2018", None)
         license2017 = MD_REF.getPreferences().getSetting(u"gen.lic_key2017", None)
         license2015 = MD_REF.getPreferences().getSetting(u"gen.lic_key2015", None)
         license2014 = MD_REF.getPreferences().getSetting(u"gen.lic_key2014", None)
@@ -5824,19 +5824,18 @@ Visit: %s (Author's site)
 
                 del licenseInfo
 
-        if license2023:      textArray.append(u" >old licenses (2023): " + license2023)
-        if license2022:      textArray.append(u" >old licenses (2022): " + license2022)
-        if license2021:      textArray.append(u" >old licenses (2021): " + license2021)
-        if license2020:      textArray.append(u" >old licenses (2020): " + license2020)
-        if license2019:      textArray.append(u" >old licenses (2019): " + license2019)
-        if license2018:      textArray.append(u" >old licenses (2018): " + license2018)
-        if license2017:      textArray.append(u" >old licenses (2017): " + license2017)
-        if license2015:      textArray.append(u" >old licenses (2015): " + license2015)
-        if license2014:      textArray.append(u" >old licenses (2014): " + license2014)
-        if license2011:      textArray.append(u" >old licenses (2011): " + license2011)
-        if license2010:      textArray.append(u" >old licenses (2010): " + license2010)
-        if license2008:      textArray.append(u" >old licenses (2008): " + license2008)
-        if license2004:      textArray.append(u" >old licenses (2004): " + license2004)
+        if license2024:      textArray.append(u" >prior license (2024): " + license2024)
+        if license2023:      textArray.append(u" >prior license (2023): " + license2023)
+        if license2022:      textArray.append(u" >prior license (2022): " + license2022)
+        if license2021:      textArray.append(u" >prior license (2021): " + license2021)
+        if license2019:      textArray.append(u" >prior license (2019): " + license2019)
+        if license2017:      textArray.append(u" >prior license (2017): " + license2017)
+        if license2015:      textArray.append(u" >prior license (2015): " + license2015)
+        if license2014:      textArray.append(u" >prior license (2014): " + license2014)
+        if license2011:      textArray.append(u" >prior license (2011): " + license2011)
+        if license2010:      textArray.append(u" >prior license (2010): " + license2010)
+        if license2008:      textArray.append(u" >prior license (2008): " + license2008)
+        if license2004:      textArray.append(u" >prior license (2004): " + license2004)
 
         if not MD_REF.getCurrentAccountBook(): textArray.append(u"Moneydance datafile is empty")
         x = MD_REF.getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_CURRENT_ACCOUNT_BOOK, None)
