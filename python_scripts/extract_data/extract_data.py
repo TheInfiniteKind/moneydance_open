@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1046 - January 2025 - Stuart Beesley
+# extract_data.py - build: 1047 - February 2025 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -98,7 +98,9 @@
 # build: 1045 - Added tags to extract reminders...; retain sort between reminder refresh(s)
 # build: 1045 - Tweaked EAR extract... copy check to parent if empty, added isParentTxn
 # build: 1046 - Added extract category information (ECI) extract
-# build: 1046 - ???
+# build: 1047 - ???
+# build: 1047 - BUGFIX - Extract Reminders when notes... Missing tags column (index 18)...
+# build: 1047 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -113,7 +115,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1046"
+version_build = "1047"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -9359,6 +9361,7 @@ Visit: %s (Author's site)
                                                 csvline.append('')  # Category
                                                 csvline.append('')  # Description
                                                 csvline.append('"' + memo + '"')  # Memo
+                                                csvline.append('')  # tags
                                                 GlobalVars.csvlines_reminders.append(csvline)
 
                                             elif str(remtype) == 'TRANSACTION':
