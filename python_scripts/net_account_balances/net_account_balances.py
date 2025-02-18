@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1056 - January 2025 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1056 - February 2025 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -146,6 +146,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1055 - Enabled right-click popup context menus on some JLinkLabels and JLabels (aka copy value string to clipboard)...
 # build: 1056 - ???
 # build: 1056 - Tweak the Account type selector so that all accounts and categories is first/selected (for @dtd)
+# build: 1056 - Fix for 2025.x(5220) onwards... Account::getAncestors() changed to a Kotlin Sequence
 # build: 1056 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -3170,12 +3171,15 @@ Visit: %s (Author's site)
     if isNetWorthUpgradedBuild():
         from com.infinitekind.moneydance.model import NetWorthCalculator
 
+    GlobalVars.MD_ANCESTORS_UPGRADED_BUILD = 5252                                                                       # MD2025.0(5252)
+    def isAncestorsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ANCESTORS_UPGRADED_BUILD)
+
     GlobalVars.MD_POPUP_CONTEXT_MENU_UPGRADED_BUILD = 5202                                                              # MD2024.3(5202)
     def isPopupContextMenuUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_POPUP_CONTEXT_MENU_UPGRADED_BUILD)
     if isPopupContextMenuUpgradedBuild():
-        from com.moneydance.apps.md.view.gui import ContextPopupable
+        from com.moneydance.apps.md.view.gui import ContextPopupable                                                    # noqa
     else:
-        class ContextPopupable: pass
+        class ContextPopupable: pass                                                                                    # noqa
 
     def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
         """Will detect and then run the codeblock on the EDT"""
@@ -4332,29 +4336,29 @@ Visit: %s (Author's site)
 
         def __init__(self, *args, **kwargs):
             self.fixedWidth = kwargs.pop("fixedWidth", None)
-            super(self.__class__, self).__init__(*args, **kwargs)
+            super(self.__class__, self).__init__(*args, **kwargs)                                                       # noqa
 
         def updateUI(self):
-            super(self.__class__, self).updateUI()
+            super(self.__class__, self).updateUI()                                                                      # noqa
             setJComponentStandardUIDefaults(self)
 
         def getMaximumSize(self):
             if self.fixedWidth is not None: return self.getPreferredSize()
-            return super(self.__class__, self).getMaximumSize()
+            return super(self.__class__, self).getMaximumSize()                                                         # noqa
 
         def getMinimumSize(self):
             if self.fixedWidth is not None: return self.getPreferredSize()
-            return super(self.__class__, self).getMinimumSize()
+            return super(self.__class__, self).getMinimumSize()                                                         # noqa
 
         # Used to constrain the main control panel (that sits inside a JScrollPane)...
         def getPreferredSize(self):
-            dim = super(self.__class__, self).getPreferredSize()
+            dim = super(self.__class__, self).getPreferredSize()                                                        # noqa
             if self.fixedWidth is not None: dim.width = self.fixedWidth
             return dim
 
         def doubleClicked(self, source, atPoint): pass
 
-        def getContextMenuTargets(self, source, atPoint):
+        def getContextMenuTargets(self, source, atPoint):                                                               # noqa
             if isinstance(source, (JLabel, JTextComponent)):
                 text = html_reverse(source.getText())
                 if not StringUtils.isBlank(text):
@@ -6004,7 +6008,8 @@ Visit: %s (Author's site)
         if not acct.getIncludeInNetWorth(): return False
 
         # check if one of the eligible parents have been excluded
-        for ancestor in acct.getAncestors():
+        ancestors = acct.getAncestors().iterator() if isAncestorsUpgradedBuild() else acct.getAncestors()
+        for ancestor in ancestors:
             if (ancestor.isAccountNetWorthEligible() and not ancestor.getIncludeInNetWorth()): return False
         return True
 
@@ -17517,7 +17522,7 @@ Visit: %s (Author's site)
 
             def doubleClicked(self, source, atPoint): pass
 
-            def getContextMenuTargets(self, source, atPoint):
+            def getContextMenuTargets(self, source, atPoint):                                                           # noqa
                 if isinstance(source, (JLabel, JTextComponent)):
                     text = html_reverse(source.getText())
                     if not StringUtils.isBlank(text):
@@ -17526,7 +17531,7 @@ Visit: %s (Author's site)
 
             def __init__(self):
 
-                super(self.__class__, self).__init__()
+                super(self.__class__, self).__init__()                                                                  # noqa
 
                 if debug: myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
                 if debug: myPrint("DB", "... SwingUtilities.isEventDispatchThread() returns: %s" %(SwingUtilities.isEventDispatchThread()))
@@ -17606,7 +17611,7 @@ Visit: %s (Author's site)
 
             def updateUI(self):
                 if debug: myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
-                super(self.__class__, self).updateUI()
+                super(self.__class__, self).updateUI()                                                                  # noqa
 
 
 

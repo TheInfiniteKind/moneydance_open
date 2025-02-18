@@ -92,7 +92,6 @@
 # build: 1067 - NOTE: MD2024.2(5152) brings new Syncer.getCurrentSyncStats() etc...
 # build: 1067 - NOTE: MD2024.2(5153) brings new ConsoleWindow(...) utilities for promote/demote primary/secondary, along with push/pull sync data to/from remote
 # build: 1067 - NOTE: MD2024.2(5153-5154) changes getUI() - now does not try to launch the GUI if not loaded.. Just returns null...
-# build: 1067 - ???
 # build: 1067 - Tweak clone dataset as the manual methods of loading a dataset/model changed!
 # build: 1067 - Add Account Menu options to validate / fix account start dates (based on earliest txn dates)...
 # build: 1067 - Fixes as the shouldBeIncludedInNetWorth() was renamed in MD2024.3(5204) to get/setIncludeInNetWorth()
@@ -101,6 +100,7 @@
 # build: 1067 - BUGFIX issue referencing PlaidConnection - use isMDPlusGetPlaidClientEnabledBuild() instead.
 # build: 1068 - ???
 # build: 1068 - Tweak validate account start dates to look for future dates. Adding 2025 license keys...
+# build: 1068 - diag screen tweaks for 5252 -nobackup and no splash screen options. Also 5252 Account::ancestors
 # build: 1068 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -541,7 +541,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.3
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5219
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5252
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3312,6 +3312,15 @@ Visit: %s (Author's site)
     if isNetWorthUpgradedBuild():
         GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW = Account.PARAM_INCLUDE_IN_NET_WORTH
 
+    GlobalVars.MD_ANCESTORS_UPGRADED_BUILD = 5252                                                                       # MD2025.0(5252)
+    def isAncestorsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ANCESTORS_UPGRADED_BUILD)
+
+    GlobalVars.MD_NOSPLASHSCREEN_OPTION_BUILD = 5253                                                                    # MD2025.0(5253)
+    def isNoSplashScreenOptionsBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NOSPLASHSCREEN_OPTION_BUILD)
+
+    GlobalVars.MD_SUPPRESS_BACKUPS_OPTION_BUILD = 5047                                                                  # 2023.2(5047)
+    def isSuppressBackupsOptionBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_SUPPRESS_BACKUPS_OPTION_BUILD)
+
     GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5100                                                                 # MD2024(5100)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
     if isCostCalculationUpgradedBuild():
@@ -5837,6 +5846,12 @@ Visit: %s (Author's site)
         if license2008:      textArray.append(u" >prior license (2008): " + license2008)
         if license2004:      textArray.append(u" >prior license (2004): " + license2004)
 
+        if isNoSplashScreenOptionsBuild() and File(MD_REF.getPlatformHelper().getRootPath(), UserPreferences.SUPPRESS_SPLASH_FILENAME).exists():
+            textArray.append(u"\nLaunch splash screen is SUPRESSED")
+
+        if isSuppressBackupsOptionBuild() and MD_REF.SUPPRESS_BACKUPS:
+            textArray.append(u"\nLaunched with '-nobackup' parameter - Backups are SUPRESSED!")
+
         if not MD_REF.getCurrentAccountBook(): textArray.append(u"Moneydance datafile is empty")
         x = MD_REF.getPreferences().getSetting(GlobalVars.Strings.MD_CONFIGDICT_CURRENT_ACCOUNT_BOOK, None)
         y = MD_REF.getPreferences().getSetting(u"current_account_file", None)
@@ -6296,7 +6311,9 @@ Visit: %s (Author's site)
             textArray.append(u"Font:      %s" %(MD_REF.getPreferences().getSetting(u"print.font_name", u"")))
             textArray.append(u"Font Size: %s" %(MD_REF.getPreferences().getSetting(u"print.font_size", u"12")))
 
-        textArray.append(u"\n>> BACKUPS")
+        extraBackupTxt = ""
+        if isSuppressBackupsOptionBuild() and MD_REF.SUPPRESS_BACKUPS: extraBackupTxt = u" (THESE SETTINGS ARE BEING IGNORED AS BACKUPS ARE SUPPRESSED!)"
+        textArray.append(u"\n>> BACKUPS%s" %(extraBackupTxt))
 
         destroyBackupChoicesStr = MD_REF.getPreferences().getSetting(UserPreferences.BACKUP_DESTROY_NUMBER, "5")
 
