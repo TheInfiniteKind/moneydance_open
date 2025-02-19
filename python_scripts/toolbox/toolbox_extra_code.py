@@ -42,7 +42,7 @@ global os
 
 # Moneydance definitions
 global Account, AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
-global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot
+global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot, CurrencyUtil
 global TxnSearch, ReportSpec
 global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUpdateTxnsWindow, MoneybotURLStreamHandlerFactory
 global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView
@@ -61,7 +61,8 @@ global MD_REF, GlobalVars, debug, myPrint, QuickAbortThisScriptException
 global myPopupInformationBox, getFileFromFileChooser, get_home_dir, myPopupAskQuestion
 global invokeMethodByReflection, getFieldByReflection, setFieldByReflection
 global MyPopUpDialogBox, logToolboxUpdates, file_chooser_wrapper, dump_sys_error_to_md_console_and_errorlog
-global get_sync_folder, pad, rpad, cpad, setDisplayStatus, doesUserAcceptDisclaimer, get_time_stamp_as_nice_text
+global get_sync_folder, pad, rpad, cpad, padTruncateWithDots
+global setDisplayStatus, doesUserAcceptDisclaimer, get_time_stamp_as_nice_text
 global MyJScrollPaneForJOptionPane, getMDIcon, QuickJFrame
 global genericSwingEDTRunner, genericThreadRunner
 global getColorBlue, getColorRed, getColorDarkGreen, MoneybotURLDebug
@@ -1640,8 +1641,8 @@ try:
             if acct.getAccountType().isCategory(): continue
             if acct.getAccountType() == Account.AccountType.SECURITY: continue
             values = creationMap.get(acct)
-            creationDate = values[0]
-            earliestTxnDate = values[2]
+            creationDate = values[0]                                                                                    # noqa
+            earliestTxnDate = values[2]                                                                                 # noqa
 
             lFutureDate = (creationDate > todayInt)
             lZeroDate = (creationDate == 0)
@@ -1740,6 +1741,88 @@ try:
         setDisplayStatus(txt, "B")
         logToolboxUpdates("delete_all_memorized_reports", txt)
         myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+
+    def view_inactiveAcctsIncludedNW():
+        return fix_inactiveAcctsIncludedNW(lFix=False)
+
+    def fix_inactiveAcctsIncludedNW(lFix=False):
+        if MD_REF.getCurrentAccountBook() is None: return
+        if not isNetWorthUpgradedBuild(): return
+
+        if lFix:
+            from com.infinitekind.moneydance.model import UndoableChange    # should be OK as we have confirmed we are in MD2024.x onwards
+            undo = MD_REF.getUI().getUndoManager()
+            if undo is None: raise Exception("LOGIC ERROR: could not get Undo Manager?!")
+            _THIS_METHOD_NAME = "FIX: Exclude all inactive accounts from Net Worth calculations"
+        else:
+            undo = None
+            _THIS_METHOD_NAME = "DIAG: Show inactive accounts included in Net Worth calculations"
+
+        output = "\n" \
+                 "%s:\n" \
+                 " ======================================================\n\n" %(_THIS_METHOD_NAME.upper())
+
+        book = MD_REF.getCurrentAccountBook()
+        base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+        dec = MD_REF.getPreferences().getDecimalChar()
+        today = DateUtil.getStrippedDateInt()
+
+        output += "Listing inactive accounts included in Net Worth calculations (Base currency: %s %s)\n\n" %(base.getIDString(), base.getName())
+
+        allAccts = sorted(AccountUtil.allMatchesForSearch(book, AcctFilter.ALL_ACCOUNTS_FILTER),
+                          key=lambda sort_x: (sort_x.getAccountType(), sort_x.getFullAccountName().upper()))
+
+        totalBalance = 0L
+        totalCurrentBalance = 0L
+        accountsToFix = []
+        for acct in allAccts:
+            if not acct.isAccountNetWorthEligible(): continue       # only select NW eligible accounts
+            if not acct.getAccountOrParentIsInactive(): continue    # only select INACTIVE accounts
+            if not acct.getIncludeInNetWorth(): continue            # only select accounts still included in NW
+            balance = CurrencyUtil.convertValue(acct.getBalance(), acct.getCurrencyType(), base)
+            currentBalance = CurrencyUtil.convertValue(acct.getCurrentBalance(), acct.getCurrencyType(), base, today)
+            totalBalance += balance
+            totalCurrentBalance += currentBalance
+            output += ("Type: %s Account: '%s' Current Balance: %s Balance: %s\n"
+                       %(pad(acct.getAccountType(), 12), padTruncateWithDots(acct.getFullAccountName(), 80),
+                         rpad(base.formatFancy(currentBalance, dec), 14), rpad(base.formatFancy(balance, dec), 14)))
+            accountsToFix.append(acct)
+
+        output += "\n%s Totals: Current Balance: %s Balance: %s\n" %((" "*102), rpad(base.formatFancy(totalCurrentBalance, dec), 14), rpad(base.formatFancy(totalBalance, dec), 14))
+        output += "\n<END>"
+
+        txt = "%s: - Displaying inactive accounts included in Net Worth calculations" %(_THIS_METHOD_NAME)
+        setDisplayStatus(txt, "B")
+        jif = QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+        if not lFix: return
+
+        if len(accountsToFix) < 1:
+            txt = "%s: No accounts found to fix/exclude - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(jif, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        if not confirm_backup_confirm_disclaimer(jif, _THIS_METHOD_NAME, "Exclude %s accounts from Net Worth calculations?" %(len(accountsToFix))):
+            txt = "%s: User did not agree to proceed with changes - no changes made!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(jif, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+            return
+
+        myPrint("B", "BEGIN: Excluding accounts from Net Worth calculations...:")
+        change = UndoableChange()                                                                                       # noqa
+        for acct in accountsToFix:
+            change.beginModification(acct)
+            acct.setIncludeInNetWorth(False)
+            change.finishModification(acct)
+            myPrint("B", "excluded account '%s' from Net Worth" %(acct))
+        undo.recordChange(change)
+        myPrint("B", "FINISHED: Excluded %s accounts from Net Worth calculations - UNDO HAS BEEN ENABLED" %(len(accountsToFix)))
+
+        txt = "%s: Excluded %s accounts from Net Worth calculations ** UNDO ENABLED **" %(_THIS_METHOD_NAME, len(accountsToFix))
+        setDisplayStatus(txt, "B")
+        logToolboxUpdates("fix_inactiveAcctsIncludedNW", txt)
+        myPopupInformationBox(jif, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+
 
     def view_networthCalculations():
         if MD_REF.getCurrentAccountBook() is None: return

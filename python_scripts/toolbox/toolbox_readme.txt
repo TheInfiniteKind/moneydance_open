@@ -156,6 +156,7 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - DIAG - View Categories with zero balance. You can also inactivate using Update mode.
         - DIAG - View all the possible system generated Net Worth calculations... (MD2024.3(5204) onwards)
         - DIAG - View Accounts' shouldBeIncludedInNetWorth() settings...
+        - DIAG - Show all inactive accounts that are included in Net Worth calculations (MD2024.3 onwards)
         - DIAG - Validate Account 'start dates'... (based upon earliest transaction date)
         - DIAG - Produce report of Accounts and bank/account number information (Useful for legacy / Will making)
 
@@ -262,6 +263,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Add alternative account numbers for 'Accounts and bank/account number' report (above)"
         - FIX - Inactivate all Categories with Zero Balance
         - FIX - Edit an Account's shouldBeIncludedInNetWorth() setting. (disabled for builds MD2024.3 onwards, as builtin functionality)
+        - FIX - Exclude all inactive accounts from Net Worth calculations (MD2024.3 onwards)
         - FIX - Fix Account 'start dates'... (based upon earliest transaction date)
         - FIX - FORCE change an Account's Type (use with care. Does not update any transactions) (set_account_type.py)
         - FIX - FORCE change an Account's / Category's Currency (use with care. Does not update any transactions) (force_change_account_currency.py)

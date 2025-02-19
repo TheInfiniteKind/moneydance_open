@@ -101,6 +101,7 @@
 # build: 1068 - ???
 # build: 1068 - Tweak validate account start dates to look for future dates. Adding 2025 license keys...
 # build: 1068 - diag screen tweaks for 5252 -nobackup and no splash screen options. Also 5252 Account::ancestors
+# build: 1068 - Add feature so that users can quickly remove inactive accounts from Net Worth
 # build: 1068 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -3410,6 +3411,7 @@ Visit: %s (Author's site)
         global advanced_options_DEBUG, advanced_options_other_DEBUG
         global validate_account_start_dates, fix_account_start_dates
         global view_shouldBeIncludedInNetWorth_settings, edit_shouldBeIncludedInNetWorth_settings, view_networthCalculations
+        global view_inactiveAcctsIncludedNW, fix_inactiveAcctsIncludedNW
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -28050,6 +28052,9 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_view_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("DIAG: View Accounts' shouldBeIncludedInNetWorth() settings...", False)
                     user_view_shouldBeIncludedInNetWorth_settings.setToolTipText("This will list all Accounts/Categories and the shouldBeIncludedInNetWorth() setting - USE UPDATE MODE TO EDIT")
 
+                    user_view_inactiveAcctsIncludedNW = MenuJRadioButton("DIAG: Show all inactive accounts that are included in Net Worth calculations (MD2024.3 onwards)", False, secondaryEnabled=(isNetWorthUpgradedBuild()))
+                    user_view_inactiveAcctsIncludedNW.setToolTipText("Shows inactive accounts (and balances) that are included in Net Worth calculations (MD2024.3 onwards) - USE UPDATE MODE TO EDIT")
+
                     user_validate_acct_start_dates = MenuJRadioButton("DIAG: Validate Account 'start dates'...", False)
                     user_validate_acct_start_dates.setToolTipText("This will validate all Account 'start dates'  (based on earliest txn date) - USE UPDATE MODE TO FIX")
 
@@ -28059,8 +28064,11 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_edit_shouldBeIncludedInNetWorth_settings = MenuJRadioButton("FIX: Edit an Account's shouldBeIncludedInNetWorth() setting", False, updateMenu=True, secondaryEnabled=(not isNetWorthUpgradedBuild()))
                     user_edit_shouldBeIncludedInNetWorth_settings.setToolTipText("This will allow you to edit an Account's shouldBeIncludedInNetWorth() setting. THIS CHANGES DATA! (only for builds up to MD2024.2)")
 
+                    user_fix_inactiveAcctsIncludedNW = MenuJRadioButton("FIX: Exclude all inactive accounts from Net Worth calculations (MD2024.3 onwards)", False, updateMenu=True, secondaryEnabled=(isNetWorthUpgradedBuild()))
+                    user_fix_inactiveAcctsIncludedNW.setToolTipText("Excludes all inactive accounts from Net Worth calculations (MD2024.3 onwards) - UNDO will be enabled - THIS CHANGES DATA!")
+
                     user_fix_acct_start_dates = MenuJRadioButton("FIX: Fix Account 'start dates'...", False, updateMenu=True)
-                    user_fix_acct_start_dates.setToolTipText("This will fix all Account 'start dates' (based on earliest txn date)")
+                    user_fix_acct_start_dates.setToolTipText("This will fix all Account 'start dates' (based on earliest txn date). THIS CHANGES DATA!")
 
                     user_fix_accounts_parent = MenuJRadioButton("FIX: Account's Invalid Parent Account (fix_account_parent.py)", False, updateMenu=True)
                     user_fix_accounts_parent.setToolTipText("This will diagnose your Parent Accounts and fix if invalid. THIS CHANGES DATA! (fix_account_parent.py)")
@@ -28077,7 +28085,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 6
+                    rows = 7
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_view_check_number_settings)
@@ -28086,11 +28094,12 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         userFilters.add(user_view_networthCalculations)
                         rows += 1
                     userFilters.add(user_view_shouldBeIncludedInNetWorth_settings)
+                    userFilters.add(user_view_inactiveAcctsIncludedNW)
                     userFilters.add(user_validate_acct_start_dates)
                     userFilters.add(user_reportAccountNumbers)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 12
+                        rows += 13
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
 
@@ -28101,6 +28110,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         userFilters.add(user_add_alternative_bank_number)
                         userFilters.add(user_inactivate_zero_bal_cats)
                         userFilters.add(user_edit_shouldBeIncludedInNetWorth_settings)
+                        userFilters.add(user_fix_inactiveAcctsIncludedNW)
                         userFilters.add(user_fix_acct_start_dates)
                         userFilters.add(user_force_change_an_accounts_type)
                         userFilters.add(user_force_change_accounts_currency)
@@ -28146,6 +28156,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_view_networthCalculations.isSelected():                         view_networthCalculations()
                         if user_view_shouldBeIncludedInNetWorth_settings.isSelected():          view_shouldBeIncludedInNetWorth_settings()
                         if user_edit_shouldBeIncludedInNetWorth_settings.isSelected():          edit_shouldBeIncludedInNetWorth_settings()
+                        if user_view_inactiveAcctsIncludedNW.isSelected():                      view_inactiveAcctsIncludedNW()
+                        if user_fix_inactiveAcctsIncludedNW.isSelected():                       fix_inactiveAcctsIncludedNW(lFix=True)
                         if user_validate_acct_start_dates.isSelected():                         validate_account_start_dates()
                         if user_fix_acct_start_dates.isSelected():                              fix_account_start_dates()
                         if user_force_change_an_accounts_type.isSelected():                     force_change_account_type()
