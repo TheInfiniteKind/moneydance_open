@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1056 - February 2025 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1057 - February 2025 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -137,17 +137,17 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1054 - upgraded printing to MDPrinter using the getattr() tricks... Removed the usage of classloader for this and special java class...
 # build: 1054 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 # build: 1055 - NOTE: MD2024.2(5153-5154) changes getUI() - now does not try to launch the GUI if not loaded.. Just returns null...
-# build: 1055 - ???
 # build: 1055 - Added useifeq() useifneq() useifgt() useifgte() useiflt() useiflte() to formula capability...
 # build: 1055 - Added menu option: 'Disable gray text info'; prevent html rowname code from truncating with dots...
 # build: 1055 - Added formula to allow Moneydance's internal net worth calculations to be utilised... nw() nwif() nwf() nwfif() xnw() xnwf(). Added CMD-SHIFT-N popup display too...
 # build: 1055 - Add "XNW" to to the account selector (picklist) to show when an account is flagged to be excluded from net worth calculations...
 # build: 1055 - Add 'apply net worth flags' feature... Switch 'All Accounts (no categories)" to appear first in the picklist combo; added @nothis.
 # build: 1055 - Enabled right-click popup context menus on some JLinkLabels and JLabels (aka copy value string to clipboard)...
-# build: 1056 - ???
 # build: 1056 - Tweak the Account type selector so that all accounts and categories is first/selected (for @dtd)
 # build: 1056 - Fix for 2025.x(5220) onwards... Account::getAncestors() changed to a Kotlin Sequence
-# build: 1056 - ???
+# build: 1057 - ???
+# build: 1057 - Added row value formatting tag: <#cvde> = Value colour: default foreground
+# build: 1057 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -163,7 +163,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1056"
+version_build = "1057"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -5041,6 +5041,7 @@ Visit: %s (Author's site)
         WIDGET_ROW_VALUE_RED            = "<#cvre>";   WIDGET_ROW_VALUE_RED_DISPLAY            = "value colour: red"
         WIDGET_ROW_VALUE_BLUE           = "<#cvbl>";   WIDGET_ROW_VALUE_BLUE_DISPLAY           = "value colour: blue"
         WIDGET_ROW_VALUE_LIGHTGREY      = "<#cvgr>";   WIDGET_ROW_VALUE_LIGHTGREY_DISPLAY      = "value colour: light grey"
+        WIDGET_ROW_VALUE_DEFAULT        = "<#cvde>";   WIDGET_ROW_VALUE_DEFAULT_DISPLAY        = "value colour: default foreground"
         WIDGET_ROW_VALUE_BOLD           = "<#fvbo>";   WIDGET_ROW_VALUE_BOLD_DISPLAY           = "value font: bold"
         WIDGET_ROW_VALUE_ITALICS        = "<#fvit>";   WIDGET_ROW_VALUE_ITALICS_DISPLAY        = "value font: italics"
         WIDGET_ROW_VALUE_UNDERLINE      = "<#fvun>";   WIDGET_ROW_VALUE_UNDERLINE_DISPLAY      = "value font: underline"
@@ -5074,6 +5075,7 @@ Visit: %s (Author's site)
                                 [WIDGET_ROW_VALUE_RED,                 WIDGET_ROW_VALUE_RED_DISPLAY           ],
                                 [WIDGET_ROW_VALUE_BLUE,                WIDGET_ROW_VALUE_BLUE_DISPLAY          ],
                                 [WIDGET_ROW_VALUE_LIGHTGREY,           WIDGET_ROW_VALUE_LIGHTGREY_DISPLAY     ],
+                                [WIDGET_ROW_VALUE_DEFAULT,             WIDGET_ROW_VALUE_DEFAULT_DISPLAY       ],
                                 [WIDGET_ROW_VALUE_BOLD,                WIDGET_ROW_VALUE_BOLD_DISPLAY          ],
                                 [WIDGET_ROW_VALUE_ITALICS,             WIDGET_ROW_VALUE_ITALICS_DISPLAY       ],
                                 [WIDGET_ROW_VALUE_UNDERLINE,           WIDGET_ROW_VALUE_UNDERLINE_DISPLAY     ],
@@ -5157,6 +5159,7 @@ Visit: %s (Author's site)
             if insertVars is None: insertVars = {}
             self.ui = GlobalVars.CONTEXT.getUI()
             self.mono = self.ui.getFonts().mono
+            self.defaultTextForeground = self.ui.getColors().defaultTextForeground
             self.originalRowText = _rowText
             self.originalSmallText = _smallText
             self.originalSmallColor = _smallColor
@@ -5248,6 +5251,10 @@ Visit: %s (Author's site)
             if (self.__class__.WIDGET_ROW_VALUE_LIGHTGREY in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_LIGHTGREY, "")
                 self.valueColor = GlobalVars.CONTEXT.getUI().getColors().tertiaryTextFG
+
+            if (self.__class__.WIDGET_ROW_VALUE_DEFAULT in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_DEFAULT, "")
+                self.valueColor = self.defaultTextForeground
 
             if (self.__class__.WIDGET_ROW_VALUE_BOLD in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_BOLD, "")

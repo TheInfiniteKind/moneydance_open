@@ -590,24 +590,25 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
 
 - ROW NAME Configuration Options:
   - You can embed the following text (lowercase) in the Row Name field to configure the row / total (value) as follows:
-    <#brn>   = Forces row name to be blank/empty
-    <#jr>    = Row name justify: right
-    <#jc>    = Row name justify: center
-    <#cre>   = Row name colour:  red
-    <#cbl>   = Row name colour:  blue
-    <#cgr>   = Row name colour:  light grey
-    <#fbo>   = Row name font:    bold
-    <#fit>   = Row name font:    italics
-    <#fun>   = Row name font:    underline
-    <#nud>   = No special underline dots...
-    <#fud>   = Force special underline dots...
-    <#bzv>   = Forces any total (value) to appear blank when zero
-    <#cvre>  = Value colour:  red
-    <#cvbl>  = Value colour:  blue
-    <#cvgr>  = Value colour:  light grey
-    <#fvbo>  = Value font:    bold
-    <#fvit>  = Value font:    italics
-    <#fvun>  = Value font:    underline
+    <#brn>  = Forces row name to be blank/empty
+    <#jr>   = Row name justify: right
+    <#jc>   = Row name justify: center
+    <#cre>  = Row name colour:  red
+    <#cbl>  = Row name colour:  blue
+    <#cgr>  = Row name colour:  light grey
+    <#fbo>  = Row name font:    bold
+    <#fit>  = Row name font:    italics
+    <#fun>  = Row name font:    underline
+    <#cvre> = Value colour:     red
+    <#cvbl> = Value colour:     blue
+    <#cvgr> = Value colour:     light grey
+    <#cvde> = Value colour:     default foreground
+    <#fvbo> = Value font:       bold
+    <#fvit> = Value font:       italics
+    <#fvun> = Value font:       underline
+    <#nud>  = No special underline dots...
+    <#fud>  = Force special underline dots...
+    <#bzv>  = Forces any total (value) to appear blank when zero
 
   - You can embed the following to insert variable text into the Row Name field:
     <##rn>    = insert the row number
