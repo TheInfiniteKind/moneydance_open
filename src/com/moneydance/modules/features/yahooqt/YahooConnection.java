@@ -99,67 +99,13 @@ public class YahooConnection extends BaseConnection {
     if (SQUtil.isBlank(suffix)) return parsedSymbol.symbol;
     return parsedSymbol.symbol + suffix;
   }
-  
-  /**
-   * Update the exchange rate for the given currency using Yahoo's CURR1CURR2=X ticker symbol lookup
-   * 
-   * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
-   */
+
   @Override
   public void updateExchangeRate(DownloadInfo downloadInfo) {
-    String baseCurrencyID = downloadInfo.relativeCurrency.getIDString().toUpperCase();
-    if(!downloadInfo.isValidForDownload) return;
-
-    StringBuilder urlStr = new StringBuilder("https://download.finance.yahoo.com/d/quotes.csv");
-    urlStr.append('?');
-    urlStr.append("s=");
-    urlStr.append(SQUtil.urlEncode(baseCurrencyID + downloadInfo.fullTickerSymbol)); // symbol
-    urlStr.append("=X");
-    urlStr.append("&f=sl1d1t1c1ohgv"); // format of each line
-    urlStr.append("&e=.csv");          // response format
-    urlStr.append("&crumb=");       // crumble
-    urlStr.append(SQUtil.urlEncode(crumble));
-    
-    boolean foundRate = false;
-    Exception error = null;
-    try {
-      URL url = new URL(urlStr.toString());
-      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-      //conn.addRequestProperty("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.73.11 (KHTML, like Gecko) Version/7.0.1 Safari/537.73.11");
-      BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF8"));
-      // read the message...
-      while (true) {
-        String line = in.readLine();
-        if (line == null)
-          break;
-        line = line.trim();
-
-        String rateStr = StringUtils.fieldIndex(line, ',', 1).trim();
-
-        if (rateStr.length() > 0) {
-          double parsedRate = StringUtils.parseRate(rateStr, 0.0, '.');
-          if (parsedRate != 0) {
-            downloadInfo.setRate(parsedRate, System.currentTimeMillis());
-            foundRate = true;
-          }
-        }
-      }
-    } catch (Exception e) {
-      error = e;
-      System.err.println("exchange rate update error for "+downloadInfo);
-      e.printStackTrace();
-    }
-    
-    if(!foundRate) {
-      if(error!=null) {
-        downloadInfo.recordError("No rate information was retrieved");
-      } else {
-        
-      }
-    }
+    downloadInfo.recordError("Implementation error: YahooConnection does not currently support exchange rate downloads");
   }
-  
-  
+
+
   @Override
   public boolean updateSecurities(List<DownloadInfo> securitiesToUpdate) {
     
