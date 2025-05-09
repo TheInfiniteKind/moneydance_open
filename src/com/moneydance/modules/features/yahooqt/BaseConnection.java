@@ -72,16 +72,6 @@ public abstract class BaseConnection {
   public abstract void updateExchangeRate(DownloadInfo downloadInfo);
   
   
-//  /**
-//   * Download price history for a security.
-//   * @param securityInfo The information about the security to download, including symbol, date range, status, results, etc
-//   * applying (for testing).
-//   * @return The security price history that was downloaded.
-//   * @throws DownloadException if an error occurs.
-//   */
-//  public abstract DownloadResult getHistory(DownloadResult securityInfo);
-  
-  
   /** Update the currencies in the given list */
   public boolean updateExchangeRates(List<DownloadInfo> currenciesToUpdate) {
     ResourceProvider res = model.getResources();
@@ -196,32 +186,6 @@ public abstract class BaseConnection {
     }
   }
 
-//  /**
-//   * Return the currency appropriate for the price quotes for the given security. For example a
-//   * U.S. stock is quoted in U.S. Dollars but a Brazilian stock could be quoted in Brazilian reals.
-//   * @param securityCurrency The security to query.
-//   * @return The currency that price quotes should use, or <code>null</code> if it cannot be
-//   * determined.
-//   */
-//  public CurrencyType getPriceCurrency(CurrencyType securityCurrency) {
-//    // first check for a currency override in the symbol
-//    SymbolData parsedSymbol = SQUtil.parseTickerSymbol(securityCurrency);
-//    if (parsedSymbol == null) return null;
-//    CurrencyTable cTable = model.getRootAccount() == null ? null : model.getRootAccount().getBook().getCurrencies();
-//    if (cTable == null) return null;
-//    if (!SQUtil.isBlank(parsedSymbol.currencyCode)) {
-//      // see if the override currency exists in the file
-//      CurrencyType override = cTable.getCurrencyByIDString(parsedSymbol.currencyCode);
-//      if (override != null) return override;
-//    }
-//    StockExchange exchange = downloadInfo.getExchangeForSecurity(parsedSymbol, securityCurrency);
-//    String fullTickerSymbol = getFullTickerSymbol(parsedSymbol, exchange);
-//    if (fullTickerSymbol == null) return null;
-//    String priceCurrencyId = getCurrencyCodeForQuote(securityCurrency.getTickerSymbol(), exchange);
-//    // get the currency that the prices are specified in
-//    return cTable.getCurrencyByIDString(priceCurrencyId);
-//  }
-  
   protected String getTimeZoneID() {
     // the default time zone is EDT in the U.S.
     return "America/New_York";  // could possibly also use 'US/Eastern'
