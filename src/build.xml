@@ -54,14 +54,18 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
     <pathelement path="../lib/jfreechart-1.5.4.jar"/>
     <pathelement path="../lib/jcommon-1.0.24.jar"/>
     <pathelement path="../lib/gson-2.10.1.jar"/>
+    <pathelement path="../lib/tablelayout-20070421.jar"/> <!-- used by findandreplace extension -->
     <pathelement path="../lib/mdpython.jar"/> <!-- Used for Python pre-compile -->
   </path>
 
-    <target name="init">
+  <target name="init">
     <echo level="info" message="ANT Build Running.... Executing INIT" />
     <echo level="verbose" message="OS Name is:         ${os.name}" />
     <echo level="verbose" message="OS Architecture is: ${os.arch}" />
     <echo level="verbose" message="OS Version is:      ${os.version}" />
+    <echo level="verbose" message="Kotlin dir:         ${kotlindir}" />
+    <echo level="verbose" message="Source dir:         ${src}" />
+    <echo level="verbose" message="build output dir:   ${build}" />
     <mkdir dir="${dist}"/>
     <mkdir dir="${build}"/>
 
@@ -86,12 +90,12 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
           </fileset>
         </delete>
         <!-- copy all non java files for this feature -->
-        <copy preservelastmodified="true"
-              todir="${build}">
+        <copy preservelastmodified="true" todir="${build}">
           <fileset dir="${src}">
             <include name="com/moneydance/modules/features/@{feature}/**" />
             <include name="license.txt" />
             <exclude name="**/*.java" /><!-- exclude source files -->
+            <exclude name="**/*.kt" /><!-- exclude source files -->
             <exclude name="**/contact.*" />
           </fileset>
         </copy>
@@ -246,12 +250,15 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   <target name="yahooqt" depends="init">
     <delete file="${dist}/yahooqt.mxt" failonerror="false"/>
     <touch file="com/moneydance/modules/features/yahooqt/Main.java"/>
-    <javac encoding="utf8" target="11" source="11" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-           classpathref="classpath" destdir="${build}"
-           classpath="${lib}/jsoup-1.11.3.jar"
-           includes="com/moneydance/modules/features/yahooqt/**"/>
-
-
+    
+    <javac encoding="utf8"  bootclasspath="${bootclasspath}" target="${javac-source}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath" destdir="${build}"
+      classpath="${lib}/jsoup-1.11.3.jar"
+      includes="com/moneydance/modules/features/yahooqt/**"
+      includeAntRuntime="false">
+      <withKotlin/>
+    </javac>
+    
     <jar destfile="${dist}/yahooqt.mxt">
       <fileset dir="${src}" includes="
           com/moneydance/modules/features/yahooqt/meta_info.dict
