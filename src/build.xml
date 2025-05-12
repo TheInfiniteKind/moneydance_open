@@ -14,14 +14,14 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 -->
 
 <project name="moneydance_open" default="all" basedir=".">
-
-  <property name="kotlindir" value="${user.home}/bin/kotlin"/>
-  <typedef resource="org/jetbrains/kotlin/ant/antlib.xml" classpath="${kotlindir}/lib/kotlin-ant.jar"/>
-
+  
   <property name="version" value="1.0"/>
   <property name="src" value="."/>
   <property name="python-src" value="../python_scripts"/>
   <property file="${src}/user.properties"/>
+  <property name="kotlindir" value="${user.home}/bin/kotlin"/>
+  <typedef resource="org/jetbrains/kotlin/ant/antlib.xml" classpath="${kotlindir}/lib/kotlin-ant.jar"/>
+  
   <property name="build" value="./build"/>
   <property name="lib" value="../lib"/>
   <property name="extprivkeyfile" value="${src}/priv_key"/>
