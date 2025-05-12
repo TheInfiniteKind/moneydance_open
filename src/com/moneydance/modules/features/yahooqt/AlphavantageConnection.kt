@@ -32,9 +32,10 @@ import javax.swing.*
  * rejecting frequent connections.
  */
 class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_KEY, model, HISTORY_SUPPORT or EXCHANGE_RATES_SUPPORT) {
-  private val refreshDateFmt = SimpleDateFormat("yyyy-MM-dd hh:mm:ss") // 2017-11-07 11:46:52
+
+  private val refreshDateFmt = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").also { it.isLenient = true }  // 2017-11-07 11:46:52
   
-  private val prefs: UserPreferences
+  private val prefs = model.preferences
   private val remainingRequests = Int.MAX_VALUE
   private val lastRequestDate = 0
   
@@ -43,14 +44,13 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
   
   init {
     refreshDateFmt.isLenient = true
-    
-    prefs = model.preferences
   }
   
   /**
    * Alphavantage connections should be throttled to approximately one every 1.1 seconds
    */
-  override fun getPerConnectionThrottleTime(): Long {
+  override val perConnectionThrottleTime:Long
+    get() {
     connectionThrottleCounter++
     return 1500
     //    if(connectionThrottleCounter%4 == 0) {
@@ -68,11 +68,8 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
     
     val book = model.book ?: return null
     
-    val root = book.rootAccount!!
-    val apiKey = root.getParameter(
-      "alphavantage.apikey",
-      model.preferences.getSetting("alphavantage_apikey", null)
-    )
+    val root = book.getRootAccount() ?: return null
+    val apiKey = root.getParameter("alphavantage.apikey") ?: model.preferences.getSetting("alphavantage_apikey")
     if (!evenIfAlreadySet && !isBlank(apiKey)) {
       return apiKey
     }
@@ -90,10 +87,10 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
         }
       }
       val defaultAPIKey = existingAPIKey ?: ""
-      signupAction.putValue(Action.NAME, model.resources.getString("alphavantage.apikey_action"))
+      signupAction.putValue(Action.NAME, model.resources?.getString("alphavantage.apikey_action") ?: "")
       val linkButton = JLinkLabel(signupAction)
       p.add(
-        JTextPanel(model.resources.getString("alphavantage.apikey_msg")),
+        JTextPanel(model.resources?.getString("alphavantage.apikey_msg") ?: ""),
         GridC.getc(0, 0).wxy(1f, 1f)
       )
       p.add(
@@ -136,8 +133,7 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
   
   
   override fun toString(): String {
-    val model = getModel()
-    return if (model == null) "" else model.resources.getString("alphavantage")
+    return model?.resources?.getString("alphavantage") ?: "Alphavantage"
   }
   
   /**
@@ -250,7 +246,7 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
     val errorResult = importer.importData()
     if (errorResult < 0) {
       val error = importer.lastException
-      downloadInfo.errors.add(DownloadException(downloadInfo, error.message, error))
+      downloadInfo.errors.add(DownloadException(downloadInfo, error?.message, error))
       return
     }
     val recordList = importer.importedRecords
@@ -293,7 +289,7 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
         System.exit(-1)
       }
       
-      cachedAPIKey = args[0].trim { it <= ' ' }
+      cachedAPIKey = args[0].trim()
       
       val conn = AlphavantageConnection(createEmptyTestModel())
       runTests(conn, conn, Arrays.copyOfRange(args, 1, args.size))

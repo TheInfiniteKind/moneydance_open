@@ -1,10 +1,10 @@
 /*************************************************************************\
  * Copyright (C) 2010 The Infinite Kind, LLC
  *
- * This code is released as open source under the Apache 2.0 License:<br></br>
- * [
- * http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)<br></br>
- * \ */
+ * This code is released as open source under the Apache 2.0 License:<br/>
+ * <a href="http://www.apache.org/licenses/LICENSE-2.0">
+ * http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 package com.moneydance.modules.features.yahooqt
 
 import java.text.MessageFormat
@@ -19,8 +19,10 @@ import java.util.concurrent.FutureTask
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
-class ConnectionTask(task: Callable<Boolean?>, private val _model: StockQuotesModel,
-                     private val _resources: ResourceProvider) : FutureTask<Boolean?>(task) {
+class ConnectionTask(task: Callable<Boolean>,
+                     private val _model: StockQuotesModel,
+                     private val _resources: ResourceProvider)
+  : FutureTask<Boolean>(task) {
   val taskName: String = task.toString()
   
   override fun done() {
@@ -30,20 +32,18 @@ class ConnectionTask(task: Callable<Boolean?>, private val _model: StockQuotesMo
       _model.downloadDone(true, taskName, java.lang.Boolean.FALSE)
       return
     }
-    var result: Boolean?
+    var result = true
     try {
-      result = get()
+      result = get() ?: false
     } catch (ignore: InterruptedException) {
-      // if multiple transaction changes come in, the task may be canceled with normal
-      // program flow, therefore ignore
+      // if multiple transaction changes come in, the task may be canceled with normal program flow, therefore ignore
       if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, InterruptedException")
-      result = java.lang.Boolean.FALSE
+      result = false
     } catch (ignore: CancellationException) {
-      // if multiple transaction changes come in, the task may be canceled with normal
-      // program flow, therefore ignore
+      // if multiple transaction changes come in, the task may be canceled with normal program flow, therefore ignore
       if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, CancellationException")
-      result = java.lang.Boolean.FALSE
-    } catch (error: ExecutionException) {
+      result = false
+    } catch (error: Throwable) {
       error.printStackTrace(System.err)
       if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, error received")
       val message = MessageFormat.format(
@@ -52,7 +52,7 @@ class ConnectionTask(task: Callable<Boolean?>, private val _model: StockQuotesMo
         error.localizedMessage
       )
       _model.showProgress(0.0f, message)
-      result = java.lang.Boolean.FALSE
+      result = false
     }
     
     // remove the current task and signal complete

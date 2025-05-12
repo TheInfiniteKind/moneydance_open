@@ -1,17 +1,17 @@
 /*************************************************************************\
- * Copyright (C) 2025 The Infinite Kind, LLC
- * This code is released as open source under the Apache 2.0 License:<br></br>
- * [
- * http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)<br></br>
- * \ */
+ * Copyright (C) 2010 The Infinite Kind, LLC
+ *
+ * This code is released as open source under the Apache 2.0 License:<br/>
+ * <a href="http://www.apache.org/licenses/LICENSE-2.0">
+ * http://www.apache.org/licenses/LICENSE-2.0</a><br />
+\*************************************************************************/
 package com.moneydance.modules.features.yahooqt
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.infinitekind.moneydance.model.CurrencySnapshot.dateInt
 import com.infinitekind.moneydance.model.DateRange
-import com.infinitekind.util.AppLogger.log
+import com.infinitekind.util.AppDebug
 import com.infinitekind.util.DateUtil.convertIntDateToLong
 import com.infinitekind.util.DateUtil.incrementDate
 import com.infinitekind.util.DateUtil.strippedDateInt
@@ -61,14 +61,14 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     .setDefaultHeaders(java.util.List.of(BasicHeader("Accept-Language", "en-US,en;q=0.9")))
     .build()
   
-  override fun getFullTickerSymbol(parsedSymbol: SymbolData?, exchange: StockExchange): String? {
+  override fun getFullTickerSymbol(parsedSymbol: SymbolData, exchange: StockExchange?): String? {
     if ((parsedSymbol == null) || SQUtil.isBlank(parsedSymbol.symbol)) return null
     // check if the exchange was already added on, which will override the selected exchange
     if (!SQUtil.isBlank(parsedSymbol.suffix)) {
       return parsedSymbol.symbol + parsedSymbol.suffix
     }
     // Check if the selected exchange has a Yahoo suffix or not. If it does, add it.
-    val suffix = exchange.symbolYahoo
+    val suffix = exchange?.symbolYahoo
     if (SQUtil.isBlank(suffix)) return parsedSymbol.symbol
     return parsedSymbol.symbol + suffix
   }
@@ -95,7 +95,7 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     val history = downloadInfo.security.snapshots
     var firstDate = incrementDate(today, 0, -6, -0)
     if (history != null && !history.isEmpty()) {
-      firstDate = max(history.getLast().dateInt, firstDate)
+      firstDate = max(history.last().dateInt, firstDate)
     }
     
     val urlStr = getHistoryURL(downloadInfo.fullTickerSymbol, DateRange(firstDate, today))
@@ -105,7 +105,7 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
       val response = httpClient.execute(httpGet)
       if (response.statusLine.statusCode != HttpStatus.SC_OK) {
         val errMessage = "Error retrieving quote from " + urlStr + " : " + response.statusLine
-        DEBUG.log(errMessage)
+        AppDebug.DEBUG.log(errMessage)
         downloadInfo.recordError(errMessage)
         return
       }
@@ -116,7 +116,7 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
       extractHistoryFromJSON(downloadInfo, jsonData)
     } catch (e: Exception) {
       downloadInfo.recordError("Error retrieving quote from " + urlStr + " : " + e.message)
-      DEBUG.log("Error retrieving quote for " + downloadInfo.fullTickerSymbol + " from " + urlStr, e)
+      AppDebug.DEBUG.log("Error retrieving quote for " + downloadInfo.fullTickerSymbol + " from " + urlStr, e)
     }
   }
   
@@ -175,9 +175,7 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
       
       records.add(StockRecord(candle, downloadInfo.priceMultiplier))
     }
-    records.sort(java.util.Comparator { rec1: StockRecord, rec2: StockRecord -> rec2.date - rec1.date })
-    
-    downloadInfo.addHistoryRecords(records)
+    downloadInfo.addHistoryRecords(records.sortedBy { it.date })
   }
   
   private fun getHistoryURL(fullTickerSymbol: String, dateRange: DateRange): String {
@@ -201,7 +199,6 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
   
   
   override fun toString(): String {
-    val model = getModel()
     return if (model == null) "??" else model.resources.getString(connectionID)
   }
   
