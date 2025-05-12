@@ -1,9 +1,0 @@
-{
-  "vendor" = "The Infinite Kind"
-  "vendor_url" = "http://infinitekind.com/"
-  "name" = "Debugging Helper Extension"
-  "desc" = "This is an extension that performs various functions to help diagnose Moneydance problems"
-  "id" = miscdebug
-  "module_build" = "100"
-  "minbuild" = "1000"
-}
