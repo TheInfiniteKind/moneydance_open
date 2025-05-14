@@ -207,9 +207,8 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
   protected val currentPriceHeader: String
     get() = "date,open,high,low,close,volume"
   
-  fun getHistoryURL(fullTickerSymbol: String?): String? {
-    val apiKey = getAPIKey(false)
-    return if (apiKey == null) null else ("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY" +
+  fun getHistoryURL(fullTickerSymbol: String?, apiKey:String): String? {
+    return ("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY" +
                                           "&symbol=" + SQUtil.urlEncode(fullTickerSymbol) +
                                           "&apikey=" + SQUtil.urlEncode(apiKey) +
                                           "&datatype=csv" +
@@ -223,7 +222,12 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
    */
   public override fun updateSecurity(downloadInfo: DownloadInfo) {
     System.err.println("alphavantage: getting history for " + downloadInfo.fullTickerSymbol)
-    val urlStr = getHistoryURL(downloadInfo.fullTickerSymbol)
+    val apiKey = getAPIKey(false).takeIf { !it.isNullOrBlank() }
+    if(apiKey==null) {
+      downloadInfo.recordError("No Alphavantage API Key Provided")
+      return
+    }
+    val urlStr = getHistoryURL(downloadInfo.fullTickerSymbol, apiKey)
     if (urlStr == null) {
       // this basically means that an API key wasn't available
       downloadInfo.recordError("No API Key Available")
@@ -231,12 +235,9 @@ class AlphavantageConnection(model: StockQuotesModel) : APIKeyConnection(PREFS_K
     }
     
     val decimal = model.preferences.decimalChar
-    val importer =
-      SnapshotImporterFromURL(
-        urlStr, cookie, model.resources,
-        downloadInfo, SNAPSHOT_DATE_FORMAT,
-        TimeZone.getTimeZone(timeZoneID), decimal
-      )
+    val importer = SnapshotImporterFromURL(urlStr, cookie, model.resources,
+                                           downloadInfo, SNAPSHOT_DATE_FORMAT,
+                                           TimeZone.getTimeZone(timeZoneID), decimal)
     importer.setColumnsFromHeader(currentPriceHeader)
     importer.setPriceMultiplier(downloadInfo.priceMultiplier)
     

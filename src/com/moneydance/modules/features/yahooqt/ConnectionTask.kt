@@ -28,7 +28,7 @@ class ConnectionTask(task: Callable<Boolean>,
   override fun done() {
     if (isCancelled) {
       // remove the current task and signal complete
-      if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, was canceled.")
+      QER_DLOG.log { "ConnectionTask for " + taskName + " done, was canceled." }
       _model.downloadDone(true, taskName, java.lang.Boolean.FALSE)
       return
     }
@@ -37,15 +37,15 @@ class ConnectionTask(task: Callable<Boolean>,
       result = get() ?: false
     } catch (ignore: InterruptedException) {
       // if multiple transaction changes come in, the task may be canceled with normal program flow, therefore ignore
-      if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, InterruptedException")
+      QER_DLOG.log { "ConnectionTask for " + taskName + " done, InterruptedException" }
       result = false
     } catch (ignore: CancellationException) {
       // if multiple transaction changes come in, the task may be canceled with normal program flow, therefore ignore
-      if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, CancellationException")
+      QER_DLOG.log { "ConnectionTask for " + taskName + " done, CancellationException" }
       result = false
     } catch (error: Throwable) {
       error.printStackTrace(System.err)
-      if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, error received")
+      QER_DLOG.log { "ConnectionTask for " + taskName + " done, error received" }
       val message = MessageFormat.format(
         _resources.getString(L10NStockQuotes.ERROR_DOWNLOADING_FMT),
         "",
@@ -56,7 +56,7 @@ class ConnectionTask(task: Callable<Boolean>,
     }
     
     // remove the current task and signal complete
-    if (Main.DEBUG_YAHOOQT) System.err.println("ConnectionTask for " + taskName + " done, result " + result)
+    QER_DLOG.log { "ConnectionTask for " + taskName + " done, result " + result }
     _model.downloadDone(true, taskName, result)
   }
 }

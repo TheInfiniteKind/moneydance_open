@@ -320,13 +320,13 @@ class StockQuotesModel internal constructor(private val extensionContext: Featur
   
   fun saveLastQuoteUpdateDate(lastDate: Int) {
     book ?: return
-    if (Main.DEBUG_YAHOOQT) System.err.println("Saving last successful price quotes date of: $lastDate")
+    QER_DLOG.log { "Saving last successful price quotes date of: $lastDate" }
     book?.getRootAccount()?.setParameter(Main.QUOTE_LAST_UPDATE_KEY, lastDate)
   }
   
   fun saveLastExchangeRatesUpdateDate(lastDate: Int) {
     book ?: return
-    if (Main.DEBUG_YAHOOQT) System.err.println("Saving last successful exchange rates date of: $lastDate")
+    QER_DLOG.log { "Saving last successful exchange rates date of: $lastDate" }
     book?.getRootAccount()?.setParameter(Main.RATE_LAST_UPDATE_KEY, lastDate)
   }
   

@@ -322,13 +322,9 @@ internal constructor(private val _model: StockQuotesModel) : AbstractTableModel(
         }
       }
       if (override != null) {
-        if (Main.DEBUG_YAHOOQT) {
-          System.err.println(
-            ("Replacing security symbol '" + entry.currency!!.getTickerSymbol()
-             + "' with stripped one '" + parsedSymbol.symbol + "' and setting to exchange "
-             + override.name)
-          )
-        }
+        QER_DLOG.log { "Replacing security symbol '" + entry.currency!!.getTickerSymbol() +
+                       "' with stripped one '" + parsedSymbol.symbol + "' and setting to exchange " +
+                       override.name }
         // set the override exchange
         entry.exchangeId = override.exchangeId
         // strip out all the extraneous stuff that isn't needed anymore
@@ -343,7 +339,7 @@ internal constructor(private val _model: StockQuotesModel) : AbstractTableModel(
         var currencyCode = parsedSymbol.currencyCode
         val exchange = _model.exchangeList.getById(entry.exchangeId)
         if (isBlank(currencyCode)) {
-          currencyCode = exchange?.currencyCode ?: currencyCode
+          currencyCode = exchange.currencyCode ?: currencyCode
         }
         val priceCurrency = if (isBlank(currencyCode)) null else _model.book!!.currencies.getCurrencyByIDString(currencyCode)
         // if the price currency is null we will display a message later

@@ -13,6 +13,7 @@ import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
 import java.text.MessageFormat
 import java.text.SimpleDateFormat
@@ -37,11 +38,11 @@ class SnapshotImporterFromURL
     downloadInfo: DownloadInfo,
     dateFormat: SimpleDateFormat, timeZone: TimeZone?, userDecimal: Char) : SnapshotImporter(resources, downloadInfo, dateFormat, timeZone, userDecimal) {
   override fun onBeginImport() {
-    if (Main.DEBUG_YAHOOQT) System.err.println("Importing history from URL: $_urlString")
+    QER_DLOG.log { "Importing history from URL: $_urlString" }
   }
   
   override fun onEndImport(errorCount: Int) {
-    if (errorCount != 0 && Main.DEBUG_YAHOOQT) System.err.println("Import complete errors found: $errorCount")
+    if (errorCount != 0) QER_DLOG.log { "Import complete errors found: $errorCount" }
   }
   
   override val isInputStreamValid: Boolean
@@ -50,7 +51,7 @@ class SnapshotImporterFromURL
   @get:Throws(IOException::class, DownloadException::class, NumberFormatException::class)
   override val inputStream: BufferedReader
     get() {
-      val url = URL(_urlString)
+      val url = URI(_urlString).toURL()
       val urlConn = url.openConnection() as HttpURLConnection
       if (_cookieString != null) {
         urlConn.setRequestProperty("Cookie", _cookieString)

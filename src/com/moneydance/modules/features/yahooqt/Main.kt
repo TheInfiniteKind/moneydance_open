@@ -7,6 +7,7 @@
 \*************************************************************************/
 package com.moneydance.modules.features.yahooqt
 
+import com.infinitekind.util.AppDebug
 import com.moneydance.apps.md.controller.FeatureModule
 import com.moneydance.apps.md.controller.PreferencesListener
 import com.moneydance.apps.md.controller.UserPreferences
@@ -22,6 +23,9 @@ import java.io.ByteArrayOutputStream
 import java.text.MessageFormat
 import java.util.*
 import javax.swing.SwingUtilities
+
+val QER_DLOG = AppDebug.logger("QER_DEBUG").setEnabled(AppDebug.DEBUG.isEnabled)
+val QER_LOG = AppDebug.ALL
 
 /**
  * Pluggable module used to allow users to download stock quote information from quote.yahoo.com
@@ -202,8 +206,6 @@ class Main
   companion object {
     private const val SHOW_DIALOG_COMMAND = "showDialog"
     private const val UPDATE_COMMAND = "update"
-    
-    var DEBUG_YAHOOQT: Boolean = true
     
     const val RATE_LAST_UPDATE_KEY: String = "yahooqt.rateLastUpdate"
     const val AUTO_UPDATE_KEY: String = "yahooqt.autoUpdate"

@@ -81,7 +81,7 @@ class SymbolMap internal constructor(
       table.readFrom(settings)
       val settingsList = table[EXCHANGE_LIST_KEY] as StreamVector?
       if (settingsList == null) {
-        if (Main.DEBUG_YAHOOQT) System.err.println("Quotes and Exchange Rates plugin no symbol map found.")
+        QER_DLOG.log { "Quotes and Exchange Rates plugin no symbol map found." }
         return
       }
       for (mapPair in settingsList) {

@@ -34,10 +34,10 @@ import kotlin.math.max
 /**
  * Main settings configuration dialog for the quotes and rates updater extension
  */
-class SettingsWindow
-  (private val context: FeatureModuleContext, resources: ResourceProvider,
-   /** This contains the table model as well as other data that is edited in this dialog.  */
-   private val _model: StockQuotesModel) : JDialog(), PropertyChangeListener {
+class SettingsWindow(private val context: FeatureModuleContext, resources: ResourceProvider,
+                     private val _model: StockQuotesModel)
+  : JDialog(), PropertyChangeListener
+{
   private val contentPane = JPanel(BorderLayout(5, 5))
   private val _table = JTable()
   private val _resources: ResourceProvider
@@ -439,9 +439,7 @@ class SettingsWindow
   }
   
   private fun showExchangeEditDialog(row: Int) {
-    val exchange = _model.tableModel.getValueAt(
-      row, SecuritySymbolTableModel.EXCHANGE_COL
-    ) as StockExchange
+    val exchange = _model.tableModel.getValueAt(row, SecuritySymbolTableModel.EXCHANGE_COL) as StockExchange
     _exchangeEditor.edit(exchange)
   }
   
@@ -510,47 +508,38 @@ class SettingsWindow
     _tableRenderer = ItemListCellRenderer(_model.gui)
     
     // select security for download column
-    var col: TableColumn
-    columnModel.addColumn(
-      TableColumn(
-        SecuritySymbolTableModel.USE_COL, 20,
-        UseColumnRenderer(_model.gui), UseColumnEditor()
-      ).also { col = it })
-    // special renderer allows the header to act like a checkbox to select all / deselect all
-    val useHeaderRenderer = UseColumnHeaderRenderer()
-    col.headerRenderer = useHeaderRenderer
-    col.headerValue = " "
+    TableColumn(SecuritySymbolTableModel.USE_COL, 20, UseColumnRenderer(_model.gui), UseColumnEditor()).also { col ->
+      columnModel.addColumn(col)
+      // special renderer allows the header to act like a checkbox to select all / deselect all
+      val useHeaderRenderer = UseColumnHeaderRenderer()
+      col.headerRenderer = useHeaderRenderer
+      col.headerValue = " "
+    }
     
     // name and number of shares
-    columnModel.addColumn(
-      TableColumn(
-        SecuritySymbolTableModel.NAME_COL, 150,
-        SecurityNameCellRenderer(_model.gui), null
-      ).also { col = it })
-    col.headerValue = _model.gui.getStr("curr_type_sec")
-    columnModel.addColumn(
-      TableColumn(
-        SecuritySymbolTableModel.SYMBOL_COL, 40,
-        _tableRenderer,
-        TickerColumnEditor()
-      ).also { col = it })
-    col.headerValue = _model.gui.getStr("currency_ticker")
+    TableColumn(SecuritySymbolTableModel.NAME_COL, 150,
+                SecurityNameCellRenderer(_model.gui), null).also { col ->
+      columnModel.addColumn(col)
+      col.headerValue = _model.gui.getStr("curr_type_sec")
+    }
+    TableColumn(SecuritySymbolTableModel.SYMBOL_COL, 40, _tableRenderer, TickerColumnEditor()).also { col ->
+      columnModel.addColumn(col)
+      col.headerValue = _model.gui.getStr("currency_ticker")
+    }
     
     // the stock exchange picker
-    val exchangeColumn =
-      ExchangeComboTableColumn(
-        _model.gui,
-        SecuritySymbolTableModel.EXCHANGE_COL, 60,
-        exchangeItems, _exchangeEditor
-      )
-    columnModel.addColumn(exchangeColumn)
-    exchangeColumn.headerValue = _resources.getString(L10NStockQuotes.EXCHANGE_TITLE)
-    // testing column
-    _testColumn = TableColumn(SecuritySymbolTableModel.TEST_COL, 40, _tableRenderer, null)
-    if (_showingTestInfo) {
-      columnModel.addColumn(_testColumn)
+    ExchangeComboTableColumn(_model.gui, SecuritySymbolTableModel.EXCHANGE_COL, 60,
+                             exchangeItems, _exchangeEditor).also { exchangeColumn ->
+      columnModel.addColumn(exchangeColumn)
+      exchangeColumn.headerValue = _resources.getString(L10NStockQuotes.EXCHANGE_TITLE)
     }
-    _testColumn!!.headerValue = _resources.getString(L10NStockQuotes.TEST_TITLE)
+    
+    // testing column
+    TableColumn(SecuritySymbolTableModel.TEST_COL, 40, _tableRenderer, null).also { col ->
+      _testColumn = col
+      col.headerValue = _resources.getString(L10NStockQuotes.TEST_TITLE)
+      if (_showingTestInfo) { columnModel.addColumn(col) }
+    }
     
     return columnModel
   }
@@ -642,25 +631,14 @@ class SettingsWindow
     val currentQuoteDate = _model.quotesLastUpdateDate
     
     if (_model.isStockPriceSelected && (currentQuoteDate != lastDate)) {
-      if (Main.DEBUG_YAHOOQT) {
-        System.err.println(
-          "Changing last quote update date from " +
-          currentQuoteDate + " to " + lastDate + " per user selection"
-        )
-      }
+      QER_DLOG.log { "Changing last quote update date from $currentQuoteDate to $lastDate per user selection" }
       _model.saveLastQuoteUpdateDate(lastDate)
     }
     val currentRatesDate = _model.ratesLastUpdateDate
     if (_model.isExchangeRateSelected && (currentRatesDate != lastDate)) {
-      if (Main.DEBUG_YAHOOQT) {
-        System.err.println(
-          "Changing last exchange rates update date from " +
-          currentRatesDate + " to " + lastDate + " per user selection"
-        )
-      }
+      QER_DLOG.log { "Changing last exchange rates update date from $currentRatesDate to $lastDate per user selection" }
       _model.saveLastExchangeRatesUpdateDate(lastDate)
     }
-    
     
     // check if any of the settings that are stored in the specific data file have been changed
     if (_model.isDirty) {

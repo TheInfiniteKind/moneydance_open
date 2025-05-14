@@ -141,9 +141,7 @@ class DownloadInfo internal constructor(var security: CurrencyType, model: Downl
     if (!isBlank(logMessage)) {
       // the historical price has a log message already, so just dump the current price update
       // log message now
-      if (Main.DEBUG_YAHOOQT) {
-        System.err.println("applied updates to $security")
-      }
+      QER_DLOG.log { "applied updates to $security" }
     }
   }
   

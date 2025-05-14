@@ -19,6 +19,12 @@ import java.text.MessageFormat
 import java.util.*
 import java.util.concurrent.Callable
 
+var CurrencyType.dateLastUpdated: Long
+  get() = getLongParameter("price_date", 0L)
+  set(newValue) {
+    setParameter("price_date", newValue)
+  }
+
 /**
  * Downloads exchange rates and security prices
  */
@@ -37,8 +43,8 @@ class DownloadTask internal constructor(private val _model: StockQuotesModel, pr
     successCount = 0
     
     if (_model.book == null) {
-      if (Main.DEBUG_YAHOOQT) System.err.println("Skipping security prices download, no book account")
-      return java.lang.Boolean.FALSE
+      QER_DLOG.log { "Skipping security prices download, no book is open!" }
+      return false
     }
     
     val taskDisplayName = _resources.getString(L10NStockQuotes.QUOTES)
@@ -125,15 +131,7 @@ class DownloadTask internal constructor(private val _model: StockQuotesModel, pr
       error.localizedMessage
     )
     _model.showProgress(0f, message)
-    if (Main.DEBUG_YAHOOQT) {
-      System.err.println(
-        MessageFormat.format(
-          "Error while downloading Security Price Quotes: {0}",
-          error.message
-        )
-      )
-    }
-    error.printStackTrace()
+    QER_DLOG.log("Error while downloading Security Price Quotes:", error)
   }
   
   
@@ -196,19 +194,35 @@ class DownloadTask internal constructor(private val _model: StockQuotesModel, pr
         resources.getString(L10NStockQuotes.RATES)
       )
       model.showProgress(0f, message)
-      if (Main.DEBUG_YAHOOQT) System.err.println("Finished downloading Currency Exchange Rates")
+      QER_DLOG.log { "Finished downloading Currency Exchange Rates" }
     }
     
     return successFlag
   }
   
   
-  private fun downloadPrices(model: StockQuotesModel, securityList: List<DownloadInfo>, pricesDownloader: BaseConnection): Boolean {
-    val book = model.book
+  
+  private fun downloadPrices(model: StockQuotesModel, secList: List<DownloadInfo>, pricesDownloader: BaseConnection): Boolean {
+    val securities = mutableListOf<DownloadInfo>()
+    secList.forEach { secInfo ->
+      if(!secInfo.isValidForDownload) {
+        secInfo.skipped = true
+        secInfo.updateResultSummary(model)
+        model.tableModel.registerTestResults(secInfo)
+        QER_DLOG.log { "Skipping security price download for ${secInfo.security.getName()} - invalid" }
+      } else {
+        securities.add(secInfo)
+      }
+    }
     
-    val successFlag = pricesDownloader.updateSecurities(securityList)
+    // sort all securities so that the least-recently-updated come first. This is so that the oldest ones are 
+    // updated first, which should help with connections that only allow a limited number of connections per day.
+    // It should also help with connections which are throttled to a degree which makes it take a long time to
+    // update all securities
+    securities.sortBy { it.security.dateLastUpdated }
+    val successFlag = pricesDownloader.updateSecurities(securities)
     
-    for (downloadInfo in securityList) {
+    for (downloadInfo in securities) {
       downloadInfo.updateResultSummary(model)
       downloadInfo.buildPriceDisplay(downloadInfo.relativeCurrency, model.decimalDisplayChar)
       if (includeTestInfo) {
@@ -224,7 +238,7 @@ class DownloadTask internal constructor(private val _model: StockQuotesModel, pr
       } else {
         errorCount++
         // log any messages for those that weren't skipped
-        if (Main.DEBUG_YAHOOQT && !isBlank(downloadInfo.logMessage)) System.err.println(downloadInfo.logMessage)
+        QER_DLOG.log { downloadInfo.logMessage ?: "<no message provided>" }
       }
     }
     
@@ -235,7 +249,7 @@ class DownloadTask internal constructor(private val _model: StockQuotesModel, pr
         _resources.getString(L10NStockQuotes.QUOTES)
       )
       _model.showProgress(0f, message)
-      if (Main.DEBUG_YAHOOQT) System.err.println("Finished downloading Security Price Quotes")
+      QER_DLOG.log("Finished downloading Security Price Quotes")
     }
     
     

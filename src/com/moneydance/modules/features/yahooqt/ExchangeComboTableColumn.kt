@@ -7,6 +7,7 @@
 \*************************************************************************/
 package com.moneydance.modules.features.yahooqt
 
+import com.moneydance.apps.md.view.gui.MDColors
 import com.moneydance.apps.md.view.gui.MoneydanceGUI
 import java.awt.Color
 import java.awt.Component
@@ -44,24 +45,15 @@ class ExchangeComboTableColumn(mdGui: MoneydanceGUI, modelIndex: Int, width: Int
    * @param exchangeEditor Callback interface for editing an individual exchange.
    */
   init {
-    setCellRenderer(ComboCellRenderer(mdGui))
+    setCellRenderer(ComboCellRenderer())
     setCellEditor(ComboCellEditor(items))
-    val renderer = ComboCellRenderer(mdGui)
-    renderer.setIsHeaderCell(true)
-    setHeaderRenderer(renderer)
   }
   
   /**
    * The combo box cell renderer used to render the cell when the table is not in edit mode.
    */
-  private inner class ComboCellRenderer
-  /**
-   * Initialize the combo box renderer and set up the cell to have the same look and feel as
-   * the rest of the table.
-   * @param mdGui The main application UI object.
-   */(
-    /** The UI object to get colors from.  */
-    private val _mdGui: MoneydanceGUI) : DefaultTableCellRenderer() {
+  private inner class ComboCellRenderer : DefaultTableCellRenderer() {
+    private val colors = MDColors.getSingleton()
     /** True if this cell is in the header of the table.  */
     private var _isHeaderCell = false
     
@@ -91,9 +83,9 @@ class ExchangeComboTableColumn(mdGui: MoneydanceGUI, modelIndex: Int, width: Int
         } else {
           result.foreground = table.foreground
           if (row % 2 == 0) {
-            result.background = _mdGui.colors.homePageBG
+            result.background = colors.homePageBG
           } else {
-            result.background = _mdGui.colors.homePageAltBG
+            result.background = colors.homePageAltBG
           }
         }
         val model = table.model as SecuritySymbolTableModel
@@ -158,8 +150,7 @@ class ExchangeComboTableColumn(mdGui: MoneydanceGUI, modelIndex: Int, width: Int
       _comboBox.addMouseListener(object : MouseAdapter() {
         override fun mouseClicked(event: MouseEvent) {
           if (SwingUtilities.isRightMouseButton(event) ||
-              (SwingUtilities.isLeftMouseButton(event) && (event.clickCount > 1))
-          ) {
+              (SwingUtilities.isLeftMouseButton(event) && (event.clickCount > 1)) ) {
             event.consume()
             showExchangeEditDialog()
           }

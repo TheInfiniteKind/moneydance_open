@@ -283,10 +283,10 @@ abstract class SnapshotImporter
       var header: String? = `in`.readLine() ?: return ERROR_NO_DATA
       // stream is blank, no data
       
-      if (Main.DEBUG_YAHOOQT) System.err.println("h:$header")
+      QER_DLOG.log { "h:$header" }
       while (`in`.ready() && isBlank(header)) {
         header = `in`.readLine()
-        if (Main.DEBUG_YAHOOQT) System.err.println("h:$header")
+        QER_DLOG.log { "h:$header" }
       }
       if (containsNoText(header)) return ERROR_READING_DATA // not the right kind of input stream
       
@@ -299,7 +299,7 @@ abstract class SnapshotImporter
       } else {
         // skip the header and move on to the next line
         lineItem = `in`.readLine()
-        if (Main.DEBUG_YAHOOQT) System.err.println("dh:$lineItem")
+        QER_DLOG.log { "dh:$lineItem" }
       }
       
       errorCount = 0
@@ -317,7 +317,7 @@ abstract class SnapshotImporter
         }
         // next line
         lineItem = `in`.readLine()
-        if (Main.DEBUG_YAHOOQT) System.err.println("dl:$lineItem")
+        QER_DLOG.log { "dl:$lineItem" }
       }
     } catch (error: IOException) {
       System.err.println("Error while importing history: $error")
@@ -350,7 +350,7 @@ abstract class SnapshotImporter
     for (record in _importRecords) {
       val snap = addOrUpdateSnapshot(downloadInfo, record)
       //System.err.println("security updated snapshot: "+snap);
-      success = success or (snap.userRate > 0.0)
+      success = success or (snap.rate > 0.0)
     }
     return success
   }
@@ -599,8 +599,8 @@ abstract class SnapshotImporter
       val newRate = convertToBasePrice(record.closeRate, downloadInfo.relativeCurrency, record.date)
       val result = downloadInfo.security.setSnapshotInt(record.date, newRate)
       // downloaded values are prices in a certain currency, change to rates for the stock history
-      result.userDailyHigh = convertToBasePrice(record.highRate, downloadInfo.relativeCurrency, record.date)
-      result.userDailyLow = convertToBasePrice(record.lowRate, downloadInfo.relativeCurrency, record.date)
+      result.dailyHigh = convertToBasePrice(record.highRate, downloadInfo.relativeCurrency, record.date)
+      result.dailyLow = convertToBasePrice(record.lowRate, downloadInfo.relativeCurrency, record.date)
       result.dailyVolume = record.volume
       result.syncItem()
       return result
@@ -618,7 +618,7 @@ abstract class SnapshotImporter
     * @ return The price, converted to the base currency of the file.
     */
     private fun convertToBasePrice(priceFromCurr: Double, priceCurrency: CurrencyType, date: Int): Double {
-      return priceCurrency.getUserRateByDateInt(date) * priceFromCurr
+      return (priceCurrency.getSnapshotForDate(date)?.rate ?: priceCurrency.relativeRate) * priceFromCurr
     }
     
     /**

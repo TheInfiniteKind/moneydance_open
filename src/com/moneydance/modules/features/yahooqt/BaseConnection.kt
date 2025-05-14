@@ -86,8 +86,8 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
         message = downloadInfo.buildRateDisplayText(model.quotesModel)
         logMessage = downloadInfo.buildRateLogText(model.quotesModel)
       }
-      model.quotesModel?.showProgress(progressPercent, message)
-      if (Main.DEBUG_YAHOOQT) System.err.println(logMessage)
+      model.quotesModel.showProgress(progressPercent, message)
+      QER_DLOG.log(logMessage)
       didUpdateItem(downloadInfo)
     }
     
@@ -101,7 +101,7 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
     val progressIncrement = if (securitiesToUpdate.isEmpty()) 1.0f else 1.0f / securitiesToUpdate.size.toFloat()
     val success = true
     for (downloadInfo in securitiesToUpdate) {
-      System.err.println("updating security: " + downloadInfo.security + " (" + downloadInfo.fullTickerSymbol + ")")
+      AppDebug.ALL.log("updating security: ${downloadInfo.security} (${downloadInfo.fullTickerSymbol}) from ${connectionID}")
       updateSecurity(downloadInfo)
       progressPercent += progressIncrement
       val message: String
@@ -122,7 +122,7 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
         logMessage = downloadInfo.buildPriceLogText(model)
       }
       model.showProgress(progressPercent, message)
-      if (Main.DEBUG_YAHOOQT) System.err.println(logMessage)
+      QER_DLOG.log(logMessage)
       
       didUpdateItem(downloadInfo)
     }
