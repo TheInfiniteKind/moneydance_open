@@ -57,7 +57,7 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
   
   private val requestConfig: RequestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build()
   private val httpClient: HttpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig)
-    .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15")
+    .setUserAgent(ConnectionTweaks.rotatingUserAgent)
     .setDefaultHeaders(java.util.List.of(BasicHeader("Accept-Language", "en-US,en;q=0.9")))
     .build()
   
@@ -94,12 +94,13 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     val today = strippedDateInt
     val history = downloadInfo.security.snapshots
     var firstDate = incrementDate(today, 0, -6, -0)
-    if (history != null && !history.isEmpty()) {
+    if (!history.isEmpty()) {
       firstDate = max(history.last().dateInt, firstDate)
     }
     
     val urlStr = getHistoryURL(downloadInfo.fullTickerSymbol, DateRange(firstDate, today))
     val httpGet = HttpGet(urlStr)
+    httpGet.setHeader("User-Agent", ConnectionTweaks.rotatingUserAgent)
     
     try {
       val response = httpClient.execute(httpGet)
@@ -157,21 +158,11 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     for (i in timestamps.indices) {
       val candle = Candle()
       candle.datetime = timestamps[i] * 1000
-      if (volumeValues.size() > i) {
-        candle.volume = volumeValues[i].asLong
-      }
-      if (openValues.size() > i) {
-        candle.open = openValues[i].asDouble
-      }
-      if (lowValues.size() > i) {
-        candle.low = lowValues[i].asDouble
-      }
-      if (highValues.size() > i) {
-        candle.high = highValues[i].asDouble
-      }
-      if (closeValues.size() > i) {
-        candle.close = closeValues[i].asDouble
-      }
+      if (volumeValues.size() > i) { candle.volume = volumeValues[i].asLong }
+      if (openValues.size() > i) { candle.open = openValues[i].asDouble }
+      if (lowValues.size() > i) { candle.low = lowValues[i].asDouble }
+      if (highValues.size() > i) { candle.high = highValues[i].asDouble }
+      if (closeValues.size() > i) { candle.close = closeValues[i].asDouble }
       
       records.add(StockRecord(candle, downloadInfo.priceMultiplier))
     }

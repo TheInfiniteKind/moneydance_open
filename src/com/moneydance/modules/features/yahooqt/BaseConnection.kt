@@ -107,16 +107,10 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
       val message: String
       val logMessage: String
       if (!downloadInfo.wasSuccess()) {
-        message = MessageFormat.format(
-          res.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT),
-          downloadInfo.security.idString,
-          downloadInfo.relativeCurrency.idString
-        )
-        logMessage = MessageFormat.format(
-          "Unable to get rate from {0} to {1}",
-          downloadInfo.security.idString,
-          downloadInfo.relativeCurrency.idString
-        )
+        message = res.getString(L10NStockQuotes.ERROR_EXCHANGE_RATE_FMT)
+          .replace("{0}", downloadInfo.security.idString)
+          .replace("{1}", downloadInfo.relativeCurrency.idString)
+        logMessage = message
       } else {
         message = downloadInfo.buildPriceDisplayText(model)
         logMessage = downloadInfo.buildPriceLogText(model)

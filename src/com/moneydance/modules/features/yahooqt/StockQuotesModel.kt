@@ -413,7 +413,7 @@ class StockQuotesModel internal constructor(private val extensionContext: Featur
     _connectionList.add(AlphavantageConnection(this))
     _connectionList.add(TDAmeritradeConnection(this))
     //_connectionList.add(YahooConnection.getCurrenciesConnection(this)); // omitting yahoo rates since ECB bas much faster results
-    //_connectionList.add(YahooConnection.getDefaultConnection(this))
+    _connectionList.add(YahooConnection.getDefaultConnection(this))
     //_connectionList.add(FTConnection.getDefaultConnection(this));
     //_connectionList.add(YahooConnection.getUKConnection(this)); // omitting because https://ichart.yahoo.com/table.csv no longer resolves
     //_connectionList.add(new GoogleConnection(this, resources.getString(L10NStockQuotes.GOOGLE)));

@@ -421,12 +421,8 @@ class SettingsWindow(private val context: FeatureModuleContext, resources: Resou
       }
     })
     // add hot key
-    _table.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-      KeyStroke.getKeyStroke(
-        KeyEvent.VK_E,
-        MoneydanceGUI.ACCELERATOR_MASK
-      ), "editExchange"
-    )
+    _table.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+      .put(KeyStroke.getKeyStroke(KeyEvent.VK_E, MoneydanceGUI.ACCELERATOR_MASK), "editExchange")
     _table.actionMap.put("editExchange", object : AbstractAction() {
       override fun actionPerformed(event: ActionEvent) {
         val selectedRow = _table.selectedRow
