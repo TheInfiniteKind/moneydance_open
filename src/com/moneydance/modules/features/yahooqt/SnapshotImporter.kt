@@ -618,7 +618,7 @@ abstract class SnapshotImporter
     * @ return The price, converted to the base currency of the file.
     */
     private fun convertToBasePrice(priceFromCurr: Double, priceCurrency: CurrencyType, date: Int): Double {
-      return (priceCurrency.getSnapshotForDate(date)?.rate ?: priceCurrency.relativeRate) * priceFromCurr
+      return priceCurrency.getUserRateByDateInt(date) * priceFromCurr
     }
     
     /**
