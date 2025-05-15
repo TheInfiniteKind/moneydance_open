@@ -8,9 +8,11 @@
 package com.moneydance.modules.features.yahooqt
 
 import com.infinitekind.moneydance.model.CurrencyType
+import com.infinitekind.moneydance.model.InvestFields
 import com.infinitekind.util.DateUtil
 import com.infinitekind.util.DateUtil.convertLongDateToInt
 import com.infinitekind.util.DateUtil.firstMinuteInDay
+import com.infinitekind.util.StringUtils
 import com.moneydance.modules.features.yahooqt.SQUtil.isBlank
 import com.moneydance.modules.features.yahooqt.SQUtil.parseTickerSymbol
 import com.moneydance.modules.features.yahooqt.tdameritrade.Candle
@@ -246,17 +248,16 @@ class DownloadInfo internal constructor(var security: CurrencyType, model: Downl
       sb.append("<html>")
       sb.append(getSuccessIcon(wasSuccess()))
       sb.append(" ")
-      val latest = findMostRecentValidRecord()
-      if (latest != null) {
-        sb.append("latest close: ").append(latest.closeRate)
+      findMostRecentValidRecord().takeIf { it != null && it.closeRate != 0.0 }?.let { latest ->
+        sb.append(latest.priceDisplay) // security. latest.priceDisplay 1/latest.closeRate)
         sb.append(" on ").append(model.uIDateFormat.format(latest.date))
-      } else {
+      } ?: run {
         sb.append("No history records returned for security ").append(security.getName())
       }
-      if (history.size > 0) {
-        sb.append("(")
+      if (history.size > 1) {
+        sb.append(" with ")
         sb.append(history.size)
-        sb.append(")")
+        sb.append(" records")
       }
       sb.append("</html>")
       resultText = sb.toString()
