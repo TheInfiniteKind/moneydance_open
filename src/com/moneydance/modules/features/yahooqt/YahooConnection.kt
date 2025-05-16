@@ -7,6 +7,7 @@
 \*************************************************************************/
 package com.moneydance.modules.features.yahooqt
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -158,11 +159,11 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     for (i in timestamps.indices) {
       val candle = Candle()
       candle.datetime = timestamps[i] * 1000
-      if (volumeValues.size() > i) { candle.volume = volumeValues[i].asLong }
-      if (openValues.size() > i) { candle.open = openValues[i].asDouble }
-      if (lowValues.size() > i) { candle.low = lowValues[i].asDouble }
-      if (highValues.size() > i) { candle.high = highValues[i].asDouble }
-      if (closeValues.size() > i) { candle.close = closeValues[i].asDouble }
+      volumeValues.getSafeLong(i)?.let { candle.volume = it }
+      openValues.getSafeDouble(i)?.let { candle.open = it }
+      lowValues.getSafeDouble(i)?.let { candle.low = it }
+      highValues.getSafeDouble(i)?.let { candle.high = it }
+      closeValues.getSafeDouble(i)?.let { candle.close = it }
       
       records.add(StockRecord(candle, downloadInfo.priceMultiplier))
     }
@@ -186,6 +187,22 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
                    "&lang=en-US" +
                    "&region=US"
     return queryURL
+  }
+  
+  private fun JsonArray?.getSafeDouble(idx:Int): Double? {
+    this ?: return null
+    val safeVal = if (idx < 0 || idx >= this.size()) { return null } else { this[idx] ?: return null }
+    if(safeVal.isJsonNull) return null
+    if(safeVal.isJsonPrimitive) return safeVal.asDouble
+    return null
+  }
+  
+  private fun JsonArray?.getSafeLong(idx:Int): Long? {
+    this ?: return null
+    val safeVal = if (idx < 0 || idx >= this.size()) { return null } else { this[idx] ?: return null }
+    if(safeVal.isJsonNull) return null
+    if(safeVal.isJsonPrimitive) return safeVal.asLong
+    return null
   }
   
   
