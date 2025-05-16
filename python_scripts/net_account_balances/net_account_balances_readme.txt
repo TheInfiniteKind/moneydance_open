@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (March 2021 - a lockdown project) - Last updated: January 2025
+Author: Stuart Beesley - StuWareSoftSystems (created March 2021 - last updated: May 2025)
 Credit: (slack: @dtd) aka Dan T Davis for his input, testing, patience and suggestions to make a (much) better product..
 
 Custom Balances works with 2021.1(3056) and newer.
@@ -273,12 +273,19 @@ MATH ON CALCULATED BALANCES:
                    pre-formula accounts / RMC, UOR, PUM calculations etc....
 
                    Example formulas: '((@this - applestock) / networth) * 100.0'
-                                     '@this * 0.2' or '(rowtagname / otherrowtagname)' or '@danspecialnumber'
+                                     '@this * 0.2' or '(rowtagname / otherrowtagname)'
                                      'networth / @pi' or 'random()' or '@mdbuild * @mdversion'
                                      'useifgt(sum(rowtagname1,rowtagname2,rowtagname3), 0)'
 
                  - You can also enter currencyIDs / security ticker symbols if you wish
                    (if setup in tools>Currencies / tools>Securities) >> E.g. '@this * @GBP' or '@this * @APPL'
+
+                 - You can use @@ in front of currencyIDs to pass a literal currency ID to functions that can translate
+                   values to a target currency - e.g. @@GBP (instead of @GBP which returns the current rate)
+
+                 - The magic tags @today and @asof will be translated to integer date values compatible with many
+                   Moneydance API call parameters. The translated value will be in yyyymmdd format - e.g. 20241231
+                   Your country/locale is irrelevant, this format is fixed. Refer: net worth function(s) below.
 
                  - Formula can refer to the calculated result from any row with a 'tag' name (including it's own row)
 
@@ -313,12 +320,30 @@ MATH ON CALCULATED BALANCES:
                    xnwf()   Net Worth, future balance,  all eligible accounts, only total the excluded accounts (debug)
                           **this is the formula that most people should use for a 'normal' / 'standard' net worth
 
+                   From build MD2025(5500) onwards:
+                    >> you can optionally pass an asOfDate parameter to these NW functions (except xnw and xnwf).
+                       - the parameter must be integer format yyyymmdd - E.g. nw(20241231)
+                       - do not use this parameter if you just want today, current balance, or future balance.
+                       - you can re-use a row's 'Override Balance asof Date' value with @asof magic tag - e.g. nw(@asof)
+                       - WARNING: These net worth functions are relatively quick when used without a date parameter,
+                                  but become a slightly slower calculation when an asof date is used - use with caution.
+                                  If speed is a concern, then you can manually configure a NW row by just selecting the
+                                  required accounts, rather than using the nw() type formulas...
+                       >> Net worth calculations are cached so you can safely reuse the same function many times
+
+                    >> you can optionally pass a currency id by using a magic tag (literal/id) to net worth functions:
+                       - by default, the result will be returned in your base currency.
+                       - you can re-use a row's 'Display Currency' with the @@rowcurrency magic tag
+                       - you can select any currency using the tag picker - e.g. @@gbp
+                       - using the magic tag @@basecurrency will always convert back to your base currency
+                         - e.g. nw(@@rowcurrency) or nw(@asof, @@gbp)
+
                    NOTE: When you use these Net Worth formulas, it is not necessary to configure any other settings on
                          the row unless you plan to use the result of the row in conjunction with the formula.
                          - i.e. you can just use the formula 'nw() @nothis'
 
-                   NOTE: if you can dream up any additional functions to be added, or
-                         if any formulas/functions do not work properly for you, please contact the author
+                   NOTE: if you can dream up any additional functions to be added, or if any formulas/functions
+                         do not work properly for you, please contact the author (Stuart Beesley, aka Mr Toolbox).
 
                  WARNING: You can enter an FORMULA with no accounts selected in the picklist. The formula will
                           try to resolve. BUT if you refer to @this or this row's tag, then you will probably get an
@@ -350,6 +375,22 @@ MATH ON CALCULATED BALANCES:
                     - You could optionally perform this step manually in the formula too...
                     - 'Multiply by 100' can be important if you haven't already done "math" to make it a true percentage
 
+------------------------------------------------------------------------------------------------------------------------
+- QUICK REFERENCE - FORMULA: TAG, MAGIC TAG, AND SPECIAL VARIABLES - :
+    - rowtagname       Pulls in the result of the (pre-formula) calculation from the row identified with this tag name
+    - @this            Pulls in the result from this row's (pre-formula) calculation
+    - @nothis          Ignore this row's calculation (if any) and prevents any warning about not referencing this row
+    - @today           Today's date in yyyymmdd integer format                              (used as function parameter)
+    - @asof            Pulls in this row's 'Override Balance asof Date' in yyyymmdd format  (used as function parameter)
+    - @@rowcurrency    Pulls in this row's 'Display Currency' literal ID                    (used as function parameter)
+    - @@basecurrency   Pulls the 'base' currency's literal ID                               (used as function parameter)
+    - @currencyID      E.g. @GBP, @USD - Use Tools>Currencies 'Currency ID'. Pulls in the current rate.
+    - @@currencyID     E.g. @@GBP, @@USD - Pulls in the currency's literal ID               (used as function parameter)
+    - @securityTicker  E.g. @APPL, @AMZN - Use Tools>Securities 'Ticker Symbol'. Pulls in the current price.
+    - @@securityTicker E.g. @@APPL, @@AMZN - Pulls in the security's literal ID             (used as function parameter)
+    - @pi              Pulls in the value of Pi                                                           (just for fun)
+    - @mdbuild         Pulls in Moneydance's build number                                                 (just for fun)
+    - @mdversion       Pulls in Moneydance's version number                                               (just for fun)
 ------------------------------------------------------------------------------------------------------------------------
 
 FORMATTING FOR ROW DISPLAY:
@@ -590,25 +631,27 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
 
 - ROW NAME Configuration Options:
   - You can embed the following text (lowercase) in the Row Name field to configure the row / total (value) as follows:
-    <#brn>  = Forces row name to be blank/empty
-    <#jr>   = Row name justify: right
-    <#jc>   = Row name justify: center
-    <#cre>  = Row name colour:  red
-    <#cbl>  = Row name colour:  blue
-    <#cgr>  = Row name colour:  light grey
-    <#fbo>  = Row name font:    bold
-    <#fit>  = Row name font:    italics
-    <#fun>  = Row name font:    underline
-    <#cvre> = Value colour:     red
-    <#cvbl> = Value colour:     blue
-    <#cvgr> = Value colour:     light grey
-    <#cvde> = Value colour:     default foreground
-    <#fvbo> = Value font:       bold
-    <#fvit> = Value font:       italics
-    <#fvun> = Value font:       underline
-    <#nud>  = No special underline dots...
-    <#fud>  = Force special underline dots...
-    <#bzv>  = Forces any total (value) to appear blank when zero
+    <#brn>      = Forces row name to be blank/empty
+    <#jr>       = Row name justify: right
+    <#jc>       = Row name justify: center
+    <#cre>      = Row name colour:  red
+    <#cbl>      = Row name colour:  blue
+    <#cgr>      = Row name colour:  light grey
+    <#fbo>      = Row name font:    bold
+    <#fit>      = Row name font:    italics
+    <#fun>      = Row name font:    underline
+    <#cvre>     = Value colour:     red
+    <#cvbl>     = Value colour:     blue
+    <#cvgr>     = Value colour:     light grey
+    <#cvde>     = Value colour:     default foreground
+    <#fvbo>     = Value font:       bold
+    <#fvit>     = Value font:       italics
+    <#fvun>     = Value font:       underline
+    <#nud>      = No special underline dots...
+    <#fud>      = Force special underline dots...
+    <#bzv>      = Forces any total (value) to appear blank when zero
+    <#cmd:xxx>  = Row name colour:  replace 'xxx' with an internal Moneydance colour name - e.g. 'defaultTextForeground'
+    <#cvmd:xxx> = Value colour:     replace 'xxx' with an internal Moneydance colour name - e.g. 'defaultTextForeground'
 
   - You can embed the following to insert variable text into the Row Name field:
     <##rn>    = insert the row number
@@ -890,6 +933,29 @@ in both short-term and long-term pools (however this data is only shown in conso
    enabled. However, this does not affect the cost basis or gains calculation, and is incorrect when the security has
    stock splits....
 
+
+------------------------------------------------------------------------------------------------------------------------
+KNOWN MONEYDANCE (INTERNAL) COLOUR NAMES:
+
+For use with the <#cmd:xxx> and <#cvmd:xxx> tags - these may or may not work; 'fg' typically means foreground, so these
+will most likely be 'better'. 'defaultTextForeground' is the default color; you may need to experiment:
+
+'defaultBackground', 'defaultTextForeground', 'secondaryTextFG', 'tertiaryTextFG', 'registerBG1', 'registerBG2',
+'registerSelectedBG', 'registerUnfocusedSelectedBG', 'registerSelectedFG', 'registerUnconfirmedIconFG', 'registerTextFG'
+'listBackground', 'listSelectionBG', 'registerGrid', 'futureTxnBG', 'futureTxn2BG', 'futureTxnIndicator', 'headerBG',
+'reminderHomeInnerLine', 'hudBG', 'hudBorderColor', 'hudFG', 'filterBarBG', 'filterBarBtnBG', 'filterBarFG',
+'filterBarBorderPaint', 'filterBarSelBG', 'filterBarSelFG', 'headerBG1', 'headerBG2', 'graphBG1', 'graphBG2',
+'scrollThumb', 'headerFG', 'headerBorder', 'homepageSectionBG', 'homePageAltBG', 'mainDivider', 'positiveBalFG',
+'negativeBalFG', 'incomeIconTint', 'expenseIconTint', 'homePageBG', 'homePageFG', 'dashboardFG', 'calEventBG',
+'calPastEventBG', 'hudBG1', 'hudBG2', 'selectedRowGradient1', 'selectedRowGradient2', 'selectedRowUFGradient1',
+'selectedRowUFGradient2', 'tableHeaderBG', 'popoverBG', 'popoverTriangleBG', 'popoverBorder', 'mainPanelBorderColor',
+'budgetHealthyColor', 'budgetAcceptableColor', 'budgetAlertColor', 'budgetGraphWarning', 'errorMessageForeground',
+'reportBlueFG', 'reportRedFG', 'sidebarBackground', 'sidebarSecondaryTextFG', 'sidebarSelectedBG', 'sidebarUFSelectedBG'
+'sidebarHeader', 'sidebarPositiveBalanceFG', 'sidebarNegativeBalanceFG', 'sidebarSelectedFG', 'homeIconTint',
+'graphIconTint', 'accountIconTint', 'remindersIconTint', 'reportIconTint', 'budgetIconTint', 'graphData1', 'graphData2',
+'graphData3', 'graphData4', 'graphData5', 'graphData6', 'graphData7', 'graphData8', 'graphData9', 'graphData10',
+'graphData11', 'graphData12', 'graphData13', 'graphData14', 'graphData15', 'graphData16', 'graphData17', 'graphData18',
+'graphData19', 'graphData20', 'graphData21', 'graphData22', 'graphData23'
 
 ------------------------------------------------------------------------------------------------------------------------
 HISTORICAL UPGRADE NOTES:

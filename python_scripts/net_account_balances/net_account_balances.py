@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1057 - February 2025 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1057 - May 2025 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -144,9 +144,14 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1055 - Add 'apply net worth flags' feature... Switch 'All Accounts (no categories)" to appear first in the picklist combo; added @nothis.
 # build: 1055 - Enabled right-click popup context menus on some JLinkLabels and JLabels (aka copy value string to clipboard)...
 # build: 1056 - Tweak the Account type selector so that all accounts and categories is first/selected (for @dtd)
-# build: 1056 - Fix for 2025.x(5220) onwards... Account::getAncestors() changed to a Kotlin Sequence
+# build: 1056 - Fix for 2024.3(5220) onwards... Account::getAncestors() changed to a Kotlin Sequence
 # build: 1057 - ???
 # build: 1057 - Added row value formatting tag: <#cvde> = Value colour: default foreground
+# build: 1057 - Enabled <#cmd:xxx> and <#cvmd:xxx> row tags for internal MDColors names.... ;->
+# build: 1057 - NETWORTH ASOF BUILD FOR MD2025 onwards >>>
+# build: 1057 - Enabled magic tags @today, @asof, @@rowcurrency, @@basecurrency - along with the nw() nwif() functions now accepting an optional yyyymmdd asof parameter
+# build: 1057 - Improved networth formula detection (using regex) and cache results (including the expensive versions) for efficient repeated usage
+# build: 1057 - Thicken separator lines for Windows...
 # build: 1057 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -3171,7 +3176,21 @@ Visit: %s (Author's site)
     if isNetWorthUpgradedBuild():
         from com.infinitekind.moneydance.model import NetWorthCalculator
 
-    GlobalVars.MD_ANCESTORS_UPGRADED_BUILD = 5252                                                                       # MD2025.0(5252)
+    GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD = 5500                                                                   # MD2025(5500)
+    def isNetWorthAsOfUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD)
+    if isNetWorthAsOfUpgradedBuild(): pass
+
+    GlobalVars.MD_APPDEBUG_ENABLED_BUILD = 5100                                                                         # MD2024(5100)
+    def isAppDebugEnabledBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_APPDEBUG_ENABLED_BUILD)
+    if isAppDebugEnabledBuild():
+        from com.infinitekind.util import AppDebug                                                                      # noqa
+
+    GlobalVars.MD_APPTIMER_UPGRADED_BUILD = 5121                                                                        # MD2024.1(5121)
+    def isAppTimerUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_APPTIMER_UPGRADED_BUILD)
+    if isAppTimerUpgradedBuild():
+        from com.infinitekind.util import AppTimer                                                                      # noqa
+
+    GlobalVars.MD_ANCESTORS_UPGRADED_BUILD = 5252                                                                       # MD2024.3(5252)
     def isAncestorsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ANCESTORS_UPGRADED_BUILD)
 
     GlobalVars.MD_POPUP_CONTEXT_MENU_UPGRADED_BUILD = 5202                                                              # MD2024.3(5202)
@@ -5026,26 +5045,28 @@ Visit: %s (Author's site)
 
 
     class TextDisplayForSwingConfig:
-        WIDGET_ROW_BLANKROWNAME         = "<#brn>";    WIDGET_ROW_BLANKROWNAME_DISPLAY         = "forces row name to be blank/empty"
-        WIDGET_ROW_RIGHTROWNAME         = "<#jr>";     WIDGET_ROW_RIGHTROWNAME_DISPLAY         = "row name justify: right"
-        WIDGET_ROW_CENTERROWNAME        = "<#jc>";     WIDGET_ROW_CENTERROWNAME_DISPLAY        = "row name justify: center"
-        WIDGET_ROW_REDROWNAME           = "<#cre>";    WIDGET_ROW_REDROWNAME_DISPLAY           = "row name colour: red"
-        WIDGET_ROW_BLUEROWNAME          = "<#cbl>";    WIDGET_ROW_BLUEROWNAME_DISPLAY          = "row name colour: blue"
-        WIDGET_ROW_LIGHTGREYROWNAME     = "<#cgr>";    WIDGET_ROW_LIGHTGREYROWNAME_DISPLAY     = "row name colour: light grey"
-        WIDGET_ROW_BOLDROWNAME          = "<#fbo>";    WIDGET_ROW_BOLDROWNAME_DISPLAY          = "row name font: bold"
-        WIDGET_ROW_ITALICSROWNAME       = "<#fit>";    WIDGET_ROW_ITALICSROWNAME_DISPLAY       = "row name font: italics"
-        WIDGET_ROW_UNDERLINEROWNAME     = "<#fun>";    WIDGET_ROW_UNDERLINEROWNAME_DISPLAY     = "row name font: underline"
-        WIDGET_ROW_NO_UNDERLINE_DOTS    = "<#nud>";    WIDGET_ROW_NO_UNDERLINE_DOTS_DISPLAY    = "no special underline dots..."
-        WIDGET_ROW_FORCE_UNDERLINE_DOTS = "<#fud>";    WIDGET_ROW_FORCE_UNDERLINE_DOTS_DISPLAY = "force special underline dots..."
-        WIDGET_ROW_BLANKZEROVALUE       = "<#bzv>";    WIDGET_ROW_BLANKZEROVALUE_DISPLAY       = "forces any total (value) to appear blank when zero"
-        WIDGET_ROW_VALUE_RED            = "<#cvre>";   WIDGET_ROW_VALUE_RED_DISPLAY            = "value colour: red"
-        WIDGET_ROW_VALUE_BLUE           = "<#cvbl>";   WIDGET_ROW_VALUE_BLUE_DISPLAY           = "value colour: blue"
-        WIDGET_ROW_VALUE_LIGHTGREY      = "<#cvgr>";   WIDGET_ROW_VALUE_LIGHTGREY_DISPLAY      = "value colour: light grey"
-        WIDGET_ROW_VALUE_DEFAULT        = "<#cvde>";   WIDGET_ROW_VALUE_DEFAULT_DISPLAY        = "value colour: default foreground"
-        WIDGET_ROW_VALUE_BOLD           = "<#fvbo>";   WIDGET_ROW_VALUE_BOLD_DISPLAY           = "value font: bold"
-        WIDGET_ROW_VALUE_ITALICS        = "<#fvit>";   WIDGET_ROW_VALUE_ITALICS_DISPLAY        = "value font: italics"
-        WIDGET_ROW_VALUE_UNDERLINE      = "<#fvun>";   WIDGET_ROW_VALUE_UNDERLINE_DISPLAY      = "value font: underline"
-        WIDGET_ROW_HTMLROWNAME          = "<#html>";   WIDGET_ROW_HTMLROWNAME_DISPLAY          = "EXPERIMENTAL. Takes your row name as html encoded text"
+        WIDGET_ROW_BLANKROWNAME         = "<#brn>";      WIDGET_ROW_BLANKROWNAME_DISPLAY         = "forces row name to be blank/empty"
+        WIDGET_ROW_RIGHTROWNAME         = "<#jr>";       WIDGET_ROW_RIGHTROWNAME_DISPLAY         = "row name justify: right"
+        WIDGET_ROW_CENTERROWNAME        = "<#jc>";       WIDGET_ROW_CENTERROWNAME_DISPLAY        = "row name justify: center"
+        WIDGET_ROW_REDROWNAME           = "<#cre>";      WIDGET_ROW_REDROWNAME_DISPLAY           = "row name colour: red"
+        WIDGET_ROW_BLUEROWNAME          = "<#cbl>";      WIDGET_ROW_BLUEROWNAME_DISPLAY          = "row name colour: blue"
+        WIDGET_ROW_LIGHTGREYROWNAME     = "<#cgr>";      WIDGET_ROW_LIGHTGREYROWNAME_DISPLAY     = "row name colour: light grey"
+        WIDGET_ROW_MDCOLORROWNAME       = "<#cmd:xxx>";  WIDGET_ROW_MDCOLORROWNAME_DISPLAY       = "row name colour: Moneydance internal colour (refer help)"
+        WIDGET_ROW_BOLDROWNAME          = "<#fbo>";      WIDGET_ROW_BOLDROWNAME_DISPLAY          = "row name font: bold"
+        WIDGET_ROW_ITALICSROWNAME       = "<#fit>";      WIDGET_ROW_ITALICSROWNAME_DISPLAY       = "row name font: italics"
+        WIDGET_ROW_UNDERLINEROWNAME     = "<#fun>";      WIDGET_ROW_UNDERLINEROWNAME_DISPLAY     = "row name font: underline"
+        WIDGET_ROW_NO_UNDERLINE_DOTS    = "<#nud>";      WIDGET_ROW_NO_UNDERLINE_DOTS_DISPLAY    = "no special underline dots..."
+        WIDGET_ROW_FORCE_UNDERLINE_DOTS = "<#fud>";      WIDGET_ROW_FORCE_UNDERLINE_DOTS_DISPLAY = "force special underline dots..."
+        WIDGET_ROW_BLANKZEROVALUE       = "<#bzv>";      WIDGET_ROW_BLANKZEROVALUE_DISPLAY       = "forces any total (value) to appear blank when zero"
+        WIDGET_ROW_VALUE_RED            = "<#cvre>";     WIDGET_ROW_VALUE_RED_DISPLAY            = "value colour: red"
+        WIDGET_ROW_VALUE_BLUE           = "<#cvbl>";     WIDGET_ROW_VALUE_BLUE_DISPLAY           = "value colour: blue"
+        WIDGET_ROW_VALUE_LIGHTGREY      = "<#cvgr>";     WIDGET_ROW_VALUE_LIGHTGREY_DISPLAY      = "value colour: light grey"
+        WIDGET_ROW_VALUE_DEFAULT        = "<#cvde>";     WIDGET_ROW_VALUE_DEFAULT_DISPLAY        = "value colour: default foreground"
+        WIDGET_ROW_VALUE_MDCOLOR        = "<#cvmd:xxx>"; WIDGET_ROW_VALUE_MDCOLOR_DISPLAY        = "value colour: Moneydance internal colour (refer help)"
+        WIDGET_ROW_VALUE_BOLD           = "<#fvbo>";     WIDGET_ROW_VALUE_BOLD_DISPLAY           = "value font: bold"
+        WIDGET_ROW_VALUE_ITALICS        = "<#fvit>";     WIDGET_ROW_VALUE_ITALICS_DISPLAY        = "value font: italics"
+        WIDGET_ROW_VALUE_UNDERLINE      = "<#fvun>";     WIDGET_ROW_VALUE_UNDERLINE_DISPLAY      = "value font: underline"
+        WIDGET_ROW_HTMLROWNAME          = "<#html>";     WIDGET_ROW_HTMLROWNAME_DISPLAY          = "EXPERIMENTAL. Takes your row name as html encoded text"
 
         WIDGET_VAR_ROW_NUMBER           = "<##rn>";    WIDGET_VAR_ROW_NUMBER_DISPLAY           = "insert the row number"
         WIDGET_VAR_ROW_TAG              = "<##rt>";    WIDGET_VAR_ROW_TAG_DISPLAY              = "insert the row tag (variable) name"
@@ -5058,6 +5079,9 @@ Visit: %s (Author's site)
         WIDGET_VAR_CG_DATE_RANGE_NAME   = "<##cgdrn>"; WIDGET_VAR_CG_DATE_RANGE_NAME_DISPLAY   = "insert the capital gains date range name"
         WIDGET_VAR_IE_DATE_RANGE        = "<##iedr>";  WIDGET_VAR_IE_DATE_RANGE_DISPLAY        = "insert the income/expense date range"
         WIDGET_VAR_IE_DATE_RANGE_NAME   = "<##iedrn>"; WIDGET_VAR_IE_DATE_RANGE_NAME_DISPLAY   = "insert the income/expense date range name"
+
+        ROW_NAME_MD_COLOR_PATTERN = re.compile(r"<#cmd:([a-zA-Z0-9]+)>")
+        ROW_VALUE_MD_COLOR_PATTERN = re.compile(r"<#cvmd:([a-zA-Z0-9]+)>")
 
         ALL_FORMAT_CODE_NAMES_LIST = [
                                 [WIDGET_ROW_BLANKROWNAME,              WIDGET_ROW_BLANKROWNAME_DISPLAY        ],
@@ -5079,6 +5103,8 @@ Visit: %s (Author's site)
                                 [WIDGET_ROW_VALUE_BOLD,                WIDGET_ROW_VALUE_BOLD_DISPLAY          ],
                                 [WIDGET_ROW_VALUE_ITALICS,             WIDGET_ROW_VALUE_ITALICS_DISPLAY       ],
                                 [WIDGET_ROW_VALUE_UNDERLINE,           WIDGET_ROW_VALUE_UNDERLINE_DISPLAY     ],
+                                [WIDGET_ROW_MDCOLORROWNAME,            WIDGET_ROW_MDCOLORROWNAME_DISPLAY      ],
+                                [WIDGET_ROW_VALUE_MDCOLOR,             WIDGET_ROW_VALUE_MDCOLOR_DISPLAY       ],
                                 [WIDGET_ROW_HTMLROWNAME,               WIDGET_ROW_HTMLROWNAME_DISPLAY         ],
                                 [WIDGET_VAR_ROW_NUMBER,                WIDGET_VAR_ROW_NUMBER_DISPLAY          ],
                                 [WIDGET_VAR_ROW_TAG,                   WIDGET_VAR_ROW_TAG_DISPLAY             ],
@@ -5159,6 +5185,7 @@ Visit: %s (Author's site)
             if insertVars is None: insertVars = {}
             self.ui = GlobalVars.CONTEXT.getUI()
             self.mono = self.ui.getFonts().mono
+            self.mdColors = self.ui.getColors()
             self.defaultTextForeground = self.ui.getColors().defaultTextForeground
             self.originalRowText = _rowText
             self.originalSmallText = _smallText
@@ -5218,7 +5245,14 @@ Visit: %s (Author's site)
 
             if (self.__class__.WIDGET_ROW_LIGHTGREYROWNAME in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_LIGHTGREYROWNAME, "")
-                self.color = GlobalVars.CONTEXT.getUI().getColors().tertiaryTextFG
+                self.color = self.mdColors.tertiaryTextFG
+
+            colorMatch = self.__class__.ROW_NAME_MD_COLOR_PATTERN.search(_rowText)
+            if colorMatch:
+                mdColorName = colorMatch.group(1)
+                _rowText = self.__class__.ROW_NAME_MD_COLOR_PATTERN.sub("", _rowText)
+                try: self.color = getFieldByReflection(self.mdColors, mdColorName)
+                except: pass  # tough!
 
             if (self.__class__.WIDGET_ROW_BOLDROWNAME in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_BOLDROWNAME, "")
@@ -5250,11 +5284,18 @@ Visit: %s (Author's site)
 
             if (self.__class__.WIDGET_ROW_VALUE_LIGHTGREY in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_LIGHTGREY, "")
-                self.valueColor = GlobalVars.CONTEXT.getUI().getColors().tertiaryTextFG
+                self.valueColor = self.mdColors.tertiaryTextFG
 
             if (self.__class__.WIDGET_ROW_VALUE_DEFAULT in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_DEFAULT, "")
                 self.valueColor = self.defaultTextForeground
+
+            colorMatch = self.__class__.ROW_VALUE_MD_COLOR_PATTERN.search(_rowText)
+            if colorMatch:
+                mdColorName = colorMatch.group(1)
+                _rowText = self.__class__.ROW_VALUE_MD_COLOR_PATTERN.sub("", _rowText)
+                try: self.valueColor = getFieldByReflection(self.mdColors, mdColorName)
+                except: pass  # tough!
 
             if (self.__class__.WIDGET_ROW_VALUE_BOLD in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_BOLD, "")
@@ -7265,6 +7306,15 @@ Visit: %s (Author's site)
                 mdImages = NAB.moneydanceContext.getUI().getImages()
                 NAB.tagPickerIcon = mdImages.getIconWithColor(GlobalVars.Strings.MD_GLYPH_TRIANGLE_LEFT_9_9, NAB.moneydanceContext.getUI().getColors().defaultTextForeground)
 
+    def getValidDateInt(dateInt):
+        # type: (int) -> int
+        """Returns a valid date integer (yyyymmdd) if the passed date is valid, else returns None"""
+        return dateInt if (isinstance(dateInt, (int, long)) and dateInt > 10000000 and dateInt < 40000000) else None
+
+    def noneIfToday(dateInt):
+        """Returns None if the supplied date integer (yyyymmdd) is zero or today, else returns the original value"""
+        return None if (dateInt is None or dateInt == 0 or dateInt == DateUtil.getStrippedDateInt()) else dateInt
+
     class ShowWarnings(AbstractAction):
         def actionPerformed(self, event): ShowWarnings.showWarnings()                                                   # noqa
 
@@ -7291,15 +7341,14 @@ Visit: %s (Author's site)
         @staticmethod
         def showNetWorth():
             myPrint("DB", "In ShowNetWorth.showNetWorth()... EDT: %s" %(SwingUtilities.isEventDispatchThread()))
-            if not SwingUtilities.isEventDispatchThread():
-                genericSwingEDTRunner(False, False, ShowWarnings.showWarnings)
-                return
+
             NAB = NetAccountBalancesExtension.getNAB()
             theFrame = NAB.theFrame
-            if theFrame is None: return
+            if theFrame is None or not isNetWorthUpgradedBuild(): return
 
-            if not isNetWorthUpgradedBuild():
-                myPopupInformationBox(theFrame, "Moneydance's standard Net Worth calculations not available on this build", "NETWORTH", JOptionPane.WARNING_MESSAGE)
+            if SwingUtilities.isEventDispatchThread():
+                myPrint("DB", "Pushing ShowNetWorth.showNetWorth() off the EDT for NetWorthCalculator....")
+                genericThreadRunner(True, ShowNetWorth.showNetWorth)
                 return
 
             output = "View all possible system generated NetWorth calculations:\n" \
@@ -7371,7 +7420,11 @@ Visit: %s (Author's site)
                     if self.formatCode == TextDisplayForSwingConfig.WIDGET_VAR_ROW_NUMBER:
                         self.nab.widgetNameField_JTF.setText(self.formatCode + self.nab.widgetNameField_JTF.getText().strip())
                     else:
-                        self.nab.widgetNameField_JTF.setText(self.nab.widgetNameField_JTF.getText().strip() + self.formatCode)
+                        caret = self.nab.widgetNameField_JTF.getCaretPosition()
+                        if caret < 1:
+                            self.nab.widgetNameField_JTF.setText(self.nab.widgetNameField_JTF.getText().strip() + self.formatCode)
+                        else:
+                            self.nab.widgetNameField_JTF.getDocument().insertString(caret, self.formatCode, None)
                     self.nab.storeJTextFieldsForSelectedRow()
 
             monoFont = NAB.moneydanceContext.getUI().getFonts().code
@@ -7411,10 +7464,14 @@ Visit: %s (Author's site)
                 def actionPerformed(self, evt):                                                                         # noqa
                     myPrint("DB", "In showTagPicker()::TagPickerAction.actionPerformed()")
                     myPrint("DB", "... about to add tag: '%s' into formula" %(self.tag))
-                    if self.tag == self.nab.FILTER_FORMULA_EXPR_DEFAULT_TAGS[0]:
+                    if self.tag in [self.nab.FILTER_FORMULA_EXPR_DEFAULT_TAGS[0], self.nab.FILTER_FORMULA_EXPR_DEFAULT_TAGS[1]]:
                         self.nab.formula_JTF.setText((self.tag + " " + self.nab.formula_JTF.getText().strip()).strip())
                     else:
-                        self.nab.formula_JTF.setText((self.nab.formula_JTF.getText().strip() + " " + self.tag).strip())
+                        caret = self.nab.formula_JTF.getCaretPosition()
+                        if caret < 1:
+                            self.nab.formula_JTF.setText((self.nab.formula_JTF.getText().strip() + " " + self.tag).strip())
+                        else:
+                            self.nab.formula_JTF.getDocument().insertString(caret, self.tag, None)
                     self.nab.storeJTextFieldsForSelectedRow()
 
             monoFont = NAB.moneydanceContext.getUI().getFonts().code
@@ -7469,6 +7526,29 @@ Visit: %s (Author's site)
                     if ticker and isGoodRate(c.getRate(None)):
                         securitySubMenu.add(TagPickerAction("@%s" %(ticker), c.getName() + " (%s)" %(round(1.0 / c.getRate(None), 4)), NAB))
             tagPickerMenu.add(securitySubMenu)
+
+            tagPickerMenu.addSeparator()
+            currencyIDSubMenu = JMenu(wrap_HTML_bold("CURRENCY LITERAL TAGS:"))
+
+            # allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getIDString().lower()))
+            allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getName().lower()))
+            for c in allCurrencies:
+                if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                   # noqa
+                    currID = c.getIDString().strip().lower()
+                    if currID:
+                        currencyIDSubMenu.add(TagPickerAction("@@%s" %(currID), c.getName() + " (%s)" %(c.getUUID() if debug else "<currency id>"), NAB))
+            tagPickerMenu.add(currencyIDSubMenu)
+
+            tagPickerMenu.addSeparator()
+            securityIDSubMenu = JMenu(wrap_HTML_bold("SECURITY TICKER LITERAL TAGS:"))
+
+            # allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getTickerSymbol().lower()))
+            for c in allCurrencies:
+                if c.getCurrencyType() == CurrencyType.Type.SECURITY:                                                   # noqa
+                    ticker = c.getTickerSymbol().strip().lower()
+                    if ticker:
+                        securityIDSubMenu.add(TagPickerAction("@@%s" %(ticker), c.getName() + " (%s)" %(c.getUUID() if debug else "<security id>"), NAB))
+            tagPickerMenu.add(securityIDSubMenu)
 
             setFontAllElements(tagPickerMenu, monoFont)
 
@@ -7726,14 +7806,31 @@ Visit: %s (Author's site)
             self.FINAL_MATHS_CALC_ABSORB_IDX      = 3      # ABSORB (no longer used, but must remain otherwise auto-upgrade messes this up)
 
             # Search for and then REJECT when NOT digits allowed in our formulas (ignore case)
-            self.FILTER_FORMULA_EXPR_REGEX = re.compile(r"[^\(\)+\-*/a-zA-Z0-9$%@., ]+?", (re.IGNORECASE | re.UNICODE | re.LOCALE))     # noqa
-            self.FILTER_FORMULA_EXPR_REGEX_WORDS = re.compile(r"\b(\w+[\(\[])", (re.IGNORECASE | re.UNICODE | re.LOCALE))               # noqa
-            self.FILTER_FORMULA_EXPR_REGEX_SPECIALVARS = re.compile(r"(?:^|\s)(\@\w+)", (re.IGNORECASE | re.UNICODE | re.LOCALE))       # noqa
-            self.FILTER_FORMULA_EXPR_REGEX_FREEVARS = re.compile(r"\b([a-z]\w*[a-z0-9]*)", (re.IGNORECASE | re.UNICODE | re.LOCALE))    # noqa
-            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random", "useifeq", "useifneq", "useifgt", "useifgte", "useiflt", "useiflte", "nw", "nwif", "nwf", "nwfif", "xnw", "xnwf"]
-            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])", "max(a,b[,...])", "round(a[,n])", "float(a)", "random()", "useifeq(a,x)", "useifneq(a,x)", "useifgt(a,x)", "useifgte(a,x)", "useiflt(a,x)", "useiflte(a,x)", "nw()", "nwif()", "nwf()", "nwfif()", "xnw()", "xnwf()"]
-            self.FILTER_FORMULA_EXPR_DEFAULT_TAGS = ["@this", "@nothis"]
+            self.FILTER_FORMULA_EXPR_REGEX = re.compile(r"[^\(\)+\-*/a-zA-Z0-9$%@., ]+?", (re.IGNORECASE | re.UNICODE | re.LOCALE))                                             # noqa
+            self.FILTER_FORMULA_EXPR_REGEX_WORDS = re.compile(r"\b(\w+[\(\[])", (re.IGNORECASE | re.UNICODE | re.LOCALE))                                                       # noqa
+            self.FILTER_FORMULA_EXPR_REGEX_SPECIALVARS = re.compile(r"(?:^|\s|\(|,|[+\-*/=])(@{1,2}[\w]+)(?=\s|$|,|\)|[+\-*/=])", (re.IGNORECASE | re.UNICODE | re.LOCALE))     # noqa
+            self.FILTER_FORMULA_EXPR_REGEX_FREEVARS = re.compile(r"\b([a-z]\w*[a-z0-9]*)", (re.IGNORECASE | re.UNICODE | re.LOCALE))                                            # noqa
+            self.FILTER_FORMULA_EXPR_ALLOWED_WORDS = ["sum", "abs", "min", "max", "round", "float", "random", "useifeq",
+                                                      "useifneq", "useifgt", "useifgte", "useiflt", "useiflte", "nw",
+                                                      "nwif", "nwf", "nwfif", "xnw", "xnwf"]
+            self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED = ["sum(a,b[,...])", "abs(n)", "min(a,b[,...])",
+                                                          "max(a,b[,...])", "round(a[,n])", "float(a)", "random()",
+                                                          "useifeq(a,x)", "useifneq(a,x)", "useifgt(a,x)",
+                                                          "useifgte(a,x)", "useiflt(a,x)", "useiflte(a,x)"]
 
+            if isNetWorthAsOfUpgradedBuild():
+                self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED += ["nw([yyyymmdd[,currency]])", "nwif([yyyymmdd[,currency]])", "nwf([yyyymmdd[,currency]])", "nwfif([yyyymmdd[,currency]])", "xnw([yyyymmdd[,currency]])", "xnwf([yyyymmdd[,currency]])"]
+            elif isNetWorthUpgradedBuild():
+                self.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED += ["nw()", "nwif()", "nwf()", "nwfif()", "xnw()", "xnwf()"]
+
+            self.FILTER_FORMULA_EXPR_DEFAULT_TAGS = ["@this", "@nothis", "@today", "@asof", "@@rowcurrency", "@@basecurrency"]
+
+            # Look for nw() nwif() nwf() nwfif() xnw() xnwf() along with optional integer (date) and currency parameter(s), into groups: 1 = function, 2 & 3 = parameter(s)
+            self.REGEX_DETECT_NETWORTH_FORMULA = re.compile(r'\b(nw(?:if|f|fif)?|xnwf?)\(\s*'   # match function name
+                                                            r'([a-zA-Z0-9]+)?'                  # first optional parameter (alphanumeric or numeric)
+                                                            r'(?:\s*,\s*'                       # if second parameter exists, it must be preceded by ","
+                                                            r'([a-zA-Z0-9]+)'                   # second optional parameter (alphanumeric or numeric)
+                                                            r')?\s*\)')
             self.savedFormulaTable = None
             self.FORMULA_EXPR_IDX    = 0
             self.FORMULA_UNUSED1_IDX = 1
@@ -7944,11 +8041,150 @@ Visit: %s (Author's site)
 
         ################################################################################################################
         class StoreNetWorthValues:
-            def __init__(self):
-                self.netWorth = 0.0
-                self.netWorthIgnoreFlags = 0.0
-                self.netWorthFuture = 0.0
-                self.netWorthFutureIgnoreFlags = 0.0
+            def __init__(self): self.netWorthTable = {}  # type: {basestring: float} # {"nw-key": networthValue}
+            def __str__(self):      return "StoreNetWorthValues: netWorthTable: %s" %(self.netWorthTable)
+            def __repr__(self):     return self.__str__()
+            def toString(self):     return self.__str__()
+
+        def obtainNetWorthValues(self, swClass, justIndex, mstrListUORChainAndFormulaRowIdxsRqdForCalcs, validTagsFormulaDict, validTagDict):
+            # type: (SwingWorker, int, [int], {}, {basestring: float}) -> StoreNetWorthValues
+            """Detect the use of the special net worth formulas and execute / pre-cache accordingly for later reuse"""
+
+            # There was a careful design decision about doing this (formula/param detection) here, or just performing the NW
+            # calculations within the eval(formula) later.. Whilst this involves some upfront work, it keeps the eval()
+            # code very clean, simple, safe... (but this does involve parsing the formula to obtain the optional parameters)
+            # note: NWC's asof calculations are/were slow (relative to CB's own optimised method of using getBalanceAsOfDate()),
+            #       but as of MD2025(5500) they have been optimised (by me) so are OK to use (sensibly)...
+
+            NAB = self
+            storeNetWorth = NAB.StoreNetWorthValues()
+            if not isNetWorthUpgradedBuild(): return storeNetWorth
+
+            if debug: myPrint("DB", "obtainNetWorthValues() - obtaining and pre-caching Moneydance's internal NetWorth values (for later formula usage)...")
+
+            if TIMING_DEBUG:
+                timer = AppTimer("obtainNetWorthValues::", AppDebug.ALL)
+                timer.log("Starting NW calculation(s)")
+
+            lFromSimulate = (justIndex is not None)
+
+            book = NAB.moneydanceContext.getCurrentAccountBook()
+            base = book.getCurrencies().getBaseType()
+
+            wantsNetWorth = False
+            for storedFormula in validTagsFormulaDict.values():                                             # iterate known formulas
+
+                if swClass and swClass.isCancelled(): return NAB.StoreNetWorthValues()
+
+                if storedFormula.getRowIdx() not in mstrListUORChainAndFormulaRowIdxsRqdForCalcs: continue  # Check the master list first
+
+                # As formulas do not reference other formulas' result(s), then NW calcs only apply to this simulation row's formula.
+                if lFromSimulate and storedFormula.getRowIdx() != justIndex: continue
+
+                formula = storedFormula.getFormula()
+                if formula is None: continue
+                # match = NAB.REGEX_DETECT_NETWORTH_FORMULA.search(formula)             # detect NW formulas
+                for match in NAB.REGEX_DETECT_NETWORTH_FORMULA.finditer(formula):     # detect NW formulas
+                    wantsNetWorth = True                                              # found a NW formula
+                    if not isNetWorthAsOfUpgradedBuild(): break                       # disable asof/currency features unless on a capable build
+                    func = match.group(1)                                             # extract function name
+                    param1 = match.group(2).strip() if match.group(2) else None       # first parameter, stripped
+                    param2 = match.group(3).strip() if match.group(3) else None       # second parameter, stripped
+                    if param1 is None and param2 is None: continue                    # not interested if no parameters
+                    p1TagValue = validTagDict.get(param1, None)                       # are the params @magic tags?
+                    p2TagValue = validTagDict.get(param2, None)                       # are the params @magic tags?
+                    pt1 = p1TagValue or param1                                        # take (resolved) magic tags first
+                    pt2 = p2TagValue or param2
+                    fAsOfInt = fCurrencyID = None
+                    for paramTag in [pt1, pt2]:
+                        # note: parsed parameters will always be strings (whereas validTagDict entries will be the proper type)....
+                        if paramTag is None: continue
+                        isParamStr = isinstance(paramTag, basestring)
+                        if (fAsOfInt is None and
+                                (isinstance(paramTag, int) or (isParamStr and StringUtils.isInteger(paramTag) and len(paramTag) == 8))):  # assume a yyyymmdd integer
+                            fAsOfInt = int(paramTag)                                                                       # force conversion to int
+                            continue
+                        if fCurrencyID is None and isParamStr:                                                          # assume a uuid/id/ticker string
+                            fCurrencyID = paramTag
+                            continue
+
+                    if debug:
+                        myPrint("B", ".. row: %s - NW found: '%s' param1: '%s' param2: '%s' (tag1: '%s', tag2: '%s') - fAsOfInt: %s fCurrencyID: '%s'"
+                                %(storedFormula.getRowIdx()+1, func, param1, param2, p1TagValue, p2TagValue, fAsOfInt, fCurrencyID))
+
+                    keySuffix = ":%s:%s" %(str(fAsOfInt), fCurrencyID)
+
+                    preStoredNW = storeNetWorth.netWorthTable.get("%s%s" %(func, keySuffix), None)
+                    if preStoredNW is not None: continue        # we have already calculated this result, so skip...
+
+                    future = func in ["nwf", "nwfif", "xnwf"]
+                    xnw = func in ["xnw", "xnwf"]
+                    ignoreFlags = func in ["nwif", "nwfif"] or xnw
+
+                    nwCurr = MyHomePageView.getCurrencyByUUIDOrIDorTicker(fCurrencyID, base, True)
+                    nwc = NetWorthCalculator(book, nwCurr)      # note: will only run off the EDT!
+
+                    nwc.setBalanceType(Account.BalanceType.NORMAL if future else Account.BalanceType.CURRENT)           # noqa
+                    nwc.setIgnoreAccountSpecificNetWorthFlags(True if ignoreFlags else False)                           # noqa
+                    nwc.setAsOfDate(fAsOfInt)                                                                           # noqa
+                    if TIMING_DEBUG: timer.log("Starting NW calculation on row: %s (asof: %s, bt: %s, ct: %s)" %(storedFormula.getRowIdx()+1, nwc.getAsOfDate(), nwc.getBalanceType(), nwCurr))  # noqa
+                    nwcResult = nwc.calculateTotal()
+                    if TIMING_DEBUG: timer.log("... finished")
+                    nw = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+                    if not xnw:
+                        storeNetWorth.netWorthTable["%s%s" %(func, keySuffix)] = nw
+                    else:
+                        # so this one is twice as slow (as two calculations performed)!!
+                        nwc.setIgnoreAccountSpecificNetWorthFlags(False)                                                # noqa
+                        if TIMING_DEBUG: timer.log("Starting 2nd NW calculation on row: %s (asof: %s, bt: %s, ct: %s)" %(storedFormula.getRowIdx()+1, nwc.getAsOfDate(), nwc.getBalanceType(), nwCurr))  # noqa
+                        nwcResult = nwc.calculateTotal()
+                        if TIMING_DEBUG: timer.log("... finished")
+                        xnwValue = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+                        storeNetWorth.netWorthTable["%s%s" %(func, keySuffix)] = (nw - xnwValue)
+
+            if swClass and swClass.isCancelled(): return NAB.StoreNetWorthValues()
+
+            if not wantsNetWorth:
+                if debug: myPrint("DB", "... net worth not requested in formula(s) - skipping NW calculations")
+                return storeNetWorth
+
+            # reset to base currency (and today), setExcludeChildrenOfExcludedParents(True) is default
+            nwc = NetWorthCalculator(book)
+
+            if TIMING_DEBUG: timer.log("Starting common NW calculations for all rows:")
+
+            nwc.setBalanceType(Account.BalanceType.CURRENT)                                                             # noqa
+            nwc.setIgnoreAccountSpecificNetWorthFlags(False)                                                            # noqa
+            nwcResult = nwc.calculateTotal()
+            nw = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+            storeNetWorth.netWorthTable["nw"] = nw
+
+            nwc.setBalanceType(Account.BalanceType.CURRENT)                                                             # noqa
+            nwc.setIgnoreAccountSpecificNetWorthFlags(True)                                                             # noqa
+            nwcResult = nwc.calculateTotal()
+            nwif = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+            storeNetWorth.netWorthTable["nwif"] = nwif
+
+            nwc.setBalanceType(Account.BalanceType.NORMAL)                                                              # noqa
+            nwc.setIgnoreAccountSpecificNetWorthFlags(False)                                                            # noqa
+            nwcResult = nwc.calculateTotal()
+            nwf = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+            storeNetWorth.netWorthTable["nwf"] = nwf
+
+            nwc.setBalanceType(Account.BalanceType.NORMAL)                                                              # noqa
+            nwc.setIgnoreAccountSpecificNetWorthFlags(True)                                                             # noqa
+            nwcResult = nwc.calculateTotal()
+            nwfif = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
+            storeNetWorth.netWorthTable["nwfif"] = nwfif
+
+            storeNetWorth.netWorthTable["xnw"] = (nwif - nw)
+            storeNetWorth.netWorthTable["xnwf"] = (nwfif - nwf)
+
+            if debug: myPrint("DB", "... netWorth: %s" %(storeNetWorth))
+
+            if TIMING_DEBUG: timer.log("... finished")
+
+            return storeNetWorth
 
         ################################################################################################################
         class CalUnit:
@@ -9622,6 +9858,9 @@ Visit: %s (Author's site)
             validTagsDict = {}
             validTagsFormulaDict = {}
 
+            ct = NAB.moneydanceContext.getCurrentAccountBook().getCurrencies()
+            base = ct.getBaseType()
+
             class _StoreTagFormula:
                 def __init__(self, _idx, _tag, _formula, _nothis):
                     self.idx = _idx
@@ -9629,6 +9868,9 @@ Visit: %s (Author's site)
                     self.formula = _formula
                     self.shouldIgnore = (self.tag is None and self.formula is None)
                     self.nothis = _nothis
+                def getRowIdx(self): return self.idx
+                def getTag(self): return self.tag
+                def getFormula(self): return self.formula
                 def __str__(self): return "StoreTagFormula: idx: %s tag: '%s' formula: '%s' shouldIgnore: %s nothis: %s" %(self.idx, self.tag, self.formula, self.shouldIgnore, self.nothis)
                 def __repr__(self): return self.__str__()
                 def toString(self): return self.__str__()
@@ -9645,19 +9887,31 @@ Visit: %s (Author's site)
                     del validTagsDict[tagName]                                   # Remove all instances of duplicates...
                     continue
                 validTagsDict[tagName] = defaultValue
+
+            for i in range(0, NAB.getNumberOfRows()):
+                validTagsDict["asof00000row%s" %(str(i+1))] = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[i])
+                validTagsDict["rowcurrency00000row%s" %(str(i+1))] = NAB.savedCurrencyTable[i] or base.getUUID()        # uuid
+
             validTagsDict["dan00000specialnumber"] = 24601.0                                # for DTD
             validTagsDict["pi00000"] = Math.PI                                              # for fun!
             validTagsDict["mdversion00000"] = float(NAB.moneydanceContext.getVersion())     # for fun!
             validTagsDict["mdbuild00000"] = NAB.moneydanceContext.getBuild()                # for fun!
+            validTagsDict["today00000"] = DateUtil.getStrippedDateInt()
 
-            allCurrencies = [c for c in NAB.moneydanceContext.getCurrentAccountBook().getCurrencies().getAllCurrencies() if not c.getHideInUI()]
+            validTagsDict["basecurrency00000"] = base.getUUID()                                                         # uuid
+
+            allCurrencies = [c for c in ct.getAllCurrencies() if not c.getHideInUI()]
             for c in allCurrencies:
-                currID = c.getIDString().strip().lower()
                 ticker = c.getTickerSymbol().strip().lower()
-                if c.getCurrencyType() == CurrencyType.Type.CURRENCY and currID and isGoodRate(c.getRate(None)):  # noqa
-                    validTagsDict["curr00000%s" %(currID)] = 1.0 / c.getRate(None)
-                if c.getCurrencyType() == CurrencyType.Type.SECURITY and ticker and isGoodRate(c.getRate(None)):  # noqa
-                    validTagsDict["curr00000%s" %(ticker)] = 1.0 / c.getRate(None)
+                currID = c.getIDString().strip().lower()
+                if c.getCurrencyType() == CurrencyType.Type.SECURITY:                                                   # noqa
+                    validTagsDict["currliteral00000%s" %(ticker)] = c.getUUID()
+                    if ticker and isGoodRate(c.getRate(None)):
+                        validTagsDict["curr00000%s" %(ticker)] = 1.0 / c.getRate(None)
+                if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                   # noqa
+                    validTagsDict["currliteral00000%s" %(currID)] = c.getUUID()
+                    if currID and isGoodRate(c.getRate(None)):
+                        validTagsDict["curr00000%s" %(currID)] = 1.0 / c.getRate(None)
 
             if debug:
                 myPrint("B", "------ buildDictValidTagVariablesAndFormulas() - validTagsDict:")
@@ -9848,47 +10102,43 @@ Visit: %s (Author's site)
                 # myPrint("B", "_useiflte() result: %s" %(_result));
                 return _result
 
-            def _nw(*args):                                                                                             # noqa
-                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
-                if len(args) != 0: raise TypeError("CB's nw() function takes no arguments (%s given)" %(len(args)))
-                _result = self.lastNetworthValues.netWorth
-                # myPrint("B", "_nw() result: %s" %(_result));
-                return _result
+            def __networth(*args, **kwargs):
+                if not isNetWorthUpgradedBuild(): raise TypeError("net worth function(s) not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                if len(args) > 2: raise TypeError("CB's net worth function(s) take between 0-2 arguments (%s given)" %(len(args)))
+                if isNetWorthUpgradedBuild() and not isNetWorthAsOfUpgradedBuild() and len(args) != 0:
+                    raise TypeError("CB's net worth function(s) (prior to Moneydance build: %s) take no arguments (%s given)" %(GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD, len(args)))
+                nwType = kwargs.pop("nwType", None)
 
-            def _nwif(*args):                                                                                           # noqa
-                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
-                if len(args) != 0: raise TypeError("CB's nwif() function takes no arguments (%s given)" %(len(args)))
-                _result = self.lastNetworthValues.netWorthIgnoreFlags
-                # myPrint("B", "_nwif() result: %s" %(_result));
-                return _result
+                fAsOfInt = fCurrencyID = None
+                param1 = args[0] if len(args) >= 1 else None
+                param2 = args[1] if len(args) >= 2 else None
+                countStrs = 0
+                countInts = 0
+                for param in [param1, param2]:
+                    if param is None: continue
+                    isParamInt = isinstance(param, int)
+                    isParamStr = isinstance(param, basestring)
+                    if isParamInt: countInts += 1
+                    if isParamStr: countStrs += 1
+                    if not isParamInt and not isParamStr: raise TypeError("CB's net worth function(s) only take integer yyyymmdd date and currency literal magic tag (optional) parameters")
+                    if isParamInt and param == 0: raise TypeError("net worth function >> integer date yyyymmdd parameter (zero) - when using @asof enable 'Override Balance asof Date' option")
+                    if isParamInt and not getValidDateInt(param): raise TypeError("net worth function >> integer date yyyymmdd parameter (%s) appears invalid" %(param))
+                    if fAsOfInt is None and isParamInt:                 # assume a yyyymmdd integer
+                        fAsOfInt = param
+                        continue
+                    if fCurrencyID is None and isParamStr:              # assume a uuid/id/ticker string
+                        fCurrencyID = param
+                        continue
+                if countInts > 1 or countStrs > 1: raise TypeError("net worth function >> only takes up to 1 integer yyyymmdd date and 1 currency literal magic tag (passed: integers(%s) strings(%s))" %(countInts, countStrs))
+                keySuffix = "" if param1 is None and param2 is None else ":%s:%s" %(str(fAsOfInt), fCurrencyID)
+                return self.lastNetworthValues.netWorthTable[nwType+keySuffix]
 
-            def _nwf(*args):                                                                                            # noqa
-                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
-                if len(args) != 0: raise TypeError("CB's nwf() function takes no arguments (%s given)" %(len(args)))
-                _result = self.lastNetworthValues.netWorthFuture
-                # myPrint("B", "_nwf() result: %s" %(_result));
-                return _result
-
-            def _nwfif(*args):                                                                                          # noqa
-                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
-                if len(args) != 0: raise TypeError("CB's nwfif() function takes no arguments (%s given)" %(len(args)))
-                _result = self.lastNetworthValues.netWorthFutureIgnoreFlags
-                # myPrint("B", "_nwfif() result: %s" %(_result));
-                return _result
-
-            def _xnw(*args):                                                                                             # noqa
-                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
-                if len(args) != 0: raise TypeError("CB's xnw() function takes no arguments (%s given)" %(len(args)))
-                _result = self.lastNetworthValues.netWorthIgnoreFlags - self.lastNetworthValues.netWorth
-                # myPrint("B", "_xnw() result: %s" %(_result));
-                return _result
-
-            def _xnwf(*args):                                                                                           # noqa
-                if not isNetWorthUpgradedBuild(): raise TypeError("function not available before Moneydance build: %s" %(GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
-                if len(args) != 0: raise TypeError("CB's xnwf() function takes no arguments (%s given)" %(len(args)))
-                _result = self.lastNetworthValues.netWorthFutureIgnoreFlags - self.lastNetworthValues.netWorthFuture
-                # myPrint("B", "_xnwf() result: %s" %(_result));
-                return _result
+            def _nw(*args):     return __networth(*args, nwType="nw")
+            def _nwif(*args):   return __networth(*args, nwType="nwif")                                                                                         # noqa
+            def _nwf(*args):    return __networth(*args, nwType="nwf")                                                                                           # noqa
+            def _nwfif(*args):  return __networth(*args, nwType="nwfif")                                                                              # noqa
+            def _xnw(*args):    return __networth(*args, nwType="xnw")                                                                                         # noqa
+            def _xnwf(*args):   return __networth(*args, nwType="xnwf")                                                                                           # noqa
 
             TAG_VARIABLES["sum"] = _sum
             TAG_VARIABLES["min"] = _min
@@ -9942,15 +10192,22 @@ Visit: %s (Author's site)
             if nothis: expr = expr.replace("@nothis", "")
 
             if "@this" in expr: expr = expr.replace("@this", "this00000row%s" %(str(rowIdx+1)))
+            if "@asof" in expr: expr = expr.replace("@asof", "asof00000row%s" %(str(rowIdx+1)))
+            if "@rowcurrency" in expr: expr = expr.replace("@@rowcurrency", "rowcurrency00000row%s" %(str(rowIdx+1)))
+            if "@today" in expr: expr = expr.replace("@today", "today00000")
+            if "@basecurrency" in expr: expr = expr.replace("@@basecurrency", "basecurrency00000")
             if "@danspecialnumber" in expr: expr = expr.replace("@danspecialnumber", "dan00000specialnumber")
             if "@pi" in expr: expr = expr.replace("@pi", "pi00000")
             if "@mdversion" in expr: expr = expr.replace("@mdversion", "mdversion00000")
             if "@mdbuild" in expr: expr = expr.replace("@mdbuild", "mdbuild00000")
-            result = NAB.FILTER_FORMULA_EXPR_REGEX_SPECIALVARS.findall(expr)               # Check for @specialvariables
+            result = NAB.FILTER_FORMULA_EXPR_REGEX_SPECIALVARS.findall(expr)               # Check for @special and @@special variables
             if debug: myPrint("B", "Result of formula search for all special vars:", result)
             if result:
                 for foundSpecialVar in result:
-                    if len(foundSpecialVar) > 1:
+                    if (foundSpecialVar[:2] == "@@" and len(foundSpecialVar) > 2):
+                        specialVar = foundSpecialVar[2:]
+                        expr = expr.replace(foundSpecialVar, "currliteral00000%s" %(specialVar))
+                    elif (foundSpecialVar[:1] == "@" and len(foundSpecialVar) > 1):
                         specialVar = foundSpecialVar[1:]
                         expr = expr.replace(foundSpecialVar, "curr00000%s" %(specialVar))
 
@@ -11880,7 +12137,6 @@ Visit: %s (Author's site)
                 NAB = NetAccountBalancesExtension.getNAB()
                 NAB.storeJTextFieldsForSelectedRow()
                 NAB.setAllGUILabelsControls(NAB.getSelectedRowIndex())
-
 
         class MyPropertyChangeListener(PropertyChangeListener):
             def __init__(self): self.disabled = False
@@ -15091,8 +15347,9 @@ Visit: %s (Author's site)
                     NAB.theFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, (shortcut | Event.SHIFT_MASK)), "show-warnings")
                     NAB.theFrame.getRootPane().getActionMap().put("show-warnings", ShowWarnings())
 
-                    NAB.theFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_N, (shortcut | Event.SHIFT_MASK)), "show-networth")
-                    NAB.theFrame.getRootPane().getActionMap().put("show-networth", ShowNetWorth())
+                    if isNetWorthUpgradedBuild():
+                        NAB.theFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_N, (shortcut | Event.SHIFT_MASK)), "show-networth")
+                        NAB.theFrame.getRootPane().getActionMap().put("show-networth", ShowNetWorth())
 
                     NAB.theFrame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_G, (shortcut | Event.SHIFT_MASK)), "pick_groupid_filter")
                     NAB.theFrame.getRootPane().getActionMap().put("pick_groupid_filter", NAB.EditRememberedGroupIDFilters(NAB.theFrame, False, True))
@@ -15709,6 +15966,33 @@ Visit: %s (Author's site)
             return curr
 
         @staticmethod
+        def getCurrencyByUUIDOrIDorTicker(uuidOrIDOrTicker, defaultCurr, toLower):
+            if uuidOrIDOrTicker is None or uuidOrIDOrTicker == "": return defaultCurr
+            NAB = NetAccountBalancesExtension.getNAB()
+            book = NAB.moneydanceContext.getCurrentAccountBook()
+            ct = book.getCurrencies()
+
+            # do this check upfront for speed...
+            c = book.getCurrencyByUUID(uuidOrIDOrTicker)  # assume that stored UUIDs are already in lowercase in Moneydance (could go wrong in future)
+            if c is not None: return c
+
+            if toLower: uuidOrIDOrTicker = uuidOrIDOrTicker.lower()
+            for c in ct.getAllCurrencies():
+                # uuid = c.getUUID()
+                # if toLower: uuid = uuid.lower()
+                # if uuid == uuidOrIDOrTicker: return c
+
+                theID = c.getIDString()
+                if toLower: theID = theID.lower()
+                if theID == uuidOrIDOrTicker: return c
+
+                ticker = c.getTickerSymbol()
+                if toLower: ticker = ticker.lower()
+                if ticker == uuidOrIDOrTicker: return c
+
+            return defaultCurr
+
+        @staticmethod
         def showSelectorPopup(comp, fromHomeScreenWidget, fromGUI):
 
             myPrint("DB", "In HPV::showSelectorPopup() about to build the selector popup...")
@@ -16034,39 +16318,11 @@ Visit: %s (Author's site)
                 thisSectionStartTime = System.currentTimeMillis()
 
                 # -------- QUICKLY OBTAIN MONEYDANCE's NETWORTH VALUES -------------------------------------------------
-                NAB.lastNetworthValues = NAB.StoreNetWorthValues()  # fixme - only do this if any net worth formulas are actually being used
-                if isNetWorthUpgradedBuild():
-                    if debug: myPrint("B", "... quickly obtaining Moneydance's internal NetWorth values (for formula usage)...")
-                    nwc = NetWorthCalculator(_book)  # will default to the base currency
-                    # setAsOfDate(None) & setExcludeChildrenOfExcludedParents(True) are defaults
-
-                    nwc.setBalanceType(Account.BalanceType.CURRENT)                                                     # noqa
-                    nwc.setIgnoreAccountSpecificNetWorthFlags(False)                                                    # noqa
-                    nwcResult = nwc.calculateTotal()
-                    NAB.lastNetworthValues.netWorth = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
-
-                    nwc.setBalanceType(Account.BalanceType.CURRENT)                                                     # noqa
-                    nwc.setIgnoreAccountSpecificNetWorthFlags(True)                                                     # noqa
-                    nwcResult = nwc.calculateTotal()
-                    NAB.lastNetworthValues.netWorthIgnoreFlags = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
-
-                    nwc.setBalanceType(Account.BalanceType.NORMAL)                                                      # noqa
-                    nwc.setIgnoreAccountSpecificNetWorthFlags(False)                                                    # noqa
-                    nwcResult = nwc.calculateTotal()
-                    NAB.lastNetworthValues.netWorthFuture = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
-
-                    nwc.setBalanceType(Account.BalanceType.NORMAL)                                                      # noqa
-                    nwc.setIgnoreAccountSpecificNetWorthFlags(True)                                                     # noqa
-                    nwcResult = nwc.calculateTotal()
-                    NAB.lastNetworthValues.netWorthFutureIgnoreFlags = nwcResult.getCurrency().getDoubleValue(nwcResult.getAmount())
-
-                    if debug: myPrint("B", "... netWorth: %s netWorthIgnoreFlags: %s netWorthFuture: %s netWorthFutureIgnoreFlags: %s"
-                                      %(NAB.lastNetworthValues.netWorth, NAB.lastNetworthValues.netWorthIgnoreFlags, NAB.lastNetworthValues.netWorthFuture, NAB.lastNetworthValues.netWorthFutureIgnoreFlags))
-                    del nwc
+                NAB.lastNetworthValues = NAB.obtainNetWorthValues(swClass, justIndex, mstrListUORChainAndFormulaRowIdxsRqdForCalcs,validTagsFormulaDict, validTagDict)
 
                 tookTime = System.currentTimeMillis() - thisSectionStartTime
                 if debug or TIMING_DEBUG:
-                    stage = "1.2"; stageTxt = "::calculateBalances()"
+                    stage = "1.2"; stageTxt = "::calculateBalances()::obtainNetWorthValues()"
                     myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
                 thisSectionStartTime = System.currentTimeMillis()
 
@@ -16994,7 +17250,9 @@ Visit: %s (Author's site)
                     if (self.widgetOnPnlRow - i) in self.widgetSeparatorsUsed:
                         countConsecutive += 1
                 if countConsecutive >= 2: return
-                theView.listPanel.add(JSeparator(), GridC.getc().xy(0, self.widgetOnPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2))
+                js = JSeparator()
+                if Platform.isWindows(): js.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, js.getForeground()))  # fix for Windows and 'invisible' separators
+                theView.listPanel.add(js, GridC.getc().xy(0, self.widgetOnPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2))
                 self.widgetSeparatorsUsed.append(self.widgetOnPnlRow)
                 self.widgetOnPnlRow += 1
 

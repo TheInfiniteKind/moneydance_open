@@ -48,6 +48,7 @@ global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUp
 global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView
 
 # Java definitions
+global SwingUtilities
 global File, FileInputStream, FileOutputStream, IOException, JOptionPane, System, String, Boolean, FilenameFilter
 global JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel, Color, Desktop
 global BorderFactory, JSeparator, DefaultComboBoxModel, SwingWorker, JPanel, GridLayout, JLabel, GridBagLayout, BorderLayout
@@ -1827,6 +1828,11 @@ try:
     def view_networthCalculations():
         if MD_REF.getCurrentAccountBook() is None: return
         if not isNetWorthUpgradedBuild(): return
+
+        if SwingUtilities.isEventDispatchThread():
+            myPrint("DB", "Pushing view_networthCalculations() off the EDT for NetWorthCalculator....")
+            genericThreadRunner(True, view_networthCalculations)
+            return
 
         from com.infinitekind.moneydance.model import NetWorthCalculator
 

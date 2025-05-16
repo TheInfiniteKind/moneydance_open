@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1068 - 2020 thru 2025 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1069 - 2020 thru 2025 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -98,11 +98,12 @@
 # build: 1067 - BUGFIX read_preferences_file() .readFromFile() was calling str(file)... switched to pass the File reference.
 # build: 1067 - Added menu options for Reset inbuilt report/graph parameters (to defaults), and Delete all memorized reports/graphs...
 # build: 1067 - BUGFIX issue referencing PlaidConnection - use isMDPlusGetPlaidClientEnabledBuild() instead.
-# build: 1068 - ???
 # build: 1068 - Tweak validate account start dates to look for future dates. Adding 2025 license keys...
 # build: 1068 - diag screen tweaks for 5252 -nobackup and no splash screen options. Also 5252 Account::ancestors
 # build: 1068 - Add feature so that users can quickly remove inactive accounts from Net Worth
-# build: 1068 - ???
+# build: 1069 - ???
+# build: 1069 - switch to call NetworthCalculator off the EDT...; add warning to DisplayUUID when uuid not found.
+# build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -135,7 +136,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1068"
+version_build = "1069"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -541,8 +542,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.3
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5252
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.4
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5253
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -3313,10 +3314,14 @@ Visit: %s (Author's site)
     if isNetWorthUpgradedBuild():
         GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW = Account.PARAM_INCLUDE_IN_NET_WORTH
 
-    GlobalVars.MD_ANCESTORS_UPGRADED_BUILD = 5252                                                                       # MD2025.0(5252)
+    GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD = 5500                                                                   # MD2025(5500)
+    def isNetWorthAsOfUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD)
+    if isNetWorthAsOfUpgradedBuild(): pass
+
+    GlobalVars.MD_ANCESTORS_UPGRADED_BUILD = 5252                                                                       # MD2024.3(5252)
     def isAncestorsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ANCESTORS_UPGRADED_BUILD)
 
-    GlobalVars.MD_NOSPLASHSCREEN_OPTION_BUILD = 5253                                                                    # MD2025.0(5253)
+    GlobalVars.MD_NOSPLASHSCREEN_OPTION_BUILD = 5253                                                                    # MD2024.4(5253)
     def isNoSplashScreenOptionsBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NOSPLASHSCREEN_OPTION_BUILD)
 
     GlobalVars.MD_SUPPRESS_BACKUPS_OPTION_BUILD = 5047                                                                  # 2023.2(5047)
@@ -3336,6 +3341,11 @@ Visit: %s (Author's site)
     def isAppDebugEnabledBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_APPDEBUG_ENABLED_BUILD)
     if isAppDebugEnabledBuild():
         from com.infinitekind.util import AppDebug                                                                      # noqa
+
+    GlobalVars.MD_APPTIMER_UPGRADED_BUILD = 5121                                                                        # MD2024.1(5121)
+    def isAppTimerUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_APPTIMER_UPGRADED_BUILD)
+    if isAppTimerUpgradedBuild():
+        from com.infinitekind.util import AppTimer
 
     GlobalVars.MD_ENHANCED_SIDEBAR_BUILD = 5100                                                                         # MD2024(5100)
     def isEnhancedSidebarBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ENHANCED_SIDEBAR_BUILD)
@@ -27381,7 +27391,9 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 if obj is None: obj = MD_REF.getCurrentAccountBook().getTransactionSet().getTxnByID(uuid.lower()) # noqa
                 if obj is None: obj = TxnUtil.getTxnByID(MD_REF.getCurrentAccountBook().getTransactionSet(), uuid)
 
-                if obj is None: return
+                if obj is None:
+                    myPopupInformationBox(self.theFrame, "uuid: '%s' not found?!" %(uuid), "DISPLAY OBJECT FOR UUID", JOptionPane.WARNING_MESSAGE)
+                    return
 
                 if isinstance(obj, AbstractTxn):
                     MD_REF.getUI().showTxnXML(obj, self.theFrame)
