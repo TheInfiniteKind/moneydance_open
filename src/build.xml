@@ -38,8 +38,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   <property name="tmp"  value="../tmp"/>
   <property name="debug"  value="on"/>
   <property name="optimize"  value="off"/>
-  <property name="javac-target" value="1.8"/>
-  <property name="javac-source" value="1.8" />
+  <property name="javac-target" value="17"/>
+  <property name="javac-source" value="17" />
   <property name="bootclasspath"  value="../lib/jdk_1.8_rt.jar"/>
   <property name="python-executable" value="python2.7"/>  <!-- Need to use correct version if running ANT on Windows and Linux etc -->
 
@@ -80,7 +80,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
         <echo level="info" message="BUILD of '@{feature}' Java extension started..." />
         <delete file="${dist}/@{feature}.mxt" />
         <!--
-          since there isn't separate build directories for each feature,
+          since there aren't separate build directories for each feature,
           delete anything that wasn't from this feature already
         -->
         <delete includeemptydirs="true">
@@ -100,8 +100,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
           </fileset>
         </copy>
         <!-- move license and contact to book of mxt -->
-        <copy preservelastmodified="true"
-              todir="${build}">
+        <copy preservelastmodified="true" todir="${build}">
           <fileset dir="${src}/com/moneydance/modules/features/@{feature}">
             <include name="contact.*" />
           </fileset>
@@ -249,7 +248,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
   <target name="yahooqt" depends="init">
     <delete file="${dist}/yahooqt.mxt" failonerror="false"/>
-    <touch file="com/moneydance/modules/features/yahooqt/Main.java"/>
+    <touch file="com/moneydance/modules/features/yahooqt/Main.kt"/>
     
     <javac encoding="utf8"  bootclasspath="${bootclasspath}" target="${javac-source}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath" destdir="${build}"
@@ -285,7 +284,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
   <target name="miscdebug" depends="init">
 	  <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-           classpathref="classpath"  destdir="${build}"
+           classpathref="classpath"
+           destdir="${build}"
            includeantruntime="false"
            includes="com/moneydance/modules/features/miscdebug/**"/>
     <jar destfile="${dist}/miscdebug.mxt">
@@ -294,9 +294,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
              com/moneydance/modules/features/miscdebug/icon-debug.gif"/>
       <fileset dir="${build}" includes="com/moneydance/modules/features/miscdebug/**"/>
     </jar>
-    <java newenvironment="true"
-          classpathref="classpath"
-          classname="com.moneydance.admin.KeyAdmin">
+    <java newenvironment="true" classpathref="classpath" classname="com.moneydance.admin.KeyAdmin">
       <arg value="signextjar"/>
       <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
@@ -557,6 +555,54 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
 
   </target>
+
+  <target name="mrbutil">
+    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/mrbutil/**"
+      excludes="com/moneydance/modules/features/mrbutil/Graph**"/>
+  </target>
+
+  <target name="securityquoteload" depends="mrbutil">
+    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      destdir="${build}"
+      classpathref="classpath"
+      classpath="${lib}/jsoup-1.11.3.jar"
+      includes="com/moneydance/modules/features/securityquoteload/**"/>
+    <delete file="${dist}/securityquoteload.mxt" />
+    <jar destfile="${dist}/securityquoteload.mxt">
+      <fileset dir="${src}" includes="
+               com/moneydance/modules/features/securityquoteload/meta_info.dict,
+               com/moneydance/modules/features/securityquoteload/resources/stockexchanges.dict
+	           	 com/moneydance/modules/features/securityquoteload/resources/pseudocurrency.dict
+	             com/moneydance/modules/features/securityquoteload/resources/*.gif
+	             com/moneydance/modules/features/securityquoteload/resources/*.jpg
+               com/moneydance/modules/features/securityquoteload/resources/*.png
+	             com/moneydance/modules/features/securityquoteload/resources/*.jpeg"/>
+      <fileset dir="${build}" includes="
+	             com/moneydance/modules/features/securityquoteload/**
+	             com/moneydance/modules/features/mrbutil/**"/>
+      <zipgroupfileset dir="${lib}" includes="**/jsoup-1.11.3.jar" />
+    </jar>
+    <java newenvironment="false" classpathref="classpath" classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${extprivkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="securityquoteload"/>
+      <arg line="${dist}/securityquoteload.mxt"/>
+    </java>
+    <move file="${src}/s-securityquoteload.mxt" tofile="${dist}/securityquoteload.mxt"/>
+  </target>
+  <target name="cleansecurityquoteload">
+    <delete>
+      <fileset dir="${build}">
+        <include name="com/moneydance/modules/features/securityquoteload/*.class"/>
+        <include name="com/moneydance/modules/features/securityquoteload/quotes/*.class"/>
+        <include name="com/moneydance/modules/features/securityquoteload/view/*.class"/>
+      </fileset>
+    </delete>
+  </target>
+
 
   <target name="all_python" depends="init,toolbox,extract_data,list_future_reminders,net_account_balances,extension_tester,accounts_categories_mega_search_window,security_performance_graph">
   </target>

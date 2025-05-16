@@ -1,0 +1,28 @@
+{"build":"3036"}
+[
+  {
+    "pseudo": "GBX",
+    "multiplier": 0.01,
+    "replacement": "GBP"
+  },
+   {
+    "pseudo": "GBx",
+    "multiplier": 0.01,
+    "replacement": "GBP"
+  },
+  {
+    "pseudo": "GBp",
+    "multiplier": 0.01,
+    "replacement": "GBP"
+  },
+  {
+    "pseudo": "ZAX",
+    "multiplier": 0.01,
+    "replacement": "ZAR"
+  },
+  {
+    "pseudo": "ZAc",
+    "multiplier": 0.01,
+    "replacement": "ZAR"
+  }
+]

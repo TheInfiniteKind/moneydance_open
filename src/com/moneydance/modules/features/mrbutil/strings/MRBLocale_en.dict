@@ -1,0 +1,17 @@
+{
+"available_items"="Available Items"
+"included_items"="Included Items"
+"tt_scroll_pane"="Shows the items not included in the report"
+"tt_add_selected"="Click to add the selected item(s) to the report"
+"btn_Sel"="Sel"
+"btn_Des"="Des"
+"tt_remove_selected"="Click to remove the selected item(s) from the report"
+"tt_show_selected"="Shows the items that will be included in the report"
+"select_accounts_categories"="Select Accounts/Categories"
+"opc_Income"="Income "
+"opc_Expense"="Expenses "
+"opc_SelectBtn"="Select "
+"opc_FromCheque"="From Cheque no: "
+"opc_ToCheque"="To Cheque no: "
+}
+
