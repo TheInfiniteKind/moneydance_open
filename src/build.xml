@@ -40,8 +40,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   <property name="optimize"  value="off"/>
   <property name="javac-target" value="17"/>
   <property name="javac-source" value="17" />
-  <property name="bootclasspath"  value="../lib/jdk_1.8_rt.jar"/>
-  <property name="python-executable" value="python2.7"/>  <!-- Need to use correct version if running ANT on Windows and Linux etc -->
+  <property name="bootclasspath"  value="../lib/jdk_1.8_rt.jar"/> <!-- only used on legacy extns when source/target is 1.8 and bootclasspath="${bootclasspath}" is passed to javac -->
+  <property name="python-executable" value="python2.7"/>          <!-- Need to use correct version if running ANT on Windows and Linux etc -->
 
   <path id="classpath">
     <fileset erroronmissingdir="false" dir="${md_ext_lib_dir}" includes="*.jar"/>
@@ -105,7 +105,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
             <include name="contact.*" />
           </fileset>
         </copy>
-        <javac target="@{javac-target}" bootclasspath="${bootclasspath}" source="@{javac-source}" srcdir="${src}"
+        <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}"
                debug="${debug}" optimize="${optimize}"
                classpathref="classpath" destdir="${build}"
                includes="com/moneydance/modules/features/@{feature}/**"
@@ -120,7 +120,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
         <antcall target="sign" inheritall="true" inheritrefs="true">
           <param name="feature" value="@{feature}"/>
         </antcall>
-        <echo level="info" message="BUILD of '@{feature}' Python extension COMPLETED" />
+        <echo level="info" message="BUILD of '@{feature}' Java extension COMPLETED" />
       </sequential>
     </macrodef>
 
@@ -250,7 +250,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
     <delete file="${dist}/yahooqt.mxt" failonerror="false"/>
     <touch file="com/moneydance/modules/features/yahooqt/Main.kt"/>
     
-    <javac encoding="utf8"  bootclasspath="${bootclasspath}" target="${javac-source}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+    <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath" destdir="${build}"
       classpath="${lib}/jsoup-1.11.3.jar"
       includes="com/moneydance/modules/features/yahooqt/**"
@@ -306,7 +306,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
   <target name="ratios-compile" depends="init">
     <touch file="com/moneydance/modules/features/ratios/Main.java"/>
-    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}"
+    <javac target="${javac-target}" source="${javac-source}" srcdir="${src}"
            debug="${debug}" optimize="${optimize}"
            classpathref="classpath" destdir="${build}"
            includes="com/moneydance/modules/features/ratios/**/*.java
@@ -337,7 +337,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
   <target name="mousetester-compile" depends="init">
     <touch file="com/moneydance/modules/features/mousetester/Main.kt"/>
-    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}"
+    <javac target="${javac-target}" source="${javac-source}" srcdir="${src}"
            debug="${debug}" optimize="${optimize}"
            classpathref="classpath" destdir="${build}"
            includes="com/moneydance/modules/features/mousetester/*.java
@@ -368,7 +368,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
   <target name="customgraphreports-compile" depends="init">
     <touch file="com/moneydance/modules/features/customgraphreports/Main.kt"/>
-    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}"
+    <javac target="${javac-target}" source="${javac-source}" srcdir="${src}"
            debug="${debug}" optimize="${optimize}"
            classpathref="classpath" destdir="${build}"
            includes="com/moneydance/modules/features/customgraphreports/*.java
@@ -518,7 +518,7 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
   <target name="moneyPie" depends="init">
       <delete file="${dist}/moneyPie.mxt" verbose="true" failonerror="false" />
-      <javac encoding="utf8" target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       classpathref="classpath" destdir="${build}"
       classpath="${lib}/moneyPieSupport.jar"
       includes="com/moneydance/modules/features/moneyPie/**"
@@ -584,15 +584,13 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 	             com/moneydance/modules/features/mrbutil/**"/>
       <zipgroupfileset dir="${lib}" includes="**/jsoup-1.11.3.jar" />
     </jar>
-    <java newenvironment="false" classpathref="classpath" classname="com.moneydance.admin.KeyAdmin">
-      <arg value="signextjar"/>
-      <arg value="${extprivkeyfile}"/>
-      <arg value="${privkeyid}"/>
-      <arg value="securityquoteload"/>
-      <arg line="${dist}/securityquoteload.mxt"/>
-    </java>
-    <move file="${src}/s-securityquoteload.mxt" tofile="${dist}/securityquoteload.mxt"/>
+
+    <antcall target="sign" inheritall="true" inheritrefs="true">
+      <param name="feature" value="securityquoteload" />
+    </antcall>
+
   </target>
+
   <target name="cleansecurityquoteload">
     <delete>
       <fileset dir="${build}">
@@ -816,18 +814,6 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
     <echo level="info" message="COMPILATION routines COMPLETED" />
 
   </target>
-
-<!--  <target name="compile-bundled-java" description="Compile java file bundled with python...">-->
-<!--    <fail unless="bundled-java" message="Please specify the 'bundled java file as a parameter" />-->
-
-<!--    <echo level="info" message="COMPILING bundled .java file(s)" />-->
-
-<!--    <javac target="${javac-target}" bootclasspath="${bootclasspath}" source="${javac-source}" srcdir="${python-base}" debug="${debug}" optimize="${optimize}"-->
-<!--      classpathref="classpath"  destdir="${python-base}"-->
-<!--      includeAntRuntime="false" />-->
-<!--    <echo level="info" message="COMPILATION of bundled .java file(s) COMPLETED" />-->
-
-<!--  </target>-->
 
   <target name="genkeys">
     <java
