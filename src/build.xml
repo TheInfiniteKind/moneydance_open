@@ -138,7 +138,6 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
                 com/moneydance/modules/features/findandreplace/**/*.kt
                 info/clearthought/layout/**"
       includeAntRuntime="false">
-      <withKotlin/>
       <compilerarg value="-Xlint:-options"/>
     </javac>
 
@@ -316,7 +315,6 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
            includes="com/moneydance/modules/features/ratios/**/*.java
                      com/moneydance/modules/features/ratios/**/*.kt"
            includeAntRuntime="false">
-      <withKotlin/>
       <compilerarg value="-Xlint:-options"/>
     </javac>
     <jar destfile="${dist}/ratios.mxt">
@@ -340,16 +338,20 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   </target>
 
   <target name="mousetester-compile" depends="init">
+    <delete file="${dist}/mousetester.mxt" failonerror="false"/>
     <touch file="com/moneydance/modules/features/mousetester/Main.kt"/>
-    <javac target="${javac-target}" source="${javac-source}" srcdir="${src}"
-           debug="${debug}" optimize="${optimize}"
-           classpathref="classpath" destdir="${build}"
-           includes="com/moneydance/modules/features/mousetester/*.java
-                     com/moneydance/modules/features/mousetester/*.kt"
-           includeAntRuntime="false">
-      <withKotlin/>
-      <compilerarg value="-Xlint:-options"/>
-    </javac>
+
+    <kotlinc output="${build}" nowarn="true">
+      <src>
+        <fileset dir="${src}">
+          <include name="com/moneydance/modules/features/mousetester/**/*.kt"/>
+        </fileset>
+      </src>
+      <classpath>
+        <path refid="classpath"/>
+      </classpath>
+    </kotlinc>
+
     <jar destfile="${dist}/mousetester.mxt">
       <fileset dir="${src}" includes="
              com/moneydance/modules/features/mousetester/meta_info.dict
@@ -371,16 +373,19 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   </target>
 
   <target name="customgraphreports-compile" depends="init">
+    <delete file="${dist}/customgraphreports.mxt" failonerror="false"/>
     <touch file="com/moneydance/modules/features/customgraphreports/Main.kt"/>
-    <javac target="${javac-target}" source="${javac-source}" srcdir="${src}"
-           debug="${debug}" optimize="${optimize}"
-           classpathref="classpath" destdir="${build}"
-           includes="com/moneydance/modules/features/customgraphreports/*.java
-                     com/moneydance/modules/features/customgraphreports/*.kt"
-           includeAntRuntime="false">
-      <withKotlin/>
-      <compilerarg value="-Xlint:-options"/>
-    </javac>
+    <kotlinc output="${build}" nowarn="true">
+      <src>
+        <fileset dir="${src}">
+          <include name="com/moneydance/modules/features/customgraphreports/**/*.kt"/>
+        </fileset>
+      </src>
+      <classpath>
+        <path refid="classpath"/>
+      </classpath>
+    </kotlinc>
+
     <jar destfile="${dist}/customgraphreports.mxt">
       <fileset dir="${src}" includes="
              com/moneydance/modules/features/customgraphreports/meta_info.dict
