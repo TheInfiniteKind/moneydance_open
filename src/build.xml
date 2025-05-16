@@ -249,15 +249,19 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   <target name="yahooqt" depends="init">
     <delete file="${dist}/yahooqt.mxt" failonerror="false"/>
     <touch file="com/moneydance/modules/features/yahooqt/Main.kt"/>
-    
-    <javac encoding="utf8" target="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
-      classpathref="classpath" destdir="${build}"
-      classpath="${lib}/jsoup-1.11.3.jar"
-      includes="com/moneydance/modules/features/yahooqt/**"
-      includeAntRuntime="false">
-      <withKotlin/>
-    </javac>
-    
+
+    <kotlinc output="${build}" nowarn="true">
+      <src>
+        <fileset dir="${src}">
+          <include name="com/moneydance/modules/features/yahooqt/**/*.kt"/>
+        </fileset>
+      </src>
+      <classpath>
+        <path refid="classpath"/>
+        <pathelement path="${lib}/jsoup-1.11.3.jar"/>
+      </classpath>
+    </kotlinc>
+
     <jar destfile="${dist}/yahooqt.mxt">
       <fileset dir="${src}" includes="
           com/moneydance/modules/features/yahooqt/meta_info.dict
