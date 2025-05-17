@@ -250,7 +250,9 @@ public class Main extends FeatureModule {
         debugInst.debug("Quote Load", "HandleEventFileOpened", MRBDebug.INFO, "Debug level set to " + debug);
         context = getContext();
         serverName = Constants.PROGRAMNAME;
-        Timer autoDelayStart = new Timer(1, ((ae) -> sendAuto()));
+        Timer autoDelayStart = new Timer(1, (ae) -> {
+          SwingUtilities.invokeLater(this::sendAuto);
+        });
         autoDelayStart.setInitialDelay(20000);
         autoDelayStart.setRepeats(false);
         autoDelayStart.start();
@@ -258,13 +260,22 @@ public class Main extends FeatureModule {
                 "Autorun delayed for 20 seconds ");
     }
 
+    //public void sendAuto() {
+    //    if (standAloneRequested) {
+    //        processCommand(Constants.RUNSTANDALONECMD,"");
+    //    } else {
+    //        debugInst.debug("Quote Load", "sendAuto", MRBDebug.INFO, "Check Auto");
+    //        processCommand(Constants.CHECKAUTOCMD,"");
+    //    }
+    //}
+
     public void sendAuto() {
-        if (standAloneRequested) {
-            processCommand(Constants.RUNSTANDALONECMD,"");
-        } else {
-            debugInst.debug("Quote Load", "sendAuto", MRBDebug.INFO, "Check Auto");
-            processCommand(Constants.CHECKAUTOCMD,"");
-        }
+      if (standAloneRequested) {
+        MRBEDTInvoke.showURL(context, "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.STANDALONEREQUESTED);
+      } else {
+        debugInst.debug("Quote Load", "sendAuto", 1, "Check Auto");
+        SwingUtilities.invokeLater(() -> MRBEDTInvoke.showURL(context, "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.CHECKAUTOCMD));
+      }
     }
 
     private void resetAutoRun() {
@@ -609,10 +620,12 @@ public class Main extends FeatureModule {
             }
         }
 
+
+
         public synchronized void processCommand(String command, String uri) {
-              debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "process command invoked " + command);
-			Integer totalQuotes;
-            switch (command) {
+        debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "process command invoked " + command);
+        Integer totalQuotes;
+        switch (command) {
 				case Constants.RUNSTANDALONECMD -> {
 					if (!cmdParam.equalsIgnoreCase("quit") && !cmdParam.equalsIgnoreCase("noquit")) {
 						JOptionPane.showMessageDialog(null, "Invalid Quote Loader runauto parameter: " + cmdParam,
@@ -620,12 +633,14 @@ public class Main extends FeatureModule {
 						return;
 					}
 					standAloneRequested = true;
-                    Timer autoDelayStart = new Timer(1, ((ae) -> sendAuto()));
-                    autoDelayStart.setInitialDelay(20000);
-                    autoDelayStart.setRepeats(false);
-                    autoDelayStart.start();
-					return;
-				}
+          Timer autoDelayStart = new Timer(1, (ae) -> {
+            SwingUtilities.invokeLater(Main.this::sendAuto);
+          });
+          autoDelayStart.setInitialDelay(20000);
+          autoDelayStart.setRepeats(false);
+          autoDelayStart.start();
+          return;
+        }
 				case Constants.STANDALONEREQUESTED -> {
 					runtype = Constants.STANDALONERUN;
 					debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "running standalone");
@@ -803,8 +818,8 @@ public class Main extends FeatureModule {
 					return;
 				}
 				case Constants.TESTTICKERCMD -> {
-					frame.testTicker(uri);
-					return;
+          SwingUtilities.invokeLater(() -> Main.this.frame.testTicker(uri));
+          return;
 				}
 				case Constants.LOADPRICECMD -> {
 					if (frame != null) {
@@ -844,7 +859,7 @@ public class Main extends FeatureModule {
 					if (frame != null) {
 						timeoutCount = 0;
 						debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Done " + uri);
-						frame.doneQuote(uri);
+            SwingUtilities.invokeLater(() -> frame.doneQuote(uri));
 
 					}
 					return;

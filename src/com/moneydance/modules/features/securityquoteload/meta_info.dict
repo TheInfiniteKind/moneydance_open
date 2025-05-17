@@ -1,12 +1,10 @@
 {
-  "vendor" = "Mike Bray"
-  "module_build" = "321706"
+  "vendor" = "Mike Bray (updated by Stuart Beesley)"
+  "module_build" = "321707"
   "minbuild" = "4045"
   "vendor.url" = "https://github.com/mrbray99/moneydanceproduction/wiki/New-Quote-Loader"
   "module_name" = "Quote Loader"
-  "module_desc" = "<html><body><title>Quote Loader</title>><p>Loads the price of securities and currencies directly from an online source.
-</body></html>"
-  "desc" = "Obtains the current security and currency prices from either a number of different sources. Moneydance must be restarted after install.\n"
+  "module_desc" = "Loads the price of securities and currencies directly from an online source (no longer supported by Mike Bray)."
 
 }
 

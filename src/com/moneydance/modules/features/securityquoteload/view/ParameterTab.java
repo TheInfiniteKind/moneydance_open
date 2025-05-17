@@ -354,14 +354,23 @@ public class ParameterTab extends DisplayTab {
 		gridy++;
 		autoResetBtn = new JButton("Recalculate Next Run");
 		autoResetBtn.setToolTipText("Click to restart the Auto Run facility after changing the Auto Run fields");
-		autoResetBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				main.autoSettingsChanged=false;
-				runLbl.setForeground(colors.defaultTextForeground);
-				main.processCommand(Constants.CHECKAUTOCMD,"");
-			}
-		});
+
+    autoResetBtn.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+
+        //main.autoSettingsChanged=false;
+        //runLbl.setForeground(colors.defaultTextForeground);
+        //main.processCommand(Constants.CHECKAUTOCMD,"");
+
+        SwingUtilities.invokeLater(() -> {
+          Main.autoSettingsChanged = false;
+          runLbl.setForeground(colors.defaultTextForeground);
+          Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.CHECKAUTOCMD);
+        });
+      }
+    });
+
 		mainPanel.add(autoResetBtn, GridC.getc(gridx, gridy).east().insets(5, 5, 5, 0));
 		gridx += 2;
 		JPanel secNextRunPane = new JPanel();
