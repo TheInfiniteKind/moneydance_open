@@ -190,7 +190,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
         <arg value="mikebalpred"/>
         <arg line="${dist}/mikebalpred.mxt"/>
     </java>
-    <move file="${src}/s-mikebalpred.mxt" tofile="${dist}/mikebalpred.mxt"/>
+    <move file="${src}/s-mikebalpred.mxt" tofile="${dist}/s-mikebalpred.mxt" failonerror="false"/>
+    <move file="${dist}/s-mikebalpred.mxt" tofile="${dist}/mikebalpred.mxt"/>
   </target>
 
   <target name="autorates" depends="init">
@@ -218,7 +219,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg line="${dist}/autorates.mxt"/>
     </java>
     <delete file="${dist}/autorates.mxt"/>
-    <move file="${src}/s-autorates.mxt" tofile="${dist}/autorates.mxt"/>
+    <move file="${src}/s-autorates.mxt" tofile="${dist}/s-autorates.mxt" failonerror="false"/>
+    <move file="${dist}/s-autorates.mxt" tofile="${dist}/autorates.mxt"/>
   </target>
 
   <target name="priceui" depends="init" description="build the priceui.mxt">
@@ -304,7 +306,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg value="miscdebug"/>
       <arg line="${dist}/miscdebug.mxt"/>
     </java>
-    <move file="${src}/s-miscdebug.mxt" tofile="${dist}/miscdebug.mxt"/>
+    <move file="${src}/s-miscdebug.mxt" tofile="${dist}/s-miscdebug.mxt" failonerror="false"/>
+    <move file="${dist}/s-miscdebug.mxt" tofile="${dist}/miscdebug.mxt"/>
   </target>
 
   <target name="ratios-compile" depends="init">
@@ -426,7 +429,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg value="yahoofx"/>
       <arg line="${dist}/yahoofx.mxt"/>
     </java>
-    <move file="${src}/s-yahoofx.mxt" tofile="${dist}/yahoofx.mxt"/>
+    <move file="${src}/s-yahoofx.mxt" tofile="${dist}/s-yahoofx.mxt" failonerror="false"/>
+    <move file="${dist}/s-yahoofx.mxt" tofile="${dist}/yahoofx.mxt"/>
   </target>
 
   <target name="stockglance" depends="init">
@@ -452,7 +456,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg value="stockglance"/>
       <arg line="${dist}/stockglance.mxt"/>
     </java>
-    <move file="${src}/s-stockglance.mxt" tofile="${dist}/stockglance.mxt"/>
+    <move file="${src}/s-stockglance.mxt" tofile="${dist}/s-stockglance.mxt" failonerror="false"/>
+    <move file="${dist}/s-stockglance.mxt" tofile="${dist}/stockglance.mxt"/>
   </target>
 
   <target name="balpred" depends="init">
@@ -476,7 +481,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg value="balpred"/>
       <arg line="${dist}/balpred.mxt"/>
     </java>
-    <move file="${src}/s-balpred.mxt" tofile="${dist}/balpred.mxt"/>
+    <move file="${src}/s-balpred.mxt" tofile="${dist}/s-balpred.mxt" failonerror="false"/>
+    <move file="${dist}/s-balpred.mxt" tofile="${dist}/balpred.mxt"/>
   </target>
 
   <target name="cmdline" depends="init">
@@ -499,7 +505,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg value="cmdline"/>
       <arg line="${dist}/cmdline.mxt"/>
     </java>
-    <move file="${src}/s-cmdline.mxt" tofile="${dist}/cmdline.mxt"/>
+    <move file="${src}/s-cmdline.mxt" tofile="${dist}/s-cmdline.mxt" failonerror="false"/>
+    <move file="${dist}/s-cmdline.mxt" tofile="${dist}/cmdline.mxt"/>
   </target>
 
   <target name="console" depends="init">
@@ -522,7 +529,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg value="console"/>
       <arg line="${dist}/console.mxt"/>
     </java>
-    <move file="${src}/s-console.mxt" tofile="${dist}/console.mxt"/>
+    <move file="${src}/s-console.mxt" tofile="${dist}/s-console.mxt" failonerror="false"/>
+    <move file="${dist}/s-console.mxt" tofile="${dist}/console.mxt"/>
   </target>
 
   <target name="moneyPie" depends="init">
@@ -559,7 +567,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
           <arg value="moneyPie"/>
           <arg line="${dist}/moneyPie.mxt"/>
       </java>
-      <move file="${src}/s-moneyPie.mxt" tofile="${dist}/moneyPie.mxt"/>
+      <move file="${src}/s-moneyPie.mxt" tofile="${dist}/s-moneyPie.mxt" failonerror="false"/>
+      <move file="${dist}/s-moneyPie.mxt" tofile="${dist}/moneyPie.mxt"/>
     <echo level="info" message="FINISHED signing moneyPie.mxt..." />
 
 
@@ -715,7 +724,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
       <arg line="${dist}/txtimport.mxt"/>
     </java>
     <delete file="${dist}/txtimport.mxt"/>
-    <move file="${src}/s-txtimport.mxt" tofile="${dist}/txtimport.mxt"/>
+    <move file="${src}/s-txtimport.mxt" tofile="${dist}/s-txtimport.mxt" failonerror="false"/>
+    <move file="${dist}/s-txtimport.mxt" tofile="${dist}/txtimport.mxt"/>
   </target>
 
 <!--  <target name="pythonsample" depends="init">-->
@@ -761,7 +771,8 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
     <!--    <move file="./s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>-->
     <!--    NOTE: KeyAdmin (Sean) changed location 7/12/24-->
-    <move file="s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
+    <move file="s-${feature}.mxt" tofile="${dist}/s-${feature}.mxt" failonerror="false"/>
+    <move file="${dist}/s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
 
     <!--    <copy file="${dist}/${feature}.mxt" tofile="${install}/${feature}.mxt" verbose="true" failonerror="false" />-->
 
