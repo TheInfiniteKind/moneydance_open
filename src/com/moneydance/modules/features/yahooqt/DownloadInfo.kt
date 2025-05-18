@@ -74,7 +74,8 @@ class DownloadInfo internal constructor(var security: CurrencyType, model: Downl
     }
     
     // check for a relative currency embedded in the symbol
-    relativeCurrency = security.book.currencies.getCurrencyByIDString(symbolData.currencyCode) ?: run {
+    relativeCurrency = security.book.currencies.getCurrencyByIDString(symbolData.currencyCode.takeIf { it.isNotEmpty() })
+      .takeIf { it?.currencyType == CurrencyType.Type.CURRENCY } ?: run {
       // check for a relative currency that is specific to the provider/exchange
       val currID = model.getCurrencyCodeForQuote(security.getTickerSymbol(), exchange!!)
       security.book.currencies.getCurrencyByIDString(currID)
