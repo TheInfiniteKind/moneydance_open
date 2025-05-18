@@ -101,12 +101,13 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     
     val urlStr = getHistoryURL(downloadInfo.fullTickerSymbol, DateRange(firstDate, today))
     val httpGet = HttpGet(urlStr)
-    httpGet.setHeader("User-Agent", ConnectionTweaks.rotatingUserAgent)
+    val ua = ConnectionTweaks.rotatingUserAgent
+    httpGet.setHeader("User-Agent", ua)
     
     try {
       val response = httpClient.execute(httpGet)
       if (response.statusLine.statusCode != HttpStatus.SC_OK) {
-        val errMessage = "Error retrieving quote from " + urlStr + " : " + response.statusLine
+        val errMessage = "Error retrieving quote from " + urlStr + " : " + response.statusLine + " (user-agent: '${ua}')"
         AppDebug.DEBUG.log(errMessage)
         downloadInfo.recordError(errMessage)
         return
