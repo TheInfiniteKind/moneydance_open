@@ -37,6 +37,10 @@ import java.util.prefs.Preferences;
  *
  */
 public abstract class Constants {
+
+  /* http */
+  public static final int RATE_LIMITED = 429;
+
 	/*
 	 * General
 	 */

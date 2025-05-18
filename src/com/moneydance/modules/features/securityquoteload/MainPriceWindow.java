@@ -143,6 +143,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	protected ParameterTab parameterScreen = null;
 	private String selectedTab;
 	private boolean selectAllReturned = true;
+  private JLabel throttleMessage;
 
 	public MainPriceWindow(Main main, int runtype) {
 		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED,
@@ -271,6 +272,10 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		buttonsPanel = new JPanel(new GridBagLayout());
 		gridX = 0;
 		gridY = 0;
+    throttleMessage = new JLabel("Yahoo Throttling Active. Call speed reduced");
+    throttleMessage.setForeground(Color.RED);
+    buttonsPanel.add(this.throttleMessage, GridC.getc(gridX++, gridY).insets(10, 10, 10, 10));
+    unsetThrottleMessage();
 		statusMessage = new JLabel("Quote Loader Autorun delayed. It will start when you close Quote Loader");
 		statusMessage.setForeground(Color.RED);
 		buttonsPanel.add(statusMessage, GridC.getc(gridX++, gridY).insets(10, 10, 10, 10));
@@ -460,14 +465,35 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		getContentPane().setPreferredSize(new Dimension(iFRAMEWIDTH, iFRAMEDEPTH));
 		this.pack();
 	}
-	public void setStatusMessage(){
-		statusMessage.setVisible(true);
-		this.revalidate();
-	}
-	public void unsetStatusMessage(){
-		statusMessage.setVisible(false);
-		this.revalidate();
-	}
+
+  public void setStatusMessage() {
+    if (this.statusMessage != null) {
+      this.statusMessage.setVisible(true);
+    }
+    this.revalidate();
+  }
+
+  public void unsetStatusMessage() {
+    if (this.statusMessage != null) {
+      this.statusMessage.setVisible(false);
+    }
+    this.revalidate();
+  }
+
+  public void setThrottleMessage() {
+    if (this.throttleMessage != null) {
+      this.throttleMessage.setVisible(true);
+    }
+    this.revalidate();
+  }
+
+  public void unsetThrottleMessage() {
+    if (this.throttleMessage != null) {
+      this.throttleMessage.setVisible(false);
+    }
+    this.revalidate();
+  }
+
 	private void setButtons(int selectedIndex) {
 		switch (selectedIndex) {
 		case 0:
@@ -2078,7 +2104,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		}
 		List<NameValuePair> results = URLEncodedUtils.parse(uri, charSet);
 		String ticker = "";
-		boolean currencyFound = false;
+    String errorCode = "";
+    boolean currencyFound = false;
 		QuoteSource srce=null;
 		for (NameValuePair price : results) {
 			if (price.getName().compareToIgnoreCase(Constants.TIDCMD) == 0) {
@@ -2172,15 +2199,18 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		errorsFound = true;
 		if (errorTickers != null)
 			errorTickers.add(ticker);
-		if (listener != null)
-			listener.failed(ticker, uuid);
-	}
+		//if (listener != null)
+		//	listener.failed(ticker, uuid);
+    if (listener != null)
+       listener.failed(ticker, uuid, errorCode);
+  }
 
 	public synchronized void doneQuote(String url) {
 		int totalQuotes = 0;
 		int successful = 0;
 		int failed = 0;
 		Main.isUpdating=false;
+    unsetThrottleMessage();
 		/*
 		 * if completed set, ignore message
 		 */
@@ -2188,6 +2218,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			Main.debugInst.debug("MainPriceWindow", "doneQuote", MRBDebug.INFO, "Late message");
 			return;
 		}
+    unsetThrottleMessage();
 		String uuid = "";
 		URI uri;
 		try {

@@ -52,11 +52,19 @@ import com.moneydance.modules.features.securityquoteload.Parameters;
 import com.moneydance.modules.features.securityquoteload.QuotePrice;
 
 public class GetQuoteTask extends QuoteTask<QuotePrice> {
-	Parameters params;
+	Parameters params = Parameters.getParameters();
+  boolean throttleRequired;
+
 	public GetQuoteTask (String ticker, QuoteListener listener, CloseableHttpClient httpClient,String tickerType,String tid) {
 		super(ticker,listener, httpClient,tickerType,tid);
-		params=Parameters.getParameters();
+    this.throttleRequired = false;
 	}
+
+  public GetQuoteTask(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, boolean throttleRequired) {
+    super(ticker, listener, httpClient, tickerType, tid);
+    this.throttleRequired = throttleRequired;
+  }
+
 	@Override
 	public QuotePrice call() throws Exception {
 		QuotePrice quotePrice = null;
@@ -70,13 +78,19 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 		try {
 			uri= new URI(url.trim());
 			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Processing  "+ticker+" URI:"+uri.toASCIIString());
+      if (throttleRequired) {
+        TimeUnit.SECONDS.sleep(2L);
+      }
 			HttpGet httpGet = new HttpGet(uri);
 			httpGet.addHeader("Accept-Language","en");
-			httpGet.addHeader("User-Agent","Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36");
+			//httpGet.addHeader("User-Agent","Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36");
+      String ua = params.getUaParam().isEmpty() ? UserAgent.getAgent() : params.getUaParam();
+      httpGet.addHeader("User-Agent", ua);
+
 			response = httpClient.execute(httpGet);
 			quotePrice=null; 
-			debugInst.debug("GetQuoteTask", "call", MRBDebug.DETAILED, "Return stats for  "+ticker+" "+response.getStatusLine().getStatusCode() );
-			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+			debugInst.debug("GetQuoteTask", "call", MRBDebug.DETAILED, "Return stats for  "+ticker+" "+response.getStatusLine().getStatusCode() + " (user-agent: '" + ua + "')");
+			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK || response.getStatusLine().getStatusCode() == HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION) {
 				try {
 					quotePrice = analyseResponse(response);
 					String doneUrl ="moneydance:fmodule:" + Constants.PROGRAMNAME + ":"+Constants.LOADPRICECMD+"?"+Constants.TIDCMD+"="+tid+"&";
@@ -121,7 +135,11 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 				}
 			}
 			else {
-				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error returned "+response.getStatusLine().getStatusCode());
+				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error returned "+response.getStatusLine().getStatusCode() + " (user-agent: '"+ua+"')");
+        if (response.getStatusLine().getStatusCode() == Constants.RATE_LIMITED) {
+  				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "RATE LIMITED - Removing from user-agents list (for this session)...");
+          UserAgent.removeInvalidAgent(ua);
+        }
 				sendError();
 			}
 		} catch (URISyntaxException e) {

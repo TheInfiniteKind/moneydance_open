@@ -129,6 +129,41 @@ final class GetQuotesProgressMonitor {
 		updateProgress();
 	}
 
+  public synchronized void failed(String ticker, String uuid, String errorCode) {
+    this.debugInst.debug("GetQuotesProgressMonitor", "failed", MRBDebug.SUMMARY, "> FAILED stock=" + ticker + " error " + errorCode);
+    TaskCounts counts;
+    if (ticker.startsWith(Constants.CURRENCYID)) {
+      this.cur = this.currencyTab.get(ticker);
+      if (this.cur.getTickerStatus() == Constants.TASKSTARTED) {
+        this.debugInst.debug("GetQuotesProgressMonitor", "Completed Count Incremented", MRBDebug.SUMMARY, "> FAILED currency=" + ticker);
+        this.completedTasks.getAndIncrement();
+        this.cur.setTickerStatus(Constants.TASKFAILED);
+        if (this.uuidStatus.containsKey(uuid)) {
+          counts = this.uuidStatus.get(uuid);
+          counts.incFailed();
+        }
+
+        this.failedCount++;
+      }
+    } else {
+      this.acct = this.accountsTab.get(ticker);
+      if (this.acct.getTickerStatus() == Constants.TASKSTARTED) {
+        this.debugInst.debug("GetQuotesProgressMonitor", "Completed Count Incremented", 2, "> FAILED stock=" + ticker);
+        this.completedTasks.getAndIncrement();
+        this.acct.setTickerStatus(Constants.TASKFAILED);
+        if (this.uuidStatus.containsKey(uuid)) {
+          counts = this.uuidStatus.get(uuid);
+          counts.incFailed();
+        }
+
+        this.failedCount++;
+      }
+    }
+
+    this.updateProgress();
+  }
+
+
 	public synchronized void ended(String ticker,String uuid) {
 		if (ticker.startsWith(Constants.CURRENCYID)) {
 			cur = currencyTab.get(ticker);

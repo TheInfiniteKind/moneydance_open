@@ -48,6 +48,7 @@ public class NewParameters {
 	private Integer amtHistory;
 	private String exportFolder;
 	private String alphaAPIKey;
+  private String uaParam = "";
 	private List<NewAccountLine> listAccounts;
 
 	public  NewParameters(){
@@ -111,6 +112,8 @@ public class NewParameters {
 	public String getAlphaAPIKey() {
 		return alphaAPIKey;
 	}
+
+  public String getUaParam() { return uaParam; }
 
 	/**
 	 * @return the listAccounts
@@ -199,4 +202,5 @@ public class NewParameters {
 	public void setAlphaAPIKey(String alphaAPIKey) {
 		this.alphaAPIKey = alphaAPIKey;
 	}
+  public void setUaParam(String uaParam) { this.uaParam = uaParam; }
 }

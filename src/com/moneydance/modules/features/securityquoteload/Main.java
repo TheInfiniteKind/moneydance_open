@@ -574,6 +574,21 @@ public class Main extends FeatureModule {
             autoRunNeeded = false;
         }
     }
+
+    public void setThrottleMessage() {
+      if (this.frame != null) {
+        this.frame.setThrottleMessage();
+      }
+
+    }
+
+    public void unsetThrottleMessage() {
+      if (this.frame != null) {
+        this.frame.unsetThrottleMessage();
+      }
+
+    }
+
      /**
      * Process Command Argument
      */
