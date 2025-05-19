@@ -66,7 +66,7 @@ class SettingsWindow(private val context: FeatureModuleContext, resources: Resou
     _resources = resources
     initUI(context)
     setContentPane(contentPane)
-    isModal = true
+    isModal = false
     title = resources.getString(L10NStockQuotes.SETTINGS_TITLE)
     //    setIconImage(Main.getIcon()); // available in Java 1.6 only
     val size = _model.preferences.getSizeSetting(N12EStockQuotes.SIZE_KEY)
@@ -258,6 +258,10 @@ class SettingsWindow(private val context: FeatureModuleContext, resources: Resou
     setupTestControls()
     // setup actions for the controls
     addActions(context)
+
+    getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_W, MoneydanceGUI.ACCELERATOR_MASK),"close_window")
+    getRootPane().actionMap.put("close_window", com.moneydance.apps.md.view.gui.MDAction.make().command("close_window").callback(ActionListener { evt: ActionEvent? -> goAway() }))
+    
   }
   
   private fun updateAPIKeyButton() {
@@ -596,7 +600,7 @@ class SettingsWindow(private val context: FeatureModuleContext, resources: Resou
     saveControlsToSettings()
     
     _okButtonPressed = true
-    isVisible = false
+    goAway()
     
     context.showURL("moneydance:fmodule:yahooqt:update") // kick off an update, if needed
   }
@@ -880,12 +884,16 @@ class SettingsWindow(private val context: FeatureModuleContext, resources: Resou
     }
   }
   
+  private fun goAway() {
+    isVisible = false
+  }
+  
   private inner class DialogOKButtonListener : OKButtonListener {
     override fun buttonPressed(buttonId: Int) {
       if (buttonId == OKButtonPanel.ANSWER_OK) {
         onOK()
       } else {
-        isVisible = false
+        goAway()
       }
     }
   }
