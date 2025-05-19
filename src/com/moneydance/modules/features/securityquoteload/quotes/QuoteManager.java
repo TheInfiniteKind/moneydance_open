@@ -73,6 +73,7 @@ public class QuoteManager implements QuoteListener {
     private int totalQuotes = 0;
     private int successful = 0;
     private int failed = 0;
+    private boolean throttleRequired;
 
     public void getQuotes(String request) {
         stocks = new ArrayList<String>();
@@ -235,30 +236,35 @@ public class QuoteManager implements QuoteListener {
             }
             case Constants.SOURCEYAHOO -> {
                 Long timeout;
-                if ((stocks.size() + currencies.size()) > 59) {
-                    timeout = (stocks.size() + currencies.size()) * 10l;
-                } else {
-                    if ((stocks.size() + currencies.size()) < 100)
+                timeout = (stocks.size() + currencies.size()) * 20l;
+                throttleRequired = true;
+                Main.extension.setThrottleMessage();
+                if ((stocks.size() + currencies.size()) < 100)
                         timeout = 180L;
                     else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
                         timeout = 360L;
                     else
                         timeout = 480L;
-                }
                 for (String stock : stocks) {
-                    GetQuoteTask task = new GetYahooQuote(stock, this, httpClient, Constants.STOCKTYPE, tid);
+                    GetQuoteTask task = new GetYahooQuote(stock, this, httpClient, Constants.STOCKTYPE, tid, throttleRequired);
                     tasks.add(task);
                     totalQuotes++;
                 }
                 for (String currency : currencies) {
-                    GetQuoteTask task = new GetYahooQuote(currency, this, httpClient, Constants.CURRENCYTYPE, tid);
+                    GetQuoteTask task = new GetYahooQuote(currency, this, httpClient, Constants.CURRENCYTYPE, tid, throttleRequired);
                     tasks.add(task);
                     totalQuotes++;
                 }
                 List<Future<QuotePrice>> futures = null;
 
                 try {
+                  if (throttleRequired) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "Yahoo throttling is active with 1 thread pool");
+                    threadPool = Executors.newFixedThreadPool(1);
+                  } else {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "Yahoo throttling is NOT active (4 thread pools)");
                     threadPool = Executors.newFixedThreadPool(4);
+                  }
                     debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Yahoo Tasks invoking " + tasks.size() + " queries");
                     futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
@@ -292,29 +298,34 @@ public class QuoteManager implements QuoteListener {
             }
             case Constants.SOURCEYAHOOHIST -> {
                 Long timeout;
-                if ((stocks.size() + currencies.size()) > 59) {
-                    timeout = (stocks.size() + currencies.size()) * 10l;
-                } else {
-                    if ((stocks.size() + currencies.size()) < 100)
-                        timeout = 180L;
-                    else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
-                        timeout = 360L;
-                    else
-                        timeout = 480L;
-                }
+                timeout = (stocks.size() + currencies.size()) * 10l;
+                throttleRequired = true;
+                Main.extension.setThrottleMessage();
+                if ((stocks.size() + currencies.size()) < 100)
+                    timeout = 180L;
+                else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
+                    timeout = 360L;
+                else
+                    timeout = 480L;
                 for (String stock : stocks) {
-                    GetQuoteTask task = new GetYahooQuote(stock, this, httpClient, Constants.STOCKTYPE, tid, lastPriceDate.get(stock), true);
+                    GetQuoteTask task = new GetYahooQuote(stock, this, httpClient, Constants.STOCKTYPE, tid, lastPriceDate.get(stock), true, throttleRequired);
                     tasks.add(task);
                     totalQuotes++;
                 }
                 for (String currency : currencies) {
-                    GetQuoteTask task = new GetYahooQuote(currency, this, httpClient, Constants.CURRENCYTYPE, tid, lastPriceDate.get(currency),true);
+                    GetQuoteTask task = new GetYahooQuote(currency, this, httpClient, Constants.CURRENCYTYPE, tid, lastPriceDate.get(currency),true, throttleRequired);
                     tasks.add(task);
                     totalQuotes++;
                 }
                 List<Future<QuotePrice>> futures = null;
                 try {
+                  if (throttleRequired) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "YahooHD throttling is active with 1 thread pool");
+                    threadPool = Executors.newFixedThreadPool(1);
+                  } else {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "YahooHD throttling is NOT active (4 thread pools)");
                     threadPool = Executors.newFixedThreadPool(4);
+                  }
                     debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Yahoo History Tasks invoking " + tasks.size() + " queries");
                     futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {

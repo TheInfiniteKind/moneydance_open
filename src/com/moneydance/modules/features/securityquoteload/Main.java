@@ -250,7 +250,9 @@ public class Main extends FeatureModule {
         debugInst.debug("Quote Load", "HandleEventFileOpened", MRBDebug.INFO, "Debug level set to " + debug);
         context = getContext();
         serverName = Constants.PROGRAMNAME;
-        Timer autoDelayStart = new Timer(1, ((ae) -> sendAuto()));
+        Timer autoDelayStart = new Timer(1, ((ae) -> javax.swing.SwingUtilities.invokeLater(() -> {
+                sendAuto();
+            })));
         autoDelayStart.setInitialDelay(20000);
         autoDelayStart.setRepeats(false);
         autoDelayStart.start();
@@ -260,10 +262,13 @@ public class Main extends FeatureModule {
 
     public void sendAuto() {
         if (standAloneRequested) {
-            processCommand(Constants.RUNSTANDALONECMD,"");
+            MRBEDTInvoke.showURL(context, "moneydance:fmodule:" + Constants.PROGRAMNAME + ":"
+                    + Constants.STANDALONEREQUESTED);
         } else {
             debugInst.debug("Quote Load", "sendAuto", MRBDebug.INFO, "Check Auto");
-            processCommand(Constants.CHECKAUTOCMD,"");
+            javax.swing.SwingUtilities.invokeLater(()-> {
+               MRBEDTInvoke.showURL(context, "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.CHECKAUTOCMD);
+            });
         }
     }
 
@@ -448,7 +453,7 @@ public class Main extends FeatureModule {
             processCommand(command, uri);
     }
 
-    public synchronized void processCommand(String command, String uri) {
+    private synchronized void processCommand(String command, String uri) {
         if (processor == null) {
             debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "starting ProcessWorker");
             processQueue = new LinkedBlockingQueue();
@@ -528,7 +533,7 @@ public class Main extends FeatureModule {
             processCommand(command, uri);
         } else {
             debugInst.debug("Quote Load", "showConsole", MRBDebug.INFO, "Manual Run");
-            SwingUtilities.invokeLater(() -> {
+            javax.swing.SwingUtilities.invokeLater(() -> {
                 isGUIOpen = true;
                 createAndShowGUI();
             });
@@ -563,7 +568,16 @@ public class Main extends FeatureModule {
             autoRunNeeded = false;
         }
     }
-     /**
+    public void setThrottleMessage(){
+        if (frame != null)
+            frame.setThrottleMessage();
+    }
+    public void unsetThrottleMessage(){
+        if (frame != null)
+            frame.unsetThrottleMessage();
+    }
+
+    /**
      * Process Command Argument
      */
     class ProcessCommandArgument {
@@ -620,7 +634,9 @@ public class Main extends FeatureModule {
 						return;
 					}
 					standAloneRequested = true;
-                    Timer autoDelayStart = new Timer(1, ((ae) -> sendAuto()));
+                    Timer autoDelayStart = new Timer(1, ((ae) -> javax.swing.SwingUtilities.invokeLater(() -> {
+                        sendAuto();
+                    })));
                     autoDelayStart.setInitialDelay(20000);
                     autoDelayStart.setRepeats(false);
                     autoDelayStart.start();
@@ -803,7 +819,7 @@ public class Main extends FeatureModule {
 					return;
 				}
 				case Constants.TESTTICKERCMD -> {
-					frame.testTicker(uri);
+					javax.swing.SwingUtilities.invokeLater(() -> frame.testTicker(uri));
 					return;
 				}
 				case Constants.LOADPRICECMD -> {
@@ -844,7 +860,9 @@ public class Main extends FeatureModule {
 					if (frame != null) {
 						timeoutCount = 0;
 						debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Done " + uri);
-						frame.doneQuote(uri);
+						javax.swing.SwingUtilities.invokeLater(() -> {
+							frame.doneQuote(uri);
+						});
 
 					}
 					return;
@@ -857,7 +875,7 @@ public class Main extends FeatureModule {
 							debugInst.debug("Quote Load", "ProcessCommand", MRBDebug.SUMMARY,
 									"Still Waiting for Backend");
 							if (timeoutCount > timeoutMax) {
-								SwingUtilities.invokeLater(() -> {
+								javax.swing.SwingUtilities.invokeLater(() -> {
 									JOptionPane.showMessageDialog(null, "Backend has failed to respond", "Quote Loader",
 											JOptionPane.ERROR_MESSAGE);
 								});
@@ -893,7 +911,8 @@ public class Main extends FeatureModule {
 				 */
 				case Constants.STANDALONEDONE -> {
 					debugInst.debug("Quote Load", "ProcessCommand", MRBDebug.INFO, "Standalone  run done");
-					SwingUtilities.invokeLater(() -> {
+					javax.swing.SwingUtilities.invokeLater(() -> {
+
 						mdMain = com.moneydance.apps.md.controller.Main.mainObj;
 						mdGUI = mdMain.getUI();
 						mdMain.saveCurrentAccount();

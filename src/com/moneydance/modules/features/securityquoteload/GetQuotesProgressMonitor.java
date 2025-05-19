@@ -128,6 +128,40 @@ final class GetQuotesProgressMonitor {
 		}
 		updateProgress();
 	}
+	public synchronized void failed(String ticker,String uuid, String errorCode){
+		debugInst.debug("GetQuotesProgressMonitor","failed",MRBDebug.SUMMARY,"> FAILED stock=" + ticker+" error "+errorCode);
+		/*
+		 * Only increment once if failed, there can be several messages
+		 */
+		if (ticker.startsWith(Constants.CURRENCYID)) {
+			cur = currencyTab.get(ticker);
+			if (cur.getTickerStatus() == Constants.TASKSTARTED){
+				debugInst.debug("GetQuotesProgressMonitor","Completed Count Incremented",MRBDebug.SUMMARY,"> FAILED currency=" + ticker);
+				completedTasks.getAndIncrement();
+				cur.setTickerStatus( Constants.TASKFAILED);
+				if (uuidStatus.containsKey(uuid.toString())) {
+					TaskCounts counts = uuidStatus.get(uuid.toString());
+					counts.incFailed();
+				}
+				failedCount++;
+			}
+		}
+		else {
+			acct = accountsTab.get(ticker);
+			if (acct.getTickerStatus() == Constants.TASKSTARTED){
+				debugInst.debug("GetQuotesProgressMonitor","Completed Count Incremented",MRBDebug.SUMMARY,"> FAILED stock=" + ticker);
+				completedTasks.getAndIncrement();
+				acct.setTickerStatus( Constants.TASKFAILED);
+				if (uuidStatus.containsKey(uuid.toString())) {
+					TaskCounts counts = uuidStatus.get(uuid.toString());
+					counts.incFailed();
+				}
+				failedCount++;
+			}
+		}
+		updateProgress();
+	}
+
 
 	public synchronized void ended(String ticker,String uuid) {
 		if (ticker.startsWith(Constants.CURRENCYID)) {
@@ -182,13 +216,10 @@ final class GetQuotesProgressMonitor {
 				progressBar.setValue(100);
 				window.Update();
 			}
-			window.TasksCompleted();       
+			window.TasksCompleted();
 		}
 	}
 	private synchronized void updateProgress() {
-		/*
-		 * tell the user that getting quotes has progressed	
-		 */
 		SwingUtilities.invokeLater(new Runnable(){
 			public void run() {
 				int percentage = completedTasks.get() * 100 /

@@ -77,6 +77,8 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
+    <orderEntry type="library" name="Kolin SDK (for Open)" level="application" />
+    <orderEntry type="module" module-name="MoneydanceMP" />
+    <orderEntry type="module" module-name="MoneydanceMP.core.main" />
   </component>
 </module>
