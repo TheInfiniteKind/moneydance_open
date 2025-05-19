@@ -27,6 +27,7 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
 import org.apache.http.util.EntityUtils
 import kotlin.math.max
+import kotlin.math.pow
 
 /**
  * Class for downloading security prices from Yahoo
@@ -132,6 +133,28 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     }
     
     val result = chart.getAsJsonArray("result").asJsonArray[0].asJsonObject
+    
+    var meta: JsonObject? = null
+    var priceHint: Int? = null
+    var regularMarketPrice: Double? = null
+
+    val metaStr = "meta"
+    val priceHintStr = "priceHint"
+    val regularMarketPriceStr = "regularMarketPrice"
+    
+    // grab the main meta section
+    if (result != null && result.has(metaStr) && !result[metaStr].isJsonNull) {
+      meta = result.getAsJsonObject(metaStr)
+      // grab price hint for number of decimals and price rounding
+      if (meta.has(priceHintStr) && !meta[priceHintStr].isJsonNull) {
+        priceHint = meta[priceHintStr].asInt
+      }
+      // grab the regular market price - (i.e. the price now) as displayed on the yahoo main web page - NOTE: this needs no rounding!
+      if (meta.has(regularMarketPriceStr) && !meta[regularMarketPriceStr].isJsonNull) {
+        regularMarketPrice = meta[regularMarketPriceStr].asDouble
+      }
+    }
+    
     // map a list of the timestamps to long objects
     val timestampArray = result.getAsJsonArray("timestamp")
     if (timestampArray == null || timestampArray.isEmpty) {
@@ -161,10 +184,10 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
       val candle = Candle()
       candle.datetime = timestamps[i] * 1000
       volumeValues.getSafeLong(i)?.let { candle.volume = it }
-      openValues.getSafeDouble(i)?.let { candle.open = it }
-      lowValues.getSafeDouble(i)?.let { candle.low = it }
-      highValues.getSafeDouble(i)?.let { candle.high = it }
-      closeValues.getSafeDouble(i)?.let { candle.close = it }
+      openValues.getSafeDouble(i)?.let { candle.open = it.priceHintRound(priceHint) }
+      lowValues.getSafeDouble(i)?.let { candle.low = it.priceHintRound(priceHint) }
+      highValues.getSafeDouble(i)?.let { candle.high = it.priceHintRound(priceHint) }
+      closeValues.getSafeDouble(i)?.let { candle.close = it.priceHintRound(priceHint) }
       
       records.add(StockRecord(candle, downloadInfo.priceMultiplier))
     }
@@ -188,6 +211,13 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
                    "&lang=en-US" +
                    "&region=US"
     return queryURL
+  }
+  
+  private fun Double.priceHintRound(hint: Int?): Double {
+    hint ?: return this
+    if (hint < 0 || hint > 20) return this
+    val scale: Double = 10.0.pow(hint)
+    return Math.round(this * scale) / scale
   }
   
   private fun JsonArray?.getSafeDouble(idx:Int): Double? {
