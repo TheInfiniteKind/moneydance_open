@@ -53,6 +53,14 @@ class DownloadInfo internal constructor(var security: CurrencyType, model: Downl
     }
   }
   
+  /**
+   * Convenience property that returns null if the target (optional) string is either null or blank
+   */
+  val String?.nullIfBlank:String?
+    get() {
+      return if(isNullOrBlank()) null else this
+    }
+  
   private fun initFromSecurity(model: DownloadModel) {
     isValidForDownload = true
     val symbolData = parseTickerSymbol(security)
@@ -62,9 +70,8 @@ class DownloadInfo internal constructor(var security: CurrencyType, model: Downl
       return
     }
     
-    exchange = model.getExchangeForSecurity(symbolData, security)
-    if (exchange != null) {
-      priceMultiplier = exchange!!.priceMultiplier
+    exchange = model.getExchangeForSecurity(symbolData, security).also { 
+      priceMultiplier = it.priceMultiplier
     }
     
     fullTickerSymbol = model.getFullTickerSymbol(symbolData, exchange) ?: run {
@@ -73,19 +80,15 @@ class DownloadInfo internal constructor(var security: CurrencyType, model: Downl
       ""
     }
     
-    // check for a relative currency embedded in the symbol
-    relativeCurrency = security.book.currencies.getCurrencyByIDString(symbolData.currencyCode.takeIf { it.isNotEmpty() })
-      .takeIf { it?.currencyType == CurrencyType.Type.CURRENCY } ?: run {
-      // check for a relative currency that is specific to the provider/exchange
-      val currID = model.getCurrencyCodeForQuote(security.getTickerSymbol(), exchange!!)
-      security.book.currencies.getCurrencyByIDString(currID)
-    } ?: run {
-      // if there is still no relative currency, look for USD
-      security.book.currencies.getCurrencyByIDString("USD")
-    } ?: run {
+    // check for a relative currency embedded in the symbol. If there is none, use the exchange's 
+    // default currency. Finally, if that isn't found, fall back to "USD"
+    val relativeCurrCode = symbolData.currencyCode.nullIfBlank ?: 
+                           model.getCurrencyCodeForQuote(security.getTickerSymbol(), exchange!!).nullIfBlank ?:
+                           "USD"
+    relativeCurrency = security.book.currencies.getCurrencyByIDString(relativeCurrCode) ?: run {
       // if there is still no relative currency, fail
       isValidForDownload = false
-      recordError("No relative currency found for: '$fullTickerSymbol', using base currency '${security.book.currencies.baseType}' instead. ")
+      recordError("Couldn't find security base currency $relativeCurrCode for: '$fullTickerSymbol', using base currency.")
       security.book.currencies.baseType
     }
   }
