@@ -125,9 +125,7 @@ public class GetYahooQuote extends GetQuoteTask {
             throw (new IOException(e));
         } catch (Exception e) {
             e.printStackTrace();
-
         }
-
         return quotePrice;
     }
 

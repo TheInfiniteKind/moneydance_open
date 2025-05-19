@@ -235,16 +235,16 @@ public class QuoteManager implements QuoteListener {
                 MRBEDTInvoke.showURL(Main.context, doneUrl);
             }
             case Constants.SOURCEYAHOO -> {
-                Long timeout = (long) (stocks.size() + currencies.size()) * 20L;
+                Long timeout;
+                timeout = (stocks.size() + currencies.size()) * 20l;
                 throttleRequired = true;
                 Main.extension.setThrottleMessage();
-                if (stocks.size() + currencies.size() < 100) {
-                  timeout = 180L;
-                } else if (stocks.size() + currencies.size() > 99 && stocks.size() + currencies.size() < 200) {
-                  timeout = 360L;
-                } else {
-                  timeout = 480L;
-                }
+                if ((stocks.size() + currencies.size()) < 100)
+                        timeout = 180L;
+                    else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
+                        timeout = 360L;
+                    else
+                        timeout = 480L;
                 for (String stock : stocks) {
                     GetQuoteTask task = new GetYahooQuote(stock, this, httpClient, Constants.STOCKTYPE, tid, throttleRequired);
                     tasks.add(task);
@@ -258,11 +258,10 @@ public class QuoteManager implements QuoteListener {
                 List<Future<QuotePrice>> futures = null;
 
                 try {
-                    if (throttleRequired) {
-                      threadPool = Executors.newFixedThreadPool(1);
-                    } else {
-                      threadPool = Executors.newFixedThreadPool(4);
-                    }
+                    if (throttleRequired)
+                        threadPool = Executors.newFixedThreadPool(1);
+                    else
+                        threadPool = Executors.newFixedThreadPool(4);
                     debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Yahoo Tasks invoking " + tasks.size() + " queries");
                     futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
@@ -295,16 +294,16 @@ public class QuoteManager implements QuoteListener {
                 MRBEDTInvoke.showURL(Main.context, doneUrl);
             }
             case Constants.SOURCEYAHOOHIST -> {
-                Long timeout = (long) (this.stocks.size() + this.currencies.size()) * 10L;
+                Long timeout;
+                timeout = (stocks.size() + currencies.size()) * 10l;
                 throttleRequired = true;
                 Main.extension.setThrottleMessage();
-                if (this.stocks.size() + this.currencies.size() < 100) {
-                  timeout = 180L;
-                } else if (this.stocks.size() + this.currencies.size() > 99 && this.stocks.size() + this.currencies.size() < 200) {
-                  timeout = 360L;
-                } else {
-                  timeout = 480L;
-                }
+                if ((stocks.size() + currencies.size()) < 100)
+                    timeout = 180L;
+                else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
+                    timeout = 360L;
+                else
+                    timeout = 480L;
                 for (String stock : stocks) {
                     GetQuoteTask task = new GetYahooQuote(stock, this, httpClient, Constants.STOCKTYPE, tid, lastPriceDate.get(stock), true, throttleRequired);
                     tasks.add(task);
@@ -317,11 +316,10 @@ public class QuoteManager implements QuoteListener {
                 }
                 List<Future<QuotePrice>> futures = null;
                 try {
-                    if (throttleRequired) {
-                      this.threadPool = Executors.newFixedThreadPool(1);
-                    } else {
-                      this.threadPool = Executors.newFixedThreadPool(4);
-                    }
+                    if (throttleRequired)
+                        threadPool = Executors.newFixedThreadPool(1);
+                    else
+                        threadPool = Executors.newFixedThreadPool(4);
                     debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Yahoo History Tasks invoking " + tasks.size() + " queries");
                     futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {

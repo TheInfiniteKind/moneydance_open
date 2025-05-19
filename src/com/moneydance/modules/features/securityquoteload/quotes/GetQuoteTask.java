@@ -71,16 +71,15 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 		CloseableHttpResponse response = null;
 		if (ticker.isBlank()) {
 			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Invalid Ticker "+rawTicker);
-			sendError();		
+			sendError();
 		}
 			
 		URI uri=null;
 		try {
 			uri= new URI(url.trim());
 			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Processing  "+ticker+" URI:"+uri.toASCIIString());
-      if (throttleRequired) {
-        TimeUnit.SECONDS.sleep(2L);
-      }
+      if (throttleRequired)
+        TimeUnit.SECONDS.sleep(2);
 			HttpGet httpGet = new HttpGet(uri);
 			httpGet.addHeader("Accept-Language","en");
 			//httpGet.addHeader("User-Agent","Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36");
@@ -148,7 +147,7 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 		}
 			catch (ClientProtocolException e2) {
 				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "server returned protocol error for "+ticker);
-				sendError();					
+				sendError();
 			}
 		catch (Exception e3) {
 			debugInst.debug("getQuoteTask", "call", MRBDebug.INFO, "General Error  - "+e3.getMessage());

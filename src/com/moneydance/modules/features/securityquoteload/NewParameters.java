@@ -48,7 +48,7 @@ public class NewParameters {
 	private Integer amtHistory;
 	private String exportFolder;
 	private String alphaAPIKey;
-  private String uaParam = "";
+	private String uaParam;
 	private List<NewAccountLine> listAccounts;
 
 	public  NewParameters(){
@@ -62,6 +62,7 @@ public class NewParameters {
 		displayOption = 0;
 		amtHistory=0;
 		alphaAPIKey="";
+		uaParam = "";
 		listAccounts = new ArrayList<>();
 	}
 	/**
@@ -113,8 +114,12 @@ public class NewParameters {
 		return alphaAPIKey;
 	}
 
-  public String getUaParam() { return uaParam; }
-
+	/**
+	 * @return User Agent Param
+	 */
+	public String getUaParam() {
+		return uaParam;
+	}
 	/**
 	 * @return the listAccounts
 	 */
@@ -202,5 +207,7 @@ public class NewParameters {
 	public void setAlphaAPIKey(String alphaAPIKey) {
 		this.alphaAPIKey = alphaAPIKey;
 	}
-  public void setUaParam(String uaParam) { this.uaParam = uaParam; }
+	public void setUaParam(String uaParam) {
+		this.uaParam = uaParam;
+	}
 }

@@ -47,6 +47,7 @@ public class CurrencyTableLine {
 	private Double percentChg=0.0;
 	private Double amtChg=0.0;
 	private Integer tradeDate=0;
+	private Integer errorCode;
 	private List<HistoryPrice> history=null;
 	/*
 	 * working fields

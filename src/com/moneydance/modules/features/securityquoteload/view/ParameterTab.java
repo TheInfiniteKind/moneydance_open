@@ -96,8 +96,8 @@ public class ParameterTab extends DisplayTab {
 	private Boolean saveAutoChange;
 	private JLabel alphaLbl;
 	private JTextField alphaKey;
-  private JLabel uaLabel;
-  private JTextField uaParam;
+	private JLabel uaLabel;
+	private JTextField uaParam;
 
 	public ParameterTab(Parameters params, Main main, MainPriceWindow controller) {
 		super(params, main, controller);
@@ -751,22 +751,24 @@ public class ParameterTab extends DisplayTab {
 			public void changedUpdate(DocumentEvent e) {params.setAlphaAPIKey(alphaKey.getText());}
 		});
 		alphaKey.setPreferredSize(new Dimension(150,20));
-		mainPanel.add(alphaLbl, GridC.getc(gridx++, gridy).insets(5,5,5,5));
-		mainPanel.add(alphaKey, GridC.getc(gridx, gridy++).insets(5,5,5,5));
-
-    uaLabel = new JLabel("User Agent");
-    uaParam = new JTextField();
+		mainPanel.add(alphaLbl, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
+		mainPanel.add(alphaKey, GridC.getc(gridx, gridy++).insets(5,5,5,5).west());
+		gridx=1;
+		uaLabel = new JLabel("User Agent");
+		uaParam = new JTextField();
     uaParam.setToolTipText("ADVANCED. Normally blank to use rotating/random user-agent browser header(s). Manually override when using Yahoo as a quote source to bypass 429/rate errors");
-    uaParam.setText(params.getUaParam());
-    uaParam.setPreferredSize(new Dimension(400, 20));
-    uaParam.getDocument().addDocumentListener(new DocumentListener() {
-      public void insertUpdate(DocumentEvent e) { params.setUaParam(uaParam.getText()); }
-      public void removeUpdate(DocumentEvent e) { params.setUaParam(uaParam.getText()); }
-      public void changedUpdate(DocumentEvent e) { params.setUaParam(uaParam.getText()); }
-    });
-    this.mainPanel.add(this.uaLabel, GridC.getc(this.gridx++, this.gridy).insets(5, 5, 5, 5).west());
-    this.mainPanel.add(this.uaParam, GridC.getc(this.gridx, this.gridy++).insets(5, 5, 5, 5).colspan(4).west());
-
+		uaParam.setText(params.getUaParam());
+		uaParam.setPreferredSize(new Dimension(400,20));
+		uaParam.getDocument().addDocumentListener(new DocumentListener(){
+			@Override
+			public void insertUpdate(DocumentEvent e) {params.setUaParam(uaParam.getText());}
+			@Override
+			public void removeUpdate(DocumentEvent e) {params.setUaParam(uaParam.getText());}
+			@Override
+			public void changedUpdate(DocumentEvent e) {params.setUaParam(uaParam.getText());}
+		});
+		mainPanel.add(uaLabel, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
+		mainPanel.add(uaParam, GridC.getc(gridx, gridy++).insets(5,5,5,5).colspan(4).west());
 		gridx=1;
 		saveParams = new JButton("Save Parameters");
 		saveParams.setToolTipText("Click to save parameters");

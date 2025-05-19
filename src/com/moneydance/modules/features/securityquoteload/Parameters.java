@@ -86,7 +86,7 @@ public class Parameters{
 	private  Integer amtHistory;
 	private  Integer timeOfRun;
 	private String alphaAPIKey;
-  private String uaParam;
+	private String uaParam;
 	private  char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
 	private int noDecimals;
@@ -233,7 +233,7 @@ public class Parameters{
 		this.amtHistory= newParams.getAmtHistory();
 		this.displayOption=newParams.getDisplayOption();
 		this.alphaAPIKey = newParams.getAlphaAPIKey();
-    this.uaParam = newParams.getUaParam();
+		this.uaParam = newParams.getUaParam();
 
 		savedAccounts = new TreeMap<>();
 		buildAccounts();
@@ -474,15 +474,18 @@ public class Parameters{
 		this.alphaAPIKey = alphaAPIKey;
 		isDirty=true;
 	}
+	/*
+	 * User Agent
+	 */
 
-  public String getUaParam() {
-    return this.uaParam;
-  }
+	public String getUaParam() {
+		return uaParam;
+	}
 
-  public void setUaParam(String uaParam) {
-    this.uaParam = uaParam;
-    isDirty = true;
-  }
+	public void setUaParam(String uaParam) {
+		this.uaParam = uaParam;
+		isDirty=true;
+	}
 
 
 	/*
@@ -603,7 +606,7 @@ public class Parameters{
 		newParams.setDisplayOption(displayOption);
 		newParams.setListAccounts(listNewAccounts);
 		newParams.setAlphaAPIKey(alphaAPIKey);
-    newParams.setUaParam(uaParam);
+		newParams.setUaParam(uaParam);
 
 		/*
 		 * create the file
@@ -637,7 +640,7 @@ public class Parameters{
 		this.overridePrice = newParams.isOverridePrice();
 		this.amtHistory= newParams.getAmtHistory();
 		this.alphaAPIKey= newParams.getAlphaAPIKey();
-    this.uaParam = newParams.getUaParam();
+		this.uaParam= newParams.getUaParam();
 		this.displayOption=newParams.getDisplayOption();
 		isDirty=false;
 	}

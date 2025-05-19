@@ -52,10 +52,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import java.util.Map.Entry;
-
 import javax.swing.*;
-
-
 import com.moneydance.modules.features.securityquoteload.quotes.QuoteException;
 import com.moneydance.modules.features.securityquoteload.view.*;
 import org.apache.http.NameValuePair;
@@ -143,7 +140,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	protected ParameterTab parameterScreen = null;
 	private String selectedTab;
 	private boolean selectAllReturned = true;
-  private JLabel throttleMessage;
+	private JLabel throttleMessage;
 
 	public MainPriceWindow(Main main, int runtype) {
 		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED,
@@ -272,10 +269,10 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		buttonsPanel = new JPanel(new GridBagLayout());
 		gridX = 0;
 		gridY = 0;
-    throttleMessage = new JLabel("Yahoo Throttling Active. Call speed reduced");
-    throttleMessage.setForeground(Color.RED);
-    buttonsPanel.add(this.throttleMessage, GridC.getc(gridX++, gridY).insets(10, 10, 10, 10));
-    unsetThrottleMessage();
+		throttleMessage = new JLabel("Yahoo Throttling Active. Call speed reduced");
+		throttleMessage.setForeground(Color.RED);
+		buttonsPanel.add(throttleMessage, GridC.getc(gridX++, gridY).insets(10, 10, 10, 10));
+		unsetThrottleMessage();
 		statusMessage = new JLabel("Quote Loader Autorun delayed. It will start when you close Quote Loader");
 		statusMessage.setForeground(Color.RED);
 		buttonsPanel.add(statusMessage, GridC.getc(gridX++, gridY).insets(10, 10, 10, 10));
@@ -467,33 +464,25 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	}
 
   public void setStatusMessage() {
-    if (this.statusMessage != null) {
-      this.statusMessage.setVisible(true);
-    }
-    this.revalidate();
-  }
-
+		if (statusMessage != null)
+			statusMessage.setVisible(true);
+		this.revalidate();
+	}
   public void unsetStatusMessage() {
-    if (this.statusMessage != null) {
-      this.statusMessage.setVisible(false);
-    }
-    this.revalidate();
-  }
-
-  public void setThrottleMessage() {
-    if (this.throttleMessage != null) {
-      this.throttleMessage.setVisible(true);
-    }
-    this.revalidate();
-  }
-
-  public void unsetThrottleMessage() {
-    if (this.throttleMessage != null) {
-      this.throttleMessage.setVisible(false);
-    }
-    this.revalidate();
-  }
-
+		if (statusMessage != null)
+			statusMessage.setVisible(false);
+		this.revalidate();
+	}
+	public void setThrottleMessage(){
+		if (throttleMessage != null)
+			throttleMessage.setVisible(true);
+		this.revalidate();
+	}
+	public void unsetThrottleMessage(){
+		if (throttleMessage != null)
+			throttleMessage.setVisible(false);
+		this.revalidate();
+	}
 	private void setButtons(int selectedIndex) {
 		switch (selectedIndex) {
 		case 0:
@@ -2104,7 +2093,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		}
 		List<NameValuePair> results = URLEncodedUtils.parse(uri, charSet);
 		String ticker = "";
-    String errorCode = "";
+		String errorCode="";
     boolean currencyFound = false;
 		QuoteSource srce=null;
 		for (NameValuePair price : results) {
@@ -2202,7 +2191,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		//if (listener != null)
 		//	listener.failed(ticker, uuid);
     if (listener != null)
-       listener.failed(ticker, uuid, errorCode);
+			listener.failed(ticker, uuid, errorCode);
   }
 
 	public synchronized void doneQuote(String url) {
@@ -2210,15 +2199,15 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		int successful = 0;
 		int failed = 0;
 		Main.isUpdating=false;
-    unsetThrottleMessage();
 		/*
 		 * if completed set, ignore message
 		 */
+		unsetThrottleMessage();
 		if (completed) {
 			Main.debugInst.debug("MainPriceWindow", "doneQuote", MRBDebug.INFO, "Late message");
 			return;
 		}
-    unsetThrottleMessage();
+		unsetThrottleMessage();
 		String uuid = "";
 		URI uri;
 		try {
