@@ -261,12 +261,9 @@ class SettingsWindow(private val context: FeatureModuleContext, resources: Resou
   }
   
   private fun updateAPIKeyButton() {
-    val bc = _historyConnectionSelect!!.model.selectedItem as BaseConnection
-    if (bc is APIKeyConnection) {
-      _apiKeyButton!!.isVisible = true
-    } else {
-      _apiKeyButton!!.isVisible = false
-    }
+    val selectedItem = _historyConnectionSelect?.model?.selectedItem
+    val bc = selectedItem as? BaseConnection
+    _apiKeyButton?.isVisible = bc is APIKeyConnection
   }
   
   private fun setupTestControls() {
