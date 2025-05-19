@@ -27,7 +27,7 @@
     <entry key="showTest.tip">Show testing controls</entry>
     <entry key="basic">&#xab; Basic</entry>
     <entry key="advanced">Advanced &#xbb;</entry>
-    <entry key="updateNowMenuTitle">Download Quotes and Exchange Rates Now</entry>
+    <entry key="updateNowMenuTitle">Quotes and Exchange Rates: Download Now</entry>
 
     <!-- other strings -->
     <entry key="labelColon">: </entry>
