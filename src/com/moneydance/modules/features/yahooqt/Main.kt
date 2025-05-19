@@ -58,10 +58,13 @@ class Main
     _model!!.setData(getContext().currentAccountBook)
   }
   
+  // never actually called by Moneydance!
   override fun cleanup() {
     removePreferencesListener()
     _model!!.cleanUp()
   }
+
+  override fun unload() { cleanup() }
   
   fun loadResources() {
     val locale = (context as com.moneydance.apps.md.controller.Main)
