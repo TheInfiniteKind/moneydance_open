@@ -258,10 +258,13 @@ public class QuoteManager implements QuoteListener {
                 List<Future<QuotePrice>> futures = null;
 
                 try {
-                    if (throttleRequired)
-                        threadPool = Executors.newFixedThreadPool(1);
-                    else
-                        threadPool = Executors.newFixedThreadPool(4);
+                  if (throttleRequired) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "Yahoo throttling is active with 1 thread pool");
+                    threadPool = Executors.newFixedThreadPool(1);
+                  } else {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "Yahoo throttling is NOT active (4 thread pools)");
+                    threadPool = Executors.newFixedThreadPool(4);
+                  }
                     debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Yahoo Tasks invoking " + tasks.size() + " queries");
                     futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
@@ -316,10 +319,13 @@ public class QuoteManager implements QuoteListener {
                 }
                 List<Future<QuotePrice>> futures = null;
                 try {
-                    if (throttleRequired)
-                        threadPool = Executors.newFixedThreadPool(1);
-                    else
-                        threadPool = Executors.newFixedThreadPool(4);
+                  if (throttleRequired) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "YahooHD throttling is active with 1 thread pool");
+                    threadPool = Executors.newFixedThreadPool(1);
+                  } else {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, "YahooHD throttling is NOT active (4 thread pools)");
+                    threadPool = Executors.newFixedThreadPool(4);
+                  }
                     debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Yahoo History Tasks invoking " + tasks.size() + " queries");
                     futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {

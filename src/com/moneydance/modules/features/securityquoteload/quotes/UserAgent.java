@@ -9,6 +9,10 @@ import java.util.Arrays;
 
 public class UserAgent {
 
+  static final boolean customUserAgentEnabled = true;
+
+  static final boolean allowDropDeadUserAgents = false;
+
   static final String DEFAULT_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0";
 
   static final ArrayList<String> agents = new ArrayList<>(Arrays.asList(
@@ -115,10 +119,15 @@ public class UserAgent {
   public UserAgent() {}
 
   public static void removeInvalidAgent(String agent) {
-    agents.removeIf(a -> a.equals(agent));
+    if (allowDropDeadUserAgents)
+      agents.removeIf(a -> a.equals(agent));
   }
 
   public static String getAgent() {
+    if (customUserAgentEnabled) {
+      return "" + System.currentTimeMillis();
+    }
+
     if (agents.isEmpty()) { return DEFAULT_AGENT; }
 
     double randomNum = Math.random();

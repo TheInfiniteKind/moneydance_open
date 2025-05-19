@@ -2202,12 +2202,12 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		/*
 		 * if completed set, ignore message
 		 */
-		unsetThrottleMessage();
+		//unsetThrottleMessage();
 		if (completed) {
 			Main.debugInst.debug("MainPriceWindow", "doneQuote", MRBDebug.INFO, "Late message");
 			return;
 		}
-		unsetThrottleMessage();
+		//unsetThrottleMessage();
 		String uuid = "";
 		URI uri;
 		try {
