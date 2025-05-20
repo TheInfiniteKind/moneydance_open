@@ -13,7 +13,6 @@ import com.infinitekind.moneydance.model.AccountBook
 import com.infinitekind.moneydance.model.AccountBook.Companion.fakeAccountBook
 import com.infinitekind.moneydance.model.CurrencyType
 import com.infinitekind.moneydance.model.CurrencyUtil.createDefaultTable
-import com.infinitekind.util.AppDebug
 import com.moneydance.apps.md.controller.FeatureModule
 import com.moneydance.apps.md.controller.FeatureModuleContext
 import com.moneydance.apps.md.extensionapi.AccountEditor
@@ -101,7 +100,7 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
     val progressIncrement = if (securitiesToUpdate.isEmpty()) 1.0f else 1.0f / securitiesToUpdate.size.toFloat()
     val success = true
     for (downloadInfo in securitiesToUpdate) {
-      AppDebug.ALL.log("updating security: ${downloadInfo.security} (${downloadInfo.fullTickerSymbol}) from ${connectionID}")
+      QER_LOG.log("updating security: ${downloadInfo.security} (${downloadInfo.fullTickerSymbol}) from ${connectionID}")
       updateSecurity(downloadInfo)
       progressPercent += progressIncrement
       val message: String
@@ -220,7 +219,7 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
     fun createEmptyTestModel(): StockQuotesModel {
       val book = fakeAccountBook()
       val dummyContext = object: FeatureModuleContext {
-        override fun showURL(urlString: String) { AppDebug.ALL.log("showURL: $urlString") }
+        override fun showURL(urlString: String) { QER_LOG.log("showURL: $urlString") }
         override fun getVersion(): String { return "2025" }
         override fun getBuild(): Int { return Int.MAX_VALUE }
         override fun getCurrentAccountBook(): AccountBook { return book }
