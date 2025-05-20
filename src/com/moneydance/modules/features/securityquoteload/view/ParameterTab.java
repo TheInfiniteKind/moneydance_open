@@ -98,6 +98,7 @@ public class ParameterTab extends DisplayTab {
 	private JTextField alphaKey;
 	private JLabel uaLabel;
 	private JTextField uaParam;
+  private MyCheckBox throttleYahooCB;
 
 	public ParameterTab(Parameters params, Main main, MainPriceWindow controller) {
 		super(params, main, controller);
@@ -767,6 +768,21 @@ public class ParameterTab extends DisplayTab {
 		});
 		mainPanel.add(uaLabel, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
 		mainPanel.add(uaParam, GridC.getc(gridx, gridy++).insets(5,5,5,5).colspan(4).west());
+
+		throttleYahooCB = new MyCheckBox();
+		throttleYahooCB.setToolTipText("When enabled then Yahoo connections will be throttled (advised)");
+		throttleYahooCB.setAlignmentX(LEFT_ALIGNMENT);
+		throttleYahooCB.setText("Throttle Yahoo connections");
+		throttleYahooCB.setHorizontalTextPosition(SwingConstants.LEFT);
+		throttleYahooCB.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JCheckBox throttle = (JCheckBox) e.getSource();
+				params.setYahooThrottle(throttle.isSelected());
+			}
+		});
+		mainPanel.add(throttleYahooCB, GridC.getc(gridx, gridy++).colspan(2).west().insets(5, 5, 5, 0));
+
 		gridx=1;
 		saveParams = new JButton("Save Parameters");
 		saveParams.setToolTipText("Click to save parameters");
@@ -823,6 +839,7 @@ public class ParameterTab extends DisplayTab {
 	}
 
 	private void loadParamValues() {
+    throttleYahooCB.setSelected(params.getYahooThrottle());
 		zeroCB.setSelected(params.getZero());
 		addVolumeCB.setSelected(params.getAddVolume());
 		overridePriceCB.setSelected(params.isOverridePrice());

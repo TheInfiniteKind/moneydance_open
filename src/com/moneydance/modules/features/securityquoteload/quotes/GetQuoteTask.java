@@ -78,8 +78,12 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 		try {
 			uri= new URI(url.trim());
 			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Processing  "+ticker+" URI:"+uri.toASCIIString());
-      if (throttleRequired)
-        TimeUnit.SECONDS.sleep(2);
+      try {
+        if (throttleRequired) TimeUnit.SECONDS.sleep(2);
+      } catch (InterruptedException e) {
+        debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "throttle sleep aborted? (will continue)");
+        e.printStackTrace();
+      }
 			HttpGet httpGet = new HttpGet(uri);
 			httpGet.addHeader("Accept-Language","en");
 			//httpGet.addHeader("User-Agent","Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36");
