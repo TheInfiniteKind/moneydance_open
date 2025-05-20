@@ -68,7 +68,7 @@ class FTConnection private constructor(model: StockQuotesModel) : BaseConnection
    * @param downloadInfo   The wrapper for the currency to be downloaded and the download results
    */
   public override fun updateSecurity(downloadInfo: DownloadInfo) {
-    System.err.println("ft: updating security: " + downloadInfo.fullTickerSymbol)
+    QER_LOG.log("ft: updating security: " + downloadInfo.fullTickerSymbol)
     val today = DateUtil.strippedDateInt
     val history = downloadInfo.security.snapshots
     var firstDate = incrementDate(today, 0, -6, -0)

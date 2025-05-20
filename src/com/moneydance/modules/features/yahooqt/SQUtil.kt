@@ -10,7 +10,6 @@ package com.moneydance.modules.features.yahooqt
 import com.infinitekind.moneydance.model.AccountBook
 import com.infinitekind.moneydance.model.CurrencyType
 import com.infinitekind.moneydance.model.Legacy
-import com.infinitekind.util.AppDebug
 import com.infinitekind.util.StringUtils.isInteger
 import com.moneydance.apps.md.controller.Util
 import com.moneydance.apps.md.controller.time.TimeInterval
@@ -288,12 +287,12 @@ internal object SQUtil {
     val security = Legacy.makeCurrencyType(5000, "GIL", "Gildemeister", 1.0, 2, "", "GIL", "",
                                            19990101, CurrencyType.CURRTYPE_SECURITY, fakeBook.currencies)
     security.setTickerSymbol("  \t   \n ")
-    var data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    var data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println("Blank test: " + (if (data != null) "FAIL" else "pass"))
     // straightforward tests
     var symbol = "GIL"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -303,7 +302,7 @@ internal object SQUtil {
     )
     symbol = "FRA:GIL"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -313,7 +312,7 @@ internal object SQUtil {
     )
     symbol = "GIL.F"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -323,7 +322,7 @@ internal object SQUtil {
     )
     symbol = "GIL.F-EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -333,7 +332,7 @@ internal object SQUtil {
     )
     symbol = "FRA:GIL.F-EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -343,7 +342,7 @@ internal object SQUtil {
     )
     symbol = "FRA:GIL-EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -354,7 +353,7 @@ internal object SQUtil {
     // mangled cases
     symbol = ":  GIL . "
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -364,7 +363,7 @@ internal object SQUtil {
     )
     symbol = "FRA\t:  GIL .F    -EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -374,7 +373,7 @@ internal object SQUtil {
     )
     symbol = "\t: \n GIL .-EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -384,12 +383,12 @@ internal object SQUtil {
     )
     symbol = "FRA:   .F-EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println("Blank test: " + (if (data != null) "FAIL" else "pass"))
     // now ensure we support the dash before the dot for oddball symbols like COS-UN.TO
     symbol = "COS-UN.TO"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -399,7 +398,7 @@ internal object SQUtil {
     )
     symbol = "COS-UN -CAD  "
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -410,7 +409,7 @@ internal object SQUtil {
     // verify support for the new replacement delimiter for currency override '^'
     symbol = "GIL.F^EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -420,7 +419,7 @@ internal object SQUtil {
     )
     symbol = "FRA:GIL.F^EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -430,7 +429,7 @@ internal object SQUtil {
     )
     symbol = "FRA:GIL^EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -441,7 +440,7 @@ internal object SQUtil {
     // mangled cases
     symbol = "GIL.F^"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -451,7 +450,7 @@ internal object SQUtil {
     )
     symbol = "FRA\t:  GIL .F    ^EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -461,7 +460,7 @@ internal object SQUtil {
     )
     symbol = "\t: \n GIL .^EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
@@ -471,11 +470,11 @@ internal object SQUtil {
     )
     symbol = "FRA:   .F^EUR"
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println("Blank test: " + (if (data != null) "FAIL" else "pass"))
     symbol = "COS-UN ^CAD  "
     security.setTickerSymbol(symbol)
-    data = parseTickerSymbol(security) ?: return AppDebug.ALL.log("Null value from parseTickerSymbol($security)")
+    data = parseTickerSymbol(security) ?: return QER_LOG.log("Null value from parseTickerSymbol($security)")
     System.err.println(
       ("Symbol '" + symbol + "' ="
        + "  prefix: " + (if (data!!.prefix == null) "(null)" else "'" + data.prefix + "'")
