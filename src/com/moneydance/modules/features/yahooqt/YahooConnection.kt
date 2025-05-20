@@ -190,8 +190,8 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
       lowValues.getSafeDouble(i)?.let { candle.low = it.priceHintRound(priceHint) }
       highValues.getSafeDouble(i)?.let { candle.high = it.priceHintRound(priceHint) }
       closeValues.getSafeDouble(i)?.let { candle.close = it.priceHintRound(priceHint) }
-      
-      records.add(StockRecord(candle, downloadInfo.priceMultiplier))
+      if (candle.datetime > 0 && candle.close > 0.0) // protect against scenario where the date is present with no valid (or null) data for that date.
+        records.add(StockRecord(candle, downloadInfo.priceMultiplier))
     }
     downloadInfo.addHistoryRecords(records.sortedBy { it.date })
   }
@@ -204,15 +204,22 @@ class YahooConnection private constructor(model: StockQuotesModel, connectionTyp
     
     val startTime = convertIntDateToLong(dateRange.startDateInt).time / 1000
     val endTime = convertIntDateToLong(dateRange.endDateInt).time / 1000
-    val queryURL = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodedTicker +
-                   "?period1=" + startTime +
-                   "&period2=" + endTime +
-                   "&interval=1d" +
-                   "&includePrePost=true" +
-                   "&events=div%7Csplit%7Cearn" +  // possibly "events=history" 
-                   "&lang=en-US" +
-                   "&region=US"
-    return queryURL
+    
+    val baseURL = "https://query1.finance.yahoo.com/v8/finance/chart/$encodedTicker"
+    val commonParams = listOf(
+      "interval=1d",
+      "includePrePost=true",
+      "events=div%7Csplit%7Cearn", // possibly "events=history"
+      "lang=en-US",
+      "region=US"
+    )
+    
+    val queryURL = if (DateUtil.calculateDaysBetween(dateRange.startDateInt, dateRange.endDateInt) <= 5) {
+      "$baseURL?range=5d&${commonParams.joinToString("&")}"
+    } else {
+      "$baseURL?period1=${startTime}&period2=${endTime}&${commonParams.joinToString("&")}"
+    }
+      return queryURL
   }
   
   private fun Double.priceHintRound(hint: Int?): Double {

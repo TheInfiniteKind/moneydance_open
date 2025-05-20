@@ -13,6 +13,7 @@ import com.infinitekind.util.DateUtil.convertDateToInt
 import com.moneydance.apps.md.controller.Util
 import com.moneydance.modules.features.yahooqt.tdameritrade.Candle
 import java.util.*
+import kotlin.system.exitProcess
 
 /**
  * Stores a single entry for a historical price entry (snapshot) for a security.
@@ -75,6 +76,10 @@ class StockRecord : Comparable<StockRecord> {
   
   fun apply(security: CurrencyType, priceCurrency: CurrencyType): CurrencySnapshot {
     // all snapshots are recorded in terms of the base currency.
+
+    // don't update the price if one already exists...
+    security.getSnapshotForDate(date)?.let { if (it.dateInt == date) return it}
+
     val newRate = priceCurrency.getUserRateByDateInt(date) * closeRate
     val result = security.setSnapshotInt(date, newRate)
     // downloaded values are prices in a certain currency, change to rates for the stock history
