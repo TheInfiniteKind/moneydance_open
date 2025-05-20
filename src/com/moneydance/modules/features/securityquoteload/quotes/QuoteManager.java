@@ -47,6 +47,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import com.moneydance.modules.features.securityquoteload.Parameters;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -74,6 +75,7 @@ public class QuoteManager implements QuoteListener {
     private int successful = 0;
     private int failed = 0;
     private boolean throttleRequired;
+  	private Parameters params = Parameters.getParameters();
 
     public void getQuotes(String request) {
         stocks = new ArrayList<String>();
@@ -237,8 +239,11 @@ public class QuoteManager implements QuoteListener {
             case Constants.SOURCEYAHOO -> {
                 Long timeout;
                 timeout = (stocks.size() + currencies.size()) * 20l;
-                throttleRequired = true;
-                Main.extension.setThrottleMessage();
+                throttleRequired = params.getYahooThrottle();
+                if (throttleRequired)
+                  Main.extension.setThrottleMessage();
+                else
+                  Main.extension.unsetThrottleMessage();
                 if ((stocks.size() + currencies.size()) < 100)
                         timeout = 180L;
                     else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
@@ -299,8 +304,11 @@ public class QuoteManager implements QuoteListener {
             case Constants.SOURCEYAHOOHIST -> {
                 Long timeout;
                 timeout = (stocks.size() + currencies.size()) * 10l;
-                throttleRequired = true;
-                Main.extension.setThrottleMessage();
+                throttleRequired = params.getYahooThrottle();
+                if (throttleRequired)
+                  Main.extension.setThrottleMessage();
+                else
+                  Main.extension.unsetThrottleMessage();
                 if ((stocks.size() + currencies.size()) < 100)
                     timeout = 180L;
                 else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
