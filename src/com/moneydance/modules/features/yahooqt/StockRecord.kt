@@ -13,7 +13,6 @@ import com.infinitekind.util.DateUtil.convertDateToInt
 import com.moneydance.apps.md.controller.Util
 import com.moneydance.modules.features.yahooqt.tdameritrade.Candle
 import java.util.*
-import kotlin.system.exitProcess
 
 /**
  * Stores a single entry for a historical price entry (snapshot) for a security.

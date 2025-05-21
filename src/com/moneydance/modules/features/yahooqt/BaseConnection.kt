@@ -98,7 +98,6 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
     val res = model.resources
     var progressPercent = 0.0f
     val progressIncrement = if (securitiesToUpdate.isEmpty()) 1.0f else 1.0f / securitiesToUpdate.size.toFloat()
-    val success = true
     for (downloadInfo in securitiesToUpdate) {
       QER_LOG.log("updating security: ${downloadInfo.security} (${downloadInfo.fullTickerSymbol}) from ${connectionID}")
       updateSecurity(downloadInfo)
