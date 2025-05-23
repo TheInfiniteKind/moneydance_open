@@ -87,7 +87,6 @@ public class Parameters{
 	private  Integer timeOfRun;
 	private String alphaAPIKey;
 	private String uaParam;
-	private  boolean throttleYahoo;
 	private  char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
 	private int noDecimals;
@@ -235,7 +234,6 @@ public class Parameters{
 		this.displayOption=newParams.getDisplayOption();
 		this.alphaAPIKey = newParams.getAlphaAPIKey();
 		this.uaParam = newParams.getUaParam();
-    this.throttleYahoo = newParams.isThrottleYahoo();
 
 		savedAccounts = new TreeMap<>();
 		buildAccounts();
@@ -491,17 +489,6 @@ public class Parameters{
 
 
 	/*
-	 * Throttle Yahoo (or not)
-	 */
-	public boolean getYahooThrottle() {
-		return throttleYahoo;
-	}
-	public void setYahooThrottle(boolean throttleYahoo){
-		this.throttleYahoo = throttleYahoo;
-		isDirty=true;
-	}
-
-	/*
 	 * Accounts
 	 * 
 	 * Only valid sources are stored.   'Do Not Load' is not stored
@@ -620,7 +607,6 @@ public class Parameters{
 		newParams.setListAccounts(listNewAccounts);
 		newParams.setAlphaAPIKey(alphaAPIKey);
 		newParams.setUaParam(uaParam);
-    newParams.setThrottleYahoo(throttleYahoo);
 
 		/*
 		 * create the file

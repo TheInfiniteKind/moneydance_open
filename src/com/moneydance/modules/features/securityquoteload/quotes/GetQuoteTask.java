@@ -36,6 +36,7 @@ package com.moneydance.modules.features.securityquoteload.quotes;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpStatus;
@@ -79,10 +80,14 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 			uri= new URI(url.trim());
 			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Processing  "+ticker+" URI:"+uri.toASCIIString());
       try {
-        if (throttleRequired) TimeUnit.SECONDS.sleep(2);
+        if (throttleRequired)
+          TimeUnit.MILLISECONDS.sleep(ThreadLocalRandom.current().nextInt(1000, 2001)); // randomized delay between 1 and 2 seconds
+        else
+          TimeUnit.MILLISECONDS.sleep(ThreadLocalRandom.current().nextInt(100, 251));   // randomized delay between 100 and 250 milliseconds
       } catch (InterruptedException e) {
-        debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "throttle sleep aborted? (will continue)");
-        e.printStackTrace();
+        debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "The task for ticker: '" + ticker + "' has been cancelled during its throttle / sleep... quitting this task");
+        Thread.currentThread().interrupt(); // restore interrupt status
+        return quotePrice;
       }
 			HttpGet httpGet = new HttpGet(uri);
 			httpGet.addHeader("Accept-Language","en");

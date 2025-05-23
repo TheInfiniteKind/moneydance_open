@@ -69,6 +69,7 @@ import com.moneydance.modules.features.securityquoteload.view.CalculateRunDate;
  */
 
 public class Main extends FeatureModule {
+    public static boolean THROTTLE_YAHOO = true;
     public static CustomDateFormat cdate;
     public static Integer today;
     public static char decimalChar;
