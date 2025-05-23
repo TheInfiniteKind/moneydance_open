@@ -614,7 +614,7 @@ public class SecTableModel extends DefaultTableModel {
 		Double multiplier = Math.pow(10.0, Double.valueOf(params.getDecimal()));
 		dRate = Math.round(dRate * multiplier) / multiplier;
 		dRate = 1 / Util.safeRate(dRate);
-		debugInst.debug("MyTableModel", "updateLine", MRBDebug.DETAILED, "cummulative price " + dRate);
+		debugInst.debug("MyTableModel", "updateLine", MRBDebug.DETAILED, "cumulative price " + dRate);
 		ctTicker.setEditingMode();
 		objSnap = ctTicker.setSnapshotInt(tradeDate, dRate, ctRelative);
 		if (acct.getVolume() != null) {
