@@ -628,6 +628,13 @@ public class Main extends FeatureModule {
               debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "process command invoked " + command);
 			Integer totalQuotes;
             switch (command) {
+
+              case Constants.SAVECMD -> {
+                if (frame != null) {
+                  frame.save();  // This should be executed off the EDT and on the process command thread...
+                }
+              }
+
 				case Constants.RUNSTANDALONECMD -> {
 					if (!cmdParam.equalsIgnoreCase("quit") && !cmdParam.equalsIgnoreCase("noquit")) {
 						JOptionPane.showMessageDialog(null, "Invalid Quote Loader runauto parameter: " + cmdParam,
