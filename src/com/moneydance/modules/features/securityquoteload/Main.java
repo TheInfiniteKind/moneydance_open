@@ -69,6 +69,7 @@ import com.moneydance.modules.features.securityquoteload.view.CalculateRunDate;
  */
 
 public class Main extends FeatureModule {
+    public static boolean THROTTLE_YAHOO = true;
     public static CustomDateFormat cdate;
     public static Integer today;
     public static char decimalChar;
@@ -617,7 +618,7 @@ public class Main extends FeatureModule {
                     }
                     processCommand(args.getCommand(), args.uri);
                 } catch (InterruptedException e) {
-                    debugInst.debug("Quote Load", "ProcessWorker", MRBDebug.DETAILED, "Process Worker interupted");
+                    debugInst.debug("Quote Load", "ProcessWorker", MRBDebug.DETAILED, "Process Worker interrupted");
                     done = true;
                 }
             }
@@ -627,6 +628,13 @@ public class Main extends FeatureModule {
               debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "process command invoked " + command);
 			Integer totalQuotes;
             switch (command) {
+
+              case Constants.SAVECMD -> {
+                if (frame != null) {
+                  frame.save();  // This should be executed off the EDT and on the process command thread...
+                }
+              }
+
 				case Constants.RUNSTANDALONECMD -> {
 					if (!cmdParam.equalsIgnoreCase("quit") && !cmdParam.equalsIgnoreCase("noquit")) {
 						JOptionPane.showMessageDialog(null, "Invalid Quote Loader runauto parameter: " + cmdParam,

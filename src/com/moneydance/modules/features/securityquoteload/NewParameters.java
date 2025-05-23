@@ -49,7 +49,6 @@ public class NewParameters {
 	private String exportFolder;
 	private String alphaAPIKey;
 	private String uaParam;
-  private boolean throttleYahoo;
   private List<NewAccountLine> listAccounts;
 
 	public  NewParameters(){
@@ -64,7 +63,6 @@ public class NewParameters {
 		amtHistory=0;
 		alphaAPIKey="";
 		uaParam = "";
-    throttleYahoo = true;
 		listAccounts = new ArrayList<>();
 	}
 	/**
@@ -122,12 +120,7 @@ public class NewParameters {
 	public String getUaParam() {
 		return uaParam;
 	}
-	/**
-	 * @return Throttle Yahoo param
-	 */
-	public boolean isThrottleYahoo() {
-		return throttleYahoo;
-	}
+
 	/**
 	 * @return the listAccounts
 	 */
@@ -216,5 +209,4 @@ public class NewParameters {
 		this.alphaAPIKey = alphaAPIKey;
 	}
 	public void setUaParam(String uaParam) { this.uaParam = uaParam; }
-	public void setThrottleYahoo(boolean throttle) { this.throttleYahoo = throttle; }
 }
