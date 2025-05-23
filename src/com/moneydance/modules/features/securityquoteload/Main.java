@@ -617,7 +617,7 @@ public class Main extends FeatureModule {
                     }
                     processCommand(args.getCommand(), args.uri);
                 } catch (InterruptedException e) {
-                    debugInst.debug("Quote Load", "ProcessWorker", MRBDebug.DETAILED, "Process Worker interupted");
+                    debugInst.debug("Quote Load", "ProcessWorker", MRBDebug.DETAILED, "Process Worker interrupted");
                     done = true;
                 }
             }
