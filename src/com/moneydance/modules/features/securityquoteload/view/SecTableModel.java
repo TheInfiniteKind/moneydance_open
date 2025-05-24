@@ -46,6 +46,7 @@ import java.util.TreeMap;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
+import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.DateUtil;
@@ -574,6 +575,7 @@ public class SecTableModel extends DefaultTableModel {
 		 */
 
 	public boolean updateLine(SecurityTableLine acct, BufferedWriter exportFile, boolean exportOnly) {
+		debugInst.debug("SecTableModel", "updateLine", MRBDebug.DETAILED, "starting security: " + acct.getTicker());
 		CurrencyType ctTicker;
 		CurrencyType ctRelative = null;
 		double dRate;
@@ -611,6 +613,9 @@ public class SecTableModel extends DefaultTableModel {
 		}
 		if (exportOnly)
 			return true;
+
+    AccountBook book = ctTicker.getBook();
+
 		Double multiplier = Math.pow(10.0, Double.valueOf(params.getDecimal()));
 		dRate = Math.round(dRate * multiplier) / multiplier;
 		dRate = 1 / Util.safeRate(dRate);
@@ -638,6 +643,8 @@ public class SecTableModel extends DefaultTableModel {
 				objSnap.setDailyLow(rate);
 			}
 		}
+    book.queueModifiedItem(objSnap);
+
 		int priceDate = DateUtil.convertLongDateToInt(ctTicker.getLongParameter("price_date", 0));
 		if (params.isOverridePrice()) {
 			ctTicker.setRate(Util.safeRate(dRate), ctRelative);
@@ -656,12 +663,11 @@ public class SecTableModel extends DefaultTableModel {
 				}
 			}
 		}
-		objSnap.syncItem();
-		ctTicker.syncItem();
+
 //		acct.setSelected(false);
 		if (acct.getHistory() != null) {
 			List<HistoryPrice> historyList = acct.getHistory();
-			ctTicker.setEditingMode();
+  		debugInst.debug("SecTableModel", "updateLine", MRBDebug.DETAILED, "... history count: " + historyList.size());
 			for (HistoryPrice priceItem : historyList) {
 				dRate = priceItem.getPrice();
 				dViewRate = 1.0;
@@ -687,10 +693,10 @@ public class SecTableModel extends DefaultTableModel {
 					rate = 1 / Util.safeRate(rate);
 					objSnap.setDailyLow(rate);
 				}
-				objSnap.syncItem();
+        book.queueModifiedItem(objSnap);
 			}
-			ctTicker.syncItem();
 		}
+
 		// update screen data
 		acct.setLastPrice(acct.getNewPrice());
 		acct.setPriceDate(acct.getTradeDate());
@@ -702,6 +708,11 @@ public class SecTableModel extends DefaultTableModel {
 		acct.setVolume(null);
 		acct.setHistory(null);
 		acct.setTickerStatus(0);
+
+    ctTicker.clearEditingMode();
+    book.queueModifiedItem(ctTicker);
+
+		debugInst.debug("SecTableModel", "updateLine", MRBDebug.DETAILED, "finished security: " + ctTicker);
 		return true;
 	}
 
