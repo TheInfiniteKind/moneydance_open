@@ -45,6 +45,7 @@ import java.util.SortedMap;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
+import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.DateUtil;
@@ -430,6 +431,7 @@ public class CurTableModel extends DefaultTableModel {
 	 * update line
 	 */
 	public boolean updateLine(CurrencyTableLine line, BufferedWriter exportFile, boolean exportOnly) {
+		debugInst.debug("CurTableModel", "updateLine", MRBDebug.DETAILED, "starting currency: " + line.getCurrencyType());
 		/*
 		 * Update line for currency
 		 */
@@ -454,7 +456,10 @@ public class CurTableModel extends DefaultTableModel {
 		if (exportOnly)
 			return true;
 
+    AccountBook book = ctTicker.getBook();
+
 		ctTicker.setEditingMode();
+
 		objSnap = ctTicker.setSnapshotInt(tradeDate, dRate);
 		int priceDate = DateUtil.convertLongDateToInt(ctTicker.getLongParameter("price_date", 0));
 		if (params.isOverridePrice()) {
@@ -474,15 +479,15 @@ public class CurTableModel extends DefaultTableModel {
 				}
 			}
 		}
-		objSnap.syncItem();
+    book.queueModifiedItem(objSnap);
+
 		line.setSelected(false);
 		if (line.getHistory() != null) {
 			List<HistoryPrice> historyList = line.getHistory();
-			ctTicker.setEditingMode();
 			for (HistoryPrice priceItem : historyList) {
 				dRate = priceItem.getPrice();
 				objSnap = ctTicker.setSnapshotInt(priceItem.getDate(), dRate);
-				objSnap.syncItem();
+        book.queueModifiedItem(objSnap);
 			}
 		}
 		line.setLastPrice(line.getNewPrice());
@@ -494,7 +499,9 @@ public class CurTableModel extends DefaultTableModel {
 		line.setTickerStatus(0);
 		line.setHistory(null);
 
-		ctTicker.syncItem();
+		ctTicker.clearEditingMode();
+    book.queueModifiedItem(ctTicker);
+		debugInst.debug("CurTableModel", "updateLine", MRBDebug.DETAILED, "finished currency: " + ctTicker);
 		return true;
 	}
 

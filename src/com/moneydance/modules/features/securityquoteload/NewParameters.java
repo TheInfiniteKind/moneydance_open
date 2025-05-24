@@ -48,6 +48,7 @@ public class NewParameters {
 	private Integer amtHistory;
 	private String exportFolder;
 	private String alphaAPIKey;
+  private Integer alphaPlan;
 	private String uaParam;
   private List<NewAccountLine> listAccounts;
 
@@ -61,6 +62,7 @@ public class NewParameters {
 		overridePrice= false;
 		displayOption = 0;
 		amtHistory=0;
+    alphaPlan=Parameters.alphaPlans[0];
 		alphaAPIKey="";
 		uaParam = "";
 		listAccounts = new ArrayList<>();
@@ -154,6 +156,9 @@ public class NewParameters {
 	public Integer getNewNoDecimals() {
 		return newNoDecimals;
 	}
+	public Integer getAlphaPlan() {
+    return (alphaPlan == null || alphaPlan < Parameters.alphaPlans[0]) ? Parameters.alphaPlans[0] : alphaPlan;
+  }
 
 	/**
 	 * @param listAccounts the listAccounts to set
@@ -204,9 +209,7 @@ public class NewParameters {
 		this.displayOption = displayOption;
 	}
 	public void setAmtHistory(Integer amtHistory) {	this.amtHistory = amtHistory;}
-
-	public void setAlphaAPIKey(String alphaAPIKey) {
-		this.alphaAPIKey = alphaAPIKey;
-	}
+	public void setAlphaAPIKey(String alphaAPIKey) { this.alphaAPIKey = alphaAPIKey; }
+	public void setAlphaPlan(Integer alphaPlan) { this.alphaPlan = alphaPlan; }
 	public void setUaParam(String uaParam) { this.uaParam = uaParam; }
 }

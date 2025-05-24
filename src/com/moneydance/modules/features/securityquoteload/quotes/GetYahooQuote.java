@@ -72,8 +72,8 @@ public class GetYahooQuote extends GetQuoteTask {
     private List<String> highs;
     Integer lastPriceDate;
 
-    public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, boolean throttleRequired) {
-        super(ticker, listener, httpClient, tickerType, tid, throttleRequired);
+    public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, int throttleDelayMinMS, int throttleDelayMaxMS) {
+        super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS);
         String convTicker = ticker.replace("^", "%5E");
         if (tickerType == Constants.STOCKTYPE)
             url = yahooSecURL + convTicker + "?p=" + convTicker + "&.tscr=fin-srch";
@@ -81,8 +81,8 @@ public class GetYahooQuote extends GetQuoteTask {
             url = yahooCurrURL + convTicker + "?p=" + convTicker;
         debugInst.debug("GetYahooQuote", "GetYahooQuote", MRBDebug.DETAILED, "Executing :" + url);
     }
-    public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate,boolean history, boolean throttleRequired) {
-        super(ticker, listener, httpClient, tickerType, tid, throttleRequired);
+    public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate,boolean history, int throttleDelayMinMS, int throttleDelayMaxMS) {
+        super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS);
         this.history = history;
         int  historyDateInt = DateUtil.incrementDate(Main.today,0,-(params.getAmtHistory()+1),0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
