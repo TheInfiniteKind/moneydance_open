@@ -54,16 +54,19 @@ import com.moneydance.modules.features.securityquoteload.QuotePrice;
 
 public class GetQuoteTask extends QuoteTask<QuotePrice> {
 	Parameters params = Parameters.getParameters();
-  boolean throttleRequired;
+  int throttleDelayMinMS;
+  int throttleDelayMaxMS;
 
-	public GetQuoteTask (String ticker, QuoteListener listener, CloseableHttpClient httpClient,String tickerType,String tid) {
+	public GetQuoteTask(String ticker, QuoteListener listener, CloseableHttpClient httpClient,String tickerType,String tid) {
 		super(ticker,listener, httpClient,tickerType,tid);
-    this.throttleRequired = false;
+    this.throttleDelayMinMS = 0;
+    this.throttleDelayMaxMS = 0;
 	}
 
-  public GetQuoteTask(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, boolean throttleRequired) {
+  public GetQuoteTask(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, int throttleDelayMinMS, int throttleDelayMaxMS) {
     super(ticker, listener, httpClient, tickerType, tid);
-    this.throttleRequired = throttleRequired;
+    this.throttleDelayMinMS = throttleDelayMinMS;
+    this.throttleDelayMaxMS = throttleDelayMaxMS;
   }
 
 	@Override
@@ -78,16 +81,19 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 		URI uri=null;
 		try {
 			uri= new URI(url.trim());
-			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Processing  "+ticker+" URI:"+uri.toASCIIString());
-      try {
-        if (throttleRequired)
-          TimeUnit.MILLISECONDS.sleep(ThreadLocalRandom.current().nextInt(1000, 2001)); // randomized delay between 1 and 2 seconds
-        else
-          TimeUnit.MILLISECONDS.sleep(ThreadLocalRandom.current().nextInt(100, 251));   // randomized delay between 100 and 250 milliseconds
-      } catch (InterruptedException e) {
-        debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "The task for ticker: '" + ticker + "' has been cancelled during its throttle / sleep... quitting this task");
-        Thread.currentThread().interrupt(); // restore interrupt status
-        return quotePrice;
+			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Processing  "+ticker+" URI:"+uri.toASCIIString() + "(throttle delay/sleep per call - min: " + (throttleDelayMinMS/1000.0) + " max: " + (throttleDelayMaxMS/1000.0) + ")");
+      if (throttleDelayMinMS > 0) {
+        try {
+          if (throttleDelayMaxMS > throttleDelayMinMS) {
+            TimeUnit.MILLISECONDS.sleep(ThreadLocalRandom.current().nextInt(throttleDelayMinMS, throttleDelayMaxMS+1)); // randomized delay between min and max milli-seconds
+          } else {
+            TimeUnit.MILLISECONDS.sleep(throttleDelayMinMS);
+          }
+        } catch (InterruptedException e) {
+          debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "The task for ticker: '" + ticker + "' has been cancelled during its throttle / sleep... quitting this task");
+          Thread.currentThread().interrupt(); // restore interrupt status
+          return quotePrice;
+        }
       }
 			HttpGet httpGet = new HttpGet(uri);
 			httpGet.addHeader("Accept-Language","en");

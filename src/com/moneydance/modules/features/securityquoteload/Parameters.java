@@ -59,6 +59,7 @@ public class Parameters{
 	private  AccountBook curAcctBook;
 	private  File curFolder;
 	private  String fileName;
+	public  static Integer [] alphaPlans = {5,75,150,300,600,1200};
 	public  static Integer [] multipliers = {-4,-3,-2,-1,0,1,2,3,4};
 	public  static String[] CURRENCYDATES = {"Trade Date","Today's Date"};
 	public  static int USETRADEDATE = 0;
@@ -87,6 +88,7 @@ public class Parameters{
 	private  Integer timeOfRun;
 	private String alphaAPIKey;
 	private String uaParam;
+  private Integer alphaPlan;
 	private  char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
 	private int noDecimals;
@@ -233,6 +235,7 @@ public class Parameters{
 		this.amtHistory= newParams.getAmtHistory();
 		this.displayOption=newParams.getDisplayOption();
 		this.alphaAPIKey = newParams.getAlphaAPIKey();
+		this.alphaPlan = newParams.getAlphaPlan();
 		this.uaParam = newParams.getUaParam();
 
 		savedAccounts = new TreeMap<>();
@@ -475,6 +478,18 @@ public class Parameters{
 		isDirty=true;
 	}
 	/*
+  	 * Alpha Vantage API Plan ID
+	 */
+
+	public Integer getAlphaPlan() {
+		return (alphaPlan == null || alphaPlan < Parameters.alphaPlans[0]) ? Parameters.alphaPlans[0] : alphaPlan;
+	}
+
+	public void setAlphaPlan(Integer alphaPlan) {
+		this.alphaPlan = alphaPlan;
+		isDirty=true;
+	}
+	/*
 	 * User Agent
 	 */
 
@@ -606,6 +621,7 @@ public class Parameters{
 		newParams.setDisplayOption(displayOption);
 		newParams.setListAccounts(listNewAccounts);
 		newParams.setAlphaAPIKey(alphaAPIKey);
+		newParams.setAlphaPlan(alphaPlan);
 		newParams.setUaParam(uaParam);
 
 		/*
@@ -640,6 +656,7 @@ public class Parameters{
 		this.overridePrice = newParams.isOverridePrice();
 		this.amtHistory= newParams.getAmtHistory();
 		this.alphaAPIKey= newParams.getAlphaAPIKey();
+		this.alphaPlan= newParams.getAlphaPlan();
 		this.uaParam= newParams.getUaParam();
 		this.displayOption=newParams.getDisplayOption();
 		isDirty=false;

@@ -41,6 +41,7 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.util.Objects;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -96,6 +97,7 @@ public class ParameterTab extends DisplayTab {
 	private Boolean saveAutoChange;
 	private JLabel alphaLbl;
 	private JTextField alphaKey;
+	private JComboBox<Integer> alphaPlanCombo;
 	private JLabel uaLabel;
 	private JTextField uaParam;
   private MyCheckBox throttleYahooTF; // readonly setting (for info)
@@ -751,8 +753,22 @@ public class ParameterTab extends DisplayTab {
 		});
 		alphaKey.setPreferredSize(new Dimension(150,20));
 		mainPanel.add(alphaLbl, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
-		mainPanel.add(alphaKey, GridC.getc(gridx, gridy++).insets(5,5,5,5).west());
-		gridx=1;
+		mainPanel.add(alphaKey, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
+
+		JLabel lblAplhaPlan = new JLabel("API calls per minute:");
+		mainPanel.add(lblAplhaPlan, GridC.getc(gridx++, gridy).east().insets(5, 5, 5, 0));
+
+    alphaPlanCombo = new JComboBox<>(Parameters.alphaPlans);
+    alphaPlanCombo.setToolTipText("Select your Alpha Vantage API plan (requests per minute) 5 = Free Plan");
+    alphaPlanCombo.addActionListener(e -> {
+      @SuppressWarnings("unchecked")
+      JComboBox<Integer> cbPlan = (JComboBox<Integer>) e.getSource();
+      Integer newPlan = (Integer) cbPlan.getSelectedItem();
+      params.setAlphaPlan(newPlan == null ? Parameters.alphaPlans[0] : newPlan);
+    });
+    mainPanel.add(alphaPlanCombo, GridC.getc(gridx++, gridy++).west().insets(5, 5, 5, 0));
+
+    gridx=1;
 		uaLabel = new JLabel("User Agent");
 		uaParam = new JTextField();
     uaParam.setToolTipText("ADVANCED. Normally blank to use rotating/random user-agent browser header(s). Manually override when using Yahoo as a quote source to bypass 429/rate errors");
@@ -784,12 +800,6 @@ public class ParameterTab extends DisplayTab {
 		saveParams.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL,
-						MRBDebug.INFO) != Main.debugInst.getDebugLevel()) {
-					Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL,
-							Main.debugInst.getDebugLevel());
-					Main.preferences.isDirty();
-				}
 				params.save();
 				JOptionPane.showMessageDialog(null, "Changes Saved");
 			}
@@ -855,7 +865,6 @@ public class ParameterTab extends DisplayTab {
 			curSepTab.setVisible(false);
 		}
 
-		decimalComBo.setSelectedIndex(params.getDecimal() - 2);
 		fileName.setText("Export Folder : " + params.getExportFolder());
 		if (params.getDisplayOption() == Constants.CurrencyDisplay.SAME) {
 			curSamePage.setSelected(true);
@@ -885,6 +894,19 @@ public class ParameterTab extends DisplayTab {
 		default:
 			conOff.setSelected(true);
 		}
+
+    // iterate the alpha plan entries and select the right one...
+    Integer currentPlan = params.getAlphaPlan();
+    for (int i = 0; i < alphaPlanCombo.getItemCount(); i++) {
+      Integer item = alphaPlanCombo.getItemAt(i);
+      if (item != null && Objects.equals(item, currentPlan)) {
+        alphaPlanCombo.setSelectedIndex(i);
+        break;
+      }
+    }
+    if (alphaPlanCombo.getSelectedItem() == null) {
+      alphaPlanCombo.setSelectedIndex(0); // default to the free option
+    }
 
 		params.setDirty(false);
 
