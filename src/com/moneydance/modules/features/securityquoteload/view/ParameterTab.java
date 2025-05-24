@@ -679,7 +679,7 @@ public class ParameterTab extends DisplayTab {
 							"Debug level set to OFF");
 					Main.debugInst.setDebugLevel(MRBDebug.OFF);
 				}
-				params.setDirty(true);
+        saveDebugParam();
 			}
 		});
 		conInfo = new JRadioButton("Info");
@@ -691,7 +691,7 @@ public class ParameterTab extends DisplayTab {
 					Main.debugInst.setDebugLevel(MRBDebug.INFO);
 					reportConsoleChg();
 				}
-				params.setDirty(true);
+        saveDebugParam();
 			}
 		});
 		conSummary = new JRadioButton("Summary");
@@ -703,7 +703,7 @@ public class ParameterTab extends DisplayTab {
 					Main.debugInst.setDebugLevel(MRBDebug.SUMMARY);
 					reportConsoleChg();
 				}
-				params.setDirty(true);
+        saveDebugParam();
 			}
 		});
 		conDetailed = new JRadioButton("Detailed");
@@ -715,7 +715,7 @@ public class ParameterTab extends DisplayTab {
 					Main.debugInst.setDebugLevel(MRBDebug.DETAILED);
 					reportConsoleChg();
 				}
-				params.setDirty(true);
+        saveDebugParam();
 			}
 		});
 		conOption = new ButtonGroup();
@@ -818,6 +818,13 @@ public class ParameterTab extends DisplayTab {
 
 
 	}
+
+  private void saveDebugParam() {
+    if (Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.INFO) != Main.debugInst.getDebugLevel()) {
+      Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, Main.debugInst.getDebugLevel());
+      Main.preferences.isDirty();
+    }
+  }
 
 	private void reportConsoleChg() {
 		String debug;
