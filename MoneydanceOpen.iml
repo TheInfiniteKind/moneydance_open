@@ -80,5 +80,23 @@
     <orderEntry type="library" name="Kolin SDK (for Open)" level="application" />
     <orderEntry type="module" module-name="MoneydanceMP" />
     <orderEntry type="module" module-name="MoneydanceMP.core.main" />
+    <orderEntry type="module-library" scope="PROVIDED">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/httpcore-4.4.16.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" scope="PROVIDED">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/httpclient-4.5.14.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>
