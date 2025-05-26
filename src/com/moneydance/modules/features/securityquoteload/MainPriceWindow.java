@@ -1458,6 +1458,10 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		}
 	}
 
+	public void getIndividualTicker(String url) {
+  // fixme - for future release (not currently called)
+	}
+
 	public synchronized void updatePrices(String url) throws QuoteException {
 		String uuid = "";
 		Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "Requested URI " + url);
