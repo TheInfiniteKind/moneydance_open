@@ -360,15 +360,18 @@ public class QuoteManager implements QuoteListener {
             case Constants.SOURCEALPHA -> {
                 Long timeout;
 
-              // Use the higher of observed latency or theoretical throttle to avoid overlap
-              int observedLatencyMS = 1000;       // we observe a 1 second process time
+              // Throttle delay (based on API plan)
               int theoreticalThrottleMS = (60000 / params.getAlphaPlan()) + 10;
-              int minThrottleMS = Math.max(observedLatencyMS, theoreticalThrottleMS);
-              int maxThrottleMS = minThrottleMS;  // no randomness needed for AV
+              int minThrottleMS = theoreticalThrottleMS;
+              int maxThrottleMS = theoreticalThrottleMS;
 
-              // Total timeout in seconds with 25% buffer
-              double actualDuration = (stocks.size() + currencies.size()) * (minThrottleMS / 1000.0);
-              timeout = Math.max(180, (long) (actualDuration * 1.3)); // add a 30% buffer to calculation
+              // Observed latency (used only for timeout estimation)
+              int observedLatencyMS = 1000;
+
+              // Calculate timeout in seconds with 30% buffer
+              double perCallDurationSec = Math.max(observedLatencyMS, theoreticalThrottleMS) / 1000.0;
+              double actualDuration = (stocks.size() + currencies.size()) * perCallDurationSec;
+              timeout = Math.max(180, (long) (actualDuration * 1.3));
 
               boolean onFirst = true;
                 for (String stock : stocks) {
