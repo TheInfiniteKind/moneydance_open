@@ -60,6 +60,7 @@ import com.moneydance.modules.features.securityquoteload.Constants;
 import com.moneydance.modules.features.securityquoteload.ExchangePopUp;
 import com.moneydance.modules.features.securityquoteload.Main;
 import com.moneydance.modules.features.securityquoteload.Parameters;
+import com.moneydance.modules.features.securityquoteload.AwtUtil;
 
 public class SecTable extends JTable {
 	private static final long serialVersionUID = 1L;
@@ -527,15 +528,17 @@ public class SecTable extends JTable {
 
 	}
 
-	private void displayExchangeTicker(int row) {
+	private void displayExchangeTicker(int row, int selCol) {
 		int modRow = tableObj.convertRowIndexToModel(row);
 		debugInst.debug("SecTable", "displayExchangeTicker", MRBDebug.SUMMARY, "on row " + row+"/"+modRow);
-		String ticker = (String) dm.getValueAt(modRow, tickerCol);
+		String origticker = (String) dm.getValueAt(modRow, tickerCol);
+		String ticker = origticker;
 		if (ticker.contains(Constants.TICKEREXTID))
 			return;
 		String exchange = (String) dm.getValueAt(modRow, exchangeCol);
 		String source = (String) dm.getValueAt(modRow, sourceCol);
 		String alternate = (String)dm.getValueAt(modRow, altTickerCol);
+    String nameStr = (String)dm.getValueAt(modRow, accountCol);
 		int sourceid = 0;
 		String tickerSource = "";
 		for (int i = 0; i < Constants.SOURCELITS.length; i++) {
@@ -545,54 +548,100 @@ public class SecTable extends JTable {
 				break;
 			}
 		}
-		if (tickerSource.isEmpty()) {
-			JOptionPane.showMessageDialog(null, "You must select a source before testing");
-			return;
-		}
 		if (!alternate.isBlank())
 			ticker = alternate;
 		if (exchange != null && !exchange.isEmpty())
 			ticker = params.getNewTicker(ticker, exchange, alternate,sourceid);
-		Rectangle rect = this.getCellRect(row, exchangeCol, false);
+		Rectangle rect = this.getCellRect(row, selCol, false);
 		final String tickerFinal = ticker;
+		final String origTickerFinal = origticker;
+		final String altTickerFinal = alternate;
+		final String nameFinal = nameStr;
 		final String sourceFinal = tickerSource;
 		final String exchangeFinal = exchange;
 		ActionListener tickerListener = new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent aeEvent) {
 				String strAction = aeEvent.getActionCommand();
-				if (strAction.contains("Test")) {
+				if (strAction.equals("test-ticker")) {
 					String source = (String) dm.getValueAt(modRow, sourceCol);
 					if (source.equals(Constants.DONOTLOAD)) {
 						JOptionPane.showMessageDialog(null, "You must select a source before testing");
 						return;
 					}
-					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":"
-							+ Constants.TESTTICKERCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
+					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.TESTTICKERCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
 				}
-				if (strAction.contains("Copy")) {
-					StringSelection stringSelection = new StringSelection(tickerFinal);
+				if (strAction.equals("get-ticker")) {
+					String source = (String) dm.getValueAt(modRow, sourceCol);
+					if (source.equals(Constants.DONOTLOAD)) {
+						JOptionPane.showMessageDialog(null, "You must select a source before getting a single price");
+						return;
+					}
+					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.GETINDIVIDUALCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
+				}
+				if (strAction.equals("copy-ticker")) {
+					StringSelection stringSelection = new StringSelection(origTickerFinal);
 					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 					clipboard.setContents(stringSelection, null);
-					;
 				}
-				if (strAction.contains("Set")) {
+				if (strAction.equals("copy-alt-ticker")) {
+					StringSelection stringSelection = new StringSelection(altTickerFinal);
+					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+					clipboard.setContents(stringSelection, null);
+				}
+				if (strAction.equals("copy-name")) {
+					StringSelection stringSelection = new StringSelection(nameFinal);
+					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+					clipboard.setContents(stringSelection, null);
+				}
+				if (strAction.equals("set-ex")) {
 					dm.selectAllExchanges(exchangeFinal);
 					dm.fireTableDataChanged();
 				}
 			}
 		};
 		JPopupMenu menu = new JPopupMenu();
-		JMenuItem test = new JMenuItem("Test " + ticker);
-		test.addActionListener(tickerListener);
-		JMenuItem copy = new JMenuItem("Copy " + ticker);
-		copy.addActionListener(tickerListener);
-		JMenuItem setAll = new JMenuItem("Set all exchanges to " + exchange);
+
+		JMenuItem getTickerMenu = new JMenuItem("Get: '" + ticker + "'");
+		getTickerMenu.addActionListener(tickerListener);
+    getTickerMenu.setActionCommand("get-ticker");
+
+		JMenuItem testTickerMenu = new JMenuItem("Test: '" + ticker + "'");
+		testTickerMenu.addActionListener(tickerListener);
+    testTickerMenu.setActionCommand("test-ticker");
+
+		JMenuItem copyTickerMenu = new JMenuItem("Copy ticker: '" + origticker + "'");
+		copyTickerMenu.addActionListener(tickerListener);
+    copyTickerMenu.setActionCommand("copy-ticker");
+
+		JMenuItem copyAltTickerMenu = new JMenuItem("Copy alt ticker: '" + alternate + "'");
+		copyAltTickerMenu.addActionListener(tickerListener);
+    copyAltTickerMenu.setActionCommand("copy-alt-ticker");
+
+		JMenuItem copyNameMenu = new JMenuItem("Copy name: '" + nameStr + "'");
+		copyNameMenu.addActionListener(tickerListener);
+    copyNameMenu.setActionCommand("copy-name");
+
+		JMenuItem setAll = new JMenuItem("Set all exchanges to: '" + exchange + "'");
 		setAll.addActionListener(tickerListener);
-		menu.add(test);
-		menu.add(copy);
-		menu.add(setAll);
-		menu.show(this, rect.x + rect.width, rect.y);
+    setAll.setActionCommand("set-ex");
+
+    //menu.add(getTickerMenu); // fixme - not currently enabled (for future release)
+    menu.add(testTickerMenu);
+
+    if (selCol == tickerCol && !origticker.isBlank())
+      menu.add(copyTickerMenu);
+
+    if (selCol == altTickerCol && !alternate.isBlank())
+      menu.add(copyAltTickerMenu);
+
+    if (selCol == accountCol && !nameStr.isBlank())
+      menu.add(copyNameMenu);
+
+    if (selCol == exchangeCol)
+      menu.add(setAll);
+
+    menu.show(this, rect.x + (rect.width / 2), rect.y);
 	}
 
 	public boolean getColumnWidthChanged() {
@@ -704,14 +753,31 @@ public class SecTable extends JTable {
 	}
 
 	private class TableMouseListener extends MouseAdapter {
-		@Override
+
+    @Override
 		public void mouseReleased(MouseEvent e) {
 			JTable tc = (JTable) e.getSource();
 			Point p = e.getPoint();
 			int row = tc.rowAtPoint(p);
-			if (tc.getSelectedColumn() == tickerCol) {
+      int col = tc.columnAtPoint(p);
+
+      // tell Swing that the row/column have been selected
+      if (row >= 0 && col >= 0) {
+        tc.setRowSelectionInterval(row, row);
+        tc.setColumnSelectionInterval(col, col);
+      }
+
+      int selCol = tc.getSelectedColumn();
+      int modRow=tableObj.convertRowIndexToModel(row);
+
+      if (AwtUtil.isPopupTrigger(e)) {
+        e.consume();
+        displayExchangeTicker(row, selCol);
+        return;
+      }
+
+			if (selCol == tickerCol) {
 				if (e.getClickCount() == 2) {
-					int modRow=tableObj.convertRowIndexToModel(row);
 					SecurityTableLine acct = dm.getRowAccount(modRow);
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
@@ -722,20 +788,15 @@ public class SecTable extends JTable {
 					});
 				}
 			}
-			if (tc.getSelectedColumn() == exchangeCol) {
-				if (SwingUtilities.isRightMouseButton(e) || e.isControlDown()) {
-					displayExchangeTicker(row);
-				} else {
-					if (e.getClickCount() == 2) {
-						int modRow=tableObj.convertRowIndexToModel(tc.getSelectedRow());
-						debugInst.debug("TableMouseListener", "exchange selected", MRBDebug.DETAILED,
-								"column " + exchangeCol + " row " + tc.getSelectedRow()+" mod row "+modRow);
-						Rectangle rect = tc.getCellRect(tc.getSelectedRow(), exchangeCol, false);
-						Point p2 = new Point(rect.x + rect.width, rect.y + rect.width);
-						showExchangePopup(modRow, p2);
-					}
-				}
-			}
+      if (selCol == exchangeCol) {
+        if (e.getClickCount() == 2) {
+          debugInst.debug("TableMouseListener", "exchange selected", MRBDebug.DETAILED,
+                          "column " + exchangeCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
+          Rectangle rect = tc.getCellRect(tc.getSelectedRow(), exchangeCol, false);
+          Point p2 = new Point(rect.x + rect.width, rect.y + rect.width);
+          showExchangePopup(modRow, p2);
+        }
+      }
 		}
 	}
 }

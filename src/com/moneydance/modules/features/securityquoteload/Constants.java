@@ -121,6 +121,7 @@ public abstract class Constants {
 	public static final String CHECKPROGRESSCMD = "checkprogress";
 	public static final String STARTQUOTECMD = "startQuote";
 	public static final String TESTTICKERCMD = "testticker";
+	public static final String GETINDIVIDUALCMD = "getsingleticker";
 	public static final String RUNAUTOCMD = "runauto";
 	public static final String CHECKAUTOCMD = "checkauto";
 	public static final String CHECKAUTOSYNC = "checkautosync";

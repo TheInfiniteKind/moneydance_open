@@ -830,6 +830,10 @@ public class Main extends FeatureModule {
 					javax.swing.SwingUtilities.invokeLater(() -> frame.testTicker(uri));
 					return;
 				}
+				case Constants.GETINDIVIDUALCMD -> {
+					javax.swing.SwingUtilities.invokeLater(() -> frame.getIndividualTicker(uri));
+					return;
+				}
 				case Constants.LOADPRICECMD -> {
 					if (frame != null) {
 						timeoutCount = 0;
