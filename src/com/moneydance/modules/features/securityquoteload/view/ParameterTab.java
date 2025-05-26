@@ -764,7 +764,7 @@ public class ParameterTab extends DisplayTab {
       @SuppressWarnings("unchecked")
       JComboBox<Integer> cbPlan = (JComboBox<Integer>) e.getSource();
       Integer newPlan = (Integer) cbPlan.getSelectedItem();
-      params.setAlphaPlan(newPlan == null ? Parameters.alphaPlans[0] : newPlan);
+      params.setAlphaPlan(newPlan == null ? Parameters.alphaPlans[0] : newPlan);  // default to the fastest...
     });
     mainPanel.add(alphaPlanCombo, GridC.getc(gridx++, gridy++).west().insets(5, 5, 5, 0));
 

@@ -62,7 +62,7 @@ public class NewParameters {
 		overridePrice= false;
 		displayOption = 0;
 		amtHistory=0;
-    alphaPlan=Parameters.alphaPlans[0];
+    alphaPlan=Parameters.alphaPlans[0];  // default to the fastest
 		alphaAPIKey="";
 		uaParam = "";
 		listAccounts = new ArrayList<>();
@@ -157,7 +157,8 @@ public class NewParameters {
 		return newNoDecimals;
 	}
 	public Integer getAlphaPlan() {
-    return (alphaPlan == null || alphaPlan < Parameters.alphaPlans[0]) ? Parameters.alphaPlans[0] : alphaPlan;
+    // if not set or zero then pass back the default / fastest... (plans are set highest to lowest - the free is at the end)
+    return (alphaPlan == null || alphaPlan < Parameters.alphaPlans[Parameters.alphaPlans.length - 1]) ? Parameters.alphaPlans[0] : alphaPlan;
   }
 
 	/**

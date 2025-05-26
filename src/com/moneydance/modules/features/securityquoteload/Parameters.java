@@ -59,7 +59,7 @@ public class Parameters{
 	private  AccountBook curAcctBook;
 	private  File curFolder;
 	private  String fileName;
-	public  static Integer [] alphaPlans = {5,75,150,300,600,1200};
+	public  static Integer [] alphaPlans = {1200, 600, 300, 150, 75, 5};  // fastest (paid) to slowest (free)
 	public  static Integer [] multipliers = {-4,-3,-2,-1,0,1,2,3,4};
 	public  static String[] CURRENCYDATES = {"Trade Date","Today's Date"};
 	public  static int USETRADEDATE = 0;
@@ -482,7 +482,8 @@ public class Parameters{
 	 */
 
 	public Integer getAlphaPlan() {
-		return (alphaPlan == null || alphaPlan < Parameters.alphaPlans[0]) ? Parameters.alphaPlans[0] : alphaPlan;
+    // if not set or zero then pass back the default / fastest... (plans are set highest to lowest - the free is at the end)
+    return (alphaPlan == null || alphaPlan < Parameters.alphaPlans[Parameters.alphaPlans.length - 1]) ? Parameters.alphaPlans[0] : alphaPlan;
 	}
 
 	public void setAlphaPlan(Integer alphaPlan) {
