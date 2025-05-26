@@ -550,7 +550,7 @@ public class SecTable extends JTable {
 		}
 		if (!alternate.isBlank())
 			ticker = alternate;
-		if (exchange != null && !exchange.isEmpty())
+		if (exchange != null && !exchange.isBlank())
 			ticker = params.getNewTicker(ticker, exchange, alternate,sourceid);
 		Rectangle rect = this.getCellRect(row, selCol, false);
 		final String tickerFinal = ticker;
@@ -579,7 +579,12 @@ public class SecTable extends JTable {
 					}
 					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.GETINDIVIDUALCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
 				}
-				if (strAction.equals("copy-ticker")) {
+				if (strAction.equals("copy-derived-ticker-exchange")) {
+					StringSelection stringSelection = new StringSelection(tickerFinal);
+					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+					clipboard.setContents(stringSelection, null);
+				}
+				if (strAction.equals("copy-orig-ticker")) {
 					StringSelection stringSelection = new StringSelection(origTickerFinal);
 					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 					clipboard.setContents(stringSelection, null);
@@ -610,9 +615,13 @@ public class SecTable extends JTable {
 		testTickerMenu.addActionListener(tickerListener);
     testTickerMenu.setActionCommand("test-ticker");
 
-		JMenuItem copyTickerMenu = new JMenuItem("Copy ticker: '" + origticker + "'");
-		copyTickerMenu.addActionListener(tickerListener);
-    copyTickerMenu.setActionCommand("copy-ticker");
+		JMenuItem copyDerivedTickerMenu = new JMenuItem("Copy derived ticker + exchange: '" + ticker + "'");
+		copyDerivedTickerMenu.addActionListener(tickerListener);
+    copyDerivedTickerMenu.setActionCommand("copy-derived-ticker-exchange");
+
+		JMenuItem copyOrigTickerMenu = new JMenuItem("Copy ticker: '" + origticker + "'");
+		copyOrigTickerMenu.addActionListener(tickerListener);
+    copyOrigTickerMenu.setActionCommand("copy-orig-ticker");
 
 		JMenuItem copyAltTickerMenu = new JMenuItem("Copy alt ticker: '" + alternate + "'");
 		copyAltTickerMenu.addActionListener(tickerListener);
@@ -629,8 +638,11 @@ public class SecTable extends JTable {
     //menu.add(getTickerMenu); // fixme - not currently enabled (for future release)
     menu.add(testTickerMenu);
 
+    if (selCol == exchangeCol && !ticker.isBlank())
+      menu.add(copyDerivedTickerMenu);
+
     if (selCol == tickerCol && !origticker.isBlank())
-      menu.add(copyTickerMenu);
+      menu.add(copyOrigTickerMenu);
 
     if (selCol == altTickerCol && !alternate.isBlank())
       menu.add(copyAltTickerMenu);
