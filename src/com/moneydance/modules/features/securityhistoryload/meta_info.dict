@@ -1,0 +1,11 @@
+{
+  "vendor" = "Mike Bray"
+  "module_build" = "321700"
+"minbuild" = "1820"
+  "vendor.url" = "http://bitbucket.org/mikerb/wiki/Home"
+  "module_name" =  "Security History Load"
+  "module_desc" = "<html><body><title>Security History Load</title>><p>Loads the price of securities from a file and updates the price in the Moneydance file based on the given date
+</body></html>"
+  "desc" =  "Reads a csv file of security/currency prices and updates Moneydance for the given historical dates using the ticker code to identify the account/currency\n"
+
+}
