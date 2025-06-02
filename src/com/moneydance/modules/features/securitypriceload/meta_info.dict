@@ -1,11 +1,8 @@
 {
-  "vendor" = "Mike Bray"
-  "module_build" = "3206"
-"minbuild" = "1820"
+  "vendor" = "Mike Bray (patched)"
+  "module_build" = "321701"
+  "minbuild" = "1820"
   "vendor.url" = "http://bitbucket.org/mikerb/wiki/Home"
-  "module_name" =   "Security Price Load"
-  "module_desc" = "<html><body><title>Security Price Load</title>><p>Loads the price of securities/currencies from a file and updates the current price in the Moneydance file
-</body></html>"
-  "desc" = "Reads a csv file of security/currency prices and updates Moneydance current prices using the ticker code to identify the account/currency\n"
-
+  "module_name" = "Security Price Load"
+  "module_desc" = "Loads the price of securities/currencies from a file and updates the current price in the Moneydance file (no longer supported by Mike Bray - branched from 3206)"
 }
