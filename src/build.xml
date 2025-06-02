@@ -619,6 +619,70 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
     </delete>
   </target>
 
+  <target name="securitypriceload" depends="mrbutil">
+    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      destdir="${build}"
+      classpathref="classpath"
+      classpath="${lib}/jsoup-1.11.3.jar"
+      includes="com/moneydance/modules/features/securitypriceload/**"/>
+    <delete file="${dist}/securitypriceload.mxt" />
+    <jar destfile="${dist}/securitypriceload.mxt">
+      <fileset dir="${src}" includes="
+               com/moneydance/modules/features/securitypriceload/meta_info.dict,
+	             com/moneydance/modules/features/securitypriceload/resources/*.gif
+	             com/moneydance/modules/features/securitypriceload/resources/*.jpg
+	             com/moneydance/modules/features/securitypriceload/resources/*.jpeg"/>
+      <fileset dir="${build}" includes="
+	             com/moneydance/modules/features/securitypriceload/**
+	             com/moneydance/modules/features/mrbutil/**"/>
+    </jar>
+
+    <antcall target="sign" inheritall="true" inheritrefs="true">
+      <param name="feature" value="securitypriceload" />
+    </antcall>
+
+  </target>
+
+  <target name="cleansecuritypriceload">
+    <delete>
+      <fileset dir="${build}">
+        <include name="com/moneydance/modules/features/securitypriceload/*.class"/>
+      </fileset>
+    </delete>
+  </target>
+
+  <target name="securityhistoryload" depends="mrbutil">
+    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      destdir="${build}"
+      classpathref="classpath"
+      classpath="${lib}/jsoup-1.11.3.jar"
+      includes="com/moneydance/modules/features/securityhistoryload/**"/>
+    <delete file="${dist}/securityhistoryload.mxt" />
+    <jar destfile="${dist}/securityhistoryload.mxt">
+      <fileset dir="${src}" includes="
+               com/moneydance/modules/features/securityhistoryload/meta_info.dict,
+	             com/moneydance/modules/features/securityhistoryload/resources/*.gif
+	             com/moneydance/modules/features/securityhistoryload/resources/*.jpg
+	             com/moneydance/modules/features/securityhistoryload/resources/*.jpeg"/>
+      <fileset dir="${build}" includes="
+	             com/moneydance/modules/features/securityhistoryload/**
+	             com/moneydance/modules/features/mrbutil/**"/>
+    </jar>
+
+    <antcall target="sign" inheritall="true" inheritrefs="true">
+      <param name="feature" value="securityhistoryload" />
+    </antcall>
+
+  </target>
+
+  <target name="cleansecurityhistoryload">
+    <delete>
+      <fileset dir="${build}">
+        <include name="com/moneydance/modules/features/securityhistoryload/*.class"/>
+      </fileset>
+    </delete>
+  </target>
+
 
   <target name="all_python" depends="init,toolbox,extract_data,list_future_reminders,net_account_balances,extension_tester,accounts_categories_mega_search_window,security_performance_graph">
   </target>
