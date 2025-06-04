@@ -513,8 +513,7 @@ public class FileSelectWindow extends JPanel implements ActionListener{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				objParms.save();
-				JFrame fTemp = new JFrame();
-				JOptionPane.showMessageDialog(fTemp,"Parameters saved");		
+				JOptionPane.showMessageDialog(null,"Parameters saved");
 			}
 		});	
 		JButton btnLoad = new JButton("Load Data");
@@ -547,8 +546,7 @@ public class FileSelectWindow extends JPanel implements ActionListener{
 	private void loadFile() {
 		FileReader frPrices;
 		if (txtFileName.getText().equals("")) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"No file name specified");
+			JOptionPane.showMessageDialog(null,"No file name specified");
 			return;
 		}
 		Path pathFile = Paths.get(txtFileName.getText());
@@ -565,13 +563,11 @@ public class FileSelectWindow extends JPanel implements ActionListener{
 		    frPrices.close();
 		}
 		catch (FileNotFoundException e) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"File "+txtFileName.getText()+" not Found");
+			JOptionPane.showMessageDialog(null,"File "+txtFileName.getText()+" not Found");
 			return;
 		}
 		catch (IOException e) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"I//O Error whilst reading "+txtFileName.getText());
+			JOptionPane.showMessageDialog(null,"I//O Error whilst reading "+txtFileName.getText());
 			return;
 		}
 	
@@ -648,8 +644,7 @@ public class FileSelectWindow extends JPanel implements ActionListener{
 		FileReader frPrices;
 		BufferedReader brPrices;
 		if (txtFileName.getText().equals("")) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"Please Select a file first");
+			JOptionPane.showMessageDialog(null,"Please Select a file first");
 			return;
 		}
 		try {
@@ -663,13 +658,11 @@ public class FileSelectWindow extends JPanel implements ActionListener{
 			brPrices.close();
 		}
 		catch (FileNotFoundException e) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"File "+txtFileName.getText()+" not Found");
+			JOptionPane.showMessageDialog(null,"File "+txtFileName.getText()+" not Found");
 			return;
 		}
 		catch (IOException e) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"I//O Error whilst reading "+txtFileName.getText());
+			JOptionPane.showMessageDialog(null,"I//O Error whilst reading "+txtFileName.getText());
 			return;
 		}
 		objParms.setLastFile(txtFileName.getText());
@@ -734,32 +727,27 @@ public class FileSelectWindow extends JPanel implements ActionListener{
 	}
 	private void loadData() {
 		if (cbTicker.getSelectedIndex() == cbPrice.getSelectedIndex()) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"Ticker and Price can not be the same field");
+			JOptionPane.showMessageDialog(null,"Ticker and Price can not be the same field");
 			return;
 		}
 		if (cbTicker.getSelectedIndex() == 0 ||
 			cbPrice.getSelectedIndex() == 0	) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"Both Ticker and Price must be selected");
+			JOptionPane.showMessageDialog(null,"Both Ticker and Price must be selected");
 			return;
 		}
 		if(cbHigh.getSelectedIndex() != 0 && (cbHigh.getSelectedIndex()==cbTicker.getSelectedIndex()
 				||cbHigh.getSelectedIndex()==cbVolume.getSelectedIndex())) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"High field can not be same as volume or ticker");
+			JOptionPane.showMessageDialog(null,"High field can not be same as volume or ticker");
 			return;
 		}
 		if(cbLow.getSelectedIndex() != 0 && (cbLow.getSelectedIndex()==cbTicker.getSelectedIndex()
 				||cbLow.getSelectedIndex()==cbVolume.getSelectedIndex())) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"Low field can not be same as volume or ticker");
+			JOptionPane.showMessageDialog(null,"Low field can not be same as volume or ticker");
 			return;
 		}
 		if(cbVolume.getSelectedIndex() != 0 && (cbVolume.getSelectedIndex()==cbTicker.getSelectedIndex()
 				||cbVolume.getSelectedIndex()==cbPrice.getSelectedIndex())) {
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,"Volume field can not be same as price or ticker");
+			JOptionPane.showMessageDialog(null,"Volume field can not be same as price or ticker");
 			return;
 		}
 		

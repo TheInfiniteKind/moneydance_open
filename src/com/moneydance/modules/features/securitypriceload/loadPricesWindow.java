@@ -154,8 +154,9 @@ public class loadPricesWindow extends JFrame {
 		panMid = new JPanel (new BorderLayout());
 		spPrices = new JScrollPane (tabPrices);
 		panMid.add(spPrices,BorderLayout.CENTER);
-		selectCB = new JCheckBox();
+		selectCB = new JCheckBox("Click to toggle de/select all lines");
 		selectCB.setAlignmentX(LEFT_ALIGNMENT);
+		selectCB.setToolTipText("Click to toggle de/select all lines");
 		selectCB.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
@@ -518,13 +519,11 @@ public class loadPricesWindow extends JFrame {
 				brPrices.close();
 			}
 			catch (FileNotFoundException e) {
-				JFrame fTemp = new JFrame();
-				JOptionPane.showMessageDialog(fTemp,"File "+txtFileName+" not Found");
+				JOptionPane.showMessageDialog(null,"File "+txtFileName+" not Found");
 				close();
 			}
 			catch (IOException e) {
-				JFrame fTemp = new JFrame();
-				JOptionPane.showMessageDialog(fTemp,"I//O Error whilst reading "+txtFileName);
+				JOptionPane.showMessageDialog(null,"I//O Error whilst reading "+txtFileName);
 				close();
 				
 			}
@@ -556,8 +555,7 @@ public class loadPricesWindow extends JFrame {
 			 }
 		 }
 		 if (bUpdated){
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,iRowCount+" prices updated");
+			JOptionPane.showMessageDialog(null,iRowCount+" prices updated");
 			/*
 			 * Clear current account data and reload before redisplaying
 			 * the table

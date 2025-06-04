@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -108,11 +109,12 @@ public class FileSelectWindow extends JPanel implements ActionListener {
         debugMenu.add(debugDet);
         int gridy = 0;
         parms = new NewParameters();
+        parms.init();
         lastFileName = parms.getLastFile();
-        this.add(helpMenu, GridC.getc(5,gridy).insets(10, 10, 10, 10));
+        this.add(helpMenu, GridC.getc(5,gridy).insets(5, 10, 5, 10));
         gridy++;
         JLabel delimiterLbl = new JLabel("Choose Delimiter");
-        this.add(delimiterLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(delimiterLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         delimiters = new JComboBox<>(Constants.DELIMITERS);
         delimiters.addActionListener(new ActionListener() {
             @Override
@@ -122,22 +124,22 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setDelimiter(delimiter.getSelectedIndex());
             }
         });
-        this.add(delimiters, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(delimiters, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         if (parms.getDelimiter()>= Constants.DELIMITERS.length)
             parms.setDelimiter(0);
         delimiters.setSelectedIndex(parms.getDelimiter());
         gridy++;
         JLabel lblFileName = new JLabel("File Name : ");
-        this.add(lblFileName, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(lblFileName, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
 
         fileNameFld = new JTextField();
         fileNameFld.setColumns(50);
         fileNameFld.setText(lastFileName);
-        this.add(fileNameFld, GridC.getc(1, gridy).insets(10, 10, 10, 10).colspan(3).west());
+        this.add(fileNameFld, GridC.getc(1, gridy).insets(5, 10, 5, 10).colspan(3).fillx().west());
 
         JButton loadFileBtn = new JButton("Load File");
         loadFileBtn.setToolTipText("Click on this button to open the file specifed");
-        this.add(loadFileBtn, GridC.getc(4,gridy).insets(10, 10, 10, 10));
+        this.add(loadFileBtn, GridC.getc(4,gridy).insets(5, 10, 5, 10));
         loadFileBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -150,7 +152,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
             chooseBtn.setIcon(new ImageIcon(icon));
         else chooseBtn.setText("Choose File");
         chooseBtn.setToolTipText("Click on this button to open the File Explorer");
-        this.add(chooseBtn, GridC.getc(5,gridy).insets(10, 10, 10, 10));
+        this.add(chooseBtn, GridC.getc(5,gridy).insets(5, 10, 5, 10));
         chooseBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -159,7 +161,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
         });
         gridy++;
         JLabel tickerLbl = new JLabel("Select Ticker Field");
-        this.add(tickerLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(tickerLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         tickerFld = new JComboBox<String>();
         tickerFld.setToolTipText("Required: Select the field that contains the Ticker");
 
@@ -172,9 +174,9 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setTickerFld((String) cbTick.getSelectedItem());
             }
         });
-        this.add(tickerFld, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(tickerFld, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         JLabel lblLExch = new JLabel("Remove Exchange from Ticker?");
-        this.add(lblLExch, GridC.getc(2,gridy).insets(10, 0, 10, 10).east());
+        this.add(lblLExch, GridC.getc(2,gridy).insets(5, 0, 5, 10).east());
         removeExch = new JCheckBox();
         removeExch.setToolTipText("Selecting this box will remove from the Ticker any letters after : or .");
         removeExch.addActionListener(new ActionListener() {
@@ -184,10 +186,10 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setRemoveExch(chbExchT.isSelected());
             }
         });
-        this.add(removeExch, GridC.getc(3,gridy).insets(10, 0, 10, 10).west());
+        this.add(removeExch, GridC.getc(3,gridy).insets(5, 0, 5, 10).west());
         gridy++;
         JLabel dateLbl = new JLabel("Select Date Field");
-        this.add(dateLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(dateLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         dateFld = new JComboBox<String>();
         dateFld.setToolTipText("Required: Select the field that contains the Date");
         dateFld.addItem("Please Select a Field");
@@ -199,10 +201,10 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setDateFld((String) cbDate.getSelectedItem());
             }
         });
-        this.add(dateFld, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(dateFld, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         gridy++;
         JLabel priceLbl = new JLabel("Select Price Field");
-        this.add(priceLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(priceLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         priceFld = new JComboBox<String>();
         priceFld.setToolTipText("Required: Select the field that contains the new Price");
         priceFld.addItem("Please Select a Field");
@@ -214,9 +216,9 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setPriceFld((String) cbPric.getSelectedItem());
             }
         });
-        this.add(priceFld, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(priceFld, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         JLabel zeroLbl = new JLabel("Include zero accounts?");
-        this.add(zeroLbl, GridC.getc(2,gridy).insets(10, 0, 10, 10).east());
+        this.add(zeroLbl, GridC.getc(2,gridy).insets(5, 0, 5, 10).east());
         includeZero = new JCheckBox();
         includeZero.setToolTipText("Selecting this box will include Securities that do not have any holdings");
         includeZero.addActionListener(new ActionListener() {
@@ -226,10 +228,10 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setIncludeZero(chbZeroT.isSelected());
             }
         });
-        this.add(includeZero, GridC.getc(3,gridy).insets(10, 10, 10, 10).west());
+        this.add(includeZero, GridC.getc(3,gridy).insets(5, 10, 5, 10).west());
         gridy++;
         JLabel highLbl = new JLabel("Select High Field");
-        this.add(highLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(highLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         highFld = new JComboBox<String>();
         highFld.setToolTipText("Select the field that contains the High price for the day");
         highFld.addItem(NewParameters.doNotLoad);
@@ -241,9 +243,9 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setHighFld((String) cbHighp.getSelectedItem());
             }
         });
-        this.add(highFld, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(highFld, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         JLabel currencyLbl = new JLabel("Process Currencies");
-        this.add(currencyLbl, GridC.getc(2,gridy).insets(10, 0, 10, 10).east());
+        this.add(currencyLbl, GridC.getc(2,gridy).insets(5, 0, 5, 10).east());
         includeCurrency = new JCheckBox();
         includeCurrency.setToolTipText("Selecting this box will include Currencies");
         includeCurrency.addActionListener(new ActionListener() {
@@ -253,10 +255,10 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setProcessCurrencies(chbCurrencyT.isSelected());
             }
         });
-        this.add(includeCurrency, GridC.getc(3,gridy).insets(10, 10, 10, 10).west());
+        this.add(includeCurrency, GridC.getc(3,gridy).insets(5, 10, 5, 10).west());
         gridy++;
         JLabel lowLbl = new JLabel("Select Low Field");
-        this.add(lowLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(lowLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         lowFld = new JComboBox<String>();
         lowFld.setToolTipText("Select the field that contains the Low price for the day");
         lowFld.addItem(NewParameters.doNotLoad);
@@ -268,9 +270,9 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setLowFld((String) cbLowp.getSelectedItem());
             }
         });
-        this.add(lowFld,GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(lowFld,GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         JLabel caseLbl = new JLabel("Ignore Ticker Case");
-        this.add(caseLbl, GridC.getc(2,gridy).insets(10, 0, 10, 10).east());
+        this.add(caseLbl, GridC.getc(2,gridy).insets(5, 0, 5, 10).east());
         ignoreCase = new JCheckBox();
         ignoreCase.setToolTipText("Selecting this box will ignore the case of the Ticker when matching");
         ignoreCase.addActionListener(new ActionListener() {
@@ -280,10 +282,10 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setIgnoreCase(chbCurrencyT.isSelected());
             }
         });
-        this.add(ignoreCase, GridC.getc(3,gridy).insets(10, 10, 10, 10).west());
+        this.add(ignoreCase, GridC.getc(3,gridy).insets(5, 10, 5, 10).west());
         gridy++;
         JLabel volumeLbl = new JLabel("Select Volume Field");
-        this.add(volumeLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(volumeLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         volumeFld = new JComboBox<String>();
         volumeFld.setToolTipText("Select the field that contains the Daily Volume");
         volumeFld.addItem(NewParameters.doNotLoad);
@@ -295,9 +297,9 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setVolumeFld((String) cbVolumep.getSelectedItem());
             }
         });
-        this.add(volumeFld, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(volumeFld, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         JLabel decimalLbl = new JLabel("Decimal Digits");
-        this.add(decimalLbl, GridC.getc(2,gridy).insets(10, 0, 10, 10).east());
+        this.add(decimalLbl, GridC.getc(2,gridy).insets(5, 0, 5, 10).east());
         decimalChars = new JComboBox<Integer>(NewParameters.decimalList);
         decimalChars.setToolTipText("By default the prices are shown to 4dp. You can select 5,6,7 or 8 dp to display");
         decimalChars.setSelectedIndex(4);
@@ -309,10 +311,10 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setDecimal(cbDec.getSelectedIndex());
             }
         });
-        this.add(decimalChars, GridC.getc(3,gridy).insets(10, 10, 10, 10).west());
+        this.add(decimalChars, GridC.getc(3,gridy).insets(5, 10, 5, 10).west());
         gridy++;
         JLabel maxCharLbl = new JLabel("Max chars in Ticker");
-        this.add(maxCharLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(maxCharLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         tickerMaxChar = new JComboBox<String>(NewParameters.maximums);
         tickerMaxChar.setToolTipText("By default all chars of the Ticker are matched.  You can restrict this to 5,6,7,8,or 9");
          tickerMaxChar.addActionListener(new ActionListener() {
@@ -326,28 +328,28 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                     parms.setMaxChar(0);
             }
         });
-        this.add(tickerMaxChar, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(tickerMaxChar, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         gridy++;
         JLabel inst1Lbl = new JLabel("Exchanges multipliers are used when prices are held in a different denomination");
-        this.add(inst1Lbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).colspan(2).west());
+        this.add(inst1Lbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).colspan(2).west());
 
         gridy++;
         JLabel inst2Lbl = new JLabel("The Exchange is the characters at the end of the Ticker after (:) or (.)");
-        this.add(inst2Lbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).colspan(2).west());
+        this.add(inst2Lbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).colspan(2).west());
         gridy++;
         JLabel inst4Lbl = new JLabel("Exchange Multipliers and Prefixes only become visible after the file has been loaded/choosen");
-        this.add(inst4Lbl, GridC.getc(1,gridy).insets(10, 10, 10, 10).colspan(3).west());
+        this.add(inst4Lbl, GridC.getc(1,gridy).insets(5, 10, 5, 10).colspan(3).west());
         gridy++;
         JLabel multiplierLbl = new JLabel("Select multiplier(s) for Prices");
-        this.add(multiplierLbl, GridC.getc(0,gridy).insets(10, 10, 10, 10).west());
+        this.add(multiplierLbl, GridC.getc(0,gridy).insets(5, 10, 5, 10).west());
         JLabel lblMulttxt = new JLabel("e.g: -2 = * by 0.01, +2 = * by 100");
-        this.add(lblMulttxt, GridC.getc(1,gridy).insets(10, 10, 10, 10));
+        this.add(lblMulttxt, GridC.getc(1,gridy).insets(5, 10, 5, 10));
 
         JLabel prefixPanelLbl = new JLabel("Enter prefixes to remove from Ticker");
-        this.add(prefixPanelLbl, GridC.getc(3,gridy).insets(10, 10, 10, 10));
+        this.add(prefixPanelLbl, GridC.getc(3,gridy).insets(5, 10, 5, 10));
         gridy++;
         JLabel defaultLbl = new JLabel("Default");
-        this.add(defaultLbl, GridC.getc(0,gridy).insets(10, 0, 10, 10).east());
+        this.add(defaultLbl, GridC.getc(0,gridy).insets(5, 0, 5, 10).east());
         multiplier = new JComboBox<Integer>(NewParameters.multipliersList);
         multiplier.setSelectedIndex(4);
         multiplier.addActionListener(new ActionListener() {
@@ -358,26 +360,25 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 parms.setDefaultMultiplier(cbMult.getSelectedIndex());
             }
         });
-        this.add(multiplier, GridC.getc(1,gridy).insets(10, 10, 10, 10).west());
+        this.add(multiplier, GridC.getc(1,gridy).insets(5, 10, 5, 10).west());
         gridy++;
         panMult = new JPanel(new GridBagLayout());
-        this.add(panMult, GridC.getc(0,gridy).insets(10, 10, 10, 10).colspan(2));
+        this.add(panMult, GridC.getc(0,gridy).insets(5, 10, 5, 10).colspan(2));
 
         panPrefix = new JPanel(new GridBagLayout());
-        this.add(panPrefix, GridC.getc(2,gridy).insets(10, 10, 10, 10).colspan(2));
+        this.add(panPrefix, GridC.getc(2,gridy).insets(5, 10, 5, 10).colspan(2));
         gridy++;
         JButton saveBtn = new JButton("Save NewParameters");
-        this.add(saveBtn, GridC.getc(1,gridy).insets(10, 10, 10, 10));
+        this.add(saveBtn, GridC.getc(1,gridy).insets(5, 10, 5, 10));
         saveBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 parms.save();
-                JFrame fTemp = new JFrame();
-                JOptionPane.showMessageDialog(fTemp, "NewParameters saved");
+                JOptionPane.showMessageDialog(null, "NewParameters saved");
             }
         });
         JButton loadBtn = new JButton("Load Data");
-        this.add(loadBtn,GridC.getc(2,gridy).insets(10, 10, 10, 10) );
+        this.add(loadBtn,GridC.getc(2,gridy).insets(5, 10, 5, 10) );
         loadBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -387,7 +388,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
 
 
         JButton closeBtn = new JButton("Close");
-        this.add(closeBtn, GridC.getc(3,gridy).insets(10, 10, 10, 10));
+        this.add(closeBtn, GridC.getc(3,gridy).insets(5, 10, 5, 10));
         closeBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -398,7 +399,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
 
     private void loadFile() {
         FileReader pricesReader;
-        if (fileNameFld.getText().equals("")) {
+        if (fileNameFld.getText().isBlank()) {
             JOptionPane.showMessageDialog(null, "No file name specified");
             return;
         }
@@ -436,13 +437,14 @@ public class FileSelectWindow extends JPanel implements ActionListener {
         lowFld.removeAllItems();
         lowFld.addItem(NewParameters.doNotLoad);
         volumeFld.removeAllItems();
+        volumeFld.addItem(NewParameters.doNotLoad);
         String directory = parms.getDirectoryName();
         String fileName = "";
         if (MRBPlatform.isOSX()) {
             JFrame parentWindow = (JFrame) SwingUtilities.getWindowAncestor(this);
             System.setProperty("com.apple.macos.use-file-dialog-packages", "true");
             FileDialog winDialog = new FileDialog(parentWindow, "choose_file", FileDialog.LOAD);
-            if (directory != null && directory != "") {
+            if (directory != null && !directory.isBlank()) {
                 debugInst.debug("FileSelectWindow", "ChooseFile1", MRBDebug.DETAILED,
                         "Directory is:" + directory);
                 winDialog.setDirectory(directory);
@@ -468,7 +470,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                     "File Name is:" + fileName);
 
         } else {
-            if (directory == "" || directory == null)
+            if (Objects.equals(directory, "") || directory == null)
                 fileChooser = new JFileChooser();
             else
                 fileChooser = new JFileChooser(directory);
@@ -481,7 +483,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 directory = inputFile.getParent();
             }
         }
-        if (fileName != "") ;
+        if (!fileName.isBlank()) ;
         {
             fileNameFld.setText(fileName);
             parms.setDirectoryName(directory);
@@ -493,7 +495,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
     private void loadFields() {
         FileReader pricesReader;
         BufferedReader pricesBufferedReader;
-        if (fileNameFld.getText().equals("")) {
+        if (fileNameFld.getText().isBlank()) {
             JOptionPane.showMessageDialog(null, "Please Select a file first");
             return;
         }
@@ -528,6 +530,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
         int iVolumeItem = 0;
         int iDateItem = 0;
         for (int i = 0; i < columns.length; i++) {
+            if (columns[i].equals(parms.getTickerFld()))
                 iTickerItem = i + 1;
             tickerFld.addItem(columns[i]);
             if (columns[i].equals(parms.getPriceFld()))
@@ -622,20 +625,21 @@ public class FileSelectWindow extends JPanel implements ActionListener {
     private void addMult() {
         JPanel panInput = new JPanel(new GridBagLayout());
         JLabel exchLbl = new JLabel("Enter Exchange (no .)");
-        panInput.add(exchLbl, GridC.getc(0,0).insets(10, 10, 10, 10));
+        panInput.add(exchLbl, GridC.getc(0,0).insets(5, 10, 5, 10));
         JTextField exchFld = new JTextField();
         exchFld.setColumns(5);
-        panInput.add(exchFld, GridC.getc(1,0).insets(10, 10, 10, 10));
+        panInput.add(exchFld, GridC.getc(1,0).insets(5, 10, 5, 10));
         JLabel multLbl = new JLabel("Multiplier");
-        panInput.add(multLbl, GridC.getc(2,0).insets(10, 10, 10, 10));
+        panInput.add(multLbl, GridC.getc(2,0).insets(5, 10, 5, 10));
         JComboBox<Integer> multCombo = new JComboBox<Integer>(NewParameters.multipliersList);
-        panInput.add(multCombo, GridC.getc(3,0).insets(10, 10, 10, 10));
+        multCombo.setSelectedIndex(NewParameters.multipliersListDefaultIdx);
+        panInput.add(multCombo, GridC.getc(3,0).insets(5, 10, 5, 10));
         while (true) {
             int result = JOptionPane.showConfirmDialog(null, panInput,
                     "Enter Exchange and Multiplier", JOptionPane.OK_CANCEL_OPTION);
             if (result == JOptionPane.OK_OPTION) {
                 String exch = exchFld.getText();
-                if (exch.equals("")) {
+                if (exch.isBlank()) {
                     JOptionPane.showMessageDialog(null, "Exchange can not be blank");
                     continue;
                 }
@@ -657,16 +661,16 @@ public class FileSelectWindow extends JPanel implements ActionListener {
     private void addPrefix() {
         JPanel panInput = new JPanel(new GridBagLayout());
         JLabel exchLbl = new JLabel("Enter Prefix)");
-        panInput.add(exchLbl, GridC.getc(0,0).insets(10, 10, 10, 10));
+        panInput.add(exchLbl, GridC.getc(0,0).insets(5, 10, 5, 10));
         JTextField prefixFld = new JTextField();
         prefixFld.setColumns(5);
-        panInput.add(prefixFld, GridC.getc(0,1).insets(10, 10, 10, 10));
+        panInput.add(prefixFld, GridC.getc(0,1).insets(5, 10, 5, 10));
         while (true) {
             int result = JOptionPane.showConfirmDialog(null, panInput,
                     "Enter Prefix", JOptionPane.OK_CANCEL_OPTION);
             if (result == JOptionPane.OK_OPTION) {
                 String strPrefix = prefixFld.getText();
-                if (strPrefix.equals("")) {
+                if (strPrefix.isBlank()) {
                     JOptionPane.showMessageDialog(null, "Prefix can not be blank");
                     continue;
                 }
@@ -691,7 +695,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
         mapDelete.clear();
         for (ExchangeLine objLine : listLines) {
             JLabel exchLbl = new JLabel(objLine.getExchange());
-            panMult.add(exchLbl, GridC.getc(1,row).insets(10, 10, 10, 10));
+            panMult.add(exchLbl, GridC.getc(1,row).insets(5, 10, 5, 10));
             JComboBox<Integer> multCombo = new JComboBox<Integer>(NewParameters.multipliersList);
             multCombo.setSelectedIndex(objLine.getMultiplier());
             mapCombos.put(multCombo, objLine.getExchange());
@@ -704,7 +708,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                     parms.updateLine(exch, multTCombo.getSelectedIndex());
                 }
             });
-            panMult.add(multCombo, GridC.getc(2,row).insets(10, 10, 10, 10));
+            panMult.add(multCombo, GridC.getc(2,row).insets(5, 10, 5, 10));
             JButton deleteBtn = new JButton("Delete");
             deleteBtn.addActionListener(new ActionListener() {
                 @Override
@@ -712,7 +716,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                     deleteExchange(e);
                 }
             });
-            panMult.add(deleteBtn, GridC.getc(3,row).insets(10, 10, 10, 10));
+            panMult.add(deleteBtn, GridC.getc(3,row).insets(5, 10, 5, 10));
             mapDelete.put(deleteBtn, objLine.getExchange());
 
             row++;
@@ -724,17 +728,17 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 addMult();
             }
         });
-        panMult.add(addBtn,GridC.getc(0,row).insets(10, 10, 10, 10));
+        panMult.add(addBtn,GridC.getc(0,row).insets(5, 10, 5, 10));
 
     }
 
     private void buildPrefixes() {
-        int row = 2;
+      int row = 2;
         mapPrefixes.clear();
         mapPrefDelete.clear();
         for (String prefix : listPrefixes) {
             JLabel prefixLbl = new JLabel(prefix);
-            panPrefix.add(prefixLbl, GridC.getc(1,row).insets(10, 10, 10, 10));
+            panPrefix.add(prefixLbl, GridC.getc(1,row).insets(5, 10, 5, 10));
             JButton deleteBtn = new JButton("Delete");
             deleteBtn.addActionListener(new ActionListener() {
                 @Override
@@ -742,7 +746,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                     deletePrefix(e);
                 }
             });
-            panPrefix.add(deleteBtn, GridC.getc(2,row).insets(10, 10, 10, 10));
+            panPrefix.add(deleteBtn, GridC.getc(2,row).insets(5, 10, 5, 10));
             mapPrefDelete.put(deleteBtn, prefix);
             row++;
         }
@@ -753,7 +757,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
                 addPrefix();
             }
         });
-        panPrefix.add(addBtn, GridC.getc(0,row).insets(10, 10, 10, 10));
+        panPrefix.add(addBtn, GridC.getc(0,row).insets(5, 10, 5, 10));
 
     }
 

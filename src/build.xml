@@ -85,10 +85,11 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
         -->
         <delete includeemptydirs="true">
           <fileset dir="${build}">
-            <include name="**" />
-            <exclude name="com/moneydance/modules/features/@{feature}/**"/>
+            <include name="*/**" />
+            <exclude name="com/moneydance/modules/features/@{feature}/*/**"/>
           </fileset>
         </delete>
+
         <!-- copy all non java files for this feature -->
         <copy preservelastmodified="true" todir="${build}">
           <fileset dir="${src}">
@@ -105,12 +106,33 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
             <include name="contact.*" />
           </fileset>
         </copy>
+
+        <!--KOTLIN SECTION-->
+        <!-- copy/filter kotlin files to stop bleed-over from other extensions when using <withKotlin/> -->
+        <delete dir="${build}/kt-filtered" failonerror="false"/>
+        <mkdir dir="${build}/kt-filtered"/>
+        <copy todir="${build}/kt-filtered">
+          <fileset dir="${src}">
+            <include name="com/moneydance/modules/features/@{feature}/**/*.kt"/>
+          </fileset>
+        </copy>
+
+        <!--Check whether there are any kt files to compile-->
+        <condition property="should.compile.kt">
+          <resourcecount when="greater" count="0">
+            <fileset dir="${build}/kt-filtered">
+              <include name="**/*.kt"/>
+            </fileset>
+          </resourcecount>
+        </condition>
+        <antcall target="compile-kotlin-if-present"/>
+
+        <!--now compile the java code (without withKotlin) -->
         <javac target="@{javac-target}" source="@{javac-source}" srcdir="${src}"
                debug="${debug}" optimize="${optimize}"
                classpathref="classpath" destdir="${build}"
                includes="com/moneydance/modules/features/@{feature}/**"
                includeAntRuntime="false">
-          <withKotlin/>
           <compilerarg value="-Xlint:-options"/>
         </javac>
         <jar destfile="${dist}/@{feature}.mxt">
@@ -126,6 +148,16 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
 
   </target>
 
+  <!--
+  Generic target for compiling kotlin if kt files are detected when using build-mxt macro.
+  -->
+  <target name="compile-kotlin-if-present" if="should.compile.kt">
+    <kotlinc src="${build}/kt-filtered"
+      output="${build}"
+      classpathref="classpath"
+      nowarn="true"
+      includeRuntime="false"/>
+  </target>
 
   <target name="findandreplace-compile" depends="init">
     <touch file="com/moneydance/modules/features/findandreplace/Main.java"/>
@@ -610,77 +642,69 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
   </target>
 
   <target name="cleansecurityquoteload">
-    <delete>
-      <fileset dir="${build}">
-        <include name="com/moneydance/modules/features/securityquoteload/*.class"/>
-        <include name="com/moneydance/modules/features/securityquoteload/quotes/*.class"/>
-        <include name="com/moneydance/modules/features/securityquoteload/view/*.class"/>
-      </fileset>
-    </delete>
+    <antcall target="clean-feature" inheritall="true" inheritrefs="true">
+      <param name="feature" value="securityquoteload" />
+    </antcall>
   </target>
 
-  <target name="securitypriceload" depends="mrbutil">
-    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+  <target name="securitypriceload" depends="init, mrbutil">
+    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}"
+      optimize="${optimize}"
       destdir="${build}"
       classpathref="classpath"
-      classpath="${lib}/jsoup-1.11.3.jar"
       includes="com/moneydance/modules/features/securitypriceload/**"/>
-    <delete file="${dist}/securitypriceload.mxt" />
+    <delete file="${dist}/securitypriceload.mxt"/>
     <jar destfile="${dist}/securitypriceload.mxt">
       <fileset dir="${src}" includes="
                com/moneydance/modules/features/securitypriceload/meta_info.dict,
-	             com/moneydance/modules/features/securitypriceload/resources/*.gif
-	             com/moneydance/modules/features/securitypriceload/resources/*.jpg
-	             com/moneydance/modules/features/securitypriceload/resources/*.jpeg"/>
+	             com/moneydance/modules/features/securitypriceload/**/*.gif
+	             com/moneydance/modules/features/securitypriceload/**/*.jpg
+	             com/moneydance/modules/features/securitypriceload/**/*.jpeg"/>
       <fileset dir="${build}" includes="
 	             com/moneydance/modules/features/securitypriceload/**
 	             com/moneydance/modules/features/mrbutil/**"/>
     </jar>
 
     <antcall target="sign" inheritall="true" inheritrefs="true">
-      <param name="feature" value="securitypriceload" />
+      <param name="feature" value="securitypriceload"/>
     </antcall>
 
   </target>
 
   <target name="cleansecuritypriceload">
-    <delete>
-      <fileset dir="${build}">
-        <include name="com/moneydance/modules/features/securitypriceload/*.class"/>
-      </fileset>
-    </delete>
+    <antcall target="clean-feature" inheritall="true" inheritrefs="true">
+      <param name="feature" value="securitypriceload" />
+    </antcall>
   </target>
 
-  <target name="securityhistoryload" depends="mrbutil">
-    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+  <target name="securityhistoryload" depends="init, mrbutil">
+    <javac target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}"
+      optimize="${optimize}"
       destdir="${build}"
       classpathref="classpath"
-      classpath="${lib}/jsoup-1.11.3.jar"
       includes="com/moneydance/modules/features/securityhistoryload/**"/>
-    <delete file="${dist}/securityhistoryload.mxt" />
+    <delete file="${dist}/securityhistoryload.mxt"/>
     <jar destfile="${dist}/securityhistoryload.mxt">
       <fileset dir="${src}" includes="
                com/moneydance/modules/features/securityhistoryload/meta_info.dict,
-	             com/moneydance/modules/features/securityhistoryload/resources/*.gif
-	             com/moneydance/modules/features/securityhistoryload/resources/*.jpg
-	             com/moneydance/modules/features/securityhistoryload/resources/*.jpeg"/>
+	             com/moneydance/modules/features/securityhistoryload/**/*.gif
+	             com/moneydance/modules/features/securityhistoryload/**/*.jpg
+	             com/moneydance/modules/features/securityhistoryload/**/*.jpeg"/>
       <fileset dir="${build}" includes="
 	             com/moneydance/modules/features/securityhistoryload/**
 	             com/moneydance/modules/features/mrbutil/**"/>
     </jar>
 
     <antcall target="sign" inheritall="true" inheritrefs="true">
-      <param name="feature" value="securityhistoryload" />
+      <param name="feature" value="securityhistoryload"/>
     </antcall>
 
   </target>
 
   <target name="cleansecurityhistoryload">
-    <delete>
-      <fileset dir="${build}">
-        <include name="com/moneydance/modules/features/securityhistoryload/*.class"/>
-      </fileset>
-    </delete>
+    <antcall target="clean-feature" inheritall="true" inheritrefs="true">
+      <param name="feature" value="securityhistoryload" />
+    </antcall>
   </target>
 
 
@@ -792,22 +816,6 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
     <move file="${dist}/s-txtimport.mxt" tofile="${dist}/txtimport.mxt"/>
   </target>
 
-<!--  <target name="pythonsample" depends="init">-->
-<!--    <jar destfile="${dist}/pythonsample.mxt">-->
-<!--      <fileset dir="${src}/python_sample_extension" includes="**"/>-->
-<!--    </jar>-->
-<!--    <java newenvironment="true"-->
-<!--          classpathref="classpath"-->
-<!--          classname="com.moneydance.admin.KeyAdmin">-->
-<!--      <arg value="signextjar"/>-->
-<!--      <arg value="${extprivkeyfile}"/>-->
-<!--      <arg value="${extprivkeyid}"/>-->
-<!--      <arg value="pythonsample"/>-->
-<!--      <arg line="${dist}/pythonsample.mxt"/>-->
-<!--    </java>-->
-<!--    <move file="${src}/s-pythonsample.mxt" tofile="${dist}/pythonsample.mxt"/>-->
-<!--  </target>-->
-
   <target name="featureloader" depends="init" description="build the featureloader.mxt">
     <build-mxt feature="featureloader" javac-source="${javac-source}" javac-target="${javac-source}" />
   </target>
@@ -816,7 +824,20 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
     <delete dir="${dist}" />
     <delete dir="${build}" />
   </target>
-  
+
+  <target name="clean-feature" description="clean specific feature build">
+    <fail unless="feature" message="Please specify property 'feature'"/>
+    <echo level="info" message="CLEANING ${feature}.mxt:"/>
+    <delete file="${dist}/${feature}.mxt" failonerror="false"/>
+    <delete file="${dist}/s-${feature}.mxt" failonerror="false"/>
+    <delete failonerror="false">
+      <fileset dir="${build}">
+        <include name="com/moneydance/modules/features/${feature}/**/*.class"/>
+      </fileset>
+    </delete>
+    <echo level="info" message="FINISHED cleaning feature..."/>
+  </target>
+
   <target name="sign" description="sign the mxt" unless="dont_sign">
   	<fail unless="feature" message="Please specify property feature" />
     <echo level="info" message="SIGNING ${feature}.mxt using key ${extprivkeyfile} (ID: ${privkeyid}):" />
@@ -833,8 +854,6 @@ to enable add `<withKotlin/>` to javac build command and make sure to include th
           <arg line="${dist}/${feature}.mxt"/>
     </java>
 
-    <!--    <move file="./s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>-->
-    <!--    NOTE: KeyAdmin (Sean) changed location 7/12/24-->
     <move file="s-${feature}.mxt" tofile="${dist}/s-${feature}.mxt" failonerror="false"/>
     <move file="${dist}/s-${feature}.mxt" tofile="${dist}/${feature}.mxt"/>
 
