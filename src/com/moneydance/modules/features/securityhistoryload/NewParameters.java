@@ -14,10 +14,10 @@ import java.util.List;
 public class NewParameters {
     private transient String fileName;
     public transient static Integer[] multipliersList = {-4, -3, -2, -1, 0, 1, 2, 3, 4};
+    public transient static Integer multipliersListDefaultIdx = 4;
     public transient static Integer[] decimalList = {4, 5, 6, 7, 8};
     public transient static String[] maximums = {"No Limit", "5", "6", "7", "8", "9"};
     public transient static String doNotLoad = "Do not load";
-    private transient NewParameters newParams;
 
     enum FileType {OLD, NEW}
 
@@ -43,7 +43,9 @@ public class NewParameters {
     private transient File curFolder;
     private transient AccountBook acctBook;
 
-    public NewParameters() {
+    public NewParameters() {}
+
+    public void init() {
         acctBook = Main.context.getCurrentAccountBook();
         curFolder = acctBook.getRootFolder();
         FileType result = findParameterFile();
@@ -78,7 +80,8 @@ public class NewParameters {
         try {
             JsonReader reader = new JsonReader(new FileReader(fileName, StandardCharsets.UTF_8));
             Main.debugInst.debug("NewParameters", "NewParameters", MRBDebug.DETAILED, "NewParameters found "+fileName);
-            newParams = new Gson().fromJson(reader, com.moneydance.modules.features.securityquoteload.NewParameters.class);
+            NewParameters newParams = new Gson().fromJson(reader, NewParameters.class);
+            copyFields(newParams);
             reader.close();
         }
         catch (JsonParseException e) {
@@ -88,6 +91,7 @@ public class NewParameters {
         catch (IOException e){
             createNew = true;
         }
+
         if (createNew){
             /*
              * file does not exist, initialize fields
@@ -107,6 +111,13 @@ public class NewParameters {
 
             }
         }
+
+      if (this.listExchangeLines == null)
+        this.listExchangeLines = new ArrayList<ExchangeLine>();
+
+      if (this.listPrefixes == null)
+        this.listPrefixes = new ArrayList<String>();
+
     }
 
     private void loadOldFile() {
@@ -148,6 +159,28 @@ public class NewParameters {
             initializeFields();
         }
      }
+
+     private void copyFields(NewParameters newParams) {
+         listExchangeLines = newParams.listExchangeLines;
+         listPrefixes = newParams.listPrefixes;
+         tickerFld = newParams.tickerFld;
+         priceFld = newParams.priceFld;
+         highFld = newParams.highFld;
+         lowFld = newParams.lowFld;
+         volumeFld = newParams.volumeFld;
+         dateFld = newParams.dateFld;
+         maxChar = newParams.maxChar;
+         removeExch = newParams.removeExch;
+         includeZero = newParams.includeZero;
+         processCurrencies = newParams.processCurrencies;
+         ignoreCase = newParams.ignoreCase;
+         defaultMultiplier = newParams.defaultMultiplier;
+         decimal = newParams.decimal;
+         directoryName = newParams.directoryName;
+         lastFile = newParams.lastFile;
+         delimiter = newParams.delimiter;
+     }
+
      private void initializeFields() {
          listExchangeLines = new ArrayList<ExchangeLine>();
          listPrefixes = new ArrayList<String>();
@@ -162,12 +195,13 @@ public class NewParameters {
          includeZero = false;
          processCurrencies = false;
          ignoreCase = false;
-         defaultMultiplier = 4;
+         defaultMultiplier = multipliersListDefaultIdx;
          decimal = 0;
          directoryName = "";
          lastFile = "";
          delimiter = 0;
      }
+
     public void save(){
         /*
          * create the file

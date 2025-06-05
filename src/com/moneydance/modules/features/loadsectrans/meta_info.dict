@@ -1,0 +1,9 @@
+{
+  "vendor" = "Mike Bray (patched)"
+  "module_build" = "321701"
+  "minbuild" = "1820"
+  "vendor.url" = "http://github.com/mrbray99/moneydanceproduction/wiki"
+  "module_name" = "Load Security Transactions"
+  "module_desc" = "Loads miscellaneous transactions from csv file generated from brokerage firms. Uses the exchange code to identify the account (no longer supported by Mike Bray - branched from from 321700)"
+
+}

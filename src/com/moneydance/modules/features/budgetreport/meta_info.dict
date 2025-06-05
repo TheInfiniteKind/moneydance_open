@@ -1,0 +1,8 @@
+{
+  "vendor" = "Mike Bray (patched)"
+  "module_build" = "3207"
+   "minbuild" = "1820"
+  "vendor.url" = "http://github.com/mrbray99/moneydanceproduction/wiki"
+  "module_name" = "Budget Report"
+  "module_desc" = "Displays actuals verses budgets with the ability to roll up figures into parent categories (no longer supported by Mike Bray - branched from from 3206)"
+}

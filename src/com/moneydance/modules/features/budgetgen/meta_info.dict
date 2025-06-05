@@ -1,0 +1,8 @@
+{
+  "vendor" = "Mike Bray (patched)"
+  "module_build" = "3207"
+  "minbuild" = "1820"
+  "vendor.url" = "http://github.com/mrbray99/moneydanceproduction/wiki"
+  "module_name" = "Budget Generator"
+  "module_desc" = "Generates entries for the new style budgets from budget lines based on period of expense, amount and first date of payment. (no longer supported by Mike Bray - branched from from 3206)"
+}

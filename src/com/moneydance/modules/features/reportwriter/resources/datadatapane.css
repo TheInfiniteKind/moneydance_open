@@ -1,0 +1,5 @@
+#account-button .ikonli-font-icon {
+    -fx-icon-code: "mdi-account";
+    -fx-icon-color: blue;
+    -fx-icon-size: 1.2em;
+}

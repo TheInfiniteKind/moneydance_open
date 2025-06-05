@@ -59,6 +59,7 @@ public class Main
   private static int buildNum;
   public static String buildStr;
   private JPanel panScreen;
+  private JFrame frame;
 
   @Override
 public void init() {
@@ -100,11 +101,15 @@ public void init() {
 	    } catch (Throwable e) { }
 	    return null;
 	  }
+
   @Override
-public void cleanup() {
+  public void cleanup() {
     closeConsole();
   }
-  
+
+  @Override
+  public void unload() { cleanup(); }
+
   
   /** Process an invocation of this module with the given URI */
   @Override
@@ -142,7 +147,7 @@ public String getName() {
   private void createAndShowGUI() {
 
       //Create and set up the window.
-      JFrame frame = new JFrame("Load Security Prices - Build "+buildStr);
+      frame  = new JFrame("Load Security Prices - Build "+buildStr);
       frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
       panScreen = new FileSelectWindow();
       frame.getContentPane().add(panScreen);
@@ -172,7 +177,10 @@ public String getName() {
   synchronized void closeConsole() {
     if(panScreen!=null) {
     	panScreen = null;
-      System.gc();
+    }
+    if(frame!=null) {
+      frame.dispose();
+      frame = null;
     }
   }
 }
