@@ -1,0 +1,8 @@
+{
+  "vendor" = "Mike Bray (patched)"
+  "module_build" = "3207"
+  "minbuild" = "1820"
+  "vendor.url" = "http://github.com/mrbray99/moneydanceproduction/wiki"
+  "module_name" = "FileDisplay"
+  "module_desc" = "Displays the contents of the current data file (no longer supported by Mike Bray - branched from from 3206)"
+}
