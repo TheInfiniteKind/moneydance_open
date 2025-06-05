@@ -100,6 +100,7 @@ public abstract class Constants {
 	public static final String HIGHTYPE = "ht";
 	public static final String LOWTYPE = "lt";
 	public static final String VOLUMETYPE = "v";
+	public static final String ORIGINALTICKER="xt";
 	public static final String OKTYPE = "ok";
 	public static final String ERRTYPE = "err";
 	public static final String TOTALTYPE = "n";
@@ -172,7 +173,6 @@ public abstract class Constants {
 	public static final String CRNTCOLWIDTH = "columnwidth";
 	public static final int FRAMEWIDTH = 800;	
 	public static final int FRAMEHEIGHT = 800;
-	public static final int LOADSCREENHEIGHT = 800;
 	public static final String SELECTEDSECURITY= "SEC";
 	public static final String SELECTEDCURRENCY= "CUR";
 	public static final String SELECTEDSECCUR= "SECCUR";
@@ -184,8 +184,6 @@ public abstract class Constants {
 	public static final String CURRUNMODE = "currunmode";
 	public static final String MANUALMODE = "manualmode";
 	public static final String AUTOMODE = "automode";
-	public static final String SERVERTYPE = "servertype";
-	public static final String USESTANDALONE = "standalone";
 	public static final String SECLASTRUN = "lastrun";
 	public static final String CURLASTRUN = "curlastrun";
 	public static final String SECNEXTRUN = "secnextrun";

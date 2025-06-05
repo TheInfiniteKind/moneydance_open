@@ -538,7 +538,7 @@ public class SecTable extends JTable {
 		String exchange = (String) dm.getValueAt(modRow, exchangeCol);
 		String source = (String) dm.getValueAt(modRow, sourceCol);
 		String alternate = (String)dm.getValueAt(modRow, altTickerCol);
-    String nameStr = (String)dm.getValueAt(modRow, accountCol);
+    	String nameStr = (String)dm.getValueAt(modRow, accountCol);
 		int sourceid = 0;
 		String tickerSource = "";
 		for (int i = 0; i < Constants.SOURCELITS.length; i++) {
@@ -577,7 +577,7 @@ public class SecTable extends JTable {
 						JOptionPane.showMessageDialog(null, "You must select a source before getting a single price");
 						return;
 					}
-					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.GETINDIVIDUALCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
+					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.GETINDIVIDUALCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal+"&xt="+origticker);
 				}
 				if (strAction.equals("copy-derived-ticker-exchange")) {
 					StringSelection stringSelection = new StringSelection(tickerFinal);
@@ -635,7 +635,7 @@ public class SecTable extends JTable {
 		setAll.addActionListener(tickerListener);
     setAll.setActionCommand("set-ex");
 
-    //menu.add(getTickerMenu); // fixme - not currently enabled (for future release)
+    menu.add(getTickerMenu);
     menu.add(testTickerMenu);
 
     if (selCol == exchangeCol && !ticker.isBlank())

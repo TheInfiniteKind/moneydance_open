@@ -441,7 +441,7 @@ public class Main extends FeatureModule {
             }
         }
 
-        if (command.equals("showconsole")) {
+        if (command.equals(Constants.SHOWCONSOLECMD)) {
             if (frame != null && runtype > Constants.MANUALRUN) {
                 JOptionPane.showMessageDialog(null, "Quote Loader is running an automatic update,please wait",
                         "Quote Loader", JOptionPane.INFORMATION_MESSAGE);
