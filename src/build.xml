@@ -392,7 +392,7 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
   </target>
 
   <target name="all" depends="init, all_java_kotlin, all_python"/>
-  <target name="all_java_kotlin" depends="init, yahooqt, yahoofx, priceui, findandreplace, debtinsights, ratios, stockglance, securityquoteload, securitypriceload, securityhistoryload, qifloader, filedisplay, mousetester"/>
+  <target name="all_java_kotlin" depends="init, yahooqt, yahoofx, priceui, findandreplace, debtinsights, ratios, stockglance, securityquoteload, securitypriceload, securityhistoryload, qifloader, filedisplay, loadsectrans, mousetester"/>
   <target name="all_python" depends="init, toolbox, extract_data, list_future_reminders, net_account_balances, extension_tester, accounts_categories_mega_search_window, security_performance_graph"/>
 
 
@@ -496,6 +496,12 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
   <target name="filedisplay" depends="init">
     <build-mxt feature="filedisplay"
       javac-source="${javac-source}" javac-target="${javac-source}"/>
+  </target>
+
+  <target name="loadsectrans" depends="init, mrbutil">
+    <build-mxt feature="loadsectrans"
+      javac-source="${javac-source}" javac-target="${javac-source}"
+      jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
   </target>
 
   <target name="balpred" depends="init">
