@@ -45,6 +45,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.*;
 
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.MoneydanceSyncableItem;
 import com.infinitekind.util.CustomDateFormat;
 import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.FeatureModule;
@@ -84,6 +86,9 @@ public class Main extends FeatureModule {
     public static boolean standAloneRequested = false;
     public static LinkedBlockingQueue<ProcessCommandArgument> processQueue;
     public static boolean alphaVantageLimitReached = false;
+
+    public static com.moneydance.apps.md.controller.Main MD_REF;
+    public static int MD_BUILD_QUEUEMODIFIEDITEM_PUBLIC = 5132;  // MD2024.2(5132) switched to kotlin and now public...
 
     private Image selectedBlack = null;
     private Image selectedLight;
@@ -134,6 +139,7 @@ public class Main extends FeatureModule {
         // via the application toolbar
         extension = this;
         context = getContext();
+        MD_REF = (com.moneydance.apps.md.controller.Main) context;
         int iBuild = getBuild();
         buildNo = String.valueOf(iBuild);
         up = UserPreferences.getInstance();
@@ -165,6 +171,16 @@ public class Main extends FeatureModule {
         }
 
     }
+
+  // This method only became public after Kotlin in release MD2024.2(5132)...
+  public static boolean isQueueModifiedItemPublic() { return MD_REF.getBuild() >= MD_BUILD_QUEUEMODIFIEDITEM_PUBLIC; }
+  public static void queueOrSyncItem(AccountBook book, MoneydanceSyncableItem obj) {
+    if (isQueueModifiedItemPublic()) {
+      book.queueModifiedItem(obj);
+    } else {
+      obj.syncItem();
+    }
+  }
 
     /**
      * retrieves an image from within the .mxt file. Must be included when the

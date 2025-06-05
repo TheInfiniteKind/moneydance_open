@@ -973,6 +973,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			}
 
 		}
+    Main.MD_REF.saveCurrentAccount(); // flush changes to disk
+
 		if (exportFile != null)
 			try {
 				exportFile.close();
@@ -1040,8 +1042,10 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					else
 						line.setTickerStatus(0);
 				}
-        SwingUtilities.invokeLater(()-> curRatesModel.fireTableDataChanged());
 			}
+      Main.MD_REF.saveCurrentAccount(); // flush changes to disk
+      SwingUtilities.invokeLater(()-> secPricesModel.fireTableDataChanged());
+      SwingUtilities.invokeLater(()-> curRatesModel.fireTableDataChanged());
 			if (exportFile != null)
 				try {
 					exportFile.close();
@@ -1070,23 +1074,20 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				secPricesModel.updateLines(exportFile, false);
 				selectAll.setText(Constants.SELECTALL);
 				selectAllReturned = true;
-        SwingUtilities.invokeLater(() ->
-                                     secPricesModel.fireTableDataChanged());
 				if (params.getDisplayOption() == Constants.CurrencyDisplay.SAME) {
 					curRatesModel.updateLines(exportFile, false);
-          SwingUtilities.invokeLater(() ->
-                                       curRatesModel.fireTableDataChanged());
 				}
 				break;
 			case 1:
 				if (params.getDisplayOption() == Constants.CurrencyDisplay.SEPARATE) {
 					curRatesModel.updateLines(exportFile, false);
-          SwingUtilities.invokeLater(() ->
-                                       curRatesModel.fireTableDataChanged());
 				}
 				selectAllReturned = true;
 				selectAll.setText(Constants.SELECTALL);
 			}
+      Main.MD_REF.saveCurrentAccount(); // flush changes to disk
+      SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
+      SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());
 			if (exportFile != null)
 				try {
 					exportFile.close();
