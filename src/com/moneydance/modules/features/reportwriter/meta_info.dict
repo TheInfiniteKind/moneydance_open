@@ -1,0 +1,8 @@
+{
+  "vendor" = "Mike Bray (patched)"
+  "module_build" = "321507"
+  "minbuild" = "1860"
+  "vendor.url" = "http://https://bitbucket.org/mikerb/moneydance-2019/wiki/Report%20Writer"
+  "module_name" = "Report Writer 3205"
+  "module_desc" = "A general purpose reporting and data extraction tool for Moneydance (no longer supported by Mike Bray - branched from from 321506)"
+}

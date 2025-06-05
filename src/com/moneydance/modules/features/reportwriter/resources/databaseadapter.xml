@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<jdbcDataAdapter class="net.sf.jasperreports.data.jdbc.JdbcDataAdapterImpl">
+<name>Moneydance</name>
+<driver>org.h2.Driver</driver>
+<username>sa</username>
+<password>sa</password>
+<savePassword>true</savePassword>
+<url>jdbc:h2:##database##</url>
+<database></database>
+<serverAddress></serverAddress>
+<classpath>##jar##</classpath>
+<properties><key>MV_STORE</key><value>TRUE</value></properties>
+</jdbcDataAdapter>
