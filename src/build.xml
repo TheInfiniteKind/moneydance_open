@@ -487,6 +487,12 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     </antcall>
   </target>
 
+  <target name="qifloader" depends="init, mrbutil">
+    <build-mxt feature="qifloader"
+      javac-source="${javac-source}" javac-target="${javac-source}"
+      jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
+  </target>
+
   <target name="balpred" depends="init">
     <build-mxt feature="balpred"
       javac-source="${javac-source}" javac-target="${javac-source}"/>
