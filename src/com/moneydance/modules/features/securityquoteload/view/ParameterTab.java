@@ -681,7 +681,7 @@ public class ParameterTab extends DisplayTab {
 							"Debug level set to OFF");
 					Main.debugInst.setDebugLevel(MRBDebug.OFF);
 				}
-        saveDebugParam();
+				params.setDirty(true);
 			}
 		});
 		conInfo = new JRadioButton("Info");
@@ -693,7 +693,7 @@ public class ParameterTab extends DisplayTab {
 					Main.debugInst.setDebugLevel(MRBDebug.INFO);
 					reportConsoleChg();
 				}
-        saveDebugParam();
+				params.setDirty(true);
 			}
 		});
 		conSummary = new JRadioButton("Summary");
@@ -705,7 +705,7 @@ public class ParameterTab extends DisplayTab {
 					Main.debugInst.setDebugLevel(MRBDebug.SUMMARY);
 					reportConsoleChg();
 				}
-        saveDebugParam();
+				params.setDirty(true);
 			}
 		});
 		conDetailed = new JRadioButton("Detailed");
@@ -717,7 +717,7 @@ public class ParameterTab extends DisplayTab {
 					Main.debugInst.setDebugLevel(MRBDebug.DETAILED);
 					reportConsoleChg();
 				}
-        saveDebugParam();
+				params.setDirty(true);
 			}
 		});
 		conOption = new ButtonGroup();
@@ -771,7 +771,7 @@ public class ParameterTab extends DisplayTab {
     gridx=1;
 		uaLabel = new JLabel("User Agent");
 		uaParam = new JTextField();
-    uaParam.setToolTipText("ADVANCED. Normally blank to use rotating/random user-agent browser header(s). Manually override when using Yahoo as a quote source to bypass 429/rate errors");
+    	uaParam.setToolTipText("ADVANCED. Normally blank to use rotating/random user-agent browser header(s). Manually override when using Yahoo as a quote source to bypass 429/rate errors");
 		uaParam.setText(params.getUaParam());
 		uaParam.setPreferredSize(new Dimension(400,20));
 		uaParam.getDocument().addDocumentListener(new DocumentListener(){
@@ -783,14 +783,14 @@ public class ParameterTab extends DisplayTab {
 			public void changedUpdate(DocumentEvent e) {params.setUaParam(uaParam.getText());}
 		});
 		mainPanel.add(uaLabel, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
-		mainPanel.add(uaParam, GridC.getc(gridx, gridy++).insets(5,5,5,5).colspan(4).west());
+		mainPanel.add(uaParam, GridC.getc(gridx, gridy++).insets(5,5,5,5).colspan(6).west());
 
-    throttleYahooTF = new MyCheckBox();
+    	throttleYahooTF = new MyCheckBox();
 		throttleYahooTF.setToolTipText("When enabled then Yahoo connections will be throttled");
 		throttleYahooTF.setAlignmentX(LEFT_ALIGNMENT);
 		throttleYahooTF.setText("Throttle Yahoo connections");
 		throttleYahooTF.setHorizontalTextPosition(SwingConstants.LEFT);
-    throttleYahooTF.setSelected(Main.THROTTLE_YAHOO);  // default is always on - users should not be able to change this
+    	throttleYahooTF.setSelected(Main.THROTTLE_YAHOO);  // default is always on - users should not be able to change this
 		throttleYahooTF.setEnabled(false);
 		mainPanel.add(throttleYahooTF, GridC.getc(gridx, gridy++).colspan(2).west().insets(5, 5, 5, 0));
 
@@ -800,7 +800,14 @@ public class ParameterTab extends DisplayTab {
 		saveParams.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if (Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL,
+						MRBDebug.INFO) != Main.debugInst.getDebugLevel()) {
+					Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL,
+							Main.debugInst.getDebugLevel());
+					Main.preferences.isDirty();
+				}
 				params.save();
+				saveDebugParam();
 				JOptionPane.showMessageDialog(null, "Changes Saved");
 			}
 		});
@@ -829,7 +836,7 @@ public class ParameterTab extends DisplayTab {
 
 	}
 
-  private void saveDebugParam() {
+  public void saveDebugParam() {
     if (Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.INFO) != Main.debugInst.getDebugLevel()) {
       Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, Main.debugInst.getDebugLevel());
       Main.preferences.isDirty();
@@ -865,6 +872,7 @@ public class ParameterTab extends DisplayTab {
 			curSepTab.setVisible(false);
 		}
 
+		decimalComBo.setSelectedIndex(params.getDecimal() - 2);
 		fileName.setText("Export Folder : " + params.getExportFolder());
 		if (params.getDisplayOption() == Constants.CurrencyDisplay.SAME) {
 			curSamePage.setSelected(true);

@@ -643,7 +643,7 @@ public class SecTableModel extends DefaultTableModel {
 				objSnap.setDailyLow(rate);
 			}
 		}
-    book.queueModifiedItem(objSnap);
+    Main.queueOrSyncItem(book, objSnap);
 
 		int priceDate = DateUtil.convertLongDateToInt(ctTicker.getLongParameter("price_date", 0));
 		if (params.isOverridePrice()) {
@@ -693,7 +693,7 @@ public class SecTableModel extends DefaultTableModel {
 					rate = 1 / Util.safeRate(rate);
 					objSnap.setDailyLow(rate);
 				}
-        book.queueModifiedItem(objSnap);
+        Main.queueOrSyncItem(book, objSnap);
 			}
 		}
 
@@ -710,7 +710,7 @@ public class SecTableModel extends DefaultTableModel {
 		acct.setTickerStatus(0);
 
     ctTicker.clearEditingMode();
-    book.queueModifiedItem(ctTicker);
+    Main.queueOrSyncItem(book, ctTicker);
 
 		debugInst.debug("SecTableModel", "updateLine", MRBDebug.DETAILED, "finished security: " + ctTicker);
 		return true;

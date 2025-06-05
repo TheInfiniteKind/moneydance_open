@@ -479,7 +479,7 @@ public class CurTableModel extends DefaultTableModel {
 				}
 			}
 		}
-    book.queueModifiedItem(objSnap);
+    Main.queueOrSyncItem(book, objSnap);
 
 		line.setSelected(false);
 		if (line.getHistory() != null) {
@@ -487,7 +487,7 @@ public class CurTableModel extends DefaultTableModel {
 			for (HistoryPrice priceItem : historyList) {
 				dRate = priceItem.getPrice();
 				objSnap = ctTicker.setSnapshotInt(priceItem.getDate(), dRate);
-        book.queueModifiedItem(objSnap);
+        Main.queueOrSyncItem(book, objSnap);
 			}
 		}
 		line.setLastPrice(line.getNewPrice());
@@ -500,7 +500,7 @@ public class CurTableModel extends DefaultTableModel {
 		line.setHistory(null);
 
 		ctTicker.clearEditingMode();
-    book.queueModifiedItem(ctTicker);
+    Main.queueOrSyncItem(book, ctTicker);
 		debugInst.debug("CurTableModel", "updateLine", MRBDebug.DETAILED, "finished currency: " + ctTicker);
 		return true;
 	}
