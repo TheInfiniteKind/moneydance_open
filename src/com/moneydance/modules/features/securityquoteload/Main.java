@@ -174,8 +174,12 @@ public class Main extends FeatureModule {
 
   // This method only became public after Kotlin in release MD2024.2(5132)...
   public static boolean isQueueModifiedItemPublic() { return MD_REF.getBuild() >= MD_BUILD_QUEUEMODIFIEDITEM_PUBLIC; }
-  public static void queueOrSyncItem(AccountBook book, MoneydanceSyncableItem obj) {
+  public static void queueOrSyncItem(AccountBook book, MoneydanceSyncableItem obj) { queueOrSyncItem(book, obj, false); }
+  public static void queueOrSyncItem(AccountBook book, MoneydanceSyncableItem obj, boolean clearEditingMode) {
     if (isQueueModifiedItemPublic()) {
+      if (clearEditingMode) {
+        obj.clearEditingMode();
+      }
       book.queueModifiedItem(obj);
     } else {
       obj.syncItem();

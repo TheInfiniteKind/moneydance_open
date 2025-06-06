@@ -709,8 +709,7 @@ public class SecTableModel extends DefaultTableModel {
 		acct.setHistory(null);
 		acct.setTickerStatus(0);
 
-    ctTicker.clearEditingMode();
-    Main.queueOrSyncItem(book, ctTicker);
+    Main.queueOrSyncItem(book, ctTicker, true);
 
 		debugInst.debug("SecTableModel", "updateLine", MRBDebug.DETAILED, "finished security: " + ctTicker);
 		return true;

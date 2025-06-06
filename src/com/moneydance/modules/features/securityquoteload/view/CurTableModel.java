@@ -499,8 +499,7 @@ public class CurTableModel extends DefaultTableModel {
 		line.setTickerStatus(0);
 		line.setHistory(null);
 
-		ctTicker.clearEditingMode();
-    Main.queueOrSyncItem(book, ctTicker);
+    Main.queueOrSyncItem(book, ctTicker, true);
 		debugInst.debug("CurTableModel", "updateLine", MRBDebug.DETAILED, "finished currency: " + ctTicker);
 		return true;
 	}
