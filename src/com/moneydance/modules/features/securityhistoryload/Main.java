@@ -145,7 +145,7 @@ public void invoke(String uri) {
 
   @Override
 public String getName() {
-    return "Security History Loader";
+    return "Security / Currency History CSV Loader";
   }
   /**
    * Create the GUI and show it.  For thread safety,

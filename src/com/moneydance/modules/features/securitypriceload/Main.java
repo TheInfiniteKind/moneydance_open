@@ -143,7 +143,7 @@ public void invoke(String uri) {
 
   @Override
 public String getName() {
-    return "Security Price Loader";
+    return "Security / Currency Price CSV Loader";
   }
   /**
    * Create the GUI and show it.  For thread safety,
