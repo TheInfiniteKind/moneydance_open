@@ -126,7 +126,7 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 
 			response = httpClient.execute(httpGet);
 			quotePrice=null; 
-			debugInst.debug("GetQuoteTask", "call", MRBDebug.DETAILED, "Return stats for  "+ticker+" "+response.getStatusLine().getStatusCode() + " (user-agent: '" + ua + "')");
+			debugInst.debug("GetQuoteTask", "call", MRBDebug.DETAILED, "Return stats for  "+ticker+" "+response.getStatusLine().getStatusCode() + " (source: '" + quoteSource + "' user-agent: '" + ua + "')");
 			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK || response.getStatusLine().getStatusCode() == HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION) {
 				try {
 					quotePrice = analyseResponse(response);
@@ -172,7 +172,7 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 				}
 			}
 			else {
-				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error returned "+response.getStatusLine().getStatusCode() + " (user-agent: '"+ua+"')");
+				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error returned "+response.getStatusLine().getStatusCode() + " (source: '" + quoteSource + "' user-agent: '"+ua+"')");
         if (response.getStatusLine().getStatusCode() == Constants.RATE_LIMITED) {
   				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "RATE LIMITED - Removing from user-agents list (for this session)...");
           UserAgent.removeInvalidUserAgent(ua);  // only really has any effect when using random/rotating user agents...

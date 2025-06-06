@@ -1787,11 +1787,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.DETAILED,
 					"Price currency " + tradeCurType.getIDString());
 
-    if (secLine == null) {
-			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
-			throw new QuoteException("LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
-    }
-
 		/*
 		 * check trade for stock/currency
 		 */
@@ -1799,6 +1794,12 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			/*
 			 * trade is stock
 			 */
+
+      if (secLine == null) {
+        Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
+        throw new QuoteException("LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
+      }
+
 			securityCur = secLine.getRelativeCurrencyType();
 			if (securityCur != null)
 				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.DETAILED,
