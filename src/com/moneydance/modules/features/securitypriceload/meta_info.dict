@@ -4,5 +4,5 @@
   "minbuild" = "1820"
   "vendor.url" = "http://bitbucket.org/mikerb/wiki/Home"
   "module_name" = "Security / Currency Price CSV Loader"
-  "module_desc" = "Batch load price data from CSV file for multiple securities / currencies for a single (or current) date (no longer supported by Mike Bray - branched from 3206)"
+  "module_desc" = "Batch load price data from CSV file: multiple securities / currencies; single (usually current) date (no longer supported by Mike Bray - branched from 3206)"
 }
