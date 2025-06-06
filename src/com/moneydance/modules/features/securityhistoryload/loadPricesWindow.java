@@ -567,7 +567,7 @@ public class loadPricesWindow extends JFrame {
             mapAccounts.clear();
             mapCurrencies.clear();
             loadAccounts(Main.context.getRootAccount());
-            if (params.getProcessCurrencies())
+            if (params.getProcessCurrencies() || params.getIncludeZero())
                 loadCurrencies(Main.context.getCurrentAccountBook());
             pricesModel.ResetData(mapPrices, mapHigh, mapLow, mapVolume, mapCurrent, mapDates, mapAccounts, mapCurrencies);
             pricesModel.fireTableDataChanged();
