@@ -797,7 +797,13 @@ public class SecTable extends JTable {
       }
 
       int selCol = tc.getSelectedColumn();
-      int modRow=tableObj.convertRowIndexToModel(row);
+      int modRow = -1;
+      try {
+        modRow = tableObj.convertRowIndexToModel(row);
+      } catch (IndexOutOfBoundsException error) {
+          debugInst.debug("TableMouseListener", "mouseReleased", MRBDebug.INFO, "caught IndexOutOfBoundsException for row: " + row);
+        e.consume();
+      }
 
       if (AwtUtil.isPopupTrigger(e)) {
         e.consume();
