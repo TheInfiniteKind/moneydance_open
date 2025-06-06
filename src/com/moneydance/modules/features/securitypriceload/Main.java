@@ -33,8 +33,7 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.io.ByteArrayOutputStream;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
+import javax.swing.*;
 
 import com.infinitekind.util.CustomDateFormat;
 import com.moneydance.apps.md.controller.FeatureModule;
@@ -129,10 +128,17 @@ public void invoke(String uri) {
 	        command = uri.substring(0, theIdx);
 	      }
 	  }
-	
-	  if(command.equals("showconsole")) {
-	      showConsole();
-	  }    
+
+    if (command.equals("showconsole")) {
+      SwingUtilities.invokeLater(() -> {
+        if (frame != null) {
+          frame.setVisible(false);
+          frame.dispose();
+          frame = null;
+        }
+        showConsole();
+      });
+    }
   }
 
   @Override
