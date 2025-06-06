@@ -1143,13 +1143,12 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			 */
 			for (String ticker : sortedList) {
 				SecurityTableLine secLine = securitiesTable.get(ticker);
-				if (secLine.getSource() == 0)
-					continue;
-				if (secLine.getTicker().indexOf(Constants.TICKEREXTID)>0)
-					continue;
+				if (secLine.getSource() == 0) continue;
+				if (secLine.getTicker().indexOf(Constants.TICKEREXTID)>0) continue;
 				QuoteSource qs = QuoteSource.findSource(secLine.getSource());
-				if (qs.getSource()==Constants.MDINDEX || qs.getSource()== Constants.MDHDINDEX)
-					if (secLine.getAccount().getSecurityType()== SecurityType.MUTUAL)
+        if (qs == null) continue;
+				if (qs.getSource().equals(Constants.MDINDEX) || qs.getSource().equals(Constants.MDHDINDEX))
+					if (secLine.getAccount() != null && secLine.getAccount().getSecurityType() == SecurityType.MUTUAL)
 						qs = QuoteSource.findSource(Constants.MDMUINDEX);
 				SecurityPrice spLine = new SecurityPrice(secLine.getTicker());
 				if (secLine.getExchange()!=null && !secLine.getExchange().isEmpty())
@@ -1787,6 +1786,12 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		else
 			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.DETAILED,
 					"Price currency " + tradeCurType.getIDString());
+
+    if (secLine == null) {
+			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
+			throw new QuoteException("LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
+    }
+
 		/*
 		 * check trade for stock/currency
 		 */
