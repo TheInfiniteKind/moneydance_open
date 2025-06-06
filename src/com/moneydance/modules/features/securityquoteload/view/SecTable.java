@@ -83,6 +83,8 @@ public class SecTable extends JTable {
 	private JMenuItem sourceYahooHist;
 	private JMenuItem sourceFT;
 	private JMenuItem sourceFTHD;
+	private JMenuItem sourceMD;
+	private JMenuItem sourceMDHD;
 	private JMenuItem excludeSource;
 	private JMenuItem sourceAlpha;
 	private JComboBox<String> allSources;
@@ -441,7 +443,14 @@ public class SecTable extends JTable {
 					dm.updateAllSources(5);
 					return;
 				}
-
+				if (strAction.contains("Market Data HD")){
+					dm.updateAllSources(7);
+					return;
+				}
+				if (strAction.contains("Market Data")){
+					dm.updateAllSources(6);
+					return;
+				}
 				if (strAction.contains("Exclude")) {
 					dm.switchDisplay();
 					dm.fireTableDataChanged();
@@ -480,6 +489,14 @@ public class SecTable extends JTable {
 		sourceAlpha.setText("Set all to AlphaVantage HD");
 		sourcePopup.add(sourceAlpha);
 		sourceAlpha.addActionListener(popupListener);
+		sourceMD = new JMenuItem();
+		sourceMD.setText("Set all to Market Data");
+		sourcePopup.add(sourceMD);
+		sourceMD.addActionListener(popupListener);
+		sourceMDHD = new JMenuItem();
+		sourceMDHD.setText("Set all to Market Data HD");
+		sourcePopup.add(sourceMDHD);
+		sourceMDHD.addActionListener(popupListener);
 		excludeSource= new JMenuItem();
 		excludeSource.setText("Exclude 'Do not load'");
 		sourcePopup.add(excludeSource);
@@ -780,7 +797,13 @@ public class SecTable extends JTable {
       }
 
       int selCol = tc.getSelectedColumn();
-      int modRow=tableObj.convertRowIndexToModel(row);
+      int modRow = -1;
+      try {
+        modRow = tableObj.convertRowIndexToModel(row);
+      } catch (IndexOutOfBoundsException error) {
+          debugInst.debug("TableMouseListener", "mouseReleased", MRBDebug.INFO, "caught IndexOutOfBoundsException for row: " + row);
+        e.consume();
+      }
 
       if (AwtUtil.isPopupTrigger(e)) {
         e.consume();

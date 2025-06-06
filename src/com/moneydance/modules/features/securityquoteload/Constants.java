@@ -50,14 +50,19 @@ public abstract class Constants {
 	public static final String FT ="FT";
 	public static final String FTHIST ="FT HD";
 	public static final String ALPHAVAN = "AlphaVantage HD";
-	public static final String[] SOURCELITS= {YAHOO,FT,YAHOOHIST,FTHIST,ALPHAVAN};
+	public static final String MD="Market Data";
+	public static final String MDHD="Market Data HD";
+	public static final String[] SOURCELITS= {YAHOO,FT,YAHOOHIST,FTHIST,ALPHAVAN,MD, MDHD};
 	public static final String DONOTLOAD ="Do not load";
 	public static final Integer YAHOOINDEX = 1;
 	public static final Integer FTINDEX = 2;
 	public static final Integer YAHOOHISTINDEX = 3;
 	public static final Integer FTHISTINDEX = 4;
 	public static final Integer ALPHAINDEX= 5;
-	public static final Integer[] SOURCELIST= {YAHOOINDEX, FTINDEX, YAHOOHISTINDEX, FTHISTINDEX, ALPHAINDEX};
+	public static final Integer MDINDEX=6;
+	public static final Integer MDHDINDEX=7;
+	public static final Integer MDMUINDEX=8;
+	public static final Integer[] SOURCELIST= {YAHOOINDEX, FTINDEX, YAHOOHISTINDEX, FTHISTINDEX, ALPHAINDEX,MDINDEX, MDHDINDEX,MDMUINDEX};
 	public static final String[] AUTOTEXT = {"Manual Only","Daily","Weekly","Monthly","Quarterly","Yearly"};
 	public static final String[] HISTORYLIST= {"1 Month","2 Months","3 Months"};
 	public static final String[] TIMETEXT = {"At Start Up","02:00","04:00","06:00","08:00","09:00","11:00","13:00","15:00","17:00","19:00","21:00","22:00","23:00","24:00"};
@@ -110,7 +115,10 @@ public abstract class Constants {
 	public static final String SOURCEFT = "ft";
 	public static final String SOURCEFTHIST = "fth";
 	public static final String SOURCEALPHA = "alpha";
-	public static final String[] SOURCES = {SOURCEYAHOO,SOURCEFT,SOURCEYAHOOHIST,SOURCEFTHIST,SOURCEALPHA};
+	public static final String SOURCEMD="md";
+	public static final String SOURCEMDHIST="mdh";
+	public static final String SOURCEMDMU="mdm";
+	public static final String[] SOURCES = {SOURCEYAHOO,SOURCEFT,SOURCEYAHOOHIST,SOURCEFTHIST,SOURCEALPHA,SOURCEMD, SOURCEMDHIST, SOURCEMDMU};
 	public static final Long OVERALLTIMEOUT=20L;
 	public static final int TIMEOUTCOUNT=12;
 	public static final String SHOWCONSOLECMD = "showconsole";
@@ -255,7 +263,10 @@ public abstract class Constants {
 	    FTHD(FTHISTINDEX),
 	    YAHOO(YAHOOINDEX),
 	    YAHOOHD(YAHOOHISTINDEX),
-		ALPHAVAN(ALPHAINDEX);
+		ALPHAVAN(ALPHAINDEX),
+		MARKETDATA(MDINDEX),
+		MARKETDATAHD(MDHDINDEX),
+		MARKETDATAMU(MDMUINDEX);
 	    private Integer source;
 	    private String uuid="";
 	    QuoteSource(Integer sourceValue){
@@ -279,4 +290,5 @@ public abstract class Constants {
 			    
 	    }
     }
+	public enum MDStockType {STOCK, MUTUAL}
 }

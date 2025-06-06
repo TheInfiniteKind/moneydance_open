@@ -69,7 +69,7 @@ public class GetFTHDQuote extends GetQuoteTask {
 	private Integer lastPriceDate;
 	private Parameters params;
 	public GetFTHDQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient,String tickerType,String tid,Integer lastPriceDate) {
-		super(ticker, listener, httpClient,tickerType,tid);
+		super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.FTHD);
 		params=Parameters.getParameters();
 		this.lastPriceDate = lastPriceDate;
 		if (tickerType == Constants.STOCKTYPE)

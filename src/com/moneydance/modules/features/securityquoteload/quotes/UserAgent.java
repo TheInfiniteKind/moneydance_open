@@ -9,13 +9,11 @@ import java.util.Arrays;
 
 public class UserAgent {
 
-  static final boolean customUserAgentEnabled = true;
+  static final boolean allowDropDeadUserAgents = true;
 
-  static final boolean allowDropDeadUserAgents = false;
+  static final String DEFAULT_COMMON_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0";
 
-  static final String DEFAULT_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0";
-
-  static final ArrayList<String> agents = new ArrayList<>(Arrays.asList(
+  static final ArrayList<String> commonUserAgents = new ArrayList<>(Arrays.asList(
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
@@ -118,28 +116,34 @@ public class UserAgent {
 
   public UserAgent() {}
 
-  public static void removeInvalidAgent(String agent) {
+  /** removes a user agent (normally rate limited) from the list of common user agents
+   * note: has no effect if not using random/rotating user agents */
+  public static void removeInvalidUserAgent(String agent) {
     if (allowDropDeadUserAgents)
-      agents.removeIf(a -> a.equals(agent));
+      commonUserAgents.removeIf(a -> a.equals(agent));
   }
 
-  public static String getAgent() {
-    if (customUserAgentEnabled) {
-      return "" + System.currentTimeMillis();
-    }
+  /** returns a 'common' user agent string associated with desktop web browsing */
+  public static String getDefaultCommonUserAgent() { return DEFAULT_COMMON_USER_AGENT; }
 
-    if (agents.isEmpty()) { return DEFAULT_AGENT; }
+  /** returns a custom user agent string based on the current time in milliseconds (from 1st Jan 1970) */
+  public static String getTimeBasedUserAgent() { return "" + System.currentTimeMillis(); }
+
+  /** returns a rotating/random user agent string from a list of 'common' agents associated with desktop web browsing */
+  public static String getRandomCommonUserAgent() {
+
+    if (commonUserAgents.isEmpty()) { return getDefaultCommonUserAgent(); }
 
     double randomNum = Math.random();
-    double index = randomNum * (double) agents.size();
+    double index = randomNum * (double) commonUserAgents.size();
     if (index < 0.0) {
       index = 0.0;
     }
 
-    if (index > (double) (agents.size() - 1)) {
-      index = (double) agents.size() - 1.0;
+    if (index > (double) (commonUserAgents.size() - 1)) {
+      index = (double) commonUserAgents.size() - 1.0;
     }
 
-    return agents.get((int) index);
+    return commonUserAgents.get((int) index);
   }
 }

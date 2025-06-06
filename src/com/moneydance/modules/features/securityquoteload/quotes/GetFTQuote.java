@@ -67,7 +67,7 @@ public class GetFTQuote extends GetQuoteTask {
 	private String ftSecURL = "https://markets.ft.com/data/equities/tearsheet/summary?";
 	private String ftCurrURL = "https://markets.ft.com/data/currencies/tearsheet/summary?";
 	public GetFTQuote(String tickerp, QuoteListener listenerp, CloseableHttpClient httpClientp,String tickerTypep,String tidp) {
-		super(tickerp, listenerp, httpClientp,tickerTypep,tidp);
+		super(tickerp, listenerp, httpClientp, tickerTypep, tidp, 0, 0, Constants.QuoteSource.FT);
 		if (tickerType == Constants.STOCKTYPE)
 			url = ftSecURL+"s="+ticker;
 		if (tickerType == Constants.CURRENCYTYPE)

@@ -424,6 +424,111 @@ public class QuoteManager implements QuoteListener {
                 MRBEDTInvoke.showURL(Main.context, doneUrl);
 
             }
+            case Constants.SOURCEMD -> {
+                Long timeout;
+                if (stocks.size() > 59) {
+                    timeout = (stocks.size() + currencies.size()) * 10l;
+                } else {
+                    if ((stocks.size() + currencies.size()) < 100)
+                        timeout = 180L;
+                    else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
+                        timeout = 360L;
+                    else
+                        timeout = 480L;
+                }
+                for (String stock : stocks) {
+                    GetQuoteTask task = new GetMDQuote(stock, tradeCurrencies.get(stock),this, httpClient, Constants.STOCKTYPE, tid);
+                    tasks.add(task);
+                    totalQuotes++;
+                }
+                List<Future<QuotePrice>> futures = null;
+
+                try {
+                    threadPool = Executors.newFixedThreadPool(4);
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Market Data Tasks invoking " + tasks.size() + " queries");
+                    futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.INFO, e.getMessage());
+                }
+
+                if (futures == null) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Market Data Failed to invokeAll");
+                    return;
+                }
+                for (Future<QuotePrice> future : futures) {
+                    if (future.isCancelled()) {
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Yahoo One of the tasks has timeout.");
+                        continue;
+                    }
+                    try {
+                        future.get();
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Market Data task completed");
+                    } catch (InterruptedException e) {
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, e.getMessage());
+                    } catch (ExecutionException e) {
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, e.getMessage());
+                    } finally {
+                    }
+                }
+                String doneUrl = "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.DONEQUOTECMD + "?" + Constants.TIDCMD + "=" + tid;
+                doneUrl += "&" + Constants.TOTALTYPE + "=" + totalQuotes;
+                doneUrl += "&" + Constants.OKTYPE + "=" + successful;
+                doneUrl += "&" + Constants.ERRTYPE + "=" + failed;
+                MRBEDTInvoke.showURL(Main.context, doneUrl);
+            }
+            case Constants.SOURCEMDHIST, Constants.SOURCEMDMU -> {
+                Long timeout;
+                if ((stocks.size() + currencies.size()) > 59) {
+                    timeout = (stocks.size() + currencies.size()) * 10l;
+                } else {
+                    if ((stocks.size() + currencies.size()) < 100)
+                        timeout = 180L;
+                    else if ((stocks.size() + currencies.size()) > 99 && (stocks.size() + currencies.size()) < 200)
+                        timeout = 360L;
+                    else
+                        timeout = 480L;
+                }
+                for (String stock : stocks) {
+                    Constants.MDStockType stockType = source==Constants.SOURCEMDHIST? Constants.MDStockType.STOCK:Constants.MDStockType.MUTUAL;
+                    GetQuoteTask task = new GetMDQuote(stock, stockType,tradeCurrencies.get(stock),this, httpClient, Constants.STOCKTYPE, tid, lastPriceDate.get(stock), true);
+                    tasks.add(task);
+                    totalQuotes++;
+                }
+                List<Future<QuotePrice>> futures = null;
+                try {
+                    threadPool = Executors.newFixedThreadPool(4);
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Market Data History Tasks invoking " + tasks.size() + " queries");
+                    futures = threadPool.invokeAll(tasks, timeout, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.INFO, e.getMessage());
+                }
+
+                if (futures == null) {
+                    debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Market Data History Failed to invokeAll");
+                    return;
+                }
+                for (Future<QuotePrice> future : futures) {
+                    if (future.isCancelled()) {
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Market Data History One of the tasks has timeout.");
+                        continue;
+                    }
+                    try {
+                        future.get();
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.SUMMARY, "Market Data History task completed");
+                    } catch (InterruptedException e) {
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, e.getMessage());
+                    } catch (ExecutionException e) {
+                        debugInst.debug("QuoteManager", "getQuotes", MRBDebug.DETAILED, e.getMessage());
+                    } finally {
+                    }
+                }
+                String doneUrl = "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.DONEQUOTECMD + "?" + Constants.TIDCMD + "=" + tid;
+                doneUrl += "&" + Constants.TOTALTYPE + "=" + totalQuotes;
+                doneUrl += "&" + Constants.OKTYPE + "=" + successful;
+                doneUrl += "&" + Constants.ERRTYPE + "=" + failed;
+                MRBEDTInvoke.showURL(Main.context, doneUrl);
+            }
+
         }
         try {
             httpClient.close();
