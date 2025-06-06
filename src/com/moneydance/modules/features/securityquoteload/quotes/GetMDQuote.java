@@ -82,7 +82,7 @@ public class GetMDQuote extends GetQuoteTask {
     String toDate;
 
     public GetMDQuote(String ticker, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid) {
-        super(ticker, listener, httpClient, tickerType, tid);
+        super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
         this.tradeCurrency = tradeCurrency;
         String convTicker = ticker.replace("^", "%5E");
         if (tickerType == Constants.STOCKTYPE)
@@ -91,7 +91,7 @@ public class GetMDQuote extends GetQuoteTask {
         lastPriceDate = 0;
     }
     public GetMDQuote(String ticker,  Constants.MDStockType stockType, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, Integer lastPriceDate, boolean history) {
-        super(ticker, listener, httpClient, tickerType, tid);
+        super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
         this.tradeCurrency = tradeCurrency;
         this.history = history;
         int  historyDateInt = DateUtil.incrementDate(Main.today,0,-(params.getAmtHistory()+1),0);

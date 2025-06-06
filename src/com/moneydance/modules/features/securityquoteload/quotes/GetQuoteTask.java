@@ -56,17 +56,20 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 	Parameters params = Parameters.getParameters();
   int throttleDelayMinMS;
   int throttleDelayMaxMS;
+  Constants.QuoteSource quoteSource;
 
 	public GetQuoteTask(String ticker, QuoteListener listener, CloseableHttpClient httpClient,String tickerType,String tid) {
 		super(ticker,listener, httpClient,tickerType,tid);
     this.throttleDelayMinMS = 0;
     this.throttleDelayMaxMS = 0;
+    this.quoteSource = null;
 	}
 
-  public GetQuoteTask(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, int throttleDelayMinMS, int throttleDelayMaxMS) {
+  public GetQuoteTask(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, int throttleDelayMinMS, int throttleDelayMaxMS, Constants.QuoteSource quoteSource) {
     super(ticker, listener, httpClient, tickerType, tid);
     this.throttleDelayMinMS = throttleDelayMinMS;
     this.throttleDelayMaxMS = throttleDelayMaxMS;
+    this.quoteSource = quoteSource;
   }
 
 	@Override
@@ -98,7 +101,27 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 			HttpGet httpGet = new HttpGet(uri);
 			httpGet.addHeader("Accept-Language","en");
 			//httpGet.addHeader("User-Agent","Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36");
-      String ua = params.getUaParam().isEmpty() ? UserAgent.getAgent() : params.getUaParam();
+
+      //String ua = params.getUaParam().isEmpty() ? UserAgent.getRandomCommonUserAgent() : params.getUaParam();
+
+      String ua;
+      if (!params.getUaParam().isEmpty()) {
+        // if user specified a fixed user agent then always use that
+        ua = params.getUaParam();
+      } else {
+        if (quoteSource == null) {
+          // should never happen, so just use a single/fixed default common user agent
+          ua = UserAgent.getDefaultCommonUserAgent();
+        } else {
+          // obtain a user agent that's 'friendly' to the source server...
+          ua = switch (quoteSource) {
+            case FT, FTHD -> UserAgent.getRandomCommonUserAgent();
+            case YAHOO, YAHOOHD -> UserAgent.getTimeBasedUserAgent();
+            default -> UserAgent.getDefaultCommonUserAgent();
+          };
+        }
+      }
+
       httpGet.addHeader("User-Agent", ua);
 
 			response = httpClient.execute(httpGet);
@@ -152,7 +175,7 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error returned "+response.getStatusLine().getStatusCode() + " (user-agent: '"+ua+"')");
         if (response.getStatusLine().getStatusCode() == Constants.RATE_LIMITED) {
   				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "RATE LIMITED - Removing from user-agents list (for this session)...");
-          UserAgent.removeInvalidAgent(ua);
+          UserAgent.removeInvalidUserAgent(ua);  // only really has any effect when using random/rotating user agents...
         }
 				sendError();
 			}

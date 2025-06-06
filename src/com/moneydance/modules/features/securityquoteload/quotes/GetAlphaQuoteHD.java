@@ -33,7 +33,7 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
     private String tradeCurrency;
 
     public GetAlphaQuoteHD(String ticker, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate, int throttleDelayMinMS, int throttleDelayMaxMS) {
-        super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS);
+        super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.ALPHAVAN);
         this.tradeCurrency = tradeCurrency;
         int  historyDateInt = DateUtil.incrementDate(Main.today,0,-(params.getAmtHistory()+1),0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
