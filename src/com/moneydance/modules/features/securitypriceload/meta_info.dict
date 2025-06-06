@@ -3,6 +3,6 @@
   "module_build" = "321701"
   "minbuild" = "1820"
   "vendor.url" = "http://bitbucket.org/mikerb/wiki/Home"
-  "module_name" = "Security Price Load"
-  "module_desc" = "Loads the price of securities/currencies from a file and updates the current price in the Moneydance file (no longer supported by Mike Bray - branched from 3206)"
+  "module_name" = "Security / Currency Price CSV Loader"
+  "module_desc" = "Batch load price data from CSV file for multiple securities / currencies for a single (or current) date (no longer supported by Mike Bray - branched from 3206)"
 }
