@@ -101,6 +101,8 @@ public class ParameterTab extends DisplayTab {
 	private JLabel uaLabel;
 	private JTextField uaParam;
   private MyCheckBox throttleYahooTF; // readonly setting (for info)
+	private JLabel mdLbl;
+	private JTextField mdToken;
 
 	public ParameterTab(Parameters params, Main main, MainPriceWindow controller) {
 		super(params, main, controller);
@@ -752,8 +754,8 @@ public class ParameterTab extends DisplayTab {
 			public void changedUpdate(DocumentEvent e) {params.setAlphaAPIKey(alphaKey.getText());}
 		});
 		alphaKey.setPreferredSize(new Dimension(150,20));
-		mainPanel.add(alphaLbl, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
-		mainPanel.add(alphaKey, GridC.getc(gridx++, gridy).insets(5,5,5,5).west());
+		mainPanel.add(alphaLbl, GridC.getc(gridx++, gridy).insets(5,5,5,5));
+		mainPanel.add(alphaKey, GridC.getc(gridx++, gridy).insets(5,5,5,5).colspan(6).west());
 
 		JLabel lblAplhaPlan = new JLabel("API calls per minute:");
 		mainPanel.add(lblAplhaPlan, GridC.getc(gridx++, gridy).east().insets(5, 5, 5, 0));
@@ -768,7 +770,22 @@ public class ParameterTab extends DisplayTab {
     });
     mainPanel.add(alphaPlanCombo, GridC.getc(gridx++, gridy++).west().insets(5, 5, 5, 0));
 
-    gridx=1;
+		gridx=1;
+		mdLbl = new JLabel("Access Token for Market Data");
+		mdToken = new JTextField();
+		mdToken.setText(params.getMdToken());
+		mdToken.getDocument().addDocumentListener(new DocumentListener(){
+			@Override
+			public void insertUpdate(DocumentEvent e) {params.setMdToken(mdToken.getText());}
+			@Override
+			public void removeUpdate(DocumentEvent e) {params.setMdToken(mdToken.getText());}
+			@Override
+			public void changedUpdate(DocumentEvent e) {params.setMdToken(mdToken.getText());}
+		});
+		mdToken.setPreferredSize(new Dimension(500,20));
+		mainPanel.add(mdLbl, GridC.getc(gridx++, gridy).insets(5,5,5,5));
+		mainPanel.add(mdToken, GridC.getc(gridx, gridy++).insets(5,5,5,5).colspan(6).west());
+		gridx=1;
 		uaLabel = new JLabel("User Agent");
 		uaParam = new JTextField();
     	uaParam.setToolTipText("ADVANCED. Normally blank to use rotating/random user-agent browser header(s). Manually override when using Yahoo as a quote source to bypass 429/rate errors");

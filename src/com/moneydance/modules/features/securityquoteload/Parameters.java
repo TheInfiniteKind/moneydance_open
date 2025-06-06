@@ -67,7 +67,7 @@ public class Parameters{
 	public  static Integer [] decimals = {2,3,4,5,6,7,8};
 	public  static String [] maximums = {"No Limit","6","7","8","9"};
 	private  MRBDebug debugInst = Main.debugInst;
-	private  String[] secSource = {Constants.DONOTLOAD,Constants.YAHOO,Constants.FT,Constants.YAHOOHIST,Constants.FTHIST,Constants.ALPHAVAN};
+	private  String[] secSource = {Constants.DONOTLOAD,Constants.YAHOO,Constants.FT,Constants.YAHOOHIST,Constants.FTHIST,Constants.ALPHAVAN, Constants.MD, Constants.MDHD};
 	private  String[] curSource = {Constants.DONOTLOAD,Constants.YAHOO,Constants.YAHOOHIST,Constants.FT,Constants.ALPHAVAN};
 	private  List<NewAccountLine>listNewAccounts;
 	private SortedMap<String, NewAccountLine> savedAccounts;
@@ -88,6 +88,7 @@ public class Parameters{
 	private  Integer timeOfRun;
 	private String alphaAPIKey;
 	private String uaParam;
+	private String mdToken;
   private Integer alphaPlan;
 	private  char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
@@ -237,6 +238,7 @@ public class Parameters{
 		this.alphaAPIKey = newParams.getAlphaAPIKey();
 		this.alphaPlan = newParams.getAlphaPlan();
 		this.uaParam = newParams.getUaParam();
+		this.mdToken = newParams.getMdToken();
 
 		savedAccounts = new TreeMap<>();
 		buildAccounts();
@@ -502,7 +504,18 @@ public class Parameters{
 		this.uaParam = uaParam;
 		isDirty=true;
 	}
+	/*
+	 * Market Data key
+	 */
 
+	public String getMdToken() {
+		return mdToken;
+	}
+
+	public void setMdToken(String mdToken) {
+		this.mdToken = mdToken;
+		isDirty=true;
+	}
 
 	/*
 	 * Accounts
@@ -624,6 +637,7 @@ public class Parameters{
 		newParams.setAlphaAPIKey(alphaAPIKey);
 		newParams.setAlphaPlan(alphaPlan);
 		newParams.setUaParam(uaParam);
+		newParams.setMdToken(mdToken);
 
 		/*
 		 * create the file
@@ -658,6 +672,7 @@ public class Parameters{
 		this.amtHistory= newParams.getAmtHistory();
 		this.alphaAPIKey= newParams.getAlphaAPIKey();
 		this.alphaPlan= newParams.getAlphaPlan();
+		this.mdToken= newParams.getMdToken();
 		this.uaParam= newParams.getUaParam();
 		this.displayOption=newParams.getDisplayOption();
 		isDirty=false;

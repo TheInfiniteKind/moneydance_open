@@ -48,9 +48,10 @@ public class NewParameters {
 	private Integer amtHistory;
 	private String exportFolder;
 	private String alphaAPIKey;
+	private String mdToken;
   private Integer alphaPlan;
 	private String uaParam;
-  private List<NewAccountLine> listAccounts;
+	private List<NewAccountLine> listAccounts;
 
 	public  NewParameters(){
 		noDecimals = 0;
@@ -64,6 +65,7 @@ public class NewParameters {
 		amtHistory=0;
     alphaPlan=Parameters.alphaPlans[0];  // default to the fastest
 		alphaAPIKey="";
+		mdToken="";
 		uaParam = "";
 		listAccounts = new ArrayList<>();
 	}
@@ -121,6 +123,12 @@ public class NewParameters {
 	 */
 	public String getUaParam() {
 		return uaParam;
+	}
+	/**
+	 * @return Market Data token
+	 */
+	public String getMdToken() {
+		return mdToken;
 	}
 
 	/**
@@ -210,6 +218,10 @@ public class NewParameters {
 		this.displayOption = displayOption;
 	}
 	public void setAmtHistory(Integer amtHistory) {	this.amtHistory = amtHistory;}
+
+	public void setMdToken(String mdToken) {
+		this.mdToken = mdToken;
+	}
 	public void setAlphaAPIKey(String alphaAPIKey) { this.alphaAPIKey = alphaAPIKey; }
 	public void setAlphaPlan(Integer alphaPlan) { this.alphaPlan = alphaPlan; }
 	public void setUaParam(String uaParam) { this.uaParam = uaParam; }

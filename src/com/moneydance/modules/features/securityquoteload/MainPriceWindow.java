@@ -1148,6 +1148,9 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				if (secLine.getTicker().indexOf(Constants.TICKEREXTID)>0)
 					continue;
 				QuoteSource qs = QuoteSource.findSource(secLine.getSource());
+				if (qs.getSource()==Constants.MDINDEX || qs.getSource()== Constants.MDHDINDEX)
+					if (secLine.getAccount().getSecurityType()== SecurityType.MUTUAL)
+						qs = QuoteSource.findSource(Constants.MDMUINDEX);
 				SecurityPrice spLine = new SecurityPrice(secLine.getTicker());
 				if (secLine.getExchange()!=null && !secLine.getExchange().isEmpty())
 					spLine.setExchange(secLine.getExchange());
@@ -1242,6 +1245,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				continue;
 			if (srce.equals(ALPHAVAN)&&!checkAlphaKey()) // The API Key must be set if source is Alpha Vantage
 				return;
+			if ((srce.equals(Constants.MD) || srce.equals(Constants.MDHD))&&!checkMDToken())
+				return;
 			StringBuilder url = new StringBuilder();
 			String type;
 			String ticker = "";
@@ -1305,6 +1310,16 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							tradeCur = securitiesTable.get(ticker).getRelativeCurrencyType().getIDString();
 						lastPriceDate = line.getPriceDate();
 						break;
+					case MARKETDATAHD:
+						lastPriceDate = line.getPriceDate();
+					case MARKETDATA:
+						if (price.getExchange()!=null && !price.getExchange().isEmpty()){
+							tradeCur = params.getExchangeCurrency(price.getExchange());
+							if (tradeCur == null)
+								tradeCur = securitiesTable.get(ticker).getRelativeCurrencyType().getIDString();
+						}
+						else
+							tradeCur = securitiesTable.get(ticker).getRelativeCurrencyType().getIDString();
 					default:
 						break;
 
@@ -1316,7 +1331,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						ticker = newTicker;
 					}
 				}
-				if (srce.equals(QuoteSource.ALPHAVAN)){
+				if (srce.equals(QuoteSource.ALPHAVAN) || srce.equals(QuoteSource.MARKETDATA)|| srce.equals(QuoteSource.MARKETDATAHD)){
 					if (url.isEmpty())
 							url.append(newPriceAlphaUrl(Constants.SOURCES[srce.getSource() - 1], srce.getUuid(), ticker, tradeCur,type,
 									lastPriceDate));
@@ -1382,6 +1397,17 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			SwingUtilities.invokeLater(new Runnable(){
 				public void run(){
 					JOptionPane.showMessageDialog(null,"Alpha Vantage Api key not set.  Please add in the parameter screen");
+				}
+			});
+			return false;
+		}
+		return true;
+	}
+	private boolean checkMDToken(){
+		if (params.getMdToken()==null || params.getMdToken().isEmpty()){
+			javax.swing.SwingUtilities.invokeLater(new Runnable(){
+				public void run(){
+					JOptionPane.showMessageDialog(null,"Market Data Token key not set.  Please add in the parameter screen");
 				}
 			});
 			return false;

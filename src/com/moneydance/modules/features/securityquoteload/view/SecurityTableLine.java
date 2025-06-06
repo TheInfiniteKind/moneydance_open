@@ -73,6 +73,7 @@ public class SecurityTableLine {
 	private String ftAlternate;
 	private String yahooAlternate;
 	private String alphaAlternate;
+	private String mdAlternate;
 
 	/*
 	 * Display fields getters and setters
@@ -253,6 +254,12 @@ public class SecurityTableLine {
 	public void setAlphaAlternate(String alphaAlternate){
 		this.alphaAlternate = alphaAlternate;
 	}
+	public String getMDAlterate() {
+		return mdAlternate;}
+
+	public void setMDAlternate(String mdAlternate){
+		this.mdAlternate = mdAlternate;
+	}
 	public void setAlternate(String alternate) {
 		QuoteSource sourceType = QuoteSource.findSource(source);
 		switch (sourceType) {
@@ -266,6 +273,10 @@ public class SecurityTableLine {
 			break;
 		case ALPHAVAN :
 			alphaAlternate= alternate;
+			break;
+		case MARKETDATAHD:
+		case MARKETDATA:
+			mdAlternate = alternate;
 		}
 	}
 
