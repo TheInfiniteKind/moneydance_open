@@ -3,6 +3,6 @@
   "module_build" = "321701"
   "minbuild" = "1820"
   "vendor.url" = "http://bitbucket.org/mikerb/wiki/Home"
-  "module_name" = "Security History Load"
-  "module_desc" = "Loads the price of securities from a file and updates the price in the Moneydance file based on the given date (no longer supported by Mike Bray - branched from 321700)"
+  "module_name" = "Security / Currency History CSV Loader"
+  "module_desc" = "Batch load history price data from CSV file: multiple securities / currencies; mutiple dates (no longer supported by Mike Bray - branched from 321700)"
 }
