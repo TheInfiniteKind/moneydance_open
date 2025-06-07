@@ -1796,8 +1796,9 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			 */
 
       if (secLine == null) {
-        Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
-        throw new QuoteException("LOGIC ERROR - secLine is null - ticker: " + newPrice.getTicker());
+        String msg = "LOGIC ERROR - secLine is null - ticker: '" + newPrice.getTicker() + "' (url: '" + url + "')";
+        Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, msg);
+        throw new QuoteException(msg);
       }
 
 			securityCur = secLine.getRelativeCurrencyType();
@@ -1902,17 +1903,16 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	}
 
 	public synchronized void updateHistory(String url) throws QuoteException{
+    Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.DETAILED, "update history starting for url: '" + url + "'");
 		String uuid = "";
 		URI uri;
 		String convUrl = url.replace("^", "%5E");
 		try {
-
 			uri = new URI(convUrl.trim());
 		} catch (URISyntaxException e) {
 			Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.DETAILED, "URI invalid " + convUrl);
 			e.printStackTrace();
 			throw new QuoteException("Invalid url");
-
 		}
 		/*
 		 * capture data from returned url
@@ -2025,6 +2025,13 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					newPrice.setLowPrice(newNum.doubleValue());
 			}
 		}
+
+    if (newPrice == null) {
+      String msg = "LOGIC ERROR - newPrice is null (url: '" + url + "')";
+      Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.INFO, msg);
+      throw new QuoteException(msg);
+    }
+
 		/*
 		 * data extracted test for test ticker
 		 */
@@ -2077,8 +2084,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		else {
 			secLine = securitiesTable.get(ticker);
 			if (secLine == null) {
-				Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.INFO,
-						"Security " + ticker + " not found. ");
+				Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.INFO, "Security: '" + ticker + "' not found(u rl: '" + url + "')");
 				return;
 			}
 		}
@@ -2471,13 +2477,27 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	}
 
 	public synchronized boolean checkProgress() {
+    int countStarted = 0;
+    int countFailed = 0;
+    int countCompleted = 0;
 		for (SecurityTableLine line : securitiesTable.values()) {
+
+      switch (line.getTickerStatus()) {
+        case Constants.TASKSTARTED -> countStarted++;
+        case Constants.TASKFAILED -> countFailed++;
+        case Constants.TASKCOMPLETED -> countCompleted++;
+      }
+
 			if (line.getTickerStatus() == Constants.TASKSTARTED) {
 				Main.debugInst.debug("MainPriceWindow", "checkProgress", MRBDebug.SUMMARY,
 						"Quote " + line.getTicker() + " has not finished");
 				return false;
 			}
 		}
+    Main.debugInst.debug("MainPriceWindow", "checkProgress", MRBDebug.DETAILED, "nothing appears to be running - assuming finished - stats:" +
+                                                                                " started: "+countStarted+
+                                                                                " failed: "+countFailed+
+                                                                                " completed: "+countCompleted);
 		return true;
 	}
 
