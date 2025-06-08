@@ -1499,6 +1499,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		String ticker = "";
 		String source = "";
 		String originalTicker="";
+    int lastPriceDate = -1;
 		for (NameValuePair price : results) {
 			if (price.getName().compareToIgnoreCase(Constants.STOCKTYPE) == 0) {
 				ticker = price.getValue();
@@ -1509,20 +1510,27 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			if (price.getName().compareToIgnoreCase(Constants.ORIGINALTICKER)==0){
 				originalTicker = price.getValue();
 			}
+			if (price.getName().compareToIgnoreCase(Constants.LASTPRICEDATETYPE)==0){
+				lastPriceDate = Integer.parseInt(price.getValue());
+			}
 		}
+
 		if (!ticker.isEmpty()) {
 			getTID = UUID.randomUUID().toString();
 			getTicker = ticker;
-			if (!originalTicker.isEmpty()&& !(originalTicker.compareToIgnoreCase(ticker)==0)) {
-				if (alteredTickers == null) {
-					alteredTickers = new TreeMap();
-					alteredTickers.put(ticker, originalTicker);
-				}
+      alteredTickers = new TreeMap();
+			if (!originalTicker.isEmpty() && !(originalTicker.compareToIgnoreCase(ticker)==0)) {
+        alteredTickers.put(ticker, originalTicker);
 			}
-			MRBEDTInvoke.showURL(Main.context,"moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.STARTQUOTECMD
-					+ "?numquotes=1");
-			String testurl = newPriceUrl(source, getTID, ticker, Constants.STOCKTYPE, 0);
-			Main.debugInst.debug("MainPriceWindow", "getIndividualTicker", MRBDebug.DETAILED, "URI " + testurl);
+			MRBEDTInvoke.showURL(Main.context,"moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.STARTQUOTECMD + "?numquotes=1");
+
+      int lpd = switch (source) {
+        case Constants.SOURCEYAHOOHIST, Constants.SOURCEALPHA, Constants.SOURCEFTHIST, Constants.SOURCEMDHIST -> lastPriceDate;
+        default -> -1;
+      };
+
+			String testurl = newPriceUrl(source, getTID, ticker, Constants.STOCKTYPE, lpd);
+			Main.debugInst.debug("MainPriceWindow", "getIndividualTicker", MRBDebug.DETAILED, "URI: '" + testurl + "'");
 			MRBEDTInvoke.showURL(Main.context,testurl);
 		}
 	}

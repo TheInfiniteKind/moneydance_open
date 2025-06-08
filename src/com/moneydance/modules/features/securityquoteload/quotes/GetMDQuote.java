@@ -88,7 +88,7 @@ public class GetMDQuote extends GetQuoteTask {
         if (tickerType == Constants.STOCKTYPE)
             url = mdSecURL + convTicker +"&dateformat=timestamp&token="+params.getMdToken();
         debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url);
-        lastPriceDate = 0;
+        lastPriceDate = -1;
     }
     public GetMDQuote(String ticker,  Constants.MDStockType stockType, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, Integer lastPriceDate, boolean history) {
         super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
@@ -110,7 +110,7 @@ public class GetMDQuote extends GetQuoteTask {
         toDate = today.format(dFormat);
        String convTicker = ticker.replace("^", "%5E");
        if (tickerType == Constants.STOCKTYPE && stockType== Constants.MDStockType.STOCK) {
-            url = mdSecURL + convTicker + "dateformat=timestamp&from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
+            url = mdSecURL + convTicker + "&dateformat=timestamp&from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
         }
         if (tickerType == Constants.STOCKTYPE && stockType== Constants.MDStockType.MUTUAL) {
             url = mdFundURL + convTicker + "?from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
