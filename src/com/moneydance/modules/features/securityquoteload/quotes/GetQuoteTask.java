@@ -40,6 +40,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -125,16 +126,18 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
       httpGet.addHeader("User-Agent", ua);
 
 			response = httpClient.execute(httpGet);
-			quotePrice=null; 
-			debugInst.debug("GetQuoteTask", "call", MRBDebug.DETAILED, "Return stats for  "+ticker+" "+response.getStatusLine().getStatusCode() + " (source: '" + quoteSource + "' user-agent: '" + ua + "')");
-			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK || response.getStatusLine().getStatusCode() == HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION) {
+      StatusLine statusLine = response.getStatusLine();
+      int statusCode = statusLine.getStatusCode();
+      String statusReason = statusLine.getReasonPhrase();
+			debugInst.debug("GetQuoteTask", "call", MRBDebug.DETAILED, "Return stats for: " + ticker + " statusCode: " + statusCode + " reason: '" + statusReason + "' (source: '" + quoteSource + "' user-agent: '" + ua + "')");
+			if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION) {
 				try {
 					quotePrice = analyseResponse(response);
 					String doneUrl ="moneydance:fmodule:" + Constants.PROGRAMNAME + ":"+Constants.LOADPRICECMD+"?"+Constants.TIDCMD+"="+tid+"&";
-					if (tickerType == Constants.STOCKTYPE)
-						doneUrl+=Constants.STOCKTYPE;
-					else
-						doneUrl+=Constants.CURRENCYTYPE;
+          if (tickerType.equalsIgnoreCase(Constants.STOCKTYPE))
+            doneUrl += Constants.STOCKTYPE;
+          else
+            doneUrl += Constants.CURRENCYTYPE;
 					doneUrl += "="+ticker+"&p="+String.format("%.8f",quotePrice.getPrice());
 					doneUrl += "&"+Constants.TRADEDATETYPE+"="+quotePrice.getTradeDate();
 					doneUrl += "&"+Constants.TRADECURRTYPE+"="+quotePrice.getCurrency();
@@ -147,7 +150,7 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 					if (!quotePrice.getHistory().isEmpty()) {
 						for (HistoryPrice history : quotePrice.getHistory()) {
 							doneUrl ="moneydance:fmodule:" + Constants.PROGRAMNAME + ":"+Constants.LOADHISTORYCMD+"?"+Constants.TIDCMD+"="+tid+"&";
-							if (tickerType == Constants.STOCKTYPE)
+							if (tickerType.equalsIgnoreCase(Constants.STOCKTYPE))
 								doneUrl+=Constants.STOCKTYPE;
 							else
 								doneUrl+=Constants.CURRENCYTYPE;
@@ -167,28 +170,28 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 					listener.doneReturned(ticker);
 				}
 				catch (IOException e) {
-					debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error analysing reply "+e.getMessage());
+					debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error analysing reply: " + e.getMessage());
 					sendError();
 				}
 			}
 			else {
-				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error returned "+response.getStatusLine().getStatusCode() + " (source: '" + quoteSource + "' user-agent: '"+ua+"')");
-        if (response.getStatusLine().getStatusCode() == Constants.RATE_LIMITED) {
+				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "error code: " + statusCode + " reason: '" + statusReason + "' (source: '" + quoteSource + "' user-agent: '"+ua+"')");
+        if (statusCode == Constants.RATE_LIMITED) {
   				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "RATE LIMITED - Removing from user-agents list (for this session)...");
           UserAgent.removeInvalidUserAgent(ua);  // only really has any effect when using random/rotating user agents...
         }
 				sendError();
 			}
 		} catch (URISyntaxException e) {
-			debugInst.debug("getQuoteTask", "call", MRBDebug.INFO, "URI invalid "+url);
+			debugInst.debug("getQuoteTask", "call", MRBDebug.INFO, "URI invalid: " + url);
 			sendError();
 		}
 			catch (ClientProtocolException e2) {
-				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "server returned protocol error for "+ticker);
+				debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "server returned protocol error for: " + ticker);
 				sendError();
 			}
 		catch (Exception e3) {
-			debugInst.debug("getQuoteTask", "call", MRBDebug.INFO, "General Error  - "+e3.getMessage());
+			debugInst.debug("getQuoteTask", "call", MRBDebug.INFO, "General Error: " + e3.getMessage());
 			e3.printStackTrace();
 			sendError();
 		}
@@ -198,7 +201,7 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 	}
 	private void sendError() {
 		String errorUrl ="moneydance:fmodule:" + Constants.PROGRAMNAME + ":"+Constants.ERRORQUOTECMD+"?"+Constants.TIDCMD+"="+tid+"&";
-		if (tickerType == Constants.STOCKTYPE)
+		if (tickerType.equalsIgnoreCase(Constants.STOCKTYPE))
 			errorUrl+=Constants.STOCKTYPE;
 		else
 			errorUrl+=Constants.CURRENCYTYPE;
