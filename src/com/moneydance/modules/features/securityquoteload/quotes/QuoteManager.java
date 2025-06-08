@@ -111,7 +111,7 @@ public class QuoteManager implements QuoteListener {
                     currencies.add(item.getValue());
                     break;
                 case Constants.LASTPRICEDATETYPE:
-                    lastPriceDate.put(ticker, Integer.valueOf(item.getValue()));
+                    lastPriceDate.put(ticker, Integer.valueOf(item.getValue()));;
                     break;
                 case Constants.TRADECURRTYPE:
                     tradeCurrencies.put(ticker,item.getValue());
@@ -489,7 +489,7 @@ public class QuoteManager implements QuoteListener {
                         timeout = 480L;
                 }
                 for (String stock : stocks) {
-                    Constants.MDStockType stockType = source==Constants.SOURCEMDHIST? Constants.MDStockType.STOCK:Constants.MDStockType.MUTUAL;
+                    Constants.MDStockType stockType = source.equalsIgnoreCase(Constants.SOURCEMDHIST)? Constants.MDStockType.STOCK : Constants.MDStockType.MUTUAL;
                     GetQuoteTask task = new GetMDQuote(stock, stockType,tradeCurrencies.get(stock),this, httpClient, Constants.STOCKTYPE, tid, lastPriceDate.get(stock), true);
                     tasks.add(task);
                     totalQuotes++;

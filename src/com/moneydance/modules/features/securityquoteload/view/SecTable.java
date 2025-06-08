@@ -594,7 +594,16 @@ public class SecTable extends JTable {
 						JOptionPane.showMessageDialog(null, "You must select a source before getting a single price");
 						return;
 					}
-					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.GETINDIVIDUALCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal+"&xt="+origticker);
+
+          SecurityTableLine secLine = dm.getRowAccount(modRow);
+          Integer lastPriceDate = secLine.getPriceDate();
+          if (lastPriceDate == null) lastPriceDate = -1;
+          Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" +Constants.GETINDIVIDUALCMD +
+                               "?" +
+                               Constants.SOURCETYPE + "=" + sourceFinal +
+                               "&" + Constants.STOCKTYPE + "=" + tickerFinal +
+                               "&" + Constants.ORIGINALTICKER + "=" + origticker +
+                               "&" + Constants.LASTPRICEDATETYPE + "=" + lastPriceDate);
 				}
 				if (strAction.equals("copy-derived-ticker-exchange")) {
 					StringSelection stringSelection = new StringSelection(tickerFinal);

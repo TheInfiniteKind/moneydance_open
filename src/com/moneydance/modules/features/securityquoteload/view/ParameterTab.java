@@ -508,7 +508,7 @@ public class ParameterTab extends DisplayTab {
 		});
 		mainPanel.add(historyCB, GridC.getc(gridx, gridy).west().insets(5, 5, 5, 0));
 		gridx++;
-		JLabel historyLbl = new JLabel("Amount of Yahoo/AlphaVantage History to collect");
+		JLabel historyLbl = new JLabel("Amount of Yahoo/AlphaVantage/MarketData History to collect");
 		mainPanel.add(historyLbl, GridC.getc(gridx, gridy).west().colspan(2).insets(5, 5, 5, 0));
 		gridx += 2;
 		historyPeriod = new JComboBox<String>(Constants.HISTORYLIST);
