@@ -82,7 +82,13 @@ public class GetFTHDQuote extends GetQuoteTask {
 		try {
 			InputStream stream = entity.getContent();
 			Document doc = Jsoup.parse(stream, "UTF-8", "http://localhost");
+
 			try {
+
+        if (Main.LOG_RAW_RESPONSES) { // only when enabled AND QL DETAILED debugging then print the raw response...
+          debugInst.debug("getYahooQuote", "analyseResponse", MRBDebug.DETAILED, "raw entity: '" + doc.outerHtml() + "'");
+        }
+
 				parseDoc(doc, quotePrice);
 			}
 			catch (IOException a) {

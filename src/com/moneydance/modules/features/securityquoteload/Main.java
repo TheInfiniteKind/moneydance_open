@@ -68,10 +68,12 @@ import com.moneydance.modules.features.securityquoteload.view.CalculateRunDate;
  * Main class to create main window
  *
  * @author Mike Bray
+ * Contributions: Stuart Beesley - since May 2025
  */
 
 public class Main extends FeatureModule {
     public static boolean THROTTLE_YAHOO = true;
+    public static boolean LOG_RAW_RESPONSES = false;  // when enabled then the raw response (entity) is logged to console
     public static CustomDateFormat cdate;
     public static Integer today;
     public static char decimalChar;
