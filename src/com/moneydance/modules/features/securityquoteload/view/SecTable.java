@@ -533,7 +533,7 @@ public class SecTable extends JTable {
 		String ticker = (String) dm.getValueAt(row, tickerCol);
 		if (ticker.contains(Constants.TICKEREXTID))
 			return;
-		ExchangePopUp popup = new ExchangePopUp(row, params, dm);
+		ExchangePopUp popup = new ExchangePopUp(Main.frame, row, params, dm);
 		Dimension popupSize = popup.getSize();
 		if (p.getY() + popupSize.getHeight() > screenHeight) {
 			int dy = (int) Math.round(screenHeight - p.getY() - popupSize.getHeight() - 20);
@@ -847,6 +847,7 @@ public class SecTable extends JTable {
 
 			if (selCol == tickerCol) {
 				if (e.getClickCount() == 2) {
+          e.consume();
 					SecurityTableLine acct = dm.getRowAccount(modRow);
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
@@ -858,7 +859,8 @@ public class SecTable extends JTable {
 				}
 			}
       if (selCol == exchangeCol) {
-        if (e.getClickCount() == 2) {
+        e.consume();
+        if (e.getClickCount() == 1) {
           debugInst.debug("TableMouseListener", "exchange selected", MRBDebug.DETAILED,
                           "column " + exchangeCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
           Rectangle rect = tc.getCellRect(tc.getSelectedRow(), exchangeCol, false);

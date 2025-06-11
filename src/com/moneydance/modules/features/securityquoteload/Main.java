@@ -88,6 +88,7 @@ public class Main extends FeatureModule {
     public static boolean standAloneRequested = false;
     public static LinkedBlockingQueue<ProcessCommandArgument> processQueue;
     public static boolean alphaVantageLimitReached = false;
+    public static MainPriceWindow frame;
 
     public static com.moneydance.apps.md.controller.Main MD_REF;
     public static int MD_BUILD_QUEUEMODIFIEDITEM_PUBLIC = 5132;  // MD2024.2(5132) switched to kotlin and now public...
@@ -99,7 +100,6 @@ public class Main extends FeatureModule {
     public ImageIcon selectedIcon;
     public ImageIcon unselectedIcon;
     private String mdVersion;
-    public MainPriceWindow frame;
     private Thread overallTimeout;
     private AtomicBoolean quotesCompleted = new AtomicBoolean(false);
     private int timeoutCount = 0;
