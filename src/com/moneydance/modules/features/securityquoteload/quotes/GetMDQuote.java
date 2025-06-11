@@ -85,7 +85,7 @@ public class GetMDQuote extends GetQuoteTask {
         super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
         this.tradeCurrency = tradeCurrency;
         String convTicker = ticker.replace("^", "%5E");
-        if (tickerType == Constants.STOCKTYPE)
+        if (tickerType.equals(Constants.STOCKTYPE))
             url = mdSecURL + convTicker +"&dateformat=timestamp&token="+params.getMdToken();
         debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url);
         lastPriceDate = -1;
@@ -109,10 +109,10 @@ public class GetMDQuote extends GetQuoteTask {
         LocalDate today = LocalDate.now();
         toDate = today.format(dFormat);
        String convTicker = ticker.replace("^", "%5E");
-       if (tickerType == Constants.STOCKTYPE && stockType== Constants.MDStockType.STOCK) {
+       if (tickerType.equals(Constants.STOCKTYPE) && stockType == Constants.MDStockType.STOCK) {
             url = mdSecURL + convTicker + "&dateformat=timestamp&from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
         }
-        if (tickerType == Constants.STOCKTYPE && stockType== Constants.MDStockType.MUTUAL) {
+        if (tickerType.equals(Constants.STOCKTYPE) && stockType == Constants.MDStockType.MUTUAL) {
             url = mdFundURL + convTicker + "?from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
         }
         debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url);

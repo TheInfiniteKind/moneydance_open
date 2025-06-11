@@ -589,21 +589,46 @@ public class SecTable extends JTable {
 					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.TESTTICKERCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
 				}
 				if (strAction.equals("get-ticker")) {
-					String source = (String) dm.getValueAt(modRow, sourceCol);
-					if (source.equals(Constants.DONOTLOAD)) {
+
+          SecurityTableLine secLine = dm.getRowAccount(modRow);
+          final Integer source = secLine.getSource();
+					if (source < 1) {
 						JOptionPane.showMessageDialog(null, "You must select a source before getting a single price");
 						return;
 					}
 
-          SecurityTableLine secLine = dm.getRowAccount(modRow);
           Integer lastPriceDate = secLine.getPriceDate();
           if (lastPriceDate == null) lastPriceDate = -1;
-          Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" +Constants.GETINDIVIDUALCMD +
+
+          String tradeCur = null;
+          if (source.equals(Constants.ALPHAINDEX)) {
+            if (secLine.getExchange() != null && !secLine.getExchange().isEmpty()) {
+              tradeCur = params.getExchangeCurrency(secLine.getExchange());
+              if (tradeCur == null)
+                tradeCur = secLine.getRelativeCurrencyType().getIDString();
+            } else
+              tradeCur = secLine.getRelativeCurrencyType().getIDString();
+          } else if (source.equals(Constants.MDINDEX) || source.equals(Constants.MDHDINDEX) || source.equals(Constants.MDMUINDEX)) {
+            // market data currently only supports US markets and prices are always USD! // todo - monitor this!
+            if (secLine.getExchange() != null && !secLine.getExchange().isEmpty()) {
+              tradeCur = params.getExchangeCurrency(secLine.getExchange());
+              if (tradeCur == null)
+                tradeCur = "USD";   // default
+            } else
+              tradeCur = "USD";     // default
+          }
+
+          String url = "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" +Constants.GETINDIVIDUALCMD +
                                "?" +
                                Constants.SOURCETYPE + "=" + sourceFinal +
                                "&" + Constants.STOCKTYPE + "=" + tickerFinal +
                                "&" + Constants.ORIGINALTICKER + "=" + origticker +
-                               "&" + Constants.LASTPRICEDATETYPE + "=" + lastPriceDate);
+                               "&" + Constants.LASTPRICEDATETYPE + "=" + lastPriceDate;
+
+          if (tradeCur != null && !tradeCur.isBlank())
+            url += "&" + Constants.TRADECURRTYPE + "=" + tradeCur;
+
+          Main.context.showURL(url);
 				}
 				if (strAction.equals("copy-derived-ticker-exchange")) {
 					StringSelection stringSelection = new StringSelection(tickerFinal);

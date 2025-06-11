@@ -40,6 +40,8 @@ public class ExchangeLine {
 	private String yahooSuffix;
 	private String alphaPrefix;
 	private String alphaSuffix;
+	private String marketDataPrefix;
+	private String marketDataSuffix;
 	private Double multiplier;
 	public ExchangeLine () {
 		
@@ -165,10 +167,19 @@ public class ExchangeLine {
 	public String getAlphaSuffix() {
 		return alphaSuffix;
 	}
-
 	public void setAlphaSuffix(String alphaSuffix) {
 		this.alphaSuffix = alphaSuffix;
 	}
+
+	public String getMarketDataPrefix() {
+		return this.marketDataPrefix;
+	}
+	public void setMarketDataPrefix(String newPrefix) {
+		this.marketDataPrefix = newPrefix;
+	}
+
+	public String getMarketDataSuffix() { return this.marketDataSuffix; }
+	public void setMarketDataSuffix(String newSuffix) { this.marketDataSuffix = newSuffix; }
 
 	/**
 	 * @param multiplier the multiplier to set

@@ -526,7 +526,8 @@ public class Parameters{
 		if (listNewAccounts == null)
 			listNewAccounts = new ArrayList<>();
 		for (NewAccountLine alTemp:listNewAccounts) {
-			if (alTemp.getSource()!= 0 || alTemp.getFtAlternate()!=null || alTemp.getYahooAlternate()!=null|| alTemp.getAlphaAlternate()!=null || alTemp.getExchange()!=null) {
+      if (alTemp.getSource() != 0 || alTemp.getFtAlternate() != null || alTemp.getYahooAlternate() != null
+          || alTemp.getAlphaAlternate() != null || alTemp.getMarketDataAlternate() != null || alTemp.getExchange() != null) {
 				savedAccounts.put(alTemp.getName(),alTemp);
 			}
 		}
@@ -538,6 +539,7 @@ public class Parameters{
 	public SortedMap<String,NewAccountLine> getSavedAccounts() {
 		return savedAccounts;
 	}
+
 	public String getNewTicker(String ticker, String exchange,String alternate, int source){
 		debugInst.debug("Parameters", "getNewTicker", MRBDebug.DETAILED, "Ticker: "+ticker+" Exchange: "+exchange+" alternate: "+alternate);;
 		String newTicker;
@@ -555,6 +557,8 @@ public class Parameters{
 				newTicker = line.getFtPrefix()+newTicker+line.getFtSuffix();
 			if (source == Constants.ALPHAINDEX)
 				newTicker = line.getAlphaPrefix()+newTicker+line.getAlphaSuffix();
+			if (source == Constants.MDINDEX || source == Constants.MDHDINDEX || source == Constants.MDMUINDEX )
+				newTicker = line.getMarketDataPrefix()+newTicker+line.getMarketDataSuffix();
 		}
 		return newTicker;
 	}
@@ -594,6 +598,7 @@ public class Parameters{
 			newLine.setFtAlternate(crntLine.getFtAlternate());
 			newLine.setYahooAlternate(crntLine.getYahooAlternate());
 			newLine.setAlphaAlternate(crntLine.getAlphaAlternate());
+			newLine.setMarketDataAlternate(crntLine.getMarketDataAlternate());
 			newLine.setExchange(crntLine.getExchange());
 			newLine.setSource(crntLine.getSource());
 			newList.add(newLine);
