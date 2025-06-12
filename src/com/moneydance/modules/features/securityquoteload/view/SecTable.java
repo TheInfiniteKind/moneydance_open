@@ -868,6 +868,19 @@ public class SecTable extends JTable {
           showExchangePopup(modRow, p2);
         }
       }
+
+      if (selCol == altTickerCol) {
+        e.consume();
+        if (e.getClickCount() == 1 && SwingUtilities.isLeftMouseButton(e)) {
+          debugInst.debug("TableMouseListener", "altTicker edit triggered", MRBDebug.DebugLevel.DEVELOPER,  "column " + altTickerCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
+          if (!tc.isEditing()) {
+            tc.editCellAt(row, col);
+            Component editor = tc.getEditorComponent();
+            if (editor != null) editor.requestFocusInWindow();
+          }
+        }
+      }
+
 		}
 	}
 }
