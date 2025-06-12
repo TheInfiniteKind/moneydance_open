@@ -73,7 +73,6 @@ import com.moneydance.modules.features.securityquoteload.view.CalculateRunDate;
 
 public class Main extends FeatureModule {
     public static boolean THROTTLE_YAHOO = true;
-    public static boolean LOG_RAW_RESPONSES = false;  // when enabled then the raw response (entity) is logged to console
     public static CustomDateFormat cdate;
     public static Integer today;
     public static char decimalChar;
@@ -259,17 +258,8 @@ public class Main extends FeatureModule {
         MRBPreferences2.loadPreferences(context);
         preferences = MRBPreferences2.getInstance();
         params = Parameters.getParameters();
-        debugInst.setDebugLevel(
-                preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.INFO));
-        String debug;
-        if (debugInst.getDebugLevel() == MRBDebug.INFO)
-            debug = "INFO";
-        else if (debugInst.getDebugLevel() == MRBDebug.SUMMARY)
-            debug = "SUMM";
-        else if (debugInst.getDebugLevel() == MRBDebug.DETAILED)
-            debug = "DET";
-        else
-            debug = "OFF";
+        debugInst.setDebugLevel(preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.DebugLevel.INFO.getLevel()));
+        String debug = debugInst.getDebugLevelType().getShortName();
         debugInst.debug("Quote Load", "HandleEventFileOpened", MRBDebug.INFO, "Debug level set to " + debug);
         context = getContext();
         serverName = Constants.PROGRAMNAME;
