@@ -79,6 +79,7 @@ public class ParameterTab extends DisplayTab {
 	private JRadioButton conInfo;
 	private JRadioButton conSummary;
 	private JRadioButton conDetailed;
+	private JRadioButton conDeveloper;
 	private ButtonGroup conOption;
 	private JComboBox<String> secAutorunCombo;
 	private JComboBox<String> curAutorunCombo;
@@ -679,54 +680,54 @@ public class ParameterTab extends DisplayTab {
 			public void actionPerformed(ActionEvent e) {
 				JRadioButton conOffT = (JRadioButton) e.getSource();
 				if (conOffT.isSelected()) {
-					Main.debugInst.debug("ParameterTab", "actionListener", MRBDebug.INFO,
-							"Debug level set to OFF");
-					Main.debugInst.setDebugLevel(MRBDebug.OFF);
+					Main.debugInst.debug("ParameterTab", "actionListener", MRBDebug.DebugLevel.INFO, "Debug level set to OFF");
+					Main.debugInst.setDebugLevel(MRBDebug.DebugLevel.OFF);
 				}
 				params.setDirty(true);
 			}
 		});
 		conInfo = new JRadioButton("Info");
-		conInfo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				JRadioButton conInfoT = (JRadioButton) e.getSource();
-				if (conInfoT.isSelected()) {
-					Main.debugInst.setDebugLevel(MRBDebug.INFO);
-					reportConsoleChg();
-				}
-				params.setDirty(true);
-			}
-		});
+		conInfo.addActionListener(e -> {
+      JRadioButton conInfoT = (JRadioButton) e.getSource();
+      if (conInfoT.isSelected()) {
+        Main.debugInst.setDebugLevel(MRBDebug.DebugLevel.INFO);
+        reportConsoleChg();
+      }
+      params.setDirty(true);
+    });
 		conSummary = new JRadioButton("Summary");
-		conSummary.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				JRadioButton conSummaryT = (JRadioButton) e.getSource();
-				if (conSummaryT.isSelected()) {
-					Main.debugInst.setDebugLevel(MRBDebug.SUMMARY);
-					reportConsoleChg();
-				}
-				params.setDirty(true);
-			}
-		});
+		conSummary.addActionListener(e -> {
+      JRadioButton conSummaryT = (JRadioButton) e.getSource();
+      if (conSummaryT.isSelected()) {
+        Main.debugInst.setDebugLevel(MRBDebug.DebugLevel.SUMMARY);
+        reportConsoleChg();
+      }
+      params.setDirty(true);
+    });
 		conDetailed = new JRadioButton("Detailed");
-		conDetailed.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				JRadioButton conDetailedT = (JRadioButton) e.getSource();
-				if (conDetailedT.isSelected()) {
-					Main.debugInst.setDebugLevel(MRBDebug.DETAILED);
-					reportConsoleChg();
-				}
-				params.setDirty(true);
-			}
-		});
+		conDetailed.addActionListener(e -> {
+      JRadioButton conDetailedT = (JRadioButton) e.getSource();
+      if (conDetailedT.isSelected()) {
+        Main.debugInst.setDebugLevel(MRBDebug.DebugLevel.DETAILED);
+        reportConsoleChg();
+      }
+      params.setDirty(true);
+    });
+		conDeveloper = new JRadioButton("Developer");
+		conDeveloper.addActionListener(e -> {
+      JRadioButton conDeveloperT = (JRadioButton) e.getSource();
+      if (conDeveloperT.isSelected()) {
+        Main.debugInst.setDebugLevel(MRBDebug.DebugLevel.DEVELOPER);
+        reportConsoleChg();
+      }
+      params.setDirty(true);
+    });
 		conOption = new ButtonGroup();
 		conOption.add(conOff);
 		conOption.add(conInfo);
 		conOption.add(conSummary);
 		conOption.add(conDetailed);
+		conOption.add(conDeveloper);
 		conOff.setFont(cbFont);
 		conOff.setOpaque(false);
 		conInfo.setFont(cbFont);
@@ -735,10 +736,13 @@ public class ParameterTab extends DisplayTab {
 		conSummary.setOpaque(false);
 		conDetailed.setFont(cbFont);
 		conDetailed.setOpaque(false);
+		conDeveloper.setFont(cbFont);
+		conDeveloper.setOpaque(false);
 		consolePane.add(conOff);
 		consolePane.add(conInfo);
 		consolePane.add(conSummary);
 		consolePane.add(conDetailed);
+		consolePane.add(conDeveloper);
 		mainPanel.add(consolePane, GridC.getc(gridx, gridy).west().colspan(3).insets(5, 5, 5, 0));
 		gridx = 1;
 		gridy++;
@@ -860,19 +864,10 @@ public class ParameterTab extends DisplayTab {
     }
   }
 
-	private void reportConsoleChg() {
-		String debug;
-		if (Main.debugInst.getDebugLevel() == MRBDebug.INFO)
-			debug = "INFO";
-		else if (Main.debugInst.getDebugLevel() == MRBDebug.SUMMARY)
-			debug = "SUMM";
-		else if (Main.debugInst.getDebugLevel() == MRBDebug.DETAILED)
-			debug = "DET";
-		else
-			debug = "OFF";
-		Main.debugInst.debug("ParameterTab", "reportConsoleChg", MRBDebug.INFO, "Debug level set to " + debug);
-
-	}
+  private void reportConsoleChg() {
+    String debug = Main.debugInst.getDebugLevelType().getShortName();
+    Main.debugInst.debug("ParameterTab", "reportConsoleChg", MRBDebug.DebugLevel.INFO, "Debug level set to: " + debug);
+  }
 
 	private void loadParamValues() {
 		zeroCB.setSelected(params.getZero());
@@ -901,24 +896,16 @@ public class ParameterTab extends DisplayTab {
 		exportSave.setSelected(params.isExport());
 		exportAuto.setSelected(params.isExportAuto());
 		decimalComBo.setSelectedIndex(params.getDecimal() - 2);
-		int debugLvl = Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.INFO);
-		Main.debugInst.setDebugLevel(debugLvl);
-		switch (debugLvl) {
-		case 0:
-			conOff.setSelected(true);
-			break;
-		case 1:
-			conInfo.setSelected(true);
-			break;
-		case 2:
-			conSummary.setSelected(true);
-			break;
-		case 3:
-			conDetailed.setSelected(true);
-			break;
-		default:
-			conOff.setSelected(true);
-		}
+		int debugLvl = Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.DebugLevel.INFO.getLevel());
+    MRBDebug.DebugLevel levelType = MRBDebug.DebugLevel.fromInt(debugLvl);
+		Main.debugInst.setDebugLevel(levelType);
+    switch (levelType) {
+      case INFO -> conInfo.setSelected(true);
+      case SUMMARY -> conSummary.setSelected(true);
+      case DETAILED -> conDetailed.setSelected(true);
+      case DEVELOPER -> conDeveloper.setSelected(true);
+      default -> conOff.setSelected(true);
+    }
 
     // iterate the alpha plan entries and select the right one...
     Integer currentPlan = params.getAlphaPlan();
@@ -952,7 +939,7 @@ public class ParameterTab extends DisplayTab {
 	private void showCalendar(String runtype, String runParam) {
 
 		Main.debugInst.debug("loadPricesWindow", "showCalendar", MRBDebug.DETAILED, "Displaying Calendar Popup");
-		CalendarPopup popup = new CalendarPopup(runtype, runParam);
+		CalendarPopup popup = new CalendarPopup(Main.frame, runtype, runParam);
 		int ix = curCalendarBtn.getX();
 		int iy = curCalendarBtn.getY();
 		Point p = new Point(ix, iy);

@@ -579,7 +579,7 @@ public class CurTable extends JTable {
 					}
 				}
 
-				debugInst.debug("MouseListener", "mousePressed", MRBDebug.DETAILED,
+				debugInst.debug("MouseListener", "mousePressed", MRBDebug.DEVELOPER,
 						"column " + resizingColumn + " oldWidth " + oldWidth);
 			}
 		}
@@ -609,7 +609,7 @@ public class CurTable extends JTable {
 					Main.preferences.isDirty();
 					// Reset the flag on the table.
 					tableObj.setColumnWidthChanged(false);
-					debugInst.debug("MouseListener", "mouseReleased", MRBDebug.DETAILED,
+					debugInst.debug("MouseListener", "mouseReleased", MRBDebug.DEVELOPER,
 							"column " + resizingColumn + " oldWidth " + oldWidth);
 
 				}

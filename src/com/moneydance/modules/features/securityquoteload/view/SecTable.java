@@ -776,7 +776,7 @@ public class SecTable extends JTable {
 					}
 				}
 
-				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DETAILED,
+				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DEVELOPER,
 						"column " + resizingColumn + " oldWidth " + oldWidth);
 			}
 		}
@@ -807,7 +807,7 @@ public class SecTable extends JTable {
 					Main.preferences.isDirty();
 					// Reset the flag on the table.
 					tableObj.setColumnWidthChanged(false);
-					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DETAILED,
+					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DEVELOPER,
 							"column " + resizingColumn + " oldWidth " + oldWidth);
 
 				}

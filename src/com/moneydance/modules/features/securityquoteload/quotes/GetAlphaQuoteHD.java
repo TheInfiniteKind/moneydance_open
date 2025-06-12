@@ -61,8 +61,8 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
         try {
             InputStream stream = entity.getContent();
             String buffer = getJsonString(stream);
-            if (Main.LOG_RAW_RESPONSES) { // only when enabled AND QL DETAILED debugging then print the raw response...
-              debugInst.debug("getAlphaQuoteHD", "analyseResponse", MRBDebug.DETAILED, "raw entity: '" + buffer + "'");
+            if (debugInst.getDebugLevelType() == MRBDebug.DebugLevel.DEVELOPER) { // only when enabled AND QL DEVELOPER debugging then print the raw response...
+              debugInst.debug("GetAlphaQuoteHD", "analyseResponse", MRBDebug.DebugLevel.DEVELOPER, "raw entity: '" + buffer + "'");
             }
             JsonObject nodes = JsonParser.parseString(buffer).getAsJsonObject();
             try {
