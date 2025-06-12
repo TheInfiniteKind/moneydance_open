@@ -1703,8 +1703,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.DETAILED, "Test Ticker returned");
 			testTicker = "";
 			final String message;
-			message = "Test of security " + newPrice.getTicker() + " was successful. Price "
-					+ newPrice.getSecurityPrice() + " Currency " + newPrice.getCurrency();
+			message = "Test of security " + newPrice.getTicker() + " was successful. Price " + newPrice.getSecurityPrice() + " Currency " + newPrice.getCurrency();
 			if (EventQueue.isDispatchThread()) {
 				JOptionPane.showMessageDialog(Main.frame, message);
 			}
@@ -1900,24 +1899,23 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				}
 			}
 		}
-		if(newPrice.getTicker().equals(getTicker) && getTID.equals(uuid)) {
-			unsetThrottleMessage();
-			getTicker = "";
-			getTID = "";
-		}
-		else {
-			if (listener != null)
-				listener.ended(newPrice.getTicker(), uuid);
-			if (runtype != Constants.MANUALRUN && runtype != 0) {
-				if (newPrice.isCurrency())
-					MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price "
-							+ newPrice.getCurrency() + " updated");
-				else
-					MRBEDTInvoke.showURL(Main.context,
-							"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " updated");
-			}
-		}
-	}
+    if (newPrice.getTicker().equals(getTicker) && getTID.equals(uuid)) {
+      unsetThrottleMessage();
+      getTicker = "";
+      getTID = "";
+      String message = "Single price for security " + ticker + " retrieved";
+      JOptionPane.showMessageDialog(Main.frame, message);
+    } else {
+      if (listener != null)
+        listener.ended(newPrice.getTicker(), uuid);
+      if (runtype != Constants.MANUALRUN && runtype != 0) {
+        if (newPrice.isCurrency())
+          MRBEDTInvoke.showURL(Main.context, "moneydance:setprogress?meter=0&label=Quote Loader price " + newPrice.getCurrency() + " updated");
+        else
+          MRBEDTInvoke.showURL(Main.context, "moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " updated");
+      }
+    }
+  }
 
 	public synchronized void updateHistory(String url) throws QuoteException{
     Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.DETAILED, "update history starting for url: '" + url + "'");
