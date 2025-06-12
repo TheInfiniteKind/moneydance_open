@@ -128,7 +128,11 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 
       if (quoteSource == Constants.QuoteSource.MARKETDATA || quoteSource == Constants.QuoteSource.MARKETDATAHD || quoteSource == Constants.QuoteSource.MARKETDATAMU) {
         httpGet.addHeader("Accept", "application/json");
-        httpGet.addHeader("Authorization", "Bearer " + params.getMdToken());
+        httpGet.addHeader("Authorization", "Bearer " + params.getMdToken()); // putting the token here hides it from most logs...
+        ua = "n/a";
+      } else if (quoteSource == Constants.QuoteSource.ALPHAVAN) {
+        // Alpha Vantage seems to require no headers...
+        httpGet.addHeader("Accept", "application/json");
         ua = "n/a";
       } else {
   			httpGet.addHeader("Accept-Language","en");

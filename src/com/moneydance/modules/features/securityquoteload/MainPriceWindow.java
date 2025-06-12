@@ -1483,6 +1483,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 
 	public void getIndividualTicker(String url) {
 		Main.debugInst.debug("MainPriceWindow", "getTicker", MRBDebug.INFO, "Requested URI " + url);
+		completed = false;
 		Main.isUpdating = true;
 		URI uri;
 		String convUrl = url.replace("^", "%5E");
@@ -1899,11 +1900,10 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				}
 			}
 		}
-    if (newPrice.getTicker().equals(getTicker) && getTID.equals(uuid)) {
+    if (getTID.equals(uuid)) {
+      completed =  true;
       unsetThrottleMessage();
-      getTicker = "";
-      getTID = "";
-      String message = "Single price for security " + ticker + " retrieved";
+      String message = "Single price for security '" + ticker + "' retrieved";
       JOptionPane.showMessageDialog(Main.frame, message);
     } else {
       if (listener != null)
@@ -1915,6 +1915,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
           MRBEDTInvoke.showURL(Main.context, "moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " updated");
       }
     }
+    getTicker = "";
+    getTID = "";
   }
 
 	public synchronized void updateHistory(String url) throws QuoteException{
@@ -2290,14 +2292,15 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		if (ticker.equals(testTicker) && testTID.equals(uuid)) {
 			testTicker = "";
 			testTID = "";
-			String message = "Test of security " + ticker + " failed.";
+			String message = "Test of security '" + ticker + "' failed!";
 			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
 		if (ticker.equals(getTicker) && getTID.equals(uuid)) {
 			getTicker = "";
 			getTID = "";
-			String message = "Get of security " + ticker + " failed.";
+      completed = true;
+			String message = "Get of security '" + ticker + "' failed!";
 			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
