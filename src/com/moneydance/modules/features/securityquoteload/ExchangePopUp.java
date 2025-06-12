@@ -69,7 +69,7 @@ public class ExchangePopUp extends JDialog {
 	MRBDebug debugInst = Main.debugInst;
 
 	public ExchangePopUp(JFrame parent, int row, Parameters paramsp, SecTableModel priceModel) {
-		super((JFrame) parent, true);
+		super(parent, true);
 		dm = priceModel;
 		params = paramsp;
 		ticker = (String) priceModel.getValueAt(row, SecTable.tickerCol);

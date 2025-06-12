@@ -141,8 +141,8 @@ public class CalendarPopup extends JDialog {
 	ButtonGroup quarterlyGroupDay;
 	DetailPanel detailPane;
 	String resultParam;
-	public CalendarPopup (String prefRunTypep, String prefRunParamp){
-	   	super((JFrame)null,"Run Time",true);
+	public CalendarPopup (JFrame parent, String prefRunTypep, String prefRunParamp){
+	   	super(parent,"Run Time",true);
 	   	this.setLayout(new BorderLayout());
 	   	prefRunType = prefRunTypep;
 	   	prefRunParam = prefRunParamp;
