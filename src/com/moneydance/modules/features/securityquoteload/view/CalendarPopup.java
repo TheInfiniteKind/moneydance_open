@@ -286,7 +286,7 @@ public class CalendarPopup extends JDialog {
 			if (weekThu.isSelected())return true;
 			if (weekFri.isSelected())return true;
 			if (weekSat.isSelected())return true;
-			JOptionPane.showMessageDialog(null, "Please select a day of the week");
+			JOptionPane.showMessageDialog(Main.frame, "Please select a day of the week");
 			return false;
 		}
 	}
@@ -523,7 +523,7 @@ public class CalendarPopup extends JDialog {
 			if (month29th.isSelected())return true;
 			if (month30th.isSelected())return true;
 			if (month31st.isSelected())return true;
-			JOptionPane.showMessageDialog(null, "Please select an option or a specific day to run");
+			JOptionPane.showMessageDialog(Main.frame, "Please select an option or a specific day to run");
 			return false;
 	}
 	}
@@ -795,13 +795,13 @@ public class CalendarPopup extends JDialog {
 			if (quarterFirst.isSelected())return true;
 			if (quarterLast.isSelected())return true;
 			if (!quarterSpecific.isSelected()) {
-				JOptionPane.showMessageDialog(null, "Please select First Day, Last Day or Set Date");
+				JOptionPane.showMessageDialog(Main.frame, "Please select First Day, Last Day or Set Date");
 				return false;
 			}
 			if (quarterMonth1.isSelected())return true;
 			if (quarterMonth2.isSelected())return true;
 			if (!quarterMonth3.isSelected()){
-				JOptionPane.showMessageDialog(null, "Please select which Month the date is for");
+				JOptionPane.showMessageDialog(Main.frame, "Please select which Month the date is for");
 				return false;
 			}
 			if (quarter1st.isSelected())return true;
@@ -835,7 +835,7 @@ public class CalendarPopup extends JDialog {
 			if (quarter29th.isSelected())return true;
 			if (quarter30th.isSelected())return true;
 			if (quarter31st.isSelected())return true;
-			JOptionPane.showMessageDialog(null, "Please select the day of the month");
+			JOptionPane.showMessageDialog(Main.frame, "Please select the day of the month");
 			return false;
 		}
 	}	

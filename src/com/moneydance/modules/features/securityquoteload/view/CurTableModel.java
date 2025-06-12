@@ -269,7 +269,7 @@ public class CurTableModel extends DefaultTableModel {
 		 */
 		case 0:
 			if (rowData.getNewPrice() == null) {
-				JOptionPane.showMessageDialog(null, "This line does not have a price");
+				JOptionPane.showMessageDialog(Main.frame, "This line does not have a price");
 				return;
 			}
 			if (dfNumbers.format(rowData.getNewPrice()).equals("0.0"))

@@ -629,13 +629,8 @@ public class CurTable extends JTable {
 			if (tc.getSelectedColumn() == tickerCol) {
 				if (e.getClickCount() == 2) {
 					CurrencyTableLine acct = dm.getRowCurrency(modRow);
-					SwingUtilities.invokeLater(new Runnable() {
-						@Override
-						public void run() {
-							Main.context.showURL(
-									"moneydance:showobj?id=" + acct.getCurrencyType().getUUID());
-						}
-					});
+					SwingUtilities.invokeLater(() -> Main.context.showURL(
+              "moneydance:showobj?id=" + acct.getCurrencyType().getUUID()));
 				}
 			}
 		}

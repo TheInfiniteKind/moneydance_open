@@ -133,7 +133,7 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
 
                         @Override
                         public void run() {
-                            JOptionPane.showMessageDialog(null, "Alpha Vantage returned: " + message);
+                            JOptionPane.showMessageDialog(Main.frame, "Alpha Vantage returned: " + message);
                         }
                     });
                 } catch (InterruptedException | InvocationTargetException e) {

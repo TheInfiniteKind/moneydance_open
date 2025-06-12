@@ -411,8 +411,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
                     isCurDirty=false;
                     break;
                 }
-                JFrame fTemp = new JFrame();
-                JOptionPane.showMessageDialog(fTemp, "Source/ticker information saved");
+                JOptionPane.showMessageDialog(Main.frame, "Source/ticker information saved");
             }
         });
 		/*
@@ -900,7 +899,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
 				params.save();
 				parameterScreen.saveDebugParam();
-				JOptionPane.showMessageDialog(null, "Changes Saved");
+				JOptionPane.showMessageDialog(Main.frame, "Changes Saved");
 			}
 		}
 		params.setDirty(false);
@@ -916,7 +915,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	private void export() {
 		String exportFolder = params.getExportFolder();
 		if (exportFolder == null || exportFolder.isEmpty()) {
-			JOptionPane.showMessageDialog(null, "Export folder has not been set");
+			JOptionPane.showMessageDialog(Main.frame, "Export folder has not been set");
 			return;
 		}
 		int iRowCount = 0;
@@ -938,12 +937,12 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			}
 		}
 		if (!pricesFound) {
-			JOptionPane.showMessageDialog(null,
+			JOptionPane.showMessageDialog(Main.frame,
 					"No prices have been downloaded.  Use Get Exchange Rates or Get Prices");
 			return;
 		}
 		if (iRowCount < 1) {
-			JOptionPane.showMessageDialog(null,
+			JOptionPane.showMessageDialog(Main.frame,
 					"No prices have been selected.  Select individual lines or Select All.");
 			return;
 		}
@@ -984,7 +983,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		JOptionPane.showMessageDialog(null, "Prices Exported.");
+		JOptionPane.showMessageDialog(Main.frame, "Prices Exported.");
 
 	}
 
@@ -1056,13 +1055,13 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		} else {
 			if (!pricesFound) {
         SwingUtilities.invokeLater(() ->
-                                     JOptionPane.showMessageDialog(null,
+                                     JOptionPane.showMessageDialog(Main.frame,
                                                                    "No prices have been downloaded.  Use Get Exchange Rates or Get Prices"));
 				return;
 			}
 			if (iRowCount < 1) {
         SwingUtilities.invokeLater(() ->
-                                     JOptionPane.showMessageDialog(null,
+                                     JOptionPane.showMessageDialog(Main.frame,
                                                                    "No prices have been selected.  Select individual lines or Select All."));
 				return;
 			}
@@ -1105,7 +1104,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		if (runtype == Constants.MANUALRUN) {
       int finalIRowCount = iRowCount;
       SwingUtilities.invokeLater(() ->
-                                   JOptionPane.showMessageDialog(null, finalIRowCount + " prices updated"));
+                                   JOptionPane.showMessageDialog(Main.frame, finalIRowCount + " prices updated"));
 		}
 		Main.isUpdating = false;
 	}
@@ -1288,7 +1287,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
             case MARKETDATAHD:
             case MARKETDATAMU:
               // market data does not support currencies!
-              javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null, "Market Data does not support currencies!"));
+              javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(Main.frame, "Market Data does not support currencies!"));
               return;
 						default:
 							break;
@@ -1404,7 +1403,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		if (params.getAlphaAPIKey()==null || params.getAlphaAPIKey().isEmpty()){
 			SwingUtilities.invokeLater(new Runnable(){
 				public void run(){
-					JOptionPane.showMessageDialog(null,"Alpha Vantage Api key not set.  Please add in the parameter screen");
+					JOptionPane.showMessageDialog(Main.frame,"Alpha Vantage Api key not set.  Please add in the parameter screen");
 				}
 			});
 			return false;
@@ -1413,7 +1412,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	}
 	private boolean checkMDToken(){
 		if (params.getMdToken()==null || params.getMdToken().isBlank()){
-			javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null, "Market Data Token key not set.  Please add in the parameter screen"));
+			javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(Main.frame, "Market Data Token key not set.  Please add in the parameter screen"));
 			return false;
 		}
 		return true;
@@ -1707,11 +1706,11 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			message = "Test of security " + newPrice.getTicker() + " was successful. Price "
 					+ newPrice.getSecurityPrice() + " Currency " + newPrice.getCurrency();
 			if (EventQueue.isDispatchThread()) {
-				JOptionPane.showMessageDialog(null, message);
+				JOptionPane.showMessageDialog(Main.frame, message);
 			}
 			else {
 				SwingUtilities.invokeLater(() -> {
-					JOptionPane.showMessageDialog(null, message);
+					JOptionPane.showMessageDialog(Main.frame, message);
 				});
 			}
 			return;
@@ -2294,14 +2293,14 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			testTicker = "";
 			testTID = "";
 			String message = "Test of security " + ticker + " failed.";
-			JOptionPane.showMessageDialog(null, message);
+			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
 		if (ticker.equals(getTicker) && getTID.equals(uuid)) {
 			getTicker = "";
 			getTID = "";
 			String message = "Get of security " + ticker + " failed.";
-			JOptionPane.showMessageDialog(null, message);
+			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
 		/*
@@ -2429,7 +2428,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				if (currencyError)
 					mess += ", extended ticker has different currency";
 				final String message = mess;
-				SwingUtilities.invokeLater(new Runnable() { public void run() { JOptionPane.showMessageDialog(null, message, "Get Completed", JOptionPane.INFORMATION_MESSAGE); } });
+				SwingUtilities.invokeLater(new Runnable() { public void run() { JOptionPane.showMessageDialog(Main.frame, message, "Get Completed", JOptionPane.INFORMATION_MESSAGE); } });
 				
 				tasksProgress.setVisible(false);
 				buttonsPanel.remove(tasksProgress);
@@ -2453,7 +2452,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			}
 			if (runtype != Constants.MANUALRUN && runtype != 0) {
 				if (errorsFound && !Main.secondRunRequired&&runtype != Constants.STANDALONERUN) {
-					JOptionPane.showMessageDialog(null,
+					JOptionPane.showMessageDialog(Main.frame,
 							"Errors found on automatic run.  Look at 'Price Date' to determine which lines have not been updated",
 							"Quote Loader", JOptionPane.ERROR_MESSAGE);
 					errorsFound = false;

@@ -411,59 +411,56 @@ public class SecTable extends JTable {
 		/*
 		 * pop up menu
 		 */
-		ActionListener popupListener = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent aeEvent) {
-				String strAction = aeEvent.getActionCommand();
-				if (strAction.contains("Set all to Do Not")) {
-					dm.updateAllSources(0);
-					return;
-				}
-				if (strAction.contains("Yahoo HD")) {
-					dm.updateAllSources(3);
-					return;
-				}
-				if (strAction.contains("Yahoo + TD")) {
-					dm.updateAllSources(5);
-					return;
-				}
-				if (strAction.contains("Yahoo")) {
-					dm.updateAllSources(1);
-					return;
-				}
-				if (strAction.contains("FT HD")) {
-					dm.updateAllSources(4);
-					return;
-				}
-				if (strAction.contains("FT")) {
-					dm.updateAllSources(2);
-					return;
-				}
-				if (strAction.contains("Alpha")){
-					dm.updateAllSources(5);
-					return;
-				}
-				if (strAction.contains("Market Data HD")){
-					dm.updateAllSources(7);
-					return;
-				}
-				if (strAction.contains("Market Data")){
-					dm.updateAllSources(6);
-					return;
-				}
-				if (strAction.contains("Exclude")) {
-					dm.switchDisplay();
-					dm.fireTableDataChanged();
-					excludeSource.setText("Include 'Do not load'");
-				}
-				if (strAction.contains("Include")) {
-					dm.switchDisplay();
-					dm.fireTableDataChanged();
-					excludeSource.setText("Exclude 'Do not load'");
-				}
+		ActionListener popupListener = aeEvent -> {
+      String strAction = aeEvent.getActionCommand();
+      if (strAction.contains("Set all to Do Not")) {
+        dm.updateAllSources(0);
+        return;
+      }
+      if (strAction.contains("Yahoo HD")) {
+        dm.updateAllSources(3);
+        return;
+      }
+      if (strAction.contains("Yahoo + TD")) {
+        dm.updateAllSources(5);
+        return;
+      }
+      if (strAction.contains("Yahoo")) {
+        dm.updateAllSources(1);
+        return;
+      }
+      if (strAction.contains("FT HD")) {
+        dm.updateAllSources(4);
+        return;
+      }
+      if (strAction.contains("FT")) {
+        dm.updateAllSources(2);
+        return;
+      }
+      if (strAction.contains("Alpha")){
+        dm.updateAllSources(5);
+        return;
+      }
+      if (strAction.contains("Market Data HD")){
+        dm.updateAllSources(7);
+        return;
+      }
+      if (strAction.contains("Market Data")){
+        dm.updateAllSources(6);
+        return;
+      }
+      if (strAction.contains("Exclude")) {
+        dm.switchDisplay();
+        dm.fireTableDataChanged();
+        excludeSource.setText("Include 'Do not load'");
+      }
+      if (strAction.contains("Include")) {
+        dm.switchDisplay();
+        dm.fireTableDataChanged();
+        excludeSource.setText("Exclude 'Do not load'");
+      }
 
-			}
-		};
+    };
 		sourcePopup = new JPopupMenu();
 		sourceDoNotLoad = new JMenuItem();
 		sourceDoNotLoad.setText("Set all to Do Not Load");
@@ -583,7 +580,7 @@ public class SecTable extends JTable {
 				if (strAction.equals("test-ticker")) {
 					String source = (String) dm.getValueAt(modRow, sourceCol);
 					if (source.equals(Constants.DONOTLOAD)) {
-						JOptionPane.showMessageDialog(null, "You must select a source before testing");
+						JOptionPane.showMessageDialog(Main.frame, "You must select a source before testing");
 						return;
 					}
 					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.TESTTICKERCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
@@ -593,7 +590,7 @@ public class SecTable extends JTable {
           SecurityTableLine secLine = dm.getRowAccount(modRow);
           final Integer source = secLine.getSource();
 					if (source < 1) {
-						JOptionPane.showMessageDialog(null, "You must select a source before getting a single price");
+						JOptionPane.showMessageDialog(Main.frame, "You must select a source before getting a single price");
 						return;
 					}
 
@@ -764,7 +761,7 @@ public class SecTable extends JTable {
 			if (SwingUtilities.isRightMouseButton(e) || e.isControlDown())
 				showPopup(e);
 			else {
-				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DETAILED, "width started ");
+				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DebugLevel.DEVELOPER, "width started ");
 				if (e.getSource() instanceof JTableHeader) {
 					TableColumn tc = ((JTableHeader) e.getSource()).getResizingColumn();
 					if (tc != null) {
@@ -776,8 +773,7 @@ public class SecTable extends JTable {
 					}
 				}
 
-				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DEVELOPER,
-						"column " + resizingColumn + " oldWidth " + oldWidth);
+				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DebugLevel.DEVELOPER, "column " + resizingColumn + " oldWidth " + oldWidth);
 			}
 		}
 
@@ -788,10 +784,9 @@ public class SecTable extends JTable {
 				showPopup(e);
 			else {
 				if (tableObj.getColumnWidthChanged()) {
-					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DETAILED, "width finished ");
+					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DebugLevel.DEVELOPER, "width finished ");
 					if (e.getSource() instanceof JTableHeader) {
-						TableColumn tc = ((JTableHeader) e.getSource()).getColumnModel()
-								.getColumn(resizingColumn);
+						TableColumn tc = ((JTableHeader) e.getSource()).getColumnModel().getColumn(resizingColumn);
 						if (tc != null) {
 							newWidth = tc.getPreferredWidth();
 						} else {
@@ -799,16 +794,13 @@ public class SecTable extends JTable {
 							oldWidth = -1;
 						}
 					}
-					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DETAILED,
-							"Column " + resizingColumn + "new width " + newWidth);
+					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DebugLevel.DEVELOPER, "Column " + resizingColumn + "new width " + newWidth);
 					columnWidths[resizingColumn] = newWidth;
-					Main.preferences.put(Constants.PROGRAMNAME + ".SEC." + Constants.CRNTCOLWIDTH,
-							columnWidths);
+					Main.preferences.put(Constants.PROGRAMNAME + ".SEC." + Constants.CRNTCOLWIDTH, columnWidths);
 					Main.preferences.isDirty();
 					// Reset the flag on the table.
 					tableObj.setColumnWidthChanged(false);
-					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DEVELOPER,
-							"column " + resizingColumn + " oldWidth " + oldWidth);
+					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DEVELOPER, "column " + resizingColumn + " oldWidth " + oldWidth);
 
 				}
 			}
@@ -861,8 +853,7 @@ public class SecTable extends JTable {
       if (selCol == exchangeCol) {
         e.consume();
         if (e.getClickCount() == 1) {
-          debugInst.debug("TableMouseListener", "exchange selected", MRBDebug.DETAILED,
-                          "column " + exchangeCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
+          debugInst.debug("TableMouseListener", "exchange selected", MRBDebug.DebugLevel.DEVELOPER, "column " + exchangeCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
           Rectangle rect = tc.getCellRect(tc.getSelectedRow(), exchangeCol, false);
           Point p2 = new Point(rect.x + rect.width, rect.y + rect.width);
           showExchangePopup(modRow, p2);

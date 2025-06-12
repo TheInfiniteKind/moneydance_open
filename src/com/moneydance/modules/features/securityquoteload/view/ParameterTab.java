@@ -829,7 +829,7 @@ public class ParameterTab extends DisplayTab {
 				}
 				params.save();
 				saveDebugParam();
-				JOptionPane.showMessageDialog(null, "Changes Saved");
+				JOptionPane.showMessageDialog(Main.frame, "Changes Saved");
 			}
 		});
 		mainPanel.add(saveParams, GridC.getc(gridx, gridy).west().insets(5, 5, 5, 0));
