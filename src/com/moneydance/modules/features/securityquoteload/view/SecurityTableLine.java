@@ -114,15 +114,16 @@ public class SecurityTableLine {
 		return source;
 	}
 	public void setSource(Integer source) {
-		this.source = source;
-		alternateTicker="";
-		if ((source.equals(Constants.FTINDEX) || source.equals(Constants.FTHISTINDEX)) && ftAlternate != null)
-			alternateTicker=ftAlternate;
-		if ((source.equals(Constants.YAHOOINDEX) || source.equals(Constants.YAHOOHISTINDEX)) && yahooAlternate != null)
-				alternateTicker=yahooAlternate;
-		if ((source.equals(Constants.ALPHAINDEX)) && alphaAlternate != null)
-			alternateTicker = alphaAlternate;
-			
+    this.source = source;
+    alternateTicker = "";
+    if ((source.equals(Constants.FTINDEX) || source.equals(Constants.FTHISTINDEX)) && ftAlternate != null)
+      alternateTicker = ftAlternate;
+    if ((source.equals(Constants.YAHOOINDEX) || source.equals(Constants.YAHOOHISTINDEX)) && yahooAlternate != null)
+      alternateTicker = yahooAlternate;
+    if ((source.equals(Constants.ALPHAINDEX)) && alphaAlternate != null)
+      alternateTicker = alphaAlternate;
+    if ((source.equals(Constants.MDINDEX) || source.equals(Constants.MDHDINDEX) || source.equals(Constants.MDMUINDEX)) && marketDataAlternate != null)
+      alternateTicker = marketDataAlternate;
 	}
 	public Double getLastPrice() {
 		return lastPrice;
