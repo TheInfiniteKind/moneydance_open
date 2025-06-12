@@ -85,8 +85,10 @@ public class GetMDQuote extends GetQuoteTask {
         super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
         this.tradeCurrency = tradeCurrency;
         String convTicker = ticker.replace("^", "%5E");
-        if (tickerType.equals(Constants.STOCKTYPE))
-            url = mdSecURL + convTicker +"&dateformat=timestamp&token="+params.getMdToken();
+        if (tickerType.equals(Constants.STOCKTYPE)) {
+          //url = mdSecURL + convTicker + "&dateformat=timestamp&token=" + params.getMdToken();
+          url = mdSecURL + convTicker + "&dateformat=timestamp";                                                        // token now sent more securely in the headers
+        }
         debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url);
         lastPriceDate = -1;
     }
@@ -110,10 +112,12 @@ public class GetMDQuote extends GetQuoteTask {
         toDate = today.format(dFormat);
        String convTicker = ticker.replace("^", "%5E");
        if (tickerType.equals(Constants.STOCKTYPE) && stockType == Constants.MDStockType.STOCK) {
-            url = mdSecURL + convTicker + "&dateformat=timestamp&from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
+            //url = mdSecURL + convTicker + "&dateformat=timestamp&from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
+            url = mdSecURL + convTicker + "&dateformat=timestamp&from="+fromDate+"&to="+toDate;                         // token now sent more securely in the headers
         }
         if (tickerType.equals(Constants.STOCKTYPE) && stockType == Constants.MDStockType.MUTUAL) {
-            url = mdFundURL + convTicker + "?from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
+            //url = mdFundURL + convTicker + "?from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
+            url = mdFundURL + convTicker + "?from="+fromDate+"&to="+toDate;                                             // token now sent more securely in the headers
         }
         debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url);
 
@@ -128,8 +132,8 @@ public class GetMDQuote extends GetQuoteTask {
         try {
             InputStream stream = entity.getContent();
             String buffer = getJsonString(stream);
-            if (Main.LOG_RAW_RESPONSES) { // only when enabled AND QL DETAILED debugging then print the raw response...
-              debugInst.debug("getMDQuote", "analyseResponse", MRBDebug.DETAILED, "raw entity: '" + buffer + "'");
+            if (debugInst.getDebugLevelType() == MRBDebug.DebugLevel.DEVELOPER) { // only when enabled AND QL DEVELOPER debugging then print the raw response...
+              debugInst.debug("GetMDQuote", "analyseResponse", MRBDebug.DebugLevel.DEVELOPER, "raw entity: '" + buffer + "'");
             }
             JsonObject nodes = JsonParser.parseString(buffer).getAsJsonObject();
             try {

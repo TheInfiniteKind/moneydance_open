@@ -1413,11 +1413,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	}
 	private boolean checkMDToken(){
 		if (params.getMdToken()==null || params.getMdToken().isBlank()){
-			javax.swing.SwingUtilities.invokeLater(new Runnable(){
-				public void run(){
-					JOptionPane.showMessageDialog(null,"Market Data Token key not set.  Please add in the parameter screen");
-				}
-			});
+			javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null, "Market Data Token key not set.  Please add in the parameter screen"));
 			return false;
 		}
 		return true;
