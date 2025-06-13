@@ -1869,6 +1869,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				curLine.setPercentChg(perChg);
 				curRatesModel.fireTableDataChanged();
 				curLine.clearHistory();
+				SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());
 			} else {
 				if (newPrice.isCurrency()) {
 					curLine.setTradeDate(newPrice.getTradeDate());
@@ -1881,6 +1882,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					curLine.setPercentChg(perChg);
 					curRatesModel.fireTableDataChanged();
 					curLine.clearHistory();
+  				SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());
 				} else {
 					secLine.setNewPrice(stockPrice * dRate);
 					secLine.setTradeDate(newPrice.getTradeDate());
@@ -1896,7 +1898,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							lowPrice * dRate);
 					secLine.setVolume(extra);
 					secLine.clearHistory();
-					secPricesModel.fireTableDataChanged();
+  				SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
 				}
 			}
 		}
@@ -2191,7 +2193,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					lowPrice * dRate, newPrice.getVolume());
 			historyList.add(history);
 		}
-		secPricesModel.fireTableDataChanged();
+		SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
 	}
 
 	/*
