@@ -1599,7 +1599,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						break;
 					}
 				} else {
-					if (ticker.contains("-")) {
+          if (QLUtil.isCrypto(ticker)) {
 						ticker = Constants.CURRENCYID + ticker.substring(0, ticker.indexOf('-') + 1);
 					} else {
 						switch (srce) {
@@ -1982,7 +1982,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					}
 				}
 				else {
-					if (ticker.contains("-")) {
+          if (QLUtil.isCrypto(ticker)) {
 						ticker = Constants.CURRENCYID + ticker.substring(0, ticker.indexOf('-') + 1);
 					} else {
 						if (srce.equals(ALPHAVAN)){
@@ -2267,7 +2267,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						break;
 					}
 				} else {
-					if (ticker.contains("-")) {
+          if (QLUtil.isCrypto(ticker)) {
 						ticker = Constants.CURRENCYID + ticker.substring(0, ticker.indexOf('-') + 1);
 					} else {
 						switch (srce) {

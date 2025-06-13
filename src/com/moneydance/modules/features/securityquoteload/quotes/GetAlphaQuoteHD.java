@@ -7,6 +7,7 @@ import com.infinitekind.util.DateUtil;
 import com.moneydance.modules.features.mrbutil.MRBDebug;
 import com.moneydance.modules.features.securityquoteload.Constants;
 import com.moneydance.modules.features.securityquoteload.Main;
+import com.moneydance.modules.features.securityquoteload.QLUtil;
 import com.moneydance.modules.features.securityquoteload.QuotePrice;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
@@ -48,7 +49,7 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
         String toCur;
         String fromCur;
         try {
-          if (convTicker.contains("-")) {  // assume crypto
+          if (QLUtil.isCrypto(convTicker)) {  // assume crypto
             toCur = convTicker.substring(convTicker.indexOf("-") + 1);
             fromCur = convTicker.substring(0, convTicker.indexOf("-"));
           } else if (convTicker.contains("/")) {

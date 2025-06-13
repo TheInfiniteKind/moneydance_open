@@ -47,7 +47,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.moneydance.modules.features.securityquoteload.Parameters;
+import com.moneydance.modules.features.securityquoteload.*;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -56,9 +56,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import com.moneydance.modules.features.mrbutil.MRBDebug;
 import com.moneydance.modules.features.mrbutil.MRBEDTInvoke;
-import com.moneydance.modules.features.securityquoteload.Constants;
-import com.moneydance.modules.features.securityquoteload.Main;
-import com.moneydance.modules.features.securityquoteload.QuotePrice;
 
 public class QuoteManager implements QuoteListener {
     private Charset charSet = Charset.forName("UTF-8");
@@ -375,13 +372,18 @@ public class QuoteManager implements QuoteListener {
 
               boolean onFirst = true;
                 for (String stock : stocks) {
-                    GetQuoteTask task = new GetAlphaQuoteHD(stock, tradeCurrencies.get(stock),this, httpClient, Constants.STOCKTYPE, tid,lastPriceDate.get(stock), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS, stock.contains("-"));
+                    String tradeCurr = tradeCurrencies.get(stock);
+                    if (QLUtil.isCrypto(stock)) {
+                      int idx = stock.indexOf("-");
+                      tradeCurr = stock.substring(idx + 1); // for crypto (with alphavantage) set the trading currency to the crypto-pair (av does not return the currency as Yahoo does)
+                    }
+                    GetQuoteTask task = new GetAlphaQuoteHD(stock, tradeCurr, this, httpClient, Constants.STOCKTYPE, tid, lastPriceDate.get(stock), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS, QLUtil.isCrypto(stock));
                     tasks.add(task);
                     totalQuotes++;
                     onFirst = false;
                 }
                 for (String currency : currencies) {
-                    GetQuoteTask task = new GetAlphaQuoteHD(currency, "",this, httpClient, Constants.CURRENCYTYPE, tid,lastPriceDate.get(currency), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS, currency.contains("-"));
+                    GetQuoteTask task = new GetAlphaQuoteHD(currency, "",this, httpClient, Constants.CURRENCYTYPE, tid,lastPriceDate.get(currency), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS, QLUtil.isCrypto(currency));
                     tasks.add(task);
                     totalQuotes++;
                     onFirst = false;
