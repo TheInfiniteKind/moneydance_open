@@ -375,13 +375,13 @@ public class QuoteManager implements QuoteListener {
 
               boolean onFirst = true;
                 for (String stock : stocks) {
-                    GetQuoteTask task = new GetAlphaQuoteHD(stock, tradeCurrencies.get(stock),this, httpClient, Constants.STOCKTYPE, tid,lastPriceDate.get(stock), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS);
+                    GetQuoteTask task = new GetAlphaQuoteHD(stock, tradeCurrencies.get(stock),this, httpClient, Constants.STOCKTYPE, tid,lastPriceDate.get(stock), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS, stock.contains("-"));
                     tasks.add(task);
                     totalQuotes++;
                     onFirst = false;
                 }
                 for (String currency : currencies) {
-                    GetQuoteTask task = new GetAlphaQuoteHD(currency, "",this, httpClient, Constants.CURRENCYTYPE, tid,lastPriceDate.get(currency), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS);
+                    GetQuoteTask task = new GetAlphaQuoteHD(currency, "",this, httpClient, Constants.CURRENCYTYPE, tid,lastPriceDate.get(currency), (onFirst) ? 0 : minThrottleMS, (onFirst) ? 0 : maxThrottleMS, currency.contains("-"));
                     tasks.add(task);
                     totalQuotes++;
                     onFirst = false;
