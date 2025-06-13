@@ -1279,6 +1279,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							lastPriceDate = currLine.getPriceDate();
 							break;
 						case ALPHAVAN:
+              // note: if a hyphen("-") was embedded in the currency to signify a crypto, it wont work very well unless the to currency is the same as your base currency!!
 							ticker=baseCurrencyID+"/"+currency;
 							tradeCur = currency;
 							lastPriceDate=-1;
@@ -1614,6 +1615,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 								ticker = Constants.CURRENCYID + ticker.substring(3);
 							break;
 						case ALPHAVAN:
+
+              //todo - do something here?
 							int slash = ticker.indexOf("/");
 							String fromTicker= ticker.substring(0,slash);
 							String toTicker = ticker.substring (slash+1);
@@ -1859,7 +1862,11 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		double perChg;
 		if (stockPrice != 0.0) {
 			if (newPrice.isCrypto()) {
-				curLine.setNewPrice(1 / Util.safeRate(stockPrice));
+        if (newPrice.isCurrency()) {
+          curLine.setNewPrice(stockPrice);
+        } else {
+          curLine.setNewPrice(1 / Util.safeRate(stockPrice));
+        }
 				curLine.setTradeDate(newPrice.getTradeDate());
 				amtChg = Math.round((curLine.getNewPrice() - curLine.getLastPrice()) * multiplier)
 						/ multiplier;
