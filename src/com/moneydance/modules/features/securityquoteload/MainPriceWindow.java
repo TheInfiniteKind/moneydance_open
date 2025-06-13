@@ -1862,17 +1862,22 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		double perChg;
 		if (stockPrice != 0.0) {
 			if (newPrice.isCrypto()) {
-        if (newPrice.isCurrency()) {
-          curLine.setNewPrice(stockPrice);
-        } else {
-          curLine.setNewPrice(1 / Util.safeRate(stockPrice));
-        }
+        // note: we show the reverse of exchange rates - BTC can thus appear to be (near) zero...
+        curLine.setNewPrice(1 / Util.safeRate(stockPrice));
 				curLine.setTradeDate(newPrice.getTradeDate());
-				amtChg = Math.round((curLine.getNewPrice() - curLine.getLastPrice()) * multiplier)
-						/ multiplier;
+
+				amtChg = Math.round((curLine.getNewPrice() - curLine.getLastPrice()) * multiplier) / multiplier;
+        if (Math.abs(amtChg) < 1e-6) {
+  				amtChg = curLine.getNewPrice() - curLine.getLastPrice();
+        }
+
 				curLine.setAmtChg(amtChg);
-				perChg = Math.round(((amtChg / (curLine.getLastPrice()) * 100.0)) * multiplier)
-						/ multiplier;
+
+				perChg = Math.round(((amtChg / (curLine.getLastPrice()) * 100.0)) * multiplier) / multiplier;
+        if (Math.abs(perChg) < 1e-6) {
+  				perChg = (amtChg / (curLine.getLastPrice()) * 100.0);
+        }
+
 				curLine.setPercentChg(perChg);
 				curLine.clearHistory();
 				SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());

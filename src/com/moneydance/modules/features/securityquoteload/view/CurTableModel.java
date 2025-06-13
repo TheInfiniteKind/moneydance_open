@@ -64,6 +64,7 @@ public class CurTableModel extends DefaultTableModel {
 	private List<Entry<String, CurrencyTableLine>> listCurrencies;
 	private String[] arrSource;
 	private DecimalFormat dfNumbers;
+	private DecimalFormat sciFormat;
 	private DecimalFormatSymbols dfSymbols;
 	private Double multiplier;
 	private MainPriceWindow controller;
@@ -84,6 +85,7 @@ public class CurTableModel extends DefaultTableModel {
 	}
 
 	public void resetNumberFormat() {
+    sciFormat = new DecimalFormat("0.#####E0");
 		multiplier = Math.pow(10.0, Double.valueOf(params.getDecimal()));
 		String strDec = "#,##0.00";
 		int iDec = params.getDecimal() - 2;
@@ -98,7 +100,6 @@ public class CurTableModel extends DefaultTableModel {
 		if (Main.decimalChar == ',')
 			dfSymbols.setGroupingSeparator('.');
 		dfNumbers = new DecimalFormat(strDec, dfSymbols);
-
 	}
 
 	public void resetData(SortedMap<String, CurrencyTableLine> mapAccounts) {
@@ -185,7 +186,6 @@ public class CurTableModel extends DefaultTableModel {
 		 */
 		case 3:
 			int source = rowData.getSource();
-			;
 			if (source > -1 && source < arrSource.length)
 				return arrSource[source];
 			return arrSource[0];
@@ -197,6 +197,7 @@ public class CurTableModel extends DefaultTableModel {
 			if (dValue.isInfinite())
 				dValue = 1.0;
 			dValue = Math.round(dValue * multiplier) / multiplier;
+      if (Math.abs(dValue) < 1e-6) return "<very small: " + sciFormat.format(rowData.getLastPrice()) + ">"; // crypto (reversed) can be a very small number - esp. BTC
 			return dfNumbers.format(dValue);
 		/*
 		 * last Price Date
@@ -209,10 +210,11 @@ public class CurTableModel extends DefaultTableModel {
 		 * New Price
 		 */
 		case 6:
-			if (rowData.getNewPrice() == null || rowData.getNewPrice() == 0.0
-					|| rowData.getNewPrice().isInfinite())
-				return "0" + Main.decimalChar + "0";
+			if (rowData.getNewPrice() == null || rowData.getNewPrice() == 0.0 || rowData.getNewPrice().isInfinite()) {
+        return "0" + Main.decimalChar + "0";
+      }
 			Double newValue = Math.round(rowData.getNewPrice() * multiplier) / multiplier;
+      if (Math.abs(newValue) < 1e-6) return "<very small: " + sciFormat.format(rowData.getNewPrice()) + ">"; // crypto (reversed) can be a very small number - esp. BTC
 			return dfNumbers.format(newValue);
 		/*
 		 * % Change

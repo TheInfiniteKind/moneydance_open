@@ -54,17 +54,14 @@ public class SecurityPrice {
 		lowPrice = 0.0;
 		volume = 0L;
 		currencyID = "";
-		isCrypto = false;
 		if (ticker.startsWith(Constants.CURRENCYID)){
 			isCurrency = true;
 			currencyID = ticker.substring(3);
-			if (ticker.contains("-"))
-				isCrypto = true;
-		}
-		else
-			isCurrency = false;
-		
-		
+		} else {
+      isCurrency = false;
+    }
+    isCrypto = ticker.contains("-");
+    isStock = !isCurrency;
 	}
 	public String getTicker () {
 		return ticker;
@@ -109,11 +106,10 @@ public class SecurityPrice {
 	public Boolean isETF () {
 		return isETF;
 	}
-	public Boolean isCrypto() {
-		return isCrypto;
-	}
+	public Boolean isCrypto() { return isCrypto; }
 	public void setStock(Boolean isStockp){
 		isStock = isStockp;
+    isCurrency = !isStock;
 	}
 	public void setETF(Boolean isETFp){
 		isETF = isETFp;
@@ -127,14 +123,18 @@ public class SecurityPrice {
 	public void setLowPrice (Double lowPricep) {
 		lowPrice = lowPricep;
 	}
+
 	public void setTicker (String tickerp){
 		ticker = tickerp;
-		if (ticker.startsWith(Constants.CURRENCYID)){
+		if (ticker.startsWith(Constants.CURRENCYID)) {
 			isCurrency = true;
 			currencyID = ticker.substring(3);
-			if (ticker.contains("-"))
-				isCrypto = true;
-		}
+		} else {
+      isCurrency = false;
+    }
+    isCrypto = ticker.contains("-");
+    isStock = !isCurrency;
+
 	}
 	public void setVolume (Long volumep) {
 		volume = volumep;

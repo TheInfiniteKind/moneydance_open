@@ -74,6 +74,7 @@ public class CurrencyTableLine {
 	public String getTicker() {
 		return ticker;
 	}
+  public boolean isCrypto() { return getTicker().contains("-"); }
 	public void setTicker(String ticker) {
 		this.ticker = ticker;
 	}
