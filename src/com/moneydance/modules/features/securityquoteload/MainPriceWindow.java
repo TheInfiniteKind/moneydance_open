@@ -1867,7 +1867,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				perChg = Math.round(((amtChg / (curLine.getLastPrice()) * 100.0)) * multiplier)
 						/ multiplier;
 				curLine.setPercentChg(perChg);
-				curRatesModel.fireTableDataChanged();
 				curLine.clearHistory();
 				SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());
 			} else {
@@ -1880,7 +1879,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					perChg = Math.round(((amtChg / (curLine.getLastPrice()) * 100.0)) * multiplier)
 							/ multiplier;
 					curLine.setPercentChg(perChg);
-					curRatesModel.fireTableDataChanged();
 					curLine.clearHistory();
   				SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());
 				} else {
