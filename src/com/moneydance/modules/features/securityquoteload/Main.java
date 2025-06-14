@@ -455,8 +455,7 @@ public class Main extends FeatureModule {
 
         if (command.equals(Constants.SHOWCONSOLECMD)) {
             if (frame != null && runtype > Constants.MANUALRUN) {
-                JOptionPane.showMessageDialog(frame, "Quote Loader is running an automatic update,please wait",
-                        "Quote Loader", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Quote Loader is running an automatic update,please wait", "Quote Loader", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
             debugInst.debug("Quote Load", "invoke", MRBDebug.DETAILED, "runtype set to manual");

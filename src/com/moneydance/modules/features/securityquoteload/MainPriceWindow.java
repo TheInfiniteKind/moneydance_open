@@ -1703,7 +1703,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		/*
 		 * data extracted test for test ticker
 		 */
-		if (newPrice.getTicker().equals(testTicker) && testTID.equals(uuid)) {
+		if (testTID.equals(uuid)) {
 			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.DETAILED, "Test Ticker returned");
 			testTicker = "";
 			final String message;
@@ -1734,16 +1734,14 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			throw new QuoteException("Late message");
 
 		}
-		if(!(alteredTicker.equals(getTicker) && getTID.equals(uuid))) {
+    if (!getTID.equals(uuid)) {
 			if (listener == null) {
-				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO,
-						"Update received after close " + uuid);
+				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "Update received after close " + uuid);
 				throw new QuoteException("Message received after close");
 
 			}
 			if (!listener.checkTid(uuid)) {
-				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO,
-						"Update received after close " + uuid);
+				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "Update received after close " + uuid);
 				throw new QuoteException("Update received after close");
 			}
 		}
@@ -2064,7 +2062,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		/*
 		 * data extracted test for test ticker
 		 */
-		if (newPrice.getTicker().equals(testTicker) && testTID.equals(uuid)) {
+		if (testTID.equals(uuid)) {
 			testTicker = "";
 			testTID = "";
 			return;
@@ -2206,6 +2204,22 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
 	}
 
+  private synchronized void setErrorForSingleTicker(String ticker) {
+    SecurityTableLine sTicker = null;
+    sTicker = securitiesTable.get(ticker);
+    if (sTicker != null) {
+      sTicker.setTickerStatus(Constants.TASKFAILED);
+      sTicker.setPriceDate(0);
+      sTicker.setNewPrice(0.0);
+      sTicker.setPercentChg(0.0);
+      sTicker.setAmtChg(0.0);
+      sTicker.setTradeDate(0);
+      sTicker.setTradeCur(null);
+      sTicker.setVolume(null);
+      sTicker.setHistory(null);
+    }
+  }
+
 	/*
 	 * Failed quote
 	 */
@@ -2225,6 +2239,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		String ticker = "";
 		String errorCode="";
  	   boolean currencyFound = false;
+ 	   boolean securityFound = false;
 		QuoteSource srce=null;
 		for (NameValuePair price : results) {
 			if (price.getName().compareToIgnoreCase(Constants.TIDCMD) == 0) {
@@ -2237,6 +2252,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				}
 			}
 			if (price.getName().compareToIgnoreCase(Constants.STOCKTYPE) == 0) {
+        securityFound = true;
 				ticker = price.getValue();
 				if (alteredTickers != null && alteredTickers.containsKey(ticker)) {
 					ticker = alteredTickers.get(ticker);
@@ -2292,27 +2308,27 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		}
 		if (runtype != Constants.MANUALRUN && runtype != 0) {
 			if (currencyFound)
-				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker
-						+ " failed currency");
+				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " failed currency");
 			else
-				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker
-						+ " failed stock");
+				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " failed stock");
 		}
 		/*
 		 * if test of ticker, display message and exit
 		 */
-		if (ticker.equals(testTicker) && testTID.equals(uuid)) {
+		if (testTID.equals(uuid)) {
 			testTicker = "";
 			testTID = "";
+      if (securityFound) setErrorForSingleTicker(ticker);
 			String message = "Test of security '" + ticker + "' failed!";
 			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
-		if (ticker.equals(getTicker) && getTID.equals(uuid)) {
-			getTicker = "";
-			getTID = "";
+		if (getTID.equals(uuid)) {
+      getTicker = "";
+      getTID = "";
       completed = true;
-			String message = "Get of security '" + ticker + "' failed!";
+      if (securityFound) setErrorForSingleTicker(ticker);
+      String message = "Get of security '" + ticker + "' failed!";
 			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
