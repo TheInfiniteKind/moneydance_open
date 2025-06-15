@@ -42,11 +42,11 @@ import com.moneydance.apps.md.controller.UserPreferences;
 import com.moneydance.modules.features.mrbutil.MRBDebug;
 
 
-/** Moneydance extension to load security price history from a file using exchange code and date
- *  as key
- * 
+/** Moneydance extension to load security price history from a file using exchange code and date as key
  * Main class to create main window
-*/
+ * Author: Mike Bray
+ * Contributions: Stuart Beesley - since May 2025
+ */
 
 public class Main
   extends FeatureModule

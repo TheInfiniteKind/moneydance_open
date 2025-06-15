@@ -43,8 +43,9 @@ import com.moneydance.modules.features.mrbutil.MRBDebug;
 
 
 /** Moneydance extension to load security prices from a file using exchange code as key
- * 
  * Main class to create main window
+ * Author: Mike Bray
+ * Contributions: Stuart Beesley - since May 2025
 */
 
 public class Main

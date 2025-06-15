@@ -1,6 +1,6 @@
 {
   "vendor" = "Mike Bray (patched)"
-  "module_build" = "321701"
+  "module_build" = "321702"
   "minbuild" = "1820"
   "vendor.url" = "http://bitbucket.org/mikerb/wiki/Home"
   "module_name" = "Security / Currency Price CSV Loader"
