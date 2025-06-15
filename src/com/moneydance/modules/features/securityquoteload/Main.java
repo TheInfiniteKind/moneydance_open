@@ -837,10 +837,6 @@ public class Main extends FeatureModule {
 					isQuotesRunning = true;
 					return;
 				}
-				case Constants.TESTTICKERCMD -> {
-					javax.swing.SwingUtilities.invokeLater(() -> frame.testTicker(uri));
-					return;
-				}
 				case Constants.GETINDIVIDUALCMD -> {
 					javax.swing.SwingUtilities.invokeLater(() -> frame.getIndividualTicker(uri));
 					return;

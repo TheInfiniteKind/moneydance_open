@@ -38,7 +38,6 @@ import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -595,14 +594,6 @@ public class SecTable extends JTable {
 		final String exchangeFinal = exchange;
 		ActionListener tickerListener = aeEvent -> {
       String strAction = aeEvent.getActionCommand();
-      if (strAction.equals("test-ticker")) {
-        String source1 = (String) dm.getValueAt(modRow, sourceCol);
-        if (source1.equals(Constants.DONOTLOAD)) {
-          JOptionPane.showMessageDialog(Main.frame, "You must select a source before testing");
-          return;
-        }
-        Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.TESTTICKERCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
-      }
       if (strAction.equals("get-ticker")) {
 
 SecurityTableLine secLine = dm.getRowAccount(modRow);
@@ -676,10 +667,6 @@ Main.context.showURL(url);
 		getTickerMenu.addActionListener(tickerListener);
     getTickerMenu.setActionCommand("get-ticker");
 
-		JMenuItem testTickerMenu = new JMenuItem("Test: '" + ticker + "'");
-		testTickerMenu.addActionListener(tickerListener);
-    testTickerMenu.setActionCommand("test-ticker");
-
 		JMenuItem copyDerivedTickerMenu = new JMenuItem("Copy derived ticker + exchange: '" + ticker + "'");
 		copyDerivedTickerMenu.addActionListener(tickerListener);
     copyDerivedTickerMenu.setActionCommand("copy-derived-ticker-exchange");
@@ -701,7 +688,6 @@ Main.context.showURL(url);
     setAll.setActionCommand("set-ex");
 
     menu.add(getTickerMenu);
-    menu.add(testTickerMenu);
 
     if (selCol == exchangeCol && !ticker.isBlank())
       menu.add(copyDerivedTickerMenu);

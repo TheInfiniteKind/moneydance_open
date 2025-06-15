@@ -125,8 +125,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	protected Main main;
 	protected int closeBtnx = 0;
 	protected int closeBtny = 0;
-	protected String testTicker = "";
-	protected String testTID = "";
 	protected String getTicker="";
 	protected String getTID="";
 	protected String command;
@@ -1446,40 +1444,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		return "&" +  URLEncodedUtils.format(parameters, charset);
 	}
 
-	public void testTicker(String url) {
-		Main.debugInst.debug("MainPriceWindow", "testTicker", MRBDebug.INFO, "Requested URI " + url);
-		Main.isUpdating = true;
-		URI uri;
-		String convUrl = url.replace("^", "%5E");
-		convUrl = convUrl.replace(" ", "%20");
-		try {
-			uri = new URI(convUrl.trim());
-		} catch (URISyntaxException e) {
-			Main.debugInst.debug("MainPriceWindow", "testTicker", MRBDebug.DETAILED, "URI invalid " + convUrl);
-			e.printStackTrace();
-			return;
-		}
-		List<NameValuePair> results = URLEncodedUtils.parse(uri, charSet);
-		String ticker = "";
-		String source = "";
-		for (NameValuePair price : results) {
-			if (price.getName().compareToIgnoreCase(Constants.STOCKTYPE) == 0) {
-				ticker = price.getValue();
-			}
-			if (price.getName().compareToIgnoreCase(Constants.SOURCETYPE) == 0) {
-				source = price.getValue();
-			}
-		}
-		if (!ticker.isEmpty()) {
-			testTID = UUID.randomUUID().toString();
-			testTicker = ticker;
-			String testurl = newPriceUrl(source, testTID, ticker, Constants.STOCKTYPE, 0);
-			Main.debugInst.debug("MainPriceWindow", "testTicker", MRBDebug.DETAILED, "URI " + testurl);
-			MRBEDTInvoke.showURL(Main.context,testurl);
-		}
-	}
-
-
 	public void getIndividualTicker(String url) {
 		Main.debugInst.debug("MainPriceWindow", "getTicker", MRBDebug.INFO, "Requested URI " + url);
 		completed = false;
@@ -1695,25 +1659,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		if (newPrice == null || newPrice.getSecurityPrice()==0.0) {
 			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO,
 					"Invalid url returned " + uri);
-			return;
-		}
-
-		/*
-		 * data extracted test for test ticker
-		 */
-		if (testTID.equals(uuid)) {
-			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.DETAILED, "Test Ticker returned");
-			testTicker = "";
-			final String message;
-			message = "Test of security " + newPrice.getTicker() + " was successful. Price " + newPrice.getSecurityPrice() + " Currency " + newPrice.getCurrency();
-			if (EventQueue.isDispatchThread()) {
-				JOptionPane.showMessageDialog(Main.frame, message);
-			}
-			else {
-				SwingUtilities.invokeLater(() -> {
-					JOptionPane.showMessageDialog(Main.frame, message);
-				});
-			}
 			return;
 		}
 
@@ -2058,14 +2003,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
     }
 
 		/*
-		 * data extracted test for test ticker
-		 */
-		if (testTID.equals(uuid)) {
-			testTicker = "";
-			testTID = "";
-			return;
-		}
-		/*
 		 * check for altered by exchange
 		 */
 		if (alteredTickers != null && alteredTickers.containsKey(newPrice.getTicker())) {
@@ -2312,17 +2249,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " failed currency");
 			else
 				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " failed stock");
-		}
-		/*
-		 * if test of ticker, display message and exit
-		 */
-		if (testTID.equals(uuid)) {
-			testTicker = "";
-			testTID = "";
-      if (securityFound) setErrorForSingleTicker(ticker);
-			String message = "Test of security '" + ticker + "' failed!";
-			JOptionPane.showMessageDialog(Main.frame, message);
-			return;
 		}
 		if (getTID.equals(uuid)) {
       getTicker = "";
