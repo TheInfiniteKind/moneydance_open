@@ -2217,6 +2217,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
       sTicker.setTradeCur(null);
       sTicker.setVolume(null);
       sTicker.setHistory(null);
+      SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
     }
   }
 
