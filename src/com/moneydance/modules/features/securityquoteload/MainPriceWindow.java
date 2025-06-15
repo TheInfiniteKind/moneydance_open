@@ -141,13 +141,11 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	private JLabel throttleMessage;
 
 	public MainPriceWindow(Main main, int runtype) {
-		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED,
-				"Started");
+		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED, "Started");
 		this.runtype = runtype;
 		if (runtype != Constants.MANUALRUN && runtype != 0)
 			return;
-		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED,
-				"Setup reached");
+		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED, "Setup reached");
 		mdMain = com.moneydance.apps.md.controller.Main.mainObj;
 		mdGUI = mdMain.getUI();
 
@@ -2205,7 +2203,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	}
 
   private synchronized void setErrorForSingleTicker(String ticker) {
-    SecurityTableLine sTicker = null;
+    SecurityTableLine sTicker;
     sTicker = securitiesTable.get(ticker);
     if (sTicker != null) {
       sTicker.setTickerStatus(Constants.TASKFAILED);
@@ -2237,6 +2235,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			return;
 		}
 		List<NameValuePair> results = URLEncodedUtils.parse(uri, charSet);
+    String originalTicker = "";
 		String ticker = "";
 		String errorCode="";
  	   boolean currencyFound = false;
@@ -2255,17 +2254,17 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			if (price.getName().compareToIgnoreCase(Constants.STOCKTYPE) == 0) {
         securityFound = true;
 				ticker = price.getValue();
+        originalTicker = ticker;
 				if (alteredTickers != null && alteredTickers.containsKey(ticker)) {
 					ticker = alteredTickers.get(ticker);
-					Main.debugInst.debug("MainPriceWindow", "failed ", MRBDebug.DETAILED,
-							"Ticker changed from " + price.getValue() + " to " + ticker);
+					Main.debugInst.debug("MainPriceWindow", "failed ", MRBDebug.DETAILED, "Ticker changed from " + price.getValue() + " to " + ticker);
 				}
 			}
 			if (price.getName().compareToIgnoreCase(Constants.CURRENCYTYPE) == 0) {
 				currencyFound = true;
 				ticker = price.getValue();
-				Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.DETAILED,
-						"Currency Ticker " + ticker);
+        originalTicker = ticker;
+				Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.DETAILED, "Currency Ticker " + ticker);
 				if (ticker.endsWith(Constants.CURRENCYTICKER)) {
 					switch (srce) {
 					case FT:
@@ -2286,6 +2285,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				} else {
           if (QLUtil.isCrypto(ticker)) {
 						ticker = Constants.CURRENCYID + ticker.substring(0, ticker.indexOf('-') + 1);
+            originalTicker = ticker;
 					} else {
 						switch (srce) {
 						case FT:
@@ -2328,8 +2328,9 @@ public class MainPriceWindow extends JFrame implements TaskListener {
       getTicker = "";
       getTID = "";
       completed = true;
+      String tickerStr = "'" + originalTicker + "'" + (originalTicker.equals(ticker) ? "" : (" (" + ticker + ")") );
       if (securityFound) setErrorForSingleTicker(ticker);
-      String message = "Get of security '" + ticker + "' failed!";
+			String message = "Get of security " + tickerStr + " failed!";
 			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
