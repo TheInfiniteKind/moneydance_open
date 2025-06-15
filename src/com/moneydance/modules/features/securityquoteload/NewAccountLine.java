@@ -46,6 +46,7 @@ public class NewAccountLine{
 	private String ftAlternate;
 	private String yahooAlternate;
 	private String alphaAlternate;
+	private String marketDataAlternate;
 	/**
 	 * Create class, uses the structure of the Ticker to determine if the account is a
 	 * currency
@@ -124,9 +125,11 @@ public class NewAccountLine{
 	public String getAlphaAlternate() {
 		return alphaAlternate;
 	}
-
 	public void setAlphaAlternate(String alphaAlternate) {
 		this.alphaAlternate = alphaAlternate;
 	}
+
+	public String getMarketDataAlternate() { return marketDataAlternate; }
+	public void setMarketDataAlternate(String marketDataAlternate) {this.marketDataAlternate = marketDataAlternate; }
 }
 

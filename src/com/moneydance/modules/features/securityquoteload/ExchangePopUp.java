@@ -33,8 +33,7 @@ package com.moneydance.modules.features.securityquoteload;
 import java.awt.BorderLayout;
 import java.awt.GridBagLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -69,12 +68,13 @@ public class ExchangePopUp extends JDialog {
 	private final ExchangeData model;
 	MRBDebug debugInst = Main.debugInst;
 
-	public ExchangePopUp(int row, Parameters paramsp, SecTableModel priceModel) {
-		super((JFrame) null, "Select an Exchange", true);
+	public ExchangePopUp(JFrame parent, int row, Parameters paramsp, SecTableModel priceModel) {
+		super(parent, true);
 		dm = priceModel;
 		params = paramsp;
 		ticker = (String) priceModel.getValueAt(row, SecTable.tickerCol);
 		curExchange = (String) priceModel.getValueAt(row, SecTable.exchangeCol);
+    setTitle("Select an Exchange for ticker: '" + ticker + "'");
 		BorderLayout layout = new BorderLayout();
 		this.setLayout(layout);
 		debugInst.debug("ExchangePopUp", "ExchangePopUp", MRBDebug.SUMMARY, "started ");
@@ -104,35 +104,79 @@ public class ExchangePopUp extends JDialog {
 			}
 		}
 		JPanel buttons = new JPanel(new GridBagLayout());
-		JButton okButton = new JButton("Ok");
-		okButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				int selected = exTable.getSelectedRow();
-				if (selected != -1) {
-					String exchange = (String) model.getValueAt(selected, 0);
-					if (exchange.isEmpty())
-						line.setExchange(null);
-					else
-						line.setExchange(exchange);
-				}
-				dm.setIsDirty(true);
-				dm.fireTableDataChanged();
-				dispose();
-			}
-		});
+		JButton okButton = new JButton("OK");
+		okButton.addActionListener((e) -> OKPressed());
 		JButton cancelButton = new JButton("Cancel");
-		cancelButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				dispose();
-			}
-		});
+		cancelButton.addActionListener(e -> dispose());
 		buttons.add(okButton, GridC.getc(0, 0).center().insets(5, 20, 5, 5));
 		buttons.add(cancelButton, GridC.getc(1, 0).center().insets(5, 20, 5, 5));
 		this.add(buttons, BorderLayout.SOUTH);
-		pack();
+
+    exTable.addKeyListener(new KeyAdapter() {
+      private char lastChar = 0;
+      private int lastMatchIndex = -1;
+
+      @Override
+      public void keyTyped(KeyEvent e) {
+        char ch = Character.toLowerCase(e.getKeyChar());
+        if (!Character.isLetterOrDigit(ch)) return;
+
+        if (ch != lastChar) {
+          lastMatchIndex = -1;
+        }
+
+        lastChar = ch;
+
+        int rowCount = exTable.getRowCount();
+        int startIndex = (lastMatchIndex + 1) % rowCount;
+
+        for (int offset = 0; offset < rowCount; offset++) {
+          int i = (startIndex + offset) % rowCount;
+
+          Object val1 = exTable.getValueAt(i, 0); // Code
+          Object val2 = exTable.getValueAt(i, 1); // Name
+
+          if ((val1 != null && val1.toString().toLowerCase().startsWith(String.valueOf(ch))) ||
+              (val2 != null && val2.toString().toLowerCase().startsWith(String.valueOf(ch)))) {
+            exTable.setRowSelectionInterval(i, i);
+            exTable.scrollRectToVisible(exTable.getCellRect(i, 0, true));
+            lastMatchIndex = i;
+            return;
+          }
+        }
+
+        lastMatchIndex = -1; // No match
+      }
+    });
+
+
+
+    exTable.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseClicked(java.awt.event.MouseEvent e) {
+        if (e.getClickCount() == 2 && exTable.getSelectedRow() != -1) {
+          OKPressed();
+        }
+      }
+    });
+
+    pack();
 	}
+
+  public void OKPressed() {
+    int selected = exTable.getSelectedRow();
+    if (selected != -1) {
+      String exchange = (String) model.getValueAt(selected, 0);
+      if (exchange.isEmpty())
+        line.setExchange(null);
+      else
+        line.setExchange(exchange);
+    }
+    dm.setIsDirty(true);
+    dm.fireTableDataChanged();
+    dispose();
+  }
+
 
 	public void close() {
 	}

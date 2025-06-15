@@ -1,6 +1,6 @@
 {
   "vendor" = "Mike Bray (patched)"
-  "module_build" = "330103"
+  "module_build" = "330104"
   "minbuild" = "4045"
   "vendor.url" = "https://github.com/mrbray99/moneydanceproduction/wiki/New-Quote-Loader"
   "module_name" = "Quote Loader"

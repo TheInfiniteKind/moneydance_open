@@ -85,8 +85,8 @@ public class GetFTHDQuote extends GetQuoteTask {
 
 			try {
 
-        if (Main.LOG_RAW_RESPONSES) { // only when enabled AND QL DETAILED debugging then print the raw response...
-          debugInst.debug("getYahooQuote", "analyseResponse", MRBDebug.DETAILED, "raw entity: '" + doc.outerHtml() + "'");
+        if (debugInst.getDebugLevelType() == MRBDebug.DebugLevel.DEVELOPER) { // only when enabled AND QL DEVELOPER debugging then print the raw response...
+          debugInst.debug("GetFTHDQuote", "analyseResponse", MRBDebug.DebugLevel.DEVELOPER, "raw entity: '" + doc.outerHtml() + "'");
         }
 
 				parseDoc(doc, quotePrice);

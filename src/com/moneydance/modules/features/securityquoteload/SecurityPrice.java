@@ -58,8 +58,8 @@ public class SecurityPrice {
 		if (ticker.startsWith(Constants.CURRENCYID)){
 			isCurrency = true;
 			currencyID = ticker.substring(3);
-			if (ticker.contains("-"))
-				isCrypto = true;
+      if (QLUtil.isCrypto(ticker))
+        isCrypto = true;
 		}
 		else
 			isCurrency = false;
@@ -132,7 +132,7 @@ public class SecurityPrice {
 		if (ticker.startsWith(Constants.CURRENCYID)){
 			isCurrency = true;
 			currencyID = ticker.substring(3);
-			if (ticker.contains("-"))
+      if (QLUtil.isCrypto(ticker))
 				isCrypto = true;
 		}
 	}

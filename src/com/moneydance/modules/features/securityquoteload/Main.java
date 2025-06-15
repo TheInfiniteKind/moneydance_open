@@ -73,7 +73,6 @@ import com.moneydance.modules.features.securityquoteload.view.CalculateRunDate;
 
 public class Main extends FeatureModule {
     public static boolean THROTTLE_YAHOO = true;
-    public static boolean LOG_RAW_RESPONSES = false;  // when enabled then the raw response (entity) is logged to console
     public static CustomDateFormat cdate;
     public static Integer today;
     public static char decimalChar;
@@ -88,6 +87,7 @@ public class Main extends FeatureModule {
     public static boolean standAloneRequested = false;
     public static LinkedBlockingQueue<ProcessCommandArgument> processQueue;
     public static boolean alphaVantageLimitReached = false;
+    public static MainPriceWindow frame;
 
     public static com.moneydance.apps.md.controller.Main MD_REF;
     public static int MD_BUILD_QUEUEMODIFIEDITEM_PUBLIC = 5132;  // MD2024.2(5132) switched to kotlin and now public...
@@ -99,7 +99,6 @@ public class Main extends FeatureModule {
     public ImageIcon selectedIcon;
     public ImageIcon unselectedIcon;
     private String mdVersion;
-    public MainPriceWindow frame;
     private Thread overallTimeout;
     private AtomicBoolean quotesCompleted = new AtomicBoolean(false);
     private int timeoutCount = 0;
@@ -155,7 +154,7 @@ public class Main extends FeatureModule {
         mdVersion = up.getSetting("current_version");
         int mdVersionNo = Integer.parseInt(mdVersion.substring(0, 4));
         if (mdVersionNo < Constants.MINIMUMVERSIONNO) {
-            JOptionPane.showMessageDialog(null,
+            JOptionPane.showMessageDialog(frame,
                     "This version of Quote Loader is designed to be run on Moneydance version "
                             + Constants.MINIMUMVERSIONNO + ". You are running version "
                             + mdVersion,
@@ -259,17 +258,8 @@ public class Main extends FeatureModule {
         MRBPreferences2.loadPreferences(context);
         preferences = MRBPreferences2.getInstance();
         params = Parameters.getParameters();
-        debugInst.setDebugLevel(
-                preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.INFO));
-        String debug;
-        if (debugInst.getDebugLevel() == MRBDebug.INFO)
-            debug = "INFO";
-        else if (debugInst.getDebugLevel() == MRBDebug.SUMMARY)
-            debug = "SUMM";
-        else if (debugInst.getDebugLevel() == MRBDebug.DETAILED)
-            debug = "DET";
-        else
-            debug = "OFF";
+        debugInst.setDebugLevel(preferences.getInt(Constants.PROGRAMNAME + "." + Constants.DEBUGLEVEL, MRBDebug.DebugLevel.INFO.getLevel()));
+        String debug = debugInst.getDebugLevelType().getShortName();
         debugInst.debug("Quote Load", "HandleEventFileOpened", MRBDebug.INFO, "Debug level set to " + debug);
         context = getContext();
         serverName = Constants.PROGRAMNAME;
@@ -465,8 +455,7 @@ public class Main extends FeatureModule {
 
         if (command.equals(Constants.SHOWCONSOLECMD)) {
             if (frame != null && runtype > Constants.MANUALRUN) {
-                JOptionPane.showMessageDialog(null, "Quote Loader is running an automatic update,please wait",
-                        "Quote Loader", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Quote Loader is running an automatic update,please wait", "Quote Loader", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
             debugInst.debug("Quote Load", "invoke", MRBDebug.DETAILED, "runtype set to manual");
@@ -504,7 +493,7 @@ public class Main extends FeatureModule {
      */
     private void createAndShowGUI() {
         if (context.getCurrentAccountBook().getCurrencies().getBaseType() == null) {
-            JOptionPane.showMessageDialog(null,
+            JOptionPane.showMessageDialog(frame,
                     "The Quote Loader extension depends on the base currency having been set. Please set the base currency before restarting",
                     "Quote Loader", JOptionPane.ERROR_MESSAGE);
             return;
@@ -659,7 +648,7 @@ public class Main extends FeatureModule {
 
 				case Constants.RUNSTANDALONECMD -> {
 					if (!cmdParam.equalsIgnoreCase("quit") && !cmdParam.equalsIgnoreCase("noquit")) {
-						JOptionPane.showMessageDialog(null, "Invalid Quote Loader runauto parameter: " + cmdParam,
+						JOptionPane.showMessageDialog(frame, "Invalid Quote Loader runauto parameter: " + cmdParam,
 								"Quote Loader", JOptionPane.INFORMATION_MESSAGE);
 						return;
 					}
@@ -848,10 +837,6 @@ public class Main extends FeatureModule {
 					isQuotesRunning = true;
 					return;
 				}
-				case Constants.TESTTICKERCMD -> {
-					javax.swing.SwingUtilities.invokeLater(() -> frame.testTicker(uri));
-					return;
-				}
 				case Constants.GETINDIVIDUALCMD -> {
 					javax.swing.SwingUtilities.invokeLater(() -> frame.getIndividualTicker(uri));
 					return;
@@ -910,7 +895,7 @@ public class Main extends FeatureModule {
 									"Still Waiting for Backend");
 							if (timeoutCount > timeoutMax) {
 								javax.swing.SwingUtilities.invokeLater(() -> {
-									JOptionPane.showMessageDialog(null, "Backend has failed to respond", "Quote Loader",
+									JOptionPane.showMessageDialog(frame, "Backend has failed to respond", "Quote Loader",
 											JOptionPane.ERROR_MESSAGE);
 								});
 								frame.closeQuotes();

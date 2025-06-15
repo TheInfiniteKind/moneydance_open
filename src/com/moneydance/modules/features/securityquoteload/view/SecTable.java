@@ -38,7 +38,6 @@ import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -46,6 +45,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
 import javax.swing.event.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
@@ -69,6 +70,7 @@ public class SecTable extends JTable {
 	private Parameters params;
 	private DefaultCellEditor exchangeField;
 	private DefaultTableCellRenderer rightRender;
+	private BorderOnlyRenderer borderOnlyRenderer;
 	private MyCurrencyEditor currencyEditor;
 	private MyDateEditor dateEditor;
 	private SecTable tableObj;
@@ -124,12 +126,31 @@ public class SecTable extends JTable {
 	        return rComp;
 	    }
 
+  private class BorderOnlyRenderer extends DefaultTableCellRenderer {
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+      super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+      setHorizontalAlignment(LEFT); // or CENTER/RIGHT as needed
+      setBorder(isSelected ? SELECTED_BORDER : NO_BORDER);
+      setOpaque(true);
+
+      // Custom row striping
+      Color bg = (row % 2 == 0) ? colors.registerBG2 : colors.registerBG1;
+      setBackground(bg);
+      setForeground(UIManager.getColor("TextField.Foreground"));
+      return this;
+    }
+  }
+
 	private class PriceRenderer extends DefaultTableCellRenderer {
-		@Override
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-				boolean hasFocus, int row, int column) {
-			@SuppressWarnings("unused")
-			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);		@Override
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+			@SuppressWarnings("unused") Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			int modRow=tableObj.convertRowIndexToModel(row);
 			String ticker = (String) ((SecTableModel) table.getModel()).getValueAt(modRow, 1);
 			Integer status = dm.getTickerStatus(ticker);
@@ -158,17 +179,35 @@ public class SecTable extends JTable {
 		               setBackground(colour);
 
 			}
-			setHorizontalAlignment(JLabel.RIGHT);
+      if (isSelected) {
+        setBorder(SELECTED_BORDER);
+        setOpaque(false);
+      } else {
+        setBorder(NO_FOCUS_BORDER);
+        setOpaque(true);
+      }
+      setHorizontalAlignment(JLabel.RIGHT);
 			return this;
 		}
 	}
-
 	public class SignColourRenderer extends DefaultTableCellRenderer {
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+
+    public Component setSelectedBorder(DefaultTableCellRenderer renderer, boolean isSelected) {
+      if (isSelected) {
+        renderer.setBorder(SELECTED_BORDER);
+        renderer.setOpaque(false);
+      } else {
+        renderer.setBorder(NO_FOCUS_BORDER);
+        renderer.setOpaque(true);
+      }
+      return renderer;
+    }
+
 		@Override
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-				boolean hasFocus, int row, int column) {
-			@SuppressWarnings("unused")
-			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+			@SuppressWarnings("unused") Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			int modRow=tableObj.convertRowIndexToModel(row);
 			String sValue = (String) value;
 			SecurityTableLine line = dm.getRowAccount(modRow);
@@ -178,7 +217,7 @@ public class SecTable extends JTable {
 				setForeground(UIManager.getColor("TextField.Foreground"));
 			      Color colour = (row %2 ==0 ? colors.registerBG2:colors.registerBG1);
 		             setBackground(colour);
-				return this;
+				return setSelectedBorder(this, isSelected);
 			}
 			Double dValue;
 			if (column == perChangeCol)
@@ -191,7 +230,7 @@ public class SecTable extends JTable {
 				setOpaque(false);
 				setForeground(UIManager.getColor("TextField.Foreground"));
 				setBackground(UIManager.getColor("TextField.Background"));
-				return this;
+				return setSelectedBorder(this, isSelected);
 			}
 			if (dValue < 0.0) {
 				setOpaque(true);
@@ -202,9 +241,10 @@ public class SecTable extends JTable {
 				setForeground(Color.BLACK);
 				setBackground(Color.GREEN);
 			}
-			return this;
+			return setSelectedBorder(this, isSelected);
 		}
 	}
+
 	private int getBrightness(Color c) {
 		return (int) Math.sqrt(c.getRed() * c.getRed() * .241 + c.getGreen() * c.getGreen() * .691
 				+ c.getBlue() * c.getBlue() * .068);
@@ -218,17 +258,24 @@ public class SecTable extends JTable {
 	}
 
 	public class DateRenderer extends DefaultTableCellRenderer {
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
 		@Override
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-				boolean hasFocus, int row, int column) {
-			@SuppressWarnings("unused")
-			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+			@SuppressWarnings("unused") Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			String date = (String) value;
 			setForeground(UIManager.getColor("TextField.Foreground"));
  			if (date.endsWith("*"))
 				setForeground(Color.RED);
 			setHorizontalAlignment(JLabel.RIGHT);
+      if (isSelected) {
+        setBorder(SELECTED_BORDER);
+        setOpaque(false);
+      } else {
+        setBorder(NO_FOCUS_BORDER);
+        setOpaque(true);
+      }
 			return this;
 		}
 	}
@@ -266,8 +313,31 @@ public class SecTable extends JTable {
 		allSources = new JComboBox<String>(params.getSourceArray());
 		currencyEditor = new MyCurrencyEditor(params);
 		dateEditor = new MyDateEditor(params);
-		rightRender = new DefaultTableCellRenderer();
+
+    rightRender = new DefaultTableCellRenderer() {
+      private final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+      private final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+
+      @Override
+      public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+        if (isSelected) {
+          setBorder(SELECTED_BORDER);
+          setOpaque(false);
+        } else {
+          setBorder(NO_FOCUS_BORDER);
+          setOpaque(true);
+          Color colour = (row % 2 == 0 ? colors.registerBG2 : colors.registerBG1);
+          setBackground(colour);
+        }
+        setForeground(UIManager.getColor("TextField.Foreground"));
+        return this;
+      }
+    };
 		rightRender.setHorizontalAlignment(JLabel.RIGHT);
+
+    borderOnlyRenderer = new BorderOnlyRenderer();
 		selectRenderer = new TableCheckBox(this, this.getDefaultRenderer(Boolean.class),
 				this.getDefaultRenderer(Object.class));
 		/*
@@ -302,100 +372,47 @@ public class SecTable extends JTable {
 		this.addMouseListener(new TableMouseListener());
 		((DefaultTableCellRenderer) this.getTableHeader().getDefaultRenderer())
 				.setHorizontalAlignment(JLabel.CENTER);
-		/*
-		 * Select
-		 */
-		TableColumn colSelect = this.getColumnModel().getColumn(selectCol);
-		colSelect.setCellEditor(new DefaultCellEditor(boxSelect));
-		if (MRBPlatform.isFreeBSD() || MRBPlatform.isUnix())
-			colSelect.setCellRenderer(new CheckBoxRenderer());
-		colSelect.setPreferredWidth(columnWidths[selectCol]);
-		colSelect.setCellRenderer(selectRenderer);
-		trs.setSortable(selectCol, false);
-		/*
-		 * Ticker
-		 */
-		this.getColumnModel().getColumn(tickerCol).setResizable(true);
-		this.getColumnModel().getColumn(tickerCol).setPreferredWidth(columnWidths[tickerCol]);
-		/*
-		 * alternate ticker
-		 */
-		this.getColumnModel().getColumn(altTickerCol).setResizable(true);
-		this.getColumnModel().getColumn(altTickerCol).setPreferredWidth(columnWidths[altTickerCol]);
-		
-		/*
-		 * Exchange Modifier
-		 */
-		this.getColumnModel().getColumn(exchangeCol).setResizable(true);
-		this.getColumnModel().getColumn(exchangeCol).setCellEditor(exchangeField);
-		this.getColumnModel().getColumn(exchangeCol).setPreferredWidth(columnWidths[exchangeCol]);
-		/*
-		 * Account
-		 */
-		this.getColumnModel().getColumn(accountCol).setResizable(true);
-		this.getColumnModel().getColumn(accountCol).setPreferredWidth(columnWidths[accountCol]);
-		/*
-		 * Source
-		 */
-		this.getColumnModel().getColumn(sourceCol).setPreferredWidth(columnWidths[sourceCol]);
-		this.getColumnModel().getColumn(sourceCol).setResizable(true);
-		/*
-		 * Current Price
-		 */
-		this.getColumnModel().getColumn(lastPriceCol).setResizable(true);
-		this.getColumnModel().getColumn(lastPriceCol).setPreferredWidth(columnWidths[lastPriceCol]);
-		this.getColumnModel().getColumn(lastPriceCol).setCellRenderer(rightRender);
-		trs.setComparator(lastPriceCol,new DoubleComparator());
-		/*
-		 * Current Price Date
-		 */
-		this.getColumnModel().getColumn(lastDateCol).setResizable(true);
-		this.getColumnModel().getColumn(lastDateCol).setPreferredWidth(columnWidths[lastDateCol]);
-		this.getColumnModel().getColumn(lastDateCol).setCellRenderer(new DateRenderer());
-		trs.setComparator(lastDateCol,new DateComparator());
-		/*
-		 * New Price
-		 */
-		this.getColumnModel().getColumn(newPriceCol).setResizable(true);
-		this.getColumnModel().getColumn(newPriceCol).setCellEditor(currencyEditor);
-		this.getColumnModel().getColumn(newPriceCol).setPreferredWidth(columnWidths[newPriceCol]);
-		this.getColumnModel().getColumn(newPriceCol).setCellRenderer(new PriceRenderer());
-		trs.setComparator(newPriceCol,new DoubleComparator());
-		/*
-		 * % change
-		 */
-		this.getColumnModel().getColumn(perChangeCol).setResizable(true);
-		this.getColumnModel().getColumn(perChangeCol).setPreferredWidth(columnWidths[perChangeCol]);
-		this.getColumnModel().getColumn(perChangeCol).setCellRenderer(new SignColourRenderer());
-		trs.setComparator(perChangeCol,new DoubleComparator());
-		/*
-		 * Amount change
-		 */
-		this.getColumnModel().getColumn(amtChangeCol).setResizable(true);
-		this.getColumnModel().getColumn(amtChangeCol).setPreferredWidth(columnWidths[amtChangeCol]);
-		this.getColumnModel().getColumn(amtChangeCol).setCellRenderer(new SignColourRenderer());
-		trs.setComparator(amtChangeCol,new DoubleComparator());
-		/*
-		 * Trade Date
-		 */
-		this.getColumnModel().getColumn(tradeDateCol).setResizable(true);
-		this.getColumnModel().getColumn(tradeDateCol).setCellEditor(dateEditor);
-		this.getColumnModel().getColumn(tradeDateCol).setPreferredWidth(columnWidths[tradeDateCol]);
-		this.getColumnModel().getColumn(tradeDateCol).setCellRenderer(rightRender);
-		trs.setComparator(tradeDateCol,new DateComparator());
-		/*
-		 * Trade Currency
-		 */
-		this.getColumnModel().getColumn(tradeCurCol).setResizable(true);
-		this.getColumnModel().getColumn(tradeCurCol).setPreferredWidth(columnWidths[tradeCurCol]);
-		this.getColumnModel().getColumn(tradeCurCol).setCellRenderer(rightRender);
-		/*
-		 * Volume
-		 */
-		this.getColumnModel().getColumn(volumeCol).setResizable(true);
-		this.getColumnModel().getColumn(volumeCol).setPreferredWidth(columnWidths[volumeCol]);
-		this.getColumnModel().getColumn(volumeCol).setCellRenderer(rightRender);
-		trs.setComparator(volumeCol,new IntComparator());
+
+    // Select column
+    TableColumn colSelect = this.getColumnModel().getColumn(selectCol);
+    colSelect.setCellEditor(new DefaultCellEditor(boxSelect));
+    if (MRBPlatform.isFreeBSD() || MRBPlatform.isUnix())
+      colSelect.setCellRenderer(new CheckBoxRenderer());
+    colSelect.setCellRenderer(selectRenderer);
+    trs.setSortable(selectCol, false);
+
+    for (int col = selectCol; col <= volumeCol; col++) {
+      if (col > selectCol) this.getColumnModel().getColumn(col).setResizable(true);
+      this.getColumnModel().getColumn(col).setPreferredWidth(columnWidths[col]);
+    }
+
+    for (int col : new int[] {tickerCol, altTickerCol, exchangeCol, accountCol, sourceCol}) {
+      this.getColumnModel().getColumn(col).setCellRenderer(borderOnlyRenderer);
+    }
+
+    for (int col : new int[] {lastPriceCol, tradeCurCol, tradeDateCol, volumeCol}) {
+      this.getColumnModel().getColumn(col).setCellRenderer(rightRender);
+    }
+
+    for (int col : new int[] {perChangeCol, amtChangeCol}) {
+      this.getColumnModel().getColumn(col).setCellRenderer(new SignColourRenderer());
+    }
+
+    this.getColumnModel().getColumn(lastDateCol).setCellRenderer(new DateRenderer());
+    this.getColumnModel().getColumn(newPriceCol).setCellRenderer(new PriceRenderer());
+
+    for (int col : new int[] {lastPriceCol, newPriceCol, perChangeCol, amtChangeCol}) {
+  		trs.setComparator(col, new DoubleComparator());
+    }
+
+    this.getColumnModel().getColumn(exchangeCol).setCellEditor(exchangeField);
+    this.getColumnModel().getColumn(newPriceCol).setCellEditor(currencyEditor);
+    this.getColumnModel().getColumn(tradeDateCol).setCellEditor(dateEditor);
+
+    trs.setComparator(lastDateCol, new DateComparator());
+    trs.setComparator(tradeDateCol, new DateComparator());
+    trs.setComparator(volumeCol, new IntComparator());
+
 		/*
 		 Set up sorter after columns comparators have been set
 		 */
@@ -411,59 +428,56 @@ public class SecTable extends JTable {
 		/*
 		 * pop up menu
 		 */
-		ActionListener popupListener = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent aeEvent) {
-				String strAction = aeEvent.getActionCommand();
-				if (strAction.contains("Set all to Do Not")) {
-					dm.updateAllSources(0);
-					return;
-				}
-				if (strAction.contains("Yahoo HD")) {
-					dm.updateAllSources(3);
-					return;
-				}
-				if (strAction.contains("Yahoo + TD")) {
-					dm.updateAllSources(5);
-					return;
-				}
-				if (strAction.contains("Yahoo")) {
-					dm.updateAllSources(1);
-					return;
-				}
-				if (strAction.contains("FT HD")) {
-					dm.updateAllSources(4);
-					return;
-				}
-				if (strAction.contains("FT")) {
-					dm.updateAllSources(2);
-					return;
-				}
-				if (strAction.contains("Alpha")){
-					dm.updateAllSources(5);
-					return;
-				}
-				if (strAction.contains("Market Data HD")){
-					dm.updateAllSources(7);
-					return;
-				}
-				if (strAction.contains("Market Data")){
-					dm.updateAllSources(6);
-					return;
-				}
-				if (strAction.contains("Exclude")) {
-					dm.switchDisplay();
-					dm.fireTableDataChanged();
-					excludeSource.setText("Include 'Do not load'");
-				}
-				if (strAction.contains("Include")) {
-					dm.switchDisplay();
-					dm.fireTableDataChanged();
-					excludeSource.setText("Exclude 'Do not load'");
-				}
+		ActionListener popupListener = aeEvent -> {
+      String strAction = aeEvent.getActionCommand();
+      if (strAction.contains("Set all to Do Not")) {
+        dm.updateAllSources(0);
+        return;
+      }
+      if (strAction.contains("Yahoo HD")) {
+        dm.updateAllSources(3);
+        return;
+      }
+      if (strAction.contains("Yahoo + TD")) {
+        dm.updateAllSources(5);
+        return;
+      }
+      if (strAction.contains("Yahoo")) {
+        dm.updateAllSources(1);
+        return;
+      }
+      if (strAction.contains("FT HD")) {
+        dm.updateAllSources(4);
+        return;
+      }
+      if (strAction.contains("FT")) {
+        dm.updateAllSources(2);
+        return;
+      }
+      if (strAction.contains("Alpha")){
+        dm.updateAllSources(5);
+        return;
+      }
+      if (strAction.contains("Market Data HD")){
+        dm.updateAllSources(7);
+        return;
+      }
+      if (strAction.contains("Market Data")){
+        dm.updateAllSources(6);
+        return;
+      }
+      if (strAction.contains("Exclude")) {
+        dm.switchDisplay();
+        dm.fireTableDataChanged();
+        excludeSource.setText("Include 'Do not load'");
+      }
+      if (strAction.contains("Include")) {
+        dm.switchDisplay();
+        dm.fireTableDataChanged();
+        excludeSource.setText("Exclude 'Do not load'");
+      }
 
-			}
-		};
+    };
 		sourcePopup = new JPopupMenu();
 		sourceDoNotLoad = new JMenuItem();
 		sourceDoNotLoad.setText("Set all to Do Not Load");
@@ -508,7 +522,9 @@ public class SecTable extends JTable {
 		{
 			int modelColumn = convertColumnIndexToModel(column);
 			if (modelColumn == sourceCol) {
-				return new DefaultCellEditor(allSources);
+        DefaultCellEditor sourceEditor = new DefaultCellEditor(allSources);
+        sourceEditor.setClickCountToStart(2);
+				return sourceEditor;
 			}
 			return super.getCellEditor(row, column);
 		}
@@ -533,7 +549,7 @@ public class SecTable extends JTable {
 		String ticker = (String) dm.getValueAt(row, tickerCol);
 		if (ticker.contains(Constants.TICKEREXTID))
 			return;
-		ExchangePopUp popup = new ExchangePopUp(row, params, dm);
+		ExchangePopUp popup = new ExchangePopUp(Main.frame, row, params, dm);
 		Dimension popupSize = popup.getSize();
 		if (p.getY() + popupSize.getHeight() > screenHeight) {
 			int dy = (int) Math.round(screenHeight - p.getY() - popupSize.getHeight() - 20);
@@ -576,70 +592,80 @@ public class SecTable extends JTable {
 		final String nameFinal = nameStr;
 		final String sourceFinal = tickerSource;
 		final String exchangeFinal = exchange;
-		ActionListener tickerListener = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent aeEvent) {
-				String strAction = aeEvent.getActionCommand();
-				if (strAction.equals("test-ticker")) {
-					String source = (String) dm.getValueAt(modRow, sourceCol);
-					if (source.equals(Constants.DONOTLOAD)) {
-						JOptionPane.showMessageDialog(null, "You must select a source before testing");
-						return;
-					}
-					Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.TESTTICKERCMD + "?qs=" + sourceFinal + "&s=" + tickerFinal);
-				}
-				if (strAction.equals("get-ticker")) {
-					String source = (String) dm.getValueAt(modRow, sourceCol);
-					if (source.equals(Constants.DONOTLOAD)) {
-						JOptionPane.showMessageDialog(null, "You must select a source before getting a single price");
-						return;
-					}
+		ActionListener tickerListener = aeEvent -> {
+      String strAction = aeEvent.getActionCommand();
+      if (strAction.equals("get-ticker")) {
 
-          SecurityTableLine secLine = dm.getRowAccount(modRow);
-          Integer lastPriceDate = secLine.getPriceDate();
-          if (lastPriceDate == null) lastPriceDate = -1;
-          Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" +Constants.GETINDIVIDUALCMD +
-                               "?" +
-                               Constants.SOURCETYPE + "=" + sourceFinal +
-                               "&" + Constants.STOCKTYPE + "=" + tickerFinal +
-                               "&" + Constants.ORIGINALTICKER + "=" + origticker +
-                               "&" + Constants.LASTPRICEDATETYPE + "=" + lastPriceDate);
-				}
-				if (strAction.equals("copy-derived-ticker-exchange")) {
-					StringSelection stringSelection = new StringSelection(tickerFinal);
-					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-					clipboard.setContents(stringSelection, null);
-				}
-				if (strAction.equals("copy-orig-ticker")) {
-					StringSelection stringSelection = new StringSelection(origTickerFinal);
-					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-					clipboard.setContents(stringSelection, null);
-				}
-				if (strAction.equals("copy-alt-ticker")) {
-					StringSelection stringSelection = new StringSelection(altTickerFinal);
-					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-					clipboard.setContents(stringSelection, null);
-				}
-				if (strAction.equals("copy-name")) {
-					StringSelection stringSelection = new StringSelection(nameFinal);
-					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-					clipboard.setContents(stringSelection, null);
-				}
-				if (strAction.equals("set-ex")) {
-					dm.selectAllExchanges(exchangeFinal);
-					dm.fireTableDataChanged();
-				}
-			}
-		};
+SecurityTableLine secLine = dm.getRowAccount(modRow);
+final Integer source1 = secLine.getSource();
+        if (source1 < 1) {
+          JOptionPane.showMessageDialog(Main.frame, "You must select a source before getting a single price");
+          return;
+        }
+
+Integer lastPriceDate = secLine.getPriceDate();
+if (lastPriceDate == null) lastPriceDate = -1;
+
+String tradeCur = null;
+if (source1.equals(Constants.ALPHAINDEX)) {
+if (secLine.getExchange() != null && !secLine.getExchange().isEmpty()) {
+tradeCur = params.getExchangeCurrency(secLine.getExchange());
+if (tradeCur == null)
+tradeCur = secLine.getRelativeCurrencyType().getIDString();
+} else
+tradeCur = secLine.getRelativeCurrencyType().getIDString();
+} else if (source1.equals(Constants.MDINDEX) || source1.equals(Constants.MDHDINDEX) || source1.equals(Constants.MDMUINDEX)) {
+// market data currently only supports US markets and prices are always USD! // todo - monitor this!
+if (secLine.getExchange() != null && !secLine.getExchange().isEmpty()) {
+tradeCur = params.getExchangeCurrency(secLine.getExchange());
+if (tradeCur == null)
+tradeCur = "USD";   // default
+} else
+tradeCur = "USD";     // default
+}
+
+String url = "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" +Constants.GETINDIVIDUALCMD +
+"?" +
+Constants.SOURCETYPE + "=" + sourceFinal +
+"&" + Constants.STOCKTYPE + "=" + tickerFinal +
+"&" + Constants.ORIGINALTICKER + "=" + origticker +
+"&" + Constants.LASTPRICEDATETYPE + "=" + lastPriceDate;
+
+if (tradeCur != null && !tradeCur.isBlank())
+url += "&" + Constants.TRADECURRTYPE + "=" + tradeCur;
+
+Main.context.showURL(url);
+      }
+      if (strAction.equals("copy-derived-ticker-exchange")) {
+        StringSelection stringSelection = new StringSelection(tickerFinal);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(stringSelection, null);
+      }
+      if (strAction.equals("copy-orig-ticker")) {
+        StringSelection stringSelection = new StringSelection(origTickerFinal);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(stringSelection, null);
+      }
+      if (strAction.equals("copy-alt-ticker")) {
+        StringSelection stringSelection = new StringSelection(altTickerFinal);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(stringSelection, null);
+      }
+      if (strAction.equals("copy-name")) {
+        StringSelection stringSelection = new StringSelection(nameFinal);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(stringSelection, null);
+      }
+      if (strAction.equals("set-ex")) {
+        dm.selectAllExchanges(exchangeFinal);
+        dm.fireTableDataChanged();
+      }
+    };
 		JPopupMenu menu = new JPopupMenu();
 
 		JMenuItem getTickerMenu = new JMenuItem("Get: '" + ticker + "'");
 		getTickerMenu.addActionListener(tickerListener);
     getTickerMenu.setActionCommand("get-ticker");
-
-		JMenuItem testTickerMenu = new JMenuItem("Test: '" + ticker + "'");
-		testTickerMenu.addActionListener(tickerListener);
-    testTickerMenu.setActionCommand("test-ticker");
 
 		JMenuItem copyDerivedTickerMenu = new JMenuItem("Copy derived ticker + exchange: '" + ticker + "'");
 		copyDerivedTickerMenu.addActionListener(tickerListener);
@@ -662,7 +688,6 @@ public class SecTable extends JTable {
     setAll.setActionCommand("set-ex");
 
     menu.add(getTickerMenu);
-    menu.add(testTickerMenu);
 
     if (selCol == exchangeCol && !ticker.isBlank())
       menu.add(copyDerivedTickerMenu);
@@ -739,7 +764,7 @@ public class SecTable extends JTable {
 			if (SwingUtilities.isRightMouseButton(e) || e.isControlDown())
 				showPopup(e);
 			else {
-				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DETAILED, "width started ");
+				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DebugLevel.DEVELOPER, "width started ");
 				if (e.getSource() instanceof JTableHeader) {
 					TableColumn tc = ((JTableHeader) e.getSource()).getResizingColumn();
 					if (tc != null) {
@@ -751,8 +776,7 @@ public class SecTable extends JTable {
 					}
 				}
 
-				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DETAILED,
-						"column " + resizingColumn + " oldWidth " + oldWidth);
+				debugInst.debug("HeaderMouseListener", "mousePressed", MRBDebug.DebugLevel.DEVELOPER, "column " + resizingColumn + " oldWidth " + oldWidth);
 			}
 		}
 
@@ -763,10 +787,9 @@ public class SecTable extends JTable {
 				showPopup(e);
 			else {
 				if (tableObj.getColumnWidthChanged()) {
-					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DETAILED, "width finished ");
+					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DebugLevel.DEVELOPER, "width finished ");
 					if (e.getSource() instanceof JTableHeader) {
-						TableColumn tc = ((JTableHeader) e.getSource()).getColumnModel()
-								.getColumn(resizingColumn);
+						TableColumn tc = ((JTableHeader) e.getSource()).getColumnModel().getColumn(resizingColumn);
 						if (tc != null) {
 							newWidth = tc.getPreferredWidth();
 						} else {
@@ -774,16 +797,13 @@ public class SecTable extends JTable {
 							oldWidth = -1;
 						}
 					}
-					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DETAILED,
-							"Column " + resizingColumn + "new width " + newWidth);
+					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DebugLevel.DEVELOPER, "Column " + resizingColumn + "new width " + newWidth);
 					columnWidths[resizingColumn] = newWidth;
-					Main.preferences.put(Constants.PROGRAMNAME + ".SEC." + Constants.CRNTCOLWIDTH,
-							columnWidths);
+					Main.preferences.put(Constants.PROGRAMNAME + ".SEC." + Constants.CRNTCOLWIDTH, columnWidths);
 					Main.preferences.isDirty();
 					// Reset the flag on the table.
 					tableObj.setColumnWidthChanged(false);
-					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DETAILED,
-							"column " + resizingColumn + " oldWidth " + oldWidth);
+					debugInst.debug("HeaderMouseListener", "mouseReleased", MRBDebug.DEVELOPER, "column " + resizingColumn + " oldWidth " + oldWidth);
 
 				}
 			}
@@ -822,6 +842,7 @@ public class SecTable extends JTable {
 
 			if (selCol == tickerCol) {
 				if (e.getClickCount() == 2) {
+          e.consume();
 					SecurityTableLine acct = dm.getRowAccount(modRow);
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
@@ -834,13 +855,26 @@ public class SecTable extends JTable {
 			}
       if (selCol == exchangeCol) {
         if (e.getClickCount() == 2) {
-          debugInst.debug("TableMouseListener", "exchange selected", MRBDebug.DETAILED,
-                          "column " + exchangeCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
+          e.consume();
+          debugInst.debug("TableMouseListener", "exchange selected", MRBDebug.DebugLevel.DEVELOPER, "column " + exchangeCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
           Rectangle rect = tc.getCellRect(tc.getSelectedRow(), exchangeCol, false);
           Point p2 = new Point(rect.x + rect.width, rect.y + rect.width);
           showExchangePopup(modRow, p2);
         }
       }
+
+      //if (selCol == altTickerCol) {
+      //  e.consume();
+      //  if (e.getClickCount() == 1 && SwingUtilities.isLeftMouseButton(e)) {
+      //    debugInst.debug("TableMouseListener", "altTicker edit triggered", MRBDebug.DebugLevel.DEVELOPER,  "column " + altTickerCol + " row " + tc.getSelectedRow() + " mod row " + modRow);
+      //    if (!tc.isEditing()) {
+      //      tc.editCellAt(row, col);
+      //      Component editor = tc.getEditorComponent();
+      //      if (editor != null) editor.requestFocusInWindow();
+      //    }
+      //  }
+      //}
+
 		}
 	}
 }

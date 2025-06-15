@@ -341,7 +341,7 @@ public class SecTableModel extends DefaultTableModel {
 		 */
 		case 0: 
 			if (rowData.getNewPrice() == null) {
-				JOptionPane.showMessageDialog(null, "This line does not have a price");
+				JOptionPane.showMessageDialog(Main.frame, "This line does not have a price");
 				return;
 			}
 			if (dfNumbers.format(rowData.getNewPrice()).equals("0.0"))
@@ -374,7 +374,7 @@ public class SecTableModel extends DefaultTableModel {
 
 			}
 			if (rowData.getInError()) {
-				JOptionPane.showMessageDialog(null, "Alternate Ticker already exists");
+				JOptionPane.showMessageDialog(Main.frame, "Alternate Ticker already exists");
 				break;
 			}
 			rowData.setAlternateTicker((String) value);

@@ -42,6 +42,8 @@ import java.util.Comparator;
 import java.util.List;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
 import javax.swing.event.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
@@ -62,6 +64,7 @@ public class CurTable extends JTable {
 	String[] arrSources;
 	private Parameters params;
 	private DefaultTableCellRenderer rightRender;
+	private BorderOnlyRenderer borderOnlyRenderer;
 	private MyCurrencyEditor currencyEditor;
 	private MyDateEditor dateEditor;
 	private CurTable tableObj;
@@ -107,16 +110,36 @@ public class CurTable extends JTable {
 		return rComp;
 	}
 
+  private class BorderOnlyRenderer extends DefaultTableCellRenderer {
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+      super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+      setHorizontalAlignment(LEFT); // or CENTER/RIGHT as needed
+      setBorder(isSelected ? SELECTED_BORDER : NO_BORDER);
+      setOpaque(true);
+
+      // Custom row striping
+      Color bg = (row % 2 == 0) ? colors.registerBG2 : colors.registerBG1;
+      setBackground(bg);
+      setForeground(UIManager.getColor("TextField.Foreground"));
+      return this;
+    }
+  }
+
 	public class PriceRenderer extends DefaultTableCellRenderer {
-		@Override
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-				boolean hasFocus, int row, int column) {
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+		@Override public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
 			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			int modRow=tableObj.convertRowIndexToModel(row);
 			CurrencyTableLine crntRow = dm.getRowCurrency(modRow);
 			Integer status = crntRow.getTickerStatus();
 			if (status == null)
-				status = 0;
+				status = 0;;
 			switch (status) {
 			case Constants.TASKSTARTED:
 				setOpaque(true);
@@ -139,17 +162,35 @@ public class CurTable extends JTable {
 				Color colour = (row % 2 == 0 ? colors.registerBG2 : colors.registerBG1);
 				c.setBackground(colour);
 			}
+      if (isSelected) {
+        setBorder(SELECTED_BORDER);
+        setOpaque(false);
+      } else {
+        setBorder(NO_FOCUS_BORDER);
+        setOpaque(true);
+      }
 			setHorizontalAlignment(JLabel.RIGHT);
 			return this;
 		}
 	}
 
 	public class SignColourRenderer extends DefaultTableCellRenderer {
-		@Override
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-				boolean hasFocus, int row, int column) {
-			@SuppressWarnings("unused")
-			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+
+    public Component setSelectedBorder(DefaultTableCellRenderer renderer, boolean isSelected) {
+      if (isSelected) {
+        renderer.setBorder(SELECTED_BORDER);
+        renderer.setOpaque(false);
+      } else {
+        renderer.setBorder(NO_FOCUS_BORDER);
+        renderer.setOpaque(true);
+      }
+      return renderer;
+    }
+
+		@Override public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+			@SuppressWarnings("unused") Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			int modRow=tableObj.convertRowIndexToModel(row);
 			String sValue = (String) value;
 			CurrencyTableLine line = dm.getRowCurrency(modRow);
@@ -159,7 +200,7 @@ public class CurTable extends JTable {
 				setForeground(UIManager.getColor("TextField.Foreground"));
 				Color colour = (row % 2 == 0 ? colors.registerBG2 : colors.registerBG1);
 				setBackground(colour);
-				return this;
+        return setSelectedBorder(this, isSelected);
 			}
 			Double dValue;
 			if (column == perChangeCol)
@@ -171,7 +212,7 @@ public class CurTable extends JTable {
 			if (dValue == 0.0) {
 				setOpaque(false);
 				setForeground(UIManager.getColor("TextField.Foreground"));
-				return this;
+        return setSelectedBorder(this, isSelected);
 			}
 			if (dValue < 0.0) {
 				if (dValue < params.getDecimal())
@@ -183,7 +224,7 @@ public class CurTable extends JTable {
 				setForeground(Color.BLACK);
 				setBackground(Color.GREEN);
 			}
-			return this;
+      return setSelectedBorder(this, isSelected);
 		}
 	}
 
@@ -200,17 +241,24 @@ public class CurTable extends JTable {
 	}
 
 	public class DateRenderer extends DefaultTableCellRenderer {
-		@Override
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-				boolean hasFocus, int row, int column) {
-			@SuppressWarnings("unused")
-			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+    private static final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+    private static final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+
+		@Override public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+			@SuppressWarnings("unused") Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 			String date = (String) value;
 			setForeground(UIManager.getColor("TextField.Foreground"));
 			if (date.endsWith("*"))
 				setForeground(Color.RED);
 			setHorizontalAlignment(JLabel.RIGHT);
+      if (isSelected) {
+        setBorder(SELECTED_BORDER);
+        setOpaque(false);
+      } else {
+        setBorder(NO_FOCUS_BORDER);
+        setOpaque(true);
+      }
 			return this;
 		}
 	}
@@ -318,10 +366,31 @@ public class CurTable extends JTable {
 		currencySources = new JComboBox<String>(params.getCurSourceArray());
 		currencyEditor = new MyCurrencyEditor(params);
 		dateEditor = new MyDateEditor(params);
-		rightRender = new DefaultTableCellRenderer();
-		rightRender.setHorizontalAlignment(JLabel.RIGHT);
-		selectRenderer = new TableCheckBox(this, this.getDefaultRenderer(Boolean.class),
-				this.getDefaultRenderer(Object.class));
+
+    rightRender = new DefaultTableCellRenderer() {
+      private final Border SELECTED_BORDER = new LineBorder(Color.BLUE, 1);
+      private final Border NO_FOCUS_BORDER = new LineBorder(new Color(0, 0, 0, 0), 1);
+
+      @Override
+      public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+        if (isSelected) {
+          setBorder(SELECTED_BORDER);
+          setOpaque(false);
+        } else {
+          setBorder(NO_FOCUS_BORDER);
+          setOpaque(true);
+          Color colour = (row % 2 == 0 ? colors.registerBG2 : colors.registerBG1);
+          setBackground(colour);
+        }
+        setForeground(UIManager.getColor("TextField.Foreground"));
+        return this;
+      }
+    };
+    rightRender.setHorizontalAlignment(JLabel.RIGHT);
+
+		selectRenderer = new TableCheckBox(this, this.getDefaultRenderer(Boolean.class), this.getDefaultRenderer(Object.class));
 		setRowHeight(20);
 		this.setAutoCreateRowSorter(false);
 		this.setRowSorter(trs);
@@ -349,6 +418,12 @@ public class CurTable extends JTable {
 		this.addMouseListener(new TableMouseListener());
 		((DefaultTableCellRenderer) this.getTableHeader().getDefaultRenderer())
 				.setHorizontalAlignment(JLabel.CENTER);
+
+    borderOnlyRenderer = new BorderOnlyRenderer();
+    for (int col : new int[] {tickerCol, accountCol, sourceCol}) {
+      this.getColumnModel().getColumn(col).setCellRenderer(borderOnlyRenderer);
+    }
+
 		/*
 		 * Select
 		 */
@@ -488,10 +563,12 @@ public class CurTable extends JTable {
 			int modelColumn = convertColumnIndexToModel(column);
 			int numAccts = dm.getNumAccounts();
 			debugInst.debug("CurTable", "getCellEditor", MRBDebug.SUMMARY, "Account list " + numAccts);
-			if (modelColumn == sourceCol) {
+      if (modelColumn == sourceCol) {
 				debugInst.debug("CurTable", "getCellEditor", MRBDebug.SUMMARY, "Row " + row);
-				return new DefaultCellEditor(currencySources);
-			}
+        DefaultCellEditor sourceEditor = new DefaultCellEditor(currencySources);
+        sourceEditor.setClickCountToStart(2);
+        return sourceEditor;
+      }
 			return super.getCellEditor(row, column);
 		}
 	}
@@ -579,7 +656,7 @@ public class CurTable extends JTable {
 					}
 				}
 
-				debugInst.debug("MouseListener", "mousePressed", MRBDebug.DETAILED,
+				debugInst.debug("MouseListener", "mousePressed", MRBDebug.DEVELOPER,
 						"column " + resizingColumn + " oldWidth " + oldWidth);
 			}
 		}
@@ -609,7 +686,7 @@ public class CurTable extends JTable {
 					Main.preferences.isDirty();
 					// Reset the flag on the table.
 					tableObj.setColumnWidthChanged(false);
-					debugInst.debug("MouseListener", "mouseReleased", MRBDebug.DETAILED,
+					debugInst.debug("MouseListener", "mouseReleased", MRBDebug.DEVELOPER,
 							"column " + resizingColumn + " oldWidth " + oldWidth);
 
 				}
@@ -617,27 +694,21 @@ public class CurTable extends JTable {
 		}
 	}
 
-	private class TableMouseListener extends MouseAdapter {
-		@Override
-		public void mouseReleased(MouseEvent e) {
-			JTable tc = (JTable) e.getSource();
-			Point p = e.getPoint();
-			int row = tc.rowAtPoint(p);
-			if (row < 0 || row>=dm.getRowCount())
-				return;
-			int modRow = tableObj.convertRowIndexToModel(row);
-			if (tc.getSelectedColumn() == tickerCol) {
-				if (e.getClickCount() == 2) {
-					CurrencyTableLine acct = dm.getRowCurrency(modRow);
-					SwingUtilities.invokeLater(new Runnable() {
-						@Override
-						public void run() {
-							Main.context.showURL(
-									"moneydance:showobj?id=" + acct.getCurrencyType().getUUID());
-						}
-					});
-				}
-			}
-		}
-	}
+  private class TableMouseListener extends MouseAdapter {
+    @Override
+    public void mouseReleased(MouseEvent e) {
+      JTable tc = (JTable) e.getSource();
+      Point p = e.getPoint();
+      int row = tc.rowAtPoint(p);
+      if (row < 0 || row >= dm.getRowCount())
+        return;
+      int modRow = tableObj.convertRowIndexToModel(row);
+      if (tc.getSelectedColumn() == tickerCol) {
+        if (e.getClickCount() == 2) {
+          CurrencyTableLine acct = dm.getRowCurrency(modRow);
+          SwingUtilities.invokeLater(() -> Main.context.showURL("moneydance:showobj?id=" + acct.getCurrencyType().getUUID()));
+        }
+      }
+    }
+  }
 }

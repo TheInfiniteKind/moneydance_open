@@ -59,7 +59,7 @@ public class SecurityTableLine {
 	private Integer tradeDate=0;
 	private String tradeCur="";
 	private ExtraFields volume=null;
-	private List<HistoryPrice> history=new ArrayList<HistoryPrice>();;
+	private List<HistoryPrice> history=new ArrayList<HistoryPrice>();
 	/*
 	 * working fields
 	 */
@@ -73,7 +73,7 @@ public class SecurityTableLine {
 	private String ftAlternate;
 	private String yahooAlternate;
 	private String alphaAlternate;
-	private String mdAlternate;
+	private String marketDataAlternate;
 
 	/*
 	 * Display fields getters and setters
@@ -114,15 +114,16 @@ public class SecurityTableLine {
 		return source;
 	}
 	public void setSource(Integer source) {
-		this.source = source;
-		alternateTicker="";
-		if ((source == Constants.FTINDEX ||source==Constants.FTHISTINDEX)&& ftAlternate != null)
-			alternateTicker=ftAlternate;
-		if ((source == Constants.YAHOOINDEX ||source==Constants.YAHOOHISTINDEX)&& yahooAlternate != null)
-				alternateTicker=yahooAlternate;
-		if ((source == Constants.ALPHAINDEX)&& alphaAlternate !=null)
-			alternateTicker = alphaAlternate;
-			
+    this.source = source;
+    alternateTicker = "";
+    if ((source.equals(Constants.FTINDEX) || source.equals(Constants.FTHISTINDEX)) && ftAlternate != null)
+      alternateTicker = ftAlternate;
+    if ((source.equals(Constants.YAHOOINDEX) || source.equals(Constants.YAHOOHISTINDEX)) && yahooAlternate != null)
+      alternateTicker = yahooAlternate;
+    if ((source.equals(Constants.ALPHAINDEX)) && alphaAlternate != null)
+      alternateTicker = alphaAlternate;
+    if ((source.equals(Constants.MDINDEX) || source.equals(Constants.MDHDINDEX) || source.equals(Constants.MDMUINDEX)) && marketDataAlternate != null)
+      alternateTicker = marketDataAlternate;
 	}
 	public Double getLastPrice() {
 		return lastPrice;
@@ -242,43 +243,44 @@ public class SecurityTableLine {
 	public void setFtAlternate(String ftAlternate) {
 		this.ftAlternate = ftAlternate;
 	}
-	public String getYahooAlternate() {
+
+  public String getYahooAlternate() {
 		return yahooAlternate;
 	}
 	public void setYahooAlternate(String yahooAlternate) {
 		this.yahooAlternate = yahooAlternate;
 	}
-	public String getAlphaAlterate() {
-		return alphaAlternate;}
 
+  public String getAlphaAlternate() { return alphaAlternate; }
 	public void setAlphaAlternate(String alphaAlternate){
 		this.alphaAlternate = alphaAlternate;
 	}
-	public String getMDAlterate() {
-		return mdAlternate;}
 
-	public void setMDAlternate(String mdAlternate){
-		this.mdAlternate = mdAlternate;
+	public String getMarketDataAlternate() { return marketDataAlternate; }
+	public void setMarketDataAlternate(String newAlternate){
+		this.marketDataAlternate = newAlternate;
 	}
-	public void setAlternate(String alternate) {
-		QuoteSource sourceType = QuoteSource.findSource(source);
-		switch (sourceType) {
-		case FT:
-		case FTHD:
-			ftAlternate = alternate;
-			break;
-		case YAHOO:
-		case YAHOOHD:
-			yahooAlternate = alternate;
-			break;
-		case ALPHAVAN :
-			alphaAlternate= alternate;
-			break;
-		case MARKETDATAHD:
-		case MARKETDATA:
-			mdAlternate = alternate;
-		}
-	}
+
+  public void setAlternate(String alternate) {
+    QuoteSource sourceType = QuoteSource.findSource(source);
+    if (sourceType == null) throw new RuntimeException("LOGIC ERROR: setAlternate(" + alternate + ") sourceType cannot be null! (source: " + source);
+    switch (sourceType) {
+      case FT, FTHD:
+        ftAlternate = alternate;
+        break;
+      case YAHOO, YAHOOHD:
+        yahooAlternate = alternate;
+        break;
+      case ALPHAVAN:
+        alphaAlternate = alternate;
+        break;
+      case MARKETDATA, MARKETDATAHD:
+        marketDataAlternate = alternate;
+        break;
+      default:
+        throw new RuntimeException("LOGIC ERROR: unrecognized sourceType: " + sourceType);
+    }
+  }
 
 
 }

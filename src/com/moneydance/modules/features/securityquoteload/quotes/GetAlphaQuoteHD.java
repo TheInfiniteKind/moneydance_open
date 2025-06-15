@@ -7,6 +7,7 @@ import com.infinitekind.util.DateUtil;
 import com.moneydance.modules.features.mrbutil.MRBDebug;
 import com.moneydance.modules.features.securityquoteload.Constants;
 import com.moneydance.modules.features.securityquoteload.Main;
+import com.moneydance.modules.features.securityquoteload.QLUtil;
 import com.moneydance.modules.features.securityquoteload.QuotePrice;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
@@ -27,13 +28,16 @@ import java.util.*;
 public class GetAlphaQuoteHD extends GetQuoteTask{
     private String alphaSecURL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=";
     private String alphaCurURL = "https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=";
+    private String alphaCryptoURL = "https://www.alphavantage.co/query?function=DIGITAL_CURRENCY_DAILY&symbol=";
     private Integer lastPriceDate;
     private int historyDateInt;
     private String convTicker;
     private String tradeCurrency;
+    private boolean cryptoPair;
 
-    public GetAlphaQuoteHD(String ticker, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate, int throttleDelayMinMS, int throttleDelayMaxMS) {
+    public GetAlphaQuoteHD(String ticker, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate, int throttleDelayMinMS, int throttleDelayMaxMS, boolean cryptoPair) {
         super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.ALPHAVAN);
+        this.cryptoPair = cryptoPair;
         this.tradeCurrency = tradeCurrency;
         int  historyDateInt = DateUtil.incrementDate(Main.today,0,-(params.getAmtHistory()+1),0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
@@ -42,15 +46,35 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
             Main.debugInst.debug("GetAlphaQuote", "construct", MRBDebug.DETAILED, "History date restricted to  " + lastPriceDate);
         }
         convTicker = ticker.replace("^", "%5E");
-        if (tickerType.equals(Constants.STOCKTYPE))
-            url = alphaSecURL + convTicker + "&apikey="+params.getAlphaAPIKey();
-        if (tickerType.equals(Constants.CURRENCYTYPE)) {
-            String baseCur = convTicker.substring(convTicker.indexOf("/")+1);
-            String fromCur = convTicker.substring(0,convTicker.indexOf("/"));
-            url = alphaCurURL + fromCur+"&to_symbol="+baseCur+"&apikey="+params.getAlphaAPIKey();
+        String toCur;
+        String fromCur;
+        try {
+          if (QLUtil.isCrypto(convTicker)) {  // assume crypto
+            toCur = convTicker.substring(convTicker.indexOf("-") + 1);
+            fromCur = convTicker.substring(0, convTicker.indexOf("-"));
+          } else if (convTicker.contains("/")) {
+            toCur = convTicker.substring(convTicker.indexOf("/") + 1);
+            fromCur = convTicker.substring(0, convTicker.indexOf("/"));
+          } else if (convTicker.contains(":")) {
+            toCur = convTicker.substring(convTicker.indexOf(":") + 1);
+            fromCur = convTicker.substring(0, convTicker.indexOf(":"));
+          } else {
+            toCur = convTicker;
+            fromCur = "unknown-format";
+          }
+        } catch (StringIndexOutOfBoundsException e) {
+            toCur = convTicker;
+            fromCur = "unknown-error";
+        }
+
+        if (cryptoPair) {
+          url = alphaCryptoURL + fromCur + "&market=" + toCur + "&apikey=" + params.getAlphaAPIKey();
+        } else if (tickerType.equals(Constants.STOCKTYPE)) {
+          url = alphaSecURL + convTicker + "&apikey="+params.getAlphaAPIKey();
+        } else {
+          url = alphaCurURL + fromCur + "&to_symbol=" + toCur + "&apikey=" + params.getAlphaAPIKey();
         }
         Main.debugInst.debug("GetAlphaQuote", "GetAlphaQuote", MRBDebug.DETAILED, "Executing :" + url);
-
     }
     @Override
     public QuotePrice analyseResponse(CloseableHttpResponse response) throws IOException {
@@ -61,8 +85,8 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
         try {
             InputStream stream = entity.getContent();
             String buffer = getJsonString(stream);
-            if (Main.LOG_RAW_RESPONSES) { // only when enabled AND QL DETAILED debugging then print the raw response...
-              debugInst.debug("getAlphaQuoteHD", "analyseResponse", MRBDebug.DETAILED, "raw entity: '" + buffer + "'");
+            if (debugInst.getDebugLevelType() == MRBDebug.DebugLevel.DEVELOPER) { // only when enabled AND QL DEVELOPER debugging then print the raw response...
+              debugInst.debug("GetAlphaQuoteHD", "analyseResponse", MRBDebug.DebugLevel.DEVELOPER, "raw entity: '" + buffer + "'");
             }
             JsonObject nodes = JsonParser.parseString(buffer).getAsJsonObject();
             try {
@@ -133,7 +157,7 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
 
                         @Override
                         public void run() {
-                            JOptionPane.showMessageDialog(null, "Alpha Vantage returned: " + message);
+                            JOptionPane.showMessageDialog(Main.frame, "Alpha Vantage returned: " + message);
                         }
                     });
                 } catch (InterruptedException | InvocationTargetException e) {
@@ -151,12 +175,14 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
             if (key.substring(0,2).equals("5."))
                 timeZoneStr = entry.getValue().getAsString();
         }
-        if (tickerType.equals(Constants.STOCKTYPE))
+        if (cryptoPair) {
+          quoteNode = doc.get("Time Series (Digital Currency Daily)");
+        } else if (tickerType.equals(Constants.STOCKTYPE))
             quoteNode = doc.get("Time Series (Daily)");
         else
             quoteNode = doc.get("Time Series FX (Daily)");
         if (quoteNode == null || !(quoteNode instanceof JsonObject))
-            throw new IOException("Cannot parse response for " + ticker);
+            throw new IOException("Cannot parse response for '" + ticker + "'");
         entrySet = ((JsonObject)quoteNode).entrySet();
 
         boolean isValue;
@@ -217,7 +243,11 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
                     quotePrice.setPrice(entry.getValue().getAsDouble());
                 }
                 case "5." -> {
+                  if (cryptoPair) {
+                    quotePrice.setVolume(Math.round(entry.getValue().getAsDouble()));
+                  } else {
                     quotePrice.setVolume(entry.getValue().getAsLong());
+                  }
                 }
             }
         }

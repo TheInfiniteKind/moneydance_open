@@ -36,6 +36,7 @@ package com.moneydance.modules.features.securityquoteload.quotes;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -75,7 +76,13 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 
 	@Override
 	public QuotePrice call() throws Exception {
-		QuotePrice quotePrice = null;
+
+    if (quoteSource == null) {
+      debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "LOGIC ERROR: quoteSource cannot be null");
+      sendError();
+    }
+
+    QuotePrice quotePrice = null;
 		CloseableHttpResponse response = null;
 		if (ticker.isBlank()) {
 			debugInst.debug("GetQuoteTask", "call", MRBDebug.INFO, "Invalid Ticker "+rawTicker);
@@ -100,10 +107,6 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
         }
       }
 			HttpGet httpGet = new HttpGet(uri);
-			httpGet.addHeader("Accept-Language","en");
-			//httpGet.addHeader("User-Agent","Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36");
-
-      //String ua = params.getUaParam().isEmpty() ? UserAgent.getRandomCommonUserAgent() : params.getUaParam();
 
       String ua;
       if (!params.getUaParam().isEmpty()) {
@@ -123,13 +126,33 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
         }
       }
 
-      httpGet.addHeader("User-Agent", ua);
+      if (quoteSource == Constants.QuoteSource.MARKETDATA || quoteSource == Constants.QuoteSource.MARKETDATAHD || quoteSource == Constants.QuoteSource.MARKETDATAMU) {
+        httpGet.addHeader("Accept", "application/json");
+        httpGet.addHeader("Authorization", "Bearer " + params.getMdToken()); // putting the token here hides it from most logs...
+        ua = "n/a";
+      } else if (quoteSource == Constants.QuoteSource.ALPHAVAN) {
+        // Alpha Vantage seems to require no headers...
+        httpGet.addHeader("Accept", "application/json");
+        ua = "n/a";
+      } else {
+  			httpGet.addHeader("Accept-Language","en");
+        httpGet.addHeader("User-Agent", ua);
+      }
+
+      if (debugInst.getDebugLevelType() == MRBDebug.DebugLevel.DEVELOPER) {  // we wrap this inside the if in the absence of a lazy-like feature
+        debugInst.debug("GetQuoteTask", "call", MRBDebug.DebugLevel.DEVELOPER, ">>> sending headers for: " + ticker + " " + Arrays.toString(httpGet.getAllHeaders()));
+      }
 
 			response = httpClient.execute(httpGet);
       StatusLine statusLine = response.getStatusLine();
       int statusCode = statusLine.getStatusCode();
       String statusReason = statusLine.getReasonPhrase();
-			debugInst.debug("GetQuoteTask", "call", MRBDebug.DETAILED, "Return stats for: " + ticker + " statusCode: " + statusCode + " reason: '" + statusReason + "' (source: '" + quoteSource + "' user-agent: '" + ua + "')");
+			debugInst.debug("GetQuoteTask", "call", MRBDebug.DebugLevel.DETAILED, "Return stats for: " + ticker + " statusCode: " + statusCode + " reason: '" + statusReason + "' (source: '" + quoteSource + "' user-agent: '" + ua + "')");
+
+      if (debugInst.getDebugLevelType() == MRBDebug.DebugLevel.DEVELOPER) {  // we wrap this inside the if in the absence of a lazy-like feature
+  			debugInst.debug("GetQuoteTask", "call", MRBDebug.DebugLevel.DEVELOPER, "<<< returned headers for: " + ticker + " " + Arrays.toString(response.getAllHeaders()));
+      }
+
 			if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION) {
 				try {
 					quotePrice = analyseResponse(response);

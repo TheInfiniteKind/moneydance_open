@@ -68,7 +68,7 @@ import com.moneydance.modules.features.mrbutil.MRBDebug;
 import com.moneydance.modules.features.mrbutil.MRBEDTInvoke;
 import com.moneydance.modules.features.securityquoteload.Constants.QuoteSource;
 
-import static com.moneydance.modules.features.securityquoteload.Constants.QuoteSource.ALPHAVAN;
+import static com.moneydance.modules.features.securityquoteload.Constants.QuoteSource.*;
 
 public class MainPriceWindow extends JFrame implements TaskListener {
 	/**
@@ -125,8 +125,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	protected Main main;
 	protected int closeBtnx = 0;
 	protected int closeBtny = 0;
-	protected String testTicker = "";
-	protected String testTID = "";
 	protected String getTicker="";
 	protected String getTID="";
 	protected String command;
@@ -141,13 +139,11 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	private JLabel throttleMessage;
 
 	public MainPriceWindow(Main main, int runtype) {
-		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED,
-				"Started");
+		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED, "Started");
 		this.runtype = runtype;
 		if (runtype != Constants.MANUALRUN && runtype != 0)
 			return;
-		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED,
-				"Setup reached");
+		Main.debugInst.debug("MainPriceWindow", "MainPriceWindow", MRBDebug.DETAILED, "Setup reached");
 		mdMain = com.moneydance.apps.md.controller.Main.mainObj;
 		mdGUI = mdMain.getUI();
 
@@ -411,8 +407,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
                     isCurDirty=false;
                     break;
                 }
-                JFrame fTemp = new JFrame();
-                JOptionPane.showMessageDialog(fTemp, "Source/ticker information saved");
+                JOptionPane.showMessageDialog(Main.frame, "Source/ticker information saved");
             }
         });
 		/*
@@ -571,7 +566,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						line.setExchange(security.getExchange());
 						line.setFtAlternate(security.getFtAlternate());
 						line.setYahooAlternate(security.getYahooAlternate());
-						line.setAlphaAlternate(security.getAlphaAlterate());
+						line.setAlphaAlternate(security.getAlphaAlternate());
+						line.setMarketDataAlternate(security.getMarketDataAlternate());
 					} else
 						accountSources.remove(security.getTicker());
 				} else {
@@ -582,7 +578,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						newLine.setExchange(security.getExchange());
 						newLine.setFtAlternate(security.getFtAlternate());
 						newLine.setYahooAlternate(security.getYahooAlternate());
-						newLine.setAlphaAlternate(security.getAlphaAlterate());
+						newLine.setAlphaAlternate(security.getAlphaAlternate());
+						newLine.setMarketDataAlternate(security.getMarketDataAlternate());
 						accountSources.put(security.getTicker(), newLine);
 					}
 				}
@@ -729,6 +726,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 									dacct.setFtAlternate(line.getFtAlternate());
 									dacct.setYahooAlternate(line.getYahooAlternate());
 									dacct.setAlphaAlternate(line.getAlphaAlternate());
+									dacct.setMarketDataAlternate(line.getMarketDataAlternate());
 									dacct.setSource(line.getSource());
 								} else
 									dacct.setSource(0);
@@ -786,6 +784,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							securityLine.setFtAlternate(sourceLine.getFtAlternate());
 							securityLine.setYahooAlternate(sourceLine.getYahooAlternate());
 							securityLine.setAlphaAlternate(sourceLine.getAlphaAlternate());
+              securityLine.setMarketDataAlternate(sourceLine.getMarketDataAlternate());
 							securityLine.setSource(sourceLine.getSource());
 						} else {
 							securityLine.setSource(0);
@@ -793,6 +792,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							securityLine.setFtAlternate(null);
 							securityLine.setAlphaAlternate(null);
 							securityLine.setYahooAlternate(null);
+              securityLine.setMarketDataAlternate(null);
 						}
 						if (snapIndex < 0) {
 							securityLine.setLastPrice(1.0);
@@ -895,7 +895,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
 				params.save();
 				parameterScreen.saveDebugParam();
-				JOptionPane.showMessageDialog(null, "Changes Saved");
+				JOptionPane.showMessageDialog(Main.frame, "Changes Saved");
 			}
 		}
 		params.setDirty(false);
@@ -911,7 +911,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	private void export() {
 		String exportFolder = params.getExportFolder();
 		if (exportFolder == null || exportFolder.isEmpty()) {
-			JOptionPane.showMessageDialog(null, "Export folder has not been set");
+			JOptionPane.showMessageDialog(Main.frame, "Export folder has not been set");
 			return;
 		}
 		int iRowCount = 0;
@@ -933,12 +933,12 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			}
 		}
 		if (!pricesFound) {
-			JOptionPane.showMessageDialog(null,
+			JOptionPane.showMessageDialog(Main.frame,
 					"No prices have been downloaded.  Use Get Exchange Rates or Get Prices");
 			return;
 		}
 		if (iRowCount < 1) {
-			JOptionPane.showMessageDialog(null,
+			JOptionPane.showMessageDialog(Main.frame,
 					"No prices have been selected.  Select individual lines or Select All.");
 			return;
 		}
@@ -979,7 +979,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		JOptionPane.showMessageDialog(null, "Prices Exported.");
+		JOptionPane.showMessageDialog(Main.frame, "Prices Exported.");
 
 	}
 
@@ -1051,13 +1051,13 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		} else {
 			if (!pricesFound) {
         SwingUtilities.invokeLater(() ->
-                                     JOptionPane.showMessageDialog(null,
+                                     JOptionPane.showMessageDialog(Main.frame,
                                                                    "No prices have been downloaded.  Use Get Exchange Rates or Get Prices"));
 				return;
 			}
 			if (iRowCount < 1) {
         SwingUtilities.invokeLater(() ->
-                                     JOptionPane.showMessageDialog(null,
+                                     JOptionPane.showMessageDialog(Main.frame,
                                                                    "No prices have been selected.  Select individual lines or Select All."));
 				return;
 			}
@@ -1100,7 +1100,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		if (runtype == Constants.MANUALRUN) {
       int finalIRowCount = iRowCount;
       SwingUtilities.invokeLater(() ->
-                                   JOptionPane.showMessageDialog(null, finalIRowCount + " prices updated"));
+                                   JOptionPane.showMessageDialog(Main.frame, finalIRowCount + " prices updated"));
 		}
 		Main.isUpdating = false;
 	}
@@ -1236,15 +1236,14 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		/*
 		 * let main process know we are starting a quote
 		 */
-		MRBEDTInvoke.showURL(Main.context,"moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.STARTQUOTECMD
-				+ "?numquotes=" + totalQuotes);
+    MRBEDTInvoke.showURL(Main.context, "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.STARTQUOTECMD + "?numquotes=" + totalQuotes);
 		Integer lastPriceDate = -1;
 		for (QuoteSource srce : QuoteSource.values()) {
 			if (sourceList.get(srce) == null || sourceList.get(srce).isEmpty())
 				continue;
-			if (srce.equals(ALPHAVAN)&&!checkAlphaKey()) // The API Key must be set if source is Alpha Vantage
+      if (srce.equals(ALPHAVAN) && !checkAlphaKey()) // The API Key must be set if source is Alpha Vantage
 				return;
-			if ((srce.equals(Constants.MD) || srce.equals(Constants.MDHD))&&!checkMDToken())
+      if ((srce.equals(MARKETDATA) || srce.equals(MARKETDATAHD) || srce.equals(MARKETDATAMU)) && !checkMDToken())
 				return;
 			StringBuilder url = new StringBuilder();
 			String type;
@@ -1276,9 +1275,17 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							lastPriceDate = currLine.getPriceDate();
 							break;
 						case ALPHAVAN:
+              // note: if a hyphen("-") was embedded in the currency to signify a crypto, it wont work very well unless the to currency is the same as your base currency!!
 							ticker=baseCurrencyID+"/"+currency;
 							tradeCur = currency;
 							lastPriceDate=-1;
+              break;
+            case MARKETDATA:
+            case MARKETDATAHD:
+            case MARKETDATAMU:
+              // market data does not support currencies!
+              javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(Main.frame, "Market Data does not support currencies!"));
+              return;
 						default:
 							break;
 						}
@@ -1311,31 +1318,29 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						break;
 					case MARKETDATAHD:
 						lastPriceDate = line.getPriceDate();
+          case MARKETDATAMU:
 					case MARKETDATA:
-						if (price.getExchange()!=null && !price.getExchange().isEmpty()){
-							tradeCur = params.getExchangeCurrency(price.getExchange());
-							if (tradeCur == null)
-								tradeCur = securitiesTable.get(ticker).getRelativeCurrencyType().getIDString();
-						}
-						else
-							tradeCur = securitiesTable.get(ticker).getRelativeCurrencyType().getIDString();
+            // market data currently only supports US markets and prices are always USD! // todo - monitor this!
+            if (price.getExchange() != null && !price.getExchange().isEmpty()) {
+              tradeCur = params.getExchangeCurrency(price.getExchange());
+              if (tradeCur == null)
+                tradeCur = "USD";
+            } else
+              tradeCur = "USD";
 					default:
 						break;
-
 					}
 					if (!newTicker.equals(ticker)) {
 						alteredTickers.put(newTicker, ticker);
-						Main.debugInst.debug("MainPriceWindow", "getPrices", MRBDebug.DETAILED,
-								"Ticker changed from " + ticker + " to " + newTicker);
+						Main.debugInst.debug("MainPriceWindow", "getPrices", MRBDebug.DETAILED, "Ticker changed from " + ticker + " to " + newTicker);
 						ticker = newTicker;
 					}
 				}
-				if (srce.equals(QuoteSource.ALPHAVAN) || srce.equals(QuoteSource.MARKETDATA)|| srce.equals(QuoteSource.MARKETDATAHD)){
+        if (srce.equals(QuoteSource.ALPHAVAN) || srce.equals(QuoteSource.MARKETDATA) || srce.equals(QuoteSource.MARKETDATAHD) || srce.equals(MARKETDATAMU)) {
 					if (url.isEmpty())
-							url.append(newPriceAlphaUrl(Constants.SOURCES[srce.getSource() - 1], srce.getUuid(), ticker, tradeCur,type,
-									lastPriceDate));
+							url.append(newPriceUrl(Constants.SOURCES[srce.getSource() - 1], srce.getUuid(), ticker, type, lastPriceDate, tradeCur));
 						else
-							url.append(addPriceAlphaUrl(ticker, tradeCur, type, lastPriceDate));
+							url.append(addPriceUrl(ticker, type, lastPriceDate, tradeCur));
 				}
 				else {
 					if (url.isEmpty())
@@ -1395,7 +1400,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		if (params.getAlphaAPIKey()==null || params.getAlphaAPIKey().isEmpty()){
 			SwingUtilities.invokeLater(new Runnable(){
 				public void run(){
-					JOptionPane.showMessageDialog(null,"Alpha Vantage Api key not set.  Please add in the parameter screen");
+					JOptionPane.showMessageDialog(Main.frame,"Alpha Vantage Api key not set.  Please add in the parameter screen");
 				}
 			});
 			return false;
@@ -1403,87 +1408,45 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		return true;
 	}
 	private boolean checkMDToken(){
-		if (params.getMdToken()==null || params.getMdToken().isEmpty()){
-			javax.swing.SwingUtilities.invokeLater(new Runnable(){
-				public void run(){
-					JOptionPane.showMessageDialog(null,"Market Data Token key not set.  Please add in the parameter screen");
-				}
-			});
+		if (params.getMdToken()==null || params.getMdToken().isBlank()){
+			javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(Main.frame, "Market Data Token key not set.  Please add in the parameter screen"));
 			return false;
 		}
 		return true;
 	}
 
 	protected String newPriceUrl(String source, String tid, String stock, String type, Integer lastPriceDate) {
-		String queries = addPriceUrl(stock, type, lastPriceDate);
+    return newPriceUrl(source, tid, stock, type, lastPriceDate, null);
+  }
+
+	protected String newPriceUrl(String source, String tid, String stock, String type, Integer lastPriceDate, String tradeCur) {
+		String queries = addPriceUrl(stock, type, lastPriceDate, tradeCur);
 		String command = Constants.GETQUOTECMD + "?" + Constants.SOURCETYPE + "=" + source;
 		command += "&" + Constants.TIDCMD + "=" + tid;
 		return "moneydance:fmodule:" + Main.extension.serverName + ":" + command + queries;
 	}
 
 	protected String addPriceUrl(String stock, String type, Integer lastPriceDate) {
+    return addPriceUrl(stock, type, lastPriceDate, null);
+  }
+
+	protected String addPriceUrl(String stock, String type, Integer lastPriceDate, String tradeCur) {
 		List<NameValuePair> parameters = new ArrayList<>();
 		parameters.add(new BasicNameValuePair(type, stock));
-		if (lastPriceDate > -1 && params.getHistory()) {
+
+    if (tradeCur != null && !tradeCur.isBlank())
+  		parameters.add(new BasicNameValuePair(Constants.TRADECURRTYPE,tradeCur));
+
+		if (lastPriceDate > -1 && params.getHistory())
 			parameters.add(new BasicNameValuePair(Constants.LASTPRICEDATETYPE, lastPriceDate.toString()));
-		}
+
 		String charset = "UTF8";
 		return "&" +  URLEncodedUtils.format(parameters, charset);
 	}
-	protected String newPriceAlphaUrl(String source, String tid, String stock, String tradeCur,String type, Integer lastPriceDate) {
-		String queries = addPriceAlphaUrl(stock, tradeCur,type, lastPriceDate);
-		String command = Constants.GETQUOTECMD + "?" + Constants.SOURCETYPE + "=" + source;
-		command += "&" + Constants.TIDCMD + "=" + tid;
-		return "moneydance:fmodule:" + Main.extension.serverName + ":" + command + queries;
-	}
-
-	protected String addPriceAlphaUrl(String stock, String tradeCur, String type, Integer lastPriceDate) {
-		List<NameValuePair> parameters = new ArrayList<>();
-		parameters.add(new BasicNameValuePair(type, stock));
-		parameters.add(new BasicNameValuePair(Constants.TRADECURRTYPE,tradeCur));
-		if (lastPriceDate > -1 && params.getHistory()) {
-			parameters.add(new BasicNameValuePair(Constants.LASTPRICEDATETYPE, lastPriceDate.toString()));
-		}
-		String charset = "UTF8";
-		return "&" +  URLEncodedUtils.format(parameters, charset);
-	}
-
-	public void testTicker(String url) {
-		Main.debugInst.debug("MainPriceWindow", "testTicker", MRBDebug.INFO, "Requested URI " + url);
-		Main.isUpdating = true;
-		URI uri;
-		String convUrl = url.replace("^", "%5E");
-		convUrl = convUrl.replace(" ", "%20");
-		try {
-			uri = new URI(convUrl.trim());
-		} catch (URISyntaxException e) {
-			Main.debugInst.debug("MainPriceWindow", "testTicker", MRBDebug.DETAILED, "URI invalid " + convUrl);
-			e.printStackTrace();
-			return;
-		}
-		List<NameValuePair> results = URLEncodedUtils.parse(uri, charSet);
-		String ticker = "";
-		String source = "";
-		for (NameValuePair price : results) {
-			if (price.getName().compareToIgnoreCase(Constants.STOCKTYPE) == 0) {
-				ticker = price.getValue();
-			}
-			if (price.getName().compareToIgnoreCase(Constants.SOURCETYPE) == 0) {
-				source = price.getValue();
-			}
-		}
-		if (!ticker.isEmpty()) {
-			testTID = UUID.randomUUID().toString();
-			testTicker = ticker;
-			String testurl = newPriceUrl(source, testTID, ticker, Constants.STOCKTYPE, 0);
-			Main.debugInst.debug("MainPriceWindow", "testTicker", MRBDebug.DETAILED, "URI " + testurl);
-			MRBEDTInvoke.showURL(Main.context,testurl);
-		}
-	}
-
 
 	public void getIndividualTicker(String url) {
 		Main.debugInst.debug("MainPriceWindow", "getTicker", MRBDebug.INFO, "Requested URI " + url);
+		completed = false;
 		Main.isUpdating = true;
 		URI uri;
 		String convUrl = url.replace("^", "%5E");
@@ -1500,6 +1463,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		String source = "";
 		String originalTicker="";
     int lastPriceDate = -1;
+    String tradeCur = "";
 		for (NameValuePair price : results) {
 			if (price.getName().compareToIgnoreCase(Constants.STOCKTYPE) == 0) {
 				ticker = price.getValue();
@@ -1512,6 +1476,9 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			}
 			if (price.getName().compareToIgnoreCase(Constants.LASTPRICEDATETYPE)==0){
 				lastPriceDate = Integer.parseInt(price.getValue());
+			}
+			if (price.getName().compareToIgnoreCase(Constants.TRADECURRTYPE)==0){
+				tradeCur = price.getValue();
 			}
 		}
 
@@ -1529,9 +1496,15 @@ public class MainPriceWindow extends JFrame implements TaskListener {
         default -> -1;
       };
 
-			String testurl = newPriceUrl(source, getTID, ticker, Constants.STOCKTYPE, lpd);
-			Main.debugInst.debug("MainPriceWindow", "getIndividualTicker", MRBDebug.DETAILED, "URI: '" + testurl + "'");
-			MRBEDTInvoke.showURL(Main.context,testurl);
+      String tc = switch (source) {
+        case Constants.SOURCEMD, Constants.SOURCEMDHIST, Constants.SOURCEMDMU, Constants.SOURCEALPHA -> tradeCur;
+        default -> "";
+      };
+      tc = tradeCur.isBlank() ? null : tc;
+
+			String getIndividualUrl = newPriceUrl(source, getTID, ticker, Constants.STOCKTYPE, lpd, tc);
+			Main.debugInst.debug("MainPriceWindow", "getIndividualTicker", MRBDebug.DETAILED, "URI: '" + getIndividualUrl + "'");
+			MRBEDTInvoke.showURL(Main.context,getIndividualUrl);
 		}
 	}
 
@@ -1588,7 +1561,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						break;
 					}
 				} else {
-					if (ticker.contains("-")) {
+          if (QLUtil.isCrypto(ticker)) {
 						ticker = Constants.CURRENCYID + ticker.substring(0, ticker.indexOf('-') + 1);
 					} else {
 						switch (srce) {
@@ -1604,6 +1577,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 								ticker = Constants.CURRENCYID + ticker.substring(3);
 							break;
 						case ALPHAVAN:
+
+              //todo - do something here?
 							int slash = ticker.indexOf("/");
 							String fromTicker= ticker.substring(0,slash);
 							String toTicker = ticker.substring (slash+1);
@@ -1688,26 +1663,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		}
 
 		/*
-		 * data extracted test for test ticker
-		 */
-		if (newPrice.getTicker().equals(testTicker) && testTID.equals(uuid)) {
-			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.DETAILED, "Test Ticker returned");
-			testTicker = "";
-			final String message;
-			message = "Test of security " + newPrice.getTicker() + " was successful. Price "
-					+ newPrice.getSecurityPrice() + " Currency " + newPrice.getCurrency();
-			if (EventQueue.isDispatchThread()) {
-				JOptionPane.showMessageDialog(null, message);
-			}
-			else {
-				SwingUtilities.invokeLater(() -> {
-					JOptionPane.showMessageDialog(null, message);
-				});
-			}
-			return;
-		}
-
-		/*
 		 * check for altered by exchange
 		 */
 		String alteredTicker=newPrice.getTicker();
@@ -1722,16 +1677,14 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			throw new QuoteException("Late message");
 
 		}
-		if(!(alteredTicker.equals(getTicker) && getTID.equals(uuid))) {
+    if (!getTID.equals(uuid)) {
 			if (listener == null) {
-				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO,
-						"Update received after close " + uuid);
+				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "Update received after close " + uuid);
 				throw new QuoteException("Message received after close");
 
 			}
 			if (!listener.checkTid(uuid)) {
-				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO,
-						"Update received after close " + uuid);
+				Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.INFO, "Update received after close " + uuid);
 				throw new QuoteException("Update received after close");
 			}
 		}
@@ -1850,16 +1803,25 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		double perChg;
 		if (stockPrice != 0.0) {
 			if (newPrice.isCrypto()) {
-				curLine.setNewPrice(1 / Util.safeRate(stockPrice));
+        // note: we show the reverse of exchange rates - BTC can thus appear to be (near) zero...
+        curLine.setNewPrice(1 / Util.safeRate(stockPrice));
 				curLine.setTradeDate(newPrice.getTradeDate());
-				amtChg = Math.round((curLine.getNewPrice() - curLine.getLastPrice()) * multiplier)
-						/ multiplier;
+
+				amtChg = Math.round((curLine.getNewPrice() - curLine.getLastPrice()) * multiplier) / multiplier;
+        if (Math.abs(amtChg) < 1e-6) {
+  				amtChg = curLine.getNewPrice() - curLine.getLastPrice();
+        }
+
 				curLine.setAmtChg(amtChg);
-				perChg = Math.round(((amtChg / (curLine.getLastPrice()) * 100.0)) * multiplier)
-						/ multiplier;
+
+				perChg = Math.round(((amtChg / (curLine.getLastPrice()) * 100.0)) * multiplier) / multiplier;
+        if (Math.abs(perChg) < 1e-6) {
+  				perChg = (amtChg / (curLine.getLastPrice()) * 100.0);
+        }
+
 				curLine.setPercentChg(perChg);
-				curRatesModel.fireTableDataChanged();
 				curLine.clearHistory();
+				SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());
 			} else {
 				if (newPrice.isCurrency()) {
 					curLine.setTradeDate(newPrice.getTradeDate());
@@ -1870,8 +1832,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					perChg = Math.round(((amtChg / (curLine.getLastPrice()) * 100.0)) * multiplier)
 							/ multiplier;
 					curLine.setPercentChg(perChg);
-					curRatesModel.fireTableDataChanged();
 					curLine.clearHistory();
+  				SwingUtilities.invokeLater(() -> curRatesModel.fireTableDataChanged());
 				} else {
 					secLine.setNewPrice(stockPrice * dRate);
 					secLine.setTradeDate(newPrice.getTradeDate());
@@ -1887,28 +1849,28 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							lowPrice * dRate);
 					secLine.setVolume(extra);
 					secLine.clearHistory();
-					secPricesModel.fireTableDataChanged();
+  				SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
 				}
 			}
 		}
-		if(newPrice.getTicker().equals(getTicker) && getTID.equals(uuid)) {
-			unsetThrottleMessage();
-			getTicker = "";
-			getTID = "";
-		}
-		else {
-			if (listener != null)
-				listener.ended(newPrice.getTicker(), uuid);
-			if (runtype != Constants.MANUALRUN && runtype != 0) {
-				if (newPrice.isCurrency())
-					MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price "
-							+ newPrice.getCurrency() + " updated");
-				else
-					MRBEDTInvoke.showURL(Main.context,
-							"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " updated");
-			}
-		}
-	}
+    if (getTID.equals(uuid)) {
+      completed =  true;
+      unsetThrottleMessage();
+      String message = "Single price for security '" + ticker + "' retrieved";
+      JOptionPane.showMessageDialog(Main.frame, message);
+    } else {
+      if (listener != null)
+        listener.ended(newPrice.getTicker(), uuid);
+      if (runtype != Constants.MANUALRUN && runtype != 0) {
+        if (newPrice.isCurrency())
+          MRBEDTInvoke.showURL(Main.context, "moneydance:setprogress?meter=0&label=Quote Loader price " + newPrice.getCurrency() + " updated");
+        else
+          MRBEDTInvoke.showURL(Main.context, "moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " updated");
+      }
+    }
+    getTicker = "";
+    getTID = "";
+  }
 
 	public synchronized void updateHistory(String url) throws QuoteException{
     Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.DETAILED, "update history starting for url: '" + url + "'");
@@ -1961,7 +1923,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					}
 				}
 				else {
-					if (ticker.contains("-")) {
+          if (QLUtil.isCrypto(ticker)) {
 						ticker = Constants.CURRENCYID + ticker.substring(0, ticker.indexOf('-') + 1);
 					} else {
 						if (srce.equals(ALPHAVAN)){
@@ -2040,14 +2002,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
       throw new QuoteException(msg);
     }
 
-		/*
-		 * data extracted test for test ticker
-		 */
-		if (newPrice.getTicker().equals(testTicker) && testTID.equals(uuid)) {
-			testTicker = "";
-			testTID = "";
-			return;
-		}
 		/*
 		 * check for altered by exchange
 		 */
@@ -2182,8 +2136,25 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					lowPrice * dRate, newPrice.getVolume());
 			historyList.add(history);
 		}
-		secPricesModel.fireTableDataChanged();
+		SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
 	}
+
+  private synchronized void setErrorForSingleTicker(String ticker) {
+    SecurityTableLine sTicker;
+    sTicker = securitiesTable.get(ticker);
+    if (sTicker != null) {
+      sTicker.setTickerStatus(Constants.TASKFAILED);
+      sTicker.setPriceDate(0);
+      sTicker.setNewPrice(0.0);
+      sTicker.setPercentChg(0.0);
+      sTicker.setAmtChg(0.0);
+      sTicker.setTradeDate(0);
+      sTicker.setTradeCur(null);
+      sTicker.setVolume(null);
+      sTicker.setHistory(null);
+      SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
+    }
+  }
 
 	/*
 	 * Failed quote
@@ -2201,9 +2172,11 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			return;
 		}
 		List<NameValuePair> results = URLEncodedUtils.parse(uri, charSet);
+    String originalTicker = "";
 		String ticker = "";
 		String errorCode="";
  	   boolean currencyFound = false;
+ 	   boolean securityFound = false;
 		QuoteSource srce=null;
 		for (NameValuePair price : results) {
 			if (price.getName().compareToIgnoreCase(Constants.TIDCMD) == 0) {
@@ -2216,18 +2189,19 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				}
 			}
 			if (price.getName().compareToIgnoreCase(Constants.STOCKTYPE) == 0) {
+        securityFound = true;
 				ticker = price.getValue();
+        originalTicker = ticker;
 				if (alteredTickers != null && alteredTickers.containsKey(ticker)) {
 					ticker = alteredTickers.get(ticker);
-					Main.debugInst.debug("MainPriceWindow", "failed ", MRBDebug.DETAILED,
-							"Ticker changed from " + price.getValue() + " to " + ticker);
+					Main.debugInst.debug("MainPriceWindow", "failed ", MRBDebug.DETAILED, "Ticker changed from " + price.getValue() + " to " + ticker);
 				}
 			}
 			if (price.getName().compareToIgnoreCase(Constants.CURRENCYTYPE) == 0) {
 				currencyFound = true;
 				ticker = price.getValue();
-				Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.DETAILED,
-						"Currency Ticker " + ticker);
+        originalTicker = ticker;
+				Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.DETAILED, "Currency Ticker " + ticker);
 				if (ticker.endsWith(Constants.CURRENCYTICKER)) {
 					switch (srce) {
 					case FT:
@@ -2246,8 +2220,9 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						break;
 					}
 				} else {
-					if (ticker.contains("-")) {
+          if (QLUtil.isCrypto(ticker)) {
 						ticker = Constants.CURRENCYID + ticker.substring(0, ticker.indexOf('-') + 1);
+            originalTicker = ticker;
 					} else {
 						switch (srce) {
 						case FT:
@@ -2271,27 +2246,18 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		}
 		if (runtype != Constants.MANUALRUN && runtype != 0) {
 			if (currencyFound)
-				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker
-						+ " failed currency");
+				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " failed currency");
 			else
-				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker
-						+ " failed stock");
+				MRBEDTInvoke.showURL(Main.context,"moneydance:setprogress?meter=0&label=Quote Loader price " + ticker + " failed stock");
 		}
-		/*
-		 * if test of ticker, display message and exit
-		 */
-		if (ticker.equals(testTicker) && testTID.equals(uuid)) {
-			testTicker = "";
-			testTID = "";
-			String message = "Test of security " + ticker + " failed.";
-			JOptionPane.showMessageDialog(null, message);
-			return;
-		}
-		if (ticker.equals(getTicker) && getTID.equals(uuid)) {
-			getTicker = "";
-			getTID = "";
-			String message = "Get of security " + ticker + " failed.";
-			JOptionPane.showMessageDialog(null, message);
+		if (getTID.equals(uuid)) {
+      getTicker = "";
+      getTID = "";
+      completed = true;
+      String tickerStr = "'" + originalTicker + "'" + (originalTicker.equals(ticker) ? "" : (" (" + ticker + ")") );
+      if (securityFound) setErrorForSingleTicker(ticker);
+			String message = "Get of security " + tickerStr + " failed!";
+			JOptionPane.showMessageDialog(Main.frame, message);
 			return;
 		}
 		/*
@@ -2419,7 +2385,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				if (currencyError)
 					mess += ", extended ticker has different currency";
 				final String message = mess;
-				SwingUtilities.invokeLater(new Runnable() { public void run() { JOptionPane.showMessageDialog(null, message, "Get Completed", JOptionPane.INFORMATION_MESSAGE); } });
+				SwingUtilities.invokeLater(new Runnable() { public void run() { JOptionPane.showMessageDialog(Main.frame, message, "Get Completed", JOptionPane.INFORMATION_MESSAGE); } });
 				
 				tasksProgress.setVisible(false);
 				buttonsPanel.remove(tasksProgress);
@@ -2443,7 +2409,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			}
 			if (runtype != Constants.MANUALRUN && runtype != 0) {
 				if (errorsFound && !Main.secondRunRequired&&runtype != Constants.STANDALONERUN) {
-					JOptionPane.showMessageDialog(null,
+					JOptionPane.showMessageDialog(Main.frame,
 							"Errors found on automatic run.  Look at 'Price Date' to determine which lines have not been updated",
 							"Quote Loader", JOptionPane.ERROR_MESSAGE);
 					errorsFound = false;
