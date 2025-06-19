@@ -103,6 +103,7 @@
 # build: 1068 - Add feature so that users can quickly remove inactive accounts from Net Worth
 # build: 1069 - ???
 # build: 1069 - switch to call NetworthCalculator off the EDT...; add warning to DisplayUUID when uuid not found.
+# build: 1069 - Tweaks to fix_non_hier_sec_acct_txns()
 # build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -3422,6 +3423,7 @@ Visit: %s (Author's site)
         global validate_account_start_dates, fix_account_start_dates
         global view_shouldBeIncludedInNetWorth_settings, edit_shouldBeIncludedInNetWorth_settings, view_networthCalculations
         global view_inactiveAcctsIncludedNW, fix_inactiveAcctsIncludedNW
+        global advanced_options_edit_parameter_keys
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -22068,8 +22070,11 @@ after saving the file, restart Moneydance
 
         PARAMETER_KEY = "toolbox_fix_non_hier_sec_acct_txns"
 
+        MD_decimal = MD_REF.getPreferences().getDecimalChar()
+
         book = MD_REF.getCurrentAccountBook()
         base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+        sdf = MD_REF.getPreferences().getShortDateFormatter()
 
         # fix_non-hierarchical_security_account_txns.py
         # (replaces fix_investment_txns_to_wrong_security.py)
@@ -22117,9 +22122,10 @@ after saving the file, restart Moneydance
 
                 if fields.hasSecurity and fields.security is None:
                     iOrphans += 1
-                    txt = "ERROR: Txn for 'Orphaned' Security %s found within Investment Account %s! (old QIF import or you have force removed a Security with linked TXNs?\n" \
-                          "txn:\n%s\n" %(fields.security, _acct, _txn.getSyncInfo().toMultilineHumanReadableString())
-                    output += "\n%s\n" %(txt); myPrint("B",txt)
+                    txt = "ERROR: Txn for 'Orphaned' Security: '%s' found within Investment Account: '%s'! (old QIF import or you have force removed a Security with linked TXNs?\n" \
+                          "Date: %s\n" \
+                          "txn:\n%s\n" %(fields.security, _acct, sdf.format(fields.date), _txn.getSyncInfo().toMultilineHumanReadableString())
+                    output += "\n%s\n----------\n" %(txt); myPrint("B",txt)
                     saveInvestmentAccountsNeedingDummy[_acct] = True
 
             if iOrphans:
@@ -22174,8 +22180,9 @@ after saving the file, restart Moneydance
                 newSecurity.setTickerSymbol("^TOOLBOX")
                 newSecurity.setDecimalPlaces(4)
                 newSecurity.setRelativeRate(1.0)
+                newSecurity.setParameter(PARAMETER_KEY, True)
                 newSecurity.syncItem()
-                output += "\n\nCreated dummy Security: %s (%s)\n" %(newSecurity, newSecurity.getUUID())
+                output += "\n\nCreated dummy Security: '%s' (%s)\n" %(newSecurity, newSecurity.getUUID())
 
                 dummySecurityAccounts = {}
 
@@ -22200,15 +22207,28 @@ after saving the file, restart Moneydance
                             newSecurityAcct.setComment("Dummy created by Toolbox: %s" %(_THIS_METHOD_NAME))
                             newSecurityAcct.setParameter(PARAMETER_KEY, True)
                             newSecurityAcct.syncItem()
-                            output += "\nCreated dummy Security Sub Account: %s (%s) linked to new dummy security\n" %(newSecurityAcct, newSecurityAcct.getUUID())
+                            output += "\nCreated dummy Security Sub Account: '%s' (%s) linked to new dummy security\n" %(newSecurityAcct, newSecurityAcct.getUUID())
                             dummySecurityAccounts[_acct] = newSecurityAcct
+
+                        xfrSplit = TxnUtil.getXfrPart(_txn)
+                        origXfrValue = 0L if xfrSplit is None else xfrSplit.getValue()
 
                         fields.security = dummySecurityAccounts[_acct]
                         fields.storeFields(_txn)
+                        _txn.setParameter(PARAMETER_KEY, True)
                         _txn.syncItem()
 
-                        txt = "FIXED: Txn for 'Orphaned' Security - Investment Account %s: '%s'\n" %(_acct, _txn)
+                        xfrSplit = TxnUtil.getXfrPart(_txn)
+                        newXfrValue = 0L if xfrSplit is None else xfrSplit.getValue()
+
+                        txt = "FIXED: Txn for 'Orphaned' Security - Investment Account: '%s': '%s'\n" %(_acct, _txn)
                         output += "\n%s\n" %(txt)
+
+                        if (origXfrValue != newXfrValue):
+                            _ct = _acct.getCurrencyType()
+                            output += (">> WARNING: Transfer value (for txn fixed ^above^) has changed from %s to %s (probably as shares qty and value are illogically zero) - MANUAL EDIT REQUIRED TO FIX XFR AND CASH BALANCE(S)!\n"
+                                       %(_ct.formatFancy(origXfrValue, MD_decimal), _ct.formatFancy(newXfrValue, MD_decimal)))
+
 
                 output += "\nFinished fixing 'orphans'....\n" \
                           " -----------------------------\n\n"
@@ -22221,7 +22241,9 @@ after saving the file, restart Moneydance
             ############################################################################################################
 
             def review_security_accounts(_txns, FIX_MODE=False):
-
+                txnTypeTag = "invest.txntype"
+                xferTypeTag = "xfer_type"
+                legacyBuySellXfrTag = "xfrtp_buysellxfr"
                 count_the_errors = 0
                 count_unfixable_yet = 0
                 errors_fixed = 0
@@ -22241,31 +22263,57 @@ after saving the file, restart Moneydance
 
                     if fields.hasSecurity and not acct.isAncestorOf(fields.security):
                         count_the_errors += 1
+
+                        lTagOnlyError = False
+                        if (fields.hasSecurity and fields.security is None and not isSittingInInvestmentAccount
+                                and txn.getParentTxn().getParameter(xferTypeTag, None) == legacyBuySellXfrTag
+                                and txn.getParentTxn().getParameter(txnTypeTag, "") == ""):
+                            lTagOnlyError = True
+
                         txnTxt = txn.toMultilineString().replace(";",";\n")
-                        text += ("Must fix txn %s\n"
+
+                        text += ("\nMust fix txn: %s\n"
+                                 "Date: %s\n"
                                  "%s\n"
-                                 " > in '%s' with sec acct '%s'\n" %(fields.txnType,
+                                 " > in acct: '%s' with sec acct: '%s'\n" %(fields.txnType, sdf.format(fields.date),
                                                                  txnTxt,
                                                                  acct,
                                                                  (None if (fields.security is None) else fields.security.getFullAccountName())))
 
+                        if lTagOnlyError: text += " > TAG WARNING ONLY!\n"
+
                         if not isSittingInInvestmentAccount:
-                            if fields.security is None:
-                                text += ("** CANNOT FIX Txn where the Parent is sitting within an %s account ('%s') and the SECURITY is NONE - SKIPPING **"
+                            if fields.security is None and not lTagOnlyError:
+                                text += ("** CANNOT FIX Txn where the Parent is sitting within an %s account ('%s') and the SECURITY is NONE - SKIPPING **\n ----\n\n"
                                          %(getAccountTypeTxt(acct), acct.getFullAccountName()))
                                 continue
 
-                            # This fix is for where the investment txn is not sitting within an Investment account (batch change on xfr category usually)...
-                            text += " >> LOGICAL ERROR as Parent txn is sitting within an %s account **\n" %(getAccountTypeTxt(acct))
-                            correctParentAcct = fields.security.getParentAccount()
-                            if FIX_MODE:
-                                errors_fixed += 1
-                                text += (" -> ASSIGNING txn's Parent account to '%s'\n" %(correctParentAcct))
-                                txn.setAccount(correctParentAcct)
-                                txn.syncItem()
+                            if lTagOnlyError:
+                                # This fix is for where there seems to only be a legacy xfrtp_buysellxfr txn type on a txn with no security in a non-investment account
+                                text += " >> LOGICAL ERROR as legacy '%s' tag '%s' found (with no security) in a non-investment account **\n" %(xferTypeTag, legacyBuySellXfrTag)
+                                if FIX_MODE:
+                                    errors_fixed += 1
+                                    text += (" -> REMOVING txn's legacy '%s' tag of '%s'\n" %(xferTypeTag, legacyBuySellXfrTag))
+                                    txn.setTransferType("")           # do this first to also reset the internal variable
+                                    txn.removeParameter(xferTypeTag)  # do this too to then nuke the setting completly
+                                    txn.setParameter(PARAMETER_KEY, True)
+                                    txn.syncItem()
+                                else:
+                                    text+=(" -> need to remove the legacy '%s' tag\n" %(legacyBuySellXfrTag))
+                                continue
                             else:
-                                text+=(" -> need to assign txn's Parent account to '%s'\n" %(correctParentAcct))
-                            continue
+                                # This fix is for where the investment txn is not sitting within an Investment account (batch change on xfr category usually)...
+                                text += " >> LOGICAL ERROR as Parent txn is sitting within an '%s' account **\n" %(getAccountTypeTxt(acct))
+                                correctParentAcct = fields.security.getParentAccount()
+                                if FIX_MODE:
+                                    errors_fixed += 1
+                                    text += (" -> ASSIGNING txn's Parent account to '%s'\n" %(correctParentAcct))
+                                    txn.setAccount(correctParentAcct)
+                                    txn.setParameter(PARAMETER_KEY, True)
+                                    txn.syncItem()
+                                else:
+                                    text+=(" -> need to assign txn's Parent account to '%s'\n" %(correctParentAcct))
+                                continue
                         else:
                             # This fix assumes that the split / security bit should sit within the txn's parent account. It seeks for the same
                             # security in this account and reattaches it.
@@ -22318,7 +22366,7 @@ after saving the file, restart Moneydance
                                     newSecurityAcct.setSecuritySubType(fields.security.getSecuritySubType())
                                     newSecurityAcct.setStrikePrice(fields.security.getStrikePrice())
 
-                                    for param in ["hide","hide_on_hp","ol.haspendingtxns", "ol.new_txn_count"]:
+                                    for param in ["hide","hide_on_hp", "ol.haspendingtxns", "ol.new_txn_count"]:
                                         newSecurityAcct.setParameter(param, fields.security.getParameter(param))
 
                                     newSecurityAcct.setParameter(PARAMETER_KEY,True)
@@ -22326,7 +22374,7 @@ after saving the file, restart Moneydance
 
                                     correctSecAcct = newSecurityAcct
                                 else:
-                                    text+=(" -> will need to auto-create/add Security and then assign txn to %s\n" %(acct))
+                                    text+=(" -> will need to auto-create/add Security and then assign txn to '%s'\n" %(acct))
 
                             if correctSecAcct:
                                 if FIX_MODE:
@@ -22334,9 +22382,10 @@ after saving the file, restart Moneydance
                                     text+=(" -> ASSIGNING txn to '%s'\n" %(correctSecAcct.getFullAccountName()))
                                     fields.security = correctSecAcct
                                     fields.storeFields(txn)
+                                    txn.setParameter(PARAMETER_KEY, True)
                                     txn.syncItem()
                                 else:
-                                    text+=(" -> need to assign txn to '%s'\n" %(correctSecAcct.getFullAccountName()))
+                                    text += (" -> need to assign txn to '%s'\n" %(correctSecAcct.getFullAccountName()))
 
                 del _txns
                 return text, count_the_errors, count_unfixable_yet, errors_fixed
@@ -22372,6 +22421,14 @@ after saving the file, restart Moneydance
 
             jif = None
             if not autofix:
+                if lFixedOrphans:
+                    txt = ("\nWARNING - Sucessfully fixed %s orphans - But found %s subsequent problems - review log and then re-run this fix!\n" %(iOrphans, iCountErrors)).upper()
+                    output += "\n%s\n" %(txt); myPrint("B", txt)
+                    setDisplayStatus(txt, "R")
+                    jif = QuickJFrame("VIEW Investment Security Txns with both fixed orphans and subsequent errors".upper(), output, lAlertLevel=1, lWrapText=False, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lRestartMDAfterClose=False).show_the_frame()
+                    myPopupInformationBox(jif, txt)
+                    return
+
                 jif = QuickJFrame("VIEW Investment Security Txns with Invalid Parent Accounts".upper(), output, lAlertLevel=1, lWrapText=False, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
 
             # if iCountUnfixable>0:
@@ -22405,7 +22462,7 @@ after saving the file, restart Moneydance
             MD_REF.getUI().setSuspendRefresh(False)		# This does this too: book.notifyAccountModified(root)
 
             output += x
-            output += "\n\nYou had %s non-hierarchical txn errors... FIXED %s\n\n" %(iCountErrors, iErrorsFixed)
+            output += "\n\nYou had %s non-hierarchical txn errors... FIXED: %s\n\n" %(iCountErrors, iErrorsFixed)
             output += "\n<END>"
 
             txt = "FIXED %s Investment Security Txns with Invalid Parent Accounts (non-hierarchical txn errors)" %(iErrorsFixed)
@@ -22415,8 +22472,8 @@ after saving the file, restart Moneydance
             if not autofix:
                 play_the_money_sound()
                 setDisplayStatus(txt, "B")
-                jif = QuickJFrame(_THIS_METHOD_NAME, output, lAlertLevel=1, lWrapText=False, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
-                myPopupInformationBox(jif,txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+                jif = QuickJFrame(_THIS_METHOD_NAME, output, lAlertLevel=1, lWrapText=False, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lRestartMDAfterClose=False).show_the_frame()
+                myPopupInformationBox(jif, txt, _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
             else:
                 myPrint("B", "AUTOFIX ENDING....")
 
@@ -25529,260 +25586,6 @@ after saving the file, restart Moneydance
     #     setDisplayStatus(txt, "B")
     #     logToolboxUpdates("advanced_options_set_check_days", txt)
     #     myPopupInformationBox(toolbox_frame_,txt,"NEXT CHEQUE NUMBER ALGORITHM", JOptionPane.WARNING_MESSAGE)
-
-    def advanced_options_edit_parameter_keys():
-        if MD_REF.getCurrentAccountBook() is None: return
-
-        if not myPopupAskQuestion(toolbox_frame_,"EDIT OBJs MODE","DANGER - ARE YOU SURE YOU WANT TO VISIT THIS FUNCTION?", theMessageType=JOptionPane.ERROR_MESSAGE):
-            txt = "Edit Obj Mode - User declined to proceed - aborting.."
-            setDisplayStatus(txt, "R")
-            return
-
-        objSelecter = CuriousViewInternalSettingsButtonAction(lOFX=False, EDIT_MODE=True)
-        theObject = objSelecter.actionPerformed("")  # type: list
-        del objSelecter
-
-        if theObject is None or len(theObject)!= 1:
-            # txt = "ADVANCED Edit Obj Mode - No Object selected/found - aborting.."
-            # setDisplayStatus(txt, "R")
-            return
-
-        theObject = theObject[0]            # type: MoneydanceSyncableItem
-
-        _ADVANCED_KEYADD          = 0
-        _ADVANCED_KEYCHG          = 1
-        _ADVANCED_KEYDEL          = 2
-        _ADVANCED_RECORDDELETE    = 3
-
-        what = [
-            "Object ADD    Parameter Key (and data)",
-            "Object CHANGE Parameter Key's Data",
-            "Object DELETE Parameter Key (and it's data)",
-            "DELETE OBJECT - NOT RECOMMENDED!"
-        ]
-
-        while True:
-
-            lAdd = lChg = lDel = lDeleteRecord = False
-
-            selectedWhat = JOptionPane.showInputDialog(toolbox_frame_,
-                                                       "Select the option for the modification (on %s)?" %(theObject),
-                                                       "ADVANCED",
-                                                       JOptionPane.WARNING_MESSAGE,
-                                                       getMDIcon(None),
-                                                       what,
-                                                       None)
-
-            if not selectedWhat:
-                txt = "ADVANCED - Exiting"
-                setDisplayStatus(txt, "B")
-                return
-
-            if selectedWhat == what[_ADVANCED_KEYADD]:          lAdd = True
-            if selectedWhat == what[_ADVANCED_KEYCHG]:          lChg = True
-            if selectedWhat == what[_ADVANCED_KEYDEL]:          lDel = True
-            if selectedWhat == what[_ADVANCED_RECORDDELETE]:    lDeleteRecord = True
-
-            text = ""
-            if lChg:            text = "ADD"
-            if lChg:            text = "CHANGE"
-            if lDel:            text = "DELETE"
-            if lDeleteRecord:   text = "DELETE OBJECT"
-
-            if lAdd:
-                addKey = myPopupAskForInput(toolbox_frame_,
-                                            "ADD PARAMETER TO %s" % (theObject),
-                                            "PARAMETER:",
-                                            "Carefully enter the name of the Parameter you want to add (cAseMaTTers!) - STRINGS ONLY:",
-                                            "",
-                                            False,
-                                            JOptionPane.WARNING_MESSAGE)
-
-                if not addKey or len(addKey.strip()) < 1: continue
-                addKey = addKey.strip()
-
-                if not check_if_key_string_valid(addKey):
-                    myPopupInformationBox(toolbox_frame_, "ERROR: Parameter %s is NOT valid!" % addKey, "ADD TO %s" %(theObject), JOptionPane.ERROR_MESSAGE)
-                    continue    # back to ADVANCED Options menu
-
-                testKeyExists = theObject.getParameter(addKey,None)                                                     # noqa
-
-                if testKeyExists:
-                    myPopupInformationBox(toolbox_frame_, "ERROR: Parameter %s already exists - cannot add - aborting..!" %(addKey), "ADD TO %s" %(theObject), JOptionPane.ERROR_MESSAGE)
-                    continue    # back to ADVANCED Options menu
-
-                addValue = myPopupAskForInput(toolbox_frame_,
-                                              "ADD PARAMETER VALUE TO %s" %(theObject),
-                                              "VALUE:",
-                                              "Carefully enter the value you want to add (STRINGS ONLY! CaSE MattERS):",
-                                              "",
-                                              False,
-                                              JOptionPane.WARNING_MESSAGE)
-
-                if not addValue or len(addValue.strip()) <1: continue
-                addValue = addValue.strip()
-
-                if not check_if_key_data_string_valid(addValue):
-                    myPopupInformationBox(toolbox_frame_, "ERROR: Parameter value %s is NOT valid!" %(addValue), "ADD TO %s" %(theObject), JOptionPane.ERROR_MESSAGE)
-                    continue    # back to ADVANCED Options menu
-
-                if confirm_backup_confirm_disclaimer(toolbox_frame_, "ADVANCED OPTIONS", "ADD PARAMETER VALUE TO %s" %(theObject)):
-
-                    theObject.setParameter(addKey,addValue)                                                             # noqa
-                    if isinstance(theObject, SplitTxn):                                                                 # noqa
-                        theObject.getParentTxn().syncItem()                                                             # noqa
-                    else:
-                        theObject.syncItem()                                                                            # noqa
-                    txt = "Parameter: %s Value: %s added to %s @@" %(addKey,addValue,theObject)
-                    setDisplayStatus(txt, "R"); myPrint("B", txt)
-                    logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
-                    play_the_money_sound()
-                    myPopupInformationBox(toolbox_frame_,
-                                          "SUCCESS: Key %s added to %s!" % (addKey,theObject),
-                                          "ADD TO %s" %(theObject),
-                                          JOptionPane.WARNING_MESSAGE)
-                    continue
-
-                continue
-
-            # DELETE OBJECT  :-<
-            if lDeleteRecord:
-
-                output =  "%s PLEASE REVIEW PARAMETER & VALUE BEFORE DELETING OBJECT\n" %(theObject)
-                output += " --------------------------------------------------------\n\n"
-
-                if isinstance(theObject, SplitTxn):
-                    txt = theObject.getParentTxn().getSyncInfo().toMultilineHumanReadableString()
-                else:
-                    txt = theObject.getSyncInfo().toMultilineHumanReadableString()
-
-                output += "\n%s\n" %(txt)
-
-                output += "\n<END>"
-                if isinstance(theObject, SplitTxn):
-                    jif = QuickJFrame("REVIEW THE SPLIT TXN's DATA BEFORE DELETION (OF THE SPLIT)", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
-                elif isinstance(theObject, ParentTxn):
-                    jif = QuickJFrame("REVIEW THE PARENT'S TXN DATA BEFORE DELETION (OF THE WHOLE PARENT TXN)", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
-                else:
-                    jif = QuickJFrame("REVIEW THE OBJECT's DATA BEFORE DELETION", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
-
-                if confirm_backup_confirm_disclaimer(jif, "DELETE OBJECT", "DELETE OBJECT %s" %(theObject)):
-
-                    if isinstance(theObject, SplitTxn):                                                                 # noqa
-                        # This will delete the split only; thus we also must sync the parent
-                        theObject.deleteItem()                                                                          # noqa
-                        theObject.getParentTxn().syncItem()                                                             # noqa
-                    else:
-                        theObject.deleteItem()                                                                          # noqa
-
-                    txt = "ADVANCED OPTIONS: OBJECT %s DELETED @@" %(theObject)
-                    setDisplayStatus(txt, "R"); myPrint("B", txt)
-                    logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
-
-                    play_the_money_sound()
-                    myPopupInformationBox(jif,
-                                          "SUCCESS: OBJECT %s DELETED" %(theObject),
-                                          "DELETE OBJECT",
-                                          JOptionPane.ERROR_MESSAGE)
-                    return
-
-                continue
-
-            # OK, so we are changing or deleting
-            if lChg or lDel:
-
-                paramKeys = sorted(theObject.getParameterKeys())                                                        # noqa
-                selectedKey = JOptionPane.showInputDialog(toolbox_frame_,
-                                                          "Select the %s Parameter you want to %s" % (theObject,text),
-                                                          "ADVANCED OPTIONS",
-                                                          JOptionPane.WARNING_MESSAGE,
-                                                          getMDIcon(None),
-                                                          paramKeys,
-                                                          None)
-                if not selectedKey: continue
-
-                value = theObject.getParameter(selectedKey, None)                                                       # noqa
-
-                output =  "%s PLEASE REVIEW PARAMETER & VALUE BEFORE MAKING CHANGES\n" %(theObject)
-                output += " -----------------------------------------------\n\n"
-
-                output += "\n@@ This '%s' key can be changed/deleted by this script @@\n" %(selectedKey)
-
-                output += "\n%s %s\n" %(pad("%s PARAMETER:"%(theObject), 25), selectedKey)
-                output += "\n%s %s\n" %(pad("Type:",25), type(value))
-                output += "\n%s %s\n" %(pad("Value:",25), value)
-
-                output += "\n<END>"
-                jif = QuickJFrame("REVIEW THE KEY BEFORE CHANGES to %s" %(theObject), output, lAutoSize=True, lWrapText=False, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
-
-                chgValue = None
-
-                if lChg:
-                    chgValue = myPopupAskForInput(jif,
-                                                  "CHANGE PARAMETER VALUE IN %s" %(theObject),
-                                                  "VALUE:",
-                                                  "Carefully enter the new value (STRINGS ONLY! CaSE MattERS):",
-                                                  value,
-                                                  False,
-                                                  JOptionPane.WARNING_MESSAGE)
-
-                    if not chgValue or len(chgValue.strip()) <1 or chgValue == value: continue
-                    chgValue = chgValue.strip()
-
-                    if not check_if_key_data_string_valid(chgValue):
-                        myPopupInformationBox(jif,"ERROR: value %s is NOT valid!" %chgValue,"CHANGE IN %s" %(theObject),JOptionPane.ERROR_MESSAGE)
-                        continue    # back to ADVANCED Options menu
-
-                confAction = ""
-                if lDel:
-                    if isinstance(value, basestring) and value.count('\n') > 10:
-                        confAction = "%s key: %s (old value to long to display)" %(text, selectedKey)
-                    else:
-                        confAction = "%s key: %s (with old value: %s)" %(text, selectedKey, value)
-                if lChg:
-                    confAction = "%s key: %s to new value: %s" %(text, selectedKey, chgValue)
-
-                if confirm_backup_confirm_disclaimer(jif, "%s VALUE IN %s" %(text, theObject), confAction):
-
-                    if lDel:
-                        theObject.setParameter(selectedKey,None)                                                        # noqa
-
-                    if lChg:
-                        theObject.setParameter(selectedKey,chgValue)                                                    # noqa
-
-                    if isinstance(theObject, SplitTxn):                                                                 # noqa
-                        theObject.getParentTxn().syncItem()                                                             # noqa
-                    else:
-                        theObject.syncItem()                                                                            # noqa
-
-                    MD_REF.savePreferences()            # Flush all in memory settings to config.dict file on disk
-                    play_the_money_sound()
-
-                    if lDel:
-                        if isinstance(value, basestring) and value.count('\n') > 10:
-                            txt = "Parameter: %s DELETED from %s (old value to long to display) @@" %(selectedKey, theObject)
-                            _msgTxt = "SUCCESS: Parameter: %s DELETED from %s (old value to long to display)" %(selectedKey, theObject)
-                        else:
-                            txt = "Parameter: %s DELETED from %s (old value: %s) @@" %(selectedKey, theObject, value)
-                            _msgTxt = "SUCCESS: Parameter: %s DELETED from %s (old value: %s)" %(selectedKey, theObject, value)
-                        myPrint("B", txt)
-                        logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
-
-                        myPopupInformationBox(jif, _msgTxt, "DELETE IN %s" %(theObject), JOptionPane.WARNING_MESSAGE)
-
-                    if lChg:
-                        txt = "Parameter: %s CHANGED to %s in %s @@" %(selectedKey, chgValue, theObject)
-                        myPrint("B", txt)
-                        logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
-                        myPopupInformationBox(jif,
-                                              "SUCCESS: Parameter: %s CHANGED to %s in %s" %(selectedKey, chgValue, theObject),
-                                              "CHANGE IN %s" %(theObject),
-                                              JOptionPane.WARNING_MESSAGE)
-                    jif.dispose()       # already within the EDT
-                    continue
-
-                jif.dispose()       # already within the EDT
-                continue
 
     def remove_int_external_files_settings():
         if MD_REF.getCurrentAccountBook() is None: return

@@ -43,9 +43,9 @@ global os
 # Moneydance definitions
 global Account, AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
 global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot, CurrencyUtil
-global TxnSearch, ReportSpec
+global TxnSearch, ReportSpec, MoneydanceSyncableItem
 global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUpdateTxnsWindow, MoneybotURLStreamHandlerFactory
-global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView
+global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView, SplitTxn
 
 # Java definitions
 global SwingUtilities
@@ -59,7 +59,7 @@ global JTextField, JCheckBox, ArrayList, HashMap, Collections
 # My definitions
 global toolbox_frame_
 global MD_REF, GlobalVars, debug, myPrint, QuickAbortThisScriptException
-global myPopupInformationBox, getFileFromFileChooser, get_home_dir, myPopupAskQuestion
+global myPopupInformationBox, myPopupAskForInput, getFileFromFileChooser, get_home_dir, myPopupAskQuestion
 global invokeMethodByReflection, getFieldByReflection, setFieldByReflection
 global MyPopUpDialogBox, logToolboxUpdates, file_chooser_wrapper, dump_sys_error_to_md_console_and_errorlog
 global get_sync_folder, pad, rpad, cpad, padTruncateWithDots
@@ -75,6 +75,7 @@ global isAppDebugEnabledBuild, isKotlinCompiledBuildAll, isMDPlusEnabledBuild, i
 global isNetWorthUpgradedBuild
 global MyAcctFilter, StoreAccountList
 global getMemorizedReports
+global CuriousViewInternalSettingsButtonAction, check_if_key_data_string_valid, check_if_key_string_valid
 
 # New definitions
 from com.moneydance.apps.md.controller.sync import AbstractSyncFolder, MDSyncCipher
@@ -1580,6 +1581,260 @@ try:
         setDisplayStatus(txt, "B")
         myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL OTHER DEBUG", JOptionPane.WARNING_MESSAGE)
 
+
+    def advanced_options_edit_parameter_keys():
+        if MD_REF.getCurrentAccountBook() is None: return
+
+        if not myPopupAskQuestion(toolbox_frame_,"EDIT OBJs MODE","DANGER - ARE YOU SURE YOU WANT TO VISIT THIS FUNCTION?", theMessageType=JOptionPane.ERROR_MESSAGE):
+            txt = "Edit Obj Mode - User declined to proceed - aborting.."
+            setDisplayStatus(txt, "R")
+            return
+
+        objSelecter = CuriousViewInternalSettingsButtonAction(lOFX=False, EDIT_MODE=True)
+        theObject = objSelecter.actionPerformed("")  # type: list
+        del objSelecter
+
+        if theObject is None or len(theObject)!= 1:
+            # txt = "ADVANCED Edit Obj Mode - No Object selected/found - aborting.."
+            # setDisplayStatus(txt, "R")
+            return
+
+        theObject = theObject[0]            # type: MoneydanceSyncableItem
+
+        _ADVANCED_KEYADD          = 0
+        _ADVANCED_KEYCHG          = 1
+        _ADVANCED_KEYDEL          = 2
+        _ADVANCED_RECORDDELETE    = 3
+
+        what = [
+            "Object ADD    Parameter Key (and data)",
+            "Object CHANGE Parameter Key's Data",
+            "Object DELETE Parameter Key (and it's data)",
+            "DELETE OBJECT - NOT RECOMMENDED!"
+        ]
+
+        while True:
+
+            lAdd = lChg = lDel = lDeleteRecord = False
+
+            selectedWhat = JOptionPane.showInputDialog(toolbox_frame_,
+                                                       "Select the option for the modification (on %s)?" %(theObject),
+                                                       "ADVANCED",
+                                                       JOptionPane.WARNING_MESSAGE,
+                                                       getMDIcon(None),
+                                                       what,
+                                                       None)
+
+            if not selectedWhat:
+                txt = "ADVANCED - Exiting"
+                setDisplayStatus(txt, "B")
+                return
+
+            if selectedWhat == what[_ADVANCED_KEYADD]:          lAdd = True
+            if selectedWhat == what[_ADVANCED_KEYCHG]:          lChg = True
+            if selectedWhat == what[_ADVANCED_KEYDEL]:          lDel = True
+            if selectedWhat == what[_ADVANCED_RECORDDELETE]:    lDeleteRecord = True
+
+            text = ""
+            if lChg:            text = "ADD"
+            if lChg:            text = "CHANGE"
+            if lDel:            text = "DELETE"
+            if lDeleteRecord:   text = "DELETE OBJECT"
+
+            if lAdd:
+                addKey = myPopupAskForInput(toolbox_frame_,
+                                            "ADD PARAMETER TO %s" % (theObject),
+                                            "PARAMETER:",
+                                            "Carefully enter the name of the Parameter you want to add (cAseMaTTers!) - STRINGS ONLY:",
+                                            "",
+                                            False,
+                                            JOptionPane.WARNING_MESSAGE)
+
+                if not addKey or len(addKey.strip()) < 1: continue
+                addKey = addKey.strip()
+
+                if not check_if_key_string_valid(addKey):
+                    myPopupInformationBox(toolbox_frame_, "ERROR: Parameter %s is NOT valid!" % addKey, "ADD TO %s" %(theObject), JOptionPane.ERROR_MESSAGE)
+                    continue    # back to ADVANCED Options menu
+
+                testKeyExists = theObject.getParameter(addKey,None)                                                     # noqa
+
+                if testKeyExists:
+                    myPopupInformationBox(toolbox_frame_, "ERROR: Parameter %s already exists - cannot add - aborting..!" %(addKey), "ADD TO %s" %(theObject), JOptionPane.ERROR_MESSAGE)
+                    continue    # back to ADVANCED Options menu
+
+                addValue = myPopupAskForInput(toolbox_frame_,
+                                              "ADD PARAMETER VALUE TO %s" %(theObject),
+                                              "VALUE:",
+                                              "Carefully enter the value you want to add (STRINGS ONLY! CaSE MattERS):",
+                                              "",
+                                              False,
+                                              JOptionPane.WARNING_MESSAGE)
+
+                if not addValue or len(addValue.strip()) <1: continue
+                addValue = addValue.strip()
+
+                if not check_if_key_data_string_valid(addValue):
+                    myPopupInformationBox(toolbox_frame_, "ERROR: Parameter value %s is NOT valid!" %(addValue), "ADD TO %s" %(theObject), JOptionPane.ERROR_MESSAGE)
+                    continue    # back to ADVANCED Options menu
+
+                if confirm_backup_confirm_disclaimer(toolbox_frame_, "ADVANCED OPTIONS", "ADD PARAMETER VALUE TO %s" %(theObject)):
+
+                    theObject.setParameter(addKey,addValue)                                                             # noqa
+                    if isinstance(theObject, SplitTxn):                                                                 # noqa
+                        theObject.getParentTxn().syncItem()                                                             # noqa
+                    else:
+                        theObject.syncItem()                                                                            # noqa
+                    txt = "Parameter: %s Value: %s added to %s @@" %(addKey,addValue,theObject)
+                    setDisplayStatus(txt, "R"); myPrint("B", txt)
+                    logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
+                    play_the_money_sound()
+                    myPopupInformationBox(toolbox_frame_,
+                                          "SUCCESS: Key %s added to %s!" % (addKey,theObject),
+                                          "ADD TO %s" %(theObject),
+                                          JOptionPane.WARNING_MESSAGE)
+                    continue
+
+                continue
+
+            # DELETE OBJECT  :-<
+            if lDeleteRecord:
+
+                output =  "%s PLEASE REVIEW PARAMETER & VALUE BEFORE DELETING OBJECT\n" %(theObject)
+                output += " --------------------------------------------------------\n\n"
+
+                if isinstance(theObject, SplitTxn):
+                    txt = theObject.getParentTxn().getSyncInfo().toMultilineHumanReadableString()                       # noqa
+                else:
+                    txt = theObject.getSyncInfo().toMultilineHumanReadableString()                                      # noqa
+
+                output += "\n%s\n" %(txt)
+
+                output += "\n<END>"
+                if isinstance(theObject, SplitTxn):
+                    jif = QuickJFrame("REVIEW THE SPLIT TXN's DATA BEFORE DELETION (OF THE SPLIT)", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
+                elif isinstance(theObject, ParentTxn):
+                    jif = QuickJFrame("REVIEW THE PARENT'S TXN DATA BEFORE DELETION (OF THE WHOLE PARENT TXN)", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
+                else:
+                    jif = QuickJFrame("REVIEW THE OBJECT's DATA BEFORE DELETION", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
+
+                if confirm_backup_confirm_disclaimer(jif, "DELETE OBJECT", "DELETE OBJECT %s" %(theObject)):
+
+                    if isinstance(theObject, SplitTxn):                                                                 # noqa
+                        # This will delete the split only; thus we also must sync the parent
+                        theObject.deleteItem()                                                                          # noqa
+                        theObject.getParentTxn().syncItem()                                                             # noqa
+                    else:
+                        theObject.deleteItem()                                                                          # noqa
+
+                    txt = "ADVANCED OPTIONS: OBJECT %s DELETED @@" %(theObject)
+                    setDisplayStatus(txt, "R"); myPrint("B", txt)
+                    logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
+
+                    play_the_money_sound()
+                    myPopupInformationBox(jif,
+                                          "SUCCESS: OBJECT %s DELETED" %(theObject),
+                                          "DELETE OBJECT",
+                                          JOptionPane.ERROR_MESSAGE)
+                    return
+
+                continue
+
+            # OK, so we are changing or deleting
+            if lChg or lDel:
+
+                paramKeys = sorted(theObject.getParameterKeys())                                                        # noqa
+                selectedKey = JOptionPane.showInputDialog(toolbox_frame_,
+                                                          "Select the %s Parameter you want to %s" % (theObject,text),
+                                                          "ADVANCED OPTIONS",
+                                                          JOptionPane.WARNING_MESSAGE,
+                                                          getMDIcon(None),
+                                                          paramKeys,
+                                                          None)
+                if not selectedKey: continue
+
+                value = theObject.getParameter(selectedKey, None)                                                       # noqa
+
+                output =  "%s PLEASE REVIEW PARAMETER & VALUE BEFORE MAKING CHANGES\n" %(theObject)
+                output += " -----------------------------------------------\n\n"
+
+                output += "\n@@ This '%s' key can be changed/deleted by this script @@\n" %(selectedKey)
+
+                output += "\n%s %s\n" %(pad("%s PARAMETER:"%(theObject), 25), selectedKey)
+                output += "\n%s %s\n" %(pad("Type:",25), type(value))
+                output += "\n%s %s\n" %(pad("Value:",25), value)
+
+                output += "\n<END>"
+                jif = QuickJFrame("REVIEW THE KEY BEFORE CHANGES to %s" %(theObject), output, lAutoSize=True, lWrapText=False, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
+
+                chgValue = None
+
+                if lChg:
+                    chgValue = myPopupAskForInput(jif,
+                                                  "CHANGE PARAMETER VALUE IN %s" %(theObject),
+                                                  "VALUE:",
+                                                  "Carefully enter the new value (STRINGS ONLY! CaSE MattERS):",
+                                                  value,
+                                                  False,
+                                                  JOptionPane.WARNING_MESSAGE)
+
+                    if not chgValue or len(chgValue.strip()) <1 or chgValue == value: continue
+                    chgValue = chgValue.strip()
+
+                    if not check_if_key_data_string_valid(chgValue):
+                        myPopupInformationBox(jif,"ERROR: value %s is NOT valid!" %chgValue,"CHANGE IN %s" %(theObject),JOptionPane.ERROR_MESSAGE)
+                        continue    # back to ADVANCED Options menu
+
+                confAction = ""
+                if lDel:
+                    if isinstance(value, basestring) and value.count('\n') > 10:
+                        confAction = "%s key: %s (old value to long to display)" %(text, selectedKey)
+                    else:
+                        confAction = "%s key: %s (with old value: %s)" %(text, selectedKey, value)
+                if lChg:
+                    confAction = "%s key: %s to new value: %s" %(text, selectedKey, chgValue)
+
+                if confirm_backup_confirm_disclaimer(jif, "%s VALUE IN %s" %(text, theObject), confAction):
+
+                    if lDel:
+                        theObject.setParameter(selectedKey,None)                                                        # noqa
+
+                    if lChg:
+                        theObject.setParameter(selectedKey,chgValue)                                                    # noqa
+
+                    if isinstance(theObject, SplitTxn):                                                                 # noqa
+                        theObject.getParentTxn().syncItem()                                                             # noqa
+                    else:
+                        theObject.syncItem()                                                                            # noqa
+
+                    MD_REF.savePreferences()            # Flush all in memory settings to config.dict file on disk
+                    play_the_money_sound()
+
+                    if lDel:
+                        if isinstance(value, basestring) and value.count('\n') > 10:
+                            txt = "Parameter: %s DELETED from %s (old value to long to display) @@" %(selectedKey, theObject)
+                            _msgTxt = "SUCCESS: Parameter: %s DELETED from %s (old value to long to display)" %(selectedKey, theObject)
+                        else:
+                            txt = "Parameter: %s DELETED from %s (old value: %s) @@" %(selectedKey, theObject, value)
+                            _msgTxt = "SUCCESS: Parameter: %s DELETED from %s (old value: %s)" %(selectedKey, theObject, value)
+                        myPrint("B", txt)
+                        logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
+
+                        myPopupInformationBox(jif, _msgTxt, "DELETE IN %s" %(theObject), JOptionPane.WARNING_MESSAGE)
+
+                    if lChg:
+                        txt = "Parameter: %s CHANGED to %s in %s @@" %(selectedKey, chgValue, theObject)
+                        myPrint("B", txt)
+                        logToolboxUpdates("advanced_options_edit_parameter_keys", txt)
+                        myPopupInformationBox(jif,
+                                              "SUCCESS: Parameter: %s CHANGED to %s in %s" %(selectedKey, chgValue, theObject),
+                                              "CHANGE IN %s" %(theObject),
+                                              JOptionPane.WARNING_MESSAGE)
+                    jif.dispose()       # already within the EDT
+                    continue
+
+                jif.dispose()       # already within the EDT
+                continue
 
     def fix_account_start_dates(): return validate_account_start_dates(fix=True)
 
