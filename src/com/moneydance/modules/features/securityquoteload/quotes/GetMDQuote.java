@@ -80,6 +80,7 @@ public class GetMDQuote extends GetQuoteTask {
     String tradeCurrency;
     String fromDate;
     String toDate;
+    int today = DateUtil.getStrippedDateInt();
 
     public GetMDQuote(String ticker, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid) {
         super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
@@ -96,7 +97,7 @@ public class GetMDQuote extends GetQuoteTask {
         super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
         this.tradeCurrency = tradeCurrency;
         this.history = history;
-        int  historyDateInt = DateUtil.incrementDate(Main.today,0,-(params.getAmtHistory()+1),0);
+        int  historyDateInt = DateUtil.incrementDate(today,0,-(params.getAmtHistory()+1),0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
         if (this.lastPriceDate < historyDateInt) {
             this.lastPriceDate = historyDateInt;

@@ -181,114 +181,107 @@ public class ParameterTab extends DisplayTab {
 				break;
 			}
 		}
-		timeCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				@SuppressWarnings("unchecked")
-				JComboBox<String> cbRun = (JComboBox<String>) e.getSource();
-				int runTime = Constants.TIMEVALUES[cbRun.getSelectedIndex()];
+		timeCombo.addActionListener(e -> {
+      @SuppressWarnings("unchecked")
+      JComboBox<String> cbRun = (JComboBox<String>) e.getSource();
+      int runTime = Constants.TIMEVALUES[cbRun.getSelectedIndex()];
 
-				Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.STARTTIME, runTime);
-				Main.preferences.isDirty();
-				Main.autoSettingsChanged=true;
-				runLbl.setForeground(colors.errorMessageForeground);
-
-			}
-		});
-		secAutorunCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				@SuppressWarnings("unchecked")
-				JComboBox<String> cbRun = (JComboBox<String>) e.getSource();
-				String modeStr = Constants.MANUALMODE;
-				String runperiodStr = "";
-				switch (cbRun.getSelectedIndex()) {
-				case 0:
-					modeStr = Constants.MANUALMODE;
-					runperiodStr = "";
-					break;
-				case 1:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNDAILY;
-					break;
-				case 2:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNWEEKLY;
-					break;
-				case 3:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNMONTHLY;
-					break;
-				case 4:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNQUARTERLY;
-					break;
-				case 5:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNYEARLY;
-					break;
-				}
-				Main.autoSettingsChanged=true;
-				runLbl.setForeground(colors.errorMessageForeground);
-				Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.SECRUNMODE, modeStr);
-				Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.SECRUNTYPE, runperiodStr);
-				Main.preferences.isDirty();
-				if (modeStr.equals(Constants.AUTOMODE)) {
-					showCalendar(Constants.SECRUNTYPE, Constants.SECRUNPARAM);
-					int newDate = calculateNextRunDate(Constants.SECRUNTYPE, Constants.SECRUNPARAM,
-							Constants.SECLASTRUN);
-					if (newDate != 0)
-						secNextRunDate.setDateInt(newDate);
-				}
-			}
-		});
-		curAutorunCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				@SuppressWarnings("unchecked")
-				JComboBox<String> cbRun = (JComboBox<String>) e.getSource();
-				String modeStr = Constants.MANUALMODE;
-				String runperiodStr = "";
-				switch (cbRun.getSelectedIndex()) {
-				case 0:
-					modeStr = Constants.MANUALMODE;
-					runperiodStr = "";
-					break;
-				case 1:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNDAILY;
-					break;
-				case 2:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNWEEKLY;
-					break;
-				case 3:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNMONTHLY;
-					break;
-				case 4:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNQUARTERLY;
-					break;
-				case 5:
-					modeStr = Constants.AUTOMODE;
-					runperiodStr = Constants.RUNYEARLY;
-					break;
-				}
-				Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.CURRUNMODE, modeStr);				;
-				Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.CURRUNTYPE, runperiodStr);
-				Main.preferences.isDirty();
-				Main.autoSettingsChanged=true;
-				runLbl.setForeground(colors.errorMessageForeground);
-				if (modeStr.equals(Constants.AUTOMODE)) {
-					showCalendar(Constants.CURRUNTYPE, Constants.CURRUNPARAM);
-					int newDate = calculateNextRunDate(Constants.CURRUNTYPE, Constants.CURRUNPARAM,
-							Constants.CURLASTRUN);
-					if (newDate != 0)
-						curNextRunDate.setDateInt(newDate);
-				}
-			}
-		});
+      Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.STARTTIME, runTime);
+      Main.preferences.isDirty();
+      Main.autoSettingsChanged=true;
+      runLbl.setForeground(colors.errorMessageForeground);
+      Main.debugInst.debug("ParameterTab", "actionPerformed", MRBDebug.INFO, ">> auto run time changed to: " + cbRun.getSelectedItem());
+    });
+		secAutorunCombo.addActionListener(e -> {
+      @SuppressWarnings("unchecked")
+      JComboBox<String> cbRun = (JComboBox<String>) e.getSource();
+      String modeStr = Constants.MANUALMODE;
+      String runperiodStr = "";
+      switch (cbRun.getSelectedIndex()) {
+      case 0:
+        modeStr = Constants.MANUALMODE;
+        runperiodStr = "";
+        break;
+      case 1:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNDAILY;
+        break;
+      case 2:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNWEEKLY;
+        break;
+      case 3:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNMONTHLY;
+        break;
+      case 4:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNQUARTERLY;
+        break;
+      case 5:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNYEARLY;
+        break;
+      }
+      Main.autoSettingsChanged=true;
+      runLbl.setForeground(colors.errorMessageForeground);
+      Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.SECRUNMODE, modeStr);
+      Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.SECRUNTYPE, runperiodStr);
+      Main.preferences.isDirty();
+      if (modeStr.equals(Constants.AUTOMODE)) {
+        showCalendar(Constants.SECRUNTYPE, Constants.SECRUNPARAM);
+        int newDate = calculateNextRunDate(Constants.SECRUNTYPE, Constants.SECRUNPARAM,
+            Constants.SECLASTRUN);
+        if (newDate != 0)
+          secNextRunDate.setDateInt(newDate);
+      }
+      Main.debugInst.debug("ParameterTab", "actionPerformed", MRBDebug.INFO, ">> security run mode changed to: " + cbRun.getSelectedItem());
+    });
+		curAutorunCombo.addActionListener(e -> {
+      @SuppressWarnings("unchecked")
+      JComboBox<String> cbRun = (JComboBox<String>) e.getSource();
+      String modeStr = Constants.MANUALMODE;
+      String runperiodStr = "";
+      switch (cbRun.getSelectedIndex()) {
+      case 0:
+        modeStr = Constants.MANUALMODE;
+        runperiodStr = "";
+        break;
+      case 1:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNDAILY;
+        break;
+      case 2:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNWEEKLY;
+        break;
+      case 3:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNMONTHLY;
+        break;
+      case 4:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNQUARTERLY;
+        break;
+      case 5:
+        modeStr = Constants.AUTOMODE;
+        runperiodStr = Constants.RUNYEARLY;
+        break;
+      }
+      Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.CURRUNMODE, modeStr);				;
+      Main.preferences.put(Constants.PROGRAMNAME + "." + Constants.CURRUNTYPE, runperiodStr);
+      Main.preferences.isDirty();
+      Main.autoSettingsChanged=true;
+      runLbl.setForeground(colors.errorMessageForeground);
+      if (modeStr.equals(Constants.AUTOMODE)) {
+        showCalendar(Constants.CURRUNTYPE, Constants.CURRUNPARAM);
+        int newDate = calculateNextRunDate(Constants.CURRUNTYPE, Constants.CURRUNPARAM,
+            Constants.CURLASTRUN);
+        if (newDate != 0)
+          curNextRunDate.setDateInt(newDate);
+      }
+      Main.debugInst.debug("ParameterTab", "actionPerformed", MRBDebug.INFO, ">> currency run mode changed to: " + cbRun.getSelectedItem());
+    });
 		/*
 		 * Button Calendar
 		 */
@@ -362,36 +355,24 @@ public class ParameterTab extends DisplayTab {
 		gridy++;
 		autoResetBtn = new JButton("Recalculate Next Run");
 		autoResetBtn.setToolTipText("Click to restart the Auto Run facility after changing the Auto Run fields");
-		autoResetBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				javax.swing.SwingUtilities.invokeLater(new Runnable() {
-					@Override
-					public void run() {
-						Main.autoSettingsChanged=false;
-						runLbl.setForeground(colors.defaultTextForeground);
-						Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":"
-								+ Constants.CHECKAUTOCMD);
-					}
-				});
-
-			}
-		});
+		autoResetBtn.addActionListener(e -> SwingUtilities.invokeLater(() -> {
+      Main.autoSettingsChanged=false;
+      runLbl.setForeground(colors.defaultTextForeground);
+      Main.context.showURL("moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.CHECKAUTOCMD);
+    }));
 		mainPanel.add(autoResetBtn, GridC.getc(gridx, gridy).east().insets(5, 5, 5, 0));
 		gridx += 2;
 		JPanel secNextRunPane = new JPanel();
 		secNextRunDate = new JDateField(Main.cdate, 10);
-		secNextRunDate.addPropertyChangeListener(new PropertyChangeListener() {
-			@Override
-			public void propertyChange(PropertyChangeEvent arg0) {
-				if (arg0.getPropertyName() == JDateField.PROP_DATE_CHANGED) {
-					JDateField date = (JDateField) arg0.getSource();
-					setNextRunDate(date, Constants.SECNEXTRUN);
-					Main.autoSettingsChanged=true;
-					runLbl.setForeground(colors.errorMessageForeground);
-				}
-			}
-		});
+		secNextRunDate.addPropertyChangeListener(arg0 -> {
+      if (arg0.getPropertyName().equalsIgnoreCase(JDateField.PROP_DATE_CHANGED)) {
+        JDateField date = (JDateField) arg0.getSource();
+        setNextRunDate(date, Constants.SECNEXTRUN);
+        Main.autoSettingsChanged=true;
+        runLbl.setForeground(colors.errorMessageForeground);
+        Main.debugInst.debug("ParameterTab", "actionPerformed", MRBDebug.INFO, ">> security next date set to: " + date.getDateInt());
+      }
+    });
 		secNextRunDate.setDateInt(DateUtil.getStrippedDateInt());
 		if (!secMode.equals(Constants.MANUALMODE)) {
 			secNextRunDate.setDateInt(Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.SECNEXTRUN,
@@ -406,17 +387,15 @@ public class ParameterTab extends DisplayTab {
 		gridx += 2;
 		JPanel curNextRunPane = new JPanel();
 		curNextRunDate = new JDateField(Main.cdate, 10);	
-		curNextRunDate.addPropertyChangeListener(new PropertyChangeListener() {
-			@Override
-			public void propertyChange(PropertyChangeEvent arg0) {
-				if (arg0.getPropertyName() == JDateField.PROP_DATE_CHANGED) {
-					JDateField date = (JDateField) arg0.getSource();
-					setNextRunDate(date, Constants.CURNEXTRUN);
-					Main.autoSettingsChanged=true;
-					runLbl.setForeground(colors.errorMessageForeground);
-				}
-			}
-		});
+		curNextRunDate.addPropertyChangeListener(arg0 -> {
+      if (arg0.getPropertyName().equalsIgnoreCase(JDateField.PROP_DATE_CHANGED)) {
+        JDateField date = (JDateField) arg0.getSource();
+        setNextRunDate(date, Constants.CURNEXTRUN);
+        Main.autoSettingsChanged=true;
+        runLbl.setForeground(colors.errorMessageForeground);
+        Main.debugInst.debug("ParameterTab", "actionPerformed", MRBDebug.INFO, ">> currency next date set to: " + date.getDateInt());
+      }
+    });
 		curNextRunDate.setDateInt(DateUtil.getStrippedDateInt());
 		if (!curRunperiod.equals(Constants.MANUALMODE)) {
 			curNextRunDate.setDateInt(Main.preferences.getInt(Constants.PROGRAMNAME + "." + Constants.CURNEXTRUN,
