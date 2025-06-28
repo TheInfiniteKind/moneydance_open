@@ -42,66 +42,47 @@ import java.util.concurrent.TimeUnit;
 import com.moneydance.modules.features.mrbutil.MRBDebug;
 
 
-public class TaskExecutor
-{
-    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-    Main myTask;
-    volatile boolean isStopIssued;
-    MRBDebug debugInst = Main.debugInst;
+public class TaskExecutor {
+  ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+  Main myTask;
+  MRBDebug debugInst = Main.debugInst;
 
-    public TaskExecutor(Main myTask$) 
-    {
-        myTask = myTask$;
+  public TaskExecutor(Main myTask$) {
+    myTask = myTask$;
 
+  }
+
+  public void startExecutionAt(LocalDateTime when) {
+    debugInst.debug("TaskExecutor", "startExecutionAt", MRBDebug.DETAILED, "next check: " + when.getDayOfMonth() + "/" + when.getMonthValue() + " " + when.getHour() + ":" + when.getMinute());
+    Runnable taskWrapper = () -> myTask.sendAuto();
+    long delay = computeNextDelay(when);
+    LocalTime now = LocalTime.now();
+    debugInst.debug("TaskExecutor", "startExecutionAt", MRBDebug.DETAILED,
+                    "time now: " + String.format("%02d:%02d", now.getHour(), now.getMinute()) +
+                    " >> delaying scheduler next check to : " + String.format("%02d:%02d", when.getHour(), when.getMinute()) +
+                    " (delay: " + delay + " seconds ≈ " + String.format("%.2f", delay / 60.0) + " minutes)");
+    executorService.schedule(taskWrapper, delay, TimeUnit.SECONDS);
+  }
+
+  private long computeNextDelay(LocalDateTime when) {
+    ZoneId currentZone = ZoneId.systemDefault();
+    ZonedDateTime zonedNow = ZonedDateTime.now(currentZone);
+    ZonedDateTime zonedTarget = ZonedDateTime.of(when, currentZone);
+    Duration duration = Duration.between(zonedNow, zonedTarget);
+    return Math.max((long) Math.ceil(duration.toMillis() / 1000.0), 1);  // avoid negative delays, and always round up to at least a whole second
+  }
+
+  public void stop() {
+    LocalTime now = LocalTime.now();
+    debugInst.debug("TaskExecutor", "stop", MRBDebug.DETAILED, "time " + now.getHour() + " " + now.getMinute());
+    executorService.shutdownNow();
+    try {
+      boolean wasTerminated = executorService.awaitTermination(2, TimeUnit.MINUTES);
+      LocalTime now2 = LocalTime.now();
+      debugInst.debug("TaskExecutor", "stopped", MRBDebug.DETAILED, "time " + now2.getHour() + " " + now2.getMinute());
+    } catch (InterruptedException ex) {
+      debugInst.debug("TaskExecutor", "stop", MRBDebug.DETAILED, "InterruptedException ");
+      ex.printStackTrace();
     }
-
-    public void startExecutionAt(LocalDateTime when)
-    {
-		debugInst.debug("TaskExecutor", "startExecutionAt", MRBDebug.DETAILED, "when time "+when.getDayOfMonth()+"/"+when.getMonthValue()+" "+when.getHour()+":"+when.getMinute());
-       Runnable taskWrapper = new Runnable(){
-
-            @Override
-            public void run() 
-            {
-                myTask.sendAuto();
-            }
-
-        };
-        long delay = computeNextDelay(when);
-        LocalTime now = LocalTime.now();
-		debugInst.debug("TaskExecutor", "startExecutionAt", MRBDebug.DETAILED, "time "+now.getHour()+" "+now.getMinute());
-		debugInst.debug("TaskExecutor", "startExecutionAt", MRBDebug.DETAILED, "setting run at "+when.getHour()+" "+when.getMinute());
-        executorService.schedule(taskWrapper, delay, TimeUnit.SECONDS);
-        now = LocalTime.now();
-        
-    }
-
-    private long computeNextDelay(LocalDateTime when) 
-    {
-        LocalDateTime localNow = LocalDateTime.now();
-        ZoneId currentZone = ZoneId.systemDefault();
-        ZonedDateTime zonedNow = ZonedDateTime.of(localNow, currentZone);
-        ZonedDateTime zonedNextTarget = zonedNow.withHour(when.getHour()).withMinute(when.getMinute()).withSecond(0);
-        if(zonedNow.compareTo(zonedNextTarget) > 0)
-            zonedNextTarget = zonedNextTarget.plusDays(1);
-
-        Duration duration = Duration.between(zonedNow, zonedNextTarget);
-        return duration.getSeconds();
-    }
-
-    public void stop()
-    {
-        LocalTime now = LocalTime.now();
-		debugInst.debug("TaskExecutor", "stop", MRBDebug.DETAILED, "time "+now.getHour()+" "+now.getMinute());
-       executorService.shutdownNow();
-        try {
-            executorService.awaitTermination(2, TimeUnit.MINUTES);
-            LocalTime now2 = LocalTime.now();
-    		debugInst.debug("TaskExecutor", "stopped", MRBDebug.DETAILED, "time "+now2.getHour()+" "+now2.getMinute());
-       } catch (InterruptedException ex) {
-    	   debugInst.debug("TaskExecutor", "stop", MRBDebug.DETAILED, "InterruptedException ");
-			ex.printStackTrace();
-
-        }
-    }
+  }
 }

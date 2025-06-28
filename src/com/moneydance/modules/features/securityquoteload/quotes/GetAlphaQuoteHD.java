@@ -34,12 +34,13 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
     private String convTicker;
     private String tradeCurrency;
     private boolean cryptoPair;
+    int today = DateUtil.getStrippedDateInt();
 
     public GetAlphaQuoteHD(String ticker, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate, int throttleDelayMinMS, int throttleDelayMaxMS, boolean cryptoPair) {
         super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.ALPHAVAN);
         this.cryptoPair = cryptoPair;
         this.tradeCurrency = tradeCurrency;
-        int  historyDateInt = DateUtil.incrementDate(Main.today,0,-(params.getAmtHistory()+1),0);
+        int  historyDateInt = DateUtil.incrementDate(today,0,-(params.getAmtHistory()+1),0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
         if (this.lastPriceDate < historyDateInt) {
             this.lastPriceDate = historyDateInt;

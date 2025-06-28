@@ -28,6 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 package com.moneydance.modules.features.securityquoteload;
 
 import java.awt.Color;
@@ -39,9 +40,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
 import javax.swing.*;
 
@@ -74,7 +77,6 @@ import com.moneydance.modules.features.securityquoteload.view.CalculateRunDate;
 public class Main extends FeatureModule {
     public static boolean THROTTLE_YAHOO = true;
     public static CustomDateFormat cdate;
-    public static Integer today;
     public static char decimalChar;
     public static FeatureModuleContext context;
     public static UserPreferences up;
@@ -149,7 +151,6 @@ public class Main extends FeatureModule {
         String dateFormatStr;
         dateFormatStr = up.getSetting(UserPreferences.DATE_FORMAT);
         cdate = new CustomDateFormat(dateFormatStr);
-        today = DateUtil.getStrippedDateInt();
         decimalChar = up.getDecimalChar();
         mdVersion = up.getSetting("current_version");
         int mdVersionNo = Integer.parseInt(mdVersion.substring(0, 4));
@@ -163,7 +164,7 @@ public class Main extends FeatureModule {
         }
         try {
             context.registerFeature(this, "showconsole", getIcon(Constants.QUOTELOADIMAGE), getName());
-            debugInst.setDebugLevel(MRBDebug.DETAILED);
+            debugInst.setDebugLevel(MRBDebug.DebugLevel.DETAILED);
             debugInst.debug("Quote Load", "Init", MRBDebug.INFO, "Started Build " + buildNo);
             debugInst.debug("Quote Load", "Init", MRBDebug.INFO, "Locale " + Locale.getDefault());
             debugInst.debug("Quote Load", "Init", MRBDebug.INFO, "Decimal Character " + decimalChar);
@@ -263,9 +264,7 @@ public class Main extends FeatureModule {
         debugInst.debug("Quote Load", "HandleEventFileOpened", MRBDebug.INFO, "Debug level set to " + debug);
         context = getContext();
         serverName = Constants.PROGRAMNAME;
-        Timer autoDelayStart = new Timer(1, ((ae) -> javax.swing.SwingUtilities.invokeLater(() -> {
-                sendAuto();
-            })));
+        Timer autoDelayStart = new Timer(1, ((ae) -> javax.swing.SwingUtilities.invokeLater(this::sendAuto)));
         autoDelayStart.setInitialDelay(20000);
         autoDelayStart.setRepeats(false);
         autoDelayStart.start();
@@ -279,52 +278,34 @@ public class Main extends FeatureModule {
                     + Constants.STANDALONEREQUESTED);
         } else {
             debugInst.debug("Quote Load", "sendAuto", MRBDebug.INFO, "Check Auto");
-            javax.swing.SwingUtilities.invokeLater(()-> {
-               MRBEDTInvoke.showURL(context, "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.CHECKAUTOCMD);
-            });
+            javax.swing.SwingUtilities.invokeLater(()-> MRBEDTInvoke.showURL(context, "moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.CHECKAUTOCMD));
         }
     }
 
+    private static final List<LocalTime> RUN_SLOTS = IntStream.rangeClosed(0, 23)
+                                                              .mapToObj(h -> LocalTime.of(h, 0))
+                                                              .toList();
+
     private void resetAutoRun() {
-        if (autoRun != null)
-            autoRun.stop();
-        autoRun = new TaskExecutor(this);
-        LocalTime now = LocalTime.now();
-        LocalTime next;
-        if (now.isBefore(LocalTime.of(2, 0)))
-            next = LocalTime.of(2, 0);
-        else if (now.isBefore(LocalTime.of(4, 0)))
-            next = LocalTime.of(4, 0);
-        else if (now.isBefore(LocalTime.of(6, 0)))
-            next = LocalTime.of(6, 0);
-        else if (now.isBefore(LocalTime.of(8, 0)))
-            next = LocalTime.of(8, 0);
-        else if (now.isBefore(LocalTime.of(9, 0)))
-            next = LocalTime.of(9, 0);
-        else if (now.isBefore(LocalTime.of(11, 0)))
-            next = LocalTime.of(11, 0);
-        else if (now.isBefore(LocalTime.of(13, 0)))
-            next = LocalTime.of(13, 0);
-        else if (now.isBefore(LocalTime.of(15, 0)))
-            next = LocalTime.of(15, 0);
-        else if (now.isBefore(LocalTime.of(17, 0)))
-            next = LocalTime.of(17, 0);
-        else if (now.isBefore(LocalTime.of(19, 0)))
-            next = LocalTime.of(19, 0);
-        else if (now.isBefore(LocalTime.of(21, 0)))
-            next = LocalTime.of(21, 0);
-        else if (now.isBefore(LocalTime.of(22, 0)))
-            next = LocalTime.of(22, 0);
-        else if (now.isBefore(LocalTime.of(23, 0)))
-            next = LocalTime.of(23, 0);
-        else
-            next = LocalTime.of(23, 59);
-        LocalDateTime dateTime = LocalDateTime.of(LocalDate.now(), next);
-        if (dateTime.isBefore(LocalDateTime.now()))
-            dateTime.plusDays(1L);
-        debugInst.debug("Quote Load", "resetAutoRun", MRBDebug.INFO,
-                "now " + now + " next " + dateTime);
-        autoRun.startExecutionAt(dateTime);
+      if (autoRun != null) autoRun.stop();
+      autoRun = new TaskExecutor(this);
+
+      LocalTime now = LocalTime.now();
+      Optional<LocalTime> nextSlot = RUN_SLOTS.stream()
+                                              .filter(t -> t.isAfter(now))
+                                              .findFirst();
+
+      LocalDate date = nextSlot.isPresent() ? LocalDate.now() : LocalDate.now().plusDays(1);
+      LocalTime runTime = nextSlot.orElse(RUN_SLOTS.get(0));
+      LocalDateTime dateTime = LocalDateTime.of(date, runTime);
+
+      debugInst.debug("Quote Load", "resetAutoRun", MRBDebug.INFO, "now: " + now + " next check: " + dateTime);
+
+      if (!dateTime.isAfter(LocalDateTime.now().plusSeconds(1))) {
+          dateTime = dateTime.plusMinutes(1);
+      }
+
+      autoRun.startExecutionAt(dateTime);
     }
 
     protected void handleEventFileClosing() {
@@ -341,9 +322,7 @@ public class Main extends FeatureModule {
         if (processor != null) {
             try {
                 processQueue.put(new ProcessCommandArgument(Constants.CLOSEDOWNCMD, ""));
-            } catch (InterruptedException e) {
-
-            }
+            } catch (InterruptedException ignored) {}
             processor = null;
         }
         closeConsole();
@@ -359,9 +338,7 @@ public class Main extends FeatureModule {
         if (processor != null) {
             try {
                 processQueue.put(new ProcessCommandArgument(Constants.CLOSEDOWNCMD, ""));
-            } catch (InterruptedException e) {
-
-            }
+            } catch (InterruptedException ignored) {}
             processor = null;
         }
         closeConsole();
@@ -474,9 +451,7 @@ public class Main extends FeatureModule {
         }
         try {
             processQueue.put(new ProcessCommandArgument(command, uri));
-        } catch (InterruptedException e) {
-
-        }
+        } catch (InterruptedException ignored) {}
     }
 
     /**
@@ -635,6 +610,18 @@ public class Main extends FeatureModule {
             }
         }
 
+        public static LocalTime getScheduledRunTime() {
+          int startTime = preferences.getInt(Constants.PROGRAMNAME + "." + Constants.STARTTIME, Constants.RUNSTARTUP);
+          LocalTime runTime = LocalTime.of(23, 59);
+          for (int i = 0; i < Constants.TIMEVALUES.length; i++) {
+            if (Constants.TIMEVALUES[i] == startTime) {
+              if (Constants.TIMESTART[i] != 24)
+                runTime = LocalTime.of(Constants.TIMESTART[i], 0);
+            }
+          }
+          return runTime;
+        }
+
         public synchronized void processCommand(String command, String uri) {
               debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "process command invoked " + command);
 			Integer totalQuotes;
@@ -653,9 +640,7 @@ public class Main extends FeatureModule {
 						return;
 					}
 					standAloneRequested = true;
-                    Timer autoDelayStart = new Timer(1, ((ae) -> javax.swing.SwingUtilities.invokeLater(() -> {
-                        sendAuto();
-                    })));
+                    Timer autoDelayStart = new Timer(1, ((ae) -> javax.swing.SwingUtilities.invokeLater(Main.this::sendAuto)));
                     autoDelayStart.setInitialDelay(20000);
                     autoDelayStart.setRepeats(false);
                     autoDelayStart.start();
@@ -687,14 +672,13 @@ public class Main extends FeatureModule {
 					boolean curRunAuto = false;
 					int secNextrun = 0;
 					int curNextrun = 0;
-
+          int today = DateUtil.getStrippedDateInt();  // don't cache this value!
 					/*
 					 * check for securities
 					 */
 					if (secMode.equals(Constants.AUTOMODE)) {
-						debugInst.debug("Quote Load", "Process Command", MRBDebug.DETAILED,
-								"Security Auto mode detected");
 						secNextrun = preferences.getInt(Constants.PROGRAMNAME + "." + Constants.SECNEXTRUN, today);
+						debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Security Auto mode detected (next run: "+secNextrun+")");
 						if (secNextrun <= today)
 							secRunAuto = true;
 					}
@@ -702,39 +686,34 @@ public class Main extends FeatureModule {
 					 * check for currencies
 					 */
 					if (params.getCurrency() && curMode.equals(Constants.AUTOMODE)) {
-						debugInst.debug("Quote Load", "Process Command", MRBDebug.DETAILED,
-								"Currency Auto mode detected");
 						curNextrun = preferences.getInt(Constants.PROGRAMNAME + "." + Constants.CURNEXTRUN, today);
+						debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Currency Auto mode detected (next run: "+curNextrun+")");
 						if (curNextrun <= today)
 							curRunAuto = true;
 					}
-					debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED,
-							"Date check " + secRunAuto + " " + curRunAuto);
-					int startTime = preferences.getInt(Constants.PROGRAMNAME + "." + Constants.STARTTIME,
-							Constants.RUNSTARTUP);
+
+					int startTime = preferences.getInt(Constants.PROGRAMNAME + "." + Constants.STARTTIME, Constants.RUNSTARTUP);
+          LocalTime runTime = getScheduledRunTime();  // ignore the result when STARTTIME is zero / RUNSTARTUP
+          String runTimeStr = (startTime == Constants.RUNSTARTUP)
+                              ? "<run at startup>"
+                              : String.format("%02d:%02d", runTime.getHour(), runTime.getMinute());
+          debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED,
+                          "Date check - secRunAuto: " + secRunAuto + " curRunAuto: " + curRunAuto
+                          + " >> User scheduled time: " + runTimeStr);
+
 					if (secRunAuto || curRunAuto) {
 						if (startTime != Constants.RUNSTARTUP) {
                             /*
                              * Not a run at startup - check if time has been reached
                              */
                             LocalTime now = LocalTime.now();
-                            LocalTime runTime = LocalTime.of(23, 59);
-                            for (int i = 0; i < Constants.TIMEVALUES.length; i++) {
-                                if (Constants.TIMEVALUES[i] == startTime) {
-                                    if (Constants.TIMESTART[i] != 24)
-                                        runTime = LocalTime.of(Constants.TIMESTART[i], 0);
-                                }
-                            }
 
-                            LocalDateTime dateTime = LocalDateTime.of(LocalDate.now(), runTime);
-                            if (dateTime.isBefore(LocalDateTime.now()))
-                                dateTime.plusDays(1L);
-                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED,
-                                    "Time check - Sec " + secRunAuto + " " + secNextrun + " " + startUp);
-                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED,
-                                    "Time check - Cur " + curRunAuto + " " + curNextrun + " " + startUp);
-                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED,
-                                    "Time check - run time " + runTime + " " + now);
+                            //LocalDateTime dateTime = LocalDateTime.of(LocalDate.now(), runTime);
+                            //if (dateTime.isBefore(LocalDateTime.now()))
+                            //    dateTime = dateTime.plusDays(1L);
+                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Time check - secRunAuto: " + secRunAuto + " secNextrun: " + secNextrun + " startup: " + startUp);
+                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Time check - curRunAuto: " + curRunAuto + " curNextrun: " + curNextrun + " startup: " + startUp);
+                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Time check - scheduled run time: " + runTime + " (now: " + now + ")");
                             if (!((secRunAuto && secNextrun < today && startUp)
                                     || (curRunAuto && curNextrun < today && startUp))) {
                                 if (runTime.isAfter(now)) {
@@ -746,8 +725,7 @@ public class Main extends FeatureModule {
                                 }
                                 startUp = false;
                             }
-                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED,
-                                    "frame " + String.valueOf(frame == null) + " runtype " + runtype);
+                            debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "frame: " + (frame == null) + " runtype: " + runtype);
                         }
 
                         if (secRunAuto || curRunAuto) {
@@ -773,7 +751,7 @@ public class Main extends FeatureModule {
 							runtype = Constants.CURAUTORUN;
 						if (secRunAuto && curRunAuto)
 							runtype = Constants.BOTHAUTORUN;
-						debugInst.debug("Quote Load", "Process Command", MRBDebug.DETAILED, "Submitting Auto Run");
+						debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Submitting Auto Run");
 						/*
 						 * send Run Auto Cmd
 						 */
@@ -804,7 +782,7 @@ public class Main extends FeatureModule {
 						}
 						resetAutoRun();
 					} else {
-						debugInst.debug("Quote Load", "Process Command", MRBDebug.DETAILED, "Nothing to run");
+						debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Nothing to run");
 						resetAutoRun();
 					}
 					return;
@@ -848,9 +826,7 @@ public class Main extends FeatureModule {
 						try {
 							frame.updatePrices(uri);
 						}
-						catch (QuoteException e){
-
-						}
+						catch (QuoteException ignored) {}
 					}
 					return;
 				}
@@ -861,9 +837,7 @@ public class Main extends FeatureModule {
 						try {
 							frame.updateHistory(uri);
 						}
-						catch (QuoteException e){
-
-						}
+						catch (QuoteException ignored) {}
 					}
 					return;
 				}
@@ -879,9 +853,7 @@ public class Main extends FeatureModule {
 					if (frame != null) {
 						timeoutCount = 0;
 						debugInst.debug("Quote Load", "processCommand", MRBDebug.DETAILED, "Done " + uri);
-						javax.swing.SwingUtilities.invokeLater(() -> {
-							frame.doneQuote(uri);
-						});
+						javax.swing.SwingUtilities.invokeLater(() -> frame.doneQuote(uri));
 
 					}
 					return;
@@ -894,10 +866,8 @@ public class Main extends FeatureModule {
 							debugInst.debug("Quote Load", "ProcessCommand", MRBDebug.SUMMARY,
 									"Still Waiting for Backend");
 							if (timeoutCount > timeoutMax) {
-								javax.swing.SwingUtilities.invokeLater(() -> {
-									JOptionPane.showMessageDialog(frame, "Backend has failed to respond", "Quote Loader",
-											JOptionPane.ERROR_MESSAGE);
-								});
+								javax.swing.SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(frame, "Backend has failed to respond", "Quote Loader",
+JOptionPane.ERROR_MESSAGE));
 								frame.closeQuotes();
 							} else
 								timeoutCount++;

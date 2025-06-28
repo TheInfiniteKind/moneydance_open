@@ -71,6 +71,7 @@ public class GetYahooQuote extends GetQuoteTask {
     private List<String> lows;
     private List<String> highs;
     Integer lastPriceDate;
+    int today = DateUtil.getStrippedDateInt();
 
     public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, int throttleDelayMinMS, int throttleDelayMaxMS) {
         super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.YAHOO);
@@ -84,7 +85,7 @@ public class GetYahooQuote extends GetQuoteTask {
     public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate,boolean history, int throttleDelayMinMS, int throttleDelayMaxMS) {
         super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.YAHOO);
         this.history = history;
-        int  historyDateInt = DateUtil.incrementDate(Main.today,0,-(params.getAmtHistory()+1),0);
+        int  historyDateInt = DateUtil.incrementDate(today,0,-(params.getAmtHistory()+1),0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
         if (this.lastPriceDate < historyDateInt) {
             this.lastPriceDate = historyDateInt;
