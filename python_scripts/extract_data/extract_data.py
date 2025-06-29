@@ -11738,8 +11738,10 @@ Visit: %s (Author's site)
                                                         _row[GlobalVars.dataKeys["_SECINFO_BOND_FACEVALUE"][_COLUMN]] = "" if (securityAcct.getFaceValue() == 0) else acctCurr.format(securityAcct.getFaceValue(), GlobalVars.decimalCharSep)
                                                         _row[GlobalVars.dataKeys["_SECINFO_BOND_APR"][_COLUMN]] = "" if (securityAcct.getAPR() == 0.0) else securityAcct.getAPR()
 
-                                                        if (securityAcct.getMaturity() != 0 and securityAcct.getMaturity() != 39600000):
-                                                            _row[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = DateUtil.convertLongDateToInt(securityAcct.getMaturity())
+                                                        matDate = securityAcct.getMaturity()
+                                                        matDateInt = DateUtil.convertLongDateToInt(securityAcct.getMaturity())
+                                                        if (matDate != 0 and (matDate < 0 or matDate > 80000000)):  # ignore default of 01/01/1970
+                                                            _row[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = matDateInt
 
                                                     if securityAcct.getSecurityType() == SecurityType.OPTION:
                                                         _row[GlobalVars.dataKeys["_SECINFO_STKOPT_CALLPUT"][_COLUMN]] = "Put" if securityAcct.getPut() else "Call"
