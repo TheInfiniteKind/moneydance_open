@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1047 - February 2025 - Stuart Beesley
+# extract_data.py - build: 1047 - June 2025 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -100,6 +100,7 @@
 # build: 1046 - Added extract category information (ECI) extract
 # build: 1047 - ???
 # build: 1047 - BUGFIX - Extract Reminders when notes... Missing tags column (index 18)...
+# build: 1047 - Patch ESB - invalid Account::getMaturity() date (in this case a value of 28800000!?
 # build: 1047 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -13084,8 +13085,10 @@ Visit: %s (Author's site)
                                                 _row[GlobalVars.dataKeys["_SECINFO_BOND_FACEVALUE"][_COLUMN]] = "" if (securityAcct.getFaceValue() == 0) else investAcctCurr.format(securityAcct.getFaceValue(), GlobalVars.decimalCharSep)
                                                 _row[GlobalVars.dataKeys["_SECINFO_BOND_APR"][_COLUMN]] = "" if (securityAcct.getAPR() == 0.0) else securityAcct.getAPR()
 
-                                                if (securityAcct.getMaturity() != 0 and securityAcct.getMaturity() != 39600000):
-                                                    _row[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = DateUtil.convertLongDateToInt(securityAcct.getMaturity())
+                                                matDate = securityAcct.getMaturity()
+                                                matDateInt = DateUtil.convertLongDateToInt(securityAcct.getMaturity())
+                                                if (matDate != 0 and (matDate < 0 or matDate > 80000000)):  # ignore default of 01/01/1970
+                                                    _row[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = matDateInt
 
                                             if securityAcct.getSecurityType() == SecurityType.OPTION:
                                                 _row[GlobalVars.dataKeys["_SECINFO_STKOPT_CALLPUT"][_COLUMN]] = "Put" if securityAcct.getPut() else "Call"
@@ -13258,8 +13261,13 @@ Visit: %s (Author's site)
                                             if not GlobalVars.saved_lOmitExtraSecurityDataFromExtract_ESB:
                                                 val = _theRow[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]]
                                                 if val is not None and val != "":
-                                                    dateasdate = datetime.datetime.strptime(str(val), "%Y%m%d")       # Convert to Date field
-                                                    _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+
+                                                    try:
+                                                        dateasdate = datetime.datetime.strptime(str(val), "%Y%m%d")       # Convert to Date field
+                                                        _dateoutput = dateasdate.strftime(GlobalVars.saved_extractDateFormat_SWSS)
+                                                    except:
+                                                        _dateoutput = "<ERROR: '%s'>" %(val)
+
                                                     _theRow[GlobalVars.dataKeys["_SECINFO_BOND_MATURITYDATE"][_COLUMN]] = _dateoutput
 
                                             for convColumn in ["_HIDDENPRICEDATE", "_MOSTRECENTPRICEDATE"]:
