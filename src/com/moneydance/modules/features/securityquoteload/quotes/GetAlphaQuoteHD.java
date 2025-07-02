@@ -40,11 +40,11 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
         super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.ALPHAVAN);
         this.cryptoPair = cryptoPair;
         this.tradeCurrency = tradeCurrency;
-        int  historyDateInt = DateUtil.incrementDate(today,0,-(params.getAmtHistory()+1),0);
+        int historyDateInt = DateUtil.incrementDate(today, 0, -(params.getAmtHistory() + 1), 0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
         if (this.lastPriceDate < historyDateInt) {
             this.lastPriceDate = historyDateInt;
-            Main.debugInst.debug("GetAlphaQuote", "construct", MRBDebug.DETAILED, "History date restricted to  " + lastPriceDate);
+            Main.debugInst.debug("GetAlphaQuote", "construct", MRBDebug.DETAILED, "History date restricted to: " + lastPriceDate);
         }
         convTicker = ticker.replace("^", "%5E");
         String toCur;
@@ -75,7 +75,7 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
         } else {
           url = alphaCurURL + fromCur + "&to_symbol=" + toCur + "&apikey=" + params.getAlphaAPIKey();
         }
-        Main.debugInst.debug("GetAlphaQuote", "GetAlphaQuote", MRBDebug.DETAILED, "Executing :" + url);
+        Main.debugInst.debug("GetAlphaQuote", "GetAlphaQuote", MRBDebug.DETAILED, "Executing: " + url);
     }
     @Override
     public QuotePrice analyseResponse(CloseableHttpResponse response) throws IOException {

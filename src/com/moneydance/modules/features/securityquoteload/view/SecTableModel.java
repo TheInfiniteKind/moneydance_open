@@ -52,12 +52,9 @@ import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.Util;
 import com.moneydance.modules.features.mrbutil.MRBDebug;
-import com.moneydance.modules.features.securityquoteload.Constants;
-import com.moneydance.modules.features.securityquoteload.ExtraFields;
-import com.moneydance.modules.features.securityquoteload.HistoryPrice;
-import com.moneydance.modules.features.securityquoteload.Main;
-import com.moneydance.modules.features.securityquoteload.MainPriceWindow;
-import com.moneydance.modules.features.securityquoteload.Parameters;
+import com.moneydance.modules.features.securityquoteload.*;
+
+import static com.moneydance.modules.features.securityquoteload.QLUtil.escapeField;
 
 public class SecTableModel extends DefaultTableModel {
 	private Parameters params;
@@ -284,7 +281,7 @@ public class SecTableModel extends DefaultTableModel {
 				return "";
 			String dateString = Main.cdate.format(rowData.getTradeDate());
 			if (rowData.getHistory() != null && !rowData.getHistory().isEmpty())
-				dateString += "++";
+  				dateString += "++";
 			return dateString;
 		/*
 		 * trade currency
@@ -603,8 +600,22 @@ public class SecTableModel extends DefaultTableModel {
 			String volumeStr = "";
 			if (extra != null)
 				volumeStr = extra.getVolume().toString();
-			String line = ticker + "," +acct.getAlternateTicker()+","+ acct.getAccountName() + "," + dRate + "," +acct.getAmtChg()+","+acct.getPercentChg()+","+ Main.cdate.format(tradeDate)
-					+ "," + volumeStr + "\r\n";
+      String line = escapeField(ticker)
+                    + ","
+                    + escapeField(acct.getAlternateTicker())
+                    + ","
+                    + escapeField(acct.getAccountName())
+                    + ","
+                    + escapeField(dRate)
+                    + ","
+                    + escapeField(acct.getAmtChg())
+                    + ","
+                    + escapeField(acct.getPercentChg())
+                    + ","
+                    + escapeField(Main.cdate.format(tradeDate))
+                    + ","
+                    + escapeField(volumeStr)
+                    + QLUtil.CHAR_RETURN + QLUtil.CHAR_NEWLINE;
 			try {
 				exportFile.write(line);
 			} catch (IOException e) {
