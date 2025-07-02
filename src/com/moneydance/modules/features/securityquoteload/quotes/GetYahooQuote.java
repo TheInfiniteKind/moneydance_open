@@ -76,25 +76,25 @@ public class GetYahooQuote extends GetQuoteTask {
     public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, int throttleDelayMinMS, int throttleDelayMaxMS) {
         super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.YAHOO);
         String convTicker = ticker.replace("^", "%5E");
-        if (tickerType == Constants.STOCKTYPE)
+        if (tickerType.equalsIgnoreCase(Constants.STOCKTYPE))
             url = yahooSecURL + convTicker + "?p=" + convTicker + "&.tscr=fin-srch";
-        if (tickerType == Constants.CURRENCYTYPE)
+        if (tickerType.equalsIgnoreCase(Constants.CURRENCYTYPE))
             url = yahooCurrURL + convTicker + "?p=" + convTicker;
-        debugInst.debug("GetYahooQuote", "GetYahooQuote", MRBDebug.DETAILED, "Executing :" + url);
+        debugInst.debug("GetYahooQuote", "GetYahooQuote", MRBDebug.DETAILED, "Executing: " + url);
     }
-    public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid,Integer lastPriceDate,boolean history, int throttleDelayMinMS, int throttleDelayMaxMS) {
+    public GetYahooQuote(String ticker, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, Integer lastPriceDate, boolean history, int throttleDelayMinMS, int throttleDelayMaxMS) {
         super(ticker, listener, httpClient, tickerType, tid, throttleDelayMinMS, throttleDelayMaxMS, Constants.QuoteSource.YAHOO);
         this.history = history;
-        int  historyDateInt = DateUtil.incrementDate(today,0,-(params.getAmtHistory()+1),0);
+        int historyDateInt = DateUtil.incrementDate(today, 0, -(params.getAmtHistory() + 1), 0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
         if (this.lastPriceDate < historyDateInt) {
             this.lastPriceDate = historyDateInt;
-            Main.debugInst.debug("GetYahooQuote", "construct", MRBDebug.DETAILED, "History date restricted to  " + lastPriceDate);
+            Main.debugInst.debug("GetYahooQuote", "construct", MRBDebug.DETAILED, "History date restricted to: " + lastPriceDate);
         }
         String convTicker = ticker.replace("^", "%5E");
-        if (tickerType == Constants.STOCKTYPE)
+        if (tickerType.equalsIgnoreCase(Constants.STOCKTYPE))
             url = yahooSecURL + convTicker + "?metrics=Close&interval=1d&range=1y";
-        if (tickerType == Constants.CURRENCYTYPE)
+        if (tickerType.equalsIgnoreCase(Constants.CURRENCYTYPE))
             url = yahooCurrURL + convTicker + "?p=" + convTicker+"&metrics=Close&interval=1d&range=1y";
         debugInst.debug("GetYahooQuote", "GetYahooQuote", MRBDebug.DETAILED, "Executing :" + url);
     }

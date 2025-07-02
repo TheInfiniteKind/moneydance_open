@@ -51,11 +51,9 @@ import com.infinitekind.moneydance.model.CurrencyType;
 import com.infinitekind.util.DateUtil;
 import com.moneydance.apps.md.controller.Util;
 import com.moneydance.modules.features.mrbutil.MRBDebug;
-import com.moneydance.modules.features.securityquoteload.Constants;
-import com.moneydance.modules.features.securityquoteload.HistoryPrice;
-import com.moneydance.modules.features.securityquoteload.Main;
-import com.moneydance.modules.features.securityquoteload.MainPriceWindow;
-import com.moneydance.modules.features.securityquoteload.Parameters;
+import com.moneydance.modules.features.securityquoteload.*;
+
+import static com.moneydance.modules.features.securityquoteload.QLUtil.escapeField;
 
 public class CurTableModel extends DefaultTableModel {
 	private Parameters params;
@@ -446,8 +444,21 @@ public class CurTableModel extends DefaultTableModel {
 			return false; // no currency - do not process
 		dRate = line.getNewPrice();
 		if (exportFile != null) {
-			String exportLine =ctTicker.getIDString() + ",," + line.getCurrencyName() + "," + dRate + ","+line.getAmtChg()+","+line.getPercentChg()+","
-					+ Main.cdate.format(tradeDate) + ",0\r\n";
+      String exportLine = escapeField(ctTicker.getIDString())
+                          + ","
+                          + ","
+                          + escapeField(line.getCurrencyName())
+                          + ","
+                          + escapeField(dRate)
+                          + ","
+                          + escapeField(line.getAmtChg())
+                          + ","
+                          + escapeField(line.getPercentChg())
+                          + ","
+                          + escapeField(Main.cdate.format(tradeDate))
+                          + ","
+                          + escapeField("0")
+                          + QLUtil.CHAR_RETURN + QLUtil.CHAR_NEWLINE;
 			try {
 				exportFile.write(exportLine);
 			} catch (IOException e) {

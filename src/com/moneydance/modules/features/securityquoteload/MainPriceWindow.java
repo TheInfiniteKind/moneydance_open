@@ -31,10 +31,7 @@
 package com.moneydance.modules.features.securityquoteload;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -69,6 +66,7 @@ import com.moneydance.modules.features.mrbutil.MRBEDTInvoke;
 import com.moneydance.modules.features.securityquoteload.Constants.QuoteSource;
 
 import static com.moneydance.modules.features.securityquoteload.Constants.QuoteSource.*;
+import static java.awt.event.KeyEvent.VK_W;
 
 public class MainPriceWindow extends JFrame implements TaskListener {
 	/**
@@ -212,11 +210,18 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			}
 
 		});
-		this.getRootPane().getActionMap().put("close-window", new CloseAction(this));
-		this.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
-				.put(KeyStroke.getKeyStroke("control W"), "close-window");
-		this.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
-				.put(KeyStroke.getKeyStroke("meta W"), "close-window");
+
+    int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+    InputMap im = this.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		im.put(KeyStroke.getKeyStroke(KeyEvent.VK_W,  shortcut), "close-window");
+		im.put(KeyStroke.getKeyStroke(KeyEvent.VK_F4,  shortcut), "close-window");
+
+		im.put(KeyStroke.getKeyStroke(KeyEvent.VK_D,  shortcut), "debug");
+
+    ActionMap am = this.getRootPane().getActionMap();
+		am.put("close-window", new CloseAction(this));
+		am.put("debug", new DebugAction());
+
 		/*
 		 * set up internal tables
 		 */
@@ -1856,8 +1861,11 @@ public class MainPriceWindow extends JFrame implements TaskListener {
     if (getTID.equals(uuid)) {
       completed =  true;
       unsetThrottleMessage();
-      String message = "Single price for security '" + ticker + "' retrieved";
+
+      String tickerStr = "'" + ticker + "'" + (ticker.equals(alteredTicker) ? "" : (" (" + alteredTicker + ")") );
+      String message = "Single price for security: " + tickerStr + " retrieved";
       JOptionPane.showMessageDialog(Main.frame, message);
+
     } else {
       if (listener != null)
         listener.ended(newPrice.getTicker(), uuid);
@@ -2512,17 +2520,21 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	public class CloseAction extends AbstractAction {
 		private Window window;
 
-		public CloseAction(Window window) {
-			this.window = window;
-		}
+		public CloseAction(Window window) { this.window = window; }
 
-		@Override
-		public void actionPerformed(ActionEvent e) {
+		@Override public void actionPerformed(ActionEvent e) {
 			if (window == null)
 				return;
 			window.dispatchEvent(new WindowEvent(window, WindowEvent.WINDOW_CLOSING));
 		}
 	}
+
+	public class DebugAction extends AbstractAction {
+		@Override public void actionPerformed(ActionEvent e) {
+      String debugBreakPoint = null;
+		}
+	}
+
 	public class SortSecColumns implements Comparator<String>{
 
 		private IntComparator intComparator = new IntComparator();

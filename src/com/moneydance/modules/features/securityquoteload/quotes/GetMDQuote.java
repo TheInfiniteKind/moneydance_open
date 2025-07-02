@@ -90,18 +90,18 @@ public class GetMDQuote extends GetQuoteTask {
           //url = mdSecURL + convTicker + "&dateformat=timestamp&token=" + params.getMdToken();
           url = mdSecURL + convTicker + "&dateformat=timestamp";                                                        // token now sent more securely in the headers
         }
-        debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url);
+        debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing: " + url);
         lastPriceDate = -1;
     }
     public GetMDQuote(String ticker,  Constants.MDStockType stockType, String tradeCurrency, QuoteListener listener, CloseableHttpClient httpClient, String tickerType, String tid, Integer lastPriceDate, boolean history) {
         super(ticker, listener, httpClient, tickerType, tid, 0, 0, Constants.QuoteSource.MARKETDATA);
         this.tradeCurrency = tradeCurrency;
         this.history = history;
-        int  historyDateInt = DateUtil.incrementDate(today,0,-(params.getAmtHistory()+1),0);
+        int historyDateInt = DateUtil.incrementDate(today, 0, -(params.getAmtHistory() + 1), 0);
         this.lastPriceDate = (lastPriceDate == null ? 0 : lastPriceDate);
         if (this.lastPriceDate < historyDateInt) {
             this.lastPriceDate = historyDateInt;
-            Main.debugInst.debug("GetMDQuote", "construct", MRBDebug.DETAILED, "History date restricted to  " + lastPriceDate);
+            Main.debugInst.debug("GetMDQuote", "construct", MRBDebug.DETAILED, "History date restricted to: " + lastPriceDate);
         }
 
         int year = this.lastPriceDate/10000;
@@ -120,7 +120,7 @@ public class GetMDQuote extends GetQuoteTask {
             //url = mdFundURL + convTicker + "?from="+fromDate+"&to="+toDate+"&token=" + params.getMdToken();
             url = mdFundURL + convTicker + "?from="+fromDate+"&to="+toDate;                                             // token now sent more securely in the headers
         }
-        debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url);
+        debugInst.debug("GetMDQuote", "GetMDQuote", MRBDebug.DETAILED, "Executing :" + url + " (stock type: " + stockType.toString() + ")");
 
     }
     @Override
