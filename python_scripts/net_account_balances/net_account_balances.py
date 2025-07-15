@@ -152,6 +152,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1057 - Enabled magic tags @today, @asof, @@rowcurrency, @@basecurrency - along with the nw() nwif() functions now accepting an optional yyyymmdd asof parameter
 # build: 1057 - Improved networth formula detection (using regex) and cache results (including the expensive versions) for efficient repeated usage
 # build: 1057 - Thicken separator lines for Windows...
+# build: 1057 - fixes for replaceSecurityCostBasisBalances() and HoldBalance() to remove the 'fudge' that converted security values (cb, cg, urg etc) back to the security's share value...
 # build: 1057 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -3987,6 +3988,8 @@ Visit: %s (Author's site)
             self.currentBalance = 0
             self.clearedBalance = 0
 
+            self.specialCurrencyType = None         # use this to override the currency (e.g. when using special security values (e.g. cb, cg, urg etc)
+
             # These are for debugging and hold the adjustments made to balance(s) for their category
             self.real_balance = 0
             self.real_currentBalance = 0
@@ -4031,8 +4034,12 @@ Visit: %s (Author's site)
         def getAccountName(self):               return self.getAccount().getAccountName()
         def getFullAccountName(self):           return self.getAccount().getFullAccountName()
         def getAccountType(self):               return self.getAccount().getAccountType()
-        def getCurrencyType(self):              return self.getAccount().getCurrencyType()
         def getHideOnHomePage(self):            return self.getAccount().getHideOnHomePage()
+
+        def getCurrencyType(self):
+            special = self.getSpecialCurrencyType()
+            if (special is not None): return special
+            return self.getAccount().getCurrencyType()
 
         def setEffectiveDateInt(self, effectiveDateInt): self.effectiveDateInt = effectiveDateInt
         def getEffectiveDateInt(self): return self.effectiveDateInt
@@ -4108,6 +4115,10 @@ Visit: %s (Author's site)
         def setCurrentBalance(self, _bal):  self.currentBalance = _bal
         def setClearedBalance(self, _bal):  self.clearedBalance = _bal
 
+        def setSpecialCurrencyType(self, currency):  self.specialCurrencyType = currency
+        def getSpecialCurrencyType(self):            return self.specialCurrencyType
+        def hasSpecialCurrencyType(self):         return self.getSpecialCurrencyType() is not None
+
         def __str__(self):
             i = 10
             extraDebugInfo = ""
@@ -4126,11 +4137,13 @@ Visit: %s (Author's site)
                     "applyNWRules: %s, incldInNW: %s, NWBalZero: %s, "
                     "Bal: %s, CurBal: %s, ClearedBal: %s, "
                     "(isParRealBals: %s, isParIncExpBals: %s, isParAsOfBals: %s, isParRems: %s, isParCB: %s(%s)) "
+                    "(hasSpecialCurrencyType: %s, specialCurrencyType: %s) "
                     "- Account: %s %s"
                     %(self.isIncomeExpense(), self.isSecurity(), self.isInvestment(),
                       self.shouldApplyNWRules(), self.shouldIncludeInNetWorth(), self.shouldMakeNWBalanceZero(),
                       rpad(self.getBalance(), i), rpad(self.getCurrentBalance(), i), rpad(self.getClearedBalance(), i),
                       self.isParallelRealBalances(), self.isParallelIncExpBalances(), self.isParallelBalanceAsOfDateBalances(), self.isParallelIncludeReminders(), self.isParallelReturnCostBasis(), self.getParallelReturnCostBasisType(),
+                      self.hasSpecialCurrencyType(), self.getSpecialCurrencyType(),
                       self.getAccount().getFullAccountName(),
                       extraDebugInfo))
 
@@ -4234,8 +4247,12 @@ Visit: %s (Author's site)
                 for thisAcct in accts:
                     if applyNWRules and not includeInNetWorth(thisAcct): continue
                     acctObj = parentAcct.getSubAccountsBalanceObject(thisAcct) if isHoldBalObj else thisAcct
+                    if isinstance(acctObj, HoldBalance):        # this is for the special security accounts that hold cb, cg, urg etc (in the parent's currency)
+                        thisCurr = acctObj.getCurrencyType()
+                    else:
+                        thisCurr = thisAcct.getCurrencyType()
                     bal += convertValue(StoreAccount.getXBalance(balType, acctObj, user, applyNWRules=applyNWRules),
-                                            thisAcct.getCurrencyType(),
+                                            thisCurr,
                                             toCurrency if (toCurrency is not None) else parentAcct.getCurrencyType(),
                                             effectiveDate)
             except: dump_sys_error_to_md_console_and_errorlog()
@@ -6302,14 +6319,10 @@ Visit: %s (Author's site)
                     valueBal = convertValue(balObj.getBalance(), acct.getCurrencyType(), acct.getParentAccount().getCurrencyType(), effectiveDateInt)
                     valueCurBal = convertValue(balObj.getCurrentBalance(), acct.getCurrencyType(), acct.getParentAccount().getCurrencyType(), effectiveDateInt)
 
-                    # This is a 'fudge'.. We convert the calculated costbasis/gains from the investment acct's currency back to shares (which is the acct's currency)
-                    # .. then the NAB 'calculation engine' will reconvert it back to the requested display currency....
-                    cbAsSharesBal = convertValue(asofCostBasisBal, acct.getParentAccount().getCurrencyType(), acct.getCurrencyType(), effectiveDateInt)
-                    cbAsSharesCurBal = convertValue(asofCostBasisCurBal, acct.getParentAccount().getCurrencyType(), acct.getCurrencyType(), effectiveDateInt)
-
                     capGainsBal = capGainsCurBal = None                                                                 # noqa
-                    capGainsAsSharesBal = capGainsAsSharesCurBal = 0
+                    saleGainsBal = saleGainsCurBal = 0
                     capGainsDr = getCapitalGainsDateRangeSelected(NAB.savedUseCostBasisTable[iRowIdx])
+
                     if lRtnCapitalGains:
 
                         capGainsBal = costCalculationBal.getSaleGainsForDateRange(capGainsDr)                           # type: MyCostCalculation.HoldCapitalGainTotal
@@ -6324,30 +6337,24 @@ Visit: %s (Author's site)
                         elif lRtnCapitalGainsLong:
                             saleGainsBal = capGainsBal.totSaleGainsLong
                             saleGainsCurBal = capGainsCurBal.totSaleGainsLong
-
                         else: raise Exception("LOGIC ERROR: unknown Capital Gains type detected?!")
 
-                        capGainsAsSharesBal = convertValue(saleGainsBal, acct.getParentAccount().getCurrencyType(), acct.getCurrencyType(), effectiveDateInt)
-                        capGainsAsSharesCurBal = convertValue(saleGainsCurBal, acct.getParentAccount().getCurrencyType(), acct.getCurrencyType(), effectiveDateInt)
-                            
                     urGainsBal = valueBal - asofCostBasisBal                                                            # noqa
-                    urGainsAsSharesBal = asofSharesBal - cbAsSharesBal
-
                     urGainsCurBal = valueCurBal - asofCostBasisCurBal                                                   # noqa
-                    urGainsAsSharesCurBal = asofSharesCurBal - cbAsSharesCurBal
 
                     if lRtnURGains:
-                        valueAsSharesBal = urGainsAsSharesBal
-                        valueAsSharesCurBal = urGainsAsSharesCurBal
+                        valueBal = urGainsBal
+                        valueCurBal = urGainsCurBal
                     elif lRtnCapitalGains:
-                        valueAsSharesBal = capGainsAsSharesBal
-                        valueAsSharesCurBal = capGainsAsSharesCurBal
+                        valueBal = saleGainsBal
+                        valueCurBal = saleGainsCurBal
                     else:
-                        valueAsSharesBal = cbAsSharesBal
-                        valueAsSharesCurBal = cbAsSharesCurBal
+                        valueBal = asofCostBasisBal
+                        valueCurBal = asofCostBasisCurBal
 
-                    balObj.setBalance(valueAsSharesBal)
-                    balObj.setCurrentBalance(valueAsSharesCurBal)
+                    balObj.setBalance(valueBal)
+                    balObj.setCurrentBalance(valueCurBal)
+                    balObj.setSpecialCurrencyType(acct.getParentAccount().getCurrencyType())
 
                 # NOTE: asof-dated Cleared Balance is ILLOGICAL, so uses the calculated asof-dated Balance ** WARNING **
                 balObj.setClearedBalance(balObj.getBalance())                                                           # WARNING
@@ -6364,10 +6371,10 @@ Visit: %s (Author's site)
                     if isInvestmentAcct(acct):
                         myPrint("B", "!!!! Invst: %s balObj.getBalance(): %s, balObj.getCurrentBalance(): %s" %(acct, balObj.getBalance(), balObj.getCurrentBalance()))
                     else:
-                        myPrint("B", "!!!! Sec: %s balObj.getBalance(): %s asofSharesBal: %s cb: %s cbAsSharesBal: %s urGainsBal: %s, urGainsAsSharesBal: %s (getBalance(): %s"
-                                      %(acct, balObj.getBalance(), asofSharesBal, asofCostBasisBal, cbAsSharesBal, urGainsBal, urGainsAsSharesBal, balObj.getBalance()))                                    # noqa
-                        myPrint("B", "!!!! Sec: %s balObj.getCurrentBalance(): %s asofSharesCurBal: %s cb: %s cbAsSharesCurBal: %s urGainsCurBal: %s, urGainsAsSharesCurBal: %s (getCurrentBalance(): %s"
-                                      %(acct, balObj.getCurrentBalance(), asofSharesCurBal, asofCostBasisCurBal, cbAsSharesCurBal, urGainsCurBal, urGainsAsSharesCurBal, balObj.getCurrentBalance()))       # noqa
+                        myPrint("B", "!!!! Sec: %s balObj.getBalance(): %s asofSharesBal: %s cb: %s urGainsBal: %s, (getBalance(): %s)"
+                                      %(acct, balObj.getBalance(), asofSharesBal, asofCostBasisBal, urGainsBal, balObj.getBalance()))                               # noqa
+                        myPrint("B", "!!!! Sec: %s balObj.getCurrentBalance(): %s asofSharesCurBal: %s cb: %s urGainsCurBal: %s, (getCurrentBalance(): %s)"
+                                      %(acct, balObj.getCurrentBalance(), asofSharesCurBal, asofCostBasisCurBal, urGainsCurBal, balObj.getCurrentBalance()))        # noqa
 
 
         if debug:
