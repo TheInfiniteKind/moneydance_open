@@ -104,6 +104,7 @@
 # build: 1069 - ???
 # build: 1069 - switch to call NetworthCalculator off the EDT...; add warning to DisplayUUID when uuid not found.
 # build: 1069 - Tweaks to fix_non_hier_sec_acct_txns()
+# build: 1069 - MoneydanceGUI Kotlin'ized.. plusPoller renamed to plusController
 # build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -3307,6 +3308,9 @@ Visit: %s (Author's site)
     # GlobalVars.MD_REPGEN_UPGRADED_BUILD = 9999                                                                          # Changes did not make it into live code :-<
     # def isRepGenUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_REPGEN_UPGRADED_BUILD)
 
+    GlobalVars.MD_GUI_KOTLIN_BUILD = 5500                                                                               # MD2025.0(5500)
+    def isGUIKotlinBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_GUI_KOTLIN_BUILD)
+
     GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD = 5142                                                                      # MD2024.2(5142)
     def isMemReportsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD)
 
@@ -3346,7 +3350,7 @@ Visit: %s (Author's site)
     GlobalVars.MD_APPTIMER_UPGRADED_BUILD = 5121                                                                        # MD2024.1(5121)
     def isAppTimerUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_APPTIMER_UPGRADED_BUILD)
     if isAppTimerUpgradedBuild():
-        from com.infinitekind.util import AppTimer
+        from com.infinitekind.util import AppTimer                                                                      # noqa
 
     GlobalVars.MD_ENHANCED_SIDEBAR_BUILD = 5100                                                                         # MD2024(5100)
     def isEnhancedSidebarBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_ENHANCED_SIDEBAR_BUILD)
@@ -3501,7 +3505,7 @@ Visit: %s (Author's site)
             plusPoller = MD_REF.getUI().getPlusController()
             if plusPoller is not None:
                 invokeMethodByReflection(plusPoller, "shutdown", None)
-                setFieldByReflection(MD_REF.getUI(), "plusPoller", None)
+                setFieldByReflection(MD_REF.getUI(), "plusController" if isGUIKotlinBuild() else "plusPoller", None)
 
             try:
                 myPrint("DB", "... Clearing out the in-memory license cache...")
