@@ -239,12 +239,20 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     <fail unless="feature" message="ERROR - do not call this target ('compile-kotlin-if-present') manually!"/>
     <echo level="info" message="... COMPILING kotlin code..."/>
     <echo level="info" message="...... (build-extra-classpath: '${build-extra-classpath}')"/>
+
+<!--    <pathconvert property="classpath.string" refid="classpath" pathsep=":"><map from="${basedir}/" to=""/></pathconvert>-->
+<!--    <echo level="info" message="...... CLASSPATH: ${classpath.string} (build-extra-classpath: '${build-extra-classpath}')"/>-->
+
+<!--    <pathconvert property="effective.classpath" refid="classpath" pathsep=":"><map from="${basedir}/" to=""/></pathconvert>-->
+<!--    <echo level="info" message="kotlinc CP: ${effective.classpath}:${build-extra-classpath}"/>-->
+
     <kotlinc src="${build}/kt-filtered"
       output="${build}"
       classpathref="classpath"
       classpath="${build-extra-classpath}"
       nowarn="true"
-      includeRuntime="false"/>
+      includeRuntime="false">
+    </kotlinc>
   </target>
 
   <!--
