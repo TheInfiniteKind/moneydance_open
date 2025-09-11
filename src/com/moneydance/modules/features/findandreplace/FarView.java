@@ -231,6 +231,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
 
         JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, UiUtil.HGAP, 0));
         JButton userGuide = new JButton(_controller.getString(L10NFindAndReplace.USER_GUIDE));
+        userGuide.setToolTipText("User Guide: " + Main.HELP_FILE);
         userGuide.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
                 FarUtil.launchUserGuide();
@@ -1015,6 +1016,7 @@ class FarView extends SecondaryFrame implements PropertyChangeListener
         row = addRowLabel(findPanel, row, L10NFindAndReplace.FIND_FREETEXT_LABEL,
                 L10NFindAndReplace.FIND_FREETEXT_MNC, _findFreeTextUseCheck, false);
         _findFreeText = new JTextField();
+        _findFreeText.setToolTipText("Enter text to search (case insensitive), or start text with an equals sign (=) followed with a Regular Expression (regex) - e.g. '=(?i).*amazon.*`");
         row = addRowField1(findPanel, row, startCol, _findFreeText);
 
         _findFreeTextUseDescriptionCheck = setupControl( new JCheckBox(

@@ -28,8 +28,6 @@ import java.util.List;
  * interface to Moneydance.</p>
  *
  * @author Kevin Menningen
- * @version Build 209
- * @since 1.0
  */
 
 public class Main extends FeatureModule
@@ -46,6 +44,8 @@ public class Main extends FeatureModule
     public String getBuildString() {
         return Integer.toString(getBuild());
     }
+
+    public final static String HELP_FILE = "https://github.com/TheInfiniteKind/moneydance_open/raw/main/src/com/moneydance/modules/features/findandreplace/help/MANUAL_Find_And_Replace_Extension.pdf";
 
     public void init()
     {

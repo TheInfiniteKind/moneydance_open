@@ -11,26 +11,26 @@ package com.moneydance.modules.features.findandreplace;
 import com.infinitekind.moneydance.model.*;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
 import java.util.*;
 
 import javax.swing.JComponent;
-import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
 import java.awt.Desktop;
 import java.awt.Point;
 import java.awt.Toolkit;
-import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.regex.Pattern;
+
+import static com.moneydance.modules.features.findandreplace.Main.HELP_FILE;
 
 /**
  * <p>Utility methods for extracting information from transactions. Many of these could be useful
@@ -232,20 +232,31 @@ final class FarUtil
         {
             try
             {
-                Desktop.getDesktop().browse(new URI("http://www.mennesoft.com/findandreplace/index.html#usage"));
-            }
-            catch (IOException e)
-            {
-                Logger.logError("Unable to launch browser for user guide - IO exception", e);
-            }
-            catch (URISyntaxException e)
-            {
-                Logger.logError("Unable to launch browser for user guide - URL issue", e);
+              File pdf = downloadToTempFile(HELP_FILE, "manual", ".pdf");
+              Desktop.getDesktop().open(pdf);
+            } catch (Exception e) {
+              Logger.logError("Unable to launch browser for user guide", e);
             }
         }
     }
 
-    
+    public static File downloadToTempFile(String urlStr, String prefix, String suffix) throws Exception {
+      URL url = new URL(urlStr);
+      File tempFile = Files.createTempFile(prefix, suffix).toFile();
+      tempFile.deleteOnExit();
+
+      try (InputStream in = url.openStream();
+           FileOutputStream out = new FileOutputStream(tempFile)) {
+
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+        while ((bytesRead = in.read(buffer)) != -1) {
+          out.write(buffer, 0, bytesRead);
+        }
+      }
+      return tempFile;
+    }
+
     static String stripHtmlPrefixSuffix(final String source)
     {
         String stripped = source;
