@@ -46,7 +46,14 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
   <property name="python-executable" value="python2.7"/>          <!-- Need to use correct version if running ANT on Windows and Linux etc -->
 
   <path id="classpath">
-    <fileset erroronmissingdir="false" dir="${md_ext_lib_dir}" includes="*.jar"/>
+
+    <pathelement location="${md_ext_lib_dir}/moneydance.jar"/>    <!-- Force moneydance.jar first -->
+    <fileset erroronmissingdir="false" dir="${md_ext_lib_dir}">   <!-- all other jars, but not moneydance.jar or extadmin.jar -->
+      <include name="*.jar"/>
+      <exclude name="moneydance.jar"/>
+      <exclude name="extadmin.jar"/>
+    </fileset>
+
     <pathelement path="../lib/kotlin-stdlib-1.9.21.jar"/>
     <pathelement path="../lib/extadmin.jar"/>
     <pathelement path="../lib/moneydance-dev.jar"/>
@@ -58,6 +65,11 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     <pathelement path="../lib/gson-2.10.1.jar"/>
     <pathelement path="../lib/tablelayout-20070421.jar"/> <!-- used by findandreplace extension -->
     <pathelement path="../lib/mdpython.jar"/> <!-- Used for Python pre-compile -->
+
+    <!-- extadmin.jar last - as it contains things like StringUtils -->
+    <pathelement location="${md_ext_lib_dir}/extadmin.jar"/>
+    <pathelement path="../lib/extadmin.jar"/>
+
   </path>
 
   <!-- ******************************************** -->
