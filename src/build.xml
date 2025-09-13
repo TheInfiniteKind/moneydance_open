@@ -40,13 +40,23 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
   <property name="tmp"  value="../tmp"/>
   <property name="debug"  value="on"/>
   <property name="optimize"  value="off"/>
-  <property name="javac-target" value="17"/>
   <property name="javac-source" value="17" />
+  <property name="javac-target" value="17"/>
+  <property name="kotlinc-target" value="17"/>
+  <property name="kotlin-lib-api-ver" value ="1.9"/>
+
   <property name="bootclasspath"  value="../lib/jdk_1.8_rt.jar"/> <!-- only used on legacy extns when source/target is 1.8 and bootclasspath="${bootclasspath}" is passed to javac -->
   <property name="python-executable" value="python2.7"/>          <!-- Need to use correct version if running ANT on Windows and Linux etc -->
 
   <path id="classpath">
-    <fileset erroronmissingdir="false" dir="${md_ext_lib_dir}" includes="*.jar"/>
+
+    <pathelement location="${md_ext_lib_dir}/moneydance.jar"/>    <!-- Force moneydance.jar first -->
+    <fileset erroronmissingdir="false" dir="${md_ext_lib_dir}">   <!-- all other jars, but not moneydance.jar or extadmin.jar -->
+      <include name="*.jar"/>
+      <exclude name="moneydance.jar"/>
+      <exclude name="extadmin.jar"/>
+    </fileset>
+
     <pathelement path="../lib/kotlin-stdlib-1.9.21.jar"/>
     <pathelement path="../lib/extadmin.jar"/>
     <pathelement path="../lib/moneydance-dev.jar"/>
@@ -58,6 +68,11 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     <pathelement path="../lib/gson-2.10.1.jar"/>
     <pathelement path="../lib/tablelayout-20070421.jar"/> <!-- used by findandreplace extension -->
     <pathelement path="../lib/mdpython.jar"/> <!-- Used for Python pre-compile -->
+
+    <!-- extadmin.jar last - as it contains things like StringUtils -->
+    <pathelement location="${md_ext_lib_dir}/extadmin.jar"/>
+    <pathelement path="../lib/extadmin.jar"/>
+
   </path>
 
   <!-- ******************************************** -->
@@ -122,25 +137,31 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
           </fileset>
         </copy>
 
-        <echo level="info" message="... filtering any kotlin sources (if present)..."/>
-        <!--KOTLIN SECTION-->
-        <!-- copy/filter kotlin files to stop bleed-over from other extensions when using <withKotlin/> -->
-        <delete dir="${build}/kt-filtered" failonerror="false"/>
-        <mkdir dir="${build}/kt-filtered"/>
-        <copy todir="${build}/kt-filtered">
-          <fileset dir="${src}">
-            <include name="com/moneydance/modules/features/@{feature}/**/*.kt"/>
-          </fileset>
-        </copy>
+<!--        <echo level="info" message="... filtering any kotlin sources (if present)..."/>-->
+<!--        &lt;!&ndash;KOTLIN SECTION&ndash;&gt;-->
+<!--        &lt;!&ndash; copy/filter kotlin files to stop bleed-over from other extensions when using <withKotlin/> &ndash;&gt;-->
+<!--        <delete dir="${build}/kt-filtered" failonerror="false"/>-->
+<!--        <mkdir dir="${build}/kt-filtered"/>-->
+<!--        <copy todir="${build}/kt-filtered">-->
+<!--          <fileset dir="${src}">-->
+<!--            <include name="com/moneydance/modules/features/@{feature}/**/*.kt"/>-->
+<!--          </fileset>-->
+<!--        </copy>-->
+<!---->
+<!--        &lt;!&ndash;Check whether there are any java files to compile&ndash;&gt;-->
+<!--        <antcall target="maybe-compile-java">-->
+<!--          <param name="feature" value="@{feature}"/>-->
+<!--          <param name="build-extra-classpath" value="@{build-extra-classpath}"/>-->
+<!--        </antcall>-->
+<!---->
+<!--        &lt;!&ndash;Check whether there are any kotlin / kt files to compile&ndash;&gt;-->
+<!--        <antcall target="maybe-compile-kotlin">-->
+<!--          <param name="feature" value="@{feature}"/>-->
+<!--          <param name="build-extra-classpath" value="@{build-extra-classpath}"/>-->
+<!--        </antcall>-->
 
-        <!--Check whether there are any kotlin / kt files to compile-->
-        <antcall target="maybe-compile-kotlin">
-          <param name="feature" value="@{feature}"/>
-          <param name="build-extra-classpath" value="@{build-extra-classpath}"/>
-        </antcall>
 
-        <!--Check whether there are any java files to compile-->
-        <antcall target="maybe-compile-java">
+        <antcall target="compile-java-kotlin-joint">
           <param name="feature" value="@{feature}"/>
           <param name="build-extra-classpath" value="@{build-extra-classpath}"/>
         </antcall>
@@ -152,6 +173,7 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
           <fileset dir="${build}">
             <include name="**"/>
             <exclude name="kt-filtered/**"/>    <!-- don't include any kotlin source files -->
+            <exclude name="feature-src/**"/>
           </fileset>
 
           <!-- note the extra code to be bundled should already exist in the build folder as we pre-compiled it - so it should already get captured -->
@@ -215,6 +237,44 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     <touch file="${src}/com/moneydance/modules/features/${feature}/Main.java"/>
   </target>
 
+  <!-- Joint compile: withKotlin wraps javac; sources are on javac's <src> -->
+  <target name="compile-java-kotlin-joint">
+    <fail unless="feature" message="Do not call this target manually!"/>
+
+    <echo level="info" message="... compiling Java + Kotlin for '${feature}' ..."/>
+
+    <!-- Stage only this feature’s sources -->
+    <delete dir="${build}/feature-src/${feature}" failonerror="false"/>
+    <mkdir dir="${build}/feature-src/${feature}"/>
+    <copy todir="${build}/feature-src/${feature}" overwrite="true">
+      <fileset dir="${src}">
+        <include name="com/moneydance/modules/features/${feature}/**/*.java"/>
+        <include name="com/moneydance/modules/features/${feature}/**/*.kt"/>
+      </fileset>
+    </copy>
+
+    <javac destdir="${build}"
+      debug="${debug}" optimize="${optimize}" encoding="utf8" includeAntRuntime="false">
+      <compilerarg value="--release"/><compilerarg value="${javac-target}"/>
+      <compilerarg value="-Xlint:-options"/>
+      <src path="${build}/feature-src/${feature}"/>   <!-- single, isolated source root containing both .kt and .java -->
+
+      <classpath>
+        <path refid="classpath"/>
+        <pathelement location="${build}"/>
+        <pathelement path="${build-extra-classpath}"/>
+      </classpath>
+
+      <withKotlin>
+        <compilerarg value="-jvm-target"/><compilerarg value="${kotlinc-target}"/>
+        <compilerarg value="-language-version"/><compilerarg value="${kotlin-lib-api-ver}"/>
+        <compilerarg value="-api-version"/><compilerarg value="${kotlin-lib-api-ver}"/>
+        <compilerarg value="-Xjvm-default=all"/>
+      </withKotlin>
+    </javac>
+  </target>
+
+
   <!--
   Generic target(s) for compiling kotlin if kt files are detected when using build-mxt macro.
   -->
@@ -239,13 +299,39 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     <fail unless="feature" message="ERROR - do not call this target ('compile-kotlin-if-present') manually!"/>
     <echo level="info" message="... COMPILING kotlin code..."/>
     <echo level="info" message="...... (build-extra-classpath: '${build-extra-classpath}')"/>
+
+<!--    <pathconvert property="classpath.string" refid="classpath" pathsep=":"><map from="${basedir}/" to=""/></pathconvert>-->
+<!--    <echo level="info" message="...... CLASSPATH: ${classpath.string} (build-extra-classpath: '${build-extra-classpath}')"/>-->
+
+<!--    <pathconvert property="effective.classpath" refid="classpath" pathsep=":"><map from="${basedir}/" to=""/></pathconvert>-->
+<!--    <echo level="info" message="kotlinc CP: ${effective.classpath}:${build-extra-classpath}"/>-->
+
+<!--    <kotlinc src="${build}/kt-filtered"-->
+<!--      output="${build}"-->
+<!--      classpathref="classpath"-->
+<!--      classpath="${build-extra-classpath}"-->
+<!--      nowarn="true"-->
+<!--      includeRuntime="false">-->
+<!--      <compilerarg value="-jvm-target"/>-->
+<!--      <compilerarg value="16"/>-->
+<!--    </kotlinc>-->
+
     <kotlinc src="${build}/kt-filtered"
       output="${build}"
-      classpathref="classpath"
-      classpath="${build-extra-classpath}"
       nowarn="true"
-      includeRuntime="false"/>
+      includeRuntime="false">
+      <classpath>
+        <path refid="classpath"/>
+        <pathelement location="${build}"/>
+        <pathelement path="${build-extra-classpath}"/>
+      </classpath>
+      <compilerarg value="-jvm-target"/>
+      <compilerarg value="16"/>
+    </kotlinc>
+
+
   </target>
+
 
   <!--
   Generic target(s) for compiling java if java files are detected when using build-mxt macro.
@@ -455,6 +541,9 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
       <param name="feature" value="mrbutil" />
     </antcall>
 	</target>
+
+  <target name="quoteloader" depends="init, mrbutil, securityquoteload">
+  </target>
 
   <target name="securityquoteload" depends="init, mrbutil">
     <build-mxt feature="securityquoteload"
