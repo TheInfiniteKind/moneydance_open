@@ -74,7 +74,7 @@ class GoogleConnection(model: StockQuotesModel, private val _displayName: String
     System.err.println("google finance: getting history for " + downloadInfo.fullTickerSymbol)
     val urlStr = getHistoryURL(downloadInfo.fullTickerSymbol)
     
-    val decimal: Char = model.preferences.getDecimalChar()
+    val decimal: Char = model.preferences.decimalChar
     val importer = SnapshotImporterFromURL(urlStr, cookie, model.resources, downloadInfo, API_DATE_FORMAT,
                                            TimeZone.getTimeZone(timeZoneID), decimal)
     importer.setColumnsFromHeader(currentPriceHeader)

@@ -9,6 +9,7 @@ package com.moneydance.modules.features.yahooqt
 
 import com.infinitekind.util.AppDebug
 import com.moneydance.apps.md.controller.FeatureModule
+import com.moneydance.apps.md.controller.FeatureModuleContext
 import com.moneydance.apps.md.controller.PreferencesListener
 import com.moneydance.apps.md.controller.UserPreferences
 import com.moneydance.apps.md.controller.time.TimeInterval
@@ -41,11 +42,12 @@ class Main
   override fun init() {
     // the first thing we will do is register this module to be invoked
     // via the application toolbar
-    val context = context
-    _model = StockQuotesModel(context)
+    val context = context!!
+    mdMain = context as com.moneydance.apps.md.controller.Main
+    _model = StockQuotesModel()
     loadResources()
     _model!!.resources = this
-    context.registerFeature(this, SHOW_DIALOG_COMMAND, icon, name)
+    context.registerFeature(this, SHOW_DIALOG_COMMAND, icon, getName())
     context.registerFeature(this, UPDATE_COMMAND, icon, _resources!!.getString("updateNowMenuTitle"))
     addPreferencesListener()
     val mdGUI = (context as com.moneydance.apps.md.controller.Main).ui as MoneydanceGUI
@@ -55,7 +57,7 @@ class Main
     // If root is null, then we'll just wait for the MD_OPEN_EVENT_ID event. When the plugin
     // is first installed, the root should be non-null. When MD starts up, it is likely to be null
     // until the file is opened.
-    _model!!.setData(getContext().currentAccountBook)
+    _model!!.setData(context.currentAccountBook)
   }
   
   // never actually called by Moneydance!
@@ -122,7 +124,7 @@ class Main
     if (N12EStockQuotes.MD_OPEN_EVENT_ID == s) {
       // cancel any running update
       _model!!.cancelCurrentTask()
-      _model!!.setData(context.currentAccountBook)
+      _model!!.setData(context!!.currentAccountBook)
       _model!!.runUpdateIfNeeded(true, _progressListener) // delay the start of downloading a bit to allow MD to finish up loading
     } else if (N12EStockQuotes.MD_CLOSING_EVENT_ID == s ||
                N12EStockQuotes.MD_EXITING_EVENT_ID == s
@@ -148,7 +150,7 @@ class Main
     } else {
       if (SHOW_DIALOG_COMMAND == command) {
         // should invoke later so this can be returned to its thread
-        SwingUtilities.invokeLater { SettingsWindow(context, this@Main, _model!!).isVisible = true }
+        SwingUtilities.invokeLater { SettingsWindow(context!!, this@Main, _model!!).isVisible = true }
       }
     }
   }
@@ -168,7 +170,7 @@ class Main
       sb.append("&label=")
       sb.append(urlEncode(label))
     }
-    context.showURL(sb.toString())
+    context!!.showURL(sb.toString())
   }
   
   private fun addPreferencesListener() {
@@ -207,6 +209,10 @@ class Main
   } // QuotesProgressListener
   
   companion object {
+    
+    var mdMain: com.moneydance.apps.md.controller.Main? = null
+    val mdGUI: MoneydanceGUI get() = mdMain?.ui as MoneydanceGUI
+
     private const val SHOW_DIALOG_COMMAND = "showDialog"
     private const val UPDATE_COMMAND = "update"
     
@@ -220,7 +226,7 @@ class Main
     const val EXCHANGE_RATES_CONNECTION_KEY: String = "yahooqt.exchangeRatesConnection"
     
     fun getUpdateFrequency(preferences: UserPreferences): TimeInterval {
-      val paramStr = preferences.getSetting(UPDATE_INTERVAL_KEY, "")
+      val paramStr = preferences.getSetting(UPDATE_INTERVAL_KEY) ?: ""
       if (isBlank(paramStr)) return TimeInterval.MONTH
       return TimeInterval.fromChar(paramStr[0])
     }
@@ -243,5 +249,6 @@ class Main
         return null
       }
   }
+  
 }
 
