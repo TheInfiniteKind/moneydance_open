@@ -8,9 +8,7 @@
 package com.moneydance.modules.features.yahooqt
 
 import com.infinitekind.moneydance.model.CurrencyType
-import com.moneydance.apps.md.view.gui.CurrencyModel
 import com.moneydance.apps.md.view.gui.MoneydanceGUI
-import com.moneydance.apps.md.view.gui.OKButtonListener
 import com.moneydance.apps.md.view.gui.OKButtonPanel
 import com.moneydance.awt.GridC
 import com.moneydance.modules.features.yahooqt.SQUtil.addLabelSuffix
@@ -88,7 +86,7 @@ class ExchangeDialog internal constructor(owner: JDialog?,
     fieldPanel.border = BorderFactory.createEmptyBorder(UiUtil.DLG_VGAP, UiUtil.DLG_HGAP, 0, UiUtil.DLG_HGAP)
     contentPane.add(fieldPanel, BorderLayout.CENTER)
     
-    val okButtons = OKButtonPanel(_mdGui, OKButtonListener { buttonId ->
+    val okButtons = OKButtonPanel(_mdGui, { buttonId ->
       if (buttonId == OKButtonPanel.ANSWER_OK) {
         onOK()
       } else {
@@ -102,9 +100,9 @@ class ExchangeDialog internal constructor(owner: JDialog?,
   }
   
   private fun setupCurrencySelector() {
-    val currencyTable = _mdGui.currentBook.currencies
-    val currencyModel = CurrencyModel(currencyTable, CurrencyType.Type.CURRENCY)
-    _currencyChoice = JComboBox<CurrencyType>(currencyModel)
+    val currencyTable = _mdGui.currentBook!!.currencies
+    val currencyModel = CustomCurrencyModel(currencyTable, CurrencyType.Type.CURRENCY)
+    _currencyChoice = JComboBox(currencyModel)
     var currency = currencyTable.getCurrencyByIDString(_exchange.currencyCode)
     if (currency == null) currency = currencyTable.baseType
     currencyModel.selectedItem = currency

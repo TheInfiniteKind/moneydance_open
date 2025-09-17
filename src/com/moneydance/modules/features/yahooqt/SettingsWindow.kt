@@ -176,7 +176,7 @@ class SettingsWindow(private val context: FeatureModuleContext, resources: Resou
     }
     
     _intervalSelect = IntervalChooser(_model.gui)
-    val paramStr = _model.preferences.getSetting(Main.UPDATE_INTERVAL_KEY, "")
+    val paramStr = _model.preferences.getSetting(Main.UPDATE_INTERVAL_KEY) ?: ""
     _intervalSelect!!.selectFromParams(paramStr)
     _nextDate = JDateField(_model.preferences.shortDateFormatter)
     loadNextDate()

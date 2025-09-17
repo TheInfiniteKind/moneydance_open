@@ -8,7 +8,7 @@
 package com.moneydance.modules.features.yahooqt
 
 import com.infinitekind.moneydance.model.AccountBook
-import com.moneydance.apps.md.controller.Util
+import com.infinitekind.util.DateUtil
 import com.moneydance.apps.md.controller.time.TimeInterval
 import com.moneydance.modules.features.yahooqt.SQUtil.delaySpecifiedTime
 import com.moneydance.modules.features.yahooqt.SQUtil.getNextDate
@@ -45,7 +45,7 @@ class UpdateIfNeededTask(private val _model: StockQuotesModel,
     if (preferences.getBoolSetting(Main.AUTO_UPDATE_KEY, false)) {
       val frequency = Main.getUpdateFrequency(_model.preferences)
       // exchange rates first so that the proper exchange rates are used for security price conversions
-      return updateRatesAndPrices(book, frequency, Util.getStrippedDateInt())
+      return updateRatesAndPrices(book, frequency, DateUtil.strippedDateInt)
     }
     return false
   }

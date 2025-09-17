@@ -76,7 +76,7 @@ class FTConnection private constructor(model: StockQuotesModel) : BaseConnection
       firstDate = max(history[history.size - 1].dateInt, firstDate)
     }
     
-    val decimal: Char = model.preferences.getDecimalChar()
+    val decimal: Char = model.preferences.decimalChar
     
     val urlStr = ftSecURL + "?s=" + downloadInfo.fullTickerSymbol
     try {

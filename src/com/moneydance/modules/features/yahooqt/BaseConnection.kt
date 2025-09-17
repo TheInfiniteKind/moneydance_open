@@ -9,16 +9,9 @@ package com.moneydance.modules.features.yahooqt
 
 import com.infinitekind.moneydance.model.Account
 import com.infinitekind.moneydance.model.Account.Companion.makeAccount
-import com.infinitekind.moneydance.model.AccountBook
 import com.infinitekind.moneydance.model.AccountBook.Companion.fakeAccountBook
 import com.infinitekind.moneydance.model.CurrencyType
 import com.infinitekind.moneydance.model.CurrencyUtil.createDefaultTable
-import com.moneydance.apps.md.controller.FeatureModule
-import com.moneydance.apps.md.controller.FeatureModuleContext
-import com.moneydance.apps.md.extensionapi.AccountEditor
-import com.moneydance.apps.md.view.HomePageView
-import java.awt.Image
-import java.io.IOException
 import java.text.MessageFormat
 
 /**
@@ -217,18 +210,7 @@ abstract class BaseConnection(val connectionID: String, model: StockQuotesModel,
     
     fun createEmptyTestModel(): StockQuotesModel {
       val book = fakeAccountBook()
-      val dummyContext = object: FeatureModuleContext {
-        override fun showURL(urlString: String) { QER_LOG.log("showURL: $urlString") }
-        override fun getVersion(): String { return "2025" }
-        override fun getBuild(): Int { return Int.MAX_VALUE }
-        override fun getCurrentAccountBook(): AccountBook { return book }
-        override fun getRootAccount(): Account { return book.getRootAccount() }
-        override fun registerFeature(fm: FeatureModule, parameters: String, featureIcon: Image?, buttonText: String?) { }
-        override fun registerHomePageView(fm: FeatureModule, p1: HomePageView) { }
-        override fun registerAccountEditor(fm: FeatureModule, accountType: Int, editor: AccountEditor) { }
-      }
-      
-      val model = StockQuotesModel(dummyContext)
+      val model = StockQuotesModel()
       createDefaultTable(book, "USD")
       for (curr in book.currencies) {
         curr.setCurrencyType(CurrencyType.Type.CURRENCY)

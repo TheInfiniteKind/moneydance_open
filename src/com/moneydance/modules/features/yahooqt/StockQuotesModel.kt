@@ -11,8 +11,6 @@ import com.infinitekind.moneydance.model.Account
 import com.infinitekind.moneydance.model.AccountBook
 import com.infinitekind.moneydance.model.CurrencyType
 import com.infinitekind.util.CustomDateFormat
-import com.moneydance.apps.md.controller.FeatureModuleContext
-import com.moneydance.apps.md.controller.UserPreferences
 import com.moneydance.apps.md.controller.time.TimeInterval
 import com.moneydance.apps.md.view.gui.MoneydanceGUI
 import java.beans.PropertyChangeListener
@@ -25,14 +23,13 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.SwingUtilities
-import kotlin.Comparator
 
 /**
  * Contains the data needed by the stock quotes synchronizer plugin.
  *
  * @author Kevin Menningen - Mennē Software Solutions, LLC
  */
-class StockQuotesModel internal constructor(private val extensionContext: FeatureModuleContext) : BasePropertyChangeReporter() {
+class StockQuotesModel internal constructor() : BasePropertyChangeReporter() {
   private val NO_CONNECTION = NoConnection(this)
   
   val exchangeList: StockExchangeList = StockExchangeList()
@@ -40,7 +37,8 @@ class StockQuotesModel internal constructor(private val extensionContext: Featur
   private val _securityMap: MutableMap<CurrencyType, MutableSet<Account?>> = HashMap()
   val tableModel: SecuritySymbolTableModel
   private val _cancelTasks = AtomicBoolean(false)
-  var gui = (extensionContext as com.moneydance.apps.md.controller.Main).ui as MoneydanceGUI
+  var mdMain = Main.mdMain
+  var gui = Main.mdGUI
     private set
   var book: AccountBook? = null
     private set
@@ -95,9 +93,9 @@ class StockQuotesModel internal constructor(private val extensionContext: Featur
    */
   fun initialize(mdGUI: MoneydanceGUI, resources: ResourceProvider) {
     gui = mdGUI
-    uIDateFormat = preferences.getShortDateFormatter()
+    uIDateFormat = preferences.shortDateFormatter
     dateTimeFormat = SimpleDateFormat(uIDateFormat.pattern + " h:mm a")
-    decimalDisplayChar = preferences.getDecimalChar()
+    decimalDisplayChar = preferences.decimalChar
     tableModel.initialize(preferences)
     exchangeList.load()
     buildConnectionList(resources)
@@ -140,7 +138,8 @@ class StockQuotesModel internal constructor(private val extensionContext: Featur
   }
   
   fun showURL(url: String?) {
-    extensionContext.showURL(url)
+    url ?: return
+    mdMain?.showURL(url)
   }
   
   val uIDateTimeFormat: DateFormat?
