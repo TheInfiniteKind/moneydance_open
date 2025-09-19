@@ -254,7 +254,7 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     </copy>
 
     <javac destdir="${build}"
-      debug="${debug}" optimize="${optimize}" encoding="utf8" includeAntRuntime="false">
+      debug="${debug}" optimize="${optimize}" encoding="utf8" includeAntRuntime="false" listfiles="true">
       <compilerarg value="--release"/><compilerarg value="${javac-target}"/>
       <compilerarg value="-Xlint:-options"/>
       <src path="${build}/feature-src/${feature}"/>   <!-- single, isolated source root containing both .kt and .java -->
@@ -478,7 +478,7 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
   </target>
 
   <target name="all" depends="init, all_java_kotlin, all_python"/>
-  <target name="all_java_kotlin" depends="init, yahooqt, yahoofx, priceui, findandreplace, debtinsights, ratios, stockglance, securityquoteload, securitypriceload, securityhistoryload, qifloader, filedisplay, loadsectrans, budgetgen, budgetreport, mousetester"/>
+  <target name="all_java_kotlin" depends="init, yahooqt, yahoofx, priceui, findandreplace, debtinsights, ratios, stockglance, securityquoteload, securitypriceload, securityhistoryload, loadsectrans, qifloader, filedisplay, budgetgen, budgetreport, mousetester"/>
   <target name="all_python" depends="init, toolbox, extract_data, list_future_reminders, net_account_balances, extension_tester, accounts_categories_mega_search_window, security_performance_graph"/>
 
 
@@ -542,10 +542,11 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     </antcall>
 	</target>
 
-  <target name="quoteloader" depends="init, mrbutil, securityquoteload">
+  <target name="quoteloader" depends="securityquoteload">
   </target>
 
-  <target name="securityquoteload" depends="init, mrbutil">
+  <target name="securityquoteload" depends="init">
+    <antcall target="mrbutil"/>
     <build-mxt feature="securityquoteload"
       javac-source="${javac-source}" javac-target="${javac-source}"
       jar-extra-includes="com/moneydance/modules/features/mrbutil/**"
@@ -558,7 +559,8 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     </antcall>
   </target>
 
-  <target name="securitypriceload" depends="init, mrbutil">
+  <target name="securitypriceload" depends="init">
+    <antcall target="mrbutil"/>
     <build-mxt feature="securitypriceload"
       javac-source="${javac-source}" javac-target="${javac-source}"
       jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
@@ -570,7 +572,8 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     </antcall>
   </target>
 
-  <target name="securityhistoryload" depends="init, mrbutil">
+  <target name="securityhistoryload" depends="init">
+    <antcall target="mrbutil"/>
     <build-mxt feature="securityhistoryload"
       javac-source="${javac-source}" javac-target="${javac-source}"
       jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
@@ -582,7 +585,8 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
     </antcall>
   </target>
 
-  <target name="qifloader" depends="init, mrbutil">
+  <target name="qifloader" depends="init">
+    <antcall target="mrbutil"/>
     <build-mxt feature="qifloader"
       javac-source="${javac-source}" javac-target="${javac-source}"
       jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
@@ -593,25 +597,29 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
       javac-source="${javac-source}" javac-target="${javac-source}"/>
   </target>
 
-  <target name="loadsectrans" depends="init, mrbutil">
+  <target name="loadsectrans" depends="init">
+    <antcall target="mrbutil"/>
     <build-mxt feature="loadsectrans"
       javac-source="${javac-source}" javac-target="${javac-source}"
       jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
   </target>
 
-  <target name="budgetgen" depends="init, mrbutil">
+  <target name="budgetgen" depends="init">
+    <antcall target="mrbutil"/>
     <build-mxt feature="budgetgen"
       javac-source="${javac-source}" javac-target="${javac-source}"
       jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
   </target>
 
-  <target name="budgetreport" depends="init, mrbutil">
+  <target name="budgetreport" depends="init">
+    <antcall target="mrbutil"/>
     <build-mxt feature="budgetreport"
       javac-source="${javac-source}" javac-target="${javac-source}"
       jar-extra-includes="com/moneydance/modules/features/mrbutil/**"/>
   </target>
 
-  <target name="reportwriter" depends="mrbutil">
+  <target name="reportwriter" depends="init">
+    <antcall target="mrbutil"/>
     <javac
       target="${javac-target}" release="${javac-target}" source="${javac-source}" srcdir="${src}" debug="${debug}" optimize="${optimize}"
       destdir="${build}" includeAntRuntime="false" classpathref="classpath"
