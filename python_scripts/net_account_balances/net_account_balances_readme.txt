@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (created March 2021 - last updated: May 2025)
+Author: Stuart Beesley - StuWareSoftSystems (created March 2021 - last updated: September 2025)
 Credit: (slack: @dtd) aka Dan T Davis for his input, testing, patience and suggestions to make a (much) better product..
 
 Custom Balances works with 2021.1(3056) and newer.
@@ -640,6 +640,7 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
     <#fbo>      = Row name font:    bold
     <#fit>      = Row name font:    italics
     <#fun>      = Row name font:    underline
+    <#f+>       = Row name font:    10% larger (to match other MD widget's total balance value size)
     <#cvre>     = Value colour:     red
     <#cvbl>     = Value colour:     blue
     <#cvgr>     = Value colour:     light grey
@@ -647,6 +648,7 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
     <#fvbo>     = Value font:       bold
     <#fvit>     = Value font:       italics
     <#fvun>     = Value font:       underline
+    <#fv+>      = Value font:       10% larger (to match other MD widget's total balance value size)
     <#nud>      = No special underline dots...
     <#fud>      = Force special underline dots...
     <#bzv>      = Forces any total (value) to appear blank when zero
@@ -704,6 +706,12 @@ NOTE: Click the little "<" icon to the right of the row name field to view/inser
         (txd)        - when tax dates are being used
         (uor: n)     - when using another row; where n = the other row
         (uuid: x)    - with debug enabled... shows the internal UUID reference.
+
+- CREATING A HEADING:
+  Create a new row where you want the heading to appear, and simply put the heading text you want in the row name field.
+  Then using the arrow selector next to the field select / insert the code <#bzv>. Do not otherwise configure the row.
+  As long as you have not selected any accounts, or configuration, you will get just a heading.
+  You can optionally add other field codes, like bold, italics, underline etc, these codes are accumulative.
 
 
 USING CATEGORIES (DATE RANGE)

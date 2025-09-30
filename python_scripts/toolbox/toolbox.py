@@ -105,6 +105,7 @@
 # build: 1069 - switch to call NetworthCalculator off the EDT...; add warning to DisplayUUID when uuid not found.
 # build: 1069 - Tweaks to fix_non_hier_sec_acct_txns()
 # build: 1069 - MoneydanceGUI Kotlin'ized.. plusPoller renamed to plusController
+# build: 1069 - added diag_security_splits_no_price() feature; patch thin_price_history() to exclude just before/after on split dates
 # build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -122,6 +123,11 @@
 # todo - com.moneydance.apps.md.controller.olb.MoneybotURLStreamHandlerFactory.REQUEST_LOG_BASE = File("/Users/xxx/moneydance_http_logs")
 # todo - consider removing toolbox.py source code now that it's compiled and we launch a .class file...
 # todo - advanced_clone_dataset() - consider whether to provide options to zap md+ settings, reset password etc...
+
+
+#todo - @sth - OFX Banking info, redact personal information. it does that for the account numbers in the heading of each section.
+#todo - ...... however there is another line with results of the GetInfo call (including the account number). This line shows up in the log with the ‘?’ replaced with the actual account number.
+#todo -  >> getInfo {u’account_num’: u????? …..}
 
 # NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM....:
 # 1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
@@ -544,8 +550,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2024.4
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5253
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2025.0
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5500
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -562,6 +568,7 @@ else:
     GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL = 5008                          # 2023.2 (Entire codebase compiled in Kotlin)
     GlobalVars.MD_INFINITYBACKUPS_FIXED = 5046                              # 2023.2
     GlobalVars.MD_VMOPTIONS_CHANGED = 5057                                  # 2023.2 (switched to -include files)
+    GlobalVars.MD_PRICEDISPLAYDECIMALS_BUILD = 5147                         # 2024.2
 
     GlobalVars.fixRCurrencyCheck = 0
     GlobalVars.globalSaveFI_data = None
@@ -3426,6 +3433,7 @@ Visit: %s (Author's site)
         global advanced_options_DEBUG, advanced_options_other_DEBUG
         global validate_account_start_dates, fix_account_start_dates
         global view_shouldBeIncludedInNetWorth_settings, edit_shouldBeIncludedInNetWorth_settings, view_networthCalculations
+        global diag_security_splits_no_price
         global view_inactiveAcctsIncludedNW, fix_inactiveAcctsIncludedNW
         global advanced_options_edit_parameter_keys
 
@@ -4298,6 +4306,8 @@ Visit: %s (Author's site)
     def isMDPlusGetPlaidClientEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_GETPLAIDCLIENT_BUILD)                        # 2022.5
 
     def isRRateCurrencyIssueFixedBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_RRATE_ISSUE_FIXED_BUILD)                                # 2021.2
+
+    def isPriceDisplayDecimalsBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_PRICEDISPLAYDECIMALS_BUILD)    # noqa                                  # 2023.0(5000)
 
     def isKotlinCompiledBuildAll(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_KOTLIN_COMPILED_BUILD_ALL)                                    # 2023.0(5000)
 
@@ -18519,6 +18529,7 @@ after saving the file, restart Moneydance
     def thin_price_history():
         # based on: price_history_thinner.py
         # (also includes elements from 2017_remove_orphaned_currency_history_entries.py)
+        # upgraded August 2025 to exclude snaps just before/after/on stock split dates
 
         if MD_REF.getCurrentAccountBook() is None: return
         if MD_REF.getCurrentAccountBook().getSyncer() is None: return
@@ -18669,8 +18680,7 @@ after saving the file, restart Moneydance
         x, y = does_base_has_snaps()
         diagDisplay += x
 
-        jif = QuickJFrame("Price History Analysis", diagDisplay,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
-
+        jif = QuickJFrame("Price History Analysis", diagDisplay, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
 
         if orphanSnaps > 0:
             MyPopUpDialogBox(jif,
@@ -19104,17 +19114,17 @@ after saving the file, restart Moneydance
 
         del orphanSnaps
 
-        def prune_snapshots(_curr, THINMODE, age_limit_days, max_days_between_thinned, lDelete=False, lVerbose=False):        # noqa
+        def prune_snapshots(_curr, THINMODE, age_limit_days, max_days_between_thinned, lDelete=False, lVerbose=False):  # noqa
 
             if THINMODE: ThnTxt="THIN"
             else: ThnTxt="PURGE"
 
             age_limit_date = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, -(age_limit_days))
-            text = "\n>%s: %s'ing snapshots older than %s\n" %(_curr, ThnTxt, convertStrippedIntDateFormattedText(age_limit_date))
+            text = "\n>%s: %s'ing snapshots older than %s (will always protect snaps near (any) stock split dates)\n" %(_curr, ThnTxt, convertStrippedIntDateFormattedText(age_limit_date))
             text += "  %s BEFORE %s (snapshots: %s, splits: %s)\n"%(_curr, ThnTxt, _curr.getSnapshots().size(), _curr.getSplits().size())
             _snapshots = _curr.getSnapshots()
             old_snapshots = []
-            countChanges  = 0
+            countChanges = 0
             saveFirstSnapPreserved = None
             for snapshot in _snapshots:
                 if snapshot.getDateInt() < age_limit_date:
@@ -19131,8 +19141,44 @@ after saving the file, restart Moneydance
                 myPrint("B","@@ LOGIC ERROR why saveFirstSnapPreserved == None?")
                 saveFirstSnapPreserved = age_limit_date
 
+            # --- protect snapshots around splits: prev, on, next ---
+            keep_dates = set()
+            splits = _curr.getSplits() if _curr.getCurrencyType() == CurrencyType.Type.SECURITY else None
+            if splits is None or splits.size() < 1:
+                text += "  > NOTE: No stock splits to worry about\n"
+            else:
+                text += "  > NOTE: Preserving snapshots in the vicinity of %s stock splits found\n" %(splits.size())
+                # snapshots are oldest->newest
+                _all_snap_dates = [s.getDateInt() for s in _snapshots]
+                n = len(_all_snap_dates)
+                for sp in splits:
+                    _splitDate = sp.getDateInt()
+                    # find first index i where _all_snap_dates[i] >= _splitDate
+                    i = 0
+                    while i < n and _all_snap_dates[i] < _splitDate: i += 1
+                    # prev
+                    if i > 0:
+                        keep_dates.add(_all_snap_dates[i-1])
+                        text += "  ... split dated: %s >> preserved snapshot dated: %s (before)\n" %(convertStrippedIntDateFormattedText(_splitDate), convertStrippedIntDateFormattedText(_all_snap_dates[i-1]))
+                    # on + next (if on exists)
+                    if i < n and _all_snap_dates[i] == _splitDate:
+                        text += "  ... split dated: %s >> preserved snapshot dated: %s (ON SPLIT DATE)\n" %(convertStrippedIntDateFormattedText(_splitDate), convertStrippedIntDateFormattedText(_splitDate))
+                        keep_dates.add(_splitDate)
+                        if i+1 < n:
+                            keep_dates.add(_all_snap_dates[i+1])
+                            text += "  ... split dated: %s >> preserved snapshot dated: %s (after)\n" %(convertStrippedIntDateFormattedText(_splitDate), convertStrippedIntDateFormattedText(_all_snap_dates[i+1]))
+                    else:
+                        # no on-split snapshot → keep first-after
+                        if i < n:
+                            keep_dates.add(_all_snap_dates[i])
+                            text += "  ... split dated: %s >> preserved snapshot dated: %s (after) **NO ON SPLIT DATE DETECTED**\n" %(convertStrippedIntDateFormattedText(_splitDate), convertStrippedIntDateFormattedText(_all_snap_dates[i]))
+
             last_date = 0
-            text += "  %s snapshot(s) are older than cutoff date and eligible to be %s'd'..\n" %(len(old_snapshots),ThnTxt)
+
+            if len(keep_dates) > 0:
+                text += "  %s snapshot(s) have date(s) in the vicinity of stock-split dates (i.e. just before/after/on split-date) these will be EXCLUDED and not be %s'd'..\n" %(len(keep_dates), ThnTxt)
+
+            text += "  %s snapshot(s) are older than cutoff date and eligible to be %s'd'..\n" %(len(old_snapshots), ThnTxt)
             num_thinned = 0
             # This presumes the data is presented oldest, to newest, which the inbuilt comparator/sort seems to do...
 
@@ -19141,20 +19187,25 @@ after saving the file, restart Moneydance
                 snapshot = old_snapshots[_i]
                 snap_date = snapshot.getDateInt()
 
-                if _i+1 < len(old_snapshots):                        # not at end of the records
-                    safetyDate = old_snapshots[_i + 1].getDateInt()    # take a peek at the next record..
+                # never delete snapshots around splits
+                if snap_date in keep_dates:
+                    if lVerbose:
+                        text += "    > Not deleting snapshot dated %s (protected: split vicinity)\n" %(convertStrippedIntDateFormattedText(snap_date))
+                    last_date = snap_date
+                    continue
+
+                if _i+1 < len(old_snapshots):                           # not at end of the records
+                    safetyDate = old_snapshots[_i + 1].getDateInt()     # take a peek at the next record..
                 else:
                     safetyDate = saveFirstSnapPreserved
 
                 if (not THINMODE) \
                         or (THINMODE and DateUtil.calculateDaysBetween(last_date, snap_date) < max_days_between_thinned
-                            and DateUtil.calculateDaysBetween(last_date, safetyDate) < max_days_between_thinned+1):  # This ensures there's no huge leap to the next date......
-                    if lVerbose:
-                        text += "    *** delete snapshot dated %s\n" %(convertStrippedIntDateFormattedText(snap_date))
+                            and DateUtil.calculateDaysBetween(last_date, safetyDate) < max_days_between_thinned+1):     # This ensures there's no huge leap to the next date......
+                    if lVerbose: text += "    *** delete snapshot dated %s\n" %(convertStrippedIntDateFormattedText(snap_date))
                     num_thinned += 1
                     if lDelete:
-                        if lVerbose:
-                            myPrint("B","%s PRICE HISTORY: Deleting snapshot: %s" %(ThnTxt,repr(snapshot)))
+                        if lVerbose: myPrint("B","%s PRICE HISTORY: Deleting snapshot: %s" %(ThnTxt, repr(snapshot)))
                         countChanges += 1
                         snapshot.deleteItem()
                 else:
@@ -19165,8 +19216,8 @@ after saving the file, restart Moneydance
                 _i+=1
 
             if len(old_snapshots):
-                text += "  >> %s'd %s of %s eligible (old) snapshots (%s%%) from %s\n"%(ThnTxt, num_thinned, len(old_snapshots), 100*num_thinned/len(old_snapshots), _curr.getName())
-                text += "  >> %s'd %s of %s total snapshots          (%s%%) from %s\n"%(ThnTxt, num_thinned, len(_snapshots), 100*num_thinned/len(_snapshots), _curr.getName())
+                text += "  >> %s'd %s of %s eligible (old) snapshots (%s%%) from %s\n"%(ThnTxt, num_thinned, len(old_snapshots), 100.0 * num_thinned/float(len(old_snapshots)), _curr.getName())
+                text += "  >> %s'd %s of %s total snapshots          (%s%%) from %s\n"%(ThnTxt, num_thinned, len(_snapshots), 100.0 * num_thinned/float(len(_snapshots)), _curr.getName())
             else:
                 text += "  >> No old snapshots %s'd from %s\n" %(ThnTxt, _curr.getName())
 
@@ -28049,6 +28100,12 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_quick_check_prices_all = MenuJRadioButton("DIAG: Produce a quick report on all Currency rates / Security prices / dates", False)
                     user_quick_check_prices_all.setToolTipText("Performs a quick check on all current/latest prices/date and outputs all currencies/securities....")
 
+                    user_diag_splits_no_price = MenuJRadioButton("DIAG: Validate dated price record exists on security split date(s)", False)
+                    user_diag_splits_no_price.setToolTipText("Performs a quick check that all securities with stock splits have a price dated on the split date....")
+
+                    user_diag_splits_no_price_all = MenuJRadioButton("DIAG: List all security split data (also performs validation)", False)
+                    user_diag_splits_no_price_all.setToolTipText("Lists all security's split data - along with validation of the before/after prices...")
+
                     user_edit_security_decimal_places = MenuJRadioButton("FIX: Edit a Security's (hidden) Decimal Place setting (adjusts related Investment txns & Security balances accordingly) (2021.2(3089) onwards)", False, updateMenu=True, secondaryEnabled=(isRRateCurrencyIssueFixedBuild()))
                     user_edit_security_decimal_places.setToolTipText("This allows you to edit the hidden decimal places setting stored against a security (that you determined when you set the security up)")
 
@@ -28094,7 +28151,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 11
+                    rows = 13
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_validateBaseCurr)
@@ -28106,6 +28163,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters.add(user_diagnose_matched_lot_data)
                     userFilters.add(user_quick_check_prices)
                     userFilters.add(user_quick_check_prices_all)
+                    userFilters.add(user_diag_splits_no_price)
+                    userFilters.add(user_diag_splits_no_price_all)
                     userFilters.add(user_diag_price_date)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
@@ -28220,6 +28279,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_diag_price_date.isSelected():                                           list_security_currency_price_date()
                         if user_quick_check_prices.isSelected():                                        quick_security_currency_price_check_report(lQuickCheckOnly=False)
                         if user_quick_check_prices_all.isSelected():                                    quick_security_currency_price_check_report(lQuickCheckOnly=False, lReportAll=True)
+                        if user_diag_splits_no_price.isSelected():                                      diag_security_splits_no_price()
+                        if user_diag_splits_no_price_all.isSelected():                                  diag_security_splits_no_price(lAll=True)
                         if user_autofix_price_date.isSelected():                                        list_security_currency_price_date(autofix=True)
                         if user_validateBaseCurr.isSelected():                                          validateAndFixBaseCurrency(validationOnly=True, popupAlert=True, modalPopup=True, adviseNoErrors=True)
                         if user_fixBaseCurr.isSelected():                                               validateAndFixBaseCurrency(validationOnly=False, popupAlert=True, modalPopup=True, adviseNoErrors=True)

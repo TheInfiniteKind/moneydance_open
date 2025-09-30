@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1057 - May 2025 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1058 - Sept 2025 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -145,7 +145,6 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1055 - Enabled right-click popup context menus on some JLinkLabels and JLabels (aka copy value string to clipboard)...
 # build: 1056 - Tweak the Account type selector so that all accounts and categories is first/selected (for @dtd)
 # build: 1056 - Fix for 2024.3(5220) onwards... Account::getAncestors() changed to a Kotlin Sequence
-# build: 1057 - ???
 # build: 1057 - Added row value formatting tag: <#cvde> = Value colour: default foreground
 # build: 1057 - Enabled <#cmd:xxx> and <#cvmd:xxx> row tags for internal MDColors names.... ;->
 # build: 1057 - NETWORTH ASOF BUILD FOR MD2025 onwards >>>
@@ -153,7 +152,9 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1057 - Improved networth formula detection (using regex) and cache results (including the expensive versions) for efficient repeated usage
 # build: 1057 - Thicken separator lines for Windows...
 # build: 1057 - fixes for replaceSecurityCostBasisBalances() and HoldBalance() to remove the 'fudge' that converted security values (cb, cg, urg etc) back to the security's share value...
-# build: 1057 - ???
+# build: 1058 - ???
+# build: 1058 - Add formatting code <#fv+> - Apply 1.1 multiplier to mono font for value column (to match MD's HomePageView AccountView widget for totals)...
+# build: 1058 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -169,7 +170,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1057"
+version_build = "1058"
 MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -5083,6 +5084,7 @@ Visit: %s (Author's site)
         WIDGET_ROW_VALUE_BOLD           = "<#fvbo>";     WIDGET_ROW_VALUE_BOLD_DISPLAY           = "value font: bold"
         WIDGET_ROW_VALUE_ITALICS        = "<#fvit>";     WIDGET_ROW_VALUE_ITALICS_DISPLAY        = "value font: italics"
         WIDGET_ROW_VALUE_UNDERLINE      = "<#fvun>";     WIDGET_ROW_VALUE_UNDERLINE_DISPLAY      = "value font: underline"
+        WIDGET_ROW_VALUE_PLUS           = "<#fv+>";      WIDGET_ROW_VALUE_PLUS_DISPLAY           = "value font: plus (larger size)"
         WIDGET_ROW_HTMLROWNAME          = "<#html>";     WIDGET_ROW_HTMLROWNAME_DISPLAY          = "EXPERIMENTAL. Takes your row name as html encoded text"
 
         WIDGET_VAR_ROW_NUMBER           = "<##rn>";    WIDGET_VAR_ROW_NUMBER_DISPLAY           = "insert the row number"
@@ -5120,6 +5122,7 @@ Visit: %s (Author's site)
                                 [WIDGET_ROW_VALUE_BOLD,                WIDGET_ROW_VALUE_BOLD_DISPLAY          ],
                                 [WIDGET_ROW_VALUE_ITALICS,             WIDGET_ROW_VALUE_ITALICS_DISPLAY       ],
                                 [WIDGET_ROW_VALUE_UNDERLINE,           WIDGET_ROW_VALUE_UNDERLINE_DISPLAY     ],
+                                [WIDGET_ROW_VALUE_PLUS,                WIDGET_ROW_VALUE_PLUS_DISPLAY          ],
                                 [WIDGET_ROW_MDCOLORROWNAME,            WIDGET_ROW_MDCOLORROWNAME_DISPLAY      ],
                                 [WIDGET_ROW_VALUE_MDCOLOR,             WIDGET_ROW_VALUE_MDCOLOR_DISPLAY       ],
                                 [WIDGET_ROW_HTMLROWNAME,               WIDGET_ROW_HTMLROWNAME_DISPLAY         ],
@@ -5227,6 +5230,7 @@ Visit: %s (Author's site)
             self.valueBold = False
             self.valueItalics = False
             self.valueUnderline = False
+            self.valuePlus = False
 
             self.var_rowNumber = False
             self.var_rowTag = False
@@ -5326,6 +5330,10 @@ Visit: %s (Author's site)
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_UNDERLINE, "")
                 self.valueUnderline = True
 
+            if (self.__class__.WIDGET_ROW_VALUE_PLUS in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_PLUS, "")
+                self.valuePlus = True
+
             if (self.__class__.WIDGET_ROW_RIGHTROWNAME in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_RIGHTROWNAME, "")
                 self.justification = JLabel.RIGHT
@@ -5392,6 +5400,7 @@ Visit: %s (Author's site)
         def getValueBold(self): return self.valueBold
         def getValueItalics(self): return self.valueItalics
         def getValueUnderline(self): return self.valueUnderline
+        def getValuePlus(self): return self.valuePlus
 
         def getValueColor(self, resultValue=-1):
             if self.valueColor is not None:
@@ -5408,6 +5417,7 @@ Visit: %s (Author's site)
         def getValueFont(self, enhanceFormat=True):
             font = self.mono                                                                                            # type: Font
             if enhanceFormat:
+                if self.getValuePlus(): font = font.deriveFont(font.getSize2D()*1.1)
                 if self.getValueBold() or self.getValueItalics() or self.getValueUnderline():
                     fa = font.getAttributes()
                     if self.getValueBold(): fa.put(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD)

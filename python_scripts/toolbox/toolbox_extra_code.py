@@ -43,7 +43,7 @@ global os
 # Moneydance definitions
 global Account, AccountBookWrapper, AccountBook, Common, GridC, MDIOUtils, StringUtils, DropboxSyncConfigurer
 global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySnapshot, CurrencyUtil
-global TxnSearch, ReportSpec, MoneydanceSyncableItem
+global TxnSearch, ReportSpec, MoneydanceSyncableItem, CurrencyType
 global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUpdateTxnsWindow, MoneybotURLStreamHandlerFactory
 global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView, SplitTxn
 
@@ -72,9 +72,9 @@ global confirm_backup_confirm_disclaimer, backup_local_storage_settings, getNetS
 global ManuallyCloseAndReloadDataset, perform_qer_quote_loader_check, safeStr, convertStrippedIntDateFormattedText
 global count_database_objects, SyncerDebug, calculateMoneydanceDatasetSize, removeEmptyDirs
 global isAppDebugEnabledBuild, isKotlinCompiledBuildAll, isMDPlusEnabledBuild, isMDPlusGetPlaidClientEnabledBuild
-global isNetWorthUpgradedBuild
+global isNetWorthUpgradedBuild, isPriceDisplayDecimalsBuild
 global MyAcctFilter, StoreAccountList
-global getMemorizedReports
+global getMemorizedReports, safeInvertRate
 global CuriousViewInternalSettingsButtonAction, check_if_key_data_string_valid, check_if_key_string_valid
 
 # New definitions
@@ -88,6 +88,9 @@ from java.lang import InterruptedException
 from java.util.concurrent import CancellationException
 from java.io import BufferedOutputStream
 from java.util import LinkedHashMap
+
+from bisect import bisect_left
+from fractions import Fraction
 
 try:
     if GlobalVars.EXTRA_CODE_INITIALISED: raise QuickAbortThisScriptException
@@ -838,7 +841,6 @@ try:
 
             sync_pbe_salt_hex = StringUtils.encodeHex(getFieldByReflection(MDSyncCipher, "pbe_salt"), False)
             sync_aes_iv_hex = StringUtils.encodeHex(getFieldByReflection(MDSyncCipher, "aes_iv"), False)
-
 
             syncFolder = wrapper.getSyncFolder()
             if syncFolder is not None:
@@ -2129,9 +2131,9 @@ try:
 
         output += "\n<END>"
 
-        txt = "%s: - Displaying NetWorth Settings" %(_THIS_METHOD_NAME)
+        txt = "%s: Displaying NetWorth Settings" %(_THIS_METHOD_NAME)
         setDisplayStatus(txt, "B")
-        QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+        QuickJFrame(_THIS_METHOD_NAME.upper(), output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
 
     def view_shouldBeIncludedInNetWorth_settings():
         if MD_REF.getCurrentAccountBook() is None: return
@@ -2194,9 +2196,9 @@ try:
                                         ("-" if (not acct.getParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, None)) else (str(acct.getBooleanParameter(GlobalVars.Strings.MD_KEY_PARAM_APPLIES_TO_NW, True)))))
         output += "\n<END>"
 
-        txt = "%s: - Displaying NetWorth Settings" %(_THIS_METHOD_NAME)
+        txt = "%s: Displaying NetWorth Settings" %(_THIS_METHOD_NAME)
         setDisplayStatus(txt, "B")
-        QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+        QuickJFrame(_THIS_METHOD_NAME.upper(), output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
 
     def edit_shouldBeIncludedInNetWorth_settings():
         if MD_REF.getCurrentAccountBook() is None: return
@@ -2273,8 +2275,275 @@ try:
             txt = "%s: Updated the NW setting in %s Account(s)!" %(_THIS_METHOD_NAME, iCountChanges)
         else:
             txt = "%s: No Accounts changed" %(_THIS_METHOD_NAME)
-        setDisplayStatus(txt, "R")
+        setDisplayStatus(txt, "R"); myPrint("B", txt)
         myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+
+
+    #### Security stock splits - before/after split date price checks....
+
+    # ---- tuning ----
+    EPSILON = 1e-8
+    TOL_ON = 0.05       # 5% tolerance for split-date price vs expected
+    TOL_AFTER = 0.10    # 10% tolerance for first-after price vs expected
+
+    # ---- helpers ----
+    def _rel_close(a, b, tol):
+        # pure relative tolerance in SAME orientation as output (no floor)
+        if a is None or b is None:
+            return False
+        denom = abs(b)
+        if denom < EPSILON:
+            return False
+        return abs(a - b) <= tol * denom
+
+    def _pct_diff(actual, expected):
+        if actual is None or expected is None or abs(expected) < EPSILON: return None
+        return (actual - expected) / expected
+
+    def _fmt_val(v, missingTxt, dec, curr):
+        if isPriceDisplayDecimalsBuild(): return missingTxt if v is None else StringUtils.formatRate(v, dec, curr.getPriceDisplayDecimalPlaces())
+        return missingTxt if v is None else (u"%.6f" %(v))
+
+    def _fmt_pct(delta, missingTxt): return missingTxt if delta is None else (u"%+.2f%%" % (delta * 100.0))
+
+    def format_split_ratio_both(ratio_double, dec, max_den=1000):
+        if ratio_double <= 0.0 or unicode(ratio_double) == u"NaN": return u"?:?", unicode(ratio_double)
+        frac = Fraction(ratio_double).limit_denominator(max_den)
+        if isPriceDisplayDecimalsBuild(): return u"%d for %d" % (frac.numerator, frac.denominator), u"*" + StringUtils.formatRate(ratio_double, dec, 6)
+        return u"%d for %d" % (frac.numerator, frac.denominator), u"*%.6f" % ratio_double
+
+    def _find_on_prev_next(snaps, dates, target):
+        n = len(dates)
+        if n == 0: return None, None, None
+        i = bisect_left(dates, target)
+        on = snaps[i] if i < n and dates[i] == target else None
+        prev = snaps[i-1] if i > 0 else None
+        nxt = snaps[i+1] if (on is not None and i+1 < n) else (snaps[i] if (on is None and i < n) else None)
+        return on, prev, nxt
+
+    def _classify_issue(prev_rate, on_rate, later_exists, disp_on, disp_after, disp_expected):
+        # Returns (warning, action) for failing rows only (OK rows are skipped before calling this)
+        if prev_rate is None:
+            return (u"No before split price found", u"Add a price record before the split date")
+        if on_rate is None:
+            if later_exists and disp_expected is not None and disp_after is not None:
+                if _rel_close(disp_after, disp_expected, TOL_AFTER):
+                    return (u"No split date price found (later price consistent with expected)",
+                            u"Add a price record on the split date")
+                return (u"No split date price found (later price inconsistent with expected)",
+                        u"Add a price record on the split date")
+            return (u"No split date price found", "Add a price record on the split date")
+        if disp_expected is not None and disp_on is not None and not _rel_close(disp_on, disp_expected, TOL_ON):
+            return (u"Split date price found, but expecting different price",
+                    u"Review and correct the split date price record")
+        if (disp_after is not None) and (disp_expected is not None) and (not _rel_close(disp_after, disp_expected, TOL_AFTER)):
+            return (u"After split price inconsistent with expected post split price",
+                    u"Review and correct post-split price records")
+        return (u"", u"")
+
+    # Signed deltas using Moneydance DateUtil (ints YYYYMMDD)
+    def _delta_prev(prevDateInt, splitDateInt):
+        if prevDateInt is None: return u""
+        days = DateUtil.calculateDaysBetween(prevDateInt, splitDateInt)
+        return u"%+d" % (-abs(days))
+
+    def _delta_next(nextDateInt, splitDateInt):
+        if nextDateInt is None: return u""
+        days = DateUtil.calculateDaysBetween(splitDateInt, nextDateInt)
+        return u"%+d" % abs(days)
+
+    # ---- main ----
+    def diag_security_splits_no_price(lAll=False):
+        if MD_REF.getCurrentAccountBook() is None: return
+
+        if lAll:
+            _THIS_METHOD_NAME = u"DIAG: List all security split data (also performs validation)"
+        else:
+            _THIS_METHOD_NAME = u"DIAG: Validate dated price record exists on security split date(s)"
+
+        output = u""
+        output += u"\n%s:\n" % _THIS_METHOD_NAME.upper()
+        output += u" ================================================================\n\n"
+
+        # ---------- two-row headers ----------
+        output += u"%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n" % (
+            pad(u"Security", 60),               # Security
+            pad(u"Split", 10),                  # Split date
+            pad(u"Qty Split", 12),              # Qty Split ratio (text: "X for Y")
+            rpad(u"", 1),                       # ratio arrow
+            rpad(u"Qty Split", 12),             # Qty Split decimal ratio
+            pad(u"Before", 10),                 # Before split - date found
+            pad(u"Before", 6),                  # Before split - days
+            rpad(u"Before", 12),                # Before split - price
+            pad(u"**Split**", 10),              # On split date - date found
+            rpad(u"**Split**", 12),             # On split date - price
+            rpad(u"Est. Price", 12),            # Est. price after split
+            rpad(u"", 1),                       # Est. price arrow
+            rpad(u"calc", 10),                  # Est price delta (post-split price to estimated price)
+            pad(u"Next", 10),                   # Next after - split date
+            pad(u"", 6),                        # Next after - days
+            rpad(u"Next", 12),                  # Next after - price found
+            rpad(u"Next", 10),                  # Next after price % delta
+            pad(u"Warnings", 20)
+        )
+
+        output += u"%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n" % (
+            pad(u"", 60),                  # Security
+            pad(u"Date", 10),              # Split date
+            pad(u"New for Old", 12),       # Qty Split ratio (text: "X for Y")
+            rpad(u"", 1),                  # ratio arrow
+            rpad(u"(dec) Ratio", 12),      # Qty Split decimal ratio
+            pad(u"Split Date", 10),        # Before split - date found
+            pad(u"Days", 6),               # Before split - days
+            rpad(u"Split Price", 12),      # Before split - price
+            pad(u"Date Found", 10),        # On split date - date found
+            rpad(u"Price Found", 12),      # On split date - price
+            rpad(u"Post Split", 12),       # Est. price after split
+            rpad(u"", 1),                  # Est. price arrow
+            rpad(u"Price %\u0394", 10),    # Est price delta (post-split price to estimated price)
+            pad(u"After Date", 10),        # Next after - split date
+            pad(u"Days", 6),               # Next after - days
+            rpad(u"Price Found", 12),      # Next after - price found
+            rpad(u"Price %\u0394", 10),
+            pad(u"Action", 20)
+        )
+
+        # underlines
+        output += u"%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n\n" % (
+            u"-"*60, u"-"*10, u"-"*12, " "*1, u"-"*12, u"-"*10, u"-"*6, u"-"*12, u"-"*10, u"-"*12, u"-"*12, " "*1, u"-"*10, u"-"*10, u"-"*6, u"-"*12, u"-"*10, u"-"*20
+        )
+
+        # gather securities (securities only) and sort by name
+        allSecurities = [s for s in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
+                         if s.getCurrencyType() is CurrencyType.Type.SECURITY]
+        allSecurities = sorted(allSecurities, key=lambda x: x.getName().upper())
+
+        sdf = MD_REF.getPreferences().getShortDateFormatter()
+        dec = MD_REF.getPreferences().getDecimalChar()
+
+        countIssues = 0
+        last_sec = None
+        missingTxt = u"<missing>"
+
+        for sec in allSecurities:
+            splits = sec.getSplits()
+            if not splits: continue
+
+            snaps = list(sec.getSnapshots())
+            if not snaps: continue
+
+            dates = [s.getDateInt() for s in snaps]
+
+            emitted_for_this_sec = False
+
+            for split in splits:
+                ratio = split.getSplitRatio()
+                if abs(ratio - 1.0) < EPSILON: continue
+
+                splitDate = split.getDateInt()
+                on_snap, prev_snap, next_snap = _find_on_prev_next(snaps, dates, splitDate)
+
+                beforeSplitDateRate = None if prev_snap is None else prev_snap.getRate()
+                onSplitDateRate = None if on_snap is None else on_snap.getRate()
+                afterSplitDateRate = None if next_snap is None else next_snap.getRate()
+
+                # expected in RAW orientation (unchanged)
+                estSplitDateRate = None if (beforeSplitDateRate is None or ratio <= 0.0) else (beforeSplitDateRate * ratio)
+
+                # ---- compute DISPLAY orientation values once ----
+                disp_before   = None if beforeSplitDateRate is None else safeInvertRate(beforeSplitDateRate)
+                disp_on       = None if onSplitDateRate     is None else safeInvertRate(onSplitDateRate)
+                disp_after    = None if afterSplitDateRate  is None else safeInvertRate(afterSplitDateRate)
+                disp_expected = None if estSplitDateRate    is None else safeInvertRate(estSplitDateRate)
+
+                # strict pass/fail using DISPLAY orientation for consistency with shown %Δ
+                ok = True
+                if beforeSplitDateRate is None: ok = False
+                elif onSplitDateRate is None: ok = False
+                elif disp_expected is None or not _rel_close(disp_on, disp_expected, TOL_ON): ok = False
+                elif (disp_after is not None) and (not _rel_close(disp_after, disp_expected, TOL_AFTER)): ok = False
+
+                if ok and (not lAll): continue
+
+                if ok:
+                    warning, action = u"OK", u""
+                else:
+                    later_exists = next_snap is not None
+                    warning, action = _classify_issue(
+                        beforeSplitDateRate, onSplitDateRate, afterSplitDateRate, estSplitDateRate,
+                        later_exists, disp_on)
+
+                beforeDisp   = _fmt_val(disp_before,   missingTxt, dec, sec)
+                onDisp       = _fmt_val(disp_on,       missingTxt, dec, sec)
+                afterDisp    = _fmt_val(disp_after,    missingTxt, dec, sec)
+                expectedDisp = _fmt_val(disp_expected, missingTxt, dec, sec)
+
+                # %Δ in DISPLAY orientation
+                pct_on    = _pct_diff(disp_on,    disp_expected)
+                pct_after = _pct_diff(disp_after, disp_expected)
+
+                prevDateInt = None if prev_snap is None else prev_snap.getDateInt()
+                onDateInt   = None if on_snap   is None else on_snap.getDateInt()
+                nextDateInt = None if next_snap is None else next_snap.getDateInt()
+
+                prevDateStr = missingTxt if prevDateInt is None else sdf.format(prevDateInt)
+                onDateStr   = missingTxt if onDateInt   is None else sdf.format(onDateInt)
+                nextDateStr = missingTxt if nextDateInt is None else sdf.format(nextDateInt)
+
+                dPrev = _delta_prev(prevDateInt, splitDate)
+                dNext = _delta_next(nextDateInt, splitDate)
+
+                ratio_str, ratio_dec = format_split_ratio_both(ratio, dec)
+
+                if not emitted_for_this_sec:
+                    if last_sec is not None: output += u"\n"
+                    last_sec = sec
+                    emitted_for_this_sec = True
+
+                secNameCol = sec.getName()
+
+                output += u"%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n" % (
+                    padTruncateWithDots(secNameCol, 60),            # Security
+                    pad(sdf.format(splitDate), 10),                 # Qty Split date
+                    pad(ratio_str, 12),                             # Qty Split ratio (text: "X for Y")
+                    pad(u"↓" if (ratio < 1.0) else u"↑", 1),        # ratio arrow
+                    rpad(ratio_dec, 12),                            # Qty Split decimal ratio
+                    pad(prevDateStr, 10),                           # Before split - date found
+                    pad(dPrev, 6),                                  # Before split - days
+                    rpad(beforeDisp, 12),                           # Before split - price
+                    pad(onDateStr, 10),                             # On split date - date found
+                    rpad(onDisp, 12),                               # On split date - price
+                    rpad(expectedDisp, 12),                         # Est. price after split
+                    pad(u"↑" if (ratio < 1.0) else u"↓", 1),        # Est. price arrow
+                    rpad(_fmt_pct(pct_on,   missingTxt), 10),       # Est price delta
+                    pad(nextDateStr, 10),                           # Next after - date
+                    pad(dNext, 6),                                  # Next after - days
+                    rpad(afterDisp, 12),                            # Next after - price
+                    rpad(_fmt_pct(pct_after, missingTxt), 10),      # Next after price % delta
+                    warning + (u" | " + action if action else "")   # warning / action
+                )
+
+                if not ok: countIssues += 1
+
+        output += u"\n<END>"
+
+        # Show frame if issues exist OR lAll=True. Suppress info popup when lAll=True.
+        if lAll or countIssues > 0:
+            if countIssues > 0:
+                txt = "%s: Displaying %s split-date pricing validation issue(s)" % (_THIS_METHOD_NAME, countIssues)
+                setDisplayStatus(txt, "R")
+            else:
+                txt = "%s: Displaying all split data (and validation results)" %(_THIS_METHOD_NAME)
+                setDisplayStatus(txt, "B")
+            jif = QuickJFrame(_THIS_METHOD_NAME.upper(), output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
+            myPopupInformationBox(jif, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+
+        else:
+            txt = "%s: - No split-date pricing validation issues detected!" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.INFORMATION_MESSAGE)
+
+    #### Security stock splits - before/after split date price checks....
 
     class CollectTheGarbage(AbstractAction):
 
