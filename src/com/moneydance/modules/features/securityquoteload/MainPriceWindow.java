@@ -1107,6 +1107,12 @@ public class MainPriceWindow extends JFrame implements TaskListener {
       SwingUtilities.invokeLater(() ->
                                    JOptionPane.showMessageDialog(Main.frame, finalIRowCount + " prices updated"));
 		}
+    try {
+      Main.context.getCurrentAccountBook().getCurrencies().fireCurrencyTableModified(); // send a notification to MD that currency(s)/security(s) have changed (prices)
+      Main.debugInst.debug("MainPriceWindow", "save", MRBDebug.DETAILED, "triggered fireCurrencyTableModified()");
+    } catch (Exception e) {
+      Main.debugInst.debug("MainPriceWindow", "save", MRBDebug.DETAILED, "FAILED TO call fireCurrencyTableModified() - error: " + e);
+    }
 		Main.isUpdating = false;
 	}
 
