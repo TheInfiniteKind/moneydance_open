@@ -106,6 +106,7 @@
 # build: 1069 - Tweaks to fix_non_hier_sec_acct_txns()
 # build: 1069 - MoneydanceGUI Kotlin'ized.. plusPoller renamed to plusController
 # build: 1069 - added diag_security_splits_no_price() feature; patch thin_price_history() to exclude just before/after on split dates
+# build: 1069 - Tweak online_banking_view_configuration_data() to skip getInfo() output when redacting. Not necessary to log this...
 # build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -123,11 +124,6 @@
 # todo - com.moneydance.apps.md.controller.olb.MoneybotURLStreamHandlerFactory.REQUEST_LOG_BASE = File("/Users/xxx/moneydance_http_logs")
 # todo - consider removing toolbox.py source code now that it's compiled and we launch a .class file...
 # todo - advanced_clone_dataset() - consider whether to provide options to zap md+ settings, reset password etc...
-
-
-#todo - @sth - OFX Banking info, redact personal information. it does that for the account numbers in the heading of each section.
-#todo - ...... however there is another line with results of the GetInfo call (including the account number). This line shows up in the log with the ‘?’ replaced with the actual account number.
-#todo -  >> getInfo {u’account_num’: u????? …..}
 
 # NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM....:
 # 1. At launch it connects to the Author's code site to get information about the latest version of Toolbox and version requirements
@@ -7586,6 +7582,10 @@ Visit: %s (Author's site)
                                         and meth.getParameterCount() < 1:
                                     result = meth.invoke(availAccount)
                                     if GlobalVars.redact:
+
+                                        # just skip this when redacting, the various getXXX() methods will already contain the info and redact..
+                                        if meth.getName().lower() == "getinfo": continue
+
                                         for checkKey in ["mapping", "balance", "number", "key"]:
                                             if checkKey in meth.getName().lower():
                                                 result = redactor(result)
