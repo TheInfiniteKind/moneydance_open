@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1047 - June 2025 - Stuart Beesley
+# extract_data.py - build: 1048 - Oct 2025 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -98,10 +98,14 @@
 # build: 1045 - Added tags to extract reminders...; retain sort between reminder refresh(s)
 # build: 1045 - Tweaked EAR extract... copy check to parent if empty, added isParentTxn
 # build: 1046 - Added extract category information (ECI) extract
-# build: 1047 - ???
 # build: 1047 - BUGFIX - Extract Reminders when notes... Missing tags column (index 18)...
 # build: 1047 - Patch ESB - invalid Account::getMaturity() date (in this case a value of 28800000!?
-# build: 1047 - ???
+# build: 1048 - ???
+# build: 1048 - tweak path validation message with new setFilePathValidationMessage()
+# build: 1048 - EAR - tweak code to grab description/memo (especially for splits), also tweak a split's 'real' index (from zero to the parent's index for this split)...
+# build: 1048 - ... now the Description/Memo field contain the parent's data, Cheque/Memo can be [bracket] wrapped when not set and showing parent's data. SplitMemo will show split memo or just ""
+# build: 1048 - Improve stripping of linefeeds and tabs with stripReplaceCharacters()
+# build: 1048 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -116,7 +120,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1047"
+version_build = "1048"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -4500,6 +4504,10 @@ Visit: %s (Author's site)
             return dim
 
     class SelectExtractFolderAL(ActionListener):
+
+        def __init__(self, statusLabel):
+            self.statusLabel = statusLabel
+
         def actionPerformed(self, event):
             source = event.getSource()                                                                                  # noqa
             actionCmd = event.getActionCommand()
@@ -4522,10 +4530,20 @@ Visit: %s (Author's site)
                 myPrint("B", "Extract folder changed to: '%s'" %(GlobalVars.saved_defaultSavePath_SWSS))
             else:
                 myPrint("B", "Extract folder NOT changed - remains: '%s'" %(GlobalVars.saved_defaultSavePath_SWSS))
+            setFilePathValidationMessage(self.statusLabel)
 
+    def setFilePathValidationMessage(statusLabel):
+        if isValidExtractFolder(GlobalVars.saved_defaultSavePath_SWSS):
+            statusLabel.setForeground(getColorBlue())
+            statusLabel.setText("<<Extract folder path valid>>")
+        else:
+            statusLabel.setForeground(getColorRed())
+            statusLabel.setText("<<WARNING: Extract folder path INVALID - Please select folder...>>")
 
     def getExtractChoice(defaultSelection):
         _exit = False
+
+        statusLabel = JLabel("")
 
         extnSettings = getExtensionDatasetSettings()
         EXTN_PREF_KEY_AUTO_EXTRACT_WHEN_FILE_CLOSING = "auto_extract_when_file_closing"
@@ -4546,7 +4564,7 @@ Visit: %s (Author's site)
         user_autoExtractWhenFileClosing = JCheckBox("Enable auto extract EVERY TIME this dataset closes (USE WITH CARE!)?", extnSettings.getBoolean(EXTN_PREF_KEY_AUTO_EXTRACT_WHEN_FILE_CLOSING, False))
         user_autoExtractWhenFileClosing.setToolTipText("WARNING: When enabled, all the selected 'auto extracts' will execute every time this dataset closes!")
 
-        user_defaultSavePath_JBTN = JButton(MDAction.makeNonKeyedAction(MD_REF.getUI(), "<<CLICK HERE - Set Extract Folder>>", "set_extract_folder", SelectExtractFolderAL()))
+        user_defaultSavePath_JBTN = JButton(MDAction.makeNonKeyedAction(MD_REF.getUI(), "<<CLICK HERE - Set Extract Folder>>", "set_extract_folder", SelectExtractFolderAL(statusLabel)))
         user_lShowFolderAfterExtract_SWSS = JCheckBox("Show / open folder after extract(s)?", GlobalVars.saved_lShowFolderAfterExtract_SWSS)
 
         user_extractFileAddDatasetName_SWSS = JCheckBox("Prefix extract file name with dataset name?", GlobalVars.saved_extractFileAddDatasetName_SWSS)
@@ -4560,8 +4578,6 @@ Visit: %s (Author's site)
 
         user_extractFileAddNamePrefix_SWSS.setText(GlobalVars.saved_extractFileAddNamePrefix_SWSS)
         user_extractFileAddTimeStampSuffix_SWSS = JCheckBox("Suffix extract file name with timestamp?", GlobalVars.saved_extractFileAddTimeStampSuffix_SWSS)
-
-        statusLabel = JLabel("")
 
         bg = ButtonGroup()
         bg.add(user_stockglance2020)
@@ -4642,12 +4658,7 @@ Visit: %s (Author's site)
         _options = ["EXIT", "PROCEED"]
 
         while True:
-            if isValidExtractFolder(GlobalVars.saved_defaultSavePath_SWSS):
-                statusLabel.setForeground(getColorBlue())
-                statusLabel.setText("<<Extract folder path valid>>")
-            else:
-                statusLabel.setForeground(getColorRed())
-                statusLabel.setText("<<WARNING: Extract folder path INVALID - Please select folder...>>")
+            setFilePathValidationMessage(statusLabel)
             rowHeight = 24
             rows = 25
             jsp = MyJScrollPaneForJOptionPane(_userFilters, None, 750, rows * rowHeight)
@@ -7009,6 +7020,37 @@ Visit: %s (Author's site)
         day = _dateInt % 100
         return year, month, day
 
+    def stripReplaceCharacters(inputStr):
+        TAB_SYMBOL = "⇥"
+        LINEFEED_SYMBOL = "⏎"
+        inputStr = inputStr.replace("\t", TAB_SYMBOL)
+        inputStr = inputStr.replace("\r\n", LINEFEED_SYMBOL)    # Windows
+        inputStr = inputStr.replace("\n", LINEFEED_SYMBOL)      # Unix/macOS
+        inputStr = inputStr.replace("\r", LINEFEED_SYMBOL)      # 'old' Mac
+        return inputStr
+
+    def wrapTextWithSquares(what):
+        if what is not None and what != "": what = "[%s]" %(what)
+        return what
+
+    def getTxnDescription(txn):
+        # type: (AbstractTxn) -> String
+        if isinstance(txn, SplitTxn):
+            return txn.getParentTxn().getDescription().strip()
+        else:
+            return txn.getDescription().strip()
+
+    def getTxnMemo(txn, fallBackParent, grabParentMemo=False):
+        # type: (AbstractTxn, bool, bool) -> String
+        if isinstance(txn, SplitTxn):
+            memo = txn.getDescription().strip()
+            if memo == getTxnDescription(txn): memo = ""
+            if fallBackParent and (memo == "" or grabParentMemo):
+                memo = txn.getParentTxn().getMemo().strip()
+                memo = wrapTextWithSquares(memo)
+        else:
+            memo = txn.getParentTxn().getMemo().strip()
+        return memo
 
     class MainAppRunnable(Runnable):
         def __init__(self): pass
@@ -8941,8 +8983,7 @@ Visit: %s (Author's site)
 
                                             if theString[:3] == "===": theString = " " + theString  # Small fix as Libre Office doesn't like "=======" (it thinks it's a formula)
 
-                                            theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                            theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                            theString = stripReplaceCharacters(theString)
 
                                             if GlobalVars.saved_lStripASCII_SWSS:
                                                 all_ASCII = ''.join(char for char in theString if
@@ -9121,7 +9162,7 @@ Visit: %s (Author's site)
                                             remtype = rem.getReminderType()  # NOTE or TRANSACTION
                                             desc = rem.getDescription().replace(",", " ")
                                             memo = rem.getMemo().replace(",", " ").strip()
-                                            memo = memo.replace("\n", "*").strip()
+                                            memo = stripReplaceCharacters(memo).strip()
 
                                             todayInt = DateUtil.getStrippedDateInt()
                                             lastdate = rem.getLastDateInt()
@@ -9257,9 +9298,9 @@ Visit: %s (Author's site)
                                             rem = rems[index]  # Get the reminder
 
                                             remtype = rem.getReminderType()  # NOTE or TRANSACTION
-                                            desc = rem.getDescription().replace(",", " ")  # remove commas to keep csv format happy
+                                            desc = rem.getDescription().replace(",", " ")   # remove commas to keep csv format happy
                                             memo = rem.getMemo().replace(",", " ").strip()  # remove commas to keep csv format happy
-                                            memo = memo.replace("\n", "*").strip()  # remove newlines to keep csv format happy
+                                            memo = stripReplaceCharacters(memo).strip()
 
                                             # determine the frequency of the transaction
                                             daily = rem.getRepeatDaily()
@@ -10264,8 +10305,7 @@ Visit: %s (Author's site)
 
                                                 theString = theString.strip()  # remove leading and trailing spaces
 
-                                                theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                                theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                                theString = stripReplaceCharacters(theString)
 
                                                 if GlobalVars.saved_lStripASCII_SWSS:
                                                     all_ASCII = ''.join(char for char in theString if ord(char) < 128)  # Eliminate non ASCII printable Chars too....
@@ -10639,15 +10679,12 @@ Visit: %s (Author's site)
 
                                         check = txn.getCheckNumber()
                                         pCheck = parent_Txn.getCheckNumber()
+                                        if pCheck != "": pCheck = wrapTextWithSquares(pCheck)
                                         _row[GlobalVars.dataKeys["_CHEQUE"][_COLUMN]] = check if check != "" else pCheck  # use the parent check if the split's check is missing
 
-                                        _row[GlobalVars.dataKeys["_DESC"][_COLUMN]] = parent_Txn.getDescription()
-                                        if lParent:
-                                            _row[GlobalVars.dataKeys["_MEMO"][_COLUMN]] = txn.getMemo()
-                                        else:
-                                            _row[GlobalVars.dataKeys["_MEMO"][_COLUMN]] = txn.getDescription()
+                                        _row[GlobalVars.dataKeys["_DESC"][_COLUMN]] = getTxnDescription(txn)            # always the parent's description
+                                        _row[GlobalVars.dataKeys["_MEMO"][_COLUMN]] = getTxnMemo(txn, True, True)       # always the parent's memo, can be [wrapped] if on a split
                                         _row[GlobalVars.dataKeys["_CLEARED"][_COLUMN]] = getStatusCharRevised(txn)
-
 
                                         if acctCurr == GlobalVars.baseCurrency:
                                             _row[GlobalVars.dataKeys["_TOTALAMOUNT"][_COLUMN]] = acctCurr.getDoubleValue(txn.getValue())
@@ -10667,26 +10704,27 @@ Visit: %s (Author's site)
 
                                         for _ii in range(0, int(parent_Txn.getOtherTxnCount())):        # If a split, then it will always make it here...
 
-                                            if not lParent and _ii > 0: break
+                                            realSplitIdx = _ii
 
+                                            if not lParent and _ii > 0: break                           # process all parent's splits, but only process a single split...
+                                            otherSideTxn = parent_Txn.getOtherTxn(_ii)
                                             splitRowCopy = deepcopy(_row)
 
                                             if lParent:
-
                                                 if (not GlobalVars.saved_lAllTags_EAR
                                                         and not tag_search(GlobalVars.saved_tagFilter_EAR, txn.getKeywords())
-                                                        and not tag_search(GlobalVars.saved_tagFilter_EAR, parent_Txn.getOtherTxn(_ii).getKeywords())):
+                                                        and not tag_search(GlobalVars.saved_tagFilter_EAR, otherSideTxn.getKeywords())):
                                                     continue
 
                                                 if (not GlobalVars.saved_lAllText_EAR
                                                         and GlobalVars.saved_textFilter_EAR not in (parent_Txn.getDescription().upper().strip()
                                                                                    +txn.getMemo().upper().strip()
-                                                                                   +parent_Txn.getOtherTxn(_ii).getDescription().upper()).strip()):
+                                                                                   +otherSideTxn.getDescription().upper()).strip()):
                                                     continue
 
                                                 # The category logic below was added by IK user @Mark
                                                 if (not GlobalVars.saved_lAllCategories_EAR):        # Note: we only select Accounts, thus Parents are always Accounts (not categories)
-                                                    splitTxnAccount = parent_Txn.getOtherTxn(_ii).getAccount()
+                                                    splitTxnAccount = otherSideTxn.getAccount()
                                                     parentAccount = parent_Txn.getAccount()
                                                     if ( (isCategory(parentAccount) and GlobalVars.saved_categoriesFilter_EAR in (parentAccount.getFullAccountName().upper().strip()))
                                                             or (isCategory(splitTxnAccount) and GlobalVars.saved_categoriesFilter_EAR in (splitTxnAccount.getFullAccountName().upper().strip())) ):
@@ -10694,19 +10732,20 @@ Visit: %s (Author's site)
                                                     else:
                                                         continue
 
-                                                splitMemo = parent_Txn.getOtherTxn(_ii).getDescription()
-                                                splitTags = safeStr(parent_Txn.getOtherTxn(_ii).getKeywords())
-                                                splitCat = parent_Txn.getOtherTxn(_ii).getAccount().getFullAccountName()
-                                                splitHasAttachments = parent_Txn.getOtherTxn(_ii).hasAttachments()
+                                                splitMemo = getTxnMemo(otherSideTxn, False)
+
+                                                splitTags = safeStr(otherSideTxn.getKeywords())
+                                                splitCat = otherSideTxn.getAccount().getFullAccountName()
+                                                splitHasAttachments = otherSideTxn.hasAttachments()
 
                                                 splitFAmount = None
-                                                if parent_Txn.getOtherTxn(_ii).getAmount() != parent_Txn.getOtherTxn(_ii).getValue():
-                                                    splitFAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getValue()) * -1
-                                                    splitAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getAmount()) * -1
+                                                if otherSideTxn.getAmount() != otherSideTxn.getValue():
+                                                    splitFAmount = acctCurr.getDoubleValue(otherSideTxn.getValue()) * -1
+                                                    splitAmount = acctCurr.getDoubleValue(otherSideTxn.getAmount()) * -1
                                                 else:
-                                                    splitAmount = acctCurr.getDoubleValue(parent_Txn.getOtherTxn(_ii).getValue()) * -1
+                                                    splitAmount = acctCurr.getDoubleValue(otherSideTxn.getValue()) * -1
 
-                                                transferAcct = parent_Txn.getOtherTxn(_ii).getAccount()
+                                                transferAcct = otherSideTxn.getAccount()
                                                 transferType = transferAcct.getAccountType()
 
                                                 # noinspection PyUnresolvedReferences
@@ -10725,6 +10764,7 @@ Visit: %s (Author's site)
                                             else:
                                                 # ######################################################################################
                                                 # We are on a split - which is a standalone transfer in/out
+                                                # ######################################################################################
                                                 if (not GlobalVars.saved_lAllTags_EAR
                                                         and not tag_search(GlobalVars.saved_tagFilter_EAR, txn.getKeywords())
                                                         and not tag_search(GlobalVars.saved_tagFilter_EAR, parent_Txn.getKeywords())):
@@ -10746,7 +10786,9 @@ Visit: %s (Author's site)
                                                     else:
                                                         break
 
-                                                splitMemo = txn.getDescription()
+                                                realSplitIdx = parent_Txn.indexOfSplit(txn)
+
+                                                splitMemo = getTxnMemo(txn, False)
                                                 splitTags = safeStr(txn.getKeywords())
                                                 splitCat = parent_Txn.getAccount().getFullAccountName()
                                                 splitHasAttachments = txn.hasAttachments()
@@ -10782,7 +10824,7 @@ Visit: %s (Author's site)
                                                 splitRowCopy[GlobalVars.dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = None  # Don't repeat this on subsequent rows
 
                                             splitRowCopy[GlobalVars.dataKeys["_KEY"][_COLUMN]] = txnKey + "-" + str(keyIndex).zfill(3)
-                                            splitRowCopy[GlobalVars.dataKeys["_SPLITIDX"][_COLUMN]] = _ii
+                                            splitRowCopy[GlobalVars.dataKeys["_SPLITIDX"][_COLUMN]] = realSplitIdx
                                             splitRowCopy[GlobalVars.dataKeys["_SPLITMEMO"][_COLUMN]] = splitMemo
                                             splitRowCopy[GlobalVars.dataKeys["_SPLITAMOUNT"][_COLUMN]] = splitAmount
                                             splitRowCopy[GlobalVars.dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = splitFAmount
@@ -10803,11 +10845,11 @@ Visit: %s (Author's site)
                                                     # noinspection PyUnresolvedReferences
                                                     holdTheLocations.append(txn.getAttachmentTag(_attachKey))
 
-                                            if lParent and parent_Txn.getOtherTxn(_ii).hasAttachments():
-                                                holdTheKeys = holdTheKeys + parent_Txn.getOtherTxn(_ii).getAttachmentKeys()
-                                                for _attachKey in parent_Txn.getOtherTxn(_ii).getAttachmentKeys():
+                                            if lParent and otherSideTxn.hasAttachments():
+                                                holdTheKeys = holdTheKeys + otherSideTxn.getAttachmentKeys()
+                                                for _attachKey in otherSideTxn.getAttachmentKeys():
                                                     # noinspection PyUnresolvedReferences
-                                                    holdTheLocations.append(parent_Txn.getOtherTxn(_ii).getAttachmentTag(_attachKey))
+                                                    holdTheLocations.append(otherSideTxn.getAttachmentTag(_attachKey))
 
                                             if not GlobalVars.saved_lExtractAttachments_EAR or not holdTheKeys:
                                                 if holdTheKeys:
@@ -11091,10 +11133,8 @@ Visit: %s (Author's site)
 
                                         if lNumber: return str(theString)
 
-                                        theString = theString.strip()  # remove leading and trailing spaces
-
-                                        theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                        theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                        theString = theString.strip()
+                                        theString = stripReplaceCharacters(theString)
                                         # theString = theString.replace(";", "*")
                                         # theString = theString.replace(",", "*")
                                         # theString = theString.replace("|", "*")
@@ -12215,8 +12255,7 @@ Visit: %s (Author's site)
 
                                         theString = theString.strip()  # remove leading and trailing spaces
 
-                                        theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                        theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                        theString = stripReplaceCharacters(theString)
                                         # theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
                                         # theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
                                         # theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
@@ -12546,8 +12585,7 @@ Visit: %s (Author's site)
 
                                         theString = theString.strip()  # remove leading and trailing spaces
 
-                                        theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                        theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                        theString = stripReplaceCharacters(theString)
 
                                         if GlobalVars.saved_lStripASCII_SWSS:
                                             all_ASCII = ''.join(char for char in theString if ord(char) < 128)  # Eliminate non ASCII printable Chars too....
@@ -12724,8 +12762,7 @@ Visit: %s (Author's site)
 
                                         theString = theString.strip()  # remove leading and trailing spaces
 
-                                        theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                        theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                        theString = stripReplaceCharacters(theString)
 
                                         if GlobalVars.saved_lStripASCII_SWSS:
                                             all_ASCII = ''.join(char for char in theString if ord(char) < 128)  # Eliminate non ASCII printable Chars too....
@@ -13373,8 +13410,8 @@ Visit: %s (Author's site)
 
                                         theString = theString.strip()  # remove leading and trailing spaces
 
-                                        theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                        theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                        theString = stripReplaceCharacters(theString)
+
                                         # theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
                                         # theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
                                         # theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
@@ -13744,8 +13781,8 @@ Visit: %s (Author's site)
 
                                         theString = theString.strip()  # remove leading and trailing spaces
 
-                                        theString = theString.replace("\n", "*")  # remove newlines within fields to keep csv format happy
-                                        theString = theString.replace("\t", "*")  # remove tabs within fields to keep csv format happy
+                                        theString = stripReplaceCharacters(theString)
+
                                         # theString = theString.replace(";", "*")  # remove tabs within fields to keep csv format happy
                                         # theString = theString.replace(",", "*")  # remove tabs within fields to keep csv format happy
                                         # theString = theString.replace("|", "*")  # remove tabs within fields to keep csv format happy
