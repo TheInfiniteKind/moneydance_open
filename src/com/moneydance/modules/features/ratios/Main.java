@@ -157,7 +157,6 @@ public class Main extends FeatureModule implements ResourceProvider {
 
     @Override
     public void handleEvent(String s) {
-        super.handleEvent(s);
         if (N12ERatios.MD_OPEN_EVENT_ID.equals(s)) {
             _model.setData(getContext().getCurrentAccountBook());
         } else if (N12ERatios.MD_CLOSING_EVENT_ID.equals(s) ||

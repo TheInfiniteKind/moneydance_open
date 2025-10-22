@@ -136,7 +136,11 @@ class RatiosExtensionModel
 
   private void removeAccountListener() {
     if (_rootAccount != null) {
-      _rootAccount.removeAccountListener(_accountListener);
+      try {
+        _rootAccount.removeAccountListener(_accountListener);
+      } catch (Exception e) {
+        Logger.log("Error removing account listener: " + e + " (will ignore and continue)");
+      }
     }
   }
 
