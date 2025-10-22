@@ -7,6 +7,6 @@
   "module_desc" = "<html><body><title>Ratio Calculator</title><p>Allows you to create fully customizable ratios</p></body></html>"
   "desc" = "Show a custom list of ratios or percentages on your summary page. Examples include savings rate, debt-to-income ratio, or debt to assets"
   "id" = "ratios"
-  "module_build" = "1045"
+  "module_build" = "1046"
   "minbuild" = "1206"
 }
