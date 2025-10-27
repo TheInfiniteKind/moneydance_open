@@ -6,7 +6,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2020-2024 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2020-2025 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -2659,7 +2659,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2024)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2025)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 

@@ -126,6 +126,7 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - View MD Custom Theme file  (only appears if it exists)
         - View Extension(s) details
         - View memorised reports (parameters and default settings)
+        - View Reports' Data Export Record Keys (MD2026 onwards)
         - Find my Sync Encryption password(s) in iOS Backup(s) - DECOMMISSIONED >> NO LONGER AVAILABLE
         - Execute the 'older' Import QIF file and set parameters for import (useful if you want to import Account Structure Only)
         - Convert a TimeStamp number into a readable date/time (display only)

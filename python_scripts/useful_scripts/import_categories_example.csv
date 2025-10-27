@@ -1,0 +1,39 @@
+# import_categories.py - Stuart Beesley - StuWareSoftSystems 2020-2025
+#
+# EXAMPLE IMPORT CSV FILE FORMAT
+#
+# DISCLAIMER >> PLEASE ALWAYS BACKUP YOUR DATA BEFORE MAKING CHANGES (Menu>Export Backup will achieve this)
+#
+#           Expected CSV file format is: Type,Category,Currency,Tax Related,Status,Comments
+#
+#           You can either specify:
+#            - header first row (fields in any order, and unknown fields will be ignored);
+#            - or no header row, but field order must be followed (optional fields, right onwards, can be omitted).
+#
+#           You can leave optional fields empty for defaults.
+#           You can only omit optional columns from the import file when using a header row to specify columns.
+#
+#	    COLUMNS:
+#
+#           'Type'          Mandatory  'I' (or 'INCOME'), or 'E' (or 'EXPENSE')
+#           'Category'      Mandatory  'cat:subcat:subcat'
+#           'Currency'      Optional   Use the Currency ID or Name    (default: Base currency if not specified)
+#           'Tax Related'   Optional   'Y' or 'Yes' or 'N' or 'No'    (default: not tax related)
+#           'Status'        Optional   'I' or 'Inactive' for inactive (default: active)
+#           'Comments'      Optional   free format text               ('⏎' '⇥' character(s) will be replaced with linefeed / tab)
+#                                                                     (literal \n \r \t within comments will get replaced with real \n \t etc)
+#
+#           Note: Type, Tax Related, Status field are case insensitive...
+#
+#           Note: First Column. Use #STOP to stop import at that point in the file
+#                               Use #SKIP to start/stop skipping rows
+#                               Empty lines will get ignored
+#                               Lines starting with # will be ignored (as comments)
+#                               Files starting with a utf8 BOM marker will be properly handled
+#
+
+Type,Category,Currency,Tax Related,Status,Comments
+INCOME,Example-Income-Cat:subcat-example:third-sub-cat,GBP,Yes,Inactive,Some\ngreat⏎comments. Using £€
+EXPENSE,Example-Expense-Cat:subcat-example:third-sub-cat,EURO,,,More\tgreat⇥comments. Using £€
+
+
