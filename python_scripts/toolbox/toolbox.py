@@ -107,8 +107,9 @@
 # build: 1069 - MoneydanceGUI Kotlin'ized.. plusPoller renamed to plusController
 # build: 1069 - added diag_security_splits_no_price() feature; patch thin_price_history() to exclude just before/after on split dates
 # build: 1069 - Tweak online_banking_view_configuration_data() to skip getInfo() output when redacting. Not necessary to log this...
-# build: 1069 - Tweak OFX_view_CUSIP_settings() to remove 'ticker and cuspid are different' message (irrelevant)...
+# build: 1069 - Tweak OFX_view_security_identifier_settings() to remove 'ticker and cuspid are different' message (irrelevant)...
 # build: 1069 - add stripReplaceCharacters(); add view_reports_record_keys() function to show report's data export record keys...
+# build: 1069 - Change term CUSIP to "Security Identifier" (etc)
 # build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -5872,7 +5873,7 @@ Visit: %s (Author's site)
         if license2008:      textArray.append(u" >prior license (2008): " + license2008)
         if license2004:      textArray.append(u" >prior license (2004): " + license2004)
 
-        if isNoSplashScreenOptionsBuild() and File(MD_REF.getPlatformHelper().getRootPath(), UserPreferences.SUPPRESS_SPLASH_FILENAME).exists():
+        if isNoSplashScreenOptionsBuild() and File(MD_REF.getPlatformHelper().getRootPath(), UserPreferences.SUPPRESS_SPLASH_FILENAME).exists():    # noqa
             textArray.append(u"\nLaunch splash screen is SUPRESSED")
 
         if isSuppressBackupsOptionBuild() and MD_REF.SUPPRESS_BACKUPS:
@@ -7203,23 +7204,23 @@ Visit: %s (Author's site)
         txt = "OFX: Your active accounts' calculated reconcile as_of dates have been displayed...."
         setDisplayStatus(txt, "B")
 
-    def OFX_view_CUSIP_settings():
+    def OFX_view_security_identifier_settings():
         if MD_REF.getCurrentAccountBook() is None: return
 
-        _THIS_METHOD_NAME = "OFX: View Security's hidden CUSIP settings"
+        _THIS_METHOD_NAME = "OFX: View Security's hidden Security Identifier settings"
 
         PARAM_CURRID = "curr_id."
 
         output = "%s:\n" \
                  "%s\n\n" %(_THIS_METHOD_NAME, " "*len(_THIS_METHOD_NAME))
 
-        output += "The hidden link between your Financial Institution Investment Securities and your MD Securities when downloading\n" \
-                  "is stored as a hidden setting against your security in a key known as the CUSIP. For USA Customers this is the USA\n" \
-                  "standard called CUSIP and all Securities have a unique number. In other markets this might be called ISIN for example.\n" \
-                  "When matching Securities on Download, this setting needs to be blank or match the CUSIP. Your OFX download will contain\n" \
-                  "the tags '<UNIQUEIDTYPE>' (which normally contains 'CUSIP') and '<UNIQUEID>' (which contains the CUSIP number).\n" \
-                  "If your MD Security already contains a different CUSIP number, then it will NOT appear in the match list.\n" \
-                  "You can edit your hidden CUSIP data in Update Mode.\n\n"
+        output += "The hidden link between your Financial Institution's Investments' Securities and your MD Securities when downloading\n" \
+                  "is stored as hidden data against your security in a key known as the Security's 'Identifier Scheme'. In the USA this\n" \
+                  "scheme is commonly 'CUSIP', and all Securities have a unique identifier. Elsewhere 'ISIN' or 'SEDOL' (etc) might be used.\n" \
+                  "When matching Securities on Download, this setting needs to be blank or match the scheme. Your OFX download will contain\n" \
+                  "the tags '<UNIQUEIDTYPE>' (which normally contains the scheme type) and '<UNIQUEID>' (which contains the scheme type's ID).\n" \
+                  "If your MD Security already contains a different scheme ID, then it will NOT appear in the match list.\n" \
+                  "You can edit your hidden Security Identifier Scheme data in Update Mode.\n\n"
 
         output += " SECURITIES\n" \
                   " ==========\n\n"
@@ -7228,7 +7229,7 @@ Visit: %s (Author's site)
                                         pad("ID", 15),
                                         pad("Ticker Symbol", 15),
                                         pad("SCHEME", 12),
-                                        pad("IDENTIFIER (CUSIP)", 20))
+                                        pad("IDENTIFIER", 20))
 
         output += "%s %s %s %s %s\n" % ("-" * 45,
                                         "-" * 15,
@@ -7238,41 +7239,41 @@ Visit: %s (Author's site)
 
         output += "\n"
 
-        securities = sorted(MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies(),
-                            key=lambda x: (x.getCurrencyType(), x.getName().upper()))
+        securities = sorted(MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies(), key=lambda x: (x.getCurrencyType(), x.getName().upper()))
 
         iCountFound = 0
+        lastSec = None
         for sec in securities:
             if sec.getCurrencyType() != CurrencyType.Type.SECURITY: continue                                            # noqa
             for key in sec.getParameterKeys():
-
                 if key.startswith(PARAM_CURRID):
-
                     theScheme = key[len(PARAM_CURRID):]
-                    theCUSIP = sec.getIDForScheme(theScheme)
+                    theSchemeID = sec.getIDForScheme(theScheme)
 
-                    if not theCUSIP:
-                        theCUSIP = "<INVALID SCHEME/CUSIP ID: blank or null!>"
-                        # raise Exception("ERROR: %s - empty CUSIP returned? Security: %s, Scheme: %s" %(_THIS_METHOD_NAME, sec, theScheme))
+                    if not theSchemeID:
+                        theSchemeID = "<INVALID SCHEME ID: blank or null for Scheme: '%s'!>" %(theScheme)
+                        # raise Exception("ERROR: %s - empty Scheme returned? Security: '%s', Scheme: %s" %(_THIS_METHOD_NAME, sec, theScheme))
 
                     iCountFound += 1
+                    if lastSec is not None and sec != lastSec: output += "\n"
                     output += "%s %s %s %s %s\n"\
-                                                  %(pad(sec.getName(), 45),
-                                                    pad(sec.getIDString(), 15),
-                                                    pad(sec.getTickerSymbol(), 15),
+                                                  %(pad("..." if sec == lastSec else sec.getName(), 45),
+                                                    pad("" if sec == lastSec else sec.getIDString(), 15),
+                                                    pad("" if sec == lastSec else sec.getTickerSymbol(), 15),
                                                     pad(theScheme, 12),
-                                                    theCUSIP)
+                                                    theSchemeID)
+                    lastSec = sec
 
         if not iCountFound:
             output += "\nNONE FOUND!\n"
         else:
-            output += "\n\n%s Security hidden CUSIP record(s) found\n" %(iCountFound)
+            output += "\n\n%s Security hidden Security Identifier record(s) found\n" %(iCountFound)
 
         output += "\n<END>"
 
         QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB,lWrapText=False,lAutoSize=True).show_the_frame()
 
-        txt = "OFX: Your Security's hidden CUSIP settings have been retrieved and displayed...."
+        txt = "OFX: Your Security's hidden Security Identifier settings have been retrieved and displayed...."
         setDisplayStatus(txt, "B")
 
     def OFX_view_online_txns_payees_payments():
@@ -12537,7 +12538,7 @@ Visit: %s (Author's site)
     #     myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL OFX DEBUG", JOptionPane.WARNING_MESSAGE)
 
     # noinspection PyUnresolvedReferences
-    def CUSIPFix():
+    def fix_security_identifiers():
         currID = "curr_id."
 
         # Credit to: Finite Mobius, LLC / Jason R. Miller" for original code (https://github.com/finitemobius/moneydance-py)
@@ -12546,13 +12547,13 @@ Visit: %s (Author's site)
 
         # Pre 2021.2(3089) there were internal code issues with old CurrencyType records (from pre 2019.4) with missing 'rrate' fields. Fixed in build 3089 onwards
         if not isRRateCurrencyIssueFixedBuild() and not check_all_currency_raw_rates_ok(CurrencyType.Type.SECURITY):
-            myPrint("B","@@ Error: failed check_all_currency_raw_rates_ok(SECURITY) check... Exiting CUSIPFix() without any changes...")
+            myPrint("B","@@ Error: failed check_all_currency_raw_rates_ok(SECURITY) check... Exiting fix_security_identifiers() without any changes...")
             txt = "ERROR: You have old format Security record(s). Consider running 'MENU: Currency & Security tools>Diag/Fix Currencies/Securities' option first"
             myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             setDisplayStatus(txt, "R")
             return
 
-        # Find Securities with CUSIP(s) set...
+        # Find Securities with Security Identifiers (e.g. CUSIP, SEDOL, ISIN etc) set...
         dropdownSecs = ArrayList()
         allSecs = ArrayList()
         currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
@@ -12570,27 +12571,27 @@ Visit: %s (Author's site)
         lReset = lEdit = lMove = lAdd = False
 
         if len(dropdownSecs)<1:
-            x = "You have no existing CUSIP(s); Would you like to add a CUSIP?"
+            x = "You have no existing Security Identifier(s) (e.g. CUSIP, SEDOL, ISIN); Would you like to add one?"
         else:
-            x = "You have %s securities with CUSIP(s) set; Would you like to manually add a CUSIP? (No brings up more options)" %(len(dropdownSecs))
+            x = "You have %s securities with Security Identifier(s) set; Would you like to manually add one? (No brings up more options)" %(len(dropdownSecs))
 
-        if not myPopupAskQuestion(toolbox_frame_,"FIX CUSIP",x,theMessageType=JOptionPane.WARNING_MESSAGE):
+        if not myPopupAskQuestion(toolbox_frame_, "FIX Security Identifiers", x, theMessageType=JOptionPane.WARNING_MESSAGE):
             if len(dropdownSecs)<1:
-                txt = "FIX CUSIP - You have no existing CUSIP(s) set on Securities - No changes made..."
+                txt = "FIX Security Identifiers - You have no existing Security Identifier(s) set on Securities - No changes made..."
                 setDisplayStatus(txt, "B")
                 return
         else:
             allSecs = sorted(allSecs, key=lambda sort_x: (sort_x.getName().upper()))
             selectedSecurity = JOptionPane.showInputDialog(toolbox_frame_,
-                                                           "Select the security to add CUSIP data",
-                                                           "FIX CUSIP",
+                                                           "Select the security to add Security Identifier data",
+                                                           "FIX Security Identifiers",
                                                            JOptionPane.INFORMATION_MESSAGE,
                                                            getMDIcon(lAlwaysGetIcon=True),
                                                            allSecs,
                                                            None)
 
             if not selectedSecurity:
-                txt = "FIX CUSIP - No Security was selected - no changes made.."
+                txt = "FIX Security Identifiers - No Security was selected - no changes made.."
                 setDisplayStatus(txt, "B")
                 return
 
@@ -12599,15 +12600,15 @@ Visit: %s (Author's site)
         if not lAdd:
             dropdownSecs = sorted(dropdownSecs, key=lambda sort_x: (sort_x.getName().upper()))
             selectedSecurity = JOptionPane.showInputDialog(toolbox_frame_,
-                                                           "Select the security with CUSIP data to view/change",
-                                                           "FIX CUSIP",
+                                                           "Select the security with Security Identifier data to view/change",
+                                                           "FIX Security Identifiers",
                                                            JOptionPane.INFORMATION_MESSAGE,
                                                            getMDIcon(lAlwaysGetIcon=True),
                                                            dropdownSecs,
                                                            None)
 
             if not selectedSecurity:
-                txt = "FIX CUSIP - No Security was selected - no changes made.."
+                txt = "FIX Security Identifiers - No Security was selected - no changes made.."
                 setDisplayStatus(txt, "B")
                 return
 
@@ -12618,31 +12619,31 @@ Visit: %s (Author's site)
             for key in selectedSecurity.getParameterKeys():
                 if key.startswith(currID):
                     findScheme = key[len(currID):]
-                    theSchemes.append([selectedSecurity,findScheme,selectedSecurity.getIDForScheme(findScheme)])
-                    schemeText+="Scheme: %s ID: %s\n" %(findScheme,selectedSecurity.getIDForScheme(findScheme))
+                    theSchemes.append([selectedSecurity, findScheme, selectedSecurity.getIDForScheme(findScheme)])
+                    schemeText+="Scheme: %s ID: %s\n" %(findScheme, selectedSecurity.getIDForScheme(findScheme))
 
             if len(theSchemes) < 1:
-                txt = "FIX CUSIP - error iterating keys on %s for CUSIP(s) - NO CHANGES MADE!" %(selectedSecurity)
+                txt = "FIX Security Identifiers - error iterating keys on '%s' for Security Identifier(s) - NO CHANGES MADE!" %(selectedSecurity)
                 setDisplayStatus(txt, "R"); myPrint("B",txt)
                 return
 
-            ask = MyPopUpDialogBox(toolbox_frame_,"Showing CUSIP data for Security: %s" %(selectedSecurity),schemeText,theTitle="FIX CUSIP",OKButtonText="NEXT STEP",lCancelButton=True)
+            ask = MyPopUpDialogBox(toolbox_frame_,"Showing Security Identifier data for Security: '%s'" %(selectedSecurity),schemeText,theTitle="FIX Security Identifiers",OKButtonText="NEXT STEP",lCancelButton=True)
             if not ask.go():
-                txt = "FIX CUSIP - no changes made.."
+                txt = "FIX Security Identifiers - no changes made.."
                 setDisplayStatus(txt, "B")
                 return
 
-            options = ["EXIT", "RESET CUSIP(s)", "EDIT ONE CUSIP", "MOVE ALL TO DIFFERENT SECURITY", "ADD NEW CUSIP KEY"]
+            options = ["EXIT", "RESET Security Identifier(s)", "EDIT ONE Security Identifier", "MOVE ALL TO DIFFERENT SECURITY", "ADD NEW Security Identifier KEY"]
             selectedOption = JOptionPane.showInputDialog(toolbox_frame_,
-                                                         "Select CUSIP Option you want to action",
-                                                         "FIX CUSIP",
+                                                         "Select Security Identifier Option you want to action",
+                                                         "FIX Security Identifiers",
                                                          JOptionPane.INFORMATION_MESSAGE,
                                                          getMDIcon(lAlwaysGetIcon=True),
                                                          options,
                                                          None)
 
             if not selectedOption or options.index(selectedOption) == 0:
-                txt = "FIX CUSIP - No CUSIP option selected - no changes made.."
+                txt = "FIX Security Identifiers - No Security Identifier option selected - no changes made.."
                 setDisplayStatus(txt, "R")
                 return
 
@@ -12651,7 +12652,7 @@ Visit: %s (Author's site)
             elif options.index(selectedOption) == 3: lMove = True
             elif options.index(selectedOption) == 4: lAdd = True
             else:
-                txt = "FIX CUSIP - Unknown option selected - no changes made"
+                txt = "FIX Security Identifiers - Unknown option selected - no changes made"
                 setDisplayStatus(txt, "R")
                 return
 
@@ -12666,22 +12667,22 @@ Visit: %s (Author's site)
                 dropdownSecsMoveTo.add(curr)
 
             if len(dropdownSecsMoveTo) < 1:
-                txt = "FIX CUSIP - You have no other Securities to move to - No changes made..."
+                txt = "FIX Security Identifiers - You have no other Securities to move to - No changes made..."
                 setDisplayStatus(txt, "R")
-                myPopupInformationBox(toolbox_frame_,txt,"FIX CUSIP",JOptionPane.ERROR_MESSAGE)
+                myPopupInformationBox(toolbox_frame_,txt, "FIX Security Identifiers", JOptionPane.ERROR_MESSAGE)
                 return
 
             dropdownSecsMoveTo = sorted(dropdownSecsMoveTo, key=lambda sort_x: (sort_x.getName().upper()))
             selectedSecurityMoveTo = JOptionPane.showInputDialog(toolbox_frame_,
-                                                                 "Select the security to move the CUSIP data to:",
-                                                                 "FIX CUSIP",
+                                                                 "Select the security to move the Security Identifier data to:",
+                                                                 "FIX Security Identifiers",
                                                                  JOptionPane.INFORMATION_MESSAGE,
                                                                  getMDIcon(lAlwaysGetIcon=True),
                                                                  dropdownSecsMoveTo,
                                                                  None)
 
             if not selectedSecurityMoveTo:
-                txt = "FIX CUSIP - No Move to Security was selected - no changes made.."
+                txt = "FIX Security Identifiers - No Move to Security was selected - no changes made.."
                 setDisplayStatus(txt, "R")
                 return
 
@@ -12692,15 +12693,15 @@ Visit: %s (Author's site)
                     break
             if lAlreadyHasData:
                 if not myPopupAskQuestion(toolbox_frame_,
-                                          "FIX CUSIP",
-                                          "Security: %s already has CUSIP data. OK will overwrite matching CUSIP key(s) (Cancel to exit)" %(selectedSecurityMoveTo),
+                                          "FIX Security Identifiers",
+                                          "Security: '%s' already has Security Identifier data. OK will overwrite matching Security Identifier key(s) (Cancel to exit)" %(selectedSecurityMoveTo),
                                           theMessageType=JOptionPane.WARNING_MESSAGE):
-                    txt = "FIX CUSIP - Security: %s already has CUSIP data. User asked to Exit..." %(selectedSecurityMoveTo)
+                    txt = "FIX Security Identifiers - Security: '%s' already has Security Identifier data. User asked to Exit..." %(selectedSecurityMoveTo)
                     setDisplayStatus(txt, "R")
                     return
-                myPrint("B", "FIX CUSIP - User selected to overwrite existing CUSIP data in Security: %s" %selectedSecurityMoveTo)
+                myPrint("B", "FIX Security Identifiers - User selected to overwrite existing Security Identifier data for Security: '%s'" %selectedSecurityMoveTo)
 
-        if confirm_backup_confirm_disclaimer(toolbox_frame_,"FIX CUSIP","Are you sure you want to change CUSIP data on security: %s?" %(selectedSecurity)):
+        if confirm_backup_confirm_disclaimer(toolbox_frame_, "FIX Security Identifiers", "Are you sure you want to change Security Identifier data on security: '%s'?" %(selectedSecurity)):
             if lReset:
                 selectedSecurity.setEditingMode()
                 for key in list(selectedSecurity.getParameterKeys()):
@@ -12710,9 +12711,9 @@ Visit: %s (Author's site)
                         oldData = selectedSecurity.getIDForScheme(findScheme)
                         # noinspection PyUnresolvedReferences
                         selectedSecurity.setIDForScheme(findScheme, None)
-                        myPrint("B","FIX CUSIP: Deleted CUSIP on Security: %s (Was: Scheme: %s ID: %s)" %(selectedSecurity,findScheme,oldData) )
+                        myPrint("B","FIX Security Identifiers: Deleted Security Identifier on Security: '%s' (Was: Scheme: %s ID: %s)" %(selectedSecurity, findScheme, oldData) )
                 selectedSecurity.syncItem()
-                myPopupInformationBox(toolbox_frame_,"CUSIP data on Security: %s Reset/Deleted!" %(selectedSecurity),"FIX CUSIP",JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(toolbox_frame_, "Security Identifier data on Security: '%s' Reset/Deleted!" %(selectedSecurity), "FIX Security Identifiers", JOptionPane.WARNING_MESSAGE)
 
             elif lMove:
                 selectedSecurity.setEditingMode()
@@ -12724,15 +12725,15 @@ Visit: %s (Author's site)
 
                         moveToOldData = selectedSecurityMoveTo.getIDForScheme(findScheme)
                         if moveToOldData:
-                            myPrint("B", "FIX CUSIP: Overwriting old data on destination security: %s (Was: Scheme: %s ID: %s)" %(selectedSecurityMoveTo,findScheme,moveToOldData))
+                            myPrint("B", "FIX Security Identifiers: Overwriting old data on destination security: '%s' (Was: Scheme: %s ID: %s)" %(selectedSecurityMoveTo, findScheme, moveToOldData))
 
-                        myPrint("B","FIX CUSIP: Moving CUSIP data from %s to %s Scheme: %s ID: %s" %(selectedSecurity, selectedSecurityMoveTo,findScheme,moveData))
+                        myPrint("B","FIX Security Identifiers: Moving Security Identifier data for '%s' to '%s' Scheme: %s ID: %s" %(selectedSecurity, selectedSecurityMoveTo, findScheme, moveData))
                         selectedSecurityMoveTo.setIDForScheme(findScheme, moveData)
                         selectedSecurity.setIDForScheme(findScheme, None)
 
                 selectedSecurity.syncItem()
                 selectedSecurityMoveTo.syncItem()
-                myPopupInformationBox(toolbox_frame_,"CUSIP data on Security: %s Moved to Security: %s!" %(selectedSecurity,selectedSecurityMoveTo),"FIX CUSIP",JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(toolbox_frame_,"Security Identifier data on Security: '%s' Moved to Security: '%s'!" %(selectedSecurity,selectedSecurityMoveTo), "FIX Security Identifiers", JOptionPane.WARNING_MESSAGE)
 
             elif lEdit:
 
@@ -12741,68 +12742,66 @@ Visit: %s (Author's site)
                     listData.append(x[1])
 
                 selectedSchemeToChange = JOptionPane.showInputDialog(toolbox_frame_,
-                                                                     "Select the CUSIP to edit:",
-                                                                     "FIX CUSIP",
+                                                                     "Select the Security Identifier to edit:",
+                                                                     "FIX Security Identifiers",
                                                                      JOptionPane.INFORMATION_MESSAGE,
                                                                      getMDIcon(lAlwaysGetIcon=True),
                                                                      listData,
                                                                      None)
 
                 if not selectedSchemeToChange:
-                    txt = "FIX CUSIP - No CUSIP selected to edit - no changes made.."
+                    txt = "FIX Security Identifiers - No Security Identifier selected to edit - no changes made.."
                     setDisplayStatus(txt, "R")
                     return
 
-                newID = myPopupAskForInput(toolbox_frame_,"FIX CUSIP","ENTER NEW ID DATA:","Enter the new CUSIP data for Security: %s CUSIP: %s"
-                                           %(selectedSecurity,selectedSchemeToChange),selectedSecurity.getIDForScheme(selectedSchemeToChange))
+                newID = myPopupAskForInput(toolbox_frame_, "FIX Security Identifiers", "ENTER NEW ID DATA:", "Enter the new Security Identifier data for Security: '%s' Scheme: %s"
+                                           %(selectedSecurity, selectedSchemeToChange), selectedSecurity.getIDForScheme(selectedSchemeToChange))
 
                 if not newID or newID == selectedSecurity.getIDForScheme(selectedSchemeToChange):
-                    txt = "FIX CUSIP - EDIT - new data not entered - no changes made"
+                    txt = "FIX Security Identifiers - EDIT - new data not entered - no changes made"
                     setDisplayStatus(txt, "R")
                     return
 
-                myPrint("B","FIX CUSIP - EDIT. Changing Security: %s CUSPID: %s from %s to %s"
-                        %(selectedSecurity,selectedSchemeToChange,selectedSecurity.getIDForScheme(selectedSchemeToChange),newID))
+                myPrint("B","FIX Security Identifiers - EDIT. Changing Security: '%s' Scheme: %s from %s to %s"
+                        %(selectedSecurity, selectedSchemeToChange, selectedSecurity.getIDForScheme(selectedSchemeToChange),newID))
 
                 selectedSecurity.setIDForScheme(selectedSchemeToChange,newID)
                 selectedSecurity.syncItem()
-                myPopupInformationBox(toolbox_frame_,"CUSIP data on Security: %s CUSIP: %s changed to: %s"
-                                      %(selectedSecurity, selectedSchemeToChange,newID),"FIX CUSIP",JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(toolbox_frame_, "Security Identifier data on Security: '%s' Scheme: %s changed to: %s"
+                                      %(selectedSecurity, selectedSchemeToChange,newID), "FIX Security Identifiers", JOptionPane.WARNING_MESSAGE)
 
             elif lAdd:
 
-                newScheme = myPopupAskForInput(toolbox_frame_,"FIX CUSIP","NEW CUSIP Scheme/Key:","Enter Scheme Type to add (normally 'CUSIP'): %s"
+                newScheme = myPopupAskForInput(toolbox_frame_, "FIX Security Identifiers", "NEW Security Identifier Scheme/Key:", "Enter Scheme Type to add (commonly 'CUSIP', 'SEDOL', 'ISIN' etc): %s"
                                                %(selectedSecurity), defaultValue="CUSIP")
 
                 if not newScheme or newScheme == "":
-                    txt = "FIX CUSIP - EDIT - new CUSIP Scheme Type not entered - no changes made"
+                    txt = "FIX Security Identifiers - EDIT - new Security Identifier Scheme Type not entered - no changes made"
                     setDisplayStatus(txt, "R")
                     return
 
-                newID = myPopupAskForInput(toolbox_frame_,"FIX CUSIP","NEW CUSIP ID:","Enter the new CUSIP ID for Scheme Type: %s to add to Security: %s"
-                                           %(newScheme,selectedSecurity))
+                newID = myPopupAskForInput(toolbox_frame_, "FIX Security Identifiers", "NEW ID:", "Enter the new ID for Scheme Type: %s to add to Security: '%s'" %(newScheme, selectedSecurity))
 
                 if not newID or newID == "":
-                    txt = "FIX CUSIP - EDIT - new CUSIP ID not entered for new Scheme: %s to add to Security: %s - no changes made" %(newScheme,selectedSecurity)
+                    txt = "FIX Security Identifiers - EDIT - new ID not entered for new Scheme: %s to add to Security: '%s' - no changes made" %(newScheme, selectedSecurity)
                     setDisplayStatus(txt, "R")
                     return
 
-                myPrint("B","FIX CUSIP - ADD. Adding CUSIP: %s ID %s to Security: %s"
-                        %(newScheme, newID, selectedSecurity))
+                myPrint("B","FIX Security Identifiers - ADD. Adding Scheme: %s ID %s to Security: '%s'" %(newScheme, newID, selectedSecurity))
 
                 selectedSecurity.setIDForScheme(newScheme,newID)
                 selectedSecurity.syncItem()
-                myPopupInformationBox(toolbox_frame_,"CUSIP Scheme/Key: %s ID: %s added to Security: %s"
-                                      %(newScheme, newID, selectedSecurity),"FIX CUSIP",JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(toolbox_frame_, "Security Identifier Scheme/Key: %s ID: %s added to Security: '%s'" %(newScheme, newID, selectedSecurity),
+                                      "FIX Security Identifiers",JOptionPane.WARNING_MESSAGE)
 
             else:
-                txt = "FIX CUSIP - Unknown option selected - no changes made"
+                txt = "FIX Security Identifiers - Unknown option selected - no changes made"
                 setDisplayStatus(txt, "R")
                 return
 
-            txt = "FIX CUSIP - Changes successfully applied to Security: %s" %(selectedSecurity)
+            txt = "FIX Security Identifiers - Changes successfully applied to Security: '%s'" %(selectedSecurity)
             setDisplayStatus(txt, "R"); myPrint("B", txt)
-            logToolboxUpdates("CUSIPFix", txt)
+            logToolboxUpdates("fix_security_identifiers", txt)
             play_the_money_sound()
 
     class StoreService():
@@ -19143,7 +19142,7 @@ after saving the file, restart Moneydance
 
             # --- protect snapshots around splits: prev, on, next ---
             keep_dates = set()
-            splits = _curr.getSplits() if _curr.getCurrencyType() == CurrencyType.Type.SECURITY else None
+            splits = _curr.getSplits() if _curr.getCurrencyType() == CurrencyType.Type.SECURITY else None               # noqa
             if splits is None or splits.size() < 1:
                 text += "  > NOTE: No stock splits to worry about\n"
             else:
@@ -19154,7 +19153,7 @@ after saving the file, restart Moneydance
                 for sp in splits:
                     _splitDate = sp.getDateInt()
                     # find first index i where _all_snap_dates[i] >= _splitDate
-                    i = 0
+                    i = 0                                                                                               # noqa
                     while i < n and _all_snap_dates[i] < _splitDate: i += 1
                     # prev
                     if i > 0:
@@ -21624,100 +21623,100 @@ after saving the file, restart Moneydance
 
 
             ############################################################################################################
-            # OK - hidden CUSIP validation etc
+            # OK - hidden Security Identifier validation etc
 
 
-            def countCUSIPs(_theSec):
-                iCUSIPs = 0
+            def countSecuritySchemes(_theSec):
+                iSecSchemes = 0
                 for key in _theSec.getParameterKeys():
                     if key.startswith(PARAM_CURRID):
-                        iCUSIPs += 1
-                return iCUSIPs
+                        iSecSchemes += 1
+                return iSecSchemes
 
 
-            def getAllUniqueCUSIPs(_theSecList):
-                _allUniqueCUSIPs = {}
-                returnUniqueCUSIPs = []
+            def getAllUniqueSecuritySchemes(_theSecList):
+                _allUniqueSecuritySchemes = {}
+                returnUniqueSecuritySchemes = []
                 for _theSec in _theSecList:
                     for key in _theSec.getParameterKeys():
                         if key.startswith(PARAM_CURRID):
                             _theScheme = key[len(PARAM_CURRID):]
-                            _theCUSIP = _theSec.getIDForScheme(_theScheme)
-                            if _allUniqueCUSIPs.get(_theScheme+"."+_theCUSIP) is None:
-                                _allUniqueCUSIPs[_theScheme+"."+_theCUSIP] = True
-                                returnUniqueCUSIPs.append([_theScheme, _theCUSIP])
-                return returnUniqueCUSIPs
+                            _theSchemeID = _theSec.getIDForScheme(_theScheme)
+                            if _allUniqueSecuritySchemes.get(_theScheme+"."+_theSchemeID) is None:
+                                _allUniqueSecuritySchemes[_theScheme+"."+_theSchemeID] = True
+                                returnUniqueSecuritySchemes.append([_theScheme, _theSchemeID])
+                return returnUniqueSecuritySchemes
 
 
-            primaryCUSIPs = 0
-            allOtherCUSIPs = 0
+            primarySecuritySchemes = 0
+            allOtherSecuritySchemes = 0
             for security in tickerToMerge.getSecurityList():
                 if security == tickerToMerge.getPrimarySecurity():
-                    primaryCUSIPs = countCUSIPs(security)
+                    primarySecuritySchemes = countSecuritySchemes(security)
                 else:
-                    allOtherCUSIPs += countCUSIPs(security)
+                    allOtherSecuritySchemes += countSecuritySchemes(security)
 
-            allUniqueCUSIPs = getAllUniqueCUSIPs(tickerToMerge.getSecurityList())
-            if len(allUniqueCUSIPs) > 0:
-                output += "Hidden CUSIP data found (used for linking Investment Downloaded Securities to MD Securities)...:\n"
-                for theScheme, theCUSIP in allUniqueCUSIPs:
-                    output += "Scheme: %s, ID: %s\n" %(theScheme, theCUSIP)
+            allUniqueSecuritySchemes = getAllUniqueSecuritySchemes(tickerToMerge.getSecurityList())
+            if len(allUniqueSecuritySchemes) > 0:
+                output += "Hidden Security Identifier data found (used for linking Investment Downloaded Securities to MD Securities)...:\n"
+                for theScheme, theSchemeID in allUniqueSecuritySchemes:
+                    output += "Scheme: %s, ID: %s\n" %(theScheme, theSchemeID)
                 output += "\n"
 
-            lCUSIPActionRequired = False
-            if len(allUniqueCUSIPs) < 1:
-                output += "No hidden CUSIP data exists - This is OK and No action required....\n"
-            elif primaryCUSIPs > 0 and allOtherCUSIPs < 1:
-                output += "Only the Master Security has hidden CUSIP data - This is OK and No action required....\n"
+            lSecuritySchemeActionRequired = False
+            if len(allUniqueSecuritySchemes) < 1:
+                output += "No hidden Security Identifier data exists - This is OK and No action required....\n"
+            elif primarySecuritySchemes > 0 and allOtherSecuritySchemes < 1:
+                output += "Only the Master Security has hidden Security Identifier data - This is OK and No action required....\n"
             else:
-                lCUSIPActionRequired = True
-                output += "Hidden CUSIP data - STRATEGY REQUIRED...\n"
+                lSecuritySchemeActionRequired = True
+                output += "Hidden Security Identifier data - STRATEGY REQUIRED...\n"
 
-            selectedCUSIP = None
-            if lCUSIPActionRequired:
-                jif = QuickJFrame("Merge duplicate securities (by Ticker): REPORT/LOG",output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB,lJumpToEnd=True).show_the_frame()
+            selectedSecurityScheme = None
+            if lSecuritySchemeActionRequired:
+                jif = QuickJFrame("Merge duplicate securities (by Ticker): REPORT/LOG", output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lJumpToEnd=True).show_the_frame()
 
-                class StoreCUSIP:
-                    def __init__(self, _objScheme, _objCUSIP):
+                class StoreSecurityScheme:
+                    def __init__(self, _objScheme, _objSchemeID):
                         self._objScheme = _objScheme
-                        self._objCUSIP = _objCUSIP
+                        self._objSchemeID = _objSchemeID
 
                     def getScheme(self): return self._objScheme
 
-                    def getCUSIP(self): return self._objCUSIP
+                    def getSchemeID(self): return self._objSchemeID
 
                     def __str__(self):
-                        if self.getScheme() is None: return ("<NONE> (No hidden CUSIP data)")
-                        return ("Scheme: %s, ID: %s" % (self.getScheme(), self.getCUSIP()))
+                        if self.getScheme() is None: return ("<NONE> (No hidden Security Identifier data)")
+                        return ("Scheme: %s, ID: %s" % (self.getScheme(), self.getSchemeID()))
 
                     def __repr__(self): return self.__str__()
 
 
-                allUniqueCUSIPsPicklist = []                                                                            # noqa
-                allUniqueCUSIPsPicklist.append(StoreCUSIP(None,None))
-                for theScheme, theCUSIP in allUniqueCUSIPs:
-                    allUniqueCUSIPsPicklist.append(StoreCUSIP(theScheme, theCUSIP))
+                allUniqueSecuritySchemesPicklist = []                                                                   # noqa
+                allUniqueSecuritySchemesPicklist.append(StoreSecurityScheme(None,None))
+                for theScheme, theSchemeID in allUniqueSecuritySchemes:
+                    allUniqueSecuritySchemesPicklist.append(StoreSecurityScheme(theScheme, theSchemeID))
 
-                selectedCUSIP = JOptionPane.showInputDialog(jif,
-                                                            "Select the hidden CUSIP to keep/use in the new Master Security?",
-                                                            "%s - HIDDEN CUSIP DATA" % (_THIS_METHOD_NAME.upper()),
+                selectedSecurityScheme = JOptionPane.showInputDialog(jif,
+                                                            "Select the hidden Security Identifier to keep/use in the new Master Security?",
+                                                            "%s - HIDDEN Security Identifier DATA" % (_THIS_METHOD_NAME.upper()),
                                                             JOptionPane.INFORMATION_MESSAGE,
                                                             getMDIcon(lAlwaysGetIcon=True),
-                                                            allUniqueCUSIPsPicklist,
+                                                            allUniqueSecuritySchemesPicklist,
                                                             None)
 
-                del allUniqueCUSIPsPicklist
+                del allUniqueSecuritySchemesPicklist
 
-                if not selectedCUSIP:
-                    txt = "%s: User did not select a hidden CUSIP record for the merge - no changes made" %(_THIS_METHOD_NAME)
+                if not selectedSecurityScheme:
+                    txt = "%s: User did not select a hidden Security Identifier record for the merge - no changes made" %(_THIS_METHOD_NAME)
                     setDisplayStatus(txt, "R")
                     myPopupInformationBox(jif,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
                     return
 
                 jif.dispose()
 
-                output += "** Hidden CUSIP Strategy: - CUSIP data selected: %s\n\n" %(selectedCUSIP)
-            del allUniqueCUSIPs
+                output += "** Hidden Security Identifier Strategy: - Security Identifier data selected: %s\n\n" %(selectedSecurityScheme)
+            del allUniqueSecuritySchemes
 
 
             ############################################################################################################
@@ -21842,40 +21841,40 @@ after saving the file, restart Moneydance
                 output += "----\n"
 
             ############################################################################################################
-            # Now CUSIP merge...
+            # Now Security Identifier merge...
 
-            def deleteCUSIPs(_theSec):
+            def deleteSecuritySchemes(_theSec):
                 _deleteList = []
                 for key in _theSec.getParameterKeys():
                     if key.startswith(PARAM_CURRID):
                         _theScheme = key[len(PARAM_CURRID):]
                         _deleteList.append(_theScheme)
-                for _delSchemeCUSIP in _deleteList:
-                    _theSec.setIDForScheme(_delSchemeCUSIP, None)
+                for _delSecurityScheme in _deleteList:
+                    _theSec.setIDForScheme(_delSecurityScheme, None)
 
 
-            if not lCUSIPActionRequired:
-                txt = "Skipping hidden CUSIP data actions...."
+            if not lSecuritySchemeActionRequired:
+                txt = "Skipping hidden Security Identifier data actions...."
                 myPrint("B", txt); output += "%s\n\n" %(txt)
 
             else:
 
-                txt = "Removing any hidden CUSIP data from %s" %(getSecurityNameAndID(tickerToMerge.getPrimarySecurity()))
+                txt = "Removing any hidden Security Identifier data from %s" %(getSecurityNameAndID(tickerToMerge.getPrimarySecurity()))
                 myPrint("B",txt); output += "%s\n" %(txt)
 
                 tickerToMerge.getPrimarySecurity().setEditingMode()
-                deleteCUSIPs(tickerToMerge.getPrimarySecurity())
+                deleteSecuritySchemes(tickerToMerge.getPrimarySecurity())
 
-                if selectedCUSIP.getScheme():
-                    txt = "Adding CUSIP data - Scheme: %s ID: %s to %s" %(selectedCUSIP.getScheme(), selectedCUSIP.getCUSIP(), getSecurityNameAndID(tickerToMerge.getPrimarySecurity()))
+                if selectedSecurityScheme.getScheme():
+                    txt = "Adding Security Identifier data - Scheme: %s ID: %s to %s" %(selectedSecurityScheme.getScheme(), selectedSecurityScheme.getSchemeID(), getSecurityNameAndID(tickerToMerge.getPrimarySecurity()))
                     myPrint("B",txt); output += "%s\n" %(txt)
-                    tickerToMerge.getPrimarySecurity().setIDForScheme(selectedCUSIP.getScheme(),selectedCUSIP.getCUSIP())
+                    tickerToMerge.getPrimarySecurity().setIDForScheme(selectedSecurityScheme.getScheme(),selectedSecurityScheme.getSchemeID())
 
                 tickerToMerge.getPrimarySecurity().setParameter(PARAMETER_KEY,True)
                 tickerToMerge.getPrimarySecurity().syncItem()
 
                 output += "----\n"
-                output += "Master %s now contains: hidden CUSIP record: Scheme: %s, ID: %s\n" %(getSecurityNameAndID(tickerToMerge.getPrimarySecurity()), selectedCUSIP.getScheme(),selectedCUSIP.getCUSIP())
+                output += "Master %s now contains: hidden Security Identifier record: Scheme: %s, ID: %s\n" %(getSecurityNameAndID(tickerToMerge.getPrimarySecurity()), selectedSecurityScheme.getScheme(),selectedSecurityScheme.getSchemeID())
                 output += "----\n"
 
 
@@ -27279,8 +27278,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_viewListALLMDServices = MenuJRadioButton("View list of MD's Bank dynamic OFX/DC setup profiles (then select one)", False)
                     user_viewListALLMDServices.setToolTipText("This will display Moneydance's dynamic setup profiles for all banks - pulled from Infinite Kind's website..")
 
-                    user_view_CUSIP_settings = MenuJRadioButton("View your Security's hidden CUSIP settings (The link between your Bank's Securities & MD Securities)", False)
-                    user_view_CUSIP_settings.setToolTipText("This will show your Security's hidden CUSIP settings. These link your downloads on Investment Securities to MD Securities")
+                    user_view_security_identifier_settings = MenuJRadioButton("View your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc) (the internal link for downloaded securities....)", False)
+                    user_view_security_identifier_settings.setToolTipText("This will show your Security's hidden identifiers (e.g. CUSIP, ISIN, SEDOL etc). These link your downloads on Investment Securities to MD Securities")
 
                     user_viewOnlineTxnsPayeesPayments = MenuJRadioButton("View your Online Txns/Payees/Payments", False)
                     user_viewOnlineTxnsPayeesPayments.setToolTipText("This will show you your cached Online Txns (there should be none) and also your saved online payees and payments")
@@ -27293,9 +27292,9 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
                     user_forgetOFXBankingLink = MenuJRadioButton("Forget OFX Banking File Import Link (remove_ofx_account_bindings.py) (MD versions < MD2022)", False, updateMenu=True, secondaryEnabled=(not isMDPlusEnabledBuild() or isToolboxUnlocked()))
                     user_forgetOFXBankingLink.setToolTipText("Force MD to forget OFX Banking Import link attributed to an Account. Moneydance will ask you to recreate the link on next import.. THIS CHANGES DATA! (remove_ofx_account_bindings.py)")
-
-                    user_manageCUSIPLink = MenuJRadioButton("Reset/Fix/Edit/Add CUSIP Banking Link (remove_ofx_security_bindings.py)", False, updateMenu=True)
-                    user_manageCUSIPLink.setToolTipText("Allows you to reset/add/edit/move your CUSIP banking link between security records. THIS CHANGES DATA! (remove_ofx_security_bindings.py)")
+                    
+                    user_manage_security_identifier_settings = MenuJRadioButton("Reset/Fix/Edit/Add your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc). (remove_ofx_security_bindings.py and change-security-cusip.py)", False, updateMenu=True)
+                    user_manage_security_identifier_settings.setToolTipText("Allows you to reset/add/edit/move your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc). These link your downloads on Investment Securities to MD Securities. THIS CHANGES DATA! (remove_ofx_security_bindings.py and change-security-cusip.py)")
 
                     user_updateOFXLastTxnUpdate = MenuJRadioButton("Update OFX Last Txn Update Date (Downloaded) field for an account (MD versions >= 2022 use Online menu)", False, updateMenu=True)
                     user_updateOFXLastTxnUpdate.setToolTipText("Allows you to edit the last download txn date which is used to set the start date for txn downloads - THIS CHANGES DATA!")
@@ -27358,7 +27357,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters.add(user_online_banking_view_configuration_data)
                     userFilters.add(user_searchOFXData)
                     userFilters.add(user_viewListALLMDServices)
-                    userFilters.add(user_view_CUSIP_settings)
+                    userFilters.add(user_view_security_identifier_settings)
                     userFilters.add(user_viewOnlineTxnsPayeesPayments)
                     userFilters.add(user_viewAllLastTxnDownloadDates)
                     userFilters.add(user_viewReconcileAsOfDates)
@@ -27373,7 +27372,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                             userFilters.add(ToolboxMode.getMenuLabel())
 
                         userFilters.add(user_forgetOFXBankingLink)
-                        userFilters.add(user_manageCUSIPLink)
+                        userFilters.add(user_manage_security_identifier_settings)
                         userFilters.add(user_updateOFXLastTxnUpdate)
                         userFilters.add(user_reset_OFXLastTxnUpdate_dates)
                         userFilters.add(user_removeDownloadedDataFromTxns)
@@ -27422,7 +27421,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_forgetOFXBankingLink.isSelected():                      forgetOFXImportLink()
                         if user_deleteOFXBankingLogonProfile.isSelected():              deleteOFXService()
                         if user_cleanupMissingOnlineBankingLinks.isSelected():          cleanupMissingOnlineBankingLinks(lAutoPurge=False)
-                        if user_manageCUSIPLink.isSelected():                           CUSIPFix()
+                        if user_manage_security_identifier_settings.isSelected():       fix_security_identifiers()
                         if user_UNLOCKMDPlusDiagnostic.isSelected():                    UNLOCKMDPlusDiagnostic()
                         if user_authenticationManagement.isSelected():                  OFX_authentication_management()
                         if user_forceMDPlusNameCacheAccessTokensRebuild.isSelected():   forceMDPlusNameCacheAccessTokensRebuild()
@@ -27440,7 +27439,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_removeDownloadedDataFromTxns.isSelected():              OFX_removeDownloadedDataFromTxns()
                         if user_searchOFXData.isSelected():                             CuriousViewInternalSettingsButtonAction(lOFX=True).actionPerformed("")
                         if user_viewListALLMDServices.isSelected():                     download_md_fiscal_setup()
-                        if user_view_CUSIP_settings.isSelected():                       OFX_view_CUSIP_settings()
+                        if user_view_security_identifier_settings.isSelected():         OFX_view_security_identifier_settings()
                         if user_viewOnlineTxnsPayeesPayments.isSelected():              OFX_view_online_txns_payees_payments()
                         if user_viewAllLastTxnDownloadDates.isSelected():               OFX_view_all_last_txn_download_dates()
                         if user_viewReconcileAsOfDates.isSelected():                    OFX_view_reconcile_AsOf_Dates()
