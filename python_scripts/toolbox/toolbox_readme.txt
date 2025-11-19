@@ -145,6 +145,7 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - DIAG - Diagnose currencies / securities (including relative currencies). If errors, then go to FIX below
         - DIAG - Can I delete a Security (tells you whether a security/stock is being used - and where)
         - DIAG - Can I delete a Currency (tells you whether a currency is being used - and where)
+        - DIAG - Produce a quick report of potentially duplicate securities
         - DIAG - List decimal places (currency & security). Shows you the hidden setting and related data.
         - DIAG - Show your open LOTs on stocks/shares (when using LOT control) (show_open_tax_lots.py)
         - DIAG - Show Securities with 'invalid' LOT Matching (cause of LOT matching popup window)

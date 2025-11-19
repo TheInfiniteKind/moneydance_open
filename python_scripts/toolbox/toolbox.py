@@ -109,7 +109,7 @@
 # build: 1069 - Tweak online_banking_view_configuration_data() to skip getInfo() output when redacting. Not necessary to log this...
 # build: 1069 - Tweak OFX_view_security_identifier_settings() to remove 'ticker and cuspid are different' message (irrelevant)...
 # build: 1069 - add stripReplaceCharacters(); add view_reports_record_keys() function to show report's data export record keys...
-# build: 1069 - Change term CUSIP to "Security Identifier" (etc)
+# build: 1069 - Change term CUSIP to "Security Identifier" (etc); improve potentially duplicate securities report, and add to menu...
 # build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -3434,7 +3434,8 @@ Visit: %s (Author's site)
         global view_shouldBeIncludedInNetWorth_settings, edit_shouldBeIncludedInNetWorth_settings, view_networthCalculations
         global diag_security_splits_no_price
         global view_inactiveAcctsIncludedNW, fix_inactiveAcctsIncludedNW
-        global advanced_options_edit_parameter_keys, view_reports_record_keys
+        global advanced_options_edit_parameter_keys, view_reports_record_keys, showMDLaunchParameters
+        global list_potentially_duplicate_securities
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -7220,7 +7221,8 @@ Visit: %s (Author's site)
                   "When matching Securities on Download, this setting needs to be blank or match the scheme. Your OFX download will contain\n" \
                   "the tags '<UNIQUEIDTYPE>' (which normally contains the scheme type) and '<UNIQUEID>' (which contains the scheme type's ID).\n" \
                   "If your MD Security already contains a different scheme ID, then it will NOT appear in the match list.\n" \
-                  "You can edit your hidden Security Identifier Scheme data in Update Mode.\n\n"
+                  "You can edit your hidden Security Identifier Scheme data in Update Mode.\n\n" \
+                  "Refer: 'MENU: Currency & Security tools' > 'DIAG - Produce a quick report of potentially duplicate securities' for a useful reference report.\n\n"
 
         output += " SECURITIES\n" \
                   " ==========\n\n"
@@ -26417,92 +26419,6 @@ after saving the file, restart Moneydance
         myPrint("B","%s: %s" %(_THIS_METHOD_NAME, txt))
         myPopupInformationBox(jif,txt,theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
 
-    def showMDLaunchParameters():
-        _THIS_METHOD_NAME = "ADVANCED: SHOW MD LAUNCH PARAMETERS"
-
-        displayTxt = """
-------------------------------------------------------------------------------------------------------------------------
-ADVANCED MONEYDANCE LAUNCH SETTINGS / PARAMETERS:
--------------------------------------------------
-
-Moneydance(MD) is built on Java. Hence the application runs on a Java Virtual Machine (JVM).
-- The MD installer typically creates an app package and launch icon for easy execution of the app
-
-- NOTE: You can also execute the moneydance.jar using Java as long as you set up your environment properly.
-        .. this is out of scope of this document, but refer to: https://yogi1967.github.io/MoneydancePythonScripts/
-        .. and the example launch scripts contained on my site.
-        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18, MD2023.2(5008) Java 20, MD2023.2(5047) Java 21
-
-- Windows and Linux: The launch package is built using install4j. The JVM can be modified by editing the vmoptions file.
-                     See separate Toolbox > Advanced Options menu > 'View Java VM Options File' for details
-                     You can edit this 'vmoptions' file and pass settings through to the JVM at launch:
-                         e.g. -XX:MaxRAMPercentage=80 (which is now the default anyway)                     
-                     You can in theory pass any valid JVM options in this file:
-                         e.g. -Dtoolbox=great (would set the System property key 'toolbox' with a value of 'great' 
-                     
-                     You can also pass options on the command line that will be captured by install4j and passed through
-                     to the JVM (so similar to the vmoptions file above, but via command line)
-                        e.g. -J-Dtoolbox=great
-                        refer: https://www.ej-technologies.com/resources/install4j/help/doc/installers/options.html
-
-- Windows: You can simply execute the Moneydance.exe file (with [optional] parameters - see below)
-           - NOTE: Even when launched this way, the vmoptions file will be processed.
-
-                   - using the exe does not write to stderr / stdout, so you cannot easily see results from -v
-                     .. you can use: "\\Program Files\\Moneydance\\Moneydance" -v > [pathto]outputfile.txt 2>&1
-                     .. as an alternative you can try:
-                     .. "\\Program Files\\Moneydance\\jre\\bin\\java" -jar "\\Program Files\\Moneydance\\lib\\moneydance.jar" -v
-
-- Linux: The app package is normally located in /opt/Moneydance. This is actually an .sh script file.
-         ... the [optional] parameters below will work with this app package using Terminal.
-         
-- Apple macOS: The installer creates an apple mac 'package' file called /Applications/Moneydance.app
-               .. (this is really a special folder. In Finder, right-click and 'Show Package Contents'
-               .. There is no vmoptions file option with macOS
-               .. But you can simply execute Moneydance from Terminal using the following command:
-               .. /Applications/Moneydance.app/Contents/MacOS/Moneydance (with [optional] parameters - see below)
-
-Moneydance parameters:
-----------------------
--d                  Enables Moneydance DEBUG mode (extra messages in help/console)
--v                  prints the current version (and then quits)
---version           same as -v
--nobackup'          disables backups for this MD session (from build 5047 onwards)
-datasetname         will open the specified dataset >> specify the full path wrapped in (plain text) "quotes" 
-pythonscriptname.py adds script to a list of scripts to execute (but this seems to then be ignored)
-importfilename      executes file import (mutually exclusive to datasetname option)
--invoke_and_quit=x  will pass a string cmd that will invoke an 'fmodule' (extension) and quit (not showing UI)
-                    .. executes Main.showURL(invokeAndQuitURI)
-                    .. e.g. 'moneydance:fmodule:test:test:customevent:magic'
-                    .. (e.g. my extension(s) with an id of test defines it's own command called 'test:customevent:magic'
-                    .. (there are other variations of this parameter and with ? instead of ':' for parameters.....
--invoke=x           Same as -invoke_and_quit but does launch the UI first and doesn't quit...!
-
-Extensions:
------------
-Two (known) extensions have been updated to leverage the -invoke command. These are: Quote Loader & Extract Data.
-The commands to execuite these are:
-                                    -invoke=moneydance:fmodule:securityquoteload:runstandalone:quit
-                                    -invoke=moneydance:fmodule:extract_data:autoextract:quit
-                                    (use :quit or :noquit) to quit the session or leave open after execution
-
-Dataset Master Password:
-------------------------
-MD2021.2(3088): Adds capability to set the encryption passphrase into an environment variable to bypass the logon.
-                Either: md_passphrase=   or  md_passphrase_[filename in lowercase format]=
-                E.g. md_passphrase=test would pass the password of 'test'
-                The variable must be set into the parent environment (using 'set' / 'export' command as appropriate)
-                NOTE: If you have not set a master password, then you do not need to worry about this!
-
-------------------------------------------------------------------------------------------------------------------------
-"""
-
-        jif = QuickJFrame(_THIS_METHOD_NAME, displayTxt, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False).show_the_frame()
-        jif.toFront()
-
-        txt = "Advanced Moneydance launch settings/parameters displayed"
-        setDisplayStatus(txt, "B")
-
     def advanced_options_demote_primary_to_secondary():
         # the reverse of convert_secondary_to_primary_data_set
 
@@ -26875,6 +26791,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
     def detect_duplicate_securities():
 
+        PARAM_CURRID = "curr_id."
+
         try:
             _startTimeMs = System.currentTimeMillis()
 
@@ -26910,6 +26828,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     duplicateSecurities.append(["Ticker:", foundSecTickers[what][0].getTickerSymbol(), foundSecTickers[what]])
 
             output = None
+
             if len(duplicateSecurities) > 0:
                 output = "POTENTIAL DUPLICATE SECURITIES:\n" \
                          " ------------------------------\n"
@@ -26922,7 +26841,15 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 output += "\n" \
                           "--- Unique list of Securities with potential duplicates:\n"
                 for sec in sorted(securitiesInvolved, key=lambda _x: (_x.getName().lower())):
-                    output += "%s(Ticker: %s, ID: %s)\n" %(sec.getName(), sec.getTickerSymbol(), sec.getIDString())
+
+                    hiddenSchemes = []
+                    for key in sec.getParameterKeys():
+                        if key.startswith(PARAM_CURRID):
+                            theScheme = key[len(PARAM_CURRID):]
+                            hiddenSchemes.append("%s:%s" %(theScheme, sec.getIDForScheme(theScheme)))
+
+                    output += ("%s(Ticker: %s, ID: %s, dpc: %s, splits: %s, rate: %s, hidden schemes: %s, uuid: %s)\n"
+                              %(sec.getName(), sec.getTickerSymbol(), sec.getIDString(), sec.getDecimalPlaces(), sec.getSplits().size(), safeInvertRate(sec.getRelativeRate()), hiddenSchemes, sec.getUUID()))
                 output += "\n<END>"
 
                 myPrint("DB", "detect_duplicate_securities() took %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
@@ -28084,6 +28011,9 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     user_list_curr_sec_dpc = MenuJRadioButton("DIAG: List Security / Currency (hidden) decimal place settings", False)
                     user_list_curr_sec_dpc.setToolTipText("This will list your Security and Currency hidden decimal place settings (and attempt to advise of setup errors)")
 
+                    user_list_potentially_duplicate_securities = MenuJRadioButton("DIAG - Produce a quick report of potentially duplicate securities", False)
+                    user_list_potentially_duplicate_securities.setToolTipText("This show a report of securities that are potentially duplicated")
+
                     user_validateBaseCurr = MenuJRadioButton("DIAG: Validate and fix base currency (run this first)", False)
                     user_validateBaseCurr.setToolTipText("This will diagnose your base Currency (and advise if you need to run a fix)")
 
@@ -28150,13 +28080,14 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     userFilters = JPanel(GridLayout(0, 1))
 
                     rowHeight = 24
-                    rows = 13
+                    rows = 14
 
                     userFilters.add(ToolboxMode.DEFAULT_MENU_READONLY_TXT_LBL)
                     userFilters.add(user_validateBaseCurr)
                     userFilters.add(user_diag_curr_sec)
                     userFilters.add(user_can_i_delete_security)
                     userFilters.add(user_can_i_delete_currency)
+                    userFilters.add(user_list_potentially_duplicate_securities)
                     userFilters.add(user_list_curr_sec_dpc)
                     userFilters.add(user_show_open_share_lots)
                     userFilters.add(user_diagnose_matched_lot_data)
@@ -28275,6 +28206,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         if user_can_i_delete_security.isSelected():                                     can_I_delete_security()
                         if user_can_i_delete_currency.isSelected():                                     can_I_delete_currency()
                         if user_list_curr_sec_dpc.isSelected():                                         list_security_currency_decimal_places()
+                        if user_list_potentially_duplicate_securities.isSelected():                     list_potentially_duplicate_securities()
                         if user_diag_price_date.isSelected():                                           list_security_currency_price_date()
                         if user_quick_check_prices.isSelected():                                        quick_security_currency_price_check_report(lQuickCheckOnly=False)
                         if user_quick_check_prices_all.isSelected():                                    quick_security_currency_price_check_report(lQuickCheckOnly=False, lReportAll=True)
@@ -29825,7 +29757,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             # Attempt duplicate security detection...
             _countDuplicateSecurities, _duplicateSecurities, output = detect_duplicate_securities()
             if _countDuplicateSecurities > 0:
-                statusTxt = "ALERT - Potential duplicate(d) securities found (in Tools>Securities)!"
+                statusTxt = "ALERT - (Potentially) %s duplicate securities found (Tools>Securities)!" %(_countDuplicateSecurities)
                 myPrint("B", statusTxt, output)
                 MyPopUpDialogBox(toolbox_frame_,
                                  theStatus=statusTxt,
