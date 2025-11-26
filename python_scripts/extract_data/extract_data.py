@@ -105,7 +105,7 @@
 # build: 1048 - ... now the Description/Memo field contain the parent's data, Cheque/Memo can be [bracket] wrapped when not set and showing parent's data. SplitMemo will show split memo or just ""
 # build: 1048 - Improve stripping of linefeeds and tabs with stripReplaceCharacters()
 # build: 1049 - ???
-# build: 1049 - Tweak Extract Account Register txns (EAR) - add transfer/cat/account (target) currency code...
+# build: 1049 - Tweak Extract Account Register txns (EAR) - add transfer/cat/account (target) currency code...; also to ECI too...
 # build: 1049 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -12644,6 +12644,7 @@ Visit: %s (Author's site)
 
                                     header = ["Type",
                                               "CategoryName",
+                                              "Currency",
                                               "Status",
                                               "TaxRelated",
                                               "InternalUUID",
@@ -12661,6 +12662,7 @@ Visit: %s (Author's site)
                                             row = []
                                             row.append(unicode(cat.getAccountType()))
                                             row.append(cat.getFullAccountName())
+                                            row.append(cat.getCurrencyType().getIDString())
                                             row.append("I" if cat.getAccountOrParentIsInactive() else "A")
                                             row.append("TAX" if cat.isTaxRelated() else "")
                                             row.append(cat.getUUID())
