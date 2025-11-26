@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1048 - Oct 2025 - Stuart Beesley
+# extract_data.py - build: 1049 - November 2025 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -100,12 +100,13 @@
 # build: 1046 - Added extract category information (ECI) extract
 # build: 1047 - BUGFIX - Extract Reminders when notes... Missing tags column (index 18)...
 # build: 1047 - Patch ESB - invalid Account::getMaturity() date (in this case a value of 28800000!?
-# build: 1048 - ???
 # build: 1048 - tweak path validation message with new setFilePathValidationMessage()
 # build: 1048 - EAR - tweak code to grab description/memo (especially for splits), also tweak a split's 'real' index (from zero to the parent's index for this split)...
 # build: 1048 - ... now the Description/Memo field contain the parent's data, Cheque/Memo can be [bracket] wrapped when not set and showing parent's data. SplitMemo will show split memo or just ""
 # build: 1048 - Improve stripping of linefeeds and tabs with stripReplaceCharacters()
-# build: 1048 - ???
+# build: 1049 - ???
+# build: 1049 - Tweak Extract Account Register txns (EAR) - add transfer/cat/account (target) currency code...
+# build: 1049 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -120,7 +121,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1048"
+version_build = "1049"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -10495,17 +10496,18 @@ Visit: %s (Author's site)
                                         "_SPLITIDX":                [17, "SplitIndex"],
                                         "_SPLITMEMO":               [18, "SplitMemo"],
                                         "_SPLITCAT":                [19, "SplitCategory"],
-                                        "_SPLITAMOUNT":             [20, "SplitAmount"],
-                                        "_FOREIGNSPLITAMOUNT":      [21, "ForeignSplitAmount"],
-                                        "_SPLITTAGS":               [22, "SplitTags"],
-                                        "_ISTRANSFERTOACCT":        [23, "isTransferToAnotherAccount"],
-                                        "_ISTRANSFERSELECTED":      [24, "isTransferWithinThisExtract"],
-                                        "_ISPARENTTXN":             [25, "isParentTxn"],
-                                        "_SPLITHASATTACHMENTS":     [26, "SplitHasAttachments"],
-                                        "_ATTACHMENTLINK":          [27, "AttachmentLink"],
-                                        "_ATTACHMENTLINKREL":       [28, "AttachmentLinkRelative"],
-                                        "_KEY":                     [29, "Key"],
-                                        "_END":                     [30, "_END"]
+                                        "_SPLITCATCURR":            [20, "SplitCategoryCurrency"],
+                                        "_SPLITAMOUNT":             [21, "SplitAmount"],
+                                        "_FOREIGNSPLITAMOUNT":      [22, "ForeignSplitAmount"],
+                                        "_SPLITTAGS":               [23, "SplitTags"],
+                                        "_ISTRANSFERTOACCT":        [24, "isTransferToAnotherAccount"],
+                                        "_ISTRANSFERSELECTED":      [25, "isTransferWithinThisExtract"],
+                                        "_ISPARENTTXN":             [26, "isParentTxn"],
+                                        "_SPLITHASATTACHMENTS":     [27, "SplitHasAttachments"],
+                                        "_ATTACHMENTLINK":          [28, "AttachmentLink"],
+                                        "_ATTACHMENTLINKREL":       [29, "AttachmentLinkRelative"],
+                                        "_KEY":                     [30, "Key"],
+                                        "_END":                     [31, "_END"]
                                     }
 
                                     GlobalVars.transactionTable = []
@@ -10736,6 +10738,7 @@ Visit: %s (Author's site)
 
                                                 splitTags = safeStr(otherSideTxn.getKeywords())
                                                 splitCat = otherSideTxn.getAccount().getFullAccountName()
+                                                splitCatCurr = otherSideTxn.getAccount().getCurrencyType().getIDString()
                                                 splitHasAttachments = otherSideTxn.hasAttachments()
 
                                                 splitFAmount = None
@@ -10791,6 +10794,7 @@ Visit: %s (Author's site)
                                                 splitMemo = getTxnMemo(txn, False)
                                                 splitTags = safeStr(txn.getKeywords())
                                                 splitCat = parent_Txn.getAccount().getFullAccountName()
+                                                splitCatCurr = parent_Txn.getAccount().getCurrencyType().getIDString()
                                                 splitHasAttachments = txn.hasAttachments()
 
 
@@ -10830,6 +10834,7 @@ Visit: %s (Author's site)
                                             splitRowCopy[GlobalVars.dataKeys["_FOREIGNSPLITAMOUNT"][_COLUMN]] = splitFAmount
                                             splitRowCopy[GlobalVars.dataKeys["_SPLITTAGS"][_COLUMN]] = splitTags
                                             splitRowCopy[GlobalVars.dataKeys["_SPLITCAT"][_COLUMN]] = splitCat
+                                            splitRowCopy[GlobalVars.dataKeys["_SPLITCATCURR"][_COLUMN]] = splitCatCurr
                                             splitRowCopy[GlobalVars.dataKeys["_SPLITHASATTACHMENTS"][_COLUMN]] = splitHasAttachments
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERTOACCT"][_COLUMN]] = isTransfer
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERSELECTED"][_COLUMN]] = isTransferWithinExtract
