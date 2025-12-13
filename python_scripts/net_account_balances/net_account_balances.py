@@ -154,6 +154,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1057 - fixes for replaceSecurityCostBasisBalances() and HoldBalance() to remove the 'fudge' that converted security values (cb, cg, urg etc) back to the security's share value...
 # build: 1058 - ???
 # build: 1058 - Add formatting code <#fv+> - Apply 1.1 multiplier to mono font for value column (to match MD's HomePageView AccountView widget for totals)...
+# build: 1058 - Fix for root pane opaque setting when using Mac Dark mode, but MD's theme settings are normal (non-dark)...
 # build: 1058 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -964,6 +965,7 @@ Visit: %s (Author's site)
 
     GlobalVars.decimalCharSep = getDecimalPoint()
 
+    def isAnyDarkDetected(): return isMacDarkModeDetected() or isMDThemeDark()
 
     def isMacDarkModeDetected():
         darkResponse = "LIGHT"
@@ -15330,7 +15332,7 @@ Visit: %s (Author's site)
 
                     NAB.createMenus()                              # Now moved away from JFrame.setJMenuBar() to here...
                     rootPane.setJMenuBar(NAB.mainMenuBar)
-                    rootPane.getContentPane().setOpaque(True)                                                           # noqa
+                    rootPane.getContentPane().setOpaque(not isAnyDarkDetected())                                        # noqa
                     rootPane.getContentPane().setBackground(Color(237,237,237))       # very light grey panel background
 
                     # -----------------------------------------------------------------------------------
