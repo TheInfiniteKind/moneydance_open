@@ -2175,13 +2175,13 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	 */
 	public synchronized void failedQuote(String url) {
 		String uuid = "";
-		Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.INFO, "Requested URI " + url);
+		Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.INFO, "Requested URI: " + url);
 		URI uri;
 		String convUrl = url.replace("^", "%5E");
 		try {
 			uri = new URI(convUrl.trim());
 		} catch (URISyntaxException e) {
-			Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.SUMMARY, "URI invalid " + convUrl);
+			Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.SUMMARY, "URI invalid: " + convUrl);
 			e.printStackTrace();
 			return;
 		}
@@ -2215,8 +2215,10 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				currencyFound = true;
 				ticker = price.getValue();
         originalTicker = ticker;
-				Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.DETAILED, "Currency Ticker " + ticker);
-				if (ticker.endsWith(Constants.CURRENCYTICKER)) {
+				Main.debugInst.debug("MainPriceWindow", "failedQuote", MRBDebug.DETAILED, "Currency Ticker: " + ticker);
+        if (srce == ALPHAVAN && !QLUtil.isCrypto(ticker)) {
+            ticker = Constants.CURRENCYID + ticker.substring(ticker.indexOf('/') + 1);
+        } else if (ticker.endsWith(Constants.CURRENCYTICKER)) {
 					switch (srce) {
 					case FT:
 					case FTHD:
@@ -2284,8 +2286,6 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		errorsFound = true;
 		if (errorTickers != null)
 			errorTickers.add(ticker);
-		//if (listener != null)
-		//	listener.failed(ticker, uuid);
     if (listener != null)
 			listener.failed(ticker, uuid, errorCode);
   }

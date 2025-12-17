@@ -230,6 +230,7 @@ public class GetQuoteTask extends QuoteTask<QuotePrice> {
 			errorUrl+=Constants.CURRENCYTYPE;
 		errorUrl += "="+ticker;
 		Main.context.showURL(errorUrl);
+    debugInst.debug("getQuoteTask", "sendError", MRBDebug.DEVELOPER, "url: '" + errorUrl + "' ticker: '" + ticker + "'");
 		listener.errorReturned(ticker);
 
 		
