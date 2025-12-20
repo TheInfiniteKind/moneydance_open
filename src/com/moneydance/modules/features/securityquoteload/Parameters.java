@@ -59,7 +59,7 @@ public class Parameters{
 	private  AccountBook curAcctBook;
 	private  File curFolder;
 	private  String fileName;
-	public  static Integer [] alphaPlans = {1200, 600, 300, 150, 75, 5};  // fastest (paid) to slowest (free)
+	public  static Integer [] alphaPlans = {1200, 600, 300, 150, 75, 55, 5};  // fastest (paid) to slowest (free)
 	public  static Integer [] multipliers = {-4,-3,-2,-1,0,1,2,3,4};
 	public  static String[] CURRENCYDATES = {"Trade Date","Today's Date"};
 	public  static int USETRADEDATE = 0;
