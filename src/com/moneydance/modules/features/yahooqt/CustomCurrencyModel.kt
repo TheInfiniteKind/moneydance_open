@@ -7,10 +7,17 @@ import com.infinitekind.moneydance.model.CurrencyListener
 import com.infinitekind.moneydance.model.CurrencySearch
 import com.infinitekind.moneydance.model.CurrencyTable
 import com.infinitekind.moneydance.model.CurrencyType
-import com.infinitekind.moneydance.model.CurrencyUtil.CURRENCY_TYPENAME_CASE_INSENSITIVE_COMPARATOR
 import javax.swing.AbstractListModel
 import javax.swing.ComboBoxModel
 import java.util.Collections
+import java.util.Locale
+
+val CURRENCY_TYPENAME_CASE_INSENSITIVE_COMPARATOR = Comparator<CurrencyType> { currencyType, currencyType2 ->
+  val typeCmp = currencyType.currencyType.compareTo(currencyType2.currencyType)
+  if (typeCmp != 0) typeCmp else currencyType.getName().lowercase(Locale.getDefault()).compareTo(currencyType2.getName().lowercase(Locale.getDefault()))
+}
+
+
 
 /**
  * Model used to represent a set of currency values.
