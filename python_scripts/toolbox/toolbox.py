@@ -110,6 +110,7 @@
 # build: 1069 - Tweak OFX_view_security_identifier_settings() to remove 'ticker and cuspid are different' message (irrelevant)...
 # build: 1069 - add stripReplaceCharacters(); add view_reports_record_keys() function to show report's data export record keys...
 # build: 1069 - Change term CUSIP to "Security Identifier" (etc); improve potentially duplicate securities report, and add to menu...
+# build: 1069 - toolbox_zap_mdplus_ofx_qif_default_memo_fields.py - added "script:" import from csv support...
 # build: 1069 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -549,7 +550,7 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2025.0
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2026.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5500
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"

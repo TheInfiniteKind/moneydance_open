@@ -2,7 +2,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_zap_mdplus_ofx_qif_default_memo_fields.py build: 1006 - July 2024 - Stuart Beesley StuWareSoftSystems
+# toolbox_zap_mdplus_ofx_qif_default_memo_fields.py build: 1007 - December 2025 - Stuart Beesley StuWareSoftSystems
 
 ###############################################################################
 # MIT License
@@ -37,6 +37,7 @@
 # build: 1004 - Common code - FileFilter fix...
 # build: 1005 - MyJFrame(v5)
 # build: 1006 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
+# build: 1007 - added "script:" fiid support for manual import_fidelity.py from csv extension...
 
 # Iterates previous x month's md+/ofx/qif transactions across Bank, Credit Card, Investment accounts and zaps the Memo field
 # where it matches certain rules...
@@ -47,7 +48,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox_zap_mdplus_ofx_qif_default_memo_fields"
-version_build = "1006"
+version_build = "1007"
 MIN_BUILD_REQD = 4040                 # 2022.2 MD+ builds
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -3895,7 +3896,7 @@ Visit: %s (Author's site)
                             isMDP = True
                         elif "ofx:" in fiid_check:
                             isOFX = True
-                        elif "qif" in fiid_check:
+                        elif "qif" in fiid_check or "script:" in fiid_check:
                             isDownloadedQIF = True
 
                         if not isMDP and not isOFX and not isDownloadedQIF and not isNonDownloadedQIF:
