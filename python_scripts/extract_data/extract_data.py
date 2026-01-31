@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1049 - November 2025 - Stuart Beesley
+# extract_data.py - build: 1049 - January 2026 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -106,6 +106,7 @@
 # build: 1048 - Improve stripping of linefeeds and tabs with stripReplaceCharacters()
 # build: 1049 - ???
 # build: 1049 - Tweak Extract Account Register txns (EAR) - add transfer/cat/account (target) currency code...; also to ECI too...
+# build: 1049 - Tweak Extract Account Register txns (EAR) - add Parent and Split UUID fields...
 # build: 1049 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -5553,7 +5554,7 @@ Visit: %s (Author's site)
         user_selectStripASCII = JCheckBox("", GlobalVars.saved_lStripASCII_SWSS)
         user_selectStripASCII.setName("user_selectStripASCII")
 
-        labelDelimiter = JLabel("Change CSV extract Delimiter from default to: '|,'")
+        labelDelimiter = JLabel("Change CSV extract Delimiter from default:")
         user_selectDELIMITER = JComboBox(GlobalVars.ALLOWED_CSV_FILE_DELIMITER_STRINGS)
         user_selectDELIMITER.setName("user_selectDELIMITER")
         user_selectDELIMITER.setSelectedItem(GlobalVars.saved_csvDelimiter_SWSS)
@@ -10492,22 +10493,24 @@ Visit: %s (Author's site)
                                         "_TOTALAMOUNT":             [13, "TotalAmount"],
                                         "_FOREIGNTOTALAMOUNT":      [14, "ForeignTotalAmount"],
                                         "_PARENTTAGS":              [15, "ParentTags"],
-                                        "_PARENTHASATTACHMENTS":    [16, "ParentHasAttachments"],
-                                        "_SPLITIDX":                [17, "SplitIndex"],
-                                        "_SPLITMEMO":               [18, "SplitMemo"],
-                                        "_SPLITCAT":                [19, "SplitCategory"],
-                                        "_SPLITCATCURR":            [20, "SplitCategoryCurrency"],
-                                        "_SPLITAMOUNT":             [21, "SplitAmount"],
-                                        "_FOREIGNSPLITAMOUNT":      [22, "ForeignSplitAmount"],
-                                        "_SPLITTAGS":               [23, "SplitTags"],
-                                        "_ISTRANSFERTOACCT":        [24, "isTransferToAnotherAccount"],
-                                        "_ISTRANSFERSELECTED":      [25, "isTransferWithinThisExtract"],
-                                        "_ISPARENTTXN":             [26, "isParentTxn"],
-                                        "_SPLITHASATTACHMENTS":     [27, "SplitHasAttachments"],
-                                        "_ATTACHMENTLINK":          [28, "AttachmentLink"],
-                                        "_ATTACHMENTLINKREL":       [29, "AttachmentLinkRelative"],
-                                        "_KEY":                     [30, "Key"],
-                                        "_END":                     [31, "_END"]
+                                        "_PARENTUUID":              [16, "ParentUUID"],
+                                        "_PARENTHASATTACHMENTS":    [17, "ParentHasAttachments"],
+                                        "_SPLITIDX":                [18, "SplitIndex"],
+                                        "_SPLITMEMO":               [19, "SplitMemo"],
+                                        "_SPLITCAT":                [20, "SplitCategory"],
+                                        "_SPLITCATCURR":            [21, "SplitCategoryCurrency"],
+                                        "_SPLITAMOUNT":             [22, "SplitAmount"],
+                                        "_FOREIGNSPLITAMOUNT":      [23, "ForeignSplitAmount"],
+                                        "_SPLITTAGS":               [24, "SplitTags"],
+                                        "_SPLITUUID":               [25, "SplitUUID"],
+                                        "_ISTRANSFERTOACCT":        [26, "isTransferToAnotherAccount"],
+                                        "_ISTRANSFERSELECTED":      [27, "isTransferWithinThisExtract"],
+                                        "_ISPARENTTXN":             [28, "isParentTxn"],
+                                        "_SPLITHASATTACHMENTS":     [29, "SplitHasAttachments"],
+                                        "_ATTACHMENTLINK":          [30, "AttachmentLink"],
+                                        "_ATTACHMENTLINKREL":       [31, "AttachmentLinkRelative"],
+                                        "_KEY":                     [32, "Key"],
+                                        "_END":                     [33, "_END"]
                                     }
 
                                     GlobalVars.transactionTable = []
@@ -10688,6 +10691,8 @@ Visit: %s (Author's site)
                                         _row[GlobalVars.dataKeys["_MEMO"][_COLUMN]] = getTxnMemo(txn, True, True)       # always the parent's memo, can be [wrapped] if on a split
                                         _row[GlobalVars.dataKeys["_CLEARED"][_COLUMN]] = getStatusCharRevised(txn)
 
+                                        _row[GlobalVars.dataKeys["_PARENTUUID"][_COLUMN]] = parent_Txn.getUUID()
+
                                         if acctCurr == GlobalVars.baseCurrency:
                                             _row[GlobalVars.dataKeys["_TOTALAMOUNT"][_COLUMN]] = acctCurr.getDoubleValue(txn.getValue())
                                         else:
@@ -10839,6 +10844,7 @@ Visit: %s (Author's site)
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERTOACCT"][_COLUMN]] = isTransfer
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERSELECTED"][_COLUMN]] = isTransferWithinExtract
                                             splitRowCopy[GlobalVars.dataKeys["_ISPARENTTXN"][_COLUMN]] = lParent
+                                            splitRowCopy[GlobalVars.dataKeys["_SPLITUUID"][_COLUMN]] = otherSideTxn.getUUID()
 
                                             holdTheKeys = ArrayList()
                                             holdTheLocations = ArrayList()
