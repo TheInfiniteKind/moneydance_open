@@ -1,6 +1,6 @@
 The Infinite Kind (Moneydance) - Co-authored by Stuart Beesley in collaboration with Moneydance as a support tool
 
-Original Author: Stuart Beesley - StuWareSoftSystems (2020-2025 - originally my 'lockdown' project ~2000 coding hours)
+Original Author: Stuart Beesley - StuWareSoftSystems (2020-2026 - originally my 'lockdown' project ~2000 coding hours)
 Credit: Derek Kent(23) for his extensive testing and many hours on this project!
         Also thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 

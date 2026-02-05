@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1069 - 2020 thru 2025 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1070 - 2020 thru 2026 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -56,7 +56,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2021-2025 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
+# Copyright (c) 2021-2026 Stuart Beesley - StuWareSoftSystems & Infinite Kind (Moneydance)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -101,7 +101,6 @@
 # build: 1068 - Tweak validate account start dates to look for future dates. Adding 2025 license keys...
 # build: 1068 - diag screen tweaks for 5252 -nobackup and no splash screen options. Also 5252 Account::ancestors
 # build: 1068 - Add feature so that users can quickly remove inactive accounts from Net Worth
-# build: 1069 - ???
 # build: 1069 - switch to call NetworthCalculator off the EDT...; add warning to DisplayUUID when uuid not found.
 # build: 1069 - Tweaks to fix_non_hier_sec_acct_txns()
 # build: 1069 - MoneydanceGUI Kotlin'ized.. plusPoller renamed to plusController
@@ -111,7 +110,7 @@
 # build: 1069 - add stripReplaceCharacters(); add view_reports_record_keys() function to show report's data export record keys...
 # build: 1069 - Change term CUSIP to "Security Identifier" (etc); improve potentially duplicate securities report, and add to menu...
 # build: 1069 - toolbox_zap_mdplus_ofx_qif_default_memo_fields.py - added "script:" import from csv support...
-# build: 1069 - ???
+# build: 1070 - MD2026 release...
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -144,7 +143,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1069"
+version_build = "1070"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -2901,7 +2900,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2025)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2026)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
