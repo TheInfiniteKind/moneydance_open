@@ -1,0 +1,10 @@
+{
+  "vendor" = "Stuart Beesley"
+  "vendor_url" = "https://github.com/TheInfiniteKind/moneydance_open"
+  "module_name" = "Context Menu Tools"
+  "module_name.en-GB" = "Context Menu Tools"
+  "module_desc" = "Enables additional context menu (right click) tools"
+  "id" = "contextmenutools"
+  "module_build" = "1"
+  "minbuild" = "5253"
+}
