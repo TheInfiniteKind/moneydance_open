@@ -14,12 +14,6 @@
     }
     {
       "type" = "menu"
-      "script_file" = "toolbox_total_selected_transactions.py"
-      "name" = "Toolbox: Total selected transactions"
-      "name.en-GB" = "Toolbox: Total selected transactions"
-    }
-    {
-      "type" = "menu"
       "script_file" = "toolbox_zap_mdplus_ofx_qif_default_memo_fields.py"
       "name" = "Toolbox: Zap md+/ofx/qif (default) memo fields"
       "name.en-GB" = "Toolbox: Zap md+/ofx/qif (default) memo fields"
@@ -42,13 +36,6 @@
       "type" = "method"
       "method" = "unload"
       "script_file" = "toolbox_unload.py"
-    }
-    {
-      "type" = "txn_menu"
-      "name" = "Toolbox: Total selected transactions"
-      "name" = "Toolbox: Total selected transactions"
-      "script_file" = "toolbox_total_selected_transactions.py"
-      "script_fixed_parameter" = "total_selected_transactions"
     }
   )
 }

@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 1070 - 2020 thru 2026 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 1071 - 2020 thru 2026 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -111,6 +111,9 @@
 # build: 1069 - Change term CUSIP to "Security Identifier" (etc); improve potentially duplicate securities report, and add to menu...
 # build: 1069 - toolbox_zap_mdplus_ofx_qif_default_memo_fields.py - added "script:" import from csv support...
 # build: 1070 - MD2026 release...
+# build: 1071 - ???
+# build: 1071 - Removed Total Selected Transactions feature / script - moved to new contextmenutools extension
+# build: 1071 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -143,7 +146,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "1070"
+version_build = "1071"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
