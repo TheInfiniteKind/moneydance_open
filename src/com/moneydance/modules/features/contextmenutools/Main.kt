@@ -11,7 +11,7 @@ import javax.swing.*
 @Suppress("DuplicatedCode")
 
 interface ContextMenuAction {
-  fun getActions(context:MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>):List<Action>
+  fun getActions(menuContext:MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>):List<Action>
 }
 
 /**
@@ -67,7 +67,8 @@ class Main : FeatureModule(), PreferencesListener {
     if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
     
     when (context.type) {
-      ActionContextType.register -> {
+      ActionContextType.register, ActionContextType.home_search -> {
+        actions += ValueSelectedTxns().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
         actions += DuplicateTransactions().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
       }
       

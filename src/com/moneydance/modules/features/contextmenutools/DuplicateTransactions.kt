@@ -12,7 +12,6 @@ import com.moneydance.apps.md.controller.*
 import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.apps.md.view.gui.OKButtonPanel
 import com.moneydance.apps.md.view.gui.OKButtonWindow
-import com.moneydance.apps.md.view.gui.moneyforesight.txnPredicate
 import com.moneydance.apps.md.view.gui.txnreg.TxnRegister
 import com.moneydance.awt.AwtUtil.getDialog
 import com.moneydance.awt.GridC
@@ -62,8 +61,6 @@ class DuplicateTransactions: ContextMenuAction {
       // build menu options for allowed types
       when (menuContext.type) {
         ActionContextType.register -> {
-
-          val txnRegister = (menuContext.component as? TxnRegister)
 
           if (listTxns.size > 1) {
             
