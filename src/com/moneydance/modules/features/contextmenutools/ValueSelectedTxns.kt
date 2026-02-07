@@ -3,6 +3,7 @@ package com.moneydance.modules.features.contextmenutools
 import com.infinitekind.moneydance.model.*
 import com.infinitekind.util.StringUtils
 import com.infinitekind.util.labelify
+import com.infinitekind.util.nullIfBlank
 import com.moneydance.apps.md.controller.ActionContextType
 import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.controller.UserPreferences
@@ -66,7 +67,7 @@ class ValueSelectedTxns: ContextMenuAction {
     
     val userPrefCurrID = prefs.getSetting(UserPreferences.GUI_POPUP_USER_CURR_ID_OVERRIDE, null)
     
-    userPrefCurrID?.let {
+    userPrefCurrID.nullIfBlank?.let {
       book.currencies.getCurrencyByIDString(userPrefCurrID)?.also { newBase ->
         if (newBase != base && newBase.currencyType == CurrencyType.Type.CURRENCY) {
           base = newBase
