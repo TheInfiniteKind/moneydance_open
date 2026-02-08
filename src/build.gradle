@@ -1,0 +1,723 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.21'
+}
+
+// Load user.properties if it exists (for local overrides)
+ext.userProps = new Properties()
+def userPropertiesFile = file('user.properties')
+if (userPropertiesFile.exists()) {
+    userPropertiesFile.withInputStream { ext.userProps.load(it) }
+}
+
+// Helper to get property with fallback
+ext.getProp = { String name, String defaultValue = '' ->
+    return ext.userProps.getProperty(name) ?: project.findProperty(name)?.toString() ?: defaultValue
+}
+
+// =============================================================================
+// Configuration Properties
+// =============================================================================
+
+ext {
+    javaVersionNum = '17'
+    kotlinVersion = '1.9.21'
+    kotlinApiVersion = '1.9'
+
+    srcDir = projectDir
+    pythonSrcDir = file('../python_scripts')
+    libDir = file('../lib')
+    distDir = file('../dist')
+    installDir = file("${System.getProperty('user.home')}/.moneydance/fmodules")
+
+    // Signing configuration
+    extPrivKeyFile = getProp('extprivkeyfile', "${srcDir}/priv_key")
+    extPubKeyFile = getProp('extpubkeyfile', "${srcDir}/pub_key")
+    privKeyId = getProp('privkeyid', '99')
+    keyPass = getProp('moneydance_key_pass', getProp('keypass', ''))
+    mdExtLibDir = getProp('md_ext_lib_dir', '')
+    pythonExecutable = getProp('python-executable', 'python2.7')
+    dontSign = project.hasProperty('dont_sign')
+    dontCompile = project.hasProperty('dont_compile')
+}
+
+// =============================================================================
+// Repository and Dependency Configuration
+// =============================================================================
+
+repositories {
+    mavenCentral()
+}
+
+// Configuration for Kotlin compiler classpath (used by Ant tasks)
+// Uses the kotlin-compiler-embeddable for Ant-based compilation
+configurations {
+    kotlinCompilerClasspath
+}
+
+dependencies {
+    // Kotlin compiler for Ant tasks
+    kotlinCompilerClasspath "org.jetbrains.kotlin:kotlin-compiler-embeddable:${kotlinVersion}"
+    kotlinCompilerClasspath "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}"
+    kotlinCompilerClasspath "org.jetbrains.kotlin:kotlin-reflect:1.6.10"
+
+    // Core dependencies (kept for reference, actual compilation uses Ant)
+    compileOnly files("${libDir}/moneydance-dev.jar")
+    compileOnly files("${libDir}/extadmin.jar")
+
+    // Kotlin stdlib
+    implementation files("${libDir}/kotlin-stdlib-1.9.21.jar")
+
+    // Third-party libraries used by various extensions
+    compileOnly files("${libDir}/jfreechart-1.5.4.jar")
+    compileOnly files("${libDir}/jcommon-1.0.24.jar")
+    compileOnly files("${libDir}/gson-2.10.1.jar")
+    compileOnly files("${libDir}/jsoup-1.11.3.jar")
+    compileOnly files("${libDir}/TableLayout-bin-jdk1.5-2009-08-26.jar")
+    compileOnly files("${libDir}/mdpython.jar")
+    compileOnly files("${libDir}/moneyPieSupport.jar")
+    compileOnly files("${libDir}/httpclient-4.5.14.jar")
+    compileOnly files("${libDir}/httpcore-4.4.16.jar")
+    compileOnly files("${libDir}/jgoodies-common-1.8.1.jar")
+
+    // External MD libs if configured
+    if (mdExtLibDir) {
+        compileOnly files("${mdExtLibDir}/moneydance.jar")
+        compileOnly fileTree(dir: mdExtLibDir, include: '*.jar', exclude: ['moneydance.jar', 'extadmin.jar'])
+    }
+}
+
+// =============================================================================
+// Java and Kotlin Compiler Configuration
+// =============================================================================
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.debug = true
+    options.compilerArgs.addAll(['--release', javaVersionNum, '-Xlint:-options'])
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+        freeCompilerArgs.add('-Xjvm-default=all')
+    }
+}
+
+// =============================================================================
+// Source Sets - Configure for the feature-based structure
+// Each feature gets its own source set to allow independent compilation
+// =============================================================================
+
+// Disable the default main source set compilation - we'll compile per-feature
+sourceSets {
+    main {
+        java.srcDirs = []
+        kotlin.srcDirs = []
+        resources.srcDirs = []
+    }
+}
+
+// Disable default compile tasks
+compileJava.enabled = false
+compileKotlin.enabled = false
+processResources.enabled = false
+classes.enabled = false
+
+// =============================================================================
+// Extension Configuration
+// =============================================================================
+
+// Java/Kotlin extensions configuration
+def javaKotlinExtensions = [
+    [name: 'yahooqt', extraClasspath: ['jsoup-1.11.3.jar']],
+    [name: 'yahoofx'],
+    [name: 'priceui'],
+    [name: 'findandreplace', extraClasspath: ['TableLayout-bin-jdk1.5-2009-08-26.jar']],
+    [name: 'debtinsights'],
+    [name: 'ratios'],
+    [name: 'stockglance'],
+    [name: 'securityquoteload', extraClasspath: ['jsoup-1.11.3.jar'], jarExtraIncludes: ['com/moneydance/modules/features/mrbutil/**'], dependsOnMrbutil: true],
+    [name: 'securitypriceload', jarExtraIncludes: ['com/moneydance/modules/features/mrbutil/**'], dependsOnMrbutil: true],
+    [name: 'securityhistoryload', jarExtraIncludes: ['com/moneydance/modules/features/mrbutil/**'], dependsOnMrbutil: true],
+    [name: 'loadsectrans', jarExtraIncludes: ['com/moneydance/modules/features/mrbutil/**'], dependsOnMrbutil: true],
+    [name: 'qifloader', jarExtraIncludes: ['com/moneydance/modules/features/mrbutil/**'], dependsOnMrbutil: true],
+    [name: 'filedisplay'],
+    [name: 'budgetgen', jarExtraIncludes: ['com/moneydance/modules/features/mrbutil/**'], dependsOnMrbutil: true],
+    [name: 'budgetreport', jarExtraIncludes: ['com/moneydance/modules/features/mrbutil/**'], dependsOnMrbutil: true],
+    [name: 'mousetester'],
+    [name: 'contextmenutools'],
+    [name: 'console'],
+    [name: 'cmdline'],
+    [name: 'moneyPie', extraClasspath: ['moneyPieSupport.jar']],
+    [name: 'balpred'],
+    [name: 'mikebalpred'],
+    [name: 'detailedbudget'],
+    [name: 'txfexport'],
+    [name: 'txtimport'],
+    [name: 'featureloader'],
+    [name: 'customgraphreports'],
+    [name: 'report_test_java']
+]
+
+// Python extensions configuration
+def pythonExtensions = [
+    [name: 'toolbox', preCompile: true],
+    [name: 'extract_data', preCompile: true],
+    [name: 'list_future_reminders', preCompile: true],
+    [name: 'net_account_balances', preCompile: true],
+    [name: 'extension_tester', preCompile: false],
+    [name: 'accounts_categories_mega_search_window', preCompile: false],
+    [name: 'security_performance_graph', preCompile: true]
+]
+
+// =============================================================================
+// Helper Tasks
+// =============================================================================
+
+task initBuild {
+    group = 'build setup'
+    description = 'Initialize build directories'
+    doLast {
+        distDir.mkdirs()
+        file("${buildDir}").mkdirs()
+        println "Gradle Build Running.... Executing INIT"
+        println "OS Name is:         ${System.getProperty('os.name')}"
+        println "OS Architecture is: ${System.getProperty('os.arch')}"
+        println "OS Version is:      ${System.getProperty('os.version')}"
+        println "Source dir:         ${srcDir}"
+        println "build output dir:   ${buildDir}"
+        println "md_ext_lib_dir: ${mdExtLibDir}"
+    }
+}
+
+task genkeys {
+    group = 'signing'
+    description = 'Generate signing key pairs'
+    doLast {
+        javaexec {
+            classpath = files("${libDir}/extadmin.jar", "${libDir}/moneydance-dev.jar")
+            mainClass = 'com.moneydance.admin.KeyAdmin'
+            args = ['genkey', extPrivKeyFile, extPubKeyFile]
+        }
+    }
+}
+
+// =============================================================================
+// Helper function to sign MXT files
+// =============================================================================
+
+ext.signMxt = { String featureName, File mxtFile ->
+    println "SIGNING ${featureName}.mxt using key ${extPrivKeyFile} (ID: ${privKeyId}):"
+
+    javaexec {
+        def cp = files(fileTree(libDir) { include '*.jar' })
+        if (mdExtLibDir) {
+            cp = cp + fileTree(dir: mdExtLibDir, include: '*.jar')
+        }
+        classpath = cp
+        mainClass = 'com.moneydance.admin.KeyAdmin'
+        systemProperty 'moneydance_key_pass', keyPass
+        args = ['signextjar', extPrivKeyFile, privKeyId, featureName, mxtFile.absolutePath]
+    }
+
+    // Move signed file
+    def signedFile = file("s-${featureName}.mxt")
+    def distSignedFile = file("${distDir}/s-${featureName}.mxt")
+
+    if (signedFile.exists()) {
+        signedFile.renameTo(distSignedFile)
+    }
+    if (distSignedFile.exists()) {
+        distSignedFile.renameTo(mxtFile)
+    }
+
+    println "FINISHED signing mxt..."
+}
+
+// =============================================================================
+// Create Build Tasks for Java/Kotlin Extensions
+// =============================================================================
+
+// Compile mrbutil (shared utility library) - used by several extensions
+task compileMrbutil {
+    group = 'build'
+    description = 'Compile mrbutil shared library'
+    dependsOn 'initBuild'
+
+    def mrbDir = 'com/moneydance/modules/features/mrbutil'
+    def outputDir = file("${buildDir}/classes")
+
+    inputs.dir(mrbDir)
+    outputs.dir(outputDir)
+
+    doFirst {
+        outputDir.mkdirs()
+    }
+
+    doLast {
+        def hasJava = !fileTree(mrbDir) { include '**/*.java'; exclude '**/Graph**' }.isEmpty()
+        if (hasJava) {
+            def cp = files(fileTree(libDir) { include '*.jar' })
+            if (mdExtLibDir) {
+                cp = cp + fileTree(dir: mdExtLibDir, include: '*.jar')
+            }
+
+            ant.javac(
+                srcdir: '.',
+                destdir: outputDir.absolutePath,
+                debug: 'true',
+                encoding: 'utf8',
+                includeantruntime: 'false',
+                includes: "${mrbDir}/**/*.java",
+                excludes: "${mrbDir}/Graph**"
+            ) {
+                classpath {
+                    path(path: cp.asPath)
+                }
+                compilerarg(value: '--release')
+                compilerarg(value: javaVersionNum)
+                compilerarg(value: '-Xlint:-options')
+            }
+        }
+    }
+}
+
+javaKotlinExtensions.each { config ->
+    def featureName = config.name
+    def featureDir = "com/moneydance/modules/features/${featureName}"
+    def extraClasspath = config.extraClasspath ?: []
+    def jarExtraIncludes = config.jarExtraIncludes ?: []
+    def dependsOnMrbutil = config.dependsOnMrbutil ?: false
+
+    // Create main build task - compiles feature-specific sources
+    task "${featureName}" {
+        group = 'extensions'
+        description = "Build ${featureName}.mxt extension"
+        dependsOn 'initBuild'
+        if (dependsOnMrbutil) {
+            dependsOn 'compileMrbutil'
+        }
+
+        def mxtFile = file("${distDir}/${featureName}.mxt")
+        def outputDir = file("${buildDir}/classes")
+
+        inputs.dir(featureDir)
+        outputs.file mxtFile
+
+        doFirst {
+            println "BUILD of '${featureName}' extension started..."
+            delete mxtFile
+            outputDir.mkdirs()
+        }
+
+        doLast {
+            def extraCp = extraClasspath.collect { file("${libDir}/${it}") }
+            def cp = files(fileTree(libDir) { include '*.jar' }, outputDir, extraCp)
+            if (mdExtLibDir) {
+                cp = cp + fileTree(dir: mdExtLibDir, include: '*.jar')
+            }
+
+            // Check for Kotlin and Java files
+            def hasKotlin = !fileTree(featureDir) { include '**/*.kt' }.isEmpty()
+            def hasJava = !fileTree(featureDir) { include '**/*.java' }.isEmpty()
+
+            println "... compiling ${featureName} (Java: ${hasJava}, Kotlin: ${hasKotlin})..."
+
+            // Stage sources to isolated directory (prevents cross-contamination)
+            def featureSrcDir = file("${buildDir}/feature-src/${featureName}")
+            delete featureSrcDir
+            featureSrcDir.mkdirs()
+
+            copy {
+                from featureDir
+                into "${featureSrcDir}/${featureDir}"
+                include '**/*.java', '**/*.kt'
+            }
+
+            // Compile Java and Kotlin
+            if (hasKotlin || hasJava) {
+                // Compile Kotlin files first using kotlinc command line
+                if (hasKotlin) {
+                    def kotlinDir = getProp('kotlindir', '/opt/homebrew/opt/kotlin/libexec')
+                    def kotlinc = "${kotlinDir}/bin/kotlinc"
+
+                    // Build kotlinc arguments
+                    def ktArgs = [
+                        '-jvm-target', javaVersionNum,
+                        '-language-version', kotlinApiVersion,
+                        '-api-version', kotlinApiVersion,
+                        '-Xjvm-default=all',
+                        '-nowarn',
+                        '-d', outputDir.absolutePath,
+                        '-cp', cp.asPath
+                    ]
+
+                    // Add source files
+                    fileTree(featureSrcDir) { include '**/*.kt' }.each { ktArgs << it.absolutePath }
+
+                    exec {
+                        executable = kotlinc
+                        args = ktArgs
+                    }
+                }
+
+                // Compile Java files
+                if (hasJava) {
+                    ant.javac(
+                        srcdir: featureSrcDir.absolutePath,
+                        destdir: outputDir.absolutePath,
+                        debug: 'true',
+                        encoding: 'utf8',
+                        includeantruntime: 'false'
+                    ) {
+                        classpath {
+                            path(path: cp.asPath)
+                        }
+                        compilerarg(value: '--release')
+                        compilerarg(value: javaVersionNum)
+                        compilerarg(value: '-Xlint:-options')
+                    }
+                }
+            }
+
+            println "... BUILDING jar file..."
+
+            // Build the JAR/MXT
+            ant.jar(destfile: mxtFile.absolutePath) {
+                // Include compiled classes for this feature
+                if (outputDir.exists()) {
+                    fileset(dir: outputDir.absolutePath) {
+                        include(name: "${featureDir}/**/*.class")
+                        if (dependsOnMrbutil) {
+                            include(name: "com/moneydance/modules/features/mrbutil/**/*.class")
+                        }
+                    }
+                }
+
+                // Include resources from source (images, etc)
+                fileset(dir: '.') {
+                    include(name: "${featureDir}/**/*")
+                    include(name: "license.txt")
+                    exclude(name: "**/*.java")
+                    exclude(name: "**/*.kt")
+                    exclude(name: "**/*.class")
+                }
+
+                // Include contact files at root of MXT
+                fileset(dir: featureDir) {
+                    include(name: "contact.*")
+                }
+
+                // Include extra JAR contents if specified
+                extraClasspath.each { jarName ->
+                    def jarFile = file("${libDir}/${jarName}")
+                    if (jarFile.exists()) {
+                        zipfileset(src: jarFile.absolutePath)
+                    }
+                }
+            }
+
+            // Sign the MXT
+            if (!dontSign) {
+                signMxt(featureName, mxtFile)
+            }
+
+            println "BUILD of '${featureName}' extension COMPLETED"
+        }
+    }
+
+    // Create clean task
+    task "clean${featureName.capitalize()}"(type: Delete) {
+        group = 'build'
+        description = "Clean ${featureName} build artifacts"
+        delete file("${distDir}/${featureName}.mxt")
+        delete file("${distDir}/s-${featureName}.mxt")
+    }
+}
+
+// =============================================================================
+// Create Build Tasks for Python Extensions
+// =============================================================================
+
+pythonExtensions.each { config ->
+    def featureName = config.name
+    def pythonBase = file("${pythonSrcDir}/${featureName}")
+    def preCompile = config.preCompile ?: false
+
+    if (preCompile) {
+        task "preCompile${featureName.capitalize()}" {
+            group = 'python'
+            description = "Pre-compile Python for ${featureName}"
+
+            def pyFile = file("${pythonBase}/${featureName}.py")
+            def pycFile = file("${pythonBase}/${featureName}.pyc")
+            def pyClassFile = file("${pythonBase}/${featureName}\$py.class")
+
+            inputs.file pyFile
+            outputs.files pycFile, pyClassFile
+
+            onlyIf { !dontCompile }
+
+            doLast {
+                println "PRE-COMPILING Jython to create CPython bytecode .pyc file"
+
+                // Delete old compiled files
+                delete pycFile, pyClassFile
+
+                // Compile to .pyc using Python
+                exec {
+                    executable = pythonExecutable
+                    args = ['-m', 'py_compile', pyFile.absolutePath]
+                }
+
+                // Compile to $py.class using Jython
+                println "COMPILING Jython script to create java \$py.class file"
+                javaexec {
+                    classpath = files(fileTree(libDir) { include '*.jar' })
+                    mainClass = 'org.python.util.jython'
+                    args = ['-c', "import compileall; compileall.compile_file('${pyFile.absolutePath}')"]
+                }
+
+                println "COMPILATION routines COMPLETED"
+            }
+        }
+    }
+
+    task "${featureName}" {
+        group = 'extensions'
+        description = "Build ${featureName}.mxt Python extension"
+        dependsOn 'initBuild'
+
+        if (preCompile) {
+            dependsOn "preCompile${featureName.capitalize()}"
+        }
+
+        def mxtFile = file("${distDir}/${featureName}.mxt")
+        outputs.file mxtFile
+
+        onlyIf { !dontSign }
+
+        doLast {
+            println "SIGNING ${featureName}.mxt using key ${extPrivKeyFile} (ID: ${privKeyId}):"
+
+            javaexec {
+                def cp = files(fileTree(libDir) { include '*.jar' })
+                if (mdExtLibDir) {
+                    cp = fileTree(dir: mdExtLibDir, include: '*.jar') + cp
+                }
+                classpath = cp
+                mainClass = 'com.moneydance.admin.PythonExtensionPackager'
+                systemProperty 'moneydance_key_pass', keyPass
+                args = [extPrivKeyFile, privKeyId, featureName, pythonBase.absolutePath, distDir.absolutePath]
+            }
+
+            // Clean up compiled files in source directory
+            delete file("${pythonBase}/${featureName}.pyc")
+            delete file("${pythonBase}/${featureName}\$py.class")
+        }
+    }
+
+    // Create clean task
+    task "clean${featureName.capitalize()}"(type: Delete) {
+        group = 'build'
+        description = "Clean ${featureName} build artifacts"
+        delete file("${distDir}/${featureName}.mxt")
+        delete file("${distDir}/s-${featureName}.mxt")
+    }
+}
+
+// =============================================================================
+// Aggregate Tasks
+// =============================================================================
+
+def mainJavaKotlinExtensions = [
+    'yahooqt', 'yahoofx', 'priceui', 'findandreplace', 'debtinsights', 'ratios',
+    'stockglance', 'securityquoteload', 'securitypriceload', 'securityhistoryload',
+    'loadsectrans', 'qifloader', 'filedisplay', 'budgetgen', 'budgetreport',
+    'mousetester', 'contextmenutools'
+]
+
+task allJavaKotlin {
+    group = 'build'
+    description = 'Build all main Java/Kotlin extensions'
+    dependsOn mainJavaKotlinExtensions
+}
+
+task allPython {
+    group = 'build'
+    description = 'Build all Python extensions'
+    dependsOn pythonExtensions.collect { it.name }
+}
+
+task all {
+    group = 'build'
+    description = 'Build all extensions (Java/Kotlin and Python)'
+    dependsOn 'allJavaKotlin', 'allPython'
+}
+
+// =============================================================================
+// Clean Tasks
+// =============================================================================
+
+task cleanAll(type: Delete) {
+    group = 'build'
+    description = 'Remove all built artifacts and transient build files'
+    delete distDir, file('build')
+}
+
+task cleanMrbutil(type: Delete) {
+    group = 'build'
+    description = 'Clean mrbutil build artifacts'
+}
+
+// =============================================================================
+// ReportWriter - Special build with embedded libraries
+// =============================================================================
+
+def reportWriterLibs = [
+    'h2-1.4.200.jar',
+    'opencsv-5.2.jar',
+    'poi-4.1.2.jar',
+    'poi.excelant-4.1.2.jar',
+    'poi-ooxml-4.1.2.jar',
+    'poi-ooxml-schemas-4.1.2.jar',
+    'SparseBitSet-1.2.jar',
+    'commons-codec-1.13.jar',
+    'commons-collections4-4.4.jar',
+    'commons-compress-1.19.jar',
+    'commons-math3-3.6.1.jar',
+    'jaxb-api-2.3.1.jar',
+    'jaxb-core-2.3.0.1.jar',
+    'jaxb-impl-2.3.2.jar',
+    'org.apache.commons.io.jar',
+    'xmlbeans-3.1.0.jar'
+]
+
+task reportwriter {
+    group = 'extensions'
+    description = 'Build reportwriter.mxt extension with embedded libraries'
+    dependsOn 'initBuild', 'compileMrbutil'
+
+    def featureDir = 'com/moneydance/modules/features/reportwriter'
+    def mxtFile = file("${distDir}/reportwriter.mxt")
+    def outputDir = file("${buildDir}/classes")
+
+    inputs.dir(featureDir)
+    outputs.file mxtFile
+
+    doFirst {
+        outputDir.mkdirs()
+    }
+
+    doLast {
+        // Build classpath including the extra reportwriter libraries
+        def reportWriterCp = reportWriterLibs.collect { file("${libDir}/${it}") }.findAll { it.exists() }
+        def cp = files(fileTree(libDir) { include '*.jar' }, outputDir, reportWriterCp)
+        if (mdExtLibDir) {
+            cp = cp + fileTree(dir: mdExtLibDir, include: '*.jar')
+        }
+
+        // Compile Java files
+        ant.javac(
+            srcdir: '.',
+            destdir: outputDir.absolutePath,
+            debug: 'true',
+            encoding: 'utf8',
+            includeantruntime: 'false',
+            includes: "${featureDir}/**/*.java"
+        ) {
+            classpath {
+                path(path: cp.asPath)
+            }
+            compilerarg(value: '--release')
+            compilerarg(value: javaVersionNum)
+            compilerarg(value: '-Xlint:-options')
+        }
+
+        // Build JAR with embedded libraries
+        ant.jar(destfile: mxtFile.absolutePath) {
+            // Include source resources
+            fileset(dir: '.') {
+                include(name: "${featureDir}/**/*")
+                exclude(name: "**/*.java")
+                exclude(name: "**/*.kt")
+            }
+
+            // Include compiled classes
+            if (outputDir.exists()) {
+                fileset(dir: outputDir.absolutePath) {
+                    include(name: "${featureDir}/**/*.class")
+                    include(name: 'com/moneydance/modules/features/mrbutil/**/*.class')
+                }
+            }
+
+            // Embed all the extra libraries
+            reportWriterLibs.each { jarName ->
+                def jarFile = file("${libDir}/${jarName}")
+                if (jarFile.exists()) {
+                    zipgroupfileset(dir: libDir.absolutePath, includes: "**/${jarName}")
+                }
+            }
+        }
+
+        // Sign
+        if (!dontSign) {
+            signMxt('reportwriter', mxtFile)
+        }
+    }
+}
+
+task cleanReportwriter(type: Delete) {
+    group = 'build'
+    description = 'Clean reportwriter build artifacts'
+    dependsOn cleanMrbutil
+    delete file("${distDir}/reportwriter.mxt")
+    delete file("${distDir}/s-reportwriter.mxt")
+}
+
+// =============================================================================
+// Alias Tasks (for backwards compatibility with ant target names)
+// =============================================================================
+
+task quoteloader {
+    group = 'extensions'
+    description = 'Alias for securityquoteload'
+    dependsOn 'securityquoteload'
+}
+
+task all_java_kotlin {
+    group = 'build'
+    description = 'Alias for allJavaKotlin (ant compatibility)'
+    dependsOn 'allJavaKotlin'
+}
+
+task all_python {
+    group = 'build'
+    description = 'Alias for allPython (ant compatibility)'
+    dependsOn 'allPython'
+}
+
+// Note: 'init' is a built-in Gradle task, use 'initBuild' instead
+
+// =============================================================================
+// Default Task
+// =============================================================================
+
+build.dependsOn all
+
+// Print build info
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(':initBuild') || graph.hasTask(':all')) {
+        println "Gradle build for Moneydance Extensions"
+        println "Java version: ${javaVersionNum}"
+        println "Kotlin version: ${kotlinVersion}"
+    }
+}

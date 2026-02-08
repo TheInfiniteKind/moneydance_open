@@ -1,0 +1,5 @@
+rootProject.name = 'moneydance-open'
+
+// Moneydance Open Extensions Build
+// This project builds extensions for Moneydance personal finance software.
+// Extensions include Java/Kotlin and Python-based modules.
