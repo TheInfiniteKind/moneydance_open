@@ -108,7 +108,7 @@ public final class BudgetPreferences extends Observable {
     protected void saveDefaults(final Hashtable<String, String> hashtable) {
         if (hashtable != null) {
         	//thisTable = new StreamTable();
-        	this.defaults.merge(hashtable);
+          this.defaults.putAll(hashtable);
         }
 
         this.getUserPreferences().setSetting("ragebudget.default", this.defaults);
@@ -119,7 +119,7 @@ public final class BudgetPreferences extends Observable {
         StreamTable thisTable = null;
         if (hashtable != null) {
         	thisTable = new StreamTable();
-            thisTable.merge(hashtable);
+          this.defaults.putAll(hashtable);
         }
 
         this.getUserPreferences().setSetting("ragebudget.publish", thisTable);
